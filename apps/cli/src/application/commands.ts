@@ -93,9 +93,17 @@ export const runCommand = (
 			io.err(r.error.message);
 			return 1;
 		}
+		// Nothing awaits the handler, so a throwing cancel is reported; Ctrl+C again retries it.
 		const stopWatching = io.onInterrupt(() => {
 			const id = run.runId();
-			if (id) void engine.cancel(id);
+			if (id)
+				engine
+					.cancel(id)
+					.catch((e: unknown) =>
+						io.err(
+							`could not cancel the run: ${e instanceof Error ? e.message : String(e)}`,
+						),
+					);
 		});
 		const status = await run.ended;
 		stopWatching();

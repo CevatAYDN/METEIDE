@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { ChatChunk } from "@mete/contracts";
+import { type ChatChunk, ok, type TeamEngineAdapter } from "@mete/contracts";
+import { createCapabilityRegistry, createEventBus } from "@mete/kernel";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	keyCommand,
@@ -8,7 +9,7 @@ import {
 	statusCommand,
 	stopCommand,
 } from "../src/application/commands.js";
-import { createApp } from "../src/infrastructure/app.js";
+import { type App, createApp } from "../src/infrastructure/app.js";
 import {
 	type Behaviour,
 	memorySecrets,
@@ -19,6 +20,8 @@ import {
 } from "./helpers.js";
 
 // Every real Phase 1 module in one process; only the provider behind the gateway is scripted.
+
+const RUN = "7f3c2a1e-4b5d-4c6e-8f9a-0b1c2d3e4f5a";
 
 const finish = (reason: "stop" | "tool-calls"): ChatChunk => ({
 	type: "finish",
@@ -116,6 +119,41 @@ describe("mete run", () => {
 		t.interrupt();
 		expect(await running).toBe(1);
 		expect(t.out.at(-1)).toBe("cancelled");
+	});
+});
+
+describe("mete run with an engine that throws", () => {
+	it("reports a cancel that throws on Ctrl+C instead of leaving it unhandled", async () => {
+		const registry = createCapabilityRegistry(() => []);
+		const engine: TeamEngineAdapter = {
+			start: async () => ok({ runId: RUN }),
+			pause: async () => ok(undefined),
+			resume: async () => ok(undefined),
+			cancel: async () => {
+				throw new Error("SQLITE_BUSY");
+			},
+			status: () => ok([]),
+		};
+		registry.provide("team.engine@1", {
+			id: "fake-engine",
+			trust: "core",
+			features: [],
+			impl: engine,
+		});
+		const app = {
+			registry,
+			events: createEventBus((e) => {
+				throw e;
+			}),
+			inactive: [],
+		} as unknown as App;
+		const t = recordingIo();
+		void runCommand(app, t.io, { resume: RUN });
+		await vi.waitFor(() => expect(t.interrupt).toBeDefined());
+		t.interrupt();
+		await vi.waitFor(() =>
+			expect(t.err).toContain("could not cancel the run: SQLITE_BUSY"),
+		);
 	});
 });
 
