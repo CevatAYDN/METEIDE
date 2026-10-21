@@ -1,0 +1,161 @@
+import {
+	type ChatChunk,
+	type ChatMessage,
+	err,
+	type LlmChatAdapter,
+	type LlmChunk,
+	type LlmError,
+	ok,
+	type Result,
+	type ToolCall,
+	type ToolContext,
+	type VcsGitAdapter,
+} from "@mete/contracts";
+import type { CapabilityRegistry } from "@mete/kernel";
+import { z } from "zod";
+import type { EventBody } from "../domain/run-events.js";
+import { toolName, toolSpec, WORKSPACE_TOOLS } from "../domain/tools.js";
+
+// One model call, one tool call and one checkpoint of a single-agent run (docs/08, Single agent).
+
+type Assistant = Extract<ChatMessage, { role: "assistant" }>;
+type ToolMessage = Extract<ChatMessage, { role: "tool" }>;
+type Finish = Extract<ChatChunk, { type: "finish" }>["reason"];
+type ModelChunk = Extract<LlmChunk, { type: "model" }>;
+
+/** What the steps need from the module. */
+export type StepDeps = {
+	readonly registry: CapabilityRegistry;
+	readonly now: () => number;
+};
+
+/** Publishes an event of the current run. */
+export type Emit = (body: EventBody) => void;
+
+/** How one model call ended; `missing` means no llm.chat@1 adapter is active. */
+export type ModelOutcome =
+	| {
+			readonly kind: "replied";
+			readonly message: Assistant;
+			readonly finish: Finish;
+	  }
+	| { readonly kind: "error"; readonly error: LlmError }
+	| { readonly kind: "missing" };
+
+const SPECS = WORKSPACE_TOOLS.map((t) => ({ ref: t.ref, spec: toolSpec(t) }));
+
+const read = async (
+	chunks: AsyncIterable<LlmChunk>,
+	onModel: (c: ModelChunk) => void,
+): Promise<ModelOutcome> => {
+	let content = "";
+	const calls: ToolCall[] = [];
+	for await (const c of chunks) {
+		if (c.type === "model") onModel(c);
+		else if (c.type === "text") content += c.text;
+		else if (c.type === "tool-call")
+			calls.push({ id: c.id, name: c.name, args: c.args });
+		else if (c.type === "finish") {
+			const toolCalls = calls.length > 0 ? { toolCalls: calls } : {};
+			const message: Assistant = { role: "assistant", content, ...toolCalls };
+			return { kind: "replied", message, finish: c.reason };
+		} else return { kind: "error", error: c.error };
+	}
+	const message = "the model stream ended without a finish";
+	return { kind: "error", error: { code: "server", message } };
+};
+
+/** Asks the coder tier for the next reply, offering every workspace tool that is active. */
+export const callModel = async (
+	deps: StepDeps,
+	run: { runId: string; priority: 0 | 1 | 2; messages: readonly ChatMessage[] },
+	onModel: (c: ModelChunk) => void,
+	signal: AbortSignal,
+): Promise<ModelOutcome> => {
+	const chain = deps.registry.resolve<LlmChatAdapter>("llm.chat@1");
+	if (!chain.ok) return { kind: "missing" };
+	const tools = SPECS.filter((s) => deps.registry.has(s.ref)).map(
+		(s) => s.spec,
+	);
+	const chunks = chain.value[0].impl.chat(
+		{
+			target: { tier: "coder" },
+			needs: ["tool_calling"],
+			runId: run.runId,
+			priority: run.priority,
+			messages: [...run.messages],
+			...(tools.length > 0 ? { tools } : {}),
+		},
+		signal,
+	);
+	return read(chunks, onModel);
+};
+
+/** How one tool call ended; `approval` means the policy asked and nothing ran. */
+export type ToolOutcome =
+	| { readonly kind: "result"; readonly message: ToolMessage }
+	| { readonly kind: "approval"; readonly rule: string };
+
+type Failure = { readonly code: string; readonly message: string };
+type AnyTool = {
+	run(input: unknown, ctx: ToolContext): Promise<Result<unknown, Failure>>;
+};
+
+const result = (call: ToolCall, r: Result<unknown, Failure>): ToolOutcome => ({
+	kind: "result",
+	message: { role: "tool", toolCallId: call.id, content: JSON.stringify(r) },
+});
+
+const refused = (call: ToolCall, code: string, message: string) =>
+	result(call, err({ code, message }));
+
+/** Runs one tool call after checking its arguments against the schema the model was offered. */
+export const callTool = async (
+	deps: StepDeps,
+	call: ToolCall,
+	ctx: ToolContext,
+	emit: Emit,
+): Promise<ToolOutcome> => {
+	const entry = WORKSPACE_TOOLS.find((t) => toolName(t.ref) === call.name);
+	if (!entry) return refused(call, "bad_input", `unknown tool ${call.name}`);
+	const args = entry.schema.safeParse(call.args);
+	if (!args.success)
+		return refused(call, "bad_input", z.prettifyError(args.error));
+	const chain = deps.registry.resolve<AnyTool>(entry.ref);
+	if (!chain.ok)
+		return refused(call, "capability_missing", `${entry.ref} is not active`);
+	const [adapter] = chain.value;
+	const capability = entry.ref;
+	emit({
+		type: "agent.tool.called",
+		payload: { capability, adapterId: adapter.id },
+	});
+	const t0 = deps.now();
+	const out = await adapter.impl.run(args.data, ctx);
+	const durationMs = Math.max(0, deps.now() - t0);
+	emit({
+		type: "agent.tool.completed",
+		payload: { capability, ok: out.ok, durationMs },
+	});
+	if (!out.ok && out.error.code === "approval_required" && "rule" in out.error)
+		return { kind: "approval", rule: String(out.error.rule) };
+	return result(call, out);
+};
+
+/** Records the working tree before a writing step; no vcs.git@1 means no checkpoint (Phase 4). */
+export const createCheckpoint = async (
+	deps: StepDeps,
+	runId: string,
+	signal: AbortSignal,
+): Promise<Result<string | undefined, string>> => {
+	const chain = deps.registry.resolve<VcsGitAdapter>("vcs.git@1");
+	if (!chain.ok) return ok(undefined);
+	const r = await chain.value[0].impl.run(
+		{ op: "checkpoint.create", runId },
+		{ runId, signal },
+	);
+	if (!r.ok) return err(r.error.message);
+	return r.value.op === "checkpoint.create"
+		? ok(r.value.ref)
+		: err(`unexpected ${r.value.op} result`);
+};

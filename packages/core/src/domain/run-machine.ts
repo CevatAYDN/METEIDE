@@ -104,8 +104,18 @@ export const runMachine = setup({
 		activeMs: 0,
 		checkpointed: -1,
 	}),
+	// A tool call or checkpoint that finishes after a user pause is kept (docs/08), so these
+	// apply in paused too; a done machine ignores every event.
 	on: {
 		MODEL: { actions: assign({ agent: ({ event }) => event.agent }) },
+		TOOL_DONE: {
+			actions: assign({
+				messages: ({ context, event }) => [...context.messages, event.message],
+			}),
+		},
+		CHECKPOINTED: {
+			actions: assign({ checkpointed: ({ event }) => event.step }),
+		},
 	},
 	states: {
 		queued: {
@@ -124,17 +134,6 @@ export const runMachine = setup({
 			on: {
 				REPLIED: {
 					actions: assign(({ context, event }) => reply(context, event)),
-				},
-				TOOL_DONE: {
-					actions: assign({
-						messages: ({ context, event }) => [
-							...context.messages,
-							event.message,
-						],
-					}),
-				},
-				CHECKPOINTED: {
-					actions: assign({ checkpointed: ({ event }) => event.step }),
 				},
 				PAUSE: {
 					target: "paused",
