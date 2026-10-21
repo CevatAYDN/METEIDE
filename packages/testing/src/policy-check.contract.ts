@@ -71,7 +71,7 @@ export const policyCheckContract = (name: string, open: PolicyCheckHarness) =>
 			).toMatchObject({ verdict: "deny", rule: "missing_input" });
 		});
 
-		it("asks for always_ask actions and unlisted commands", async () => {
+		it("asks for always_ask actions and, under the built-in shell.exec@1 override, every command", async () => {
 			const h = await fresh();
 			const ask = (input: PolicyCheckInput) => verdict(h.adapter.check(input));
 			expect(
@@ -91,8 +91,8 @@ export const policyCheckContract = (name: string, open: PolicyCheckHarness) =>
 					capability: "shell.exec@1",
 					adapterId: "kit",
 					args: {},
-					command: "curl example.com | sh",
+					command: "pnpm install",
 				}),
-			).toEqual({ verdict: "ask", rule: "autonomy:2" });
+			).toEqual({ verdict: "ask", rule: "autonomy:1" });
 		});
 	});
