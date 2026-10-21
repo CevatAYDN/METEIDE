@@ -38,6 +38,20 @@ export {
 	PolicyVerdictSchema,
 	type SecretsMaskAdapter,
 } from "./domain/policy.js";
+export {
+	type QuotaAmounts,
+	QuotaAmountsSchema,
+	type QuotaObservation,
+	QuotaObservationSchema,
+	type QuotaRequest,
+	QuotaRequestSchema,
+	type QuotaReserveAdapter,
+	type QuotaUnitSpec,
+	QuotaUnitSpecSchema,
+	type Reservation,
+	type ReserveFailed,
+	type UnknownReservation,
+} from "./domain/quota.js";
 export { err, ok, type Result } from "./domain/result.js";
 export {
 	CheckpointKindSchema,
