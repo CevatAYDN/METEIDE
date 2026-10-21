@@ -48,7 +48,7 @@ This is the only valid technology list. Anything not listed here needs an ADR be
 | Schemas | Zod | Contracts, configuration, artifacts, structured outputs |
 | Workflow engine | XState v5 | Team engine, run and task state machines, actors, snapshot persistence; the kernel's module lifecycle is a plain transition table |
 | Concurrency | p-queue + METE token buckets | Quota scheduling |
-| Database | SQLite through better-sqlite3 (WAL) + Drizzle ORM | Runs, tasks, events, indexes; migrations are hand-written SQL run by `@mete/storage` (drizzle-kit's generated journal is not used) |
+| Database | SQLite through better-sqlite3 (WAL) + Drizzle ORM | Runs, tasks, events, indexes; migrations are hand-written SQL run by `@mete/storage` (drizzle-kit's generated journal is not used); storage's own events and ledger statements are plain SQL, Drizzle is for module tables |
 | Keyword search | SQLite FTS5 | Built into SQLite |
 | Vector search | sqlite-vec | Same database file |
 | RPC | vscode-jsonrpc | Daemon, plugins, LSP-style protocols |
