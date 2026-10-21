@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import type {
 	ModuleManifest,
 	Result,
@@ -39,6 +40,12 @@ import { moduleLogger } from "./log.js";
 
 // The CLI's composition root (ARCHITECTURE.md, CLI): one workspace, every Phase 1 module in
 // this process, the lifecycle stopped before exit.
+
+// The repository's templates/ folder, four levels up from src/ and dist/ files (ARCHITECTURE.md).
+// shortcut: found through the source tree; packaged builds ship templates with the desktop (Phase 5).
+const BUILT_IN_TEMPLATES = fileURLToPath(
+	new URL("../../../../templates/", import.meta.url),
+);
 
 /** What the app is built from; secrets and providers are replaceable for tests. */
 export type AppOptions = {
@@ -89,7 +96,12 @@ const modulesFor = (opts: AppOptions, workspaceId: string): MeteModule[] => {
 		createToolsFsModule(dirs),
 		createToolsShellModule(dirs),
 		createVcsGitModule(dirs),
-		createCoreEngineModule({ workspaceId, recover: opts.recover !== false }),
+		createCoreEngineModule({
+			workspaceId,
+			recover: opts.recover !== false,
+			templates: { builtIn: BUILT_IN_TEMPLATES, workspace: opts.workspaceDir },
+			workspaceDir: opts.workspaceDir,
+		}),
 	];
 };
 

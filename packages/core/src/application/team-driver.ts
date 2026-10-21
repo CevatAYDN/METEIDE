@@ -208,12 +208,18 @@ const waitForHuman = (
 	team: TeamState,
 	ids: readonly string[],
 ) => {
-	if (!apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" }))
-		return;
+	const pause = {
+		type: "PAUSE",
+		at: s.deps.now(),
+		reason: "approval",
+	} as const;
+	if (!l.snapshot.can(pause)) return;
+	// Before the pause, so a terminal that stops following at the pause still shows them.
 	const payload = { approver: "human" };
 	for (const id of ids)
 		if (team.tasks[id]?.status === "submitted")
 			emit(s, l, { type: "approval.requested", payload }, team.tasks[id]?.id);
+	apply(s, l, pause);
 };
 
 /** Moves a team run whose active task is not in progress. */

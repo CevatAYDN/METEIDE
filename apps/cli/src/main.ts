@@ -6,6 +6,7 @@ import { createKeychainStore } from "@mete/security";
 import {
 	type Io,
 	keyCommand,
+	type RunWhat,
 	runCommand,
 	statusCommand,
 	stopCommand,
@@ -24,7 +25,10 @@ import {
 const USAGE = [
 	"usage:",
 	'  mete run "<goal>"            run a single agent on the goal in this folder',
+	'  mete run --template <id> "<goal>"   run a team template on the goal',
 	"  mete run --resume <run id>   resume a paused run",
+	"  mete approve <run id> [<task id>]   approve a team task that waits for you",
+	'  mete revise <run id> <task id> "<feedback>"   send it back with feedback',
 	"  mete status [<run id>]       list the runs of this folder",
 	"  mete stop <run id> | --all   cancel paused runs",
 	"  mete key set|delete <provider id>, mete key list",
@@ -32,6 +36,7 @@ const USAGE = [
 
 const OPTIONS = {
 	resume: { type: "string" },
+	template: { type: "string" },
 	all: { type: "boolean" },
 	help: { type: "boolean", short: "h" },
 } as const;
@@ -85,14 +90,33 @@ const unlessDriven = async (
 	return 1;
 };
 
-const run = (
-	opts: AppOptions,
-	io: Io,
-	what: { goal: string } | { resume: string },
-) =>
-	"resume" in what || what.goal
+const run = (opts: AppOptions, io: Io, what: RunWhat) =>
+	!("goal" in what) || what.goal
 		? locked(opts, io, () => withApp(opts, io, (a) => runCommand(a, io, what)))
 		: usage(io);
+
+// mete approve <run id> [<task id>] and mete revise <run id> <task id> "<feedback>".
+const answer = (
+	opts: AppOptions,
+	io: Io,
+	[runId, taskId, ...words]: readonly string[],
+	decision: "approve" | "revise",
+) => {
+	const feedback = words.join(" ").trim();
+	if (!runId || (decision === "revise" && (!taskId || !feedback)))
+		return usage(io);
+	const input = {
+		decision,
+		...(taskId ? { taskId } : {}),
+		...(feedback ? { feedback } : {}),
+	};
+	return run(opts, io, { approve: runId, input });
+};
+
+const goalOf = (p: Parsed, goal: string): RunWhat => {
+	if (p.values.resume) return { resume: p.values.resume };
+	return p.values.template ? { goal, templateId: p.values.template } : { goal };
+};
 
 const stop = (reader: AppOptions, io: Io, target: string | undefined) =>
 	target
@@ -111,11 +135,10 @@ const dispatch = (
 	const goal = rest.join(" ").trim();
 	switch (command) {
 		case "run":
-			return run(
-				opts,
-				io,
-				p.values.resume ? { resume: p.values.resume } : { goal },
-			);
+			return run(opts, io, goalOf(p, goal));
+		case "approve":
+		case "revise":
+			return answer(opts, io, rest, command);
 		case "status":
 			return withApp(reader, io, (a) => statusCommand(a, io, rest[0]));
 		case "stop":

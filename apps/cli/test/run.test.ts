@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type ChatChunk, ok, type TeamEngineAdapter } from "@mete/contracts";
 import { createCapabilityRegistry, createEventBus } from "@mete/kernel";
@@ -141,6 +141,65 @@ describe("mete run", () => {
 		t.interrupt();
 		expect(await running).toBe(1);
 		expect(t.out.at(-1)).toBe("cancelled");
+	});
+});
+
+// Two tasks of one coder role; the human checks the second before the run completes.
+const DUO = `apiVersion: mete/v1
+kind: TeamTemplate
+metadata: { id: duo, name: Duo, version: 1.0.0 }
+pattern: pipeline
+roles:
+  - { id: writer, name: Writer, goal: Write, tier: coder, capabilities: [] }
+tasks:
+  - { id: notes, role: writer, title: Take notes }
+  - { id: summary, role: writer, title: Summarize, context: [notes], expected_output: "artifact:research-report@1" }
+policies: { human_checkpoints: [summary] }
+`;
+
+const say = (text: string): ChatChunk[] => [
+	{ type: "text", text },
+	finish("stop"),
+];
+
+describe("mete run --template and mete approve", () => {
+	it("stops a team run at a human checkpoint and finishes it on approve", async () => {
+		const { repo, app } = await setup({
+			script: [say("three notes"), say("one summary")],
+		});
+		await mkdir(join(repo.workspaceDir, ".mete", "teams"), { recursive: true });
+		await writeFile(join(repo.workspaceDir, ".mete", "teams", "duo.yaml"), DUO);
+		const t = recordingIo();
+		expect(
+			await runCommand(app, t.io, { goal: "free models", templateId: "duo" }),
+		).toBe(2);
+		expect(t.out).toEqual(
+			expect.arrayContaining([
+				"task  Take notes (writer)",
+				"task  Summarize: submitted",
+				"waiting for human: Summarize",
+			]),
+		);
+		expect(t.err[0]).toBe("A team task waits for you. Approve it with:");
+		const runId = /^run (\S+) started$/.exec(t.out[0] ?? "")?.[1] ?? "";
+		const after = recordingIo();
+		const input = { decision: "approve" as const };
+		expect(await runCommand(app, after.io, { approve: runId, input })).toBe(0);
+		expect(after.out).toEqual(
+			expect.arrayContaining([
+				// A new process has not seen task.created, so it names the task by its short id.
+				expect.stringMatching(/^human approved: [0-9a-f]{8}$/),
+				"completed\none summary",
+			]),
+		);
+		const artifact = join(
+			repo.workspaceDir,
+			".mete",
+			"artifacts",
+			runId,
+			"summary.md",
+		);
+		expect(await readFile(artifact, "utf8")).toBe("one summary");
 	});
 });
 

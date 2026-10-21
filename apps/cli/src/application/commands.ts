@@ -1,4 +1,5 @@
 import type {
+	ApprovalInput,
 	MeteEvent,
 	RunView,
 	SecretStore,
@@ -25,6 +26,8 @@ type Ended = RunView["status"];
 
 type Followed = {
 	target: string | undefined;
+	/** Task titles by Task id, from task.created. */
+	titles: Map<string, string>;
 	/** The pause reason or the failure code of the run's last stop. */
 	why: string | undefined;
 	done: (status: Ended) => void;
@@ -39,18 +42,32 @@ const whyOf = (e: MeteEvent) => {
 const show = (f: Followed, io: Io, e: MeteEvent) => {
 	if (f.target === undefined && e.type === "run.created") f.target = e.runId;
 	if (e.runId === undefined || e.runId !== f.target) return;
-	const line = eventLine(e);
+	if (e.type === "task.created" && e.taskId)
+		f.titles.set(e.taskId, e.payload.title);
+	const line = eventLine(e, (id) => f.titles.get(id));
 	if (line) io.out(line);
 	f.why = whyOf(e) ?? f.why;
 	const end = endOf(e);
 	if (end) f.done(end);
 };
 
-const FOLLOWED = ["run.*", "agent.*", "checkpoint.*"] as const;
+const FOLLOWED = [
+	"run.*",
+	"agent.*",
+	"checkpoint.*",
+	"task.*",
+	"approval.*",
+	"artifact.*",
+] as const;
 
 // Prints the run's events until it ends or pauses for anything but quota, which waits here.
 const follow = (events: EventBus, io: Io, resume?: string) => {
-	const f: Followed = { target: resume, why: undefined, done: () => {} };
+	const f: Followed = {
+		target: resume,
+		titles: new Map(),
+		why: undefined,
+		done: () => {},
+	};
 	const ended = new Promise<Ended>((resolve) => {
 		const subs = FOLLOWED.map((p) =>
 			events.subscribe(p, (e) => show(f, io, e)),
@@ -71,9 +88,10 @@ const endOf = (e: MeteEvent): Ended | undefined => {
 	return undefined;
 };
 
-// Approvals come in Phase 2; until then the user decides through the policy (ARCHITECTURE.md, CLI).
+// A tool call the policy asks about clears through resume; the user can widen the policy
+// (ARCHITECTURE.md, CLI). A team task that waits for the human is answered with approve or revise.
 const APPROVAL_HINT = [
-	"The agent needs an approval, and approvals come in Phase 2.",
+	"The agent needs an approval for a tool call.",
 	"The built-in policy keeps shell.exec@1 at level 1. To let it run allow-listed commands,",
 	'add  overrides: { "shell.exec@1": 2 }  to .mete/policy.yaml.',
 ];
@@ -91,21 +109,34 @@ const withEngine = async (
 	return 1;
 };
 
-/** `mete run "<goal>"` or `mete run --resume <run id>`. */
-export const runCommand = (
-	app: App,
-	io: Io,
-	what: { goal: string } | { resume: string },
-) =>
+const teamHint = (runId: string | undefined) => [
+	"A team task waits for you. Approve it with:",
+	`  mete approve ${runId} [<task id>]`,
+	"or send it back with feedback:",
+	`  mete revise ${runId} <task id> "<feedback>"`,
+];
+
+/** What a run command does: start a run, resume one, or answer a team task and go on. */
+export type RunWhat =
+	| { goal: string; templateId?: string }
+	| { resume: string }
+	| { approve: string; input: ApprovalInput };
+
+const targetOf = (what: RunWhat) =>
+	"resume" in what ? what.resume : "approve" in what ? what.approve : undefined;
+
+const begin = (engine: TeamEngineAdapter, what: RunWhat) => {
+	if ("resume" in what) return engine.resume(what.resume);
+	if ("approve" in what) return engine.approve(what.approve, what.input);
+	const template = what.templateId ? { templateId: what.templateId } : {};
+	return engine.start({ goal: what.goal, ...template });
+};
+
+/** `mete run` (a goal, --template, --resume), `mete approve` and `mete revise`. */
+export const runCommand = (app: App, io: Io, what: RunWhat) =>
 	withEngine(app, io, async (engine) => {
-		const run = follow(
-			app.events,
-			io,
-			"resume" in what ? what.resume : undefined,
-		);
-		const r = await ("resume" in what
-			? engine.resume(what.resume)
-			: engine.start({ goal: what.goal }));
+		const run = follow(app.events, io, targetOf(what));
+		const r = await begin(engine, what);
 		if (!r.ok) {
 			io.err(r.error.message);
 			return 1;
@@ -113,7 +144,10 @@ export const runCommand = (
 		const stopWatching = cancelOnInterrupt(io, engine, run.runId);
 		const status = await run.ended;
 		stopWatching();
-		explain(io, status, run.runId(), run.why());
+		const runId = run.runId();
+		const view = runId ? engine.status(runId) : undefined;
+		const team = view?.ok === true && view.value[0]?.templateId != null;
+		explain(io, status, { runId, why: run.why(), team });
 		return exitCode(status);
 	});
 
@@ -139,13 +173,22 @@ const KEY_HINT =
 const explain = (
 	io: Io,
 	status: Ended,
-	runId: string | undefined,
-	why: string | undefined,
+	{
+		runId,
+		why,
+		team,
+	}: { runId?: string | undefined; why?: string | undefined; team: boolean },
 ) => {
 	if (status === "failed" && why === "unauthorized") io.err(KEY_HINT);
 	if (status !== "paused") return;
-	if (why === "approval") for (const line of APPROVAL_HINT) io.err(line);
-	io.err(`Resume it with: mete run --resume ${runId}`);
+	const answer = why === "approval" && team;
+	const lines = answer
+		? teamHint(runId)
+		: why === "approval"
+			? APPROVAL_HINT
+			: [];
+	for (const line of lines) io.err(line);
+	if (!answer) io.err(`Resume it with: mete run --resume ${runId}`);
 };
 
 /** `mete status [<run id>]`. */

@@ -45,8 +45,39 @@ const agentLine = (e: MeteEvent): string | undefined => {
 	}
 };
 
+// A team run's tasks are named by their titles, as task.created gave them.
+const teamLine = (e: MeteEvent, title: string): string | undefined => {
+	switch (e.type) {
+		case "task.created":
+			return `task  ${e.payload.title} (${e.payload.roleId})`;
+		case "task.status.changed":
+			return `task  ${title}: ${e.payload.to}`;
+		case "approval.requested":
+			return `waiting for ${e.payload.approver}: ${title}`;
+		case "approval.resolved": {
+			const what =
+				e.payload.decision === "approve" ? "approved" : "asked for changes";
+			const why = e.payload.feedback ? ` (${e.payload.feedback})` : "";
+			return `${e.payload.approver} ${what}: ${title}${why}`;
+		}
+		case "artifact.created":
+		case "artifact.updated":
+			return `artifact ${e.payload.path}`;
+		default:
+			return undefined;
+	}
+};
+
 /** One terminal line for an event of the run, or undefined for events it does not show. */
-export const eventLine = (e: MeteEvent) => runLine(e) ?? agentLine(e);
+export const eventLine = (
+	e: MeteEvent,
+	titleOf: (taskId: string) => string | undefined = () => undefined,
+) => {
+	const id = e.taskId ?? "";
+	return (
+		runLine(e) ?? agentLine(e) ?? teamLine(e, titleOf(id) ?? id.slice(0, 8))
+	);
+};
 
 /** The exit code of `mete run` for the state the run ended in. */
 export const exitCode = (status: RunView["status"]) =>

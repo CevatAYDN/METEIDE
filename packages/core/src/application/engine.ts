@@ -123,13 +123,13 @@ const begin = (
 	const l = hold(s, meta, snapshot);
 	const templateId = team?.template.metadata.id ?? null;
 	emit(s, l, { type: "run.created", payload: { templateId, goal } });
-	if (team) created(s, l, team);
 	apply(s, l, { type: "START", at });
+	if (team) created(s, l, team);
 	drive(s, l);
 	return ok({ runId: meta.id });
 };
 
-// task.created for every task, in template order, before the run starts.
+// task.created for every task, in template order, once the run started and before its first step.
 const created = (s: EngineState, l: Live, team: TeamState) => {
 	const idOf = (id: string) => team.tasks[id]?.id ?? id;
 	for (const t of team.template.tasks)
