@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-	cutStream,
 	editText,
 	isBinary,
 	lineEnding,
 	sliceLines,
+	streamCollector,
 } from "../../src/domain/text.js";
 
 describe("lineEnding", () => {
@@ -70,9 +70,23 @@ describe("editText", () => {
 	});
 });
 
-describe("cutStream", () => {
-	it("keeps the head and tail halves and names the cut", () => {
-		expect(cutStream("abc", 4)).toBe("abc");
-		expect(cutStream("abcdefg", 4)).toBe("ab\n[3 characters cut]\nfg");
+describe("streamCollector", () => {
+	const collect = (chunks: string[], max: number) => {
+		const c = streamCollector(max);
+		for (const chunk of chunks) c.push(chunk);
+		return c.text();
+	};
+
+	it("keeps a short stream whole, across any chunking", () => {
+		expect(collect(["ab", "c", "d"], 4)).toBe("abcd");
+		expect(collect(["", "abc"], 4)).toBe("abc");
+	});
+
+	it("keeps the head and tail halves of a long stream and names the cut", () => {
+		const cut = "ab\n[3 characters cut]\nfg";
+		expect(collect(["abcdefg"], 4)).toBe(cut);
+		expect(collect(["a", "bcd", "ef", "g"], 4)).toBe(cut);
+		expect(collect(["abcde"], 5)).toBe("abcde");
+		expect(collect(["abcdefg"], 5)).toBe(cut);
 	});
 });

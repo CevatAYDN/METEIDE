@@ -79,7 +79,8 @@ export const permit = (
 	check: {
 		action: PolicyAction;
 		capability: `${string}@1`;
-		path: string;
+		path?: string;
+		command?: string;
 		args: unknown;
 	},
 	ctx: ToolContext,
@@ -108,6 +109,6 @@ export const permit = (
 	return err({
 		code,
 		rule,
-		message: `${check.action} ${check.path}: ${verdict} (${rule})`,
+		message: `${check.action} ${check.path ?? check.command}: ${verdict} (${rule})`,
 	});
 };

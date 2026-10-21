@@ -45,10 +45,26 @@ export const editText = (
 	return { text: crlf ? out.replaceAll("\n", "\r\n") : out, replacements: n };
 };
 
-/** Keeps the first and last half of a long stream with a line naming the cut. */
-export const cutStream = (text: string, max = STREAM_MAX_CHARS) => {
-	if (text.length <= max) return text;
+/**
+ * Collects a stream in bounded memory: a stream longer than `max` keeps its first and
+ * last `max / 2` characters with a line naming how many were cut between them.
+ */
+export const streamCollector = (max = STREAM_MAX_CHARS) => {
 	const half = Math.floor(max / 2);
-	const cut = text.length - 2 * half;
-	return `${text.slice(0, half)}\n[${cut} characters cut]\n${text.slice(-half)}`;
+	let head = "";
+	let tail = "";
+	let total = 0;
+	return {
+		push(chunk: string) {
+			total += chunk.length;
+			const take = Math.max(0, half - head.length);
+			head += chunk.slice(0, take);
+			tail = (tail + chunk.slice(take)).slice(-(max - half));
+		},
+		text() {
+			if (total <= max) return head + tail;
+			const kept = tail.slice(-half);
+			return `${head}\n[${total - half - kept.length} characters cut]\n${kept}`;
+		},
+	};
 };
