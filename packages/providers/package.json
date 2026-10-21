@@ -12,6 +12,11 @@
 	},
 	"scripts": {
 		"build": "tsc -b",
-		"test": "vitest run --passWithNoTests"
+		"test": "vitest run --coverage"
+	},
+	"dependencies": {
+		"@mete/contracts": "workspace:*",
+		"yaml": "2.9.1",
+		"zod": "4.6.5"
 	}
 }

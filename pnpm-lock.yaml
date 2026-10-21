@@ -74,7 +74,17 @@ importers:
 
   packages/mcp: {}
 
-  packages/providers: {}
+  packages/providers:
+    dependencies:
+      '@mete/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      yaml:
+        specifier: 2.9.1
+        version: 2.9.1
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
 
   packages/quota:
     dependencies:

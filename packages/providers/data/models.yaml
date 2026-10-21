@@ -1,0 +1,154 @@
+# Model facts per provider and exact model id (docs/09, Provider adapter).
+# Context windows, tool calling and image input come from models.dev (MIT, see
+# THIRD_PARTY_NOTICES.md); free ids and privacy come from each provider's own
+# documentation. User rows in the `models:` section of settings.yaml replace a
+# row with the same id and add others.
+
+nvidia:
+  moonshotai/kimi-k2.6:
+    capability: chat
+    contextWindow: 262144
+    toolCalling: true
+    vision: true
+    free: true
+    family: kimi
+    source: models.dev
+    checked: "2026-10-21"
+  deepseek-ai/deepseek-v4.1-flash:
+    capability: chat
+    contextWindow: 1000000
+    toolCalling: true
+    vision: true
+    free: true
+    family: deepseek
+    source: models.dev
+    checked: "2026-10-21"
+  z-ai/glm-5.3:
+    capability: chat
+    contextWindow: 1000000
+    toolCalling: true
+    vision: false
+    free: true
+    family: glm
+    source: models.dev
+    checked: "2026-10-21"
+  nvidia/nemotron-3.5-lightning-30b-a3b:
+    capability: chat
+    contextWindow: 262144
+    toolCalling: true
+    vision: false
+    free: true
+    family: nemotron
+    source: models.dev
+    checked: "2026-10-21"
+  nvidia/nemotron-3.5-super-vl-120b-a12b:
+    capability: chat
+    contextWindow: 1048576
+    toolCalling: true
+    vision: true
+    free: true
+    family: nemotron
+    source: models.dev
+    checked: "2026-10-21"
+  nvidia/llama-nemotron-embed-vl-1b-v2:
+    capability: embed
+    contextWindow: 32768
+    toolCalling: false
+    vision: false
+    free: true
+    family: nemotron
+    source: models.dev
+    checked: "2026-10-21"
+
+# Privacy per model from opencode.ai/docs/zen; the rest of each row from models.dev.
+opencode-zen:
+  big-pickle:
+    capability: chat
+    contextWindow: 200000
+    toolCalling: true
+    vision: false
+    free: true
+    family: big-pickle
+    privacy: { trains: true, logs: true, publishes: false }
+    source: models.dev, opencode.ai/docs/zen
+    checked: "2026-10-21"
+  beam-free:
+    capability: chat
+    contextWindow: 1048576
+    toolCalling: true
+    vision: false
+    free: true
+    family: beam
+    privacy: { trains: false, logs: true, publishes: false }
+    source: models.dev, opencode.ai/docs/zen
+    checked: "2026-10-21"
+  mimo-v2.6-flash-free:
+    capability: chat
+    contextWindow: 200000
+    toolCalling: true
+    vision: true
+    free: true
+    family: mimo
+    privacy: { trains: true, logs: true, publishes: false }
+    source: models.dev, opencode.ai/docs/zen
+    checked: "2026-10-21"
+  nemotron-3.5-super-vl-free:
+    capability: chat
+    contextWindow: 1048576
+    toolCalling: true
+    vision: true
+    free: true
+    family: nemotron
+    privacy: { trains: true, logs: true, publishes: false }
+    source: models.dev, opencode.ai/docs/zen
+    checked: "2026-10-21"
+  nemotron-3.5-lightning-free:
+    capability: chat
+    contextWindow: 262144
+    toolCalling: true
+    vision: false
+    free: true
+    family: nemotron
+    privacy: { trains: true, logs: true, publishes: false }
+    source: models.dev, opencode.ai/docs/zen
+    checked: "2026-10-21"
+  longcat-2.5-preview-free:
+    capability: chat
+    contextWindow: 1000000
+    toolCalling: true
+    vision: true
+    free: true
+    family: longcat
+    privacy: { trains: false, logs: false, publishes: false }
+    source: models.dev, opencode.ai/docs/zen
+    checked: "2026-10-21"
+  deepseek-v4.1-flash-free:
+    capability: chat
+    contextWindow: 200000
+    toolCalling: true
+    vision: true
+    free: true
+    family: deepseek
+    privacy: { trains: false, logs: false, publishes: false }
+    source: models.dev, opencode.ai/docs/zen
+    checked: "2026-10-21"
+  glm-5.3-flash-free:
+    capability: chat
+    contextWindow: 200000
+    toolCalling: true
+    vision: true
+    free: true
+    family: glm
+    privacy: { trains: false, logs: false, publishes: false }
+    source: models.dev, opencode.ai/docs/zen
+    checked: "2026-10-21"
+  minimax-m3.1-flash-free:
+    capability: chat
+    contextWindow: 1000000
+    toolCalling: true
+    vision: true
+    free: true
+    family: minimax
+    privacy: { trains: false, logs: false, publishes: false }
+    source: models.dev, opencode.ai/docs/zen
+    checked: "2026-10-21"
