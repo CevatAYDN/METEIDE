@@ -4,6 +4,11 @@ export {
 	policyCheckContract,
 } from "./policy-check.contract.js";
 export {
+	QUOTA_KIT_NOW,
+	type QuotaReserveHarness,
+	quotaReserveContract,
+} from "./quota-reserve.contract.js";
+export {
 	type SecretsMaskHarness,
 	secretsMaskContract,
 } from "./secrets-mask.contract.js";
