@@ -50,7 +50,7 @@ export type ModuleError = { code: "activation_failed"; moduleId: string; message
 type LogFn = (fields: Readonly<Record<string, unknown>>, msg: string) => void;   // pino argument order
 export interface Logger { error: LogFn; warn: LogFn; info: LogFn; debug: LogFn }
 
-// The loader validates whole files with Zod when it loads them; get() returns a typed slice.
+// At load the kernel checks YAML syntax and its own files; get() validates a module's section (ARCHITECTURE.md, Configuration).
 export type ConfigInvalid = { code: "config_invalid"; file: string; path: string; reason: string };
 export interface ConfigReader {
   get<T>(key: string, schema: ZodType<T>): Result<T, ConfigInvalid>;

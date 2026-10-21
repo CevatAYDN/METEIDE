@@ -73,6 +73,8 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 
 YAML files validated by Zod. Precedence, lowest to highest: built-in defaults → global settings → workspace `.mete/*.yaml` → run options \[D\]. Invalid configuration is rejected with the file, path and reason; METE MUST NOT start a run on invalid configuration.
 
+Global settings live in `settings.yaml` in the global data folder; its top-level sections use the workspace file names (`mcp:`, `policy:`). `ConfigReader.get(key)` takes a file name without extension (`bindings`, `mcp`): the workspace file is deep-merged over the global section of the same name (objects merge, arrays and scalars replace), and the module's Zod schema supplies the built-in defaults. The core merges run options when a run starts. At load the kernel checks YAML syntax and its own files (`workspace.yaml` `id`, `bindings.yaml`); a module's section is validated when it calls `get()`, and the error names the file the bad value came from. When `.mete/workspace.yaml` is missing, the loader creates it with a new UUID `id`.
+
 ## Repository layout
 
 ```
