@@ -1,5 +1,10 @@
 // Public API of this package: types, contracts and the module (CONTRIBUTING.md).
 export {
+	artifactSchema,
+	type ResearchReport,
+	ResearchReportSchema,
+} from "./domain/artifacts.js";
+export {
 	type EngineError,
 	type RunStart,
 	RunStartSchema,
