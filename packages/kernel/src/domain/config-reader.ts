@@ -38,16 +38,16 @@ const deepMerge = (base: unknown, over: unknown): unknown => {
 	);
 };
 
-// True when the workspace value sets the path, or an array on it: arrays replace whole,
-// so everything inside one came from the workspace.
-const hasPath = (value: unknown, path: ReadonlyArray<string>): boolean => {
+// How much of the path a file's value sets. Arrays replace whole on merge, so a path
+// through an array counts in full: everything inside one came from that file.
+const depthOf = (value: unknown, path: ReadonlyArray<string>): number => {
 	let at = value;
-	for (const k of path) {
-		if (Array.isArray(at)) return true;
-		if (!isObject(at) || !Object.hasOwn(at, k)) return false;
+	for (const [i, k] of path.entries()) {
+		if (Array.isArray(at)) return path.length;
+		if (!isObject(at) || !Object.hasOwn(at, k)) return i;
 		at = at[k];
 	}
-	return true;
+	return path.length;
 };
 
 /** Reads merged sections; each call validates against the caller's schema. */
@@ -59,8 +59,13 @@ export const createConfigReader = (layers: ConfigLayers): ConfigReader => ({
 		if (r.success) return ok(r.data);
 		const [issue] = r.error.issues;
 		const path = (issue?.path ?? []).map(String);
-		// The workspace wins on overlap, so a path it sets is where the bad value came from.
-		const fromWorkspace = ws !== undefined && hasPath(ws.value, path);
+		// The bad or missing value belongs to the file that sets the most of its path;
+		// the workspace wins a tie, as it does on merge.
+		const wsDepth = ws === undefined ? -1 : depthOf(ws.value, path);
+		const globalDepth = depthOf(own(layers.global.sections, key), path);
+		const fromWorkspace =
+			ws !== undefined &&
+			(path.length === 0 || (wsDepth > 0 && wsDepth >= globalDepth));
 		return err({
 			code: "config_invalid",
 			file: fromWorkspace ? ws.file : layers.global.file,

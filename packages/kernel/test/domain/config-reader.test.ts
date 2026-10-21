@@ -105,6 +105,29 @@ describe("createConfigReader", () => {
 			path: "items.0.name",
 		});
 	});
+
+	it("names the file that holds the most of a missing key's path", () => {
+		const Schema = z.object({
+			servers: z.record(
+				z.string(),
+				z.object({ command: z.string(), cwd: z.string() }),
+			),
+		});
+		const inWorkspace = createConfigReader(
+			layers({}, { servers: { exa: { command: "npx" } } }),
+		).get("mcp", Schema);
+		expect(inWorkspace.ok ? undefined : inWorkspace.error).toMatchObject({
+			file: MCP,
+			path: "servers.exa.cwd",
+		});
+		const inGlobal = createConfigReader(
+			layers({ servers: { exa: { command: "npx" } } }, { servers: {} }),
+		).get("mcp", Schema);
+		expect(inGlobal.ok ? undefined : inGlobal.error).toMatchObject({
+			file: GLOBAL,
+			path: "mcp.servers.exa.cwd",
+		});
+	});
 });
 
 describe("BindingsSchema", () => {
