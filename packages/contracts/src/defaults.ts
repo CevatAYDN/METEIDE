@@ -3,6 +3,7 @@
 /** Built-in policy: the example `.mete/policy.yaml` (12 Autonomy and security). */
 export const DEFAULT_POLICY = {
 	autonomy: 2,
+	overrides: { "shell.exec@1": 1 },
 	always_ask: [
 		"fs.delete",
 		"git.push",

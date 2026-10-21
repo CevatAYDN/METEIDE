@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { DEFAULT_POLICY as D } from "../defaults.js";
-import { CapabilityRefSchema, IdSchema } from "./ids.js";
+import { type CapabilityRef, CapabilityRefSchema, IdSchema } from "./ids.js";
 import type { Result } from "./result.js";
 
 // policy.check@1 and secrets.mask@1 from docs/06 (Kernel API) and SECURITY.md (Policy file).
@@ -37,13 +37,15 @@ const NeverAllowSchema = z.union([
 	z.strictObject({ action: z.literal("shell.exec"), command: text }),
 ]);
 
+const builtInOverrides = (): Record<CapabilityRef, z.infer<typeof Level>> => ({
+	...D.overrides,
+});
+
 /** `.mete/policy.yaml` merged over global settings; missing keys take the SECURITY.md example. */
 export const PolicySchema = z
 	.strictObject({
 		autonomy: Level.default(D.autonomy),
-		overrides: z
-			.record(z.string().pipe(CapabilityRefSchema), Level)
-			.default(() => ({})),
+		overrides: z.record(z.string().pipe(CapabilityRefSchema), Level).optional(),
 		always_ask: z
 			.array(PolicyActionSchema)
 			.readonly()
@@ -75,8 +77,9 @@ export const PolicySchema = z
 			.positive()
 			.default(D.approvalTimeoutHours),
 	})
+	// Only overrides the user wrote must stay at or below autonomy (SECURITY.md).
 	.superRefine((p, ctx) => {
-		for (const [ref, level] of Object.entries(p.overrides))
+		for (const [ref, level] of Object.entries(p.overrides ?? {}))
 			if (level > p.autonomy)
 				ctx.addIssue({
 					code: "custom",
@@ -84,6 +87,10 @@ export const PolicySchema = z
 					message: "an override MUST NOT be higher than autonomy",
 				});
 	})
+	.transform((p) => ({
+		...p,
+		overrides: p.overrides ?? builtInOverrides(),
+	}))
 	.prefault({});
 
 /** A validated policy. */

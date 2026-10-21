@@ -8,7 +8,7 @@ describe("PolicySchema", () => {
 	it("fills every key from the SECURITY.md example when the file is empty", () => {
 		expect(PolicySchema.parse({})).toEqual({
 			autonomy: 2,
-			overrides: {},
+			overrides: { "shell.exec@1": 1 },
 			always_ask: [
 				"fs.delete",
 				"git.push",
@@ -40,11 +40,21 @@ describe("PolicySchema", () => {
 		expect(r.success && r.data.overrides).toEqual({ "shell.exec@1": 1 });
 	});
 
+	it("fills the built-in override after the check, so autonomy 0 alone is valid", () => {
+		const r = PolicySchema.safeParse({ autonomy: 0 });
+		expect(r.success && r.data.overrides).toEqual({ "shell.exec@1": 1 });
+		expect(PolicySchema.parse({ overrides: {} }).overrides).toEqual({});
+	});
+
 	it("rejects an override above the autonomy level", () => {
 		const r = PolicySchema.safeParse({
 			autonomy: 1,
 			overrides: { "shell.exec@1": 2 },
 		});
+		expect(
+			PolicySchema.safeParse({ autonomy: 0, overrides: { "shell.exec@1": 1 } })
+				.success,
+		).toBe(false);
 		expect(
 			r.success ? [] : r.error.issues.map((i) => i.path.join(".")),
 		).toEqual(["overrides.shell.exec@1"]);
