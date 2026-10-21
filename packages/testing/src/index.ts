@@ -35,3 +35,7 @@ export {
 	type StorageSqlHarness,
 	storageSqlContract,
 } from "./storage-sql.contract.js";
+export {
+	type VcsGitHarness,
+	vcsGitContract,
+} from "./vcs-git.contract.js";
