@@ -98,6 +98,28 @@ describe("mete run", () => {
 		expect(s.out[0]).toMatch(/completed\s+fix the typo in greet\.js$/);
 	});
 
+	it("points at the provider keys when the run fails because a key was refused", async () => {
+		const { app } = await setup({
+			script: [
+				[
+					{
+						type: "error",
+						error: {
+							code: "unauthorized",
+							message: "User not found.",
+							status: 401,
+						},
+					},
+				],
+			],
+		});
+		const t = recordingIo();
+		expect(await runCommand(app, t.io, { goal: "g" })).toBe(1);
+		expect(t.err).toContain(
+			"A provider refused its API key. Check the keys with: mete key list",
+		);
+	});
+
 	it("says which capability is missing when no provider is active", async () => {
 		const { app } = await setup();
 		const t = recordingIo();

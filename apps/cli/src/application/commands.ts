@@ -25,8 +25,14 @@ type Ended = RunView["status"];
 
 type Followed = {
 	target: string | undefined;
-	pausedFor: string | undefined;
+	/** The pause reason or the failure code of the run's last stop. */
+	why: string | undefined;
 	done: (status: Ended) => void;
+};
+
+const whyOf = (e: MeteEvent) => {
+	if (e.type === "run.paused") return e.payload.reason;
+	return e.type === "run.failed" ? e.payload.code : undefined;
 };
 
 // Without a run id it follows the first run created after it subscribed: a CLI starts one run.
@@ -35,7 +41,7 @@ const show = (f: Followed, io: Io, e: MeteEvent) => {
 	if (e.runId === undefined || e.runId !== f.target) return;
 	const line = eventLine(e);
 	if (line) io.out(line);
-	if (e.type === "run.paused") f.pausedFor = e.payload.reason;
+	f.why = whyOf(e) ?? f.why;
 	const end = endOf(e);
 	if (end) f.done(end);
 };
@@ -44,7 +50,7 @@ const FOLLOWED = ["run.*", "agent.*", "checkpoint.*"] as const;
 
 // Prints the run's events until it ends or pauses for anything but quota, which waits here.
 const follow = (events: EventBus, io: Io, resume?: string) => {
-	const f: Followed = { target: resume, pausedFor: undefined, done: () => {} };
+	const f: Followed = { target: resume, why: undefined, done: () => {} };
 	const ended = new Promise<Ended>((resolve) => {
 		const subs = FOLLOWED.map((p) =>
 			events.subscribe(p, (e) => show(f, io, e)),
@@ -54,7 +60,7 @@ const follow = (events: EventBus, io: Io, resume?: string) => {
 			resolve(status);
 		};
 	});
-	return { ended, runId: () => f.target, pausedFor: () => f.pausedFor };
+	return { ended, runId: () => f.target, why: () => f.why };
 };
 
 const endOf = (e: MeteEvent): Ended | undefined => {
@@ -107,7 +113,7 @@ export const runCommand = (
 		const stopWatching = cancelOnInterrupt(io, engine, run.runId);
 		const status = await run.ended;
 		stopWatching();
-		if (status === "paused") explainPause(io, run.runId(), run.pausedFor());
+		explain(io, status, run.runId(), run.why());
 		return exitCode(status);
 	});
 
@@ -126,8 +132,19 @@ const cancelOnInterrupt = (
 		});
 	});
 
-const explainPause = (io: Io, runId: string | undefined, reason?: string) => {
-	if (reason === "approval") for (const line of APPROVAL_HINT) io.err(line);
+const KEY_HINT =
+	"A provider refused its API key. Check the keys with: mete key list";
+
+// What the user can do about a run that stopped without completing.
+const explain = (
+	io: Io,
+	status: Ended,
+	runId: string | undefined,
+	why: string | undefined,
+) => {
+	if (status === "failed" && why === "unauthorized") io.err(KEY_HINT);
+	if (status !== "paused") return;
+	if (why === "approval") for (const line of APPROVAL_HINT) io.err(line);
 	io.err(`Resume it with: mete run --resume ${runId}`);
 };
 
