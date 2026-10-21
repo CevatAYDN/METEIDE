@@ -53,8 +53,8 @@ This is the only valid technology list. Anything not listed here needs an ADR be
 | Vector search | sqlite-vec | Same database file |
 | RPC | vscode-jsonrpc | Daemon, plugins, LSP-style protocols |
 | Dependency injection | InversifyJS | Theia side and core services |
-| Events | Emittery | Typed async event bus |
-| Circuit breaker | opossum | Supervisor and adapters |
+| Events | Own synchronous bus in `@mete/kernel` (ADR-037) | Typed in-process event bus |
+| Circuit breaker | Own consecutive-failure counter in `@mete/kernel` (ADR-037) | Supervisor and adapters |
 | Logging | pino | Structured JSON logs |
 | Configuration | yaml + Zod | YAML files |
 | Gateway | Hono + `@hono/node-server` | Local OpenAI-compatible endpoint |

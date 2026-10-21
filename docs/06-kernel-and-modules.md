@@ -52,7 +52,8 @@ export interface CapabilityRegistry {
 }
 
 export type FeatureSet = readonly string[];  // order and duplicates do not matter
-export type Adapter<C> = { id: string; trust: ModuleManifest["trust"]; features: FeatureSet; impl: C };
+export type Circuit = { isOpen(): boolean };
+export type Adapter<C> = { id: string; trust: ModuleManifest["trust"]; features: FeatureSet; impl: C; circuit?: Circuit };
 export type AdapterChain<C> = readonly [Adapter<C>, ...Adapter<C>[]];   // never empty
 export type CapabilityMissing = { code: "capability_missing"; ref: CapabilityRef };
 export type AdapterUnavailable = { code: "adapter_unavailable"; adapterId: string };
@@ -81,7 +82,7 @@ export interface EventBus {
 4. Return the chain. The caller tries the first adapter; on `AdapterUnavailable` it moves to the next.
 5. An empty chain returns `CapabilityMissing`. Callers MUST handle it: degrade, skip with a notice, or pause the run. They MUST NOT crash.
 
-Adapter circuit breaker defaults: open after 5 consecutive failures, half-open after 60 seconds \[D\].
+Adapter circuit breaker defaults: open after 5 consecutive failures, half-open after 60 seconds \[D\]. The module that owns an adapter reports each call's success or failure to the adapter's circuit; the registry only reads `isOpen()`. A success closes the circuit; a failure while half-open opens it again for another 60 seconds.
 
 ## Module catalog
 
