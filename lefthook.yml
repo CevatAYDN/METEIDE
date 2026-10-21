@@ -6,7 +6,7 @@ pre-commit:
       run: pnpm exec biome check --no-errors-on-unmatched {staged_files}
     # shortcut: tsc -b checks every package and emits dist; tab 15 wants --noEmit on affected packages, switch when builds get slow.
     - name: typecheck
-      run: pnpm exec tsc -b
+      run: pnpm exec tsc -b && pnpm exec tsc -p tsconfig.test.json
     - name: architecture
       run: pnpm exec depcruise packages apps
 pre-push:

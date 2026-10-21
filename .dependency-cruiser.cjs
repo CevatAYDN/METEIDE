@@ -18,7 +18,10 @@ module.exports = {
 			comment: "kernel MUST import only contracts (ADR-036)",
 			severity: "error",
 			from: { path: "^packages/kernel/" },
-			to: { path: "^(packages|apps)/", pathNot: "^packages/(kernel|contracts)/" },
+			to: {
+				path: "^(packages|apps)/",
+				pathNot: "^packages/(kernel|contracts)/",
+			},
 		},
 		{
 			name: "no-upward-from-platform",
