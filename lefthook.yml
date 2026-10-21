@@ -9,6 +9,9 @@ pre-commit:
       run: pnpm exec tsc -b && pnpm exec tsc -p tsconfig.test.json
     - name: architecture
       run: pnpm exec depcruise packages apps
+    # A commit must carry the lockfile with its package.json: no unstaged half, and the pair must agree.
+    - name: lockfile
+      run: git diff --quiet -- pnpm-lock.yaml ':(glob)**/package.json' && pnpm install --frozen-lockfile --offline
 pre-push:
   jobs:
     # shortcut: runs all packages, not affected only, and vitest uses --passWithNoTests; switch to turbo --affected after the first commit and drop the flag once packages have tests.
