@@ -91,8 +91,19 @@ importers:
       better-sqlite3:
         specifier: 13.0.3
         version: 13.0.3
+    devDependencies:
+      '@mete/testing':
+        specifier: workspace:*
+        version: link:../testing
 
-  packages/testing: {}
+  packages/testing:
+    dependencies:
+      '@mete/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      vitest:
+        specifier: 5.0.3
+        version: 5.0.3(@types/node@24.19.1)(@vitest/coverage-v8@5.0.3)(vite@8.3.4(@types/node@24.19.1)(yaml@2.9.1))
 
   packages/tools: {}
 
