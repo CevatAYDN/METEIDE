@@ -34,6 +34,9 @@ export const writeTool = async (
 	const at = await place(deps, i.value.path);
 	if (!at.ok) return at;
 	const p = at.value;
+	const ignored = await rules(deps);
+	if (!ignored.ok) return ignored;
+	if (ignored.value(p.real)) return err(ignoredError(i.value.path));
 	const del = "delete" in i.value;
 	const action = del ? "fs.delete" : p.inside ? "fs.write" : "fs.write.outside";
 	const allowed = permit(

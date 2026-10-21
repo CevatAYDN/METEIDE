@@ -22,5 +22,5 @@ fsToolsContract("tools-fs", async (verdict) => {
 		glob: get("fs.glob@1"),
 		grep: get("fs.grep@1"),
 	};
-	return { tools, close: ws.close };
+	return { tools, workspaceDir: ws.workspaceDir, close: ws.close };
 });

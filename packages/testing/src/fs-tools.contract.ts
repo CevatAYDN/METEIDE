@@ -1,3 +1,5 @@
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import type {
 	FsEditInput,
 	FsEditOutput,
@@ -32,6 +34,8 @@ export type FsTools = {
 /** Opens the tools on an empty workspace whose policy.check@1 always answers `verdict`. */
 export type FsToolsHarness = (verdict: PolicyVerdict["verdict"]) => Promise<{
 	readonly tools: FsTools;
+	/** The workspace root, for files the tools themselves refuse to write. */
+	readonly workspaceDir: string;
 	readonly close: () => Promise<void>;
 }>;
 
@@ -52,9 +56,11 @@ export const fsToolsContract = (name: string, open: FsToolsHarness) =>
 			await close?.();
 			close = undefined;
 		});
+		let root = "";
 		const tools = async (verdict: PolicyVerdict["verdict"] = "allow") => {
 			const h = await open(verdict);
 			close = h.close;
+			root = h.workspaceDir;
 			return h.tools;
 		};
 		const put = (t: FsTools, path: string, content: string) =>
@@ -116,7 +122,7 @@ export const fsToolsContract = (name: string, open: FsToolsHarness) =>
 			const t = await tools();
 			await put(t, "src/a.ts", "const needle = 1;\n");
 			await put(t, "b.md", "needle\n");
-			await put(t, ".env", "needle=secret\n");
+			await writeFile(join(root, ".env"), "needle=secret\n");
 			expect(value(await t.list.run({ path: "." }, ctx)).paths).toEqual([
 				"b.md",
 				"src/",
@@ -134,6 +140,11 @@ export const fsToolsContract = (name: string, open: FsToolsHarness) =>
 			expect(
 				code(await t.edit.run({ path: ".env", oldStr: "n", newStr: "m" }, ctx)),
 			).toBe("ignored");
+			for (const input of [
+				{ path: ".env", content: "x" },
+				{ path: ".env", delete: true as const },
+			])
+				expect(code(await t.write.run(input, ctx))).toBe("ignored");
 		});
 
 		it("cuts grep results at maxResults", async () => {
