@@ -118,6 +118,11 @@ const PAYLOADS = {
 		kind: CheckpointKindSchema,
 		ref: text,
 	}),
+	"handoff.created": z.strictObject({ handoffId: IdSchema }),
+	"handoff.accepted": z.strictObject({
+		handoffId: IdSchema,
+		byRunId: IdSchema,
+	}),
 	"rollback.performed": z.strictObject({ checkpointId: IdSchema }),
 	"vault.note.saved": z.strictObject({ path: text, noteType: text }),
 	"policy.blocked": z.strictObject({ action: text, rule: text }),

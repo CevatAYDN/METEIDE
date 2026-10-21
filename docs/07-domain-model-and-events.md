@@ -38,6 +38,10 @@ interface Approval { id: string; taskId: string; approver: string;           // 
   decision: "approve" | "revise"; feedback?: string; at: string }
 
 interface Checkpoint { id: string; runId: string; stepId: string; kind: "git" | "snapshot"; ref: string; createdAt: string }
+
+interface Handoff { id: string; workspaceId: string; runId: string;              // the run that wrote it (tab 08, Run memory)
+  state: "open" | "accepted" | "expired"; body: string;                       // Markdown, built without a model
+  createdAt: string; acceptedAt?: string; acceptedByRunId?: string }
 ```
 
 `Message.summary` is the first sentence of the message body, cut to 80 characters. It MUST NOT be produced by an extra model call \[C\].
@@ -91,6 +95,8 @@ The gateway writes one row per provider call, retries included, into the workspa
 
 core-engine keeps runs in the workspace `runs` table: `id`, `workspace_id`, `template_id` (null for a single agent), `goal`, `status`, `pause_reason`, `autonomy_level`, `budget_cloud_requests`, `budget_max_hours`, `snapshot` (the XState persisted snapshot as JSON; it holds the conversation), `created_at`, `started_at` and `ended_at`, with an index on `status`. Agents go into `agents`: `id`, `run_id`, `role_id`, `provider_id`, `model_id` and `requests`, with an index on `run_id`. A run's row is written after every transition and before its event is published. Run rows are kept forever \[D\].
 
+From Phase 2, handoffs go into the workspace `handoffs` table: `id`, `workspace_id`, `run_id`, `state`, `body`, `created_at`, `accepted_at` and `accepted_by_run_id`, with an index on `(state, created_at)`. Accepting is one conditional update from `open`, so exactly one run gets a handoff; rows are kept forever \[D\].
+
 ## Event catalog
 
 | Type | Payload | Published by |
@@ -120,6 +126,8 @@ core-engine keeps runs in the workspace `runs` table: `id`, `workspace_id`, `tem
 | `quota.exhausted` | providerId, unit, resetsAt | quota |
 | `quota.restored` | providerId, unit | quota |
 | `checkpoint.created` | kind, ref | core-engine |
+| `handoff.created` | handoffId | core-engine |
+| `handoff.accepted` | handoffId, byRunId | core-engine |
 | `rollback.performed` | checkpointId | core-engine |
 | `vault.note.saved` | path, noteType | vault |
 | `policy.blocked` | action, rule | security |
