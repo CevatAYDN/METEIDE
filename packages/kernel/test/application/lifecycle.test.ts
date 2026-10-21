@@ -17,6 +17,7 @@ const manifest = (
 	id: string,
 	provides: CapabilityRef[] = [],
 	requires: CapabilityRef[] = [],
+	activation: ModuleManifest["activation"] = ["onStartup"],
 ): ModuleManifest => ({
 	id,
 	version: "1.0.0",
@@ -26,7 +27,7 @@ const manifest = (
 	provides,
 	requires,
 	optional: [],
-	activation: ["onStartup"],
+	activation,
 	isolation: "in-process",
 	permissions: [],
 });
@@ -59,7 +60,7 @@ const fakeModule = (m: ModuleManifest, fails = false) => {
 	return { mod, deactivate };
 };
 
-const setup = () => {
+const setup = async (start = true) => {
 	const registry = createCapabilityRegistry(() => []);
 	const events = createEventBus((e) => {
 		throw e;
@@ -89,12 +90,80 @@ const setup = () => {
 		contextFor,
 	});
 	const log = () => seen.map((e) => `${e.type} ${JSON.stringify(e.payload)}`);
+	if (start) await life.start();
 	return { life, registry, seen, log };
 };
 
+describe("activation events", () => {
+	it("keeps an onStartup module registered until the kernel starts", async () => {
+		const { life } = await setup(false);
+		await life.register(fakeModule(manifest("storage")).mod);
+		expect(life.state("storage")).toBe("registered");
+		await life.start();
+		expect(life.state("storage")).toBe("active");
+	});
+
+	it("activates an onWorkspaceOpen module when the workspace opens", async () => {
+		const { life } = await setup();
+		await life.register(
+			fakeModule(manifest("vault", [], [], ["onWorkspaceOpen"])).mod,
+		);
+		expect(life.state("vault")).toBe("registered");
+		await life.openWorkspace();
+		expect(life.state("vault")).toBe("active");
+	});
+
+	it("activates an onCapability provider when a resolving module requires it", async () => {
+		const { life, log } = await setup();
+		const storage = manifest(
+			"storage",
+			["storage.sql@1"],
+			[],
+			["onCapability:storage.sql@1"],
+		);
+		await life.register(fakeModule(storage).mod);
+		expect(life.state("storage")).toBe("registered");
+		await life.register(
+			fakeModule(manifest("quota", [], ["storage.sql@1"])).mod,
+		);
+		expect(log()).toEqual([
+			'module.activated {"moduleId":"storage"}',
+			'module.activated {"moduleId":"quota"}',
+		]);
+	});
+
+	it("ignores demand from a module that was not triggered", async () => {
+		const { life } = await setup();
+		const storage = manifest(
+			"storage",
+			["storage.sql@1"],
+			[],
+			["onCapability:storage.sql@1"],
+		);
+		await life.register(fakeModule(storage).mod);
+		await life.register(
+			fakeModule(
+				manifest("export", [], ["storage.sql@1"], ["onCommand:export"]),
+			).mod,
+		);
+		expect(life.state("storage")).toBe("registered");
+		expect(life.state("export")).toBe("registered");
+	});
+
+	it("keeps dependents active when their provider deactivates", async () => {
+		const { life } = await setup();
+		await life.register(fakeModule(manifest("storage", ["storage.sql@1"])).mod);
+		await life.register(
+			fakeModule(manifest("quota", [], ["storage.sql@1"])).mod,
+		);
+		await life.deactivate("storage");
+		expect(life.state("quota")).toBe("active");
+	});
+});
+
 describe("createLifecycle", () => {
 	it("activates a module without requires and publishes from the kernel", async () => {
-		const { life, seen } = setup();
+		const { life, seen } = await setup();
 		await life.register(fakeModule(manifest("storage", ["storage.sql@1"])).mod);
 		expect(life.state("storage")).toBe("active");
 		expect(seen[0]).toMatchObject({
@@ -106,7 +175,7 @@ describe("createLifecycle", () => {
 	});
 
 	it("keeps a module resolving until its requires resolve, then activates it", async () => {
-		const { life, log } = setup();
+		const { life, log } = await setup();
 		const quota = manifest("quota", ["quota.reserve@1"], ["storage.sql@1"]);
 		await life.register(fakeModule(quota).mod);
 		expect(life.state("quota")).toBe("resolving");
@@ -119,7 +188,7 @@ describe("createLifecycle", () => {
 	});
 
 	it("activates a chain registered in reverse order", async () => {
-		const { life } = setup();
+		const { life } = await setup();
 		await life.register(
 			fakeModule(manifest("gateway", ["llm.chat@1"], ["quota.reserve@1"])).mod,
 		);
@@ -132,7 +201,7 @@ describe("createLifecycle", () => {
 	});
 
 	it("moves a module whose activate fails to inactive with the code as reason", async () => {
-		const { life, registry, log } = setup();
+		const { life, registry, log } = await setup();
 		await life.register(
 			fakeModule(manifest("provider-x", ["provider.chat@1"]), true).mod,
 		);
@@ -144,7 +213,7 @@ describe("createLifecycle", () => {
 	});
 
 	it("deactivates an active module and drops what it provided", async () => {
-		const { life, registry, log } = setup();
+		const { life, registry, log } = await setup();
 		const { mod, deactivate } = fakeModule(
 			manifest("storage", ["storage.sql@1"]),
 		);
@@ -157,7 +226,7 @@ describe("createLifecycle", () => {
 	});
 
 	it("ignores deactivate for a module that is not active", async () => {
-		const { life, seen } = setup();
+		const { life, seen } = await setup();
 		await life.register(
 			fakeModule(manifest("quota", [], ["storage.sql@1"])).mod,
 		);
@@ -168,7 +237,7 @@ describe("createLifecycle", () => {
 	});
 
 	it("activates once when registrations overlap", async () => {
-		const { life, log } = setup();
+		const { life, log } = await setup();
 		await Promise.all([
 			life.register(fakeModule(manifest("quota", [], ["storage.sql@1"])).mod),
 			life.register(fakeModule(manifest("storage", ["storage.sql@1"])).mod),
@@ -180,7 +249,7 @@ describe("createLifecycle", () => {
 	});
 
 	it("throws when a module id is registered twice", async () => {
-		const { life } = setup();
+		const { life } = await setup();
 		await life.register(fakeModule(manifest("storage")).mod);
 		await expect(
 			life.register(fakeModule(manifest("storage")).mod),
