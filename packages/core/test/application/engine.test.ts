@@ -1,4 +1,4 @@
-import type { RunView } from "@mete/contracts";
+import type { LlmChunk, RunView } from "@mete/contracts";
 import { err, ok } from "@mete/contracts";
 import { describe, expect, it, vi } from "vitest";
 import { MAX_TURNS } from "../../src/defaults.js";
@@ -127,6 +127,24 @@ describe("single-agent engine", () => {
 			"run.resumed",
 			"run.completed",
 		]);
+	});
+
+	it("leaves a quota-paused run alone at the reset when another process cancelled it", async () => {
+		const resumesAt = new Date(T0 + 60_000).toISOString();
+		const quota: LlmChunk[] = [
+			{
+				type: "error",
+				error: { code: "quota_exhausted", message: "q", resumesAt },
+			},
+		];
+		const h = engineHarness({ scripts: [quota, reply("done")] });
+		const runId = await begin(h);
+		await settled(h, runId, "paused");
+		const other = engineHarness({ scripts: [], db: h.db });
+		expect((await other.engine.cancel(runId)).ok).toBe(true);
+		h.timers[0]?.fn();
+		expect(view(h, runId)?.status).toBe("cancelled");
+		expect(h.requests).toHaveLength(1);
 	});
 
 	it("never lets the model reach checkpoint operations through vcs_git", async () => {

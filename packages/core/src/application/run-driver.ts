@@ -88,7 +88,9 @@ const armTimer = (s: EngineState, l: Live, resumesAt: string) => {
 		() => {
 			l.cancelTimer = undefined;
 			const c = l.snapshot;
-			if (c.value === "paused" && c.context.pause?.reason === "quota")
+			if (c.value !== "paused" || c.context.pause?.reason !== "quota") return;
+			// Another process may have cancelled the run meanwhile (mete stop); the row decides.
+			if (s.deps.store.list(l.meta.id)[0]?.status === "paused")
 				s.onQuotaReset(l.meta.id);
 		},
 		Math.min(wait, MAX_DELAY_MS),
