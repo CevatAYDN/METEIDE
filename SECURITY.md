@@ -36,7 +36,7 @@ The file above is also the built-in default: a key the workspace and global file
 Action ids used by the policy: `fs.write`, `fs.delete` (a `fs.write@1` call with `delete: true`), `fs.write.outside`, `shell.exec`, `git.commit`, `git.push`, `git.merge`, `net.fetch`, `plugin.install`, `mcp.install`, `mcp.sampling`, `runtime.install`, `release.publish`, `vault.write.personal` \[D\]. Patterns use glob syntax \[D\]:
 
 - Path patterns (`never_allow` paths, protected paths): `*` and `?` stay within one folder, `**` crosses folders, `dir/**` also matches `dir` itself, and names that start with a dot match like any other name. `~` is the home folder, and a relative pattern is relative to the workspace root. Paths are compared as absolute paths with `/` separators, without case on Windows.
-- Command patterns (`shell.allow`, `never_allow` commands): `*` matches any text, including `/`, and the whole command must match after trimming and collapsing spaces.
+- Command patterns (`shell.allow`, `never_allow` commands): `*` matches any text, including `/`, and the whole command must match after trimming and collapsing spaces. Commands run in a shell (tab 10), so a command that contains `&`, `|`, `;`, a line break, a backtick, `(`, `)`, `>` or `<` never matches `shell.allow`, even inside quotes, and asks instead. A `never_allow` command rule matches the whole command and also each part of it, where parts are split at `&&`, `||`, `;`, `&`, `|`, line breaks, backticks and parentheses (so the inside of `$(…)` and `(…)` is a part too).
 - A `never_allow` path rule for `fs.write` also covers `fs.delete` and `fs.write.outside`, and protected paths cover all three.
 - `policy.check@1` receives the real absolute path the adapter will touch; resolving symbolic links is the caller's job.
 
@@ -51,6 +51,8 @@ Action ids used by the policy: `fs.write`, `fs.delete` (a `fs.write@1` call with
 7. The action is in `always_ask`: ask.
 8. Level 1: ask.
 9. Level 2: allow `fs.write` inside the workspace or the global `worktrees/` and `snapshots/` folders, `shell.exec` matching `shell.allow`, `git.commit`, `net.fetch` (its result is tainted external content) and `runtime.install` (runtimes download by themselves, tab 18); ask for everything else, including `fs.write.outside`.
+
+The verdict's `rule` names the step: `missing_input` (1), `never_allow:<index>` (2, the rule's position in the list), `protected_path` (3), `autonomy:0` (5), `autonomy:3` or `autonomy:3:outside` (6), `always_ask` (7), `autonomy:1` (8), and `autonomy:2:inside`, `shell.allow`, `autonomy:2:action` or `autonomy:2` (9) \[D\].
 
 `policy.check@1` also takes a `tainted` flag and records it in the audit log; the flag changes no decision until the core remembers approvals (Phase 2).
 
@@ -84,7 +86,7 @@ Third-party code still runs with the user's operating-system rights; METE enforc
 
 ## Audit log
 
-Every side-effect action writes a row to the workspace `mete.db`: time, run, agent, action, capability, adapter, SHA-256 of the arguments, decision and matching policy rule. The log is viewable and exportable as JSON \[C\]. `policy.check@1` writes the row in the same call, into the `audit_log` table; when the row cannot be written the check returns `audit_failed`, and callers MUST treat that as deny \[D\].
+Every side-effect action writes a row to the workspace `mete.db`: time, run, agent, action, capability, adapter, SHA-256 of the arguments, decision and matching policy rule. The log is viewable and exportable as JSON \[C\]. `policy.check@1` writes the row in the same call, into the `audit_log` table, with `action` as the caller named it (a `fs.write` the policy treats as `fs.write.outside` is logged as `fs.write`); when the row cannot be written the check returns `audit_failed`, and callers MUST treat that as deny \[D\].
 
 ## Triggers
 
