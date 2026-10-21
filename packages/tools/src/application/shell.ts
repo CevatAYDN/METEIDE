@@ -61,7 +61,9 @@ const workingDir = async (
 	deps: FsDeps,
 	path: string,
 ): Promise<Result<string, ToolError>> => {
-	const p = await place(deps, path);
+	const at = await place(deps, path);
+	if (!at.ok) return at;
+	const p = at.value;
 	if (!p.inside) return err(outside(path));
 	const kind = await kindOf(p.real);
 	if (!kind.ok) return kind;

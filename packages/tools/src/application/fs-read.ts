@@ -37,7 +37,9 @@ export const readFileTool = async (
 ): Out<FsReadOutput> => {
 	const i = parse(FsReadInputSchema, input);
 	if (!i.ok) return i;
-	const p = await place(deps, i.value.path);
+	const at = await place(deps, i.value.path);
+	if (!at.ok) return at;
+	const p = at.value;
 	if (!p.inside) return err(outside(i.value.path));
 	const ignored = await rules(deps);
 	if (!ignored.ok) return ignored;
@@ -53,7 +55,9 @@ export const readFileTool = async (
 
 /** The folder to list from: inside the boundary, existing, a folder and not ignored. */
 const folderAt = async (deps: FsDeps, path: string) => {
-	const p = await place(deps, path);
+	const at = await place(deps, path);
+	if (!at.ok) return at;
+	const p = at.value;
 	if (!p.inside) return err(outside(path));
 	const kind = await kindOf(p.real);
 	if (!kind.ok) return kind;

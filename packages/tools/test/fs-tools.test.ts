@@ -81,6 +81,19 @@ describe("fs tools beyond the kit", () => {
 		);
 	});
 
+	it.runIf(process.platform === "win32")(
+		"refuses an NTFS stream name, which would bypass the protected paths",
+		async () => {
+			const { deps, asked } = await setup();
+			const write = { path: ".mete/bindings.yaml::$DATA", content: "x" };
+			expect(code(await writeTool(deps, write, ctx))).toBe("bad_input");
+			expect(code(await readFileTool(deps, { path: "a.txt:s" }))).toBe(
+				"bad_input",
+			);
+			expect(asked).toEqual([]);
+		},
+	);
+
 	it("reads and lists inside a worktree", async () => {
 		const { deps } = await setup();
 		const tree = join(ws.globalDir, "worktrees", "w1");

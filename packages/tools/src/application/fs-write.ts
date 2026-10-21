@@ -31,7 +31,9 @@ export const writeTool = async (
 ): Out<FsWriteOutput> => {
 	const i = parse(FsWriteInputSchema, input);
 	if (!i.ok) return i;
-	const p = await place(deps, i.value.path);
+	const at = await place(deps, i.value.path);
+	if (!at.ok) return at;
+	const p = at.value;
 	const del = "delete" in i.value;
 	const action = del ? "fs.delete" : p.inside ? "fs.write" : "fs.write.outside";
 	const allowed = permit(
@@ -56,7 +58,9 @@ export const editTool = async (
 ): Out<FsEditOutput> => {
 	const i = parse(FsEditInputSchema, input);
 	if (!i.ok) return i;
-	const p = await place(deps, i.value.path);
+	const at = await place(deps, i.value.path);
+	if (!at.ok) return at;
+	const p = at.value;
 	const ignored = await rules(deps);
 	if (!ignored.ok) return ignored;
 	if (ignored.value(p.real)) return err(ignoredError(i.value.path));

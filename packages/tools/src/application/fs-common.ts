@@ -8,7 +8,7 @@ import {
 	type ToolError,
 } from "@mete/contracts";
 import type { ZodType } from "zod";
-import { absolute, isInside } from "../domain/paths.js";
+import { absolute, isInside, namesStream } from "../domain/paths.js";
 import { realTarget } from "../infrastructure/files.js";
 import {
 	type IgnoreCheck,
@@ -33,13 +33,21 @@ export type Place = {
 	readonly root: string;
 };
 
-/** Where an input path really is, after symbolic links. */
-export const place = async (deps: FsDeps, path: string): Promise<Place> => {
-	const real = await realTarget(absolute(deps.workspaceDir, path));
+const WINDOWS = process.platform === "win32";
+
+/** Where an input path really is, after symbolic links; an NTFS stream name is refused (docs/10). */
+export const place = async (
+	deps: FsDeps,
+	path: string,
+): Promise<Result<Place, ToolError>> => {
+	const abs = absolute(deps.workspaceDir, path);
+	if (WINDOWS && namesStream(abs))
+		return err({ code: "bad_input", message: `${path} names a file stream` });
+	const real = await realTarget(abs);
 	if (isInside(deps.workspaceDir, real))
-		return { real, inside: true, root: deps.workspaceDir };
+		return ok({ real, inside: true, root: deps.workspaceDir });
 	const inTree = isInside(deps.worktreesDir, real);
-	return { real, inside: inTree, root: deps.worktreesDir };
+	return ok({ real, inside: inTree, root: deps.worktreesDir });
 };
 
 export const outside = (path: string): ToolError => ({

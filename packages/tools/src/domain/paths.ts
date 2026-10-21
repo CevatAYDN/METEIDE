@@ -11,6 +11,9 @@ export const isInside = (root: string, path: string) => {
 	);
 };
 
+/** True when a Windows path names an NTFS stream (`file::$DATA`): a colon past the drive letter. */
+export const namesStream = (abs: string) => abs.indexOf(":", 2) !== -1;
+
 /** An input path made absolute against the workspace root. */
 export const absolute = (workspaceDir: string, path: string) =>
 	resolve(workspaceDir, path);

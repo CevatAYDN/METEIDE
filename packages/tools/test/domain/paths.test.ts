@@ -1,6 +1,11 @@
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { absolute, isInside, shown } from "../../src/domain/paths.js";
+import {
+	absolute,
+	isInside,
+	namesStream,
+	shown,
+} from "../../src/domain/paths.js";
 
 const root = resolve("ws");
 
@@ -23,5 +28,14 @@ describe("absolute and shown", () => {
 		expect(shown(root, resolve("elsewhere", "x"))).toBe(
 			resolve("elsewhere", "x").split("\\").join("/"),
 		);
+	});
+});
+
+describe("namesStream", () => {
+	it("finds a colon past the drive letter, the NTFS stream syntax", () => {
+		expect(namesStream("C:/ws/.mete/policy.yaml::$DATA")).toBe(true);
+		expect(namesStream("C:/ws/a.txt:hidden")).toBe(true);
+		expect(namesStream("C:/ws/a.txt")).toBe(false);
+		expect(namesStream("/ws/a.txt")).toBe(false);
 	});
 });
