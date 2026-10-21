@@ -107,8 +107,12 @@ export const createQuotaReserve = (deps: ReserveDeps) => {
 		cancelTimer: undefined,
 	};
 	const adapter: QuotaReserveAdapter = {
-		define: (specs) =>
-			deps.pool.define(specs.map((s) => QuotaUnitSpecSchema.parse(s))),
+		// Saved usage counts only once its provider is defined, and new limits may free waiters.
+		define(specs) {
+			deps.pool.define(specs.map((s) => QuotaUnitSpecSchema.parse(s)));
+			afterChange(st);
+			deps.scheduler.wake();
+		},
 		async reserve(req, signal) {
 			const parsed = QuotaRequestSchema.parse(req);
 			const r = await deps.scheduler.reserve(parsed, signal);
@@ -122,8 +126,6 @@ export const createQuotaReserve = (deps: ReserveDeps) => {
 	};
 	return {
 		adapter,
-		/** Publishes the state loaded at activation and starts its timer. */
-		start: () => afterChange(st),
 		dispose() {
 			st.cancelTimer?.();
 			st.cancelTimer = undefined;

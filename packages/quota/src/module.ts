@@ -92,6 +92,8 @@ export const createQuotaModule = (opts: QuotaOptions): MeteModule => {
 			});
 			const store = createQuotaStore(ctx.storage.global, now);
 			try {
+				// shortcut: saved usage is read once, so the CLI and the daemon running at the
+				// same time each count alone; read the window from the database in check() then.
 				pool.load(store.load());
 			} catch (error) {
 				return err(failed(`saved quota could not be read: ${String(error)}`));
@@ -114,7 +116,6 @@ export const createQuotaModule = (opts: QuotaOptions): MeteModule => {
 			});
 			ctx.disposables.add(provided);
 			created = [provided, reserve];
-			reserve.start();
 			return ok(undefined);
 		},
 		async deactivate() {

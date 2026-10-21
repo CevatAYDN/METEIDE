@@ -147,6 +147,17 @@ describe("quota module: restart", () => {
 		const second = await setup(dirs);
 		await second.quotaModule.activate(second.ctx);
 		second.adapter().define([day]);
+		expect(second.events.map((e) => [e.type, e.payload])).toEqual([
+			[
+				"quota.exhausted",
+				{
+					providerId: "p",
+					unit: "requests_per_day",
+					resetsAt: "2026-10-22T00:00:00.000Z",
+				},
+			],
+		]);
+		expect(second.time.pending()).toBe(1);
 		expect(await second.adapter().reserve(req, never)).toEqual({
 			ok: false,
 			error: { code: "quota_exhausted", resumesAt: "2026-10-22T00:00:00.000Z" },
