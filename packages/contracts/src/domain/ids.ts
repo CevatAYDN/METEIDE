@@ -32,3 +32,16 @@ export const IdSchema = z.uuid();
 
 /** Parses an ISO 8601 timestamp in UTC. */
 export const TimestampSchema = z.iso.datetime();
+
+const ARTIFACT_TYPE_REF = /^[a-z][a-z0-9-]*@[1-9]\d*$/;
+const SEMVER = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
+
+/** Parses an artifact type with its version, for example `gdd@1` (docs/07, Artifact). */
+export const ArtifactTypeRefSchema = z
+	.string()
+	.regex(ARTIFACT_TYPE_REF, "expected an artifact type like gdd@1");
+
+/** Parses a SemVer version. */
+export const SemverSchema = z
+	.string()
+	.regex(SEMVER, "expected a SemVer version");

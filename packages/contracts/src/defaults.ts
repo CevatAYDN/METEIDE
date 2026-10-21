@@ -23,3 +23,14 @@ export const DEFAULT_POLICY = {
 	maxHours: 6,
 	approvalTimeoutHours: 24,
 } as const;
+
+/** Team template values when a key is left out (08 Orchestration and teams, Team template schema). */
+export const TEMPLATE_DEFAULTS = {
+	engine: "native",
+	revisionLimit: 3,
+	guardrailMaxRetries: 2,
+	reviewMaxTurns: 4,
+	cloudRequests: 150,
+	maxHours: 6,
+	retrospective: false,
+} as const;

@@ -22,6 +22,9 @@ export const TierSchema = z.enum([
 /** A model tier. */
 export type Tier = z.infer<typeof TierSchema>;
 
+/** A model feature a caller needs (docs/09, Model tiers). */
+export const NeedSchema = z.enum(["tool_calling", "vision", "long_context"]);
+
 /** One exact model of one provider. */
 export const ModelRefSchema = z.strictObject({
 	providerId: text,
@@ -38,7 +41,7 @@ export const LlmChatRequestSchema = ChatRequestSchema.omit({
 	target: z.union([z.strictObject({ tier: TierSchema }), ModelRefSchema]),
 	runId: IdSchema,
 	priority: z.union([z.literal(0), z.literal(1), z.literal(2)]),
-	needs: z.array(z.enum(["tool_calling", "vision", "long_context"])).optional(),
+	needs: z.array(NeedSchema).optional(),
 	avoidFamilies: z.array(text).optional(),
 });
 

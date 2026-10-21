@@ -193,6 +193,8 @@ export interface QuotaReserveAdapter {
 
 // team.engine@1, defined in @mete/contracts; run states and the runs table in tab 07, single-agent rules in tab 08.
 // Phase 1 runs single-agent tasks only: a templateId returns not_supported until the team engine (Phase 2).
+// A template file is parsed by TeamTemplateSchema / parseTemplate in @mete/contracts (keys as in YAML, tab 08):
+// parseTemplate(input: unknown): Result<TeamTemplate, { code: "invalid_template"; issues: string[] }>.
 export type RunStatus = "queued" | "running" | "paused" | "completed" | "failed" | "cancelled";
 export type RunStart = { goal: string; templateId?: string | null; priority?: 0 | 1 | 2 };   // priority defaults to 1
 export type RunView = Omit<Run, "snapshot">;                 // Run in tab 07

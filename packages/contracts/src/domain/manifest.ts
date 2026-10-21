@@ -3,12 +3,11 @@ import {
 	type CapabilityRef,
 	CapabilityRefSchema,
 	ModuleIdSchema,
+	SemverSchema,
 } from "./ids.js";
 import { err, ok, type Result } from "./result.js";
 
 // ModuleManifest from docs/06-kernel-and-modules.md.
-
-const SEMVER = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
 
 /** What a module may do; checked by the security policy. */
 export const PermissionSchema = z.enum([
@@ -50,7 +49,7 @@ const refs = z.array(CapabilityRefSchema).readonly();
 export const ModuleManifestSchema = z
 	.strictObject({
 		id: ModuleIdSchema,
-		version: z.string().regex(SEMVER, "expected a SemVer version"),
+		version: SemverSchema,
 		displayName: z.string().min(1),
 		class: z.enum(["essential", "optional"]),
 		trust: z.enum(["core", "first-party", "third-party"]),

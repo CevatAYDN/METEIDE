@@ -16,11 +16,13 @@ export {
 	parseEvent,
 } from "./domain/events.js";
 export {
+	ArtifactTypeRefSchema,
 	type CapabilityRef,
 	CapabilityRefSchema,
 	EventTypeSchema,
 	IdSchema,
 	ModuleIdSchema,
+	SemverSchema,
 	TimestampSchema,
 } from "./domain/ids.js";
 export {
@@ -31,6 +33,7 @@ export {
 	type LlmError,
 	type ModelRef,
 	ModelRefSchema,
+	NeedSchema,
 	type PrivacyConfig,
 	PrivacyConfigSchema,
 	type Tier,
@@ -115,6 +118,12 @@ export type {
 	StorageScope,
 	StorageSqlAdapter,
 } from "./domain/storage.js";
+export {
+	parseTemplate,
+	type TeamTemplate,
+	TeamTemplateSchema,
+	type TemplateParseError,
+} from "./domain/template.js";
 export {
 	type FsEditInput,
 	FsEditInputSchema,
