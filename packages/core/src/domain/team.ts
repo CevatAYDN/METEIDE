@@ -44,6 +44,17 @@ const TaskEntrySchema = z.strictObject({
 	approvals: z.array(z.string()),
 	/** Guardrail repairs asked in the current attempt (docs/08, step 4). */
 	repairs: z.number().int().nonnegative(),
+	/** The Artifact (docs/07) of the task's expected_output, once submitted. */
+	artifact: z
+		.strictObject({
+			id: IdSchema,
+			type: z.string().min(1),
+			path: z.string().min(1),
+			sha256: z.string().min(1),
+			createdBy: z.string().min(1),
+			createdAt: z.string().min(1),
+		})
+		.optional(),
 });
 
 /** A team run's state as the run snapshot keeps it; checked on load like the rest. */
@@ -105,6 +116,19 @@ export const keepMessages = (
 	return entry
 		? withEntry(team, id, { ...entry, messages: [...messages] })
 		: team;
+};
+
+/** A task's Artifact. */
+export type ArtifactMeta = NonNullable<TaskEntry["artifact"]>;
+
+/** Records a task's Artifact. */
+export const withArtifact = (
+	team: TeamState,
+	id: string,
+	artifact: ArtifactMeta,
+): TeamState => {
+	const entry = team.tasks[id];
+	return entry ? withEntry(team, id, { ...entry, artifact }) : team;
 };
 
 /** Sets how many repairs a task's current attempt or review has asked. */

@@ -115,11 +115,11 @@ const toolTurn = async (
 };
 
 // A reply that ends a conversation: a review's verdict, a task's report, or a single agent's summary.
-const finish = (s: EngineState, l: Live, reply: string) => {
+const finish = async (s: EngineState, l: Live, reply: string) => {
 	const c = l.snapshot.context;
-	if (c.review) verdict(s, l, reply);
-	else if (c.team) submit(s, l, reply);
-	else apply(s, l, { type: "COMPLETE", at: s.deps.now(), summary: reply });
+	if (c.review) return verdict(s, l, reply);
+	if (c.team) return submit(s, l, reply);
+	apply(s, l, { type: "COMPLETE", at: s.deps.now(), summary: reply });
 };
 
 // A team run whose active task is not in progress or in review moves between tasks first.
@@ -131,8 +131,8 @@ const step = async (s: EngineState, l: Live, token: object) => {
 	const next = nextStep(c, l.meta.budget, at);
 	if (next.kind === "model") return modelTurn(s, l, token);
 	if (next.kind === "tool") return toolTurn(s, l, token, next);
-	if (next.kind === "complete") finish(s, l, next.summary);
-	else if (next.kind === "fail")
+	if (next.kind === "complete") return finish(s, l, next.summary);
+	if (next.kind === "fail")
 		apply(s, l, { type: "FAIL", at, code: next.code, message: next.message });
 	else apply(s, l, { type: "PAUSE", at, reason: next.reason });
 };

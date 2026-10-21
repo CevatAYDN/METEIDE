@@ -1,8 +1,9 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { RunView } from "@mete/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createArtifactStore } from "../../src/infrastructure/artifact-store.js";
 import type { TemplateDirs } from "../../src/infrastructure/template-store.js";
 import { engineHarness, reply, typesOf } from "../helpers/engine.js";
 
@@ -170,6 +171,42 @@ describe("team runs", () => {
 			.filter((e) => e.type === "task.status.changed")
 			.at(-1);
 		expect(last?.payload).toEqual({ from: "submitted", to: "blocked" });
+	});
+
+	it("keeps each submission as the task's artifact and announces created, then updated", async () => {
+		await writeFile(
+			join(templates.builtIn, "duo.yaml"),
+			PIPELINE.replace(
+				"context: [find] }",
+				"context: [find], approval: lead, expected_output: artifact:research-report@1 }",
+			),
+		);
+		const revise = reply('{"decision":"revise","feedback":"shorter"}');
+		const approveIt = reply('{"decision":"approve"}');
+		const h = engineHarness({
+			scripts: [
+				reply("facts"),
+				reply("draft"),
+				revise,
+				reply("draft 2"),
+				approveIt,
+			],
+			templates,
+			artifacts: createArtifactStore(root),
+		});
+		const runId = await start(h);
+		await settled(h, runId, "completed");
+		const events = h.events.filter((e) => e.type.startsWith("artifact."));
+		const path = `.mete/artifacts/${runId}/write.md`;
+		const [created] = events;
+		const artifactId =
+			created?.type === "artifact.created" ? created.payload.artifactId : "";
+		const payload = { artifactId, type: "research-report@1", path };
+		expect(events.map((e) => [e.type, e.payload])).toEqual([
+			["artifact.created", payload],
+			["artifact.updated", payload],
+		]);
+		expect(await readFile(join(root, path), "utf8")).toBe("draft 2");
 	});
 
 	it("asks the reviewer again for a reply that is no verdict", async () => {

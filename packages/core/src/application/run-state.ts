@@ -13,6 +13,7 @@ import {
 	type RunSnapshot,
 	runMachine,
 } from "../domain/run-machine.js";
+import type { ArtifactStore } from "../infrastructure/artifact-store.js";
 import type { RunMeta, RunStore } from "../infrastructure/run-store.js";
 import type { TemplateDirs } from "../infrastructure/template-store.js";
 import type { StepDeps } from "./steps.js";
@@ -33,6 +34,8 @@ export type EngineDeps = StepDeps & {
 	readonly platform: string;
 	/** Where team templates are read from; no folders means team runs are not supported. */
 	readonly templates?: TemplateDirs | undefined;
+	/** Where team runs keep their artifacts; without it none are written. */
+	readonly artifacts?: ArtifactStore | undefined;
 };
 
 /**

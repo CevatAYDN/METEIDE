@@ -7,6 +7,7 @@ import {
 } from "../domain/review.js";
 import type { TaskEvent } from "../domain/task-machine.js";
 import {
+	type ArtifactMeta,
 	applyTask,
 	approve,
 	keepMessages,
@@ -14,8 +15,10 @@ import {
 	setRepairs,
 	type TaskChange,
 	type TeamState,
+	withArtifact,
 } from "../domain/team.js";
 import { guardrailOf, taskConversation } from "../domain/team-run.js";
+import { announce, saveArtifact } from "./artifacts.js";
 import {
 	apply,
 	type EngineState,
@@ -48,13 +51,24 @@ const stuck = (s: EngineState, l: Live) =>
 		message: "the team made no progress",
 	});
 
-// Ends the attempt: its conversation is kept and the task moves on.
-const endAttempt = (s: EngineState, l: Live, event: TaskEvent) => {
+// Ends the attempt: its conversation (and Artifact) is kept and the task moves on.
+const endAttempt = (
+	s: EngineState,
+	l: Live,
+	event: TaskEvent,
+	artifact?: ArtifactMeta,
+) => {
 	const { team, task, messages } = l.snapshot.context;
 	if (!team || !task) return stuck(s, l);
-	const r = applyTask(keepMessages(team, task, messages), task, event);
+	const kept = keepMessages(team, task, messages);
+	const r = applyTask(
+		artifact ? withArtifact(kept, task, artifact) : kept,
+		task,
+		event,
+	);
 	if (!r.change) return stuck(s, l);
 	apply(s, l, { type: "TEAM", team: r.team });
+	if (artifact) announce(s, l, team, { task, artifact });
 	changed(s, l, team.tasks[task]?.id, r.change);
 };
 
@@ -63,13 +77,20 @@ const endAttempt = (s: EngineState, l: Live, event: TaskEvent) => {
  * a failed check asks for a repair up to max_retries times, then blocks the task (docs/08).
  * shortcut: verify gates do not run yet; no Phase 2 template uses them.
  */
-export const submit = (s: EngineState, l: Live, reply: string) => {
+export const submit = async (s: EngineState, l: Live, reply: string) => {
 	const { team, task } = l.snapshot.context;
 	if (!team || !task) return stuck(s, l);
 	const guard = guardrailOf(team, task);
 	const checked = checkReport(guard?.schema, reply);
-	if (checked.ok)
-		return endAttempt(s, l, { type: "SUBMIT", report: checked.report });
+	if (checked.ok) {
+		const report = checked.report;
+		const artifact = await saveArtifact(s, l, {
+			report,
+			json: guard !== undefined,
+		});
+		if (artifact === false) return; // the write failed the run
+		return endAttempt(s, l, { type: "SUBMIT", report }, artifact);
+	}
 	if (guard && (team.tasks[task]?.repairs ?? 0) < guard.max_retries) {
 		const content = repairMessage(guard.schema, checked.issues);
 		return apply(s, l, {

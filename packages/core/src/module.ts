@@ -4,6 +4,7 @@ import { release, type } from "node:os";
 import { err, type ModuleManifest, ok } from "@mete/contracts";
 import type { MeteModule, ModuleError } from "@mete/kernel";
 import { createEngine, type EngineDeps } from "./application/engine.js";
+import { createArtifactStore } from "./infrastructure/artifact-store.js";
 import { createRunStore, RUN_MIGRATIONS } from "./infrastructure/run-store.js";
 import type { TemplateDirs } from "./infrastructure/template-store.js";
 
@@ -16,6 +17,8 @@ export type CoreEngineOptions = {
 	readonly recover?: boolean;
 	/** The built-in templates/ folder and the workspace root; without them team runs are refused. */
 	readonly templates?: TemplateDirs;
+	/** The workspace root; team runs write their artifacts to its .mete/artifacts/. */
+	readonly workspaceDir?: string;
 };
 
 const MANIFEST: ModuleManifest = {
@@ -40,7 +43,8 @@ const MANIFEST: ModuleManifest = {
 	optional: ["shell.exec@1", "vcs.git@1"],
 	activation: ["onStartup"],
 	isolation: "in-process",
-	permissions: ["llm"],
+	// fs.write: artifact files in .mete/artifacts/ (ARCHITECTURE.md, workspace files).
+	permissions: ["llm", "fs.write"],
 };
 
 const failed = (message: string): ModuleError => ({
@@ -77,6 +81,9 @@ export const createCoreEngineModule = (opts: CoreEngineOptions): MeteModule => {
 				os: `${type()} ${release()}`,
 				platform: process.platform,
 				templates: opts.templates,
+				artifacts: opts.workspaceDir
+					? createArtifactStore(opts.workspaceDir)
+					: undefined,
 			});
 			if (opts.recover !== false) created.recover();
 			stop = created.stop;

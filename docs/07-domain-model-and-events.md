@@ -46,6 +46,8 @@ interface Handoff { id: string; workspaceId: string; runId: string;             
 
 A `Task.id` is a UUID made when the run starts; the template's task id (`write_gdd`) stays in the run snapshot, and events name a task by its `Task.id`. Tasks and approvals have no table of their own: the run snapshot keeps the tasks and who approved the current submission, and the approval history is the `approval.requested` and `approval.resolved` rows in `events` \[D\].
 
+A team task with an `expected_output` keeps each submitted report as its Artifact: the file `.mete/artifacts/<run id>/<template task id>.json` for a guarded report or `.md` otherwise, replaced by a later submission, and its metadata (`id`, `type`, `path` relative to the workspace root, `sha256`, `createdBy` = the task's agent, `createdAt`) in the run snapshot. The first submission publishes `artifact.created`, later ones `artifact.updated` with the same id. A failed write fails the run with code `artifact_failed`; core-engine declares the `fs.write` permission for these files \[D\].
+
 `Message.summary` is the first sentence of the message body, cut to 80 characters. It MUST NOT be produced by an extra model call \[C\].
 
 ## Task state machine

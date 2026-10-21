@@ -15,6 +15,7 @@ import {
 } from "@mete/kernel";
 import Database from "better-sqlite3";
 import { createEngine } from "../../src/application/engine.js";
+import type { ArtifactStore } from "../../src/infrastructure/artifact-store.js";
 import {
 	createRunStore,
 	RUN_MIGRATIONS,
@@ -101,6 +102,7 @@ export const engineHarness = (opts: {
 	/** Changes the store, for example to make a write fail. */
 	wrapStore?: (store: RunStore) => RunStore;
 	templates?: TemplateDirs;
+	artifacts?: ArtifactStore;
 }) => {
 	const registry = createCapabilityRegistry(() => []);
 	const events: MeteEvent[] = [];
@@ -113,6 +115,7 @@ export const engineHarness = (opts: {
 		"checkpoint.*",
 		"task.*",
 		"approval.*",
+		"artifact.*",
 	] as const)
 		bus.subscribe(p, (e) => events.push(e));
 	const requests: LlmChatRequest[] = [];
@@ -171,6 +174,7 @@ export const engineHarness = (opts: {
 		os: "TestOS 1",
 		platform: "linux",
 		templates: opts.templates,
+		artifacts: opts.artifacts,
 	});
 	return {
 		...created,
