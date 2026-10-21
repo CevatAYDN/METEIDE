@@ -93,6 +93,10 @@ describe("custom endpoints", () => {
 		]);
 		await s.module.deactivate();
 		expect(adapters(s)).toEqual([]);
+		// The lifecycle restarts a module on the same instance.
+		expect((await s.module.activate(s.ctx)).ok).toBe(true);
+		expect(adapters(s)).toEqual(["custom:lab", "custom:claude"]);
+		await s.module.deactivate();
 	});
 
 	it("lists an anthropic endpoint's models with its metadata under the user's rows", async () => {
