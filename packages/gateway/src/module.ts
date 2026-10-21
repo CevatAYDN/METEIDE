@@ -1,4 +1,5 @@
 // MeteModule entry (docs/06-kernel-and-modules.md). Modules in this package: gateway.
+import { setTimeout as delay } from "node:timers/promises";
 import {
 	err,
 	type LlmChatAdapter,
@@ -67,18 +68,10 @@ const failed = (message: string): ModuleError => ({
 	message,
 });
 
+// Ends at once on an already aborted signal and removes its own abort listener; the
+// pipeline checks the signal after the wait, so the abort rejection is dropped.
 const realSleep = (ms: number, signal: AbortSignal) =>
-	new Promise<void>((resolve) => {
-		const t = setTimeout(resolve, ms);
-		signal.addEventListener(
-			"abort",
-			() => {
-				clearTimeout(t);
-				resolve();
-			},
-			{ once: true },
-		);
-	});
+	delay(ms, undefined, { signal }).catch(() => undefined);
 
 const first = <C>(registry: CapabilityRegistry, ref: `${string}@1`): C => {
 	const r = registry.resolve<C>(ref);
