@@ -179,6 +179,18 @@ const openLog = (
 	};
 };
 
+const usableRefs = async (
+	live: Live | undefined,
+	signal: AbortSignal,
+): Promise<ModelRef[]> => {
+	if (!live) return [];
+	const found = await live.discover(signal);
+	return usableModels(found, live.rules).map((m) => ({
+		providerId: m.providerId,
+		modelId: m.id,
+	}));
+};
+
 /** The gateway module and the models it offers, for `/v1/models`. */
 export type GatewayModule = MeteModule & {
 	/** Usable discovered models; empty while the module is inactive. */
@@ -196,14 +208,7 @@ export const createGatewayModule = (
 	let live: Live | undefined;
 	return {
 		manifest: MANIFEST,
-		async models(signal) {
-			if (!live) return [];
-			const found = await live.discover(signal);
-			return usableModels(found, live.rules).map((m) => ({
-				providerId: m.providerId,
-				modelId: m.id,
-			}));
-		},
+		models: (signal) => usableRefs(live, signal),
 		async activate(ctx) {
 			if (!ctx.storage) return err(failed("storage.sql@1 was not provided"));
 			const migrated = ctx.storage.migrate("workspace", MODEL_CALL_MIGRATIONS);
