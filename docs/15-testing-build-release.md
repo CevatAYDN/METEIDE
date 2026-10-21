@@ -27,6 +27,17 @@ Rules:
 
 Phase 1 measures a baseline on the reference machine (the founder's Windows PC): cold start, idle memory, studio frame rate with 6 agents, and indexing time per 1,000 files. From then on, a release fails if any metric regresses by more than 10% from the last accepted baseline \[D\]. Absolute targets are set from that baseline, not guessed.
 
+Phase 1 baseline, recorded from a live `mete run` of an edit task on the reference machine (cold start is the time until the workspace is open; the run figures come from `model_calls` and `runs`) \[D\]:
+
+| Metric | Value | Measured | Commit |
+| --- | --- | --- | --- |
+| CLI cold start | not measured yet | | |
+| Idle memory (RSS) | not measured yet | | |
+| Model calls per run | not measured yet | | |
+| Prompt and completion tokens per run | not measured yet | | |
+| Median model call latency | not measured yet | | |
+| Run wall time | not measured yet | | |
+
 ## Local CI
 
 | Hook or script | Runs |
