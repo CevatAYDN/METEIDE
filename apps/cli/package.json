@@ -12,6 +12,21 @@
 	},
 	"scripts": {
 		"build": "tsc -b",
-		"test": "vitest run --passWithNoTests"
+		"test": "vitest run --coverage"
+	},
+	"bin": {
+		"mete": "./dist/bin.js"
+	},
+	"dependencies": {
+		"@mete/contracts": "workspace:*",
+		"@mete/core": "workspace:*",
+		"@mete/gateway": "workspace:*",
+		"@mete/kernel": "workspace:*",
+		"@mete/providers": "workspace:*",
+		"@mete/quota": "workspace:*",
+		"@mete/security": "workspace:*",
+		"@mete/storage": "workspace:*",
+		"@mete/tools": "workspace:*",
+		"pino": "10.4.0"
 	}
 }
