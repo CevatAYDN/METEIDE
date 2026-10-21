@@ -98,7 +98,7 @@ export type ChatChunk =
   | { type: "tool-call"; id: string; name: string; args: unknown }
   | { type: "finish"; reason: "stop" | "length" | "tool-calls" | "content-filter" | "other"; usage: { prompt: number; completion: number } }
   | { type: "error"; error: ProviderError };   // the last chunk; chat never throws for a provider failure
-export type EmbedRequest = { model: string; input: string[] };
+export type EmbedRequest = { model: string; input: string[]; purpose: "query" | "document" };   // what the vectors are for
 export type EmbedResponse = { vectors: number[][] };   // one vector per input, in order
 export type RerankRequest = { model: string; query: string; documents: string[] };
 export type RerankResponse = { scores: number[] };     // one score per document, in order

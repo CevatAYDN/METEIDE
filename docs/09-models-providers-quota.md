@@ -30,14 +30,14 @@ The shapes `chat`, `embed` and `rerank` use are in tab 06. `chat` streams chunks
 `GET <base>/models` from NVIDIA and OpenCode Zen returns model ids only, so `@mete/providers` ships `models.yaml` beside `tiers.yaml`: per provider, exact model ids with `capability` (`chat`, `embed` or `rerank`), `contextWindow`, `toolCalling`, `vision`, `free`, `family` and, where a provider's privacy differs per model, `privacy`. Like `tiers.yaml` it is data the user and the community edit \[D\]:
 
 - A model the provider lists with neither metadata nor a row gets `contextWindow: 0` and `free: false`, so it fits no tier.
-- A row whose id the provider no longer lists is not offered.
+- A `chat` or `embed` row whose id the provider no longer lists is not offered. NVIDIA lists no rerank models, so `rerank` rows are offered as shipped.
 - `deprecated` comes only from provider metadata.
 - Ids are exact, never patterns; a new free model needs a new row.
 - Discovery sends no probe calls.
 - The shipped `models.yaml` and `tiers.yaml` live in `packages/providers/data/` and are read at runtime. `models.yaml` is keyed by provider and then exact model id, so the user's rows in the `models:` section of `settings.yaml` (or `.mete/models.yaml`) merge the usual way (ARCHITECTURE.md, Configuration): a row with a shipped id replaces it, any other id is added. The user's `tiers.yaml` rows go in the `tiers:` section the same way; its shape is set with the router.
 - Each shipped row names its source and the date it was checked; facts not in the provider's own documentation come from models.dev (MIT, THIRD_PARTY_NOTICES.md).
 
-API keys live in the operating system keychain through `ModuleContext.secrets` (tab 06), which the composition root builds from the keychain store in `@mete/security` on `@napi-rs/keyring`; it is not a capability. Keys are kept under service `mete` and account `providers/<providerId>/apiKey`, or `providers/custom:<slug>/apiKey` for a custom endpoint. A provider module whose key is missing fails activation with "no API key" and stays inactive until the user adds one. Provider modules declare the `net` and `secrets` permissions. Custom endpoints are kept in the `providers:` section of `settings.yaml` as `custom: [{ slug, name, baseUrl, format, headers }]`; their keys never go into a file \[D\].
+API keys live in the operating system keychain through `ModuleContext.secrets` (tab 06), which the composition root builds from the keychain store in `@mete/security` on `@napi-rs/keyring`; it is not a capability. Keys are kept under service `mete` and account `providers/<providerId>/apiKey`, or `providers/custom:<slug>/apiKey` for a custom endpoint. A provider module whose key is missing fails activation with "no API key" and stays inactive until the user adds one. Provider modules declare the `net` and `secrets` permissions. Custom endpoints are kept in the `providers:` section of `settings.yaml` as `custom: [{ slug, name, baseUrl, format, headers }]`; their keys never go into a file. The `provider-custom` module provides one adapter per endpoint, registered as `custom:<slug>`: an endpoint without its key is skipped with a warning while the others activate, no endpoints means the module activates and provides nothing, and only `openai-chat` endpoints provide `provider.embed@1` \[D\].
 
 Provider facts, checked on 2026-10-21 against each provider's documentation \[D\]:
 
@@ -51,7 +51,7 @@ Provider facts, checked on 2026-10-21 against each provider's documentation \[D\
 
 - OpenRouter: only a 429 that carries `X-RateLimit-*` headers is an exhausted observation, for `requests_per_day` when `X-RateLimit-Limit` is 50 or more (the documented daily limits are 50 and 1,000) and `requests_per_minute` otherwise (documented as 20); an upstream 429 closes nothing. `X-RateLimit-Reset` is not read, because its unit is not documented; `Retry-After` gives `resetsAt`. A limit hit while streaming carries no headers and closes nothing; the next request's 429 does.
 - NVIDIA and OpenCode Zen: a 429 is an exhausted observation for `requests_per_minute`, with `resetsAt` from `Retry-After` when present.
-- NVIDIA's embedding and rerank endpoints are recorded here with the NVIDIA adapter.
+- NVIDIA embeddings use `POST https://integrate.api.nvidia.com/v1/embeddings` with `input_type: "query"` or `"passage"` (an embed request's `purpose` of `query` or `document`); rerank uses `POST https://ai.api.nvidia.com/v1/retrieval/<model id>/reranking` with `{ model, query: { text }, passages: [{ text }] }` and answers `{ rankings: [{ index, logit }] }`, highest first, which the adapter turns into one score per document in input order (NVIDIA API reference, checked on 2026-10-21).
 
 ## Model tiers
 
