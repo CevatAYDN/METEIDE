@@ -66,7 +66,8 @@ This is the only valid technology list. Anything not listed here needs an ADR be
 
 | Area | Technology | Role |
 | --- | --- | --- |
-| Grep | `@vscode/ripgrep` | Bundled ripgrep binary per platform; also lists files for `fs.list@1` and `fs.glob@1` (`rg --files`), because it applies `.gitignore` and `.meteignore` rules itself |
+| Grep | `@vscode/ripgrep` | Bundled ripgrep binary per platform; also lists files for `fs.list@1` and `fs.glob@1` (`rg --files`), because it applies `.gitignore` rules itself |
+| Ignore rules | `ignore` | `.meteignore` checks of single paths and of ripgrep's output, in gitignore syntax (ADR-040) |
 | Glob | ripgrep `--glob` | File patterns; policy patterns use a small own matcher in `@mete/security`, because `node:path` `matchesGlob` skips dot files and compares Windows paths with case |
 | File watching | `@parcel/watcher` | Incremental indexing |
 | Terminal | node-pty | Interactive terminal; `shell.exec@1` uses `node:child_process` instead, because a PTY merges stdout and stderr |
