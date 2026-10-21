@@ -1,0 +1,104 @@
+# 09 Models, providers and quota
+
+Repository file: `docs/09-models-providers-quota.md`. Depends on: 06 Kernel and modules, 07 Domain model and events.
+
+Templates ask for a tier, the router picks a free model for it at runtime, and every call passes the local gateway, where privacy, masking and quota are enforced.
+
+## Provider adapter
+
+```ts
+interface ProviderAdapter {
+  readonly id: string;                         // "nvidia" | "openrouter" | "opencode-zen" | "custom:<slug>"
+  readonly format: "openai-chat" | "anthropic-messages" | "google-gemini";
+  listModels(): Promise<Result<ModelInfo[], ProviderError>>;
+  chat(req: ChatRequest, signal: AbortSignal): AsyncIterable<ChatChunk>;
+  embed?(req: EmbedRequest): Promise<Result<EmbedResponse, ProviderError>>;
+  rerank?(req: RerankRequest): Promise<Result<RerankResponse, ProviderError>>;
+  quotaUnits(): QuotaUnitSpec[];
+  observe(status: number, headers: Headers): QuotaObservation[];   // reads rate-limit headers and 429s
+  privacy(model: ModelInfo): { trains: boolean | "unknown"; logs: boolean | "unknown"; publishes: boolean | "unknown" };
+}
+
+interface ModelInfo { id: string; providerId: string; family: string; contextWindow: number;
+  toolCalling: boolean | "unknown"; vision: boolean | "unknown"; free: boolean; deprecated: boolean }
+```
+
+Custom endpoints are created from a form: name, base URL, API key, extra headers, format. On save METE calls `GET <base>/models` and fills `ModelInfo` from the returned metadata. Unknown capabilities stay `"unknown"`; the "Test" button sends one probe call per selected model, only when the user presses it \[D\].
+
+## Model tiers
+
+| Tier | Used for | Hard requirements |
+| --- | --- | --- |
+| `reasoning` | Design, planning, review, approval | Context window of 32k tokens or more \[D\] |
+| `coder` | Code and file edits | Tool calling; context of 32k or more \[C\] |
+| `fast` | Routing, summaries, context compaction | Context of 8k or more \[D\] |
+| `long-context` | Large documents and repository analysis | Context of 128k or more \[D\] |
+| `vision` | Screenshots, image review, asset work | Image input \[C\] |
+
+Embedding and reranking are provider capabilities (`provider.embed@1`, `provider.rerank@1`), not tiers. Image and 3D generation are `media.*` capabilities served through MCP (ADR-030).
+
+## Tier resolution
+
+1. Candidates: discovered models that are free, not deprecated, meet the tier requirements and the role's `needs`, and pass the privacy policy.
+2. Order: learned score when the model has 5 or more samples for this role and task kind; otherwise the community priority list `tiers.yaml` shipped in `@mete/providers`; then larger context window first \[D\].
+3. Apply `prefer_different_family_than`.
+4. The chain is the first 4 candidates \[D\]. The agent uses the first; failures move down the chain and publish `agent.model.changed`.
+
+`tiers.yaml` maps model id patterns to tiers per provider. It is data, editable by the user and the community; templates never reference it.
+
+## Learning router
+
+After every task attempt the router stores, per model, role and task kind: attempts, verify pass rate, average revisions, average requests and latency, in the global `mete.db` \[C\].
+
+```latex
+\text{score} = 0.60 \cdot \text{passRate} + 0.25 \cdot \left(1 - \frac{\text{avgRevisions}}{\text{revisionLimit}}\right) + 0.15 \cdot \left(1 - \text{normalizedRequests}\right)
+```
+
+With probability 0.05 the router tries an untested candidate instead of the best one, so new free models get a chance \[D\].
+
+## Gateway
+
+- Endpoints: `/v1/chat/completions`, `/v1/embeddings`, `/v1/rerank`, `/v1/models` \[D\]. `/v1/models` lists tier aliases (`mete/reasoning`, `mete/coder`, `mete/fast`, `mete/long-context`, `mete/vision`) and discovered models.
+- Request pipeline: session token → `llm` permission check → privacy filter → secret masking → quota reservation → provider call → quota observation → log.
+- Errors: on 429 or 5xx, wait for the reset header if it is under 90 seconds, otherwise back off 2, 8 and 30 seconds; after 3 failures on one model, move to the next model in the chain \[D\]. Tight retry loops are forbidden \[C\].
+- Logs: full prompts and responses go only into the workspace `mete.db` for replay. Global logs keep metadata only \[D\].
+
+## Privacy
+
+- Models whose provider trains on or publishes prompts are excluded unless the user enables them in Settings, after a warning that explains the effect \[C\].
+- OpenRouter requests carry the provider-routing preference `data_collection: "deny"` unless the user opted in \[D\].
+- A workspace marked `sensitive` uses only models with `trains: false` and `publishes: false`, and shows a banner that its content goes to cloud providers \[D\].
+- Secret masking runs secretlint rules on every outbound request and replaces matches with `[SECRET:<first 8 hex of sha256>]` \[C\].
+- Files matched by `.meteignore` are never read into a prompt. Default `.meteignore`: `.env*`, `*.pem`, `*.key`, `id_rsa*`, `secrets/` \[D\].
+
+## Quota pool
+
+```ts
+type QuotaUnit = "requests_per_minute" | "requests_per_day" | "tokens_per_minute" | "credits_per_month" | "gpu_seconds_per_day";
+interface QuotaUnitSpec { providerId: string; unit: QuotaUnit; limit: number | "discover";
+  scope: "account" | "model"; reset: "sliding" | "fixed_daily" | "fixed_monthly" }
+```
+
+Provider adapters ship these starting values, checked on 2026-10-21. They are editable in Settings and are corrected automatically from response headers \[C\]:
+
+| Provider | Unit | Starting value | Notes |
+| --- | --- | --- | --- |
+| OpenRouter `:free` models | requests\_per\_minute | 20 | Account-wide |
+| OpenRouter `:free` models | requests\_per\_day | 50; 1,000 after a lifetime purchase of 10 credits | Account-wide across all free models; more accounts do not raise it |
+| NVIDIA Build | requests\_per\_minute | 40 | The real value is shown in the user's NVIDIA dashboard |
+| OpenCode Zen free models | requests\_per\_minute | discover | Learned from 429 responses |
+| Hugging Face ZeroGPU | gpu\_seconds\_per\_day | 300 | About 5 minutes per day on a free account |
+| Tavily | credits\_per\_month | 1,000 | No card required |
+| Exa API | credits\_per\_month | 10 | US dollars of monthly free credit |
+| You.com | requests\_per\_day | 100 | Free tier |
+| Firecrawl | credits\_per\_month | 1,000 | About 500 searches |
+| Exa MCP without key | requests\_per\_minute | discover | Learned from errors |
+
+## Scheduler
+
+1. Priority classes: P0 interactive (the user is waiting), P1 foreground runs, P2 scheduled or triggered runs. Higher classes go first; runs in the same class share capacity round-robin \[C\].
+2. Before each call the scheduler picks the first model in the chain whose provider has capacity in every unit, using prompt tokens plus `max_tokens` as the estimate, and reserves it. The response reconciles the reservation.
+3. No capacity anywhere: wait if a reset comes within 90 seconds; otherwise pause the run with reason `quota` and `resumesAt` set to the earliest reset \[D\].
+4. `media.*` calls are charged to their own provider units, separate from chat \[C\].
+5. When a run reaches `budget.cloud_requests` or `budget.max_hours`, it pauses with reason `budget` and asks the user \[C\].
+6. Before a run starts, the UI shows an estimate: the sum of historical average requests per role and task kind; without history, 12 requests per task, 4 per review and 3 per approval \[D\].

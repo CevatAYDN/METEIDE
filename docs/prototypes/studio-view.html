@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ajan stüdyosu: canlı konsept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ECEAF4;--panel:#F8F7FC;--line:#DAD6EA;--ink:#24223A;--muted:#6B6785;
+  --accent:#5B4BD6;--on-accent:#FFFFFF;--good:#2FA38A;--warn:#E3A13A;--bad:#D9544A;--chip:#E4E0F3;
+  color-scheme:light;box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#17162A;--panel:#211F38;--line:#34315A;--ink:#ECEAF7;--muted:#A6A2C4;
+    --accent:#8F83F2;--on-accent:#17162A;--good:#4CC3A6;--warn:#F0B75A;--bad:#EE7368;--chip:#2D2A4D;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#17162A;--panel:#211F38;--line:#34315A;--ink:#ECEAF7;--muted:#A6A2C4;
+  --accent:#8F83F2;--on-accent:#17162A;--good:#4CC3A6;--warn:#F0B75A;--bad:#EE7368;--chip:#2D2A4D;color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 15px/1.5 'Baloo 2',ui-rounded,'Segoe UI Rounded','Segoe UI',system-ui,sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:18px 16px 28px}
+.top{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:14px}
+.brand{display:flex;align-items:center;gap:12px;flex:1;min-width:230px}
+.brand h1{font-size:26px;line-height:1;margin:0;font-weight:800;letter-spacing:-.01em}
+.brand p{margin:3px 0 0;color:var(--muted);font-size:14px}
+.prog{flex:1;min-width:220px}
+.prog-row{display:flex;justify-content:space-between;font-size:14px;color:var(--muted)}
+.prog-row b{color:var(--ink);font-weight:700}
+.bar{height:10px;border-radius:6px;background:var(--chip);overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:6px;transition:width .6s ease}
+.ctrl{display:flex;gap:8px;align-items:center}
+button{font:inherit;font-weight:700;color:var(--ink);background:var(--panel);border:1.5px solid var(--line);border-radius:10px;padding:5px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:flex;background:var(--panel);border:1.5px solid var(--line);border-radius:10px;padding:2px}
+.seg button{border:0;padding:3px 10px;border-radius:8px;background:transparent}
+.seg button.on{background:var(--accent);color:var(--on-accent)}
+.stage{position:relative;aspect-ratio:16/9;border-radius:20px;overflow:hidden;background:#9fbfb5}
+canvas{display:block;width:100%;height:100%}
+.hint{position:absolute;left:14px;bottom:12px;background:var(--panel);color:var(--ink);font-size:13px;font-weight:600;padding:3px 11px;border-radius:999px;border:1.5px solid var(--line);transition:opacity .4s;pointer-events:none}
+.card{position:absolute;width:236px;transform:translate(-50%,calc(-100% - 12px));background:var(--panel);color:var(--ink);border:1.5px solid var(--line);border-radius:14px;padding:11px 14px 12px;font-size:14px;box-shadow:0 12px 32px rgba(20,18,40,.28);z-index:2}
+.card.under{transform:translate(-50%,16px)}
+.card[hidden]{display:none}
+.card .hd{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.card .hd b{font-size:17px;font-weight:800}
+.card .hd span:last-child{color:var(--muted)}
+.chips{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.chip{background:var(--chip);border-radius:999px;padding:0 9px;font-size:12.5px;font-weight:600}
+.card dl{display:grid;grid-template-columns:auto 1fr;gap:1px 10px;margin:0}
+.card dt{color:var(--muted)}
+.card dd{margin:0}
+.sw{display:inline-block;width:11px;height:11px;border-radius:50%;flex:none}
+.team{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.team button{display:flex;align-items:center;gap:7px;font-weight:600;padding:3px 11px}
+.team button small{color:var(--muted);font-weight:500}
+.below{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px;margin-top:12px}
+@media (max-width:760px){.below{grid-template-columns:minmax(0,1fr)}.brand h1{font-size:22px}}
+.panel{background:var(--panel);border:1.5px solid var(--line);border-radius:16px;padding:14px 16px}
+.panel h2{font-size:18px;margin:0 0 6px;font-weight:800}
+#log{list-style:none;margin:0;padding:0;font-size:14px}
+#log li{display:flex;gap:9px;align-items:baseline;padding:4px 0;border-top:1px solid var(--line)}
+#log li:first-child{border-top:0}
+.ldot{width:9px;height:9px;border-radius:50%;flex:none;transform:translateY(1px)}
+.lt{color:var(--muted);font-variant-numeric:tabular-nums;flex:none}
+.q{margin:6px 0 11px}
+.q-row{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.q-row small{color:var(--muted);font-size:13px}
+.q-row .v{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.q-row .full{color:var(--bad);font-weight:700;margin-left:6px}
+.qbar{height:8px;border-radius:5px;background:var(--chip);overflow:hidden;margin-top:3px}
+.qbar i{display:block;height:100%;border-radius:5px;transition:width .3s,background-color .3s}
+.note{font-size:13px;color:var(--muted);margin:4px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect x="2" y="2" width="36" height="36" rx="11" fill="var(--accent)"/><circle cx="14" cy="18" r="3.4" fill="var(--on-accent)"/><circle cx="26" cy="18" r="3.4" fill="var(--on-accent)"/><path d="M13 26c3.5 3 10.5 3 14 0" stroke="var(--on-accent)" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg>
+      <div><h1>Stüdyo</h1><p id="goal">Ekip hazırlanıyor…</p></div>
+    </div>
+    <div class="prog">
+      <div class="prog-row"><b id="sprint">Sprint 1</b><span id="pct">%0</span></div>
+      <div class="bar" id="pbarw" role="progressbar" aria-label="Sprint ilerlemesi" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="pbar"></i></div>
+    </div>
+    <div class="ctrl">
+      <button id="pp" aria-pressed="false">Durdur</button>
+      <div class="seg" role="group" aria-label="Hız"><button data-s="1" class="on">1×</button><button data-s="2">2×</button><button data-s="4">4×</button></div>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="scene" role="img" aria-label="Ajanların küçük karakterler olarak çalıştığı, konuştuğu ve görev paylaştığı canlı stüdyo"></canvas>
+    <div class="hint" id="hint">Bir karaktere tıkla</div>
+    <div class="card" id="card" hidden></div>
+  </div>
+  <div class="team" id="team" role="group" aria-label="Ekip"></div>
+
+  <section class="below">
+    <div class="panel"><h2>Olaylar</h2><ol id="log" aria-live="polite"></ol></div>
+    <div class="panel"><h2>Ücretsiz kota havuzu</h2><div id="quota"></div><p class="note">Kota dolunca ajan bekler, yenilenince kaldığı yerden devam eder.</p></div>
+  </section>
+</div>
+
+<script>
+(() => {
+'use strict';
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    this.moveTo(x + r, y); this.arcTo(x + w, y, x + w, y + h, r); this.arcTo(x + w, y + h, x, y + h, r);
+    this.arcTo(x, y + h, x, y, r); this.arcTo(x, y, x + w, y, r); this.closePath();
+  };
+}
+const W = 1280, H = 720, LANE = 445, DAY = 110;
+const FONT = "'Baloo 2', ui-rounded, 'Segoe UI', system-ui, sans-serif";
+const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = (id) => document.getElementById(id);
+const cv = $('scene'), ctx = cv.getContext('2d');
+let scale = 1;
+function resize() {
+  const r = cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = Math.max(2, Math.round(r.width * dpr)); cv.height = Math.max(2, Math.round(r.height * dpr));
+  scale = cv.width / W;
+}
+if ('ResizeObserver' in window) new ResizeObserver(resize).observe(cv); else window.addEventListener('resize', resize);
+resize();
+
+let speed = 1, paused = false, gt = 0;
+const waiters = [];
+const wait = (s) => new Promise((r) => waiters.push({ t: gt + s, r }));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+const hex2rgb = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const mixA = (A, B, t) => [lerp(A[0], B[0], t), lerp(A[1], B[1], t), lerp(A[2], B[2], t)];
+const rgb = (a, al) => `rgba(${Math.round(a[0])},${Math.round(a[1])},${Math.round(a[2])},${al == null ? 1 : al})`;
+function shade(hex, amt) { const c = hex2rgb(hex).map((v) => clamp(v + amt, 0, 255)); return rgb(c); }
+
+function rr(x, y, w, h, r, f, s, lw) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); if (f) { ctx.fillStyle = f; ctx.fill(); } if (s) { ctx.strokeStyle = s; ctx.lineWidth = lw || 1; ctx.stroke(); } }
+function circ(x, y, r, f) { ctx.beginPath(); ctx.arc(x, y, Math.max(0.1, r), 0, Math.PI * 2); ctx.fillStyle = f; ctx.fill(); }
+function ell(x, y, rx, ry, f, rot) { ctx.beginPath(); ctx.ellipse(x, y, Math.max(0.1, rx), Math.max(0.1, ry), rot || 0, 0, Math.PI * 2); ctx.fillStyle = f; ctx.fill(); }
+function line(x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+function glow(x, y, r, col) { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+function star(x, y, r, col) { ctx.fillStyle = col; ctx.beginPath(); for (let i = 0; i < 8; i++) { const rad = i % 2 ? r * 0.4 : r, an = (i * Math.PI) / 4; ctx.lineTo(x + Math.cos(an) * rad, y + Math.sin(an) * rad); } ctx.closePath(); ctx.fill(); }
+function fit(text, maxW) { if (ctx.measureText(text).width <= maxW) return text; let t = text; while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1); return t + '…'; }
+
+/* ---------- Dünya ---------- */
+const DESK = { designer: { x: 250, y: 330 }, pm: { x: 540, y: 330 }, lead: { x: 1010, y: 330 }, dev: { x: 250, y: 560 }, artist: { x: 640, y: 560 }, tester: { x: 1030, y: 560 } };
+const SPOT = { board: { x: 400, y: 215, face: -1 }, coffee: { x: 875, y: 232, face: -1 } };
+const CONF = ['#ef6f5e', '#f2b84b', '#53b98f', '#6aa7f0', '#b58cf0', '#f07fa8'];
+const BOOKC = ['#c0504d', '#4f81bd', '#9bbb59', '#8064a2', '#f79646', '#4bacc6', '#d9a441', '#6a8caf'];
+const STATUS = { idle: 'Boşta', work: 'Çalışıyor', think: 'Düşünüyor', wait: 'Kota bekliyor', error: 'Hata buldu', happy: 'Keyifli' };
+const DEFS = [
+  ['designer', 'Deniz', 'Tasarımcı', 'reasoning', 'NVIDIA', '#8a6fd6', '#3b2a20', '#f2c9a5', 'pencil'],
+  ['pm', 'Ece', 'Proje yöneticisi', 'reasoning', 'OpenRouter', '#e07a5f', '#6b3416', '#e8b48f', 'clip'],
+  ['lead', 'Kaan', 'Lead', 'reasoning', 'NVIDIA', '#3f5f8c', '#1f1b18', '#d9a27a', 'glasses'],
+  ['dev', 'Arda', 'Geliştirici', 'coder', 'OpenCode Zen', '#2f8f7b', '#2a211b', '#f0c39c', 'hood'],
+  ['artist', 'Mina', 'Artist', 'image-gen', 'NVIDIA', '#e2a33b', '#b5452f', '#f5d0b0', 'beret'],
+  ['tester', 'Bora', 'Tester', 'coder', 'OpenRouter', '#6d8f3c', '#4a3626', '#c98e66', 'headset'],
+];
+const C = {}, CH = [];
+for (const [id, name, role, tier, prov, body, hair, skin, acc] of DEFS) {
+  const d = DESK[id];
+  const c = { id, name, role, tier, prov, body, hair, skin, acc, x: d.x + 22, y: d.y - 4, path: [], onArrive: null, atSeat: true, facing: -1, phase: 0,
+    status: 'idle', screen: null, screenT: 0, bubble: null, holding: null, req: 0, acc2: 0, task: 'Sırada iş bekliyor', seed: Math.random() * 10,
+    jump: 0, jumpD: 0.6, waitUntil: 0, testFail: -1, fixing: false, approved: false };
+  C[id] = c; CH.push(c);
+}
+const Q = { nv: 4, nvLock: false, or: 17, oc: 41, web: 312 };
+const notes = [], flyers = [], parts = [];
+const books = []; for (let i = 0; i < 13; i++) books.push({ col: BOOKC[(i * 3) % BOOKC.length], h: 22 + ((i * 7) % 11), t: -99 });
+let brewUntil = 0, progress = 0, sprint = 0, lastDay = 0;
+const GOALS = [
+  { name: 'Uzay bahçesi', tasks: ['Gemi kontrolü', 'Gezegen görselleri', 'Çarpışma testi'], lesson: 'Çarpışma testlerini erken yaz', art: '#6cc58a' },
+  { name: 'Mini kule savunma', tasks: ['Kule yerleştirme', 'Kule sprite’ları', 'Dalga testi'], lesson: 'Dalga dengesini ilk günden ölç', art: '#f2a65a' },
+  { name: 'Ritim koşucusu', tasks: ['Zıplama mekaniği', 'Arka plan çizimi', 'Ritim testi'], lesson: 'Ses gecikmesini her build’de ölç', art: '#7fa8ff' },
+];
+let goal = GOALS[0];
+
+function headPos(c) {
+  const jt = c.jump > 0 ? Math.sin((1 - c.jump / c.jumpD) * Math.PI) * 24 : 0;
+  const walking = c.path.length > 0;
+  const bob = walking ? Math.abs(Math.sin(c.phase)) * 3 : (c.status === 'work' && c.atSeat ? Math.abs(Math.sin(gt * 9 + c.seed)) * 1.2 : Math.sin(gt * 2 + c.seed) * 0.8);
+  return { x: c.x, y: c.y - jt - 40 - bob - 14, jt, bob };
+}
+const head = (c) => { const h = headPos(c); return { x: h.x, y: h.y }; };
+
+function goTo(c, dest) {
+  const pts = [];
+  if (c.atSeat) { const d = DESK[c.id]; pts.push({ x: d.x + 105, y: c.y }); }
+  c.atSeat = false;
+  const sx = pts.length ? pts[pts.length - 1].x : c.x;
+  const ex = dest.seat ? DESK[c.id].x + 105 : dest.x;
+  pts.push({ x: sx, y: LANE }); pts.push({ x: ex, y: LANE });
+  if (dest.seat) pts.push({ x: ex, y: dest.y });
+  pts.push({ x: dest.x, y: dest.y });
+  c.path = pts;
+  return new Promise((res) => { c.onArrive = () => { if (dest.seat) { c.atSeat = true; c.facing = -1; } else if (dest.face) c.facing = dest.face; res(); }; });
+}
+const toSeat = (c) => { if (c.atSeat) return Promise.resolve(); const d = DESK[c.id]; return goTo(c, { x: d.x + 22, y: d.y - 4, seat: true }); };
+const visit = (c, id) => { const d = DESK[id]; return goTo(c, { x: d.x - 100, y: d.y, face: 1 }); };
+function say(c, text) { const dur = Math.max(2.1, 1 + text.length * 0.055); c.bubble = { text, t0: gt, dur }; return wait(dur); }
+function fly(k, from, to, dur, col) { return new Promise((res) => flyers.push({ k, fx: from.x, fy: from.y, tx: to.x, ty: to.y, t0: gt, dur, col: col || '#fff', res })); }
+function flyPos(f, t) { const cx = (f.fx + f.tx) / 2, cy = Math.min(f.fy, f.ty) - 110, u = 1 - t; return { x: u * u * f.fx + 2 * u * t * cx + t * t * f.tx, y: u * u * f.fy + 2 * u * t * cy + t * t * f.ty }; }
+function burst(x, y, n, k) {
+  if (REDUCE) n = Math.ceil(n / 4);
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    if (k === 'confetti') parts.push({ k, x, y, vx: Math.cos(a) * (60 + Math.random() * 180), vy: -170 - Math.random() * 240, life: 0, max: 2.2 + Math.random(), size: 5 + Math.random() * 4, col: CONF[i % CONF.length], rot: Math.random() * 6, vr: (Math.random() - 0.5) * 12 });
+    else { const s = 40 + Math.random() * 80; parts.push({ k: 'spark', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0, max: 0.6 + Math.random() * 0.4, size: 2 + Math.random() * 2.5 }); }
+  }
+}
+function addNote(text, col) { const n = { text, col, c: 0, x: 0, y: 0, tx: 0, ty: 0, a: 0, rot: (Math.random() - 0.5) * 0.08, pend: false }; notes.push(n); layoutNotes(); n.x = n.tx; n.y = n.ty - 26; return n; }
+function layoutNotes() { for (let k = 0; k < 3; k++) notes.filter((n) => n.c === k).forEach((n, i) => { n.tx = 98 + k * 119; n.ty = 62 + i * 27; }); }
+function moveNote(n, k) { if (!n) return; n.c = k; layoutNotes(); n.pend = true; }
+
+/* ---------- Gün döngüsü ---------- */
+function dayInfo() {
+  const p = (gt / DAY + 0.12) % 1;
+  let n = 0;
+  if (p >= 0.5 && p < 0.6) n = (p - 0.5) / 0.1; else if (p >= 0.6 && p < 0.92) n = 1; else if (p >= 0.92) n = 1 - (p - 0.92) / 0.08;
+  n = ease(clamp(n, 0, 1));
+  const warm = Math.min(1, Math.max(0, 1 - Math.abs(p - 0.55) / 0.06) + Math.max(0, 1 - Math.abs(p - 0.96) / 0.05));
+  return { p, n, warm };
+}
+const SKY = { dt: [126, 190, 236], db: [214, 238, 250], nt: [16, 22, 56], nb: [44, 56, 104], wt: [236, 130, 92], wb: [255, 206, 150] };
+function clockStr() { const h = (6 + dayInfo().p * 24) % 24; return String(Math.floor(h)).padStart(2, '0') + ':' + String(Math.floor((h % 1) * 60)).padStart(2, '0'); }
+
+/* ---------- Çizim: oda ---------- */
+function drawRoom(d) {
+  ctx.fillStyle = '#a8c8be'; ctx.fillRect(0, 0, W, 176);
+  ctx.fillStyle = 'rgba(255,255,255,.16)'; for (let x = 0; x < W; x += 44) ctx.fillRect(x, 0, 20, 158);
+  ctx.fillStyle = '#8f6c4b'; ctx.fillRect(0, 158, W, 18); ctx.fillStyle = '#7a5a3d'; ctx.fillRect(0, 172, W, 4);
+  ctx.fillStyle = '#d9b48a'; ctx.fillRect(0, 176, W, H - 176);
+  for (let y = 176, row = 0; y < H; y += 36, row++) {
+    ctx.fillStyle = row % 2 ? 'rgba(0,0,0,.035)' : 'rgba(255,255,255,.05)'; ctx.fillRect(0, y, W, 36);
+    ctx.fillStyle = 'rgba(120,80,40,.2)'; ctx.fillRect(0, y, W, 1.5);
+    for (let x = (row % 2) * 90; x < W; x += 180) ctx.fillRect(x, y, 1.5, 36);
+  }
+  ell(640, 450, 262, 62, '#9a6b8e'); ell(640, 450, 246, 54, '#b07fa2');
+  ctx.strokeStyle = 'rgba(255,240,220,.35)'; ctx.lineWidth = 2; ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.ellipse(640, 450, 228, 47, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = `rgba(255,246,214,${0.17 * (1 - d.n)})`;
+  ctx.beginPath(); ctx.moveTo(566, 176); ctx.lineTo(774, 176); ctx.lineTo(940, 480); ctx.lineTo(592, 480); ctx.closePath(); ctx.fill();
+  drawWindow(d); drawBoard(); drawClock(d); drawShelf(); drawCoffee(); drawPlant(476, 206, 1); drawPlant(1078, 206, 0.9);
+}
+function drawWindow(d) {
+  const x = 556, y = 26, w = 228, h = 128, ix = x + 8, iy = y + 8, iw = w - 16, ih = h - 16;
+  rr(x - 6, y - 6, w + 12, h + 12, 10, '#7b5a3d');
+  ctx.save(); ctx.beginPath(); ctx.roundRect(ix, iy, iw, ih, 4); ctx.clip();
+  const top = mixA(mixA(SKY.dt, SKY.nt, d.n), SKY.wt, d.warm * 0.75), bot = mixA(mixA(SKY.db, SKY.nb, d.n), SKY.wb, d.warm * 0.75);
+  const g = ctx.createLinearGradient(0, iy, 0, iy + ih); g.addColorStop(0, rgb(top)); g.addColorStop(1, rgb(bot)); ctx.fillStyle = g; ctx.fillRect(ix, iy, iw, ih);
+  if (d.n > 0.05) for (let i = 0; i < 24; i++) { const tw = 0.5 + 0.5 * Math.sin(gt * 2 + i * 1.7); ctx.fillStyle = `rgba(255,255,240,${d.n * tw * 0.9})`; ctx.fillRect(ix + ((i * 53.7) % iw), iy + ((i * 31.3) % (ih * 0.6)), 1.7, 1.7); }
+  const dp = d.p / 0.56;
+  if (dp <= 1.05) { const sx = ix + dp * iw, sy = iy + ih * 0.88 - Math.sin(Math.PI * clamp(dp, 0, 1)) * ih * 0.62; glow(sx, sy, 34, `rgba(255,228,150,${0.6 * (1 - d.n)})`); circ(sx, sy, 10, `rgba(255,238,178,${1 - d.n})`); }
+  if (d.p > 0.52) { const mp = (d.p - 0.52) / 0.48, mx = ix + mp * iw, my = iy + ih * 0.8 - Math.sin(Math.PI * mp) * ih * 0.55; glow(mx, my, 26, `rgba(200,210,255,${0.35 * d.n})`); circ(mx, my, 8, `rgba(246,243,226,${d.n})`); circ(mx + 4, my - 2, 7, rgb(mixA(top, bot, 0.35), d.n)); }
+  for (let i = 0; i < 3; i++) {
+    const cx = ix + ((gt * (5 + i * 2) + i * 90) % (iw + 90)) - 45, cy = iy + 18 + i * 15, a = 0.85 * (1 - d.n * 0.65);
+    const cc = rgb(mixA([255, 255, 255], [255, 214, 190], d.warm), a); ell(cx, cy, 16, 7, cc); ell(cx + 11, cy - 4, 11, 7, cc); ell(cx - 10, cy - 2, 9, 6, cc);
+  }
+  const bcol = rgb(mixA([96, 124, 142], [22, 28, 56], d.n));
+  const B = [[0, 18, 34], [20, 14, 50], [36, 22, 28], [60, 16, 60], [78, 26, 40], [106, 14, 30], [122, 20, 54], [144, 24, 36], [170, 16, 46], [188, 24, 30]];
+  for (let i = 0; i < B.length; i++) {
+    const [bx, bw, bh] = B[i]; ctx.fillStyle = bcol; ctx.fillRect(ix + bx, iy + ih - bh, bw, bh);
+    if (d.n > 0.3) for (let wy = iy + ih - bh + 5; wy < iy + ih - 4; wy += 7) for (let wx = ix + bx + 3; wx < ix + bx + bw - 3; wx += 6) if (((wx * 7 + wy * 13 + i) % 5) < 2) { ctx.fillStyle = `rgba(255,214,120,${(d.n - 0.3) * 1.2})`; ctx.fillRect(wx, wy, 2.4, 2.8); }
+  }
+  ctx.restore();
+  ctx.fillStyle = '#7b5a3d'; ctx.fillRect(x + w / 2 - 3, y, 6, h); ctx.fillRect(x, y + h / 2 - 3, w, 6);
+  rr(x - 14, y + h + 4, w + 28, 9, 3, '#8e6a48');
+  rr(x + 16, y + h - 8, 14, 13, 3, '#c26a4a'); ell(x + 23, y + h - 16, 5, 10, '#5d9a66');
+}
+function drawBoard() {
+  const x = 86, y = 24, w = 368, h = 130;
+  rr(x, y, w, h, 8, '#8b6343'); rr(x + 6, y + 6, w - 12, h - 12, 5, '#d2a873');
+  ctx.fillStyle = 'rgba(120,80,40,.2)'; for (let i = 0; i < 80; i++) ctx.fillRect(x + 10 + ((i * 47) % (w - 20)), y + 10 + ((i * 29) % (h - 20)), 1.6, 1.6);
+  ctx.font = `700 13px ${FONT}`; ctx.textBaseline = 'middle';
+  ['Yapılacak', 'Sürüyor', 'Bitti'].forEach((t, k) => {
+    const hx = x + 12 + k * 119; rr(hx, y + 12, 105, 20, 6, 'rgba(255,255,255,.75)'); ctx.fillStyle = '#4a3a2c'; ctx.fillText(t, hx + 8, y + 23);
+    if (k < 2) { ctx.strokeStyle = 'rgba(90,60,30,.28)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); line(hx + 112, y + 14, hx + 112, y + h - 12); ctx.setLineDash([]); }
+  });
+  ctx.font = `600 12px ${FONT}`;
+  for (const n of notes) {
+    ctx.save(); ctx.globalAlpha = n.a; ctx.translate(n.x + 52, n.y + 11); ctx.rotate(n.rot);
+    rr(-50, -9, 104, 22, 3, 'rgba(60,40,20,.18)'); rr(-52, -11, 104, 22, 3, n.col);
+    ctx.fillStyle = '#3d3128'; ctx.fillText(fit(n.text, 90), -45, 1); circ(0, -10, 2.8, '#d9544a'); ctx.restore();
+  }
+  ctx.textBaseline = 'alphabetic';
+}
+function drawClock(d) {
+  const x = 505, y = 74, hrs = (6 + d.p * 24) % 24;
+  circ(x, y, 24, '#7b5a3d'); circ(x, y, 20, '#fbf8f1');
+  ctx.fillStyle = '#b7a99a'; for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; ctx.fillRect(x + Math.cos(a) * 16 - 1, y + Math.sin(a) * 16 - 1, 2, 2); }
+  const ha = ((hrs % 12) / 12) * Math.PI * 2 - Math.PI / 2, ma = (hrs % 1) * Math.PI * 2 - Math.PI / 2;
+  ctx.strokeStyle = '#3a2e24'; ctx.lineCap = 'round'; ctx.lineWidth = 3; line(x, y, x + Math.cos(ha) * 10, y + Math.sin(ha) * 10);
+  ctx.lineWidth = 2; line(x, y, x + Math.cos(ma) * 15, y + Math.sin(ma) * 15); circ(x, y, 2.4, '#d9544a');
+}
+function drawShelf() {
+  const x = 1106, y = 28, w = 148, h = 147;
+  rr(x, y, w, h, 6, '#8b5e3c'); rr(x + 6, y + 6, w - 12, h - 12, 4, '#6b4730');
+  rr(x + 46, y + 9, 56, 18, 5, '#f3e7d3'); ctx.fillStyle = '#5a4030'; ctx.font = `700 12px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Vault', x + 74, y + 18.5); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  const shelfY = [y + 74, y + 110, y + 141];
+  shelfY.forEach((sy) => { ctx.fillStyle = '#8b5e3c'; ctx.fillRect(x + 6, sy, w - 12, 5); });
+  books.forEach((b, i) => {
+    const s = Math.floor(i / 9), pos = i % 9; if (s > 2) return;
+    const bh = Math.min(b.h, s === 0 ? 30 : 30), bx = x + 12 + pos * 14, by = shelfY[s] - bh;
+    const fresh = gt - b.t < 2.5;
+    if (fresh) glow(bx + 5, by + bh / 2, 26, `rgba(255,230,140,${0.7 * (1 - (gt - b.t) / 2.5)})`);
+    rr(bx, by, 11, bh, 2, b.col); ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(bx + 2, by + 4, 7, 2);
+  });
+}
+function drawCoffee() {
+  const x = 826, y = 118, brewing = gt < brewUntil;
+  rr(x, y, 98, 88, 6, '#a9774e'); rr(x, y, 98, 10, 6, '#c8966a');
+  rr(x + 8, y + 22, 38, 56, 4, 'rgba(0,0,0,.08)'); rr(x + 52, y + 22, 38, 56, 4, 'rgba(0,0,0,.08)');
+  circ(x + 40, y + 50, 2.2, '#6b4a30'); circ(x + 58, y + 50, 2.2, '#6b4a30');
+  rr(x + 18, y - 36, 60, 38, 7, '#3a3a44'); rr(x + 26, y - 30, 44, 12, 3, '#575a68');
+  circ(x + 70, y - 24, 3, brewing ? '#7be38b' : '#e05a4a');
+  rr(x + 40, y - 12, 16, 12, 3, '#f3efe8');
+  rr(x + 82, y - 18, 12, 18, 3, '#e8e2d6'); rr(x + 84, y - 22, 8, 5, 2, '#cfc7b8');
+}
+function drawPlant(x, base, s) {
+  ctx.fillStyle = '#c26a4a'; ctx.beginPath(); ctx.moveTo(x - 16 * s, base - 26 * s); ctx.lineTo(x + 16 * s, base - 26 * s); ctx.lineTo(x + 12 * s, base); ctx.lineTo(x - 12 * s, base); ctx.closePath(); ctx.fill();
+  rr(x - 18 * s, base - 31 * s, 36 * s, 7 * s, 3, '#d77d5b');
+  for (let i = 0; i < 7; i++) {
+    const a = -Math.PI / 2 + (i - 3) * 0.38 + Math.sin(gt * 1.2 + i) * 0.05, L = (38 + (i % 3) * 13) * s;
+    ctx.save(); ctx.translate(x, base - 30 * s); ctx.rotate(a + Math.PI / 2); ell(0, -L / 2, 7 * s, L / 2, i % 2 ? '#4f8f5b' : '#3f7a4c'); ctx.restore();
+  }
+}
+
+/* ---------- Çizim: masa, sandalye, ekran ---------- */
+function drawChair(id) { const d = DESK[id], x = d.x + 22, y = d.y; rr(x - 18, y - 52, 36, 34, 10, '#454a5a'); rr(x - 14, y - 48, 28, 6, 4, '#5a6073'); }
+function drawDesk(id) {
+  const d = DESK[id], c = C[id], x = d.x, y = d.y;
+  ell(x, y + 38, 88, 9, 'rgba(60,35,15,.16)');
+  rr(x - 78, y - 30, 156, 42, 9, '#c8956a'); rr(x - 78, y - 30, 156, 9, 9, '#dcab80');
+  rr(x - 74, y + 8, 148, 26, 6, '#a8744d'); rr(x - 52, y + 18, 30, 4, 2, 'rgba(0,0,0,.14)'); rr(x + 22, y + 18, 30, 4, 2, 'rgba(0,0,0,.14)');
+  rr(x - 41, y - 40, 10, 12, 2, '#3b3c48'); rr(x - 52, y - 31, 32, 5, 2, '#3b3c48');
+  rr(x - 67, y - 82, 64, 46, 7, '#2b2c37');
+  drawScreen(c, x - 62, y - 77, 54, 36);
+  ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.beginPath(); ctx.moveTo(x - 62, y - 77); ctx.lineTo(x - 42, y - 77); ctx.lineTo(x - 58, y - 41); ctx.lineTo(x - 62, y - 41); ctx.closePath(); ctx.fill();
+  ell(x + 60, y - 24, 10, 4, '#3b3c48'); ctx.strokeStyle = '#3b3c48'; ctx.lineWidth = 3; ctx.lineCap = 'round'; line(x + 60, y - 24, x + 54, y - 56); line(x + 54, y - 56, x + 63, y - 63);
+  ctx.fillStyle = '#e9b949'; ctx.beginPath(); ctx.moveTo(x + 55, y - 70); ctx.lineTo(x + 74, y - 62); ctx.lineTo(x + 65, y - 53); ctx.closePath(); ctx.fill();
+  if (id === 'lead') { rr(x + 6, y - 24, 32, 14, 3, '#efe6d6'); rr(x + 9, y - 27, 26, 4, 2, '#fffaf0'); }
+  else rr(x + 42, y - 27, 10, 11, 3, '#f3efe8');
+}
+function drawScreen(c, x, y, w, h) {
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  const t = c.screenT, k = c.atSeat && c.screen ? c.screen : 'sleep';
+  if (k === 'sleep') {
+    ctx.fillStyle = '#191b26'; ctx.fillRect(x, y, w, h);
+    circ(x + w / 2 + Math.sin(gt * 0.8 + c.seed) * (w / 2 - 6), y + h / 2 + Math.cos(gt * 1.1 + c.seed) * (h / 2 - 6), 2.2, 'rgba(150,170,255,.6)');
+  } else if (k === 'code') {
+    ctx.fillStyle = '#1d2130'; ctx.fillRect(x, y, w, h);
+    const cols = ['#7cc4ff', '#c792ea', '#ffcb6b', '#9ece6a', '#f78c6c'], sc = t * 10, off = sc % 5, b = Math.floor(sc / 5);
+    for (let i = 0; i < 9; i++) {
+      const li = b + i, rnd = Math.abs((Math.sin(li * 12.9898) * 43758.5453) % 1), ind = [0, 5, 10, 5][li % 4], lw = Math.min(w - 8 - ind, 8 + rnd * 30);
+      ctx.fillStyle = cols[li % cols.length]; if (c.fixing && i === 4) ctx.fillStyle = Math.floor(gt * 3) % 2 ? '#ff6b6b' : '#9ece6a';
+      ctx.fillRect(x + 4 + ind, y + 3 + i * 5 - off, lw, 2.4);
+    }
+  } else if (k === 'doc') {
+    ctx.fillStyle = '#f6f1e6'; ctx.fillRect(x, y, w, h); ctx.fillStyle = '#8a6fd6'; ctx.fillRect(x + 4, y + 4, 24, 3.6);
+    const n = Math.min(7, Math.floor(t * 2.4)); ctx.fillStyle = '#a49a8f'; for (let i = 0; i < n; i++) ctx.fillRect(x + 4, y + 11 + i * 3.5, i % 3 === 2 ? 22 : 42, 1.8);
+  } else if (k === 'search') {
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(x, y, w, h); rr(x + 4, y + 3, w - 8, 6, 3, '#e8e4f2');
+    ctx.strokeStyle = '#6b6785'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x + 8, y + 6, 1.8, 0, Math.PI * 2); ctx.stroke();
+    const n = Math.min(3, Math.floor(t * 1.6)); for (let i = 0; i < n; i++) { ctx.fillStyle = '#5b7fd6'; ctx.fillRect(x + 4, y + 13 + i * 7.5, 26, 2); ctx.fillStyle = '#b9b4c7'; ctx.fillRect(x + 4, y + 16.5 + i * 7.5, 40, 1.6); }
+  } else if (k === 'paint') {
+    ctx.fillStyle = '#fbf7ef'; ctx.fillRect(x, y, w, h);
+    for (let i = 0; i < 6; i++) if (t > i * 0.4) { ctx.fillStyle = '#e2a33b'; ctx.fillRect(x + 4 + ((i * 13) % (w - 8)), y + 4 + ((i * 7) % (h - 8)), 1.6, 1.6); }
+    const r = Math.min(11, t * 4.5);
+    if (r > 0.5) { circ(x + w / 2, y + h / 2, r, goal.art); ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.beginPath(); ctx.arc(x + w / 2 - 3, y + h / 2 - 3, r * 0.4, 0, Math.PI * 2); ctx.fill(); }
+    if (t > 2.2) { ctx.strokeStyle = '#e2a33b'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.ellipse(x + w / 2, y + h / 2, r * 1.6, r * 0.45, -0.3, 0, Math.PI * 2); ctx.stroke(); }
+  } else if (k === 'test') {
+    ctx.fillStyle = '#1d2130'; ctx.fillRect(x, y, w, h);
+    for (let i = 0; i < 3; i++) {
+      const ry = y + 6 + i * 10, done = c.testFail >= 0 && t > 0.6 + i * 0.8, fail = done && c.testFail === 1 && i === 2;
+      const col = !done ? (Math.floor(gt * 3 + i) % 2 ? '#565c74' : '#3f4459') : fail ? '#ff6b6b' : '#6fd08c';
+      rr(x + 5, ry, 6, 6, 1.5, col); ctx.fillStyle = done ? '#9aa3c0' : '#4a5068'; ctx.fillRect(x + 15, ry + 2, 30 - i * 4, 2);
+    }
+  } else if (k === 'review') {
+    ctx.fillStyle = '#f6f1e6'; ctx.fillRect(x, y, w, h); ctx.fillStyle = '#a49a8f';
+    for (let i = 0; i < 6; i++) ctx.fillRect(x + 5, y + 5 + i * 4.4, i % 2 ? 30 : 40, 1.8);
+    if (c.approved) { ctx.save(); ctx.translate(x + w - 16, y + h - 10); ctx.rotate(-0.25); ctx.strokeStyle = '#d9544a'; ctx.lineWidth = 1.6; ctx.strokeRect(-13, -6, 26, 12); ctx.fillStyle = '#d9544a'; ctx.font = `800 8px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Onay', 0, 0.5); ctx.restore(); }
+  } else if (k === 'plan') {
+    ctx.fillStyle = '#fbf7ef'; ctx.fillRect(x, y, w, h);
+    const cols = ['#ffe08a', '#ffc4d6', '#c9ebb8', '#b8c8ff'];
+    for (let i = 0; i < 4; i++) { const pr = clamp(((t * 0.08 + i * 0.15) % 1.2), 0, 1); rr(x + 4 + i * 5, y + 5 + i * 7.5, Math.max(6, (w - 12 - i * 5) * Math.max(0.2, pr)), 5, 2, cols[i]); }
+  }
+  ctx.restore(); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+/* ---------- Çizim: karakter ---------- */
+function drawChar(c) {
+  const walking = c.path.length > 0, hp = headPos(c), x = c.x, y = c.y - hp.jt, bt = y - 40 - hp.bob, hx = hp.x, hy = hp.y;
+  if (!c.atSeat) {
+    ell(x, c.y + 2, Math.max(6, 15 - hp.jt * 0.25), 5, 'rgba(60,35,15,.2)');
+    const sw = walking ? Math.sin(c.phase) * 4 : 0;
+    rr(x - 9, y - 15 - Math.max(0, sw), 7, 15, 3, '#33323f'); rr(x + 2, y - 15 - Math.max(0, -sw), 7, 15, 3, '#33323f');
+  }
+  if (c.acc === 'hood') circ(x, bt - 12, 19, shade(c.body, -22));
+  const swing = walking ? Math.sin(c.phase) * 5 : 0, sleeve = shade(c.body, -14);
+  if (!(c.atSeat && c.status === 'work')) { rr(x - 20, bt + 5 + swing * 0.5, 7, 17, 3.5, sleeve); rr(x + 13, bt + 5 - swing * 0.5, 7, 17, 3.5, sleeve); }
+  rr(x - 14, bt, 28, 27, 11, c.body); rr(x - 4, bt + 2, 8, 6, 3, 'rgba(255,255,255,.35)');
+  if (c.atSeat && c.status === 'work') { const t1 = Math.sin(gt * 16 + c.seed) * 2, o = c.facing < 0 ? -4 : 4; circ(x - 11 + o, bt + 12 + t1, 4.5, c.skin); circ(x + 11 + o, bt + 12 - t1, 4.5, c.skin); }
+  else { circ(x - 16.5, bt + 23 + swing * 0.5, 4, c.skin); circ(x + 16.5, bt + 23 - swing * 0.5, 4, c.skin); }
+  if (c.holding === 'doc') { rr(x + 12, bt + 8, 15, 19, 2, '#ffffff', '#c9bfb2', 1); ctx.fillStyle = '#b8aea2'; for (let i = 0; i < 3; i++) ctx.fillRect(x + 15, bt + 12 + i * 4, 9, 1.5); }
+  if (c.holding === 'mug') { rr(x + 13, bt + 14, 11, 12, 3, '#f3efe8'); ctx.strokeStyle = '#f3efe8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x + 25, bt + 20, 3, -Math.PI / 2, Math.PI / 2); ctx.stroke(); }
+  circ(hx, hy, 16, c.skin);
+  ctx.fillStyle = c.hair; ctx.beginPath(); ctx.arc(hx, hy - 1, 17, Math.PI, 0); ctx.quadraticCurveTo(hx + 9, hy - 9, hx + 1, hy - 10); ctx.quadraticCurveTo(hx - 9, hy - 6, hx - 17, hy - 1); ctx.closePath(); ctx.fill();
+  const blink = ((gt + c.seed * 3) % 4.2) < 0.13 ? 0.15 : 1, ex = c.facing * 3;
+  ell(hx - 5 + ex, hy + 3, 2.2, 2.8 * blink, '#2b2420'); ell(hx + 5 + ex, hy + 3, 2.2, 2.8 * blink, '#2b2420');
+  circ(hx - 9 + ex * 0.5, hy + 8, 2.6, 'rgba(240,120,110,.35)'); circ(hx + 9 + ex * 0.5, hy + 8, 2.6, 'rgba(240,120,110,.35)');
+  ctx.strokeStyle = '#5a3a2c'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+  const talking = c.bubble && gt - c.bubble.t0 < c.bubble.text.length / 38;
+  if (talking) ell(hx + ex, hy + 10, 2.6, 1.5 + Math.abs(Math.sin(gt * 18)) * 2, '#5a3a2c');
+  else if (c.status === 'happy') { ctx.beginPath(); ctx.arc(hx + ex, hy + 7, 4.5, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke(); }
+  else if (c.status === 'error' || c.status === 'wait') line(hx - 3 + ex, hy + 10, hx + 3 + ex, hy + 10);
+  else { ctx.beginPath(); ctx.arc(hx + ex, hy + 7, 3, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke(); }
+  if (c.acc === 'glasses') { ctx.strokeStyle = '#22202a'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(hx - 5 + ex, hy + 3, 4.6, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.arc(hx + 5 + ex, hy + 3, 4.6, 0, Math.PI * 2); ctx.stroke(); }
+  else if (c.acc === 'beret') { ell(hx - 3, hy - 14, 17, 7, '#c0392b', -0.25); circ(hx - 4, hy - 21, 2.5, '#c0392b'); }
+  else if (c.acc === 'headset') { ctx.strokeStyle = '#2c2c36'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(hx, hy - 1, 18.5, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke(); rr(hx - 22, hy - 4, 6, 11, 3, '#2c2c36'); rr(hx + 16, hy - 4, 6, 11, 3, '#2c2c36'); }
+  else if (c.acc === 'pencil') { ctx.save(); ctx.translate(hx + 15, hy - 7); ctx.rotate(0.6); rr(-2, -9, 4, 16, 1.5, '#f2c14e'); rr(-2, 5, 4, 3, 1, '#e8846b'); ctx.restore(); }
+  else if (c.acc === 'clip' && !c.atSeat) { rr(x - 27, bt + 6, 12, 16, 2, '#8b6343'); rr(x - 25, bt + 9, 8, 11, 1, '#fbf8f1'); }
+}
+function drawStatus(c) {
+  const h = headPos(c), x = h.x + 30, y = h.y - 14;
+  if (c.status === 'think') { rr(x - 12, y - 9, 32, 18, 9, '#ffffff', 'rgba(60,40,20,.2)', 1); for (let i = 0; i < 3; i++) circ(x - 3 + i * 8, y + Math.sin(gt * 7 - i * 0.8) * 2.5, 2.4, '#6b6785'); }
+  else if (c.status === 'wait') {
+    circ(x, y, 10, '#f0b75a'); ctx.strokeStyle = '#5a3d10'; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; line(x, y, x, y - 6); line(x, y, x + 4.5, y + 2);
+    const left = Math.max(0, Math.ceil(c.waitUntil - gt)); ctx.font = `700 13px ${FONT}`; const tw = ctx.measureText(left + ' sn').width;
+    rr(x + 13, y - 9, tw + 14, 18, 9, 'rgba(36,34,58,.82)'); ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'middle'; ctx.fillText(left + ' sn', x + 20, y + 1); ctx.textBaseline = 'alphabetic';
+  } else if (c.status === 'error') { const b = Math.abs(Math.sin(gt * 6)) * 3; circ(x, y - b, 10, '#e05a4a'); ctx.fillStyle = '#ffffff'; ctx.font = `800 15px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('!', x, y - b + 1); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; }
+  else if (c.status === 'work') { ctx.strokeStyle = 'rgba(47,163,138,.95)'; ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(x, y, 6, gt * 6, gt * 6 + Math.PI * 1.3); ctx.stroke(); }
+  else if (c.status === 'happy') { const s = 1 + Math.sin(gt * 8) * 0.12; ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = '#ee6b8b'; ctx.beginPath(); ctx.moveTo(0, 5); ctx.bezierCurveTo(-10, -2, -6, -10, 0, -5); ctx.bezierCurveTo(6, -10, 10, -2, 0, 5); ctx.fill(); ctx.restore(); }
+}
+function drawName(c) {
+  const h = headPos(c); ctx.font = `700 12px ${FONT}`; const w = ctx.measureText(c.name).width + 14;
+  rr(h.x - w / 2, h.y - 41, w, 18, 9, 'rgba(255,255,255,.86)'); ctx.fillStyle = '#3a2e24'; ctx.textBaseline = 'middle'; ctx.fillText(c.name, h.x - w / 2 + 7, h.y - 31.5); ctx.textBaseline = 'alphabetic';
+}
+function drawBubble(c) {
+  const b = c.bubble; if (!b) return; const age = gt - b.t0; if (age > b.dur) { c.bubble = null; return; }
+  const n = Math.min(b.text.length, Math.floor(age * 38)), h = headPos(c);
+  ctx.font = `700 16px ${FONT}`; const w = ctx.measureText(b.text).width + 28, bh = 34;
+  const bx = clamp(h.x - w / 2, 8, W - w - 8), by = Math.max(6, h.y - 64), tx = clamp(h.x, bx + 16, bx + w - 16);
+  ctx.globalAlpha = clamp(Math.min(age * 6, (b.dur - age) * 4), 0, 1);
+  rr(bx + 2, by + 3, w, bh, 14, 'rgba(40,30,60,.18)');
+  ctx.beginPath(); ctx.roundRect(bx, by, w, bh, 14); ctx.moveTo(tx - 7, by + bh); ctx.lineTo(tx, by + bh + 10); ctx.lineTo(tx + 7, by + bh); ctx.fillStyle = '#ffffff'; ctx.fill();
+  ctx.fillStyle = '#2b2522'; ctx.textBaseline = 'middle'; ctx.fillText(b.text.slice(0, n), bx + 14, by + bh / 2 + 1); ctx.textBaseline = 'alphabetic'; ctx.globalAlpha = 1;
+}
+function drawFlyer(f) {
+  const p = clamp((gt - f.t0) / f.dur, 0, 1), pos = flyPos(f, ease(p)), s = 1 + Math.sin(p * Math.PI) * 0.35;
+  ctx.save(); ctx.translate(pos.x, pos.y); ctx.rotate(Math.sin(p * Math.PI * 2) * 0.25); ctx.scale(s, s);
+  if (f.k === 'env') { rr(-12, -8, 24, 16, 3, '#ffffff', '#b9ae9f', 1.2); ctx.strokeStyle = '#b9ae9f'; ctx.beginPath(); ctx.moveTo(-12, -8); ctx.lineTo(0, 1); ctx.lineTo(12, -8); ctx.stroke(); circ(0, 1, 2.6, '#d9544a'); }
+  else if (f.k === 'doc') { rr(-9, -12, 18, 24, 2, '#ffffff', '#b9ae9f', 1.2); ctx.fillStyle = '#b8aea2'; for (let i = 0; i < 4; i++) ctx.fillRect(-5, -7 + i * 5, 10, 1.6); }
+  else if (f.k === 'img') { rr(-13, -10, 26, 20, 3, '#ffffff', '#b9ae9f', 1.2); circ(0, 0, 6, f.col); }
+  else if (f.k === 'book') { rr(-8, -12, 16, 24, 2, f.col); ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.fillRect(-6, -10, 3, 20); }
+  ctx.restore();
+}
+function drawPart(p) {
+  const a = 1 - p.life / p.max;
+  if (p.k === 'confetti') { ctx.save(); ctx.globalAlpha = Math.min(1, a * 2); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.col; ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2); ctx.restore(); }
+  else if (p.k === 'spark') { ctx.globalAlpha = a; star(p.x, p.y, p.size * 1.6, '#ffe9a8'); ctx.globalAlpha = 1; }
+  else if (p.k === 'trail') { ctx.globalAlpha = a * 0.8; circ(p.x, p.y, p.size * a + 0.5, '#fff7d1'); ctx.globalAlpha = 1; }
+  else if (p.k === 'z') { ctx.globalAlpha = Math.min(1, a * 1.5); ctx.font = `800 ${Math.round(p.size)}px ${FONT}`; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(40,30,60,.55)'; ctx.strokeText('z', p.x, p.y); ctx.fillStyle = '#ffffff'; ctx.fillText('z', p.x, p.y); ctx.globalAlpha = 1; }
+  else if (p.k === 'steam') { ctx.globalAlpha = a * 0.45; circ(p.x, p.y, p.size * (1.6 - a), '#ffffff'); ctx.globalAlpha = 1; }
+}
+function drawNight(d) {
+  if (d.n < 0.01) return;
+  ctx.fillStyle = `rgba(18,22,52,${d.n * 0.46})`; ctx.fillRect(0, 0, W, H);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const id in DESK) {
+    const k = DESK[id], c = C[id];
+    glow(k.x + 64, k.y - 52, 135, `rgba(255,186,105,${0.3 * d.n})`);
+    if (c.atSeat && c.screen) glow(k.x - 35, k.y - 58, 80, `rgba(130,180,255,${0.24 * d.n})`);
+  }
+  glow(670, 95, 170, `rgba(140,160,255,${0.1 * d.n})`); glow(875, 90, 50, `rgba(255,120,100,${0.12 * d.n})`);
+  ctx.restore();
+}
+
+/* ---------- Güncelleme ---------- */
+function tickQuota(p) { if (p === 'NVIDIA') { if (!Q.nvLock) Q.nv = Math.min(40, Q.nv + 3); } else if (p === 'OpenRouter') Q.or = Math.min(50, Q.or + 1); else if (p === 'OpenCode Zen') Q.oc++; }
+function update(dt) {
+  gt += dt;
+  for (let i = waiters.length - 1; i >= 0; i--) if (gt >= waiters[i].t) { const w = waiters.splice(i, 1)[0]; w.r(); }
+  for (const c of CH) {
+    if (c.path.length) {
+      const p = c.path[0], dx = p.x - c.x, dy = p.y - c.y, d = Math.hypot(dx, dy), sp = 165 * dt;
+      if (Math.abs(dx) > 0.5) c.facing = dx > 0 ? 1 : -1;
+      if (d <= sp) { c.x = p.x; c.y = p.y; c.path.shift(); if (!c.path.length) { const f = c.onArrive; c.onArrive = null; if (f) f(); } }
+      else { c.x += (dx / d) * sp; c.y += (dy / d) * sp; }
+      c.phase += dt * 11;
+    }
+    if (c.jump > 0) c.jump = Math.max(0, c.jump - dt);
+    c.screenT += dt;
+    if (c.status === 'work' || c.status === 'think') { c.acc2 += dt; if (c.acc2 > 1.15) { c.acc2 = 0; c.req++; tickQuota(c.prov); } }
+    if (c.status === 'wait' && Math.random() < dt * (REDUCE ? 0.5 : 1.6)) parts.push({ k: 'z', x: c.x + 10, y: c.y - 76, vx: 8, vy: -18, life: 0, max: 2.6, size: 13 + Math.random() * 7 });
+    if (c.holding === 'mug' && Math.random() < dt * 3) parts.push({ k: 'steam', x: c.x + 18, y: c.y - 32, vx: 0, vy: -14, life: 0, max: 1.6, size: 3 + Math.random() * 2 });
+  }
+  if (gt < brewUntil && Math.random() < dt * 6) parts.push({ k: 'steam', x: 874, y: 104, vx: 0, vy: -16, life: 0, max: 1.8, size: 3 + Math.random() * 2 });
+  if (!Q.nvLock) Q.nv = Math.max(0, Q.nv - dt * 1.3);
+  const day = Math.floor(gt / DAY + 0.12);
+  if (day !== lastDay) { lastDay = day; Q.or = 2; log(null, 'günlük OpenRouter kotası yenilendi', 'Sistem'); }
+  for (let i = flyers.length - 1; i >= 0; i--) {
+    const f = flyers[i], p = (gt - f.t0) / f.dur;
+    if (p >= 1) { flyers.splice(i, 1); burst(f.tx, f.ty, 8, 'spark'); f.res(); }
+    else if (Math.random() < dt * 28) { const pos = flyPos(f, ease(p)); parts.push({ k: 'trail', x: pos.x, y: pos.y, vx: 0, vy: 0, life: 0, max: 0.5, size: 2.6 }); }
+  }
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i]; p.life += dt; if (p.life >= p.max) { parts.splice(i, 1); continue; }
+    if (p.k === 'confetti') { p.vy += 420 * dt; p.vx *= 0.99; p.rot += p.vr * dt; }
+    else if (p.k === 'spark') { p.vx *= 0.92; p.vy *= 0.92; }
+    else if (p.k === 'z') p.vx = Math.sin(p.life * 3) * 10;
+    else if (p.k === 'steam') p.vx = Math.sin(p.life * 4 + p.size) * 6;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+  }
+  if (parts.length > 700) parts.splice(0, parts.length - 700);
+  for (const n of notes) {
+    const k = Math.min(1, dt * 5); n.x += (n.tx - n.x) * k; n.y += (n.ty - n.y) * k; n.a = Math.min(1, n.a + dt * 3);
+    if (n.pend && Math.hypot(n.tx - n.x, n.ty - n.y) < 2) { n.pend = false; burst(n.x + 52, n.y + 11, 10, 'spark'); }
+  }
+}
+function draw() {
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  const d = dayInfo();
+  drawRoom(d);
+  const ents = [];
+  for (const id in DESK) { ents.push({ y: DESK[id].y - 12, f: () => drawChair(id) }); ents.push({ y: DESK[id].y + 34, f: () => drawDesk(id) }); }
+  for (const c of CH) ents.push({ y: c.y, f: () => drawChar(c) });
+  ents.sort((a, b) => a.y - b.y).forEach((e) => e.f());
+  drawNight(d);
+  flyers.forEach(drawFlyer); parts.forEach(drawPart);
+  CH.forEach(drawStatus); CH.forEach((c) => { if (!c.bubble) drawName(c); }); CH.forEach(drawBubble);
+}
+
+/* ---------- Arayüz ---------- */
+function setProgress(v) { progress = clamp(v, 0, 100); $('pbar').style.width = progress + '%'; $('pct').textContent = '%' + Math.round(progress); $('pbarw').setAttribute('aria-valuenow', Math.round(progress)); }
+const addProgress = (v) => setProgress(progress + v);
+function log(c, text, who) {
+  const li = document.createElement('li'), dot = document.createElement('span'), tm = document.createElement('span'), body = document.createElement('span'), b = document.createElement('b');
+  dot.className = 'ldot'; dot.style.background = c ? c.body : 'var(--accent)'; tm.className = 'lt'; tm.textContent = clockStr();
+  b.textContent = c ? c.name : who || 'Sen'; body.append(b, ' ' + text); li.append(dot, tm, body);
+  const L = $('log'); L.prepend(li); while (L.children.length > 7) L.lastChild.remove();
+}
+const QROWS = [
+  ['nv', 'NVIDIA', 'dakikalık istek', 40], ['or', 'OpenRouter', 'günlük istek', 50], ['oc', 'OpenCode Zen', 'bugünkü istek', 200], ['web', 'Web araması', 'aylık kredi', 1000],
+];
+const qEls = {};
+(function buildQuota() {
+  const root = $('quota');
+  for (const [k, name, unit, max] of QROWS) {
+    const wrap = document.createElement('div'); wrap.className = 'q';
+    wrap.innerHTML = `<div class="q-row"><span>${name} <small>${unit}</small></span><span class="v"></span></div><div class="qbar"><i></i></div>`;
+    root.appendChild(wrap); qEls[k] = { v: wrap.querySelector('.v'), bar: wrap.querySelector('.qbar i'), max };
+  }
+})();
+function renderQuota() {
+  for (const [k] of QROWS) {
+    const e = qEls[k], v = Q[k], pct = clamp((v / e.max) * 100, 0, 100), lock = k === 'nv' && Q.nvLock;
+    e.v.innerHTML = `${Math.round(v)} / ${e.max}${lock ? '<span class="full">dolu</span>' : ''}`;
+    e.bar.style.width = pct + '%'; e.bar.style.backgroundColor = lock || pct >= 95 ? 'var(--bad)' : pct > 70 ? 'var(--warn)' : 'var(--good)';
+  }
+}
+let sel = null;
+function openCard(c) { sel = c; $('card').hidden = false; $('hint').style.opacity = 0; updateCard(); }
+function closeCard() { sel = null; $('card').hidden = true; }
+function updateCard() {
+  if (!sel) return; const c = sel, h = headPos(c), card = $('card');
+  const st = c.path.length ? 'Yürüyor' : STATUS[c.status];
+  const under = h.y < 250; card.classList.toggle('under', under);
+  card.style.left = (clamp(h.x, 130, W - 130) / W) * 100 + '%';
+  card.style.top = ((under ? c.y + 6 : h.y - 30) / H) * 100 + '%';
+  card.innerHTML = `<div class="hd"><span class="sw" style="background:${c.body}"></span><b>${c.name}</b><span>${c.role}</span></div><div class="chips"><span class="chip">${c.tier}</span><span class="chip">${c.prov}</span></div><dl><dt>Durum</dt><dd>${st}</dd><dt>Görev</dt><dd>${c.task}</dd><dt>İstek</dt><dd>${c.req}</dd></dl>`;
+}
+function hit(e) {
+  const r = cv.getBoundingClientRect(), x = ((e.clientX - r.left) / r.width) * W, y = ((e.clientY - r.top) / r.height) * H;
+  let best = null, bd = 1e9;
+  for (const c of CH) { const h = headPos(c), dx = Math.abs(x - c.x), dy = y - h.y; if (dx < 24 && dy > -24 && dy < 58) { const dd = dx + Math.abs(dy - 14) * 0.5; if (dd < bd) { bd = dd; best = c; } } }
+  return best;
+}
+cv.addEventListener('click', (e) => { const c = hit(e); if (c) openCard(c); else closeCard(); });
+cv.addEventListener('mousemove', (e) => { cv.style.cursor = hit(e) ? 'pointer' : 'default'; });
+const team = $('team');
+for (const c of CH) { const b = document.createElement('button'); b.innerHTML = `<span class="sw" style="background:${c.body}"></span>${c.name} <small>${c.role}</small>`; b.addEventListener('click', () => (sel === c ? closeCard() : openCard(c))); team.appendChild(b); }
+function togglePause() { paused = !paused; $('pp').textContent = paused ? 'Oynat' : 'Durdur'; $('pp').setAttribute('aria-pressed', String(paused)); }
+$('pp').addEventListener('click', togglePause);
+document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => { speed = Number(b.dataset.s); document.querySelectorAll('.seg button').forEach((x) => x.classList.toggle('on', x === b)); }));
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCard(); if (e.key === ' ' && e.target === document.body) { e.preventDefault(); togglePause(); } });
+
+/* ---------- Senaryo ---------- */
+async function devBranch(V, T, L, nV, nT) {
+  await wait(4);
+  V.status = 'idle'; log(V, 'ilk build’i hazırladı');
+  await visit(V, 'tester');
+  await say(V, 'Build hazır, dener misin?');
+  T.task = nT.text; T.status = 'work'; T.screen = 'test'; T.screenT = 0; T.testFail = 1;
+  await wait(3);
+  T.status = 'error';
+  await say(T, 'İki test geçti, biri patladı.');
+  log(T, '1 testin başarısız olduğunu bildirdi');
+  const back = toSeat(V);
+  await fly('env', head(T), head(L), 1.3);
+  L.status = 'think'; L.screen = 'review'; L.screenT = 0; L.approved = false; L.task = 'Test raporu incelemesi';
+  await wait(1.6);
+  await back;
+  await say(L, 'Arda, bu hatayı düzeltir misin?');
+  L.status = 'idle'; T.status = 'idle';
+  await fly('env', head(L), head(V), 1.2);
+  V.status = 'work'; V.screen = 'code'; V.screenT = 0; V.fixing = true; V.task = nV.text + ' (hata düzeltme)'; log(V, 'hatayı düzeltiyor');
+  await wait(3.4);
+  V.fixing = false; V.status = 'idle'; addProgress(15);
+  await fly('env', head(V), head(T), 1.2);
+  T.status = 'work'; T.screen = 'test'; T.screenT = 0; T.testFail = 0;
+  await wait(2.8);
+  T.status = 'happy'; V.status = 'happy';
+  await say(T, 'Tüm testler geçti!');
+  moveNote(nV, 2); moveNote(nT, 2); log(T, 'tüm testlerin geçtiğini onayladı'); addProgress(20);
+  await wait(0.8);
+  T.status = 'idle'; V.status = 'idle'; V.task = 'Kod temizliği'; T.task = 'Regresyon listesi';
+}
+async function artistBranch(A, L, nA) {
+  await wait(2.4);
+  A.status = 'wait'; Q.nvLock = true; Q.nv = 40; A.waitUntil = gt + 14;
+  await say(A, 'NVIDIA kotası doldu, kahve molası!');
+  log(A, 'kota bekliyor (NVIDIA)');
+  await goTo(A, SPOT.coffee);
+  brewUntil = gt + 3; await wait(1.5); A.holding = 'mug';
+  while (gt < A.waitUntil) await wait(0.25);
+  Q.nvLock = false; Q.nv = 5; A.status = 'happy';
+  await say(A, 'Kota yenilendi, devam!');
+  log(A, 'kota yenilenince işe döndü');
+  A.holding = null; A.status = 'idle';
+  await toSeat(A);
+  A.status = 'work'; A.screen = 'paint'; A.screenT = 0; log(A, 'konsept görseli üretiyor (FLUX)');
+  await wait(3.6);
+  A.status = 'idle';
+  await fly('img', head(A), head(L), 1.4, goal.art);
+  L.status = 'think'; L.screen = 'review'; L.screenT = 0; L.approved = false; L.task = 'Görsel incelemesi';
+  await wait(1.6);
+  L.approved = true; L.status = 'happy'; burst(L.x, L.y - 80, 22, 'confetti');
+  await say(L, 'Renkler çok iyi, onay!');
+  moveNote(nA, 2); log(L, 'konsept görseli onayladı'); addProgress(20);
+  L.status = 'idle'; A.task = 'Asset listesi';
+}
+async function scenario() {
+  await wait(1.2);
+  for (;;) {
+    goal = GOALS[sprint % GOALS.length]; sprint++;
+    notes.length = 0; setProgress(0);
+    $('sprint').textContent = 'Sprint ' + sprint; $('goal').textContent = `Hedef: “${goal.name}” prototipi`;
+    for (const c of CH) { c.status = 'idle'; c.task = 'Sırada iş bekliyor'; }
+    const [D, P, L, V, A, T] = ['designer', 'pm', 'lead', 'dev', 'artist', 'tester'].map((k) => C[k]);
+    log(null, `yeni hedef verdi: “${goal.name}” prototipi`, 'Sen');
+    await fly('doc', { x: -10, y: 260 }, head(D), 1.4);
+    D.task = `“${goal.name}” için oyun tasarım dokümanı`;
+    await say(D, 'Önce benzer oyunlara bir bakayım.');
+    D.status = 'work'; D.screen = 'search'; D.screenT = 0; Q.web += 4; log(D, 'web araması yaptı');
+    await wait(2.6);
+    D.screen = 'doc'; D.screenT = 0; log(D, 'GDD’yi yazıyor');
+    await wait(3.4);
+    D.status = 'idle'; D.holding = 'doc';
+    await visit(D, 'lead');
+    await say(D, 'GDD hazır, bakar mısın?');
+    L.status = 'think'; L.screen = 'review'; L.screenT = 0; L.approved = false; L.task = 'GDD incelemesi';
+    await wait(2);
+    L.approved = true; L.status = 'happy'; D.holding = null; burst(L.x, L.y - 80, 26, 'confetti');
+    await say(L, 'Harika olmuş, onaylandı!');
+    L.status = 'idle'; addProgress(15); log(L, 'GDD’yi onayladı');
+    const dBack = toSeat(D);
+    P.task = 'Görev dağıtımı';
+    await goTo(P, SPOT.board);
+    await say(P, 'Görevleri panoya asıyorum.');
+    const nV = addNote(goal.tasks[0], '#ffe08a'); await wait(0.35);
+    const nA = addNote(goal.tasks[1], '#ffc4d6'); await wait(0.35);
+    const nT = addNote(goal.tasks[2], '#c9ebb8'); await wait(0.6);
+    log(P, '3 görevi panoya asıp dağıttı');
+    await Promise.all([
+      fly('env', head(P), head(V), 1.3).then(() => { moveNote(nV, 1); V.task = nV.text; V.status = 'work'; V.screen = 'code'; V.screenT = 0; }),
+      wait(0.3).then(() => fly('env', head(P), head(A), 1.4)).then(() => { moveNote(nA, 1); A.task = nA.text; A.status = 'work'; A.screen = 'paint'; A.screenT = 0; }),
+      wait(0.6).then(() => fly('env', head(P), head(T), 1.5)).then(() => { moveNote(nT, 1); T.task = nT.text + ' (build bekleniyor)'; T.screen = 'test'; T.screenT = 0; T.testFail = -1; }),
+    ]);
+    addProgress(15);
+    toSeat(P).then(() => { P.status = 'work'; P.screen = 'plan'; P.screenT = 0; P.task = 'Sprint takibi'; });
+    await dBack; D.task = 'Sıradaki fikir notları';
+    await Promise.all([devBranch(V, T, L, nV, nT), artistBranch(A, L, nA)]);
+    await wait(0.6);
+    P.status = 'idle';
+    await say(L, 'Sprint tamamlandı, herkese teşekkürler!');
+    setProgress(100); log(L, 'sprint’i tamamladı');
+    burst(640, 210, 90, 'confetti'); burst(330, 250, 40, 'confetti'); burst(950, 250, 40, 'confetti');
+    CH.forEach((c, i) => { c.status = 'happy'; wait(i * 0.12).then(() => { c.jump = c.jumpD; }); });
+    await wait(1.2);
+    const bc = BOOKC[sprint % BOOKC.length];
+    await fly('book', head(L), { x: 1180, y: 120 }, 1.6, bc);
+    books.push({ col: bc, h: 30, t: gt }); if (books.length > 27) books.shift();
+    log(null, `ders kaydedildi: “${goal.lesson}”`, 'Vault');
+    await wait(2.5);
+    for (const c of CH) { c.status = 'idle'; if (c.id !== 'pm') c.screen = null; }
+    await wait(2.5);
+  }
+}
+
+let lastT = performance.now(), hudT = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  if (!paused) update(dt * speed);
+  draw();
+  hudT += dt; if (hudT > 0.25) { hudT = 0; renderQuota(); updateCard(); }
+  requestAnimationFrame(frame);
+}
+renderQuota();
+requestAnimationFrame(frame);
+scenario();
+})();
+</script>
+</body>
+</html>

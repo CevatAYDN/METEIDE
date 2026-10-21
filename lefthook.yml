@@ -1,0 +1,16 @@
+# Local CI (docs/15-testing-build-release.md). No GitHub Actions by decision.
+pre-commit:
+  jobs:
+    - name: biome
+      glob: "*.{ts,tsx,js,json,jsonc}"
+      run: pnpm exec biome check --no-errors-on-unmatched {staged_files}
+    # shortcut: tsc -b checks every package and emits dist; tab 15 wants --noEmit on affected packages, switch when builds get slow.
+    - name: typecheck
+      run: pnpm exec tsc -b
+    - name: architecture
+      run: pnpm exec depcruise packages apps
+pre-push:
+  jobs:
+    # shortcut: runs all packages, not affected only, and vitest uses --passWithNoTests; switch to turbo --affected after the first commit and drop the flag once packages have tests.
+    - name: tests
+      run: pnpm exec turbo run test

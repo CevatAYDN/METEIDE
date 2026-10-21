@@ -1,0 +1,144 @@
+# 08 Orchestration and teams
+
+Repository file: `docs/08-orchestration-and-teams.md`. Depends on: 06 Kernel and modules, 07 Domain model and events.
+
+The native team engine executes YAML team templates as XState machines; models only produce the content of each task. It combines MetaGPT's SOPs and typed artifacts, ChatDev's clarifying questions, pair reviews and lessons, and CrewAI's YAML roles, guardrails, flows and memory types \[C\].
+
+## Router
+
+1. If the user picked a template, use it.
+2. Otherwise one `fast` tier call classifies the request into `{ mode: "single" | "team", templateId?, confidence }` with a Zod schema.
+3. Confidence below 0.7: ask the user to choose among the suggested templates \[D\].
+4. Simple requests run as a single agent (role `assistant`, workspace tools). The rule is: never build a team for a simple task \[C\].
+
+## Workflow patterns
+
+| Pattern | Shape | Typical template |
+| --- | --- | --- |
+| `single` | One agent | Daily tasks |
+| `pipeline` | A → B → C | Content production |
+| `hierarchical` | Manager splits, workers do, manager approves | Game studio, web development |
+| `parallel_then_synthesize` | Several agents in parallel, one synthesizer merges | Research, SEO audit |
+| Review loop | Produce → review → revise, bounded | Inside any task through `review` |
+
+## Team template schema
+
+Files live in `templates/<id>.yaml` (built in) or `.mete/teams/<id>.yaml` (workspace). Unknown keys are rejected.
+
+```yaml
+apiVersion: mete/v1
+kind: TeamTemplate
+metadata: { id: game-studio, name: Game studio, version: 1.0.0, description: "Idea to playable prototype" }
+engine: native                      # native (default) | crewai | metagpt | chatdev
+pattern: hierarchical
+roles:
+  - id: designer
+    name: Game designer
+    goal: Turn the goal into a clear, buildable game design document
+    backstory: Ten years of designing small, focused games
+    tier: reasoning                 # reasoning | coder | fast | long-context | vision
+    needs: [tool_calling]           # tool_calling | vision | long_context
+    prefer_different_family_than: []
+    capabilities: [web.search@1, web.fetch@1, fs.read@1, fs.write@1, vault.read@1]
+    watches: []                     # artifact types that wake this role
+  - { id: lead, name: Lead, goal: Approve or return work against acceptance criteria, tier: reasoning,
+      needs: [tool_calling], capabilities: [fs.read@1, vcs.git@1, knowledge.search@1], watches: [gdd@1, task-list@1] }
+  - { id: pm, name: Project manager, goal: Split approved designs into owned tasks, tier: reasoning,
+      needs: [tool_calling], capabilities: [fs.read@1, fs.write@1], watches: [gdd@1] }
+  - { id: developer, name: Developer, goal: Implement tasks with small verified edits, tier: coder,
+      needs: [tool_calling], capabilities: [fs.*@1, shell.exec@1, vcs.git@1, code.graph@1, gameengine.build@1] }
+  - { id: artist, name: Artist, goal: Produce assets that match the design, tier: vision,
+      needs: [tool_calling], capabilities: [media.image.generate@1, media.3d.fromImage@1, 3d.cleanup@1, 3d.export@1, gameengine.importAsset@1] }
+  - { id: tester, name: Tester, goal: Prove that features work, tier: coder,
+      needs: [tool_calling], prefer_different_family_than: [developer], capabilities: [fs.read@1, shell.exec@1, gameengine.test@1] }
+tasks:
+  - id: write_gdd
+    role: designer
+    title: Write the game design document
+    expected_output: artifact:gdd@1
+    before_start: { clarify_with: human }
+    guardrail: { schema: gdd@1, max_retries: 2 }
+    approval: lead
+  - id: plan_tasks
+    role: pm
+    title: Split the design into tasks
+    expected_output: artifact:task-list@1
+    context: [write_gdd]
+    approval: lead
+    spawns: true                    # each task-list entry becomes a task
+spawn_defaults:
+  developer: { verify: [{ capability: gameengine.build@1 }], review: { pair_with: tester, max_turns: 4 }, approval: lead }
+  artist:    { expected_output: artifact:asset@1, approval: lead }
+  tester:    { expected_output: artifact:test-report@1, verify: [{ capability: gameengine.test@1 }], approval: lead }
+policies:
+  revision_limit: 3
+  human_checkpoints: [write_gdd]     # approval also needs the human
+  retrospective: true                # lessons written at run end
+budget: { cloud_requests: 150, max_hours: 6 }
+```
+
+Rules:
+
+- Templates MUST name capabilities and tiers only. Tool, server, provider and model names are forbidden in templates \[C\].
+- `capabilities` accept `domain.*@1` wildcards only for the `fs` domain \[D\].
+- Defaults when omitted: `engine: native`, `revision_limit: 3`, `guardrail.max_retries: 2`, `review.max_turns: 4`, `budget.cloud_requests: 150`, `budget.max_hours: 6`, `retrospective: false` \[D\].
+
+## Task fields
+
+| Field | Type | Meaning | Origin |
+| --- | --- | --- | --- |
+| `role` | role id | Who does it | CrewAI |
+| `expected_output` | `artifact:<type>@<v>` | Typed artifact the task must produce | MetaGPT |
+| `context` | task ids | Artifacts given as input | CrewAI |
+| `before_start.clarify_with` | role id or `human` | Ask open questions before working | ChatDev |
+| `verify` | list of `{ capability, args?, expect? }` or `{ run: "<command>" }` | Machine checks; `run` is sugar for `shell.exec@1` | MetaGPT |
+| `guardrail` | `{ schema, max_retries }` | Schema check with bounded repair | CrewAI |
+| `review` | `{ pair_with, max_turns }` | Pair review before submission | ChatDev |
+| `approval` | role id or `human` | Who approves | METE |
+| `memory.write_lessons` | boolean | Write lessons to the vault | ChatDev + CrewAI |
+| `attempts` | `{ n, distinct_families, judge_tier }` | Best-of-N with cross-family attempts; off by default | METE |
+| `spawns` | boolean | Output task list creates child tasks | METE |
+
+## Task execution sequence
+
+1. Clarify: if `before_start` is set, the agent sends questions; the task waits (`blocked` after the run's approval timeout, default 24 hours) \[D\].
+2. Work: the agent loop runs with tools. Default maximum 25 model turns per attempt \[D\].
+3. Verify: every gate runs; a failure is returned to the agent with its output as feedback.
+4. Guardrail: output is validated against its schema; up to `max_retries` repair attempts.
+5. Review: if set, a bounded pair dialogue; the reviewer must come from a different model family when possible.
+6. Submit: `task.status.changed` to `submitted`.
+7. Approve: the approver role (and the human when listed in `human_checkpoints`) approves or returns it with feedback.
+8. Remember: if enabled, lessons are written to the workspace vault.
+
+## Agent context assembly
+
+Each model call receives only: role goal and backstory, the task, its acceptance criteria, the needed sections of `context` artifacts, up to 8 `knowledge.search@1` results, matching skills, and the operating system and shell name \[C\]. When the context reaches 70% of the model's window, older turns are summarized into the run log \[D\].
+
+## Parallel work and merging
+
+- Tasks whose dependencies are approved run in parallel, limited by the quota scheduler.
+- Every writing agent works in its own git worktree under the global `worktrees/` folder \[C\].
+- The PM's task list assigns file ownership; two parallel tasks MUST NOT own the same file \[C\].
+- After approval, the core merges the worktree branch. A conflict creates a "resolve merge conflict" task for the owning role; if that fails, the human decides \[D\].
+- Non-git workspaces run writing tasks one at a time and use file snapshots \[D\].
+
+## Memory
+
+- Short-term: the run log and artifacts of the current run.
+- Long-term: lessons in the vault, found through `knowledge.search@1`.
+- Entity: vault notes about characters, customers, keywords and other named things \[C\].
+
+## Built-in templates (MVP)
+
+| Template | Pattern | Roles | Output | Acceptance scenario |
+| --- | --- | --- | --- | --- |
+| `research` | parallel\_then\_synthesize | 2 researchers, synthesizer, lead | `research-report@1` with sources | A topic becomes a cited report |
+| `seo-audit` | parallel\_then\_synthesize | technical auditor, content analyst, competitor scout, SEO lead | `seo-audit@1` prioritized fix list | A URL becomes a ranked list of fixes |
+| `web-dev` | hierarchical | UI designer, frontend developer, QA, lead | `code-change@1`, `test-report@1` | A simple page built from scratch passes build and a Lighthouse score of 85 |
+| `game-studio` | hierarchical | designer, PM, developer, artist, tester, lead | `gdd@1`, `task-list@1`, code, `asset@1`, `test-report@1` | An idea becomes a GDD and a small running prototype |
+
+Artifact types defined in `@mete/contracts`: `gdd@1`, `task-list@1`, `research-report@1`, `seo-audit@1`, `code-change@1`, `test-report@1`, `asset-spec@1`, `asset@1`, `lesson@1`.
+
+## Optional engines
+
+When `engine` is `crewai`, `metagpt` or `chatdev`, the adapter maps roles to agents and tasks to tasks of that framework. Fields the framework cannot express are skipped with a warning. All their model calls go through the gateway, and the adapter publishes the same events, so views and quota behave the same \[C\].

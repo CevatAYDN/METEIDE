@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.turbo/
+coverage/
+.mete/mete.db*
+.mete/cache/
+.mete/worktrees/

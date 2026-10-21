@@ -1,0 +1,9 @@
+{
+	"extends": "./tsconfig.base.json",
+	"compilerOptions": {
+		"composite": false,
+		"paths": {
+			"@mete/*": ["./packages/*/src/index.ts", "./apps/*/src/index.ts"]
+		}
+	}
+}
