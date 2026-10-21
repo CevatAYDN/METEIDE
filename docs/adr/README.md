@@ -2,7 +2,7 @@
 
 Repository files: `docs/adr/NNN-<slug>.md`, one per row. Depends on: 02 Glossary, 03 Architecture.
 
-These 40 decisions are accepted. Changing one requires a new ADR that marks the old one "Superseded by ADR-NNN"; code MUST follow the accepted set.
+These 41 decisions are accepted. Changing one requires a new ADR that marks the old one "Superseded by ADR-NNN"; code MUST follow the accepted set.
 
 | ADR | Decision | Reason | Rejected alternatives | Source |
 | --- | --- | --- | --- | --- |
@@ -46,6 +46,7 @@ These 40 decisions are accepted. Changing one requires a new ADR that marks the 
 | 038 | Quota scheduling is small own code in `@mete/quota` (a priority waiting list with round-robin per run, and per-provider, per-unit windows), not p-queue | Tab 09 needs round-robin between runs of one class and limits per provider, unit and model with discovered and header-corrected values; p-queue is FIFO within a priority and has one `intervalCap` per queue, and its newest release old enough under the 14-day rule (9.3.3) is a major behind | p-queue 9.3.3 with a custom `queueClass`, still needing own round-robin and windows | D |
 | 039 | Providers use `@ai-sdk/openai-compatible` and the other AI SDK provider packages directly, without the `ai` core; OpenRouter goes through `@ai-sdk/openai-compatible` with `provider.data_collection` in the request body | NVIDIA, OpenRouter and OpenCode Zen's free models all speak OpenAI chat completions; `@openrouter/ai-sdk-provider` needs `ai` 7 as a peer, which brings the `@ai-sdk/gateway` client into the tree | `@openrouter/ai-sdk-provider` 3.1.0 with `ai` 7.0.129 | D |
 | 040 | The file tools check `.meteignore` with the `ignore` package (gitignore syntax) and list files with ripgrep | ripgrep searches every path named on its command line and lets `--glob` override ignore files, so it cannot tell whether one path is ignored; `fs.read@1`, `fs.edit@1` and the `path` of `fs.list@1` and `fs.glob@1` need that answer | A full `rg --files` walk per read (scans the repository each time and also refuses `.gitignore` files); an own gitignore matcher (negation, anchoring and folder rules to get right) | D |
+| 041 | Long-term memory ideas from ai-memory (akitaonrails/ai-memory, MIT) are ported natively into the knowledge layer: run handoffs with a bounded start brief, turning persisted events into journal pages without a model, and access-weighted aging that supersedes instead of deleting; ai-memory itself MAY serve the knowledge capabilities through an MCP adapter, and a shared memory server is opt-in and receives only vault notes and handoffs | A new run or another model loses what the last run learned; the zero-model path costs no free quota; native code keeps METE independent of an external service and protocol | ai-memory as the only memory backend (an external service becomes a requirement); feeding ai-memory's hook protocol (couples METE to a fast-moving protocol); sending prompts, tool output or run conversations to a shared server (code and secrets would leave the machine) | D |
 
 ## ADR file template
 

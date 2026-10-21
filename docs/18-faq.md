@@ -15,7 +15,7 @@ Each answer is binding and names the tab that holds the full rule. A question no
 | Can I use a paid provider? | Yes, through a custom endpoint. METE is designed and tested for free providers and never requires a paid one \[D\] | 09 |
 | Which platforms? | Windows 10 and 11 first, Linux built through WSL2, macOS after the MVP | Overview |
 | Can companies use it commercially? | Yes. Apache-2.0 | 04 |
-| Is there telemetry? | No. Logs stay on the machine | 04 |
+| Is there telemetry? | No. Logs stay on the machine; an opt-in memory server the user runs receives only vault notes and handoffs (Phase 7) | 04, 11 |
 
 ## Models and quota
 

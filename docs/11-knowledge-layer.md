@@ -44,6 +44,7 @@ updated: 2026-10-21T10:00:00Z
 source: run/<run id>    # or human
 tags: [testing, game-studio]
 private: false          # true = never retrieved for a model
+pinned: false           # true = never ages (Aging and restore)
 ---
 ```
 
@@ -57,6 +58,21 @@ Writing rules, to keep the vault clean \[C\]:
 - A weekly consolidation job (autonomy module, priority P2) proposes merges and deletions; the user approves them \[D\].
 - A lesson that appears in 2 or more workspaces is proposed for promotion to the personal vault. At autonomy level 3 promotion is automatic \[D\].
 - Personal notes are retrieved only when relevant and are never copied into workspace files \[C\].
+- ai-memory MAY serve `knowledge.search@1`, `vault.read@1` and `vault.write@1` through an MCP mapping, as Graphify may serve `code.graph@1`; the built-in modules stay the default (ADR-041) \[C\].
+
+## Run reports
+
+From Phase 4, when a run ends the knowledge module appends a section for it to the workspace vault's `journal/YYYY-MM-DD.md`: goal, status, models used, tool calls per capability, failed calls with their error codes, checkpoints, changed files and the summary, built from the run's events without a model call. Prompts and tool output are never copied. Run reports and handoffs (tab 08, Run memory) are written by the core, not by agents, and do not count toward the 3-notes limit \[D\].
+
+## Aging and restore
+
+Memory ages without a model call (ADR-041, ideas from ai-memory) \[D\]:
+
+- Each note has a retention score: `salience · e^(−0.02 · age in days) + 0.6 · ln(1 + accesses) · e^(−0.04 · days since the last access)`, with salience 1.0 for `decision` and `entity`, 0.8 for `lesson` and 0.5 for `journal`. Decisions, entities and notes with `pinned: true` in their frontmatter never age.
+- An access is a note returned by `knowledge.search@1`, read through `vault.read@1` or reached through backlink expansion, counted at most once per note per 60 seconds.
+- A note whose score falls below 0.20 is cold: hybrid search ranks it after the others, and nothing is deleted.
+- The weekly consolidation proposes, for the user to approve: compacting a cold note to its frontmatter, title, first paragraph and extracted facts (file paths, error codes, capability ids, decisions); merging notes with similarity 0.85 or more; and flagging likely contradictions, notes of the same type that share a tag with similarity from 0.40 to 0.75. A flag is advice; it changes nothing by itself.
+- Before any automated rewrite or merge, the previous version is copied to `<vault>/.history/<note path>/<timestamp>.md`; `vault restore` brings a version back. Nothing is deleted without the user's approval.
 
 ## Hybrid search (`knowledge.search@1`)
 
@@ -77,3 +93,11 @@ Degradation: no embeddings → no vector source; no graph → no graph source; n
 - Embedding cache key: SHA-256 of the chunk text plus the embedding model id. Only changed chunks are embedded, in batches of 32 \[D\].
 - Changing the embedding model triggers a background re-index; vectors store the model id that produced them \[C\].
 - Index jobs run in a worker thread at quota priority P2, so they never slow interactive work \[C\].
+- Notes with `private: true` and files matched by `.meteignore` are never embedded, because embedding sends their text to a provider \[D\].
+
+## Shared memory server
+
+From Phase 7, a workspace MAY sync with a shared memory server that the user runs (ADR-041) \[D\]:
+
+- It is off by default and turns on only when `memory: { server: <url> }` is set in `settings.yaml`; the server's token is kept in the keychain under account `memory/server/token`. The connection uses TLS except on 127.0.0.1.
+- Only workspace vault notes and handoffs are sent, masked like model input; notes with `private: true` and paths matched by `.meteignore` are never sent. Prompts, tool output, run conversations, events and the personal vault never leave the machine.

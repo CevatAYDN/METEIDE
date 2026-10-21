@@ -25,6 +25,15 @@ Phase 1 runs every request as a single agent; the router and team templates come
 - The budget is the policy's `budget` (tab 12), read when the run starts and again on resume. Each `llm.chat@1` call that returns a reply counts as one cloud request; `max_hours` counts running time only.
 - Summarizing older turns at 70% of the context window (Agent context assembly) comes with the team engine.
 
+## Run memory: handoffs and the start brief
+
+From Phase 2, a run leaves a handoff and the next run starts from a bounded brief, so a new run, another model or another session does not need the work explained again (ADR-041, ideas from ai-memory). Both are built from the run's events and snapshot without a model call \[D\]:
+
+- When a run ends (`completed`, `failed`, `cancelled`) or pauses for any reason but `quota`, core-engine writes one handoff: the goal, where the run stopped (status, last step, pause reason), the tool and model calls that failed with their error codes, the open question (the pause reason, or the approval the run waits for), and the files changed (from checkpoints and write calls). Prompts and tool output are never copied into it.
+- A handoff is `open`, `accepted` or `expired`. A new handoff expires the older open ones of the workspace; accepting one expires the open ones older than it. An accepted or expired handoff never opens again.
+- Offer, not claim: the next run's brief names an open handoff in one line (id, goal, age) and never shows its body. The body enters a run only when the user accepts it with `mete run --continue` (the goal defaults to the handoff's goal), which accepts the newest open handoff exactly once: of two runs that try, one gets it and the other starts without it.
+- The start brief is at most 4,000 characters: the accepted handoff, then the titles of the 10 newest journal and decision notes (from Phase 4). Each entry first gets its title and first sentence up to 256 characters, then up to 500 characters while room is left, and its whole body only when all of it fits. The brief is wrapped and labeled as data, not instructions, and that label is never cut for space.
+
 ## Workflow patterns
 
 | Pattern | Shape | Typical template |
@@ -126,7 +135,7 @@ Rules:
 
 ## Agent context assembly
 
-Each model call receives only: role goal and backstory, the task, its acceptance criteria, the needed sections of `context` artifacts, up to 8 `knowledge.search@1` results, matching skills, and the operating system and shell name \[C\]. When the context reaches 70% of the model's window, older turns are summarized into the run log \[D\].
+Each model call receives only: role goal and backstory, the task, its acceptance criteria, the start brief (Run memory), the needed sections of `context` artifacts, up to 8 `knowledge.search@1` results, matching skills, and the operating system and shell name \[C\]. When the context reaches 70% of the model's window, older turns are summarized into the run log \[D\].
 
 ## Parallel work and merging
 
