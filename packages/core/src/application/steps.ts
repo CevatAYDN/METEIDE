@@ -67,22 +67,42 @@ const maskOutcome = async (
 	return o;
 };
 
+type Reply = { content: string; readonly calls: ToolCall[] };
+
+const replied = (r: Reply, finish: Finish): ModelOutcome => {
+	const toolCalls = r.calls.length > 0 ? { toolCalls: r.calls } : {};
+	const message: Assistant = {
+		role: "assistant",
+		content: r.content,
+		...toolCalls,
+	};
+	return { kind: "replied", message, finish };
+};
+
+// Adds a chunk to the reply; returns the outcome once a chunk ends it.
+const take = (
+	r: Reply,
+	c: Exclude<LlmChunk, { type: "model" }>,
+): ModelOutcome | undefined => {
+	if (c.type === "text") r.content += c.text;
+	else if (c.type === "tool-call")
+		r.calls.push({ id: c.id, name: c.name, args: c.args });
+	else if (c.type === "finish") return replied(r, c.reason);
+	else return { kind: "error", error: c.error };
+	return undefined;
+};
+
 const read = async (
 	chunks: AsyncIterable<LlmChunk>,
 	onModel: (c: ModelChunk) => void,
 ): Promise<ModelOutcome> => {
-	let content = "";
-	const calls: ToolCall[] = [];
+	const r: Reply = { content: "", calls: [] };
 	for await (const c of chunks) {
 		if (c.type === "model") onModel(c);
-		else if (c.type === "text") content += c.text;
-		else if (c.type === "tool-call")
-			calls.push({ id: c.id, name: c.name, args: c.args });
-		else if (c.type === "finish") {
-			const toolCalls = calls.length > 0 ? { toolCalls: calls } : {};
-			const message: Assistant = { role: "assistant", content, ...toolCalls };
-			return { kind: "replied", message, finish: c.reason };
-		} else return { kind: "error", error: c.error };
+		else {
+			const end = take(r, c);
+			if (end) return end;
+		}
 	}
 	const message = "the model stream ended without a finish";
 	return { kind: "error", error: { code: "server", message } };

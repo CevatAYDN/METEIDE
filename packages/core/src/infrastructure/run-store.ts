@@ -170,65 +170,83 @@ export const loadSnapshot = (json: string): RunSnapshot => {
 	return runMachine.resolveState({ value: p.value, context: p.context });
 };
 
+type Orm = ReturnType<typeof drizzle>;
+
+/** Writes the run's row after a transition. */
+const save = (orm: Orm, meta: RunMeta, s: RunSnapshot) => {
+	const values = rowOf(meta, s);
+	orm
+		.insert(runs)
+		.values({ id: meta.id, ...values })
+		.onConflictDoUpdate({ target: runs.id, set: values })
+		.run();
+};
+
+/** Writes the agent's row with its model and request count. */
+const saveAgent = (
+	orm: Orm,
+	runId: string,
+	agent: AgentRef,
+	requests: number,
+) => {
+	const values = {
+		runId,
+		roleId: "assistant",
+		providerId: agent.providerId,
+		modelId: agent.modelId,
+		requests,
+	};
+	orm
+		.insert(agents)
+		.values({ id: agent.id, ...values })
+		.onConflictDoUpdate({ target: agents.id, set: values })
+		.run();
+};
+
+const load = (orm: Orm, id: string) => {
+	const r = orm.select().from(runs).where(eq(runs.id, id)).get();
+	return r && { meta: metaOf(r), snapshot: loadSnapshot(r.snapshot) };
+};
+
+/** Ends a run whose snapshot cannot be read; the snapshot stays for inspection. */
+const markFailed = (orm: Orm, id: string, endedAt: string) => {
+	orm
+		.update(runs)
+		.set({ status: "failed", pauseReason: null, endedAt })
+		.where(eq(runs.id, id))
+		.run();
+};
+
+/** One run or all runs, newest first. */
+const list = (orm: Orm, id?: string): RunView[] =>
+	orm
+		.select()
+		.from(runs)
+		.where(id === undefined ? undefined : eq(runs.id, id))
+		.orderBy(desc(runs.createdAt), desc(sql`rowid`))
+		.all()
+		.map(viewOf);
+
+/** Runs an earlier process left queued or running. */
+const unfinished = (orm: Orm) =>
+	orm
+		.select({ id: runs.id })
+		.from(runs)
+		.where(inArray(runs.status, ["queued", "running"]))
+		.all()
+		.map((r) => r.id);
+
 /** Reads and writes runs and agents rows. */
 export const createRunStore = (db: BetterSqlite3.Database) => {
 	const orm = drizzle(db);
-	const row = (id: string) =>
-		orm.select().from(runs).where(eq(runs.id, id)).get();
 	return {
-		/** Writes the run's row after a transition. */
-		save: (meta: RunMeta, s: RunSnapshot) => {
-			const values = rowOf(meta, s);
-			orm
-				.insert(runs)
-				.values({ id: meta.id, ...values })
-				.onConflictDoUpdate({ target: runs.id, set: values })
-				.run();
-		},
-		/** Writes the agent's row with its model and request count. */
-		saveAgent: (runId: string, agent: AgentRef, requests: number) => {
-			const values = {
-				runId,
-				roleId: "assistant",
-				providerId: agent.providerId,
-				modelId: agent.modelId,
-				requests,
-			};
-			orm
-				.insert(agents)
-				.values({ id: agent.id, ...values })
-				.onConflictDoUpdate({ target: agents.id, set: values })
-				.run();
-		},
-		load: (id: string) => {
-			const r = row(id);
-			return r && { meta: metaOf(r), snapshot: loadSnapshot(r.snapshot) };
-		},
-		/** Ends a run whose snapshot cannot be read; the snapshot stays for inspection. */
-		markFailed: (id: string, endedAt: string) => {
-			orm
-				.update(runs)
-				.set({ status: "failed", pauseReason: null, endedAt })
-				.where(eq(runs.id, id))
-				.run();
-		},
-		/** One run or all runs, newest first. */
-		list: (id?: string): RunView[] =>
-			orm
-				.select()
-				.from(runs)
-				.where(id === undefined ? undefined : eq(runs.id, id))
-				.orderBy(desc(runs.createdAt), desc(sql`rowid`))
-				.all()
-				.map(viewOf),
-		/** Runs an earlier process left queued or running. */
-		unfinished: () =>
-			orm
-				.select({ id: runs.id })
-				.from(runs)
-				.where(inArray(runs.status, ["queued", "running"]))
-				.all()
-				.map((r) => r.id),
+		save: (meta: RunMeta, s: RunSnapshot) => save(orm, meta, s),
+		saveAgent: (runId: string, agent: AgentRef, requests: number) =>
+			saveAgent(orm, runId, agent, requests),
+		load: (id: string) => load(orm, id),
+		markFailed: (id: string, endedAt: string) => markFailed(orm, id, endedAt),
+		list: (id?: string) => list(orm, id),
+		unfinished: () => unfinished(orm),
 	};
 };
 
