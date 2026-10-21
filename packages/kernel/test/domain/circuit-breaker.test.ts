@@ -50,6 +50,15 @@ describe("createCircuitBreaker", () => {
 		expect(breaker.isOpen()).toBe(true);
 	});
 
+	it("keeps the original delay when a call fails while fully open", () => {
+		const { breaker, fail, advance } = setup();
+		fail(CIRCUIT_FAILURE_LIMIT);
+		advance(CIRCUIT_HALF_OPEN_MS - 1);
+		fail(1);
+		advance(1);
+		expect(breaker.isOpen()).toBe(false);
+	});
+
 	it("closes when the half-open trial succeeds", () => {
 		const { breaker, fail, advance } = setup();
 		fail(CIRCUIT_FAILURE_LIMIT);

@@ -15,18 +15,23 @@ export const createCircuitBreaker = (
 ): CircuitBreaker => {
 	let failures = 0;
 	let openedAt: number | undefined;
+	// Half-open once the delay passes: callers may try again; the next outcome decides.
+	const isOpen = () =>
+		openedAt !== undefined && now() - openedAt < CIRCUIT_HALF_OPEN_MS;
 	return {
-		// Half-open once the delay passes: callers may try again; the next outcome decides.
-		isOpen: () =>
-			openedAt !== undefined && now() - openedAt < CIRCUIT_HALF_OPEN_MS,
+		isOpen,
 		success: () => {
 			failures = 0;
 			openedAt = undefined;
 		},
 		failure: () => {
 			failures += 1;
-			// A failure after the circuit opened (a half-open trial) reopens it.
-			if (openedAt !== undefined || failures >= CIRCUIT_FAILURE_LIMIT)
+			// Closed: open at the limit. Half-open: the trial failed, reopen. Fully open: keep the delay.
+			const halfOpen = openedAt !== undefined && !isOpen();
+			if (
+				halfOpen ||
+				(openedAt === undefined && failures >= CIRCUIT_FAILURE_LIMIT)
+			)
 				openedAt = now();
 		},
 	};
