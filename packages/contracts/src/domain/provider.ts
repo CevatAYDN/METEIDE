@@ -109,6 +109,8 @@ export type ChatChunk =
 export type EmbedRequest = {
 	readonly model: string;
 	readonly input: readonly string[];
+	/** Search queries and indexed documents are embedded differently by some models. */
+	readonly purpose: "query" | "document";
 };
 export type EmbedResponse = {
 	readonly vectors: readonly (readonly number[])[];

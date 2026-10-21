@@ -305,7 +305,10 @@ describe("openai chat: extras", () => {
 				),
 		);
 		expect(
-			await chatWith(ok).embed({ model: "e", input: ["a", "b"] }, signal()),
+			await chatWith(ok).embed(
+				{ model: "e", input: ["a", "b"], purpose: "document" },
+				signal(),
+			),
 		).toEqual({
 			ok: true,
 			value: {
@@ -323,7 +326,7 @@ describe("openai chat: extras", () => {
 				}),
 		);
 		const r = await chatWith(down).embed(
-			{ model: "e", input: ["a"] },
+			{ model: "e", input: ["a"], purpose: "query" },
 			signal(),
 		);
 		expect(!r.ok && r.error.code).toBe("unauthorized");
