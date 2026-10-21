@@ -87,9 +87,9 @@ Ideas discussed earlier in the conversation and later replaced. An implementatio
 | SearXNG through WSL2 as the default search | Exa MCP without a key as default, then a fallback chain |
 | Brave Search API in the default chain | Removed: it now needs a card on file |
 
-## Open verifications (gate Phase 1)
+## Open verifications
 
-These assumptions are not yet verified. Each MUST be checked before Phase 1 starts; the failure path is already decided.
+These assumptions are not yet verified. Each MUST be checked before the work that depends on it (provider adapters in Phase 1 task 6, Theia in Phase 5, release builds at release); the failure path is already decided.
 
 - Free limits: the current limits of NVIDIA Build, OpenRouter `:free`, OpenCode Zen and Hugging Face Spaces through MCP are recorded in tab 09 with their retrieval date, and the smallest built-in template MUST complete a task inside them. Fail: the provider leaves the default chain.
 - Theia toolchain: Theia's pinned release builds under pnpm with the chosen `node-linker` and runs on the Node bundled in its Electron. Fail: the linker setting changes; the Node 24 rule stays scoped to the daemon and CLI.
