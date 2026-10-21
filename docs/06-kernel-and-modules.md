@@ -103,6 +103,25 @@ export type EmbedResponse = { vectors: number[][] };   // one vector per input, 
 export type RerankRequest = { model: string; query: string; documents: string[] };
 export type RerankResponse = { scores: number[] };     // one score per document, in order
 
+// llm.chat@1, defined in @mete/contracts: the gateway's routed chat (tab 09, Gateway). The caller names a tier
+// or one exact model; the gateway resolves the chain, reserves quota and moves down the chain on failures.
+export type Tier = "reasoning" | "coder" | "fast" | "long-context" | "vision";
+export type ModelRef = { providerId: string; modelId: string };
+export type LlmChatRequest = Omit<ChatRequest, "model"> & {
+  target: { tier: Tier } | ModelRef;
+  runId: string; priority: 0 | 1 | 2;                       // as in QuotaRequest
+  needs?: ("tool_calling" | "vision" | "long_context")[];   // the role's needs (tab 08)
+  avoidFamilies?: string[] };                               // families of the roles in prefer_different_family_than
+export type LlmError = ProviderError | { code: "no_model"; message: string }
+  | { code: "quota_exhausted"; message: string; resumesAt: string };   // run pause reasons no_model and quota
+export type LlmChunk =
+  | Exclude<ChatChunk, { type: "error" }>
+  | { type: "model"; providerId: string; modelId: string; reason: "first" | "quota" | "failed" }
+  | { type: "error"; error: LlmError };                    // the last chunk; chat never throws for a model failure
+export interface LlmChatAdapter {
+  chat(req: LlmChatRequest, signal: AbortSignal): AsyncIterable<LlmChunk>;
+}
+
 // ModuleContext.secrets: the operating system keychain (tab 12), service "mete"; account names in tab 09.
 export type SecretError = { code: "secret_failed"; message: string };
 export interface SecretStore {
@@ -176,7 +195,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | storage | `@mete/storage` | essential | `storage.sql@1` | none | none | in-process |
 | security | `@mete/security` | essential | `policy.check@1`, `secrets.mask@1` | `storage.sql@1` | none | in-process |
 | quota | `@mete/quota` | essential | `quota.reserve@1` | `storage.sql@1` | none | in-process |
-| gateway | `@mete/gateway` | essential | `llm.chat@1` (routed), `llm.embed@1` (routed), `llm.rerank@1` (routed) | `quota.reserve@1`, `secrets.mask@1`, at least one `provider.chat@1` | `provider.embed@1`, `provider.rerank@1` | in-process |
+| gateway | `@mete/gateway` | essential | `llm.chat@1` (routed), `llm.embed@1` (routed), `llm.rerank@1` (routed) | `storage.sql@1`, `quota.reserve@1`, `secrets.mask@1`, at least one `provider.chat@1` | `provider.embed@1`, `provider.rerank@1` | in-process |
 | provider-nvidia | `@mete/providers` | optional | `provider.chat@1`, `provider.embed@1`, `provider.rerank@1` | none | none | in-process |
 | provider-openrouter | `@mete/providers` | optional | `provider.chat@1` | none | none | in-process |
 | provider-opencode-zen | `@mete/providers` | optional | `provider.chat@1` | none | none | in-process |
@@ -196,6 +215,8 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | browser | `@mete/tools` | optional | `browser.screenshot@1`, `seo.audit@1` | `runtime.ensure@1` | none | process |
 | engine-crewai, engine-metagpt, engine-chatdev | `@mete/engines` | optional | `team.engine@1` | `runtime.ensure@1`, `llm.chat@1` | none | process |
 | ui-board, ui-flow, ui-studio, ui-replay | `@mete/ui-*` | optional | UI views (subscribe to events) | none | none | renderer |
+
+Until the knowledge layer, the gateway provides only `llm.chat@1`: no provider adapter lists its embedding or rerank models (`listModels` returns chat models), so `llm.embed@1`, `llm.rerank@1` and their gateway endpoints come with the knowledge layer, and their chains are empty until then \[D\].
 
 The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools-shell, core-engine, plus at least one active `provider.chat@1` adapter. The UI MUST NOT allow uninstalling essential modules; it MAY show them as "built in".
 

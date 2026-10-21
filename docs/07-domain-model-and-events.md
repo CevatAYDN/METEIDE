@@ -85,6 +85,8 @@ Events are append-only rows in the workspace `mete.db`. Default retention: 90 da
 
 Storage persists every catalog event by subscribing once per domain (`run.*`, `task.*`, ...) and inserting it synchronously into the `events` table: `seq` integer primary key (replay order), the envelope columns, `payload` as JSON, with indexes on `(run_id, seq)` and `(type, seq)`. It deletes events older than the retention when it activates. Both databases use WAL and a busy timeout of 5 seconds \[D\].
 
+The gateway writes one row per provider call, retries included, into the workspace `model_calls` table: `id`, `ts`, `run_id`, `provider_id`, `model_id`, `tier` (null for a model target), `request` (the masked messages and tools as sent, JSON), `response` (text and tool calls, JSON), `prompt_tokens`, `completion_tokens`, `latency_ms` and `outcome` (the finish reason or the error code), with an index on `(run_id, ts)`. Rows follow the event retention, deleted when the gateway activates \[D\].
+
 ## Event catalog
 
 | Type | Payload | Published by |

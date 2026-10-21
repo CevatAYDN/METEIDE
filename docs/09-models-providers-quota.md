@@ -75,6 +75,8 @@ Embedding and reranking are provider capabilities (`provider.embed@1`, `provider
 
 `tiers.yaml` maps model id patterns to tiers per provider. It is data, editable by the user and the community; templates never reference it.
 
+A requirement or a role's need is met only by a known value: `toolCalling: true` for `tool_calling`, `vision: true` for `vision` and image input, a context of 128k or more for `long_context`; `"unknown"` meets none of them. `avoidFamilies` drops candidates of those families when others remain. Until the learning router exists (core-engine), the order is context window only, larger first; learned scores and `tiers.yaml` come with the router \[D\].
+
 ## Learning router
 
 After every task attempt the router stores, per model, role and task kind: attempts, verify pass rate, average revisions, average requests and latency, in the global `mete.db` \[C\].
@@ -87,16 +89,19 @@ With probability 0.05 the router tries an untested candidate instead of the best
 
 ## Gateway
 
-- Endpoints: `/v1/chat/completions`, `/v1/embeddings`, `/v1/rerank`, `/v1/models` \[D\]. `/v1/models` lists tier aliases (`mete/reasoning`, `mete/coder`, `mete/fast`, `mete/long-context`, `mete/vision`) and discovered models.
+- Endpoints: `/v1/chat/completions`, `/v1/embeddings`, `/v1/rerank`, `/v1/models` \[D\]. `/v1/models` lists tier aliases (`mete/reasoning`, `mete/coder`, `mete/fast`, `mete/long-context`, `mete/vision`) and discovered models. `/v1/embeddings` and `/v1/rerank` come with the knowledge layer (tab 06, Module catalog).
 - Request pipeline: session token → `llm` permission check → privacy filter → secret masking → quota reservation → provider call → quota observation → log.
 - Errors: on 429 or 5xx, wait for the reset header if it is under 90 seconds, otherwise back off 2, 8 and 30 seconds; after 3 failures on one model, move to the next model in the chain \[D\]. Tight retry loops are forbidden \[C\].
 - Logs: full prompts and responses go only into the workspace `mete.db` for replay. Global logs keep metadata only \[D\].
+- `llm.chat@1` (tab 06): a `{ tier }` target resolves the chain above; a model target is a chain of that one model, which must be discovered, free, not deprecated and pass the privacy filter. Before the first chunk from a model the gateway streams a `model` chunk: reason `first` for the chain's first model, `quota` when the quota grant was for a later one, `failed` after moving down the chain. An empty chain ends with error `no_model`; a failed reservation ends with `quota_exhausted` and its `resumesAt`; otherwise the last error is the model's `ProviderError` \[D\].
+- The HTTP endpoints are served by `serveGateway({ chat, token })` from `@mete/gateway`, which listens on 127.0.0.1 on a free port and returns `{ port, close }`. The composition root generates the session token (32 random bytes, base64url) at start, calls it, and passes `METE_GATEWAY_URL` and `METE_GATEWAY_TOKEN` to child processes; the module itself only provides the `llm.*` capabilities \[D\].
 
 ## Privacy
 
 - Models whose provider trains on or publishes prompts are excluded unless the user enables them in Settings, after a warning that explains the effect \[C\].
 - OpenRouter requests carry the provider-routing preference `data_collection: "deny"` unless the user opted in \[D\].
 - A workspace marked `sensitive` uses only models with `trains: false` and `publishes: false`, and shows a banner that its content goes to cloud providers \[D\].
+- A `trains` or `publishes` value of `"unknown"` counts as true. The Settings switch is `allowTraining` in the `privacy:` section (default `false`); when true it admits models that train on, publish or have unknown facts about prompts, except in a `sensitive` workspace. The gateway reads `sensitivity` (`normal` by default) from `.mete/workspace.yaml` \[D\].
 - Secret masking runs secretlint rules on every outbound request and replaces matches with `[SECRET:<first 8 hex of sha256>]` \[C\].
 - Files matched by `.meteignore` are never read into a prompt. Default `.meteignore`: `.env*`, `*.pem`, `*.key`, `id_rsa*`, `secrets/` \[D\].
 
