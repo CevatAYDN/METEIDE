@@ -171,6 +171,8 @@ Each model call receives only: role goal and backstory, the task, its acceptance
 | `web-dev` | hierarchical | UI designer, frontend developer, QA, lead | `code-change@1`, `test-report@1` | A simple page built from scratch passes build and a Lighthouse score of 85 |
 | `game-studio` | hierarchical | designer, PM, developer, artist, tester, lead | `gdd@1`, `task-list@1`, code, `asset@1`, `test-report@1` | An idea becomes a GDD and a small running prototype |
 
+`templates/research.yaml` runs two researcher tasks (tier `reasoning` with tool calling, `web.search@1` and `web.fetch@1`), then a synthesizer task (tier `reasoning`) that writes the `research-report@1` JSON under a guardrail with 2 repairs, approved by the lead (tier `reasoning`); the roles' goals spell out the report's JSON shape because a template has no task description [D].
+
 Artifact types defined in `@mete/contracts`: `gdd@1`, `task-list@1`, `research-report@1`, `seo-audit@1`, `code-change@1`, `test-report@1`, `asset-spec@1`, `asset@1`, `lesson@1`.
 
 `research-report@1` is `{ title, summary, findings: [{ claim, sourceIds }], sources: [{ id, url, title }] }`: every finding cites at least one source, every cited id is in `sources`, source ids are unique and URLs are `http` or `https`; unknown keys are rejected. `artifactSchema(type)` in `@mete/contracts` returns a type's schema; the other types get theirs with their templates \[D\].

@@ -58,6 +58,8 @@ export type AppOptions = {
 	readonly providers?: readonly MeteModule[];
 	/** Only the process that drives runs recovers them (docs/07); default true. */
 	readonly recover?: boolean;
+	/** The fetch tools-web uses; tests pass a fake, so nothing reaches the network. */
+	readonly fetch?: typeof fetch;
 };
 
 /** A started app. */
@@ -97,7 +99,7 @@ const modulesFor = (opts: AppOptions, workspaceId: string): MeteModule[] => {
 		createToolsFsModule(dirs),
 		createToolsShellModule(dirs),
 		createVcsGitModule(dirs),
-		createToolsWebModule(),
+		createToolsWebModule(opts.fetch ? { fetch: opts.fetch } : {}),
 		createCoreEngineModule({
 			workspaceId,
 			recover: opts.recover !== false,

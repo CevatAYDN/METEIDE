@@ -1,0 +1,46 @@
+# The research team of docs/08 (Built-in templates): two researchers in parallel, a synthesizer
+# that merges their notes into a cited research-report@1, and a lead that approves it.
+apiVersion: mete/v1
+kind: TeamTemplate
+metadata:
+  id: research
+  name: Research
+  version: 1.0.0
+  description: A topic becomes a cited report
+pattern: parallel_then_synthesize
+roles:
+  - id: researcher
+    name: Researcher
+    goal: Find reliable sources on the topic with web search, read them, and note what each one says together with its URL
+    backstory: You check every claim against the page it comes from and never invent a source.
+    tier: reasoning
+    needs: [tool_calling]
+    capabilities: [web.search@1, web.fetch@1]
+  - id: synthesizer
+    name: Synthesizer
+    goal: >-
+      Merge the researchers' notes into one research report and reply with only this JSON object:
+      {"title": "...", "summary": "...", "findings": [{"claim": "...", "sourceIds": ["s1"]}],
+      "sources": [{"id": "s1", "url": "https://...", "title": "..."}]}.
+      Every finding cites at least one listed source, and every source comes from the notes.
+    tier: reasoning
+    capabilities: []
+  - id: lead
+    name: Lead
+    goal: Approve a report whose every claim is backed by its sources and answers the topic, or return it with what to fix
+    tier: reasoning
+    capabilities: []
+tasks:
+  - id: background
+    role: researcher
+    title: Research the background and the main facts of the topic
+  - id: current
+    role: researcher
+    title: Research recent developments and open questions on the topic
+  - id: report
+    role: synthesizer
+    title: Write the cited research report
+    context: [background, current]
+    expected_output: artifact:research-report@1
+    guardrail: { schema: research-report@1, max_retries: 2 }
+    approval: lead
