@@ -64,6 +64,7 @@ export type Migration = { id: string; sql: string };   // applied once, in array
 export type MigrationError = { code: "migration_failed"; moduleId: string; migrationId: string; message: string };
 export interface ScopedStorage {
   workspace: Database;           // better-sqlite3 handle on .mete/mete.db; wrap it with drizzle() to query
+                                 // (Drizzle's driver imports better-sqlite3, so that module lists it too, same version)
   global: Database;              // better-sqlite3 handle on mete.db in the global data folder
   migrate(scope: "workspace" | "global", migrations: Migration[]): Result<void, MigrationError>;
 }
