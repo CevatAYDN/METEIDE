@@ -16,6 +16,14 @@
 	},
 	"dependencies": {
 		"@mete/contracts": "workspace:*",
-		"@mete/kernel": "workspace:*"
+		"@mete/kernel": "workspace:*",
+		"@secretlint/core": "13.0.7",
+		"@secretlint/secretlint-rule-preset-recommend": "13.0.7",
+		"better-sqlite3": "13.0.3",
+		"drizzle-orm": "0.45.3"
+	},
+	"devDependencies": {
+		"@mete/storage": "workspace:*",
+		"@mete/testing": "workspace:*"
 	}
 }
