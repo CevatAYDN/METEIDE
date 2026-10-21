@@ -154,6 +154,25 @@ export type ShellExecInput = { command: string; cwd?: string; timeoutSec?: numbe
 export type ShellExecOutput = { exitCode: number | null; stdout: string; stderr: string;   // null when killed
   os: string; shell: string; timedOut: boolean };         // the model learns the OS and shell from every call
 
+// vcs.git@1, defined in @mete/contracts; rules in tab 10 (Built-in tools). Worktree and merge operations come with the
+// team engine (Phase 2). Checkpoint refs are refs/mete/checkpoints/<runId>/<n>, n counting from 1 per run.
+export type VcsGitInput =
+  | { op: "status" }
+  | { op: "diff"; staged?: boolean; ref?: string; path?: string }
+  | { op: "commit"; message: string; paths?: string[] }     // without paths every change is staged (git add -A)
+  | { op: "checkpoint.create"; runId: string }
+  | { op: "checkpoint.restore"; ref: string }
+  | { op: "checkpoint.prune"; runId: string };                // core calls it 14 days after the run ends
+export type VcsGitOutput =
+  | { op: "status"; branch: string | null; files: { path: string; index: string; worktree: string }[] }
+  | { op: "diff"; diff: string }                              // cut like a shell stream
+  | { op: "commit"; sha: string }
+  | { op: "checkpoint.create"; ref: string; sha: string }
+  | { op: "checkpoint.restore"; ref: string }
+  | { op: "checkpoint.prune"; removed: number };
+export type VcsError = ToolError | { code: "nothing_to_commit"; message: string };
+export interface VcsGitAdapter { run(input: VcsGitInput, ctx: ToolContext): Promise<Result<VcsGitOutput, VcsError>> }
+
 // quota.reserve@1, defined in @mete/contracts; QuotaUnit and QuotaUnitSpec are in tab 09, pool rules in tab 09 (Quota pool).
 export type QuotaAmounts = Partial<Record<QuotaUnit, number>>;
 export type QuotaObservation = { unit: QuotaUnit; limit?: number; remaining?: number; resetsAt?: string; exhausted: boolean };
@@ -227,7 +246,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | tools-fs | `@mete/tools` | essential | `fs.read@1`, `fs.write@1`, `fs.edit@1`, `fs.list@1`, `fs.glob@1`, `fs.grep@1` | `policy.check@1` | none | in-process |
 | tools-shell | `@mete/tools` | essential | `shell.exec@1` | `policy.check@1` | none | in-process |
 | tools-web | `@mete/tools` | optional | `web.fetch@1`, `web.search@1` (HTTP adapters) | `policy.check@1` | `mcp.tools@1` | in-process |
-| vcs-git | `@mete/tools` | optional | `vcs.git@1` | `shell.exec@1` | none | in-process |
+| vcs-git | `@mete/tools` | optional | `vcs.git@1` | `policy.check@1` | none | in-process |
 | mcp-client | `@mete/mcp` | optional | `mcp.tools@1`, `runtime.ensure@1`, mapping adapters for any capability | `policy.check@1` | `registry.search@1` | in-process; servers in child processes |
 | mcp-server | `@mete/mcp` | optional | METE as an MCP server | `team.engine@1` | `knowledge.search@1` | in-process |
 | registry | `@mete/mcp` | optional | `registry.search@1` | `web.fetch@1` | none | in-process |
