@@ -34,14 +34,16 @@ export type RunContext = {
 	readonly since?: number | undefined;
 	/** Index of the last step (assistant message) that has its checkpoint. */
 	readonly checkpointed: number;
-	readonly agent?: AgentRef;
+	readonly agent?: AgentRef | undefined;
 	readonly pause?:
-		| { readonly reason: PauseReason; readonly resumesAt?: string }
+		| { readonly reason: PauseReason; readonly resumesAt?: string | undefined }
 		| undefined;
-	readonly summary?: string;
-	readonly error?: { readonly code: string; readonly message: string };
-	readonly startedAt?: number;
-	readonly endedAt?: number;
+	readonly summary?: string | undefined;
+	readonly error?:
+		| { readonly code: string; readonly message: string }
+		| undefined;
+	readonly startedAt?: number | undefined;
+	readonly endedAt?: number | undefined;
 };
 
 /** What happens to a run. */
@@ -80,12 +82,16 @@ const reply = (c: RunContext, e: Extract<RunEvent, { type: "REPLIED" }>) => {
 
 const ended = (c: RunContext, at: number) => ({ ...stop(c, at), endedAt: at });
 
-/** The run machine; its input is the goal and priority of a new run. */
+/** The run machine; its input is a new run's goal, priority and opening messages. */
 export const runMachine = setup({
 	types: {
 		context: {} as RunContext,
 		events: {} as RunEvent,
-		input: {} as { goal: string; priority: 0 | 1 | 2 },
+		input: {} as {
+			goal: string;
+			priority: 0 | 1 | 2;
+			messages: readonly ChatMessage[];
+		},
 	},
 }).createMachine({
 	id: "run",
@@ -93,7 +99,7 @@ export const runMachine = setup({
 	context: ({ input }) => ({
 		goal: input.goal,
 		priority: input.priority,
-		messages: [],
+		messages: input.messages,
 		turns: 0,
 		activeMs: 0,
 		checkpointed: -1,

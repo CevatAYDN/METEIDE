@@ -11,7 +11,11 @@ const apply = (s: RunSnapshot, ...events: RunEvent[]) =>
 	events.reduce((acc, e) => transition(runMachine, acc, e)[0], s);
 
 const fresh = () =>
-	initialTransition(runMachine, { goal: "fix it", priority: 1 })[0];
+	initialTransition(runMachine, {
+		goal: "fix it",
+		priority: 1,
+		messages: [],
+	})[0];
 
 const say = (
 	content: string,
