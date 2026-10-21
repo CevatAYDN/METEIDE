@@ -11,3 +11,6 @@ export const SUPERVISOR_MAX_RESTARTS = 3;
 
 /** Sliding window for counting restarts (06 Kernel and modules). */
 export const SUPERVISOR_WINDOW_MS = 5 * 60_000;
+
+/** Waits before each retry of a file operation that hit a Windows lock (10 Tools, MCP and runtimes). */
+export const LOCK_RETRY_DELAYS_MS = [100, 300, 1_000] as const;

@@ -42,3 +42,12 @@ export type {
 	ModuleError,
 	ModuleState,
 } from "./domain/module.js";
+export {
+	type ConfigDirs,
+	type LoadedConfig,
+	loadConfig,
+} from "./infrastructure/config-loader.js";
+export {
+	globalDataDir,
+	withLockRetry,
+} from "./infrastructure/platform.js";
