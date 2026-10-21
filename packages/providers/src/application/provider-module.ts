@@ -4,8 +4,14 @@ import {
 	type ModuleManifest,
 	ok,
 	type ProviderAdapter,
+	type Result,
 } from "@mete/contracts";
-import type { Disposable, MeteModule, ModuleError } from "@mete/kernel";
+import type {
+	Disposable,
+	MeteModule,
+	ModuleContext,
+	ModuleError,
+} from "@mete/kernel";
 import {
 	type ModelData,
 	ModelDataSchema,
@@ -59,6 +65,32 @@ const manifestOf = (def: ProviderDefinition): ModuleManifest => ({
 export const apiKeyName = (providerId: string) =>
 	`providers/${providerId}/apiKey`;
 
+// The provider's key from the keychain; without one the module stays inactive.
+const keyOf = async (
+	ctx: ModuleContext,
+	providerId: string,
+): Promise<Result<string, string>> => {
+	if (!ctx.secrets) return err("the secrets permission was not granted");
+	const key = await ctx.secrets.get(apiKeyName(providerId));
+	if (!key.ok) return err(key.error.message);
+	return key.value ? ok(key.value) : err("no API key");
+};
+
+// The shipped rows with the user's models.yaml over them, for this provider.
+const modelsOf = async (
+	ctx: ModuleContext,
+	providerId: string,
+	opts: ProviderModuleOptions,
+): Promise<Result<ProviderEnv["models"], string>> => {
+	const user = ctx.config.get("models", ModelDataSchema);
+	if (!user.ok) {
+		const { file, path, reason } = user.error;
+		return err(`${file} ${path}: ${reason}`);
+	}
+	const shipped = opts.shippedModels ?? (await loadShippedModels());
+	return ok(mergeModelData(shipped, user.value)[providerId] ?? {});
+};
+
 /** Creates the module for one provider definition. */
 export const createProviderModule = (
 	def: ProviderDefinition,
@@ -74,21 +106,13 @@ export const createProviderModule = (
 	return {
 		manifest,
 		async activate(ctx) {
-			if (!ctx.secrets)
-				return err(failed("the secrets permission was not granted"));
-			const key = await ctx.secrets.get(apiKeyName(def.providerId));
-			if (!key.ok) return err(failed(key.error.message));
-			if (!key.value) return err(failed("no API key"));
-			const user = ctx.config.get("models", ModelDataSchema);
-			if (!user.ok) {
-				const { file, path, reason } = user.error;
-				return err(failed(`${file} ${path}: ${reason}`));
-			}
-			const shipped = opts.shippedModels ?? (await loadShippedModels());
-			const models = mergeModelData(shipped, user.value)[def.providerId] ?? {};
+			const key = await keyOf(ctx, def.providerId);
+			if (!key.ok) return err(failed(key.error));
+			const models = await modelsOf(ctx, def.providerId, opts);
+			if (!models.ok) return err(failed(models.error));
 			const adapter = def.build({
 				apiKey: key.value,
-				models,
+				models: models.value,
 				now: opts.now ?? Date.now,
 				...(opts.fetch ? { fetch: opts.fetch } : {}),
 			});

@@ -19,6 +19,7 @@ import {
 import { customQuota } from "../defaults.js";
 import {
 	chatModels,
+	type ModelData,
 	ModelDataSchema,
 	type ModelRow,
 	privacyFromRows,
@@ -159,6 +160,31 @@ const provideAll = (ctx: ModuleContext, id: string, adapter: ProviderAdapter) =>
 			}),
 		);
 
+// One endpoint's adapter; an endpoint without its key is skipped with a warning.
+const provideEndpoint = async (
+	ctx: ModuleContext,
+	ep: CustomEndpoint,
+	rows: ModelData,
+	opts: ProviderModuleOptions,
+): Promise<Disposable[]> => {
+	const id = `custom:${ep.slug}`;
+	const got = await keyFor(ctx, ep);
+	if ("skip" in got) {
+		ctx.logger.warn(
+			{ endpoint: id, reason: got.skip },
+			"custom endpoint skipped",
+		);
+		return [];
+	}
+	const adapter = buildCustom(ep, {
+		apiKey: got.key,
+		models: rows[id] ?? {},
+		fetch: opts.fetch,
+		now: opts.now ?? Date.now,
+	});
+	return provideAll(ctx, id, adapter);
+};
+
 /** Creates the provider-custom module. */
 export const createCustomModule = (
 	opts: ProviderModuleOptions = {},
@@ -169,24 +195,8 @@ export const createCustomModule = (
 		if (!config.ok) return err(failed(where(config.error)));
 		const rows = ctx.config.get("models", ModelDataSchema);
 		if (!rows.ok) return err(failed(where(rows.error)));
-		for (const ep of config.value.custom) {
-			const id = `custom:${ep.slug}`;
-			const got = await keyFor(ctx, ep);
-			if ("skip" in got) {
-				ctx.logger.warn(
-					{ endpoint: id, reason: got.skip },
-					"custom endpoint skipped",
-				);
-				continue;
-			}
-			const adapter = buildCustom(ep, {
-				apiKey: got.key,
-				models: rows.value[id] ?? {},
-				fetch: opts.fetch,
-				now: opts.now ?? Date.now,
-			});
-			created.push(...provideAll(ctx, id, adapter));
-		}
+		for (const ep of config.value.custom)
+			created.push(...(await provideEndpoint(ctx, ep, rows.value, opts)));
 		for (const d of created) ctx.disposables.add(d);
 		return ok(undefined);
 	};
