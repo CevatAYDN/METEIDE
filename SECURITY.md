@@ -35,21 +35,22 @@ The file above is also the built-in default: a key the workspace and global file
 
 Action ids used by the policy: `fs.write`, `fs.delete` (a `fs.write@1` call with `delete: true`), `fs.write.outside`, `shell.exec`, `git.commit`, `git.push`, `git.merge`, `net.fetch`, `plugin.install`, `mcp.install`, `mcp.sampling`, `runtime.install`, `release.publish`, `vault.write.personal` \[D\]. Patterns use glob syntax \[D\]:
 
-- Path patterns (`never_allow` paths, protected paths): `*` and `?` stay within one folder, `**` crosses folders, `dir/**` also matches `dir` itself, and names that start with a dot match like any other name. `~` is the home folder. Paths are compared as absolute paths with `/` separators, without case on Windows.
+- Path patterns (`never_allow` paths, protected paths): `*` and `?` stay within one folder, `**` crosses folders, `dir/**` also matches `dir` itself, and names that start with a dot match like any other name. `~` is the home folder, and a relative pattern is relative to the workspace root. Paths are compared as absolute paths with `/` separators, without case on Windows.
 - Command patterns (`shell.allow`, `never_allow` commands): `*` matches any text, including `/`, and the whole command must match after trimming and collapsing spaces.
 - A `never_allow` path rule for `fs.write` also covers `fs.delete` and `fs.write.outside`, and protected paths cover all three.
 - `policy.check@1` receives the real absolute path the adapter will touch; resolving symbolic links is the caller's job.
 
-`policy.check@1` decides in this order, and the decision names the step that fired \[D\]:
+`policy.check@1` decides in this order, and the verdict names the step that fired \[D\]:
 
-1. A `never_allow` rule matches: deny.
-2. A write to a protected path: deny.
-3. The effective level is the lower of `autonomy` and the capability's entry in `overrides`.
-4. Level 0: deny, because suggest mode writes nothing.
-5. Level 3: allow, except `fs.write` or `fs.delete` outside the workspace and the global `worktrees/` and `snapshots/` folders, which is denied because level 3 never asks.
-6. The action is in `always_ask`: ask.
-7. Level 1: ask.
-8. Level 2: allow `fs.write` inside the workspace or the global `worktrees/` and `snapshots/` folders, `shell.exec` matching `shell.allow`, `git.commit`, `net.fetch` (its result is tainted external content) and `runtime.install` (runtimes download by themselves, tab 18); ask for everything else, including `fs.write.outside`.
+1. A write action without `path`, or a `shell.exec` without `command`: deny, because no rule can be checked.
+2. A `never_allow` rule matches: deny.
+3. A write to a protected path: deny.
+4. The effective level is the lower of `autonomy` and the capability's entry in `overrides`.
+5. Level 0: deny, because suggest mode writes nothing.
+6. Level 3: allow, except `fs.write` or `fs.delete` outside the workspace and the global `worktrees/` and `snapshots/` folders, which is denied because level 3 never asks.
+7. The action is in `always_ask`: ask.
+8. Level 1: ask.
+9. Level 2: allow `fs.write` inside the workspace or the global `worktrees/` and `snapshots/` folders, `shell.exec` matching `shell.allow`, `git.commit`, `net.fetch` (its result is tainted external content) and `runtime.install` (runtimes download by themselves, tab 18); ask for everything else, including `fs.write.outside`.
 
 `policy.check@1` also takes a `tainted` flag and records it in the audit log; the flag changes no decision until the core remembers approvals (Phase 2).
 
