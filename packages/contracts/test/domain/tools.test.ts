@@ -5,6 +5,7 @@ import {
 	FsWriteInputSchema,
 	ShellConfigSchema,
 	ShellExecInputSchema,
+	VcsGitInputSchema,
 } from "../../src/domain/tools.js";
 
 describe("tool input schemas", () => {
@@ -69,5 +70,34 @@ describe("ShellConfigSchema", () => {
 		expect(ShellConfigSchema.safeParse({ windows: "git-bash" }).success).toBe(
 			false,
 		);
+	});
+});
+
+describe("VcsGitInputSchema", () => {
+	const RUN = "7f3c2a1e-4b5d-4c6e-8f9a-0b1c2d3e4f5a";
+
+	it("accepts the Phase 1 operations", () => {
+		for (const good of [
+			{ op: "status" },
+			{ op: "diff", staged: true, path: "src" },
+			{ op: "commit", message: "fix: x", paths: ["a.ts"] },
+			{ op: "checkpoint.create", runId: RUN },
+			{ op: "checkpoint.restore", ref: `refs/mete/checkpoints/${RUN}/2` },
+			{ op: "checkpoint.prune", runId: RUN },
+		])
+			expect(VcsGitInputSchema.parse(good)).toEqual(good);
+	});
+
+	it("rejects merge, push, empty messages and other refs", () => {
+		for (const bad of [
+			{ op: "merge", branch: "x" },
+			{ op: "push" },
+			{ op: "commit", message: "  " },
+			{ op: "commit", message: "m", paths: [] },
+			{ op: "checkpoint.restore", ref: "refs/heads/main" },
+			{ op: "checkpoint.restore", ref: `refs/mete/checkpoints/${RUN}/0` },
+			{ op: "checkpoint.create", runId: "x" },
+		])
+			expect(VcsGitInputSchema.safeParse(bad).success).toBe(false);
 	});
 });

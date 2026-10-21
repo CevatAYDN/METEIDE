@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { IdSchema } from "./ids.js";
 import type { Result } from "./result.js";
 
 // fs.*@1 and shell.exec@1 from docs/06 (Kernel API) and docs/10 (Built-in tools).
@@ -133,3 +134,64 @@ export const ShellConfigSchema = z
 	})
 	.prefault({});
 export type ShellConfig = z.infer<typeof ShellConfigSchema>;
+
+const CHECKPOINT_REF = /^refs\/mete\/checkpoints\/[^/]+\/[1-9]\d*$/;
+
+/** Input of vcs.git@1 in Phase 1; worktree and merge come with the team engine. */
+export const VcsGitInputSchema = z.discriminatedUnion("op", [
+	z.strictObject({ op: z.literal("status") }),
+	z.strictObject({
+		op: z.literal("diff"),
+		staged: z.boolean().optional(),
+		ref: z.string().min(1).optional(),
+		path: path.optional(),
+	}),
+	z.strictObject({
+		op: z.literal("commit"),
+		message: z.string().trim().min(1),
+		paths: z.array(path).min(1).optional(),
+	}),
+	z.strictObject({ op: z.literal("checkpoint.create"), runId: IdSchema }),
+	z.strictObject({
+		op: z.literal("checkpoint.restore"),
+		ref: z
+			.string()
+			.regex(CHECKPOINT_REF, "a refs/mete/checkpoints/<run id>/<n> ref"),
+	}),
+	z.strictObject({ op: z.literal("checkpoint.prune"), runId: IdSchema }),
+]);
+export type VcsGitInput = z.infer<typeof VcsGitInputSchema>;
+
+/** Output of vcs.git@1, by operation. */
+export type VcsGitOutput =
+	| {
+			readonly op: "status";
+			readonly branch: string | null;
+			readonly files: readonly {
+				readonly path: string;
+				readonly index: string;
+				readonly worktree: string;
+			}[];
+	  }
+	| { readonly op: "diff"; readonly diff: string }
+	| { readonly op: "commit"; readonly sha: string }
+	| {
+			readonly op: "checkpoint.create";
+			readonly ref: string;
+			readonly sha: string;
+	  }
+	| { readonly op: "checkpoint.restore"; readonly ref: string }
+	| { readonly op: "checkpoint.prune"; readonly removed: number };
+
+/** Why a vcs.git@1 call failed. */
+export type VcsError =
+	| ToolError
+	| { readonly code: "nothing_to_commit"; readonly message: string };
+
+/** The vcs-git module's adapter behind vcs.git@1. */
+export interface VcsGitAdapter {
+	run(
+		input: VcsGitInput,
+		ctx: ToolContext,
+	): Promise<Result<VcsGitOutput, VcsError>>;
+}

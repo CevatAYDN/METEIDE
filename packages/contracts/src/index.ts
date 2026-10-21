@@ -132,4 +132,9 @@ export {
 	type ToolAdapter,
 	type ToolContext,
 	type ToolError,
+	type VcsError,
+	type VcsGitAdapter,
+	type VcsGitInput,
+	VcsGitInputSchema,
+	type VcsGitOutput,
 } from "./domain/tools.js";
