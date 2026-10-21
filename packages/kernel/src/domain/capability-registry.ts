@@ -12,12 +12,16 @@ import type { Disposable } from "./event-bus.js";
 /** Feature names an adapter supports or a caller needs; order and duplicates do not matter. */
 export type FeatureSet = ReadonlyArray<string>;
 
+/** Whether an adapter's calls are failing; read at resolve time. */
+export type Circuit = { readonly isOpen: () => boolean };
+
 /** One implementation of a capability, provided by an active module. */
 export type Adapter<C> = {
 	readonly id: string;
 	readonly trust: ModuleManifest["trust"];
 	readonly features: FeatureSet;
 	readonly impl: C;
+	readonly circuit?: Circuit;
 };
 
 /** Adapters in fallback order; the caller moves to the next on `AdapterUnavailable`. */
@@ -78,8 +82,8 @@ export const createCapabilityRegistry = (
 		},
 		resolve<C>(ref: CapabilityRef, need: FeatureSet = []) {
 			const binding = bindings(ref);
-			// shortcut: circuit-open adapters are not removed yet (step 3); the circuit breaker task adds it.
 			const [first, ...rest] = list(ref)
+				.filter((a) => !a.circuit?.isOpen())
 				.filter((a) => need.every((f) => a.features.includes(f)))
 				.toSorted((a, b) => rank(binding, a) - rank(binding, b));
 			if (!first) return err({ code: "capability_missing", ref });

@@ -63,6 +63,19 @@ describe("createCapabilityRegistry", () => {
 		});
 	});
 
+	it("removes adapters whose circuit is open", () => {
+		const reg = createCapabilityRegistry(() => []);
+		let open = true;
+		reg.provide(REF, {
+			...adapter("exa-mcp"),
+			circuit: { isOpen: () => open },
+		});
+		reg.provide(REF, adapter("tavily"));
+		expect(ids(reg.resolve(REF))).toEqual(["tavily"]);
+		open = false;
+		expect(ids(reg.resolve(REF))).toEqual(["exa-mcp", "tavily"]);
+	});
+
 	it("drops an adapter on dispose; a second dispose is harmless", () => {
 		const reg = createCapabilityRegistry(() => []);
 		const sub = reg.provide(REF, adapter("exa-mcp"));
