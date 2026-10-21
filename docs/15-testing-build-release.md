@@ -38,6 +38,8 @@ Phase 1 baseline, recorded from a live `mete run` of an edit task on the referen
 | Median model call latency | 1,065 ms for an answered call; 39 ms for a refused one | 2026-10-22 | ab9f1c1 |
 | Run wall time | 9.4 s; 65.0 s when the refused calls used up OpenRouter's 20 requests a minute and the gateway waited 50 s | 2026-10-22 | fc12407, ab9f1c1 |
 
+The Phase 1 exit gate counts as passed on 2026-10-22 \[D\]. Live runs finished the edit task with free providers only (fc12407, ab9f1c1) and recorded the baseline above. Quota exhaustion paused live runs: OpenRouter's daily limit ran out on 2026-10-21, and twice `quota.exhausted` was followed by `run.paused` with reason `quota` and `resumesAt` at the reset. Both runs were cancelled before the reset, so the automatic resume is covered only by tests (`packages/core/test/application/engine.test.ts`, "pauses on exhausted quota and resumes by itself at the reset"). The first live run that goes through a reset closes this gap.
+
 ## Local CI
 
 | Hook or script | Runs |
