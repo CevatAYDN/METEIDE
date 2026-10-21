@@ -90,11 +90,15 @@ export const createCheckpoint = async (
 };
 
 /** Files present now (tracked or untracked, not ignored) that the checkpoint lacks. */
+// -t lists the checkpoint's folders too: a file now where it had a folder is not removed
+// after checkout-index has put the folder back.
+// shortcut: a folder now where the checkpoint had a file goes with everything in it,
+// ignored files included, since the file cannot come back otherwise; ask first if it bites.
 const added = async (
 	git: Git,
 	ref: string,
 ): Promise<Result<string[], VcsError>> => {
-	const then = await git(["ls-tree", "-r", "-z", "--name-only", ref]);
+	const then = await git(["ls-tree", "-r", "-t", "-z", "--name-only", ref]);
 	if (!then.ok) return then;
 	const now = await git(["ls-files", "-z", "-co", "--exclude-standard"]);
 	if (!now.ok) return now;

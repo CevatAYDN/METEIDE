@@ -110,7 +110,7 @@ export const vcsTool = async (
 	}
 };
 
-/** A private index file in os.tmpdir(), removed afterwards. */
+/** A private index file in os.tmpdir(), removed afterwards; a failed removal keeps the result. */
 const withIndex = async <T>(
 	run: (index: string) => Promise<Result<T, VcsError>>,
 ) => {
@@ -118,6 +118,7 @@ const withIndex = async <T>(
 	try {
 		return await run(join(dir, "index"));
 	} finally {
-		await rm(dir, { recursive: true, force: true });
+		// shortcut: a temp dir held by a scanner (Windows EBUSY) is left for the OS to clean.
+		await rm(dir, { recursive: true, force: true }).catch(() => undefined);
 	}
 };

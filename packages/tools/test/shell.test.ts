@@ -100,6 +100,15 @@ describe("shellTool", () => {
 		},
 	);
 
+	it.runIf(WINDOWS)(
+		"keeps the exit tail out of a command that ends in a backtick",
+		async () => {
+			const { deps } = await setup();
+			const out = value(await run(deps, "Write-Output x `"));
+			expect(out.stdout.trim()).toBe("x");
+		},
+	);
+
 	it("kills the command and fails with io when the run is cancelled", async () => {
 		const { deps } = await setup();
 		const c = new AbortController();

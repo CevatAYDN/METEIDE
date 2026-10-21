@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import {
@@ -102,6 +102,23 @@ describe("vcs-git beyond the kit", () => {
 		const read = (p: string) => readFile(join(w.workspaceDir, p), "utf8");
 		expect(await read(".mete/policy.yaml")).toBe("autonomy: 1\n");
 		expect(await read(".meteignore")).toBe("!.env\n");
+	});
+
+	it("restores a folder that became a file, and a file that became a folder", async () => {
+		const { w, run } = await setup();
+		await w.put("d/b.txt", "b\n");
+		await w.put("f", "f\n");
+		const ref = refOf(await run({ op: "checkpoint.create", runId: RUN }));
+		await rm(join(w.workspaceDir, "d"), { recursive: true });
+		await w.put("d", "now a file\n");
+		await rm(join(w.workspaceDir, "f"));
+		await w.put("f/x.txt", "x\n");
+		expect(await run({ op: "checkpoint.restore", ref })).toEqual(
+			ok({ op: "checkpoint.restore", ref }),
+		);
+		const read = (p: string) => readFile(join(w.workspaceDir, p), "utf8");
+		expect(await read("d/b.txt")).toBe("b\n");
+		expect(await read("f")).toBe("f\n");
 	});
 
 	it("commits only the given paths and refuses an option as a diff ref", async () => {

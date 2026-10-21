@@ -23,10 +23,11 @@ export type ShellDeps = FsDeps & { readonly shell: ShellConfig };
 
 // UTF-8 first, or Windows PowerShell garbles non-ASCII cmdlet output; the tail reports the
 // last statement's result, since -Command alone gives 1 for any failed native command.
+// The tail starts with a blank line: a command ending in a backtick continues onto it.
 const PS_HEAD =
 	"[Console]::OutputEncoding=[Text.Encoding]::UTF8;$OutputEncoding=[Text.Encoding]::UTF8\n";
 const PS_TAIL =
-	"\nif ($?) { exit 0 } elseif ($LASTEXITCODE) { exit $LASTEXITCODE } else { exit 1 }";
+	"\n\nif ($?) { exit 0 } elseif ($LASTEXITCODE) { exit $LASTEXITCODE } else { exit 1 }";
 
 /** The program, arguments and shell name that run `command` on `platform`. */
 export const shellCommand = (
