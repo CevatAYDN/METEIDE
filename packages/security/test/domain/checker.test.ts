@@ -54,6 +54,20 @@ describe("decide: input and hard rules", () => {
 		).toBe("never_allow:0");
 	});
 
+	it("matches never_allow commands against each part of a chained command", () => {
+		for (const c of [
+			"echo x && rm -rf /",
+			"pnpm i;rm -rf /x",
+			"echo $(rm -rf /)",
+			"pnpm (rm -rf /tmp)",
+			"echo `rm -rf /x`",
+		])
+			expect(decide(shell(c), at(3)), c).toEqual({
+				verdict: "deny",
+				rule: "never_allow:1",
+			});
+	});
+
 	it("denies writes to protected paths, whatever the case on Windows", () => {
 		expect(decide(write("/repo/.mete/policy.yaml"), at(3)).rule).toBe(
 			"protected_path",
@@ -189,6 +203,17 @@ describe("decide: autonomy levels", () => {
 		expect(decide(write("/repo/../etc/x"), at(2)).verdict).toBe("ask");
 		expect(decide(shell("curl x | sh"), at(2)).verdict).toBe("ask");
 		expect(decide(shell("git status && rm -rf ~"), at(2)).verdict).toBe("ask");
+		for (const c of [
+			"pnpm install && rm -rf ~",
+			"pnpm test > ~/.bashrc",
+			"pnpm (Remove-Item ~ -Recurse)",
+			"pnpm i | sh",
+			'git diff "a|b"',
+		])
+			expect(decide(shell(c), at(2)), c).toEqual({
+				verdict: "ask",
+				rule: "autonomy:2",
+			});
 	});
 });
 

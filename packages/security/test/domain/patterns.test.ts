@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
 	commandMatches,
+	commandParts,
+	hasShellOperator,
 	isInside,
 	normalizePath,
 	type PathEnv,
@@ -35,6 +37,49 @@ describe("commandMatches", () => {
 		expect(commandMatches("echo (a|b)", "echo (a|b)")).toBe(true);
 		expect(commandMatches("echo a.b", "echo axb")).toBe(false);
 		expect(commandMatches("ls ?", "ls x")).toBe(false);
+	});
+});
+
+describe("hasShellOperator", () => {
+	it("flags chaining, pipes, redirects, substitution and grouping, even quoted", () => {
+		for (const c of [
+			"pnpm i && rm -rf ~",
+			"pnpm i || x",
+			"pnpm i; x",
+			"pnpm i & x",
+			"pnpm i | sh",
+			"pnpm i\nx",
+			"pnpm i\rx",
+			"pnpm `x`",
+			"pnpm $(x)",
+			"pnpm (Remove-Item ~)",
+			"pnpm test > ~/.bashrc",
+			"pnpm test < in",
+			'git diff "a|b"',
+		])
+			expect(hasShellOperator(c), c).toBe(true);
+		expect(hasShellOperator("pnpm install --filter @mete/kernel")).toBe(false);
+	});
+});
+
+describe("commandParts", () => {
+	it("splits at operators and opens substitutions and groups", () => {
+		expect(commandParts("echo x && rm -rf /")).toEqual(["echo x", "rm -rf /"]);
+		expect(commandParts("a||b;c&d|e\nf\rg")).toEqual([
+			"a",
+			"b",
+			"c",
+			"d",
+			"e",
+			"f",
+			"g",
+		]);
+		expect(commandParts("echo $(rm -rf /) `rm -rf /x`")).toEqual([
+			"echo $",
+			"rm -rf /",
+			"rm -rf /x",
+		]);
+		expect(commandParts("  git   status ")).toEqual(["git status"]);
 	});
 });
 

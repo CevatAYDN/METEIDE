@@ -20,6 +20,18 @@ export const commandMatches = (pattern: string, command: string): boolean => {
 	return new RegExp(`^${body}$`, "s").test(collapse(command));
 };
 
+// Commands run in a shell (docs/10), so these characters can chain, redirect or run more.
+const SHELL_OPERATOR = /[&|;\r\n`()<>]/;
+const PART_BREAK = /&&|\|\||[;&|\r\n`()]/;
+
+/** True when the command could do more than one thing; quotes are not parsed, so it fails closed. */
+export const hasShellOperator = (command: string): boolean =>
+	SHELL_OPERATOR.test(command);
+
+/** The parts a command chains, substitutes or groups, each trimmed and collapsed. */
+export const commandParts = (command: string): string[] =>
+	command.split(PART_BREAK).map(collapse).filter(Boolean);
+
 /** An absolute path with `/` separators, `~` expanded, `..` resolved, lowercased on Windows. */
 export const normalizePath = (p: string, env: PathEnv): string => {
 	const lib = env.platform === "win32" ? win32 : posix;

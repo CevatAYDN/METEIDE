@@ -6,6 +6,8 @@ import type {
 } from "@mete/contracts";
 import {
 	commandMatches,
+	commandParts,
+	hasShellOperator,
 	isInside,
 	normalizePath,
 	type PathEnv,
@@ -82,7 +84,10 @@ const subjectOf = (
 const neverAllowed = (s: Subject, env: CheckerEnv) =>
 	env.policy.never_allow.findIndex((rule) =>
 		"command" in rule
-			? s.action === "shell.exec" && commandMatches(rule.command, s.command)
+			? s.action === "shell.exec" &&
+				[s.command, ...commandParts(s.command)].some((c) =>
+					commandMatches(rule.command, c),
+				)
 			: WRITES.has(s.action) &&
 				(rule.action === "fs.write" || rule.action === s.action) &&
 				pathMatches(rule.path, s.path, env),
@@ -105,6 +110,7 @@ const levelTwo = (s: Subject, env: CheckerEnv) => {
 	if (s.action === "fs.write") return verdict("allow", "autonomy:2:inside");
 	if (
 		s.action === "shell.exec" &&
+		!hasShellOperator(s.command) &&
 		env.policy.shell.allow.some((p) => commandMatches(p, s.command))
 	)
 		return verdict("allow", "shell.allow");
