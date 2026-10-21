@@ -147,6 +147,18 @@ describe("shellTool", () => {
 		expect(asked).toBe(0);
 	});
 
+	it("answers bad_input for a NUL byte, which the process API refuses", async () => {
+		const { deps } = await setup();
+		const signal = new AbortController().signal;
+		for (const input of [
+			{ command: "node -v\u0000" },
+			{ command: "node -v", env: { CI: "1\u0000" } },
+		]) {
+			const r = await shellTool(deps, input, { signal });
+			expect(r.ok ? undefined : r.error.code).toBe("bad_input");
+		}
+	});
+
 	it("refuses a file or a missing folder as cwd", async () => {
 		const { deps, w } = await setup();
 		await w.put("a.txt", "a");

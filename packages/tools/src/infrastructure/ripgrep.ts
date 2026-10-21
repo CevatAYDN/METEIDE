@@ -1,8 +1,8 @@
-import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { err, ok, type Result, type ToolError } from "@mete/contracts";
 import { rgPath } from "@vscode/ripgrep";
 import { z } from "zod";
+import { spawnPiped } from "./process.js";
 
 // ripgrep for fs.list@1, fs.glob@1 and fs.grep@1 (docs/05 Grep, docs/10 Built-in tools).
 // It applies .gitignore itself; callers drop `.meteignore` paths with `keep` (ADR-040).
@@ -28,11 +28,9 @@ const rgLines = (
 ): Promise<Result<void, ToolError>> =>
 	new Promise((done) => {
 		// stdin "ignore": without a path rg would otherwise search a piped stdin.
-		const child = spawn(rgPath, [...BASE, ...args], {
-			cwd,
-			signal,
-			stdio: ["ignore", "pipe", "pipe"],
-		});
+		const started = spawnPiped(rgPath, [...BASE, ...args], { cwd, signal });
+		if (!started.ok) return done(started);
+		const child = started.value;
 		let stopped = false;
 		let stderr = "";
 		child.stderr.on("data", (d: Buffer) => {

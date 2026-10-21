@@ -1,4 +1,8 @@
-import { type ChildProcess, spawn } from "node:child_process";
+import {
+	type ChildProcess,
+	type SpawnOptions,
+	spawn,
+} from "node:child_process";
 import { join } from "node:path";
 import { err, ok, type Result, type ToolError } from "@mete/contracts";
 import { streamCollector } from "../domain/text.js";
@@ -70,6 +74,24 @@ const watch = (child: ChildProcess, timeoutMs: number, signal: AbortSignal) => {
 	};
 };
 
+/** Starts a child with no stdin and piped output; arguments the process API refuses (a NUL byte) are bad_input. */
+export const spawnPiped = (
+	file: string,
+	args: readonly string[],
+	options: Omit<SpawnOptions, "stdio">,
+) => {
+	try {
+		const stdio = ["ignore", "pipe", "pipe"] as const;
+		return ok(spawn(file, [...args], { ...options, stdio: [...stdio] }));
+	} catch (e) {
+		const message = e instanceof Error ? e.message : String(e);
+		return err<ToolError>({
+			code: "bad_input",
+			message: `${file}: ${message}`,
+		});
+	}
+};
+
 /** Runs one process; a cancelled signal kills it and fails with `io`. */
 export const runProcess = (
 	spec: ProcessSpec,
@@ -78,13 +100,14 @@ export const runProcess = (
 	new Promise((done) => {
 		if (signal.aborted)
 			return done(err({ code: "io", message: "cancelled before start" }));
-		const child = spawn(spec.file, [...spec.args], {
+		const started = spawnPiped(spec.file, spec.args, {
 			cwd: spec.cwd,
 			env: spec.env,
-			stdio: ["ignore", "pipe", "pipe"],
 			detached: !WINDOWS,
 			windowsHide: true,
 		});
+		if (!started.ok) return done(started);
+		const child = started.value;
 		const stdout = collect(child.stdout);
 		const stderr = collect(child.stderr);
 		const watched = watch(child, spec.timeoutMs, signal);

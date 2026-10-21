@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { FsDeps } from "../src/application/fs-common.js";
 import {
 	globTool,
+	grepTool,
 	listTool,
 	readFileTool,
 } from "../src/application/fs-read.js";
@@ -93,6 +94,16 @@ describe("fs tools beyond the kit", () => {
 			expect(asked).toEqual([]);
 		},
 	);
+
+	it("answers bad_input for a NUL byte in a grep pattern or glob", async () => {
+		const { deps } = await setup();
+		await ws.put("a.txt", "a\n");
+		for (const input of [
+			{ pattern: "a\u0000" },
+			{ pattern: "a", glob: "*\u0000" },
+		])
+			expect(code(await grepTool(deps, input, ctx))).toBe("bad_input");
+	});
 
 	it("reads and lists inside a worktree", async () => {
 		const { deps } = await setup();
