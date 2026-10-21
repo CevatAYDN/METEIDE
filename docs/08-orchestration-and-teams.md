@@ -46,7 +46,7 @@ From Phase 2, a run leaves a handoff and the next run starts from a bounded brie
 
 ## Team template schema
 
-Files live in `templates/<id>.yaml` (built in) or `.mete/teams/<id>.yaml` (workspace). Unknown keys are rejected.
+Files live in `templates/<id>.yaml` (built in) or `.mete/teams/<id>.yaml` (workspace). Unknown keys are rejected. A workspace file wins over a built-in one with the same id, a file's `metadata.id` must equal its file name, and an id that is not kebab-case is refused before any path is built \[D\].
 
 ```yaml
 apiVersion: mete/v1
