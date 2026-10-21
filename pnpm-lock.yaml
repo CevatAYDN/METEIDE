@@ -212,7 +212,18 @@ importers:
         specifier: 5.0.3
         version: 5.0.3(@types/node@24.19.1)(@vitest/coverage-v8@5.0.3)(vite@8.3.3(@types/node@24.19.1)(yaml@2.9.1))
 
-  packages/tools: {}
+  packages/tools:
+    dependencies:
+      '@mete/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@mete/kernel':
+        specifier: workspace:*
+        version: link:../kernel
+    devDependencies:
+      '@mete/testing':
+        specifier: workspace:*
+        version: link:../testing
 
   packages/ui-kit: {}
 
