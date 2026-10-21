@@ -200,9 +200,10 @@ export type EngineError =
   | { code: "invalid_state"; message: string; status: RunStatus };   // the run's status does not allow the call
 export interface TeamEngineAdapter {
   start(req: RunStart): Promise<Result<{ runId: string }, EngineError>>;   // after run.created and run.started
-  pause(runId: string): Promise<Result<void, EngineError>>;    // a running run, reason user; aborts the step in flight
+  pause(runId: string): Promise<Result<void, EngineError>>;    // a running run, reason user; aborts the model call in
+                                                               // flight, while a running tool call finishes and is kept
   resume(runId: string): Promise<Result<void, EngineError>>;   // a paused run, from its last saved step
-  cancel(runId: string): Promise<Result<void, EngineError>>;   // the kill switch calls it for every run
+  cancel(runId: string): Promise<Result<void, EngineError>>;   // aborts everything in flight; the kill switch calls it
   status(runId?: string): Result<RunView[], EngineError>;      // one run, or all runs of the workspace, newest first
 }
 

@@ -70,7 +70,7 @@ Default revision limit: 3 \[D\]. `approved` is final for a task.
 
 Runs persist their XState snapshot after every transition, so a restart resumes them exactly \[C\].
 
-When core-engine activates, a run still `queued` or `running` from an earlier process becomes `paused` with reason `user` and publishes `run.paused`; a paused run continues only through `resume`, from its last saved step. The `quota` timer of a paused run lives in the process that paused it \[D\].
+When core-engine activates, a run still `running` from an earlier process becomes `paused` with reason `user` and publishes `run.paused`; a paused run continues only through `resume`, from its last saved step. The `quota` timer of a paused run lives in the process that paused it \[D\].
 
 ## Event envelope
 
