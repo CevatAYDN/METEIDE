@@ -91,7 +91,7 @@ Each answer is binding and names the tab that holds the full rule. A question no
 | What do I use before METE can build itself? | OpenCode with free models, or Cline or Kilo Code with OpenRouter free models | 16 |
 | What must an AI agent read first? | `AGENTS.md` | 17 |
 | How do I change a decision? | Write a new ADR that supersedes the old one | 04 |
-| How do tests avoid spending quota? | MSW cassettes replay recorded responses | 15 |
+| How do tests avoid spending quota? | Hand-written fetch fakes and scripted adapters answer instead of providers; MSW cassettes will replay recorded responses once `pnpm test:record` exists | 15 |
 | Where does CI run? | On the developer's machine, through lefthook | 15 |
 | What is the MVP? | The end of Phase 5, version 0.1.0 | 16 |
 | Which database? | SQLite: one global file and one per workspace | 03 |

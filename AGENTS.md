@@ -21,7 +21,8 @@ The documents in docs/ are the specification. When code and docs disagree, docs 
 4. Expected failures return Result<T, E>. Throw only for programmer errors.
 5. No `any`. Parse every external input with Zod at the boundary.
 6. Make the smallest change that solves the task. Edit with exact find-and-replace; do not rewrite whole files.
-7. Write or update tests first. Tests MUST NOT call real model providers; use MSW cassettes.
+7. Write or update tests first. Tests MUST NOT call real model providers; use hand-written fetch fakes or
+   scripted adapters until MSW cassettes exist (docs/15).
 8. Run `pnpm check` before you say a task is done and include its output in your summary.
 9. Follow the cross-platform rules: node:path for paths, LF line endings, argument arrays for commands,
    exact import casing, os.tmpdir() for temp files.
@@ -50,7 +51,7 @@ pnpm check                         Biome + tsc + dependency-cruiser + affected t
 pnpm test                          all tests
 pnpm --filter @mete/<pkg> test     one package
 pnpm build                         build all packages
-pnpm test:record                   humans only: records LLM cassettes with real keys
+pnpm test:record                   humans only: records LLM cassettes with real keys (not built yet)
 
 ## Environment
 Primary platform: Windows with PowerShell. Linux is checked through WSL2.

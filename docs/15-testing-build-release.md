@@ -11,7 +11,7 @@ All checks run on the developer's machine through lefthook and package scripts; 
 | Unit | Vitest | Domain and application code | pre-push, affected packages |
 | Integration | Vitest, real SQLite in a temp folder, in-process kernel | Package boundaries | pre-push, affected packages |
 | Contract | Kits in `@mete/testing` | Every adapter of every capability | pre-push for touched capabilities; full at release |
-| LLM replay | MSW cassettes | Agent flows with recorded model responses | pre-push |
+| LLM replay | Hand-written fetch fakes and scripted adapters now; MSW cassettes once `pnpm test:record` exists | Agent flows with recorded or scripted model responses | pre-push |
 | End-to-end | Playwright for Electron | Desktop flows: onboarding, run, approval, replay | release |
 | Chaos | Seeded script | Disable optional modules one by one and in random sets; the app must start and finish the single-agent fixture task | release |
 | MCP conformance | MCP Inspector, scripted | METE as server; METE as client against a Node, a Python and an HTTP reference server \[D\] | release |
@@ -20,7 +20,7 @@ All checks run on the developer's machine through lefthook and package scripts; 
 
 Rules:
 
-- Tests MUST NOT call real model providers. Cassettes are recorded only by `pnpm test:record` with the developer's own keys and committed with secrets masked \[C\].
+- Tests MUST NOT call real model providers. Cassettes are recorded only by `pnpm test:record` with the developer's own keys and committed with secrets masked \[C\]. `pnpm test:record` is not built yet; until it is, provider and gateway tests answer through hand-written fetch fakes and agent flows through scripted `provider.chat@1` adapters, and MSW stays the planned replay tool (tab 05).
 - Coverage targets: 90% of lines in `domain/` folders, 75% per package overall \[D\].
 
 ## Performance budgets
