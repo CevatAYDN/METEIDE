@@ -17,12 +17,16 @@
 	"dependencies": {
 		"@mete/contracts": "workspace:*",
 		"@mete/kernel": "workspace:*",
+		"@mozilla/readability": "0.6.0",
 		"@vscode/ripgrep": "1.18.0",
 		"ignore": "7.0.12",
+		"linkedom": "0.18.13",
 		"simple-git": "4.0.2",
+		"turndown": "7.2.4",
 		"zod": "4.6.5"
 	},
 	"devDependencies": {
-		"@mete/testing": "workspace:*"
+		"@mete/testing": "workspace:*",
+		"@types/turndown": "5.0.6"
 	}
 }

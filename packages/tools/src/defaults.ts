@@ -20,3 +20,15 @@ export const METEIGNORE_DEFAULTS = [
 	"id_rsa*",
 	"secrets/",
 ] as const;
+
+/** Tab 10, Built-in tools: characters web.fetch@1 keeps of a page's Markdown. */
+export const WEB_FETCH_MAX_CHARS = 100_000;
+
+/** Tab 10, Built-in tools: bytes web.fetch@1 reads of a response before it gives up. */
+export const WEB_FETCH_MAX_BYTES = 5_000_000;
+
+/** Tab 10, Built-in tools: how long one web.fetch@1 call may take, redirects included. */
+export const WEB_FETCH_TIMEOUT_MS = 30_000;
+
+/** Tab 10, Built-in tools: redirects web.fetch@1 follows. */
+export const WEB_FETCH_MAX_REDIRECTS = 5;

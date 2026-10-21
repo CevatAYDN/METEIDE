@@ -95,7 +95,7 @@ const caller = (ctx: ToolContext) => ({
 
 /** Asks policy.check@1; deny and ask come back as errors with the rule (docs/10). */
 export const permit = (
-	deps: FsDeps,
+	deps: Pick<FsDeps, "adapterId" | "policy">,
 	check: {
 		action: PolicyAction;
 		capability: `${string}@1`;

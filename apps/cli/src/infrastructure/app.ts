@@ -34,6 +34,7 @@ import { createStorageModule } from "@mete/storage";
 import {
 	createToolsFsModule,
 	createToolsShellModule,
+	createToolsWebModule,
 	createVcsGitModule,
 } from "@mete/tools";
 import { moduleLogger } from "./log.js";
@@ -96,6 +97,7 @@ const modulesFor = (opts: AppOptions, workspaceId: string): MeteModule[] => {
 		createToolsFsModule(dirs),
 		createToolsShellModule(dirs),
 		createVcsGitModule(dirs),
+		createToolsWebModule(),
 		createCoreEngineModule({
 			workspaceId,
 			recover: opts.recover !== false,

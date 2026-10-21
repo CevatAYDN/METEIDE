@@ -5,3 +5,4 @@ export {
 	createVcsGitModule,
 	type ToolsOptions,
 } from "./module.js";
+export { createToolsWebModule, type ToolsWebOptions } from "./web-module.js";
