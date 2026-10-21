@@ -191,6 +191,40 @@ describe("gateway HTTP app", () => {
 		]);
 	});
 
+	it("returns the chat iterator after the last chunk, so the pipeline settles every call", async () => {
+		const failure: LlmChunk = {
+			type: "error",
+			error: { code: "server", message: "down" },
+		};
+		for (const [last, stream] of [
+			[finish, false],
+			[finish, true],
+			[failure, false],
+			[failure, true],
+		] as const) {
+			let closed = false;
+			const chat: LlmChatAdapter = {
+				async *chat() {
+					try {
+						yield model;
+						yield { type: "text", text: "a" };
+						yield last;
+					} finally {
+						closed = true;
+					}
+				},
+			};
+			const a = createGatewayApp({
+				chat,
+				models: async () => [],
+				token: TOKEN,
+			});
+			const res = await post(a, { body: body({ stream }) });
+			await res.text();
+			expect(closed).toBe(true);
+		}
+	});
+
 	it("returns the chat iterator when a streaming client disconnects", async () => {
 		let closed = false;
 		const chat: LlmChatAdapter = {

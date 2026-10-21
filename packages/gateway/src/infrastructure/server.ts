@@ -58,6 +58,7 @@ const failed = (e: LlmError, now: number) => {
 };
 
 // Reads model chunks up to the first content or terminal chunk, naming the serving model.
+// After a terminal chunk the iterator is returned, so the pipeline's finally settles the call.
 const head = async (
 	it: AsyncIterator<LlmChunk>,
 	frame: Frame,
@@ -65,8 +66,10 @@ const head = async (
 	for (;;) {
 		const n = await it.next();
 		if (n.done) return undefined;
-		if (n.value.type !== "model") return n.value;
-		frame.model = `${n.value.providerId}/${n.value.modelId}`;
+		const c = n.value;
+		if (c.type === "finish" || c.type === "error") await it.return?.();
+		if (c.type !== "model") return c;
+		frame.model = `${c.providerId}/${c.modelId}`;
 	}
 };
 

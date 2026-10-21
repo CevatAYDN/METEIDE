@@ -228,6 +228,18 @@ describe("llm.chat@1 pipeline", () => {
 			if (chunk.type === "text") break;
 		expect(q.settled).toEqual([{ id: "r1", actual: {}, observations: [] }]);
 	});
+
+	it("settles when the caller stops at the model chunk", async () => {
+		const a = fakeProvider("a", [[text("1"), done]]);
+		const q = fakeQuota();
+		const { deps: d } = deps({
+			discover: async () => [offer(a.adapter, "m")],
+			quota: q.quota,
+		});
+		for await (const chunk of createLlmChat(d).chat(req, signal()))
+			if (chunk.type === "model") break;
+		expect(q.settled).toEqual([{ id: "r1", actual: {}, observations: [] }]);
+	});
 });
 
 describe("llm.chat@1 model_calls rows", () => {

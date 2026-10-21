@@ -149,10 +149,12 @@ const callRow = (
 				: outcome.error.code,
 });
 
-// Settles and logs exactly once, also when the caller stops reading mid-stream.
+// Settles and logs exactly once, also when the caller stops reading mid-stream or at
+// the model chunk, which is why that chunk is yielded inside the try.
 async function* settled(
 	deps: ChatDeps,
 	t: Try,
+	named: LlmChunk | undefined,
 	signal: AbortSignal,
 ): AsyncGenerator<LlmChunk, Attempted> {
 	if (signal.aborted) {
@@ -167,6 +169,7 @@ async function* settled(
 	const seen: Seen = { text: "", toolCalls: [] };
 	const start = deps.now();
 	try {
+		if (named) yield named;
 		outcome = yield* attempt(t, seen, signal);
 		observations = observationsOf(t.o, outcome);
 		return { outcome, observations };
@@ -265,10 +268,9 @@ async function* walk(
 		if (!g.ok) return yield fail(g.error);
 		const { o, id } = g.value;
 		const named = nameModel(st, o, w.chain[0]);
-		if (named) yield named;
 		const call = { ...w.call, model: o.model.id };
 		const t: Try = { o, reservation: id, call, req: w.req };
-		const { outcome, observations } = yield* settled(deps, t, signal);
+		const { outcome, observations } = yield* settled(deps, t, named, signal);
 		if (outcome.kind === "finish") return;
 		const end = await onFailure(deps, st, { o, outcome, observations }, signal);
 		if (end) return yield fail(end);
