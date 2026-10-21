@@ -56,6 +56,7 @@ This is the only valid technology list. Anything not listed here needs an ADR be
 | Events | Own synchronous bus in `@mete/kernel` (ADR-037) | Typed in-process event bus |
 | Circuit breaker | Own consecutive-failure counter in `@mete/kernel` (ADR-037) | Supervisor and adapters |
 | Logging | pino | Structured JSON logs |
+| Command line | `node:util` `parseArgs` | Arguments of the `mete` CLI; no parser dependency |
 | Configuration | yaml + Zod | YAML files |
 | Gateway | Hono + `@hono/node-server` | Local OpenAI-compatible endpoint |
 | Secrets | Electron `safeStorage`, `@napi-rs/keyring` | Operating system keychain |

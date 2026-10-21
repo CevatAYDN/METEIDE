@@ -43,6 +43,17 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 - The gateway accepts connections only from 127.0.0.1 and requires a per-session bearer token generated at daemon start \[D\].
 - Modules with `trust: third-party` MUST run in a child process. Core and first-party modules MAY run in process \[C\].
 
+## CLI
+
+`mete` (package `@mete/cli`) is the composition root for one workspace, the current folder \[D\]:
+
+- It loads the configuration, registers storage, security, quota, the four provider modules, the gateway, the file and shell tools, vcs-git and core-engine, starts the lifecycle and opens the workspace at once; before it exits it stops the lifecycle. Phase 1 serves no gateway HTTP endpoint, because no child process needs one.
+- `mete run "<goal>"` starts a single-agent run, and `mete run --resume <run id>` resumes a paused one. Both print one line per event: the model chosen, each tool call, a pause with its reason and the summary. A `quota` pause waits in the process until the reset; any other pause ends the command. Exit codes: 0 completed, 1 failed or cancelled, 2 left paused. Ctrl+C cancels the run.
+- `mete status [<run id>]` lists runs, newest first, with status, pause reason and goal.
+- `mete stop <run id>` or `mete stop --all` cancels paused runs. A running run belongs to the `mete run` that holds it and stops with Ctrl+C there; there is no daemon in Phase 1.
+- `mete key set <provider id>` reads a key from a hidden prompt, or from standard input when it is not a terminal, never from the command line, and stores it under the tab 09 keychain account; `mete key delete <provider id>` removes it; `mete key list` names the providers that have a key, never the key. Provider ids: `nvidia`, `openrouter`, `opencode-zen`, `custom:<slug>`.
+- Arguments are parsed with `node:util` `parseArgs`. Logs are pino JSON lines in the global `logs/mete-<YYYY-MM-DD>.log`; the terminal shows only the event lines and errors.
+
 ## Failure handling
 
 - The kernel supervisor restarts a crashed child process. Default: at most 3 restarts in 5 minutes; then the circuit opens, the module is disabled, `module.disabled` is published and the user sees a calm notice \[D\].
