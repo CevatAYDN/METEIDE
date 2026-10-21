@@ -102,11 +102,20 @@ describe("run store", () => {
 		expect(store.unfinished().sort()).toEqual(["a", "old"]);
 	});
 
-	it("upserts the agent row with its model and requests", () => {
+	it("writes the agent row with its model and requests together with the run", () => {
 		const { db, store } = open();
 		const agent = { id: "ag", providerId: "p", modelId: "m1" };
-		store.saveAgent("r1", agent, 1);
-		store.saveAgent("r1", { ...agent, modelId: "m2" }, 2);
+		const replied = snapshot(
+			{ type: "START", at: T0 },
+			{ type: "MODEL", agent },
+			{
+				type: "REPLIED",
+				message: { role: "assistant", content: "hi" },
+				finish: "stop",
+			},
+			{ type: "MODEL", agent: { ...agent, modelId: "m2" } },
+		);
+		store.save(meta("r1"), replied);
 		expect(db.prepare("SELECT * FROM agents").all()).toEqual([
 			{
 				id: "ag",
@@ -114,9 +123,13 @@ describe("run store", () => {
 				role_id: "assistant",
 				provider_id: "p",
 				model_id: "m2",
-				requests: 2,
+				requests: 1,
 			},
 		]);
+		db.exec("DROP TABLE agents");
+		const done = snapshot({ type: "START", at: T0 }, { type: "MODEL", agent });
+		expect(() => store.save(meta("r2"), done)).toThrow();
+		expect(store.list("r2")).toEqual([]);
 	});
 
 	it("refuses a damaged snapshot", () => {

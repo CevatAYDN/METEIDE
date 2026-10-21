@@ -172,19 +172,9 @@ export const loadSnapshot = (json: string): RunSnapshot => {
 
 type Orm = ReturnType<typeof drizzle>;
 
-/** Writes the run's row after a transition. */
-const save = (orm: Orm, meta: RunMeta, s: RunSnapshot) => {
-	const values = rowOf(meta, s);
-	orm
-		.insert(runs)
-		.values({ id: meta.id, ...values })
-		.onConflictDoUpdate({ target: runs.id, set: values })
-		.run();
-};
-
 /** Writes the agent's row with its model and request count. */
 const saveAgent = (
-	orm: Orm,
+	tx: Pick<Orm, "insert">,
 	runId: string,
 	agent: AgentRef,
 	requests: number,
@@ -196,11 +186,23 @@ const saveAgent = (
 		modelId: agent.modelId,
 		requests,
 	};
-	orm
-		.insert(agents)
+	tx.insert(agents)
 		.values({ id: agent.id, ...values })
 		.onConflictDoUpdate({ target: agents.id, set: values })
 		.run();
+};
+
+/** Writes the run's row after a transition, and its agent's row in the same transaction. */
+const save = (orm: Orm, meta: RunMeta, s: RunSnapshot) => {
+	const values = rowOf(meta, s);
+	const { agent, turns } = s.context;
+	orm.transaction((tx) => {
+		tx.insert(runs)
+			.values({ id: meta.id, ...values })
+			.onConflictDoUpdate({ target: runs.id, set: values })
+			.run();
+		if (agent) saveAgent(tx, meta.id, agent, turns);
+	});
 };
 
 const load = (orm: Orm, id: string) => {
@@ -241,8 +243,6 @@ export const createRunStore = (db: BetterSqlite3.Database) => {
 	const orm = drizzle(db);
 	return {
 		save: (meta: RunMeta, s: RunSnapshot) => save(orm, meta, s),
-		saveAgent: (runId: string, agent: AgentRef, requests: number) =>
-			saveAgent(orm, runId, agent, requests),
 		load: (id: string) => load(orm, id),
 		markFailed: (id: string, endedAt: string) => markFailed(orm, id, endedAt),
 		list: (id?: string) => list(orm, id),

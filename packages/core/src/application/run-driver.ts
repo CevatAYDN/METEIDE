@@ -130,7 +130,6 @@ const onModel = (s: EngineState, l: Live, c: ModelChunk) => {
 		return;
 	const next = { id: agent?.id ?? s.deps.newId(), ...to };
 	if (!apply(s, l, { type: "MODEL", agent: next })) return; // a done run
-	s.deps.store.saveAgent(l.meta.id, next, l.snapshot.context.turns);
 	if (!agent)
 		return emit(s, l, {
 			type: "agent.created",
@@ -164,11 +163,8 @@ const modelTurn = async (s: EngineState, l: Live, token: object) => {
 	if (out.kind === "missing")
 		apply(s, l, { type: "PAUSE", at, reason: "no_model" });
 	else if (out.kind === "error") apply(s, l, afterModelError(out.error, at));
-	else {
+	else
 		apply(s, l, { type: "REPLIED", message: out.message, finish: out.finish });
-		const { agent, turns } = l.snapshot.context;
-		if (agent) s.deps.store.saveAgent(l.meta.id, agent, turns);
-	}
 };
 
 type ToolStep = Extract<NextStep, { kind: "tool" }>;
