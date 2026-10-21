@@ -1,4 +1,4 @@
-import { mkdir, readFile, symlink } from "node:fs/promises";
+import { lstat, mkdir, readFile, symlink } from "node:fs/promises";
 import { join } from "node:path";
 import {
 	ok,
@@ -80,6 +80,21 @@ describe("fs tools beyond the kit", () => {
 		expect(code(await listTool(deps, { path: "link" }, ctx))).toBe(
 			"outside_workspace",
 		);
+	});
+
+	it("deletes a link itself, never the file it points to", async (t) => {
+		const { deps, asked } = await setup();
+		const target = join(ws.workspaceDir, "target.txt");
+		await ws.put("target.txt", "keep");
+		const made = await symlink(target, join(ws.workspaceDir, "l.txt"), "file")
+			.then(() => true)
+			.catch(() => false); // Windows without Developer Mode refuses file links
+		if (!made) t.skip();
+		const del = { path: "l.txt", delete: true as const };
+		expect(code(await writeTool(deps, del, ctx))).toBe("ok");
+		expect(await readFile(target, "utf8")).toBe("keep");
+		await expect(lstat(join(ws.workspaceDir, "l.txt"))).rejects.toThrow();
+		expect(asked[0]?.path).toBe(target);
 	});
 
 	it.runIf(process.platform === "win32")(

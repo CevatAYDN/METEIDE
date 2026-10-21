@@ -10,6 +10,7 @@ import {
 	type ToolContext,
 	type ToolError,
 } from "@mete/contracts";
+import { absolute } from "../domain/paths.js";
 import { editText, isBinary } from "../domain/text.js";
 import { deleteFile, readBytes, writeText } from "../infrastructure/files.js";
 import { type FsDeps, parse, permit, placeToChange } from "./fs-common.js";
@@ -36,12 +37,17 @@ export const writeTool = async (
 		ctx,
 	);
 	if (!allowed.ok) return allowed;
-	return change(p.real, i.value);
+	return change(p.real, absolute(deps.workspaceDir, i.value.path), i.value);
 };
 
-const change = async (real: string, i: FsWriteInput): Out<FsWriteOutput> => {
+const change = async (
+	real: string,
+	given: string,
+	i: FsWriteInput,
+): Out<FsWriteOutput> => {
 	if ("delete" in i) {
-		const gone = await deleteFile(real);
+		// The path as given, so a link is removed and its target stays (docs/10).
+		const gone = await deleteFile(given);
 		return gone.ok ? ok({ bytes: 0 }) : gone;
 	}
 	const written = await writeText(real, i.content, i.createOnly);
