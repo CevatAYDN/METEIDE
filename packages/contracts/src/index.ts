@@ -33,3 +33,9 @@ export {
 	QuotaUnitSchema,
 	TaskStatusSchema,
 } from "./domain/states.js";
+export type {
+	Migration,
+	MigrationError,
+	ScopedStorage,
+	StorageScope,
+} from "./domain/storage.js";
