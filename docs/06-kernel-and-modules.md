@@ -131,13 +131,14 @@ export interface SecretStore {
 }
 
 // fs.*@1 and shell.exec@1, defined in @mete/contracts with a Zod schema per input; rules in tab 10 (Built-in tools).
-// Paths are absolute or relative to the workspace root; outputs name paths relative to it.
-export type ToolCall = { runId?: string; agentId?: string; tainted?: boolean; signal: AbortSignal };   // passed on to policy.check@1
+// Each capability is a ToolAdapter of its input and output. Paths are absolute or relative to the workspace root;
+// outputs name paths relative to it.
+export type ToolContext = { runId?: string; agentId?: string; tainted?: boolean; signal: AbortSignal };   // passed on to policy.check@1
 export type ToolError = { message: string } & (
   | { code: "bad_input" | "not_found" | "outside_workspace" | "ignored" | "exists" | "is_directory" | "binary" | "io" }
   | { code: "match_count"; count: number }                 // fs.edit: oldStr did not match exactly once
   | { code: "denied" | "approval_required"; rule: string }); // the policy verdict deny or ask, with its rule
-export interface ToolAdapter<I, O> { run(input: I, call: ToolCall): Promise<Result<O, ToolError>> }
+export interface ToolAdapter<I, O> { run(input: I, ctx: ToolContext): Promise<Result<O, ToolError>> }
 export type FsReadInput = { path: string; startLine?: number; endLine?: number };   // 1-based, inclusive
 export type FsReadOutput = { content: string; totalLines: number; lineEnding: "lf" | "crlf" | "mixed" | "none" };
 export type FsWriteInput = { path: string; content: string; createOnly?: boolean } | { path: string; delete: true };
