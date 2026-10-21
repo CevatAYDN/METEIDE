@@ -39,3 +39,19 @@ export const OPENROUTER_QUOTA: readonly QuotaUnitSpec[] = [
 
 /** A rate limit of this size or more is OpenRouter's daily one (09 observe() rules). */
 export const OPENROUTER_DAILY_LIMIT_FLOOR = 50;
+
+/** NVIDIA Build endpoints (09 Provider adapter, provider facts). */
+export const NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
+export const NVIDIA_RERANK_URL = (model: string) =>
+	`https://ai.api.nvidia.com/v1/retrieval/${model}/reranking`;
+
+/** NVIDIA Build's documented starting limit: 40 requests a minute (09 Quota pool). */
+export const NVIDIA_QUOTA: readonly QuotaUnitSpec[] = [
+	{
+		providerId: "nvidia",
+		unit: "requests_per_minute",
+		limit: 40,
+		scope: "account",
+		reset: "sliding",
+	},
+];

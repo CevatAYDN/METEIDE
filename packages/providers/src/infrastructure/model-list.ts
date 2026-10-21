@@ -2,24 +2,36 @@ import { err, ok, type ProviderError, type Result } from "@mete/contracts";
 import { z } from "zod";
 import { codeForStatus } from "../domain/errors.js";
 
-// GET <base>/models (docs/09, Provider adapter): the request, its errors and the body check.
+// JSON calls to provider endpoints (docs/09, Provider adapter): the request, its errors
+// and the body check.
 
-/** GETs a JSON endpoint with the key and parses the body with `schema`. */
+/** GETs, or POSTs `body` to, a JSON endpoint with the key and parses the answer with `schema`. */
 export const fetchJson = async <S extends z.ZodType>(
 	url: string,
 	apiKey: string,
 	signal: AbortSignal,
-	opts: { schema: S; fetch?: typeof globalThis.fetch | undefined },
+	opts: {
+		schema: S;
+		fetch?: typeof globalThis.fetch | undefined;
+		body?: unknown;
+	},
 ): Promise<Result<z.infer<S>, ProviderError>> => {
 	try {
+		const post = opts.body !== undefined;
 		const res = await (opts.fetch ?? globalThis.fetch)(url, {
-			headers: { authorization: `Bearer ${apiKey}` },
+			method: post ? "POST" : "GET",
+			headers: {
+				authorization: `Bearer ${apiKey}`,
+				accept: "application/json",
+				...(post ? { "content-type": "application/json" } : {}),
+			},
+			...(post ? { body: JSON.stringify(opts.body) } : {}),
 			signal,
 		});
 		if (!res.ok)
 			return err({
 				code: codeForStatus(res.status),
-				message: `GET ${url} returned ${res.status}`,
+				message: `${post ? "POST" : "GET"} ${url} returned ${res.status}`,
 				status: res.status,
 				headers: res.headers,
 			});
@@ -27,7 +39,7 @@ export const fetchJson = async <S extends z.ZodType>(
 		if (!body.success)
 			return err({
 				code: "server",
-				message: `GET ${url} returned an unexpected body`,
+				message: `${post ? "POST" : "GET"} ${url} returned an unexpected body`,
 			});
 		return ok(body.data);
 	} catch (error) {

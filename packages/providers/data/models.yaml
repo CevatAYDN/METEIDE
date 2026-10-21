@@ -59,6 +59,15 @@ nvidia:
     family: nemotron
     source: models.dev
     checked: "2026-10-21"
+  nvidia/llama-nemotron-rerank-vl-1b-v2:
+    capability: rerank
+    contextWindow: 128000
+    toolCalling: false
+    vision: true
+    free: true
+    family: nemotron
+    source: models.dev, docs.api.nvidia.com retrieval APIs
+    checked: "2026-10-21"
 
 # Privacy per model from opencode.ai/docs/zen; the rest of each row from models.dev.
 opencode-zen:

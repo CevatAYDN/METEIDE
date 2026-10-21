@@ -40,10 +40,11 @@ describe("shipped models.yaml", () => {
 		}
 	});
 
-	it("gives NVIDIA chat models and an embedding model", async () => {
+	it("gives NVIDIA chat models, an embedding model and a rerank model", async () => {
 		const nvidia = Object.values((await loadShippedModels()).nvidia ?? {});
 		expect(nvidia.some((r) => r.capability === "chat")).toBe(true);
 		expect(nvidia.some((r) => r.capability === "embed")).toBe(true);
+		expect(nvidia.some((r) => r.capability === "rerank")).toBe(true);
 	});
 
 	it("rejects a row with missing facts", async () => {
