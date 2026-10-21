@@ -4,3 +4,5 @@ packages:
 allowBuilds:
   better-sqlite3: false
   lefthook: true
+# docs/05: a release younger than 14 days MUST NOT be adopted (20160 minutes).
+minimumReleaseAge: 20160

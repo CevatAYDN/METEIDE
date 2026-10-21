@@ -7,7 +7,7 @@ This is the only valid technology list. Anything not listed here needs an ADR be
 ## Version and license policy
 
 - Node.js 24 LTS. Eclipse Theia: the latest community release on the day Phase 0 starts, pinned; Electron is the version that Theia release requires \[D\].
-- Every dependency is pinned to an exact version through `pnpm-lock.yaml`. A release younger than 14 days MUST NOT be adopted (supply-chain safety) \[D\].
+- Every dependency is pinned to an exact version through `pnpm-lock.yaml`. A release younger than 14 days MUST NOT be adopted (supply-chain safety), direct or transitive; `minimumReleaseAge` in `pnpm-workspace.yaml` enforces it at every install \[D\].
 - Allowed licenses for bundled code: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, MPL-2.0, EPL-2.0 (Theia, unmodified), CC0 for assets, OFL-1.1 for fonts. GPL and AGPL code MUST NOT be bundled. `pnpm licenses list` enforces this in local CI \[C\].
 
 ## Foundation
