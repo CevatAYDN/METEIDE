@@ -34,6 +34,8 @@ The shapes `chat`, `embed` and `rerank` use are in tab 06. `chat` streams chunks
 - `deprecated` comes only from provider metadata.
 - Ids are exact, never patterns; a new free model needs a new row.
 - Discovery sends no probe calls.
+- The shipped `models.yaml` and `tiers.yaml` live in `packages/providers/data/` and are read at runtime. `models.yaml` is keyed by provider and then exact model id, so the user's rows in the `models:` section of `settings.yaml` (or `.mete/models.yaml`) merge the usual way (ARCHITECTURE.md, Configuration): a row with a shipped id replaces it, any other id is added. The user's `tiers.yaml` rows go in the `tiers:` section the same way; its shape is set with the router.
+- Each shipped row names its source and the date it was checked; facts not in the provider's own documentation come from models.dev (MIT, THIRD_PARTY_NOTICES.md).
 
 API keys live in the operating system keychain through `ModuleContext.secrets` (tab 06), which the composition root builds from the keychain store in `@mete/security` on `@napi-rs/keyring`; it is not a capability. Keys are kept under service `mete` and account `providers/<providerId>/apiKey`, or `providers/custom:<slug>/apiKey` for a custom endpoint. A provider module whose key is missing fails activation with "no API key" and stays inactive until the user adds one. Provider modules declare the `net` and `secrets` permissions. Custom endpoints are kept in the `providers:` section of `settings.yaml` as `custom: [{ slug, name, baseUrl, format, headers }]`; their keys never go into a file \[D\].
 
