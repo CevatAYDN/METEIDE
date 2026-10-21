@@ -13,5 +13,17 @@ export const TIER_MIN_CONTEXT: Readonly<Record<Tier, number>> = {
 	vision: 0,
 };
 
+/** Tab 09, Gateway: back-off steps after a 429 or 5xx; with 3 failures only the first two are reached. */
+export const BACKOFF_MS = [2_000, 8_000, 30_000] as const;
+
+/** Tab 09, Gateway: wait for a reset only when it comes sooner than this. */
+export const RESET_WAIT_MAX_MS = 90_000;
+
+/** Tab 09, Gateway: failures on one model before moving down the chain. */
+export const FAILURES_PER_MODEL = 3;
+
+/** Tab 09, Gateway: the quota estimate counts this many prompt characters as one token. */
+export const CHARS_PER_TOKEN = 4;
+
 /** Tab 09, Tier resolution: the `long_context` need asks for the long-context tier's window. */
 export const LONG_CONTEXT_MIN = TIER_MIN_CONTEXT["long-context"];
