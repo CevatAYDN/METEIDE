@@ -15,6 +15,15 @@ export {
 	ModuleIdSchema,
 	TimestampSchema,
 } from "./domain/ids.js";
+export {
+	type ActivationEvent,
+	ActivationEventSchema,
+	type ManifestParseError,
+	type ModuleManifest,
+	ModuleManifestSchema,
+	PermissionSchema,
+	parseManifest,
+} from "./domain/manifest.js";
 export { err, ok, type Result } from "./domain/result.js";
 export {
 	CheckpointKindSchema,
