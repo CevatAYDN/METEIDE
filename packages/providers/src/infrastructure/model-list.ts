@@ -15,6 +15,8 @@ export const fetchJson = async <S extends z.ZodType>(
 		fetch?: typeof globalThis.fetch | undefined;
 		body?: unknown;
 		headers?: Record<string, string> | undefined;
+		/** Replaces `Authorization: Bearer <key>` for APIs that take the key another way. */
+		auth?: Record<string, string> | undefined;
 	},
 ): Promise<Result<z.infer<S>, ProviderError>> => {
 	try {
@@ -23,7 +25,7 @@ export const fetchJson = async <S extends z.ZodType>(
 			method: post ? "POST" : "GET",
 			headers: {
 				...opts.headers,
-				authorization: `Bearer ${apiKey}`,
+				...(opts.auth ?? { authorization: `Bearer ${apiKey}` }),
 				accept: "application/json",
 				...(post ? { "content-type": "application/json" } : {}),
 			},

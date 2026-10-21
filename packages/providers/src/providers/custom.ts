@@ -22,10 +22,18 @@ import {
 	ModelDataSchema,
 	type ModelRow,
 	privacyFromRows,
+	withRow,
 } from "../domain/model-data.js";
 import { observeMinute429 } from "../domain/observe.js";
 import { listModelIds } from "../infrastructure/model-list.js";
 import { createOpenAIChat } from "../infrastructure/openai-chat.js";
+import {
+	anthropicChat,
+	type EndpointCall,
+	googleChat,
+	listAnthropicModels,
+	listGoogleModels,
+} from "../infrastructure/other-formats.js";
 
 // provider-custom (docs/09, API keys): one adapter per endpoint in the `providers:`
 // section, registered as custom:<slug>; an endpoint without its key is skipped.
@@ -51,8 +59,37 @@ type Env = {
 	readonly now: () => number;
 };
 
-const buildCustom = (ep: CustomEndpoint, env: Env): ProviderAdapter => {
-	const id = `custom:${ep.slug}`;
+type Served = Pick<ProviderAdapter, "chat" | "embed" | "listModels">;
+
+// What each format serves: openai-chat also embeds; the others list rich metadata
+// that a user row may still override (docs/09, provider facts and API keys).
+const serve = (ep: CustomEndpoint, env: Env, id: string): Served => {
+	const call: EndpointCall = {
+		providerId: id,
+		baseUrl: ep.baseUrl,
+		apiKey: env.apiKey,
+		headers: ep.headers,
+		fetch: env.fetch,
+	};
+	const rowsOver =
+		(list: (s: AbortSignal) => ReturnType<ProviderAdapter["listModels"]>) =>
+		async (signal: AbortSignal) => {
+			const listed = await list(signal);
+			if (!listed.ok) return listed;
+			const row = (m: string) =>
+				Object.hasOwn(env.models, m) ? env.models[m] : undefined;
+			return ok(listed.value.map((m) => withRow(m, row(m.id))));
+		};
+	if (ep.format === "anthropic-messages")
+		return {
+			chat: anthropicChat(call),
+			listModels: rowsOver((s) => listAnthropicModels(call, s)),
+		};
+	if (ep.format === "google-gemini")
+		return {
+			chat: googleChat(call),
+			listModels: rowsOver((s) => listGoogleModels(call, s)),
+		};
 	const { chat, embed } = createOpenAIChat({
 		name: id,
 		baseURL: ep.baseUrl,
@@ -61,8 +98,8 @@ const buildCustom = (ep: CustomEndpoint, env: Env): ProviderAdapter => {
 		...(env.fetch ? { fetch: env.fetch } : {}),
 	});
 	return {
-		id,
-		format: "openai-chat",
+		chat,
+		embed,
 		async listModels(signal) {
 			const ids = await listModelIds(
 				`${ep.baseUrl}/models`,
@@ -75,8 +112,15 @@ const buildCustom = (ep: CustomEndpoint, env: Env): ProviderAdapter => {
 			);
 			return ids.ok ? ok(chatModels(id, ids.value, env.models)) : ids;
 		},
-		chat,
-		embed,
+	};
+};
+
+const buildCustom = (ep: CustomEndpoint, env: Env): ProviderAdapter => {
+	const id = `custom:${ep.slug}`;
+	return {
+		id,
+		format: ep.format,
+		...serve(ep, env, id),
 		quotaUnits: () => customQuota(id),
 		observe: (status, headers) => observeMinute429(status, headers, env.now()),
 		privacy: privacyFromRows(env.models),
@@ -96,24 +140,24 @@ type Key = { readonly key: string } | { readonly skip: string };
 
 // The endpoint's key, or why the endpoint is skipped.
 const keyFor = async (ctx: ModuleContext, ep: CustomEndpoint): Promise<Key> => {
-	// shortcut: only openai-chat endpoints are served; add anthropic-messages and google-gemini next.
-	if (ep.format !== "openai-chat")
-		return { skip: `the ${ep.format} format is not served yet` };
 	if (!ctx.secrets) return { skip: "the secrets permission was not granted" };
 	const key = await ctx.secrets.get(apiKeyName(`custom:${ep.slug}`));
 	if (!key.ok) return { skip: key.error.message };
 	return key.value ? { key: key.value } : { skip: "no API key" };
 };
 
+// Only openai-chat endpoints embed (docs/09, API keys).
 const provideAll = (ctx: ModuleContext, id: string, adapter: ProviderAdapter) =>
-	MANIFEST.provides.map((ref) =>
-		ctx.capabilities.provide(ref, {
-			id,
-			trust: MANIFEST.trust,
-			features: [],
-			impl: adapter,
-		}),
-	);
+	MANIFEST.provides
+		.filter((ref) => ref !== "provider.embed@1" || adapter.embed)
+		.map((ref) =>
+			ctx.capabilities.provide(ref, {
+				id,
+				trust: MANIFEST.trust,
+				features: [],
+				impl: adapter,
+			}),
+		);
 
 /** Creates the provider-custom module. */
 export const createCustomModule = (

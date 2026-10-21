@@ -85,17 +85,53 @@ describe("custom endpoints", () => {
 			ok: true,
 			value: undefined,
 		});
-		expect(adapters(s)).toEqual(["custom:lab"]);
-		expect(s.registry.has("provider.embed@1")).toBe(true);
+		expect(adapters(s)).toEqual(["custom:lab", "custom:claude"]);
+		const embed = s.registry.resolve<ProviderAdapter>("provider.embed@1");
+		expect(embed.ok && embed.value.map((a) => a.id)).toEqual(["custom:lab"]);
 		expect(s.warnings).toEqual([
 			{ endpoint: "custom:nokey", reason: "no API key" },
-			{
-				endpoint: "custom:claude",
-				reason: "the anthropic-messages format is not served yet",
-			},
 		]);
 		await s.module.deactivate();
 		expect(adapters(s)).toEqual([]);
+	});
+
+	it("lists an anthropic endpoint's models with its metadata under the user's rows", async () => {
+		const s = setup(
+			{ custom: [endpoint("claude", "anthropic-messages")] },
+			{ "providers/custom:claude/apiKey": "k2" },
+			{
+				"custom:claude": {
+					"lab-model": {
+						capability: "chat",
+						contextWindow: 100_000,
+						toolCalling: true,
+						vision: true,
+						free: true,
+						family: "claude",
+					},
+				},
+			},
+		);
+		await s.module.activate(s.ctx);
+		const r = s.registry.resolve<ProviderAdapter>("provider.chat@1");
+		const adapter = r.ok ? r.value[0]?.impl : undefined;
+		const models = await adapter?.listModels(new AbortController().signal);
+		expect(s.seen[0]?.url).toBe("https://claude.test/v1/models?limit=1000");
+		expect(s.seen[0]?.headers.get("x-api-key")).toBe("k2");
+		expect(models?.ok && models.value).toEqual([
+			{
+				id: "lab-model",
+				providerId: "custom:claude",
+				family: "claude",
+				contextWindow: 100_000,
+				toolCalling: true,
+				vision: true,
+				free: true,
+				deprecated: false,
+			},
+		]);
+		expect(adapter?.format).toBe("anthropic-messages");
+		expect(adapter?.embed).toBeUndefined();
 	});
 
 	it("activates with nothing when no endpoints are configured", async () => {

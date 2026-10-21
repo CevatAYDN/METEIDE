@@ -76,6 +76,12 @@ importers:
 
   packages/providers:
     dependencies:
+      '@ai-sdk/anthropic':
+        specifier: 4.0.73
+        version: 4.0.73(zod@4.6.5)
+      '@ai-sdk/google':
+        specifier: 4.0.89
+        version: 4.0.89(zod@4.6.5)
       '@ai-sdk/openai-compatible':
         specifier: 3.0.64
         version: 3.0.64(zod@4.6.5)
@@ -180,6 +186,18 @@ importers:
   packages/ui-studio: {}
 
 packages:
+
+  '@ai-sdk/anthropic@4.0.73':
+    resolution: {integrity: sha512-tmUbc0vzBiVhaHWqLd8uC7ORHfP+UqplQAzAzDolrPrav1///zYRZh7rVqUL1/RJaZtXKnaBQRtlr9xBf+FeVg==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/google@4.0.89':
+    resolution: {integrity: sha512-2XcDv0rd3yCB/lwiWqM0J5x3MKQaYDzQZacNfo+Zxgkt/SmYpnOGsrHPBgDv9DytPJ7/sVBL7Mrb9ZEbwXq0lw==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
 
   '@ai-sdk/openai-compatible@3.0.64':
     resolution: {integrity: sha512-tDAek6oWGIPJgeq81kvYC70rh5Kb4bcLZ6BB0/aiwodgRlStREzhn/2Tw/0NfWuQRV3rGssaOezDkc/GVbS9uA==}
@@ -1451,6 +1469,18 @@ packages:
     resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
 
 snapshots:
+
+  '@ai-sdk/anthropic@4.0.73(zod@4.6.5)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.23
+      '@ai-sdk/provider-utils': 5.0.55(zod@4.6.5)
+      zod: 4.6.5
+
+  '@ai-sdk/google@4.0.89(zod@4.6.5)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.23
+      '@ai-sdk/provider-utils': 5.0.55(zod@4.6.5)
+      zod: 4.6.5
 
   '@ai-sdk/openai-compatible@3.0.64(zod@4.6.5)':
     dependencies:
