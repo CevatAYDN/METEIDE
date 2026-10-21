@@ -56,7 +56,7 @@ The verdict's `rule` names the step: `missing_input` (1), `never_allow:<index>` 
 
 `policy.check@1` also takes a `tainted` flag and records it in the audit log; the flag changes no decision until the core remembers approvals (Phase 2).
 
-Protected paths: agents MUST NOT write `.mete/policy.yaml`, `.mete/bindings.yaml` or `.mete/mcp.yaml`; only the user changes them \[D\].
+Protected paths: agents MUST NOT write `.mete/policy.yaml`, `.mete/bindings.yaml`, `.mete/mcp.yaml` or the workspace's `.meteignore` (a re-include line would open the files it hides); only the user changes them \[D\].
 
 ## Threat model
 
@@ -65,6 +65,7 @@ Protected paths: agents MUST NOT write `.mete/policy.yaml`, `.mete/bindings.yaml
 | Prompt injection in web pages, files or MCP results | External content is wrapped and labeled as data. A step that read external content is tainted; at level 2 its `always_ask` actions and all non-allow-listed commands need approval even if they were pre-approved \[C\] |
 | Malicious or hijacked plugin or MCP server | Only the user installs; pinned versions; SHA-256 checks; permissions shown at install; child process; circuit breaker \[C\]. Node-based third-party processes SHOULD start with the Node.js permission model (`--permission` with only the declared paths) \[D\] |
 | Secret exfiltration | secretlint masking, `.meteignore`, keychain storage, no secrets in logs \[C\] |
+| Allow-listed command run with a planted program | `shell.exec@1` refuses `env` keys that change which program runs or what it loads (tab 10) \[D\] |
 | Destructive commands | Allow list, `never_allow`, checkpoints, worktrees \[C\] |
 | Runaway loops and quota drain | Budgets, revision limit, 25-turn limit per attempt, kill switch \[C\] |
 | Agent raising its own rights | Protected paths above; the policy engine runs outside the agent's reach \[D\] |
