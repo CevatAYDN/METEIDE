@@ -56,7 +56,11 @@ importers:
 
   packages/engines: {}
 
-  packages/gateway: {}
+  packages/gateway:
+    dependencies:
+      '@mete/contracts':
+        specifier: workspace:*
+        version: link:../contracts
 
   packages/kernel:
     dependencies:

@@ -1,0 +1,72 @@
+import type { LlmChatRequest, ModelInfo, Privacy, Tier } from "@mete/contracts";
+import {
+	CHAIN_LENGTH,
+	LONG_CONTEXT_MIN,
+	TIER_MIN_CONTEXT,
+} from "../defaults.js";
+
+// Tier resolution and the privacy filter (docs/09, Tier resolution and Privacy).
+
+/** A discovered model with its provider's privacy facts. */
+export type Discovered = {
+	readonly model: ModelInfo;
+	readonly privacy: Privacy;
+};
+
+/** The user's privacy switch and the workspace's sensitivity. */
+export type PrivacyRules = {
+	readonly allowTraining: boolean;
+	readonly sensitive: boolean;
+};
+
+type Need = NonNullable<LlmChatRequest["needs"]>[number];
+type Role = Pick<LlmChatRequest, "needs" | "avoidFamilies">;
+
+// "unknown" counts as true; only a normal workspace honours allowTraining.
+const passesPrivacy = (p: Privacy, rules: PrivacyRules) =>
+	(rules.allowTraining && !rules.sensitive) ||
+	(p.trains === false && p.publishes === false);
+
+const meetsTier = (m: ModelInfo, tier: Tier) =>
+	m.contextWindow >= TIER_MIN_CONTEXT[tier] &&
+	(tier !== "coder" || m.toolCalling === true) &&
+	(tier !== "vision" || m.vision === true);
+
+const meetsNeed = (m: ModelInfo, need: Need) => {
+	if (need === "tool_calling") return m.toolCalling === true;
+	if (need === "vision") return m.vision === true;
+	return m.contextWindow >= LONG_CONTEXT_MIN;
+};
+
+// Avoided families go only while another candidate is left.
+const avoid = (list: ModelInfo[], families: readonly string[]) => {
+	const kept = list.filter((m) => !families.includes(m.family));
+	return kept.length > 0 ? kept : list;
+};
+
+/** The chain for one call: at most 4 models, best first; empty when none fits. */
+export const resolveChain = (
+	found: readonly Discovered[],
+	target: LlmChatRequest["target"],
+	rules: PrivacyRules,
+	role: Role = {},
+): ModelInfo[] => {
+	const usable = found
+		.filter(
+			(d) =>
+				d.model.free && !d.model.deprecated && passesPrivacy(d.privacy, rules),
+		)
+		.map((d) => d.model);
+	if (!("tier" in target))
+		return usable.filter(
+			(m) => m.providerId === target.providerId && m.id === target.modelId,
+		);
+	const fit = usable.filter(
+		(m) =>
+			meetsTier(m, target.tier) &&
+			(role.needs ?? []).every((n) => meetsNeed(m, n)),
+	);
+	return avoid(fit, role.avoidFamilies ?? [])
+		.sort((a, b) => b.contextWindow - a.contextWindow)
+		.slice(0, CHAIN_LENGTH);
+};
