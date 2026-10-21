@@ -76,7 +76,11 @@ importers:
 
   packages/providers: {}
 
-  packages/quota: {}
+  packages/quota:
+    dependencies:
+      '@mete/contracts':
+        specifier: workspace:*
+        version: link:../contracts
 
   packages/security:
     dependencies:
