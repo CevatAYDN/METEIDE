@@ -15,7 +15,8 @@ const owns = (l: Live, token: object) =>
 const toolContext = (l: Live): ToolContext => {
 	const agent = l.snapshot.context.agent;
 	const ids = agent ? { agentId: agent.id } : {};
-	return { runId: l.meta.id, ...ids, signal: l.all.signal };
+	const taint = l.snapshot.context.tainted ? { tainted: true } : {};
+	return { runId: l.meta.id, ...ids, ...taint, signal: l.all.signal };
 };
 
 type ModelChunk = Extract<LlmChunk, { type: "model" }>;
@@ -109,7 +110,11 @@ const toolTurn = async (
 		(b) => emit(s, l, b, activeRole(l.snapshot.context).taskId),
 	);
 	if (out.kind === "result")
-		apply(s, l, { type: "TOOL_DONE", message: out.message });
+		apply(s, l, {
+			type: "TOOL_DONE",
+			message: out.message,
+			...(out.external ? { external: true } : {}),
+		});
 	else if (owns(l, token))
 		apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
 };

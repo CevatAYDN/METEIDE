@@ -16,7 +16,8 @@ describe("workspace tools", () => {
 		expect(toolName("fs.read@1")).toBe("fs_read");
 		expect(toolName("shell.exec@1")).toBe("shell_exec");
 		expect(capabilityOf("vcs_git")).toBe("vcs.git@1");
-		expect(capabilityOf("web_fetch")).toBeUndefined();
+		expect(capabilityOf("web_fetch")).toBe("web.fetch@1");
+		expect(capabilityOf("mcp_call")).toBeUndefined();
 		for (const t of WORKSPACE_TOOLS)
 			expect(toolName(t.ref)).toMatch(/^[a-zA-Z0-9_-]{1,64}$/);
 	});

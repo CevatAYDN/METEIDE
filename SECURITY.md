@@ -54,7 +54,7 @@ Action ids used by the policy: `fs.write`, `fs.delete` (a `fs.write@1` call with
 
 The verdict's `rule` names the step: `missing_input` (1), `never_allow:<index>` (2, the rule's position in the list), `protected_path` (3), `autonomy:0` (5), `autonomy:3` or `autonomy:3:outside` (6), `always_ask` (7), `autonomy:1` (8), and `autonomy:2:inside`, `shell.allow`, `autonomy:2:action` or `autonomy:2` (9) \[D\].
 
-`policy.check@1` also takes a `tainted` flag and records it in the audit log; the flag changes no decision until the core remembers approvals (Phase 2).
+`policy.check@1` also takes a `tainted` flag and records it in the audit log; the flag changes no decision until the core remembers approvals. The core reads a step as the whole attempt: once a `web.fetch@1` or `web.search@1` result joined an attempt's conversation, every later tool call of that attempt passes `tainted: true`, and the next attempt starts untainted [D].
 
 Protected paths: agents MUST NOT write `.mete/policy.yaml`, `.mete/bindings.yaml`, `.mete/mcp.yaml` or the workspace's `.meteignore` (a re-include line would open the files it hides); only the user changes them \[D\].
 

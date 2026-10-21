@@ -17,6 +17,7 @@ import { z } from "zod";
 import type { EventBody } from "../domain/run-events.js";
 import {
 	allowed,
+	EXTERNAL_LABEL,
 	type Seat,
 	toolName,
 	toolSpec,
@@ -148,7 +149,12 @@ export const callModel = async (
 
 /** How one tool call ended; `approval` means the policy asked and nothing ran. */
 export type ToolOutcome =
-	| { readonly kind: "result"; readonly message: ToolMessage }
+	| {
+			readonly kind: "result";
+			readonly message: ToolMessage;
+			/** The result is external content (web.*): labeled, and it taints the attempt. */
+			readonly external?: boolean;
+	  }
 	| { readonly kind: "approval"; readonly rule: string };
 
 type Failure = { readonly code: string; readonly message: string };
@@ -156,16 +162,23 @@ type AnyTool = {
 	run(input: unknown, ctx: ToolContext): Promise<Result<unknown, Failure>>;
 };
 
-// The mask's replacement has no JSON-special characters, so the content stays JSON.
+// The mask's replacement has no JSON-special characters, so the content stays JSON; external
+// content gets a label line before it (SECURITY.md, prompt injection).
 const result = async (
 	deps: StepDeps,
 	call: ToolCall,
 	r: Result<unknown, Failure>,
+	external = false,
 ): Promise<ToolOutcome> => {
-	const content = await masked(deps, JSON.stringify(r));
+	const json = await masked(deps, JSON.stringify(r));
+	const content = external
+		? `${EXTERNAL_LABEL}
+${json}`
+		: json;
 	return {
 		kind: "result",
 		message: { role: "tool", toolCallId: call.id, content },
+		...(external ? { external } : {}),
 	};
 };
 
@@ -214,7 +227,7 @@ export const callTool = async (
 	});
 	if (!out.ok && out.error.code === "approval_required" && "rule" in out.error)
 		return { kind: "approval", rule: String(out.error.rule) };
-	return result(deps, call, out);
+	return result(deps, call, out, entry.external === true);
 };
 
 /** Records the working tree before a writing step; no vcs.git@1 means no checkpoint (Phase 4). */

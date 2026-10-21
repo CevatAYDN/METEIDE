@@ -1,11 +1,11 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { RunView } from "@mete/contracts";
+import { type CapabilityRef, ok, type RunView } from "@mete/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createArtifactStore } from "../../src/infrastructure/artifact-store.js";
 import type { TemplateDirs } from "../../src/infrastructure/template-store.js";
-import { engineHarness, reply, typesOf } from "../helpers/engine.js";
+import { engineHarness, reply, type Tool, typesOf } from "../helpers/engine.js";
 
 // A pipeline of two tasks: the second reads the first one's report.
 const PIPELINE = `apiVersion: mete/v1
@@ -258,6 +258,44 @@ describe("team runs", () => {
 			role: "user",
 			content: "Feedback on your last submission: Answer with the JSON only",
 		});
+	});
+
+	it("taints a task's later tool calls once web content joined it", async () => {
+		await writeFile(
+			join(templates.builtIn, "duo.yaml"),
+			PIPELINE.replace(
+				"capabilities: [fs.read@1]",
+				"capabilities: [web.search@1, fs.read@1]",
+			),
+		);
+		const seen: { ref: string; tainted: boolean | undefined }[] = [];
+		const tool = (ref: CapabilityRef): readonly [CapabilityRef, Tool] => [
+			ref,
+			async (_input, ctx) => {
+				seen.push({ ref, tainted: ctx.tainted });
+				return ok({});
+			},
+		];
+		const h = engineHarness({
+			scripts: [
+				reply("", [{ name: "web_search", args: { query: "free models" } }]),
+				reply("", [{ name: "fs_read", args: { path: "a.md" } }]),
+				reply("facts"),
+				reply("draft"),
+			],
+			tools: [tool("web.search@1"), tool("fs.read@1")],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "completed");
+		expect(seen).toEqual([
+			{ ref: "web.search@1", tainted: undefined },
+			{ ref: "fs.read@1", tainted: true },
+		]);
+		const fed = h.requests[1]?.messages.at(-1);
+		expect(String(fed?.content)).toMatch(
+			/^External content from the web follows/,
+		);
 	});
 
 	it("asks the reviewer again for a reply that is no verdict", async () => {

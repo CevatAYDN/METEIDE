@@ -55,13 +55,15 @@ export type RunContext = {
 	readonly task?: string | undefined;
 	/** The approver role reviewing `task` in this conversation (docs/08, step 7). */
 	readonly review?: string | undefined;
+	/** External content joined this attempt, so its tool calls are tainted (SECURITY.md). */
+	readonly tainted?: boolean | undefined;
 };
 
 /** What happens to a run. */
 export type RunEvent =
 	| { type: "START"; at: number }
 	| { type: "REPLIED"; message: Assistant; finish: Finish }
-	| { type: "TOOL_DONE"; message: ToolMessage }
+	| { type: "TOOL_DONE"; message: ToolMessage; external?: boolean }
 	| { type: "MODEL"; agent: AgentRef }
 	| { type: "TEAM"; team: TeamState }
 	| { type: "REPAIR"; team: TeamState; content: string }
@@ -152,6 +154,7 @@ export const runMachine = setup({
 				checkpointed: -1,
 				agent: undefined,
 				review: event.review,
+				tainted: false,
 			})),
 		},
 		REVIEWED: {
@@ -160,6 +163,8 @@ export const runMachine = setup({
 		TOOL_DONE: {
 			actions: assign({
 				messages: ({ context, event }) => [...context.messages, event.message],
+				tainted: ({ context, event }) =>
+					context.tainted || event.external === true,
 			}),
 		},
 		CHECKPOINTED: {

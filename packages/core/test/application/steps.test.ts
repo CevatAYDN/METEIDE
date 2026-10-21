@@ -6,7 +6,11 @@ import type {
 import { createCapabilityRegistry } from "@mete/kernel";
 import { describe, expect, it } from "vitest";
 import { callModel, callTool } from "../../src/application/steps.js";
-import { type Seat, SINGLE_AGENT } from "../../src/domain/tools.js";
+import {
+	EXTERNAL_LABEL,
+	type Seat,
+	SINGLE_AGENT,
+} from "../../src/domain/tools.js";
 import { reply } from "../helpers/engine.js";
 
 const setup = (refs: CapabilityRef[]) => {
@@ -60,6 +64,24 @@ describe("steps for a seat", () => {
 		expect(asked[0]?.target).toEqual({ tier: "reasoning" });
 		expect(asked[0]?.needs).toBeUndefined();
 		expect(names(asked[0])).toEqual(["fs_read", "fs_write"]);
+	});
+
+	it("leaves the web tools out for the single agent and labels a web result as data", async () => {
+		const { deps, asked } = setup(["fs.read@1", "web.search@1"]);
+		await callModel(deps, { ...run, seat: SINGLE_AGENT }, () => {}, signal);
+		expect(names(asked[0])).toEqual(["fs_read"]);
+		const seat: Seat = {
+			tier: "fast",
+			needs: [],
+			capabilities: ["web.search@1"],
+		};
+		const call = { id: "c", name: "web_search", args: { query: "q" } };
+		const out = await callTool(deps, { call, seat }, { signal }, () => {});
+		expect(out.kind === "result" && out.external).toBe(true);
+		const content = out.kind === "result" ? out.message.content : "";
+		const [label, json] = content.split("\n");
+		expect(label).toBe(EXTERNAL_LABEL);
+		expect(JSON.parse(json ?? "")).toEqual({ ok: true, value: {} });
 	});
 
 	it("refuses a tool call outside the seat without running it", async () => {
