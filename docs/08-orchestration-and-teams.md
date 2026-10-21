@@ -134,13 +134,15 @@ Rules:
 7. Approve: the approver role (and the human when listed in `human_checkpoints`) approves or returns it with feedback.
 8. Remember: if enabled, lessons are written to the workspace vault.
 
+A task's `dependsOn` is its template task's `context`. A submitted task with no `approval` that is not in `human_checkpoints` is approved at once; with both, the approver role approves first and then the human; a revision forgets the approvals of the earlier submission. The core keeps the tasks and the template the run started from in the run snapshot, so a changed file does not change a running team \[D\].
+
 ## Agent context assembly
 
 Each model call receives only: role goal and backstory, the task, its acceptance criteria, the start brief (Run memory), the needed sections of `context` artifacts, up to 8 `knowledge.search@1` results, matching skills, and the operating system and shell name \[C\]. When the context reaches 70% of the model's window, older turns are summarized into the run log \[D\].
 
 ## Parallel work and merging
 
-- Tasks whose dependencies are approved run in parallel, limited by the quota scheduler.
+- Tasks whose dependencies are approved run in parallel, limited by the quota scheduler. Until that comes, the core runs them one at a time in template order \[D\].
 - Every writing agent works in its own git worktree under the global `worktrees/` folder \[C\].
 - The PM's task list assigns file ownership; two parallel tasks MUST NOT own the same file \[C\].
 - After approval, the core merges the worktree branch. A conflict creates a "resolve merge conflict" task for the owning role; if that fails, the human decides \[D\].
