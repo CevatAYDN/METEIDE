@@ -1,6 +1,6 @@
 import { CapabilityRefSchema, err, ok } from "@mete/contracts";
 import { z } from "zod";
-import type { ConfigReader } from "./module.js";
+import type { ConfigInvalid, ConfigReader } from "./module.js";
 
 // Configuration layers from ARCHITECTURE.md (Configuration).
 
@@ -50,6 +50,28 @@ const depthOf = (value: unknown, path: ReadonlyArray<string>): number => {
 	return path.length;
 };
 
+// The bad or missing value belongs to the file that sets the most of its path;
+// the workspace wins a tie, as it does on merge.
+const blame = (
+	layers: ConfigLayers,
+	key: string,
+	path: ReadonlyArray<string>,
+	reason: string,
+): ConfigInvalid => {
+	const ws = layers.workspace[key];
+	const wsDepth = ws === undefined ? -1 : depthOf(ws.value, path);
+	const globalDepth = depthOf(own(layers.global.sections, key), path);
+	const fromWorkspace =
+		ws !== undefined &&
+		(path.length === 0 || (wsDepth > 0 && wsDepth >= globalDepth));
+	return {
+		code: "config_invalid",
+		file: fromWorkspace ? ws.file : layers.global.file,
+		path: (fromWorkspace ? path : [key, ...path]).join("."),
+		reason,
+	};
+};
+
 /** Reads merged sections; each call validates against the caller's schema. */
 export const createConfigReader = (layers: ConfigLayers): ConfigReader => ({
 	get(key, schema) {
@@ -59,18 +81,6 @@ export const createConfigReader = (layers: ConfigLayers): ConfigReader => ({
 		if (r.success) return ok(r.data);
 		const [issue] = r.error.issues;
 		const path = (issue?.path ?? []).map(String);
-		// The bad or missing value belongs to the file that sets the most of its path;
-		// the workspace wins a tie, as it does on merge.
-		const wsDepth = ws === undefined ? -1 : depthOf(ws.value, path);
-		const globalDepth = depthOf(own(layers.global.sections, key), path);
-		const fromWorkspace =
-			ws !== undefined &&
-			(path.length === 0 || (wsDepth > 0 && wsDepth >= globalDepth));
-		return err({
-			code: "config_invalid",
-			file: fromWorkspace ? ws.file : layers.global.file,
-			path: (fromWorkspace ? path : [key, ...path]).join("."),
-			reason: issue?.message ?? "invalid value",
-		});
+		return err(blame(layers, key, path, issue?.message ?? "invalid value"));
 	},
 });

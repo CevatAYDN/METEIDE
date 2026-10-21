@@ -33,6 +33,19 @@ const matches = (pattern: string, type: string): boolean =>
 		? type.startsWith(pattern.slice(0, -1))
 		: pattern === type;
 
+// One subscriber's call; a throw goes to the sink so the others still run.
+const deliver = (
+	s: Subscription,
+	event: MeteEvent,
+	onHandlerError: HandlerErrorSink,
+) => {
+	try {
+		s.handler(event);
+	} catch (error) {
+		onHandlerError(error, event);
+	}
+};
+
 /** Creates a bus that isolates subscribers: one throwing handler never stops the others. */
 export const createEventBus = (onHandlerError: HandlerErrorSink): EventBus => {
 	const subscriptions = new Set<Subscription>();
@@ -42,14 +55,9 @@ export const createEventBus = (onHandlerError: HandlerErrorSink): EventBus => {
 			// Typed in-process callers cannot normally get here, so it is a bug (ADR-034).
 			if (!parsed.ok) throw new Error(parsed.error.issues.join("; "));
 			// Snapshot: a handler may subscribe or dispose while this publish runs.
-			for (const s of [...subscriptions]) {
-				if (!subscriptions.has(s) || !matches(s.pattern, event.type)) continue;
-				try {
-					s.handler(event);
-				} catch (error) {
-					onHandlerError(error, event);
-				}
-			}
+			for (const s of [...subscriptions])
+				if (subscriptions.has(s) && matches(s.pattern, event.type))
+					deliver(s, event, onHandlerError);
 		},
 		subscribe(type, handler) {
 			const sub: Subscription = {
