@@ -2,7 +2,7 @@
 
 Repository files: `docs/adr/NNN-<slug>.md`, one per row. Depends on: 02 Glossary, 03 Architecture.
 
-These 37 decisions are accepted. Changing one requires a new ADR that marks the old one "Superseded by ADR-NNN"; code MUST follow the accepted set.
+These 38 decisions are accepted. Changing one requires a new ADR that marks the old one "Superseded by ADR-NNN"; code MUST follow the accepted set.
 
 | ADR | Decision | Reason | Rejected alternatives | Source |
 | --- | --- | --- | --- | --- |
@@ -43,6 +43,7 @@ These 37 decisions are accepted. Changing one requires a new ADR that marks the 
 | 035 | A new runtime dependency requires a new ADR | Keeps the stack small and reviewed | Free dependency addition | D |
 | 036 | Shared kernel types (`Result`, `CapabilityRef`, `ModuleManifest`, event envelope) live in `@mete/contracts`; `kernel` imports `contracts` and nothing else; `contracts` imports no METE package | ROADMAP builds `contracts` before `kernel` because the kernel depends on it; tab 07 puts event schemas, including the kernel's `module.*` events, in `@mete/contracts` | Types inside `kernel` (contracts would then import kernel); a third shared package | D |
 | 037 | The kernel's event bus and circuit breaker are small own code in `@mete/kernel`, not Emittery or opossum | Tab 06 fixes synchronous `publish(): void` delivery and a breaker that opens after 5 consecutive failures; Emittery's `emit` is async, and opossum trips on an error rate over a rolling window with no consecutive-failure mode | Emittery with an async `publish`; opossum with tab 06 loosened to an error rate | D |
+| 038 | Quota scheduling is small own code in `@mete/quota` (a priority waiting list with round-robin per run, and per-provider, per-unit windows), not p-queue | Tab 09 needs round-robin between runs of one class and limits per provider, unit and model with discovered and header-corrected values; p-queue is FIFO within a priority and has one `intervalCap` per queue, and its newest release old enough under the 14-day rule (9.3.3) is a major behind | p-queue 9.3.3 with a custom `queueClass`, still needing own round-robin and windows | D |
 
 ## ADR file template
 

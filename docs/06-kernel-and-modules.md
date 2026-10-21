@@ -80,6 +80,23 @@ export type AuditFailed = { code: "audit_failed"; message: string };            
 export interface PolicyCheckAdapter { check(input: PolicyCheckInput): Result<PolicyVerdict, AuditFailed> }
 export interface SecretsMaskAdapter { mask(text: string): Promise<{ text: string; masked: number }> }   // tab 09 replacement format
 
+// quota.reserve@1, defined in @mete/contracts; QuotaUnit and QuotaUnitSpec are in tab 09, pool rules in tab 09 (Quota pool).
+export type QuotaAmounts = Partial<Record<QuotaUnit, number>>;
+export type QuotaObservation = { unit: QuotaUnit; limit?: number; remaining?: number; resetsAt?: string; exhausted: boolean };
+                                 // a provider's observe() reads response headers and 429s into these
+export type QuotaRequest = { runId: string; priority: 0 | 1 | 2;   // P0 interactive, P1 foreground, P2 scheduled
+  chain: readonly { providerId: string; modelId: string }[];
+  estimate: QuotaAmounts };      // requests default to 1; tokens are prompt tokens plus max_tokens
+export type Reservation = { id: string; providerId: string; modelId: string };
+export type ReserveFailed = { code: "quota_exhausted"; resumesAt: string } | { code: "aborted" };   // ISO 8601 times
+export type UnknownReservation = { code: "unknown_reservation"; id: string };
+export interface QuotaReserveAdapter {
+  define(specs: readonly QuotaUnitSpec[]): void;
+  reserve(req: QuotaRequest, signal: AbortSignal): Promise<Result<Reservation, ReserveFailed>>;
+  settle(id: string, actual: QuotaAmounts | null,   // null: no call was sent, release the reservation
+    observations: readonly QuotaObservation[]): Result<void, UnknownReservation>;
+}
+
 export interface CapabilityRegistry {
   provide<C>(ref: CapabilityRef, adapter: Adapter<C>): Disposable;
   resolve<C>(ref: CapabilityRef, need?: FeatureSet): Result<AdapterChain<C>, CapabilityMissing>;
@@ -158,6 +175,7 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 | `storage.sql@1` | The workspace and global SQLite databases, with per-module migrations | Native (storage module) | Never empty (essential) |
 | `policy.check@1` | Allow, ask or deny a side-effect action, and write its audit row | Native (security module) | Never empty (essential) |
 | `secrets.mask@1` | Replace secrets in outbound text | Native (security module, secretlint) | Never empty (essential) |
+| `quota.reserve@1` | Reserve and settle provider quota for a model call | Native (quota module) | Never empty (essential) |
 | `llm.chat@1` | Chat with tools and streaming | Gateway → tier chain of discovered free models | Run pauses with reason `quota` or `no_model` |
 | `llm.embed@1` | Embeddings | NVIDIA embedding model | Vector search off; hybrid search continues |
 | `llm.rerank@1` | Reranking | NVIDIA rerank model | Rerank skipped |

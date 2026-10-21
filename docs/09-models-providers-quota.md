@@ -94,9 +94,25 @@ Provider adapters ship these starting values, checked on 2026-10-21. They are ed
 | Firecrawl | credits\_per\_month | 1,000 | About 500 searches |
 | Exa MCP without key | requests\_per\_minute | discover | Learned from errors |
 
+`quota.reserve@1` (types in tab 06) is the pool's only entry point; the gateway calls it around every provider call \[D\]:
+
+- `define(specs)`: the gateway passes a provider adapter's `quotaUnits()` when it first resolves that provider; a later call for the same provider replaces its specs.
+- `reserve(req, signal)`: walks `req.chain` in order and reserves the first entry whose provider has capacity in every unit (Scheduler, step 2). The estimate is 1 request plus the caller's amounts for the other units; a unit without an amount only needs to be open. A unit has capacity when its usage, plus unsettled reservations, plus the amount fits its limit. An empty chain, or an entry whose provider was never defined, is a programmer error and throws. When no entry has capacity and a reset comes within 90 seconds the call waits; otherwise, or once it has waited 90 seconds, it returns `quota_exhausted` with `resumesAt` set to the earliest reset. An aborted signal returns `aborted`.
+- `settle(id, actual, observations)`: once per reservation, after the provider answered or failed. It replaces the reserved amounts with `actual`, where a request unit `actual` leaves out counts 1, as in `reserve`; `actual: null` means no call was sent and releases the reservation. It then applies the observations and publishes `quota.consumed` for each unit with an amount above 0. The gateway MUST settle every reservation; an unsettled one keeps its capacity. Settling an unknown or already settled id returns `unknown_reservation`.
+
+Pool rules \[D\]:
+
+- Windows: `sliding` counts the last minute, day or 30 days, as the unit name says; `fixed_daily` resets at 00:00 UTC and `fixed_monthly` on the 1st at 00:00 UTC. A `resetsAt` read from a response replaces the computed reset. The reset of a sliding window is the moment enough of its oldest amounts leave the window for the waiting amount to fit.
+- A unit with `scope: "model"` is counted per model id, an `account` unit once per provider.
+- The effective limit, first match wins: the user's `quota` configuration (`limits: [{ providerId, unit, limit }]` in the `quota:` section of `settings.yaml`; the pool is shared by all workspaces, so a `.mete/quota.yaml` changes it for every workspace while that one is open), the last `limit` read from a response, a discovered limit, the shipped value. A `remaining` read from a response sets the window's usage to limit minus remaining.
+- `limit: "discover"` means no limit until the first exhausted observation; the limit then becomes the usage in the current window, at least 1.
+- A unit is closed when its usage reaches the limit or an observation says it is exhausted, until `resetsAt` or, without one, until its window resets. Closing publishes `quota.exhausted`; opening again publishes `quota.restored`.
+- Usage of day and month units and learned limits live in the global `mete.db` (`quota_usage`, `quota_limits`), so a restart keeps them; minute units are counted in memory.
+- Quota does not pause runs: the core publishes `run.paused` with the returned `resumesAt` (tab 07), and budgets (Scheduler, step 5) are the core's.
+
 ## Scheduler
 
-1. Priority classes: P0 interactive (the user is waiting), P1 foreground runs, P2 scheduled or triggered runs. Higher classes go first; runs in the same class share capacity round-robin \[C\].
+1. Priority classes: P0 interactive (the user is waiting), P1 foreground runs, P2 scheduled or triggered runs. Higher classes go first; runs in the same class share capacity round-robin \[C\]. Waiting calls are served P0 first; within a class the scheduler serves one call per run in turn, and a new call waits behind waiting calls of its own or a higher class \[D\].
 2. Before each call the scheduler picks the first model in the chain whose provider has capacity in every unit, using prompt tokens plus `max_tokens` as the estimate, and reserves it. The response reconciles the reservation.
 3. No capacity anywhere: wait if a reset comes within 90 seconds; otherwise pause the run with reason `quota` and `resumesAt` set to the earliest reset \[D\].
 4. `media.*` calls are charged to their own provider units, separate from chat \[C\].
