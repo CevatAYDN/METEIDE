@@ -1,4 +1,4 @@
-import type { LlmChatRequest } from "@mete/contracts";
+import { type LlmChatRequest, ok } from "@mete/contracts";
 import { describe, expect, it } from "vitest";
 import { createLlmChat } from "../../src/application/chat.js";
 import {
@@ -125,6 +125,29 @@ describe("llm.chat@1 pipeline", () => {
 			modelId: "n",
 			reason: "quota",
 		});
+	});
+
+	it("names the chain's first model failed when the call moves back to it", async () => {
+		const closed = new Set(["a"]);
+		let failures = 0;
+		const a = fakeProvider("a", [[text("a"), done]]);
+		const b = fakeProvider("b", [[status(503)]], () => {
+			if (++failures === 3) closed.clear();
+			return [];
+		});
+		const q = fakeQuota(closed);
+		const { deps: d } = deps({
+			discover: async () => [
+				offer(a.adapter, "m", 100_000),
+				offer(b.adapter, "n"),
+			],
+			quota: q.quota,
+		});
+		const out = await collect(createLlmChat(d).chat(req, signal()));
+		expect(out.filter((c) => c.type === "model")).toEqual([
+			{ type: "model", providerId: "b", modelId: "n", reason: "quota" },
+			{ type: "model", providerId: "a", modelId: "m", reason: "failed" },
+		]);
 	});
 
 	it("reaches a model behind four of an exhausted provider", async () => {
@@ -287,6 +310,39 @@ describe("llm.chat@1 pipeline", () => {
 				error: { code: "aborted", message: expect.any(String) },
 			},
 		]);
+	});
+
+	it("ends with aborted, not no_model, when the signal aborts during discovery", async () => {
+		const c = new AbortController();
+		const { deps: d } = deps({
+			discover: async () => {
+				c.abort();
+				return [];
+			},
+			quota: fakeQuota().quota,
+		});
+		expect(await collect(createLlmChat(d).chat(req, c.signal))).toEqual([
+			{
+				type: "error",
+				error: { code: "aborted", message: expect.any(String) },
+			},
+		]);
+	});
+
+	it("settles a grant for a model outside the chain before it throws", async () => {
+		const a = fakeProvider("a", [[done]]);
+		const q = fakeQuota();
+		const { deps: d } = deps({
+			discover: async () => [offer(a.adapter, "m")],
+			quota: {
+				...q.quota,
+				reserve: async () => ok({ id: "r9", providerId: "x", modelId: "y" }),
+			},
+		});
+		await expect(collect(createLlmChat(d).chat(req, signal()))).rejects.toThrow(
+			"not in the chain",
+		);
+		expect(q.settled).toEqual([{ id: "r9", actual: null, observations: [] }]);
 	});
 
 	it("settles once when the caller stops reading mid-stream", async () => {

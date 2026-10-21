@@ -240,15 +240,17 @@ const grant = async (
 	const o = remaining.find(
 		(x) => x.model.providerId === providerId && x.model.id === modelId,
 	);
-	if (!o)
+	if (!o) {
+		deps.quota.settle(id, null, []);
 		throw new Error(`quota granted ${modelId}, which is not in the chain`);
+	}
 	return ok({ o, id });
 };
 
 // The model chunk when the call moves to another model, else undefined.
 const nameModel = (st: WalkState, o: Offered, first: Offered | undefined) => {
 	if (o === st.shown) return undefined;
-	const reason = o === first ? "first" : st.moved ? "failed" : "quota";
+	const reason = st.moved ? "failed" : o === first ? "first" : "quota";
 	st.shown = o;
 	st.moved = false;
 	return { type: "model", ...refOf(o), reason } as const;
@@ -340,6 +342,8 @@ async function* chat(
 ): AsyncGenerator<LlmChunk> {
 	if (signal.aborted) return yield fail(ABORTED);
 	const found = await deps.discover(signal);
+	// A listing cut short by the abort is empty; that is not no_model.
+	if (signal.aborted) return yield fail(ABORTED);
 	const offered = found.filter((o) => !refused.has(keyOf(o)));
 	const models = resolveChain(offered, req.target, deps.rules(), req);
 	const chain = models.flatMap((m) => offered.filter((o) => o.model === m));
