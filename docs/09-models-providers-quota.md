@@ -70,7 +70,7 @@ Embedding and reranking are provider capabilities (`provider.embed@1`, `provider
 
 ## Tier resolution
 
-1. Candidates: discovered models that are free, not deprecated, meet the tier requirements and the role's `needs`, and pass the privacy policy.
+1. Candidates: discovered models that the model mode allows (free models only by default, see Model mode and spending), are not deprecated, meet the tier requirements and the role's `needs`, and pass the privacy policy.
 2. Order: learned score when the model has 5 or more samples for this role and task kind; otherwise the community priority list `tiers.yaml` shipped in `@mete/providers`; then larger context window first \[D\].
 3. Apply `prefer_different_family_than`.
 4. The chain is every candidate in that order. Quota reserves the first one whose provider is open, so the models of a closed provider are skipped, and a call tries at most 4 models; a model that refused the key does not count toward the 4 \[D\]. The agent uses the first; failures move down the chain and publish `agent.model.changed`.
@@ -78,6 +78,18 @@ Embedding and reranking are provider capabilities (`provider.embed@1`, `provider
 `tiers.yaml` maps model id patterns to tiers per provider. It is data, editable by the user and the community; templates never reference it.
 
 A requirement or a role's need is met only by a known value: `toolCalling: true` for `tool_calling`, `vision: true` for `vision` and image input, a context of 128k or more for `long_context`; `"unknown"` meets none of them. `avoidFamilies` drops candidates of those families when others remain. Until the learning router exists (core-engine), the order is context window only, larger first; learned scores and `tiers.yaml` come with the router \[D\].
+
+## Model mode and spending
+
+From Phase 2 the gateway is a router over free and paid models, so work does not stop when the free limits run out (ADR-042) \[D\]:
+
+- The `gateway:` section of the settings holds `models: free | paid | both` (default `free`) and `dailySpendUsd` (default 1); like any section it can also come from the workspace as `.mete/gateway.yaml`.
+- `free` keeps the candidates of Tier resolution as they are. `paid` admits only paid models. `both` puts the free candidates first, in their usual order, and the paid candidates after them, in the same order; a run pauses only when every candidate is closed by quota, refused or capped.
+- A paid model is a discovered model with a known price: OpenRouter's `/models` gives `pricing` per model, and `models.yaml` rows give `price` for NVIDIA, OpenCode Zen and custom endpoints. A model without a price is never a paid candidate, as a model without a `free: true` row is never a free one.
+- Spending is METE's own quota unit `usd_per_day`, account-wide over every provider, with the limit `dailySpendUsd` and a fixed reset at 00:00 UTC. A paid call reserves its estimated cost (the token estimate of Gateway times the price) and settles the cost of its reported usage. At the cap, `both` goes on with free models only and `paid` pauses the run with reason `quota` until the reset.
+- The privacy rules (Privacy, ADR-021) apply to paid models unchanged.
+- Credits on an OpenRouter account also raise its `:free` daily limit from 50 to 1,000 (Quota pool); the pool learns that from the response headers.
+- The contract changes land with the code: `provider.chat@2` adds the optional `ModelInfo.price` (US dollars per million input and output tokens) and `quota.reserve@2` adds the unit `usd_per_day`.
 
 ## Learning router
 
@@ -126,6 +138,7 @@ Provider adapters ship these starting values, checked on 2026-10-21. They are ed
 | OpenRouter `:free` models | requests\_per\_day | 50; 1,000 after a lifetime purchase of 10 credits | Account-wide across all free models; more accounts do not raise it |
 | NVIDIA Build | requests\_per\_minute | 40 | The real value is shown in the user's NVIDIA dashboard |
 | OpenCode Zen free models | requests\_per\_minute | discover | Learned from 429 responses |
+| Paid models, every provider (ADR-042) | usd\_per\_day | 1 | METE's own spending cap from `gateway.dailySpendUsd`, not a provider limit; from Phase 2 |
 | Hugging Face ZeroGPU | gpu\_seconds\_per\_day | 300 | About 5 minutes per day on a free account |
 | Tavily | credits\_per\_month | 1,000 | No card required |
 | Exa API | credits\_per\_month | 10 | US dollars of monthly free credit |

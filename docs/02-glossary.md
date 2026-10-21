@@ -37,7 +37,8 @@ Every term below has exactly one meaning across all tabs. Code identifiers use t
 | Policy | Workspace rules for autonomy, permissions, budgets and blocked actions |
 | Provider | A source of models (NVIDIA Build, OpenRouter, OpenCode Zen, a custom endpoint) |
 | Quota pool | Shared accounting of all provider limits across all runs |
-| Quota unit | One kind of limit: requests per minute or day, tokens per minute, credits per month, GPU seconds per day |
+| Quota unit | One kind of limit: requests per minute or day, tokens per minute, credits per month, GPU seconds per day, and METE's own US dollars per day for paid models |
+| Model mode | Which models the gateway may choose: `free`, `paid` or `both` (ADR-042) |
 | Registry | A source that lists installable plugins, MCP servers, skills or templates |
 | Replay | Playback of a past run from its event log |
 | Revision limit | Maximum number of times a task may be sent back before it is blocked |

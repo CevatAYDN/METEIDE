@@ -2,7 +2,7 @@
 
 Repository file: `docs/01-vision.md`. Depends on: none.
 
-METE IDE exists so that people without paid AI subscriptions can run real projects with teams of free models. It wins by system design, not by model strength.
+METE IDE exists so that people without paid AI subscriptions can run real projects with teams of free models; free models are the default, and paid models are an option for those who want them (ADR-042). It wins by system design, not by model strength.
 
 ## Problem
 

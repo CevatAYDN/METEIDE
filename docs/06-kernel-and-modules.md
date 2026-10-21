@@ -82,6 +82,7 @@ export interface SecretsMaskAdapter { mask(text: string): Promise<{ text: string
 
 // provider.chat@1, provider.embed@1 and provider.rerank@1, defined in @mete/contracts; ProviderAdapter and ModelInfo
 // are in tab 09. Each provider module provides one adapter object under every ref it supports.
+// From Phase 2, provider.chat@2 adds an optional ModelInfo.price (US dollars per million input and output tokens) for paid models (ADR-042).
 export type ContentPart = { type: "text"; text: string } | { type: "image"; mediaType: string; data: string };   // base64 image
 export type ToolCall = { id: string; name: string; args: unknown };
 export type ChatMessage =
@@ -288,7 +289,7 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 | `policy.check@1` | Allow, ask or deny a side-effect action, and write its audit row | Native (security module) | Never empty (essential) |
 | `secrets.mask@1` | Replace secrets in outbound text | Native (security module, secretlint) | Never empty (essential) |
 | `quota.reserve@1` | Reserve and settle provider quota for a model call | Native (quota module) | Never empty (essential) |
-| `llm.chat@1` | Chat with tools and streaming | Gateway → tier chain of discovered free models | Run pauses with reason `quota` or `no_model` |
+| `llm.chat@1` | Chat with tools and streaming | Gateway → tier chain of discovered models the model mode allows (free by default, ADR-042) | Run pauses with reason `quota` or `no_model` |
 | `llm.embed@1` | Embeddings | NVIDIA embedding model | Vector search off; hybrid search continues |
 | `llm.rerank@1` | Reranking | NVIDIA rerank model | Rerank skipped |
 | `fs.*@1` | Files: read, write, edit, list, glob, grep | Native | Never empty (essential) |
