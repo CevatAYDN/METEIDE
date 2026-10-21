@@ -58,6 +58,7 @@ const dispatch = (
 	io: Io,
 ): Promise<number> | number => {
 	const [command, ...rest] = p.positionals;
+	const reader = { ...opts, recover: false };
 	const goal = rest.join(" ").trim();
 	switch (command) {
 		case "run":
@@ -69,11 +70,11 @@ const dispatch = (
 				? withApp(opts, io, (a) => runCommand(a, io, { goal }))
 				: usage(io);
 		case "status":
-			return withApp(opts, io, (a) => statusCommand(a, io, rest[0]));
+			return withApp(reader, io, (a) => statusCommand(a, io, rest[0]));
 		case "stop": {
 			const target = p.values.all ? "all" : rest[0];
 			return target
-				? withApp(opts, io, (a) => stopCommand(a, io, target))
+				? withApp(reader, io, (a) => stopCommand(a, io, target))
 				: usage(io);
 		}
 		case "key":

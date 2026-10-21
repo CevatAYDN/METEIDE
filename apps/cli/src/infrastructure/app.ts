@@ -48,6 +48,8 @@ export type AppOptions = {
 	readonly secrets?: SecretStore;
 	/** Modules that provide provider.chat@1; the four built-in ones by default. */
 	readonly providers?: readonly MeteModule[];
+	/** Only the process that drives runs recovers them (docs/07); default true. */
+	readonly recover?: boolean;
 };
 
 /** A started app. */
@@ -87,7 +89,7 @@ const modulesFor = (opts: AppOptions, workspaceId: string): MeteModule[] => {
 		createToolsFsModule(dirs),
 		createToolsShellModule(dirs),
 		createVcsGitModule(dirs),
-		createCoreEngineModule({ workspaceId }),
+		createCoreEngineModule({ workspaceId, recover: opts.recover !== false }),
 	];
 };
 

@@ -136,6 +136,66 @@ describe("mete stop and mete key", () => {
 		expect(again.out[0]).toMatch(/cancelled\s+g$/);
 	});
 
+	it("resumes a paused run and refuses an unknown one", async () => {
+		const { app } = await setup({ noModels: true });
+		const first = recordingIo();
+		expect(await runCommand(app, first.io, { goal: "g" })).toBe(2);
+		const runId = first.out[0]?.split(" ")[1] ?? "";
+		const again = recordingIo();
+		expect(await runCommand(app, again.io, { resume: runId })).toBe(2);
+		expect(again.out).toEqual(["resumed", "paused: no_model"]);
+		const unknown = recordingIo();
+		expect(
+			await runCommand(app, unknown.io, {
+				resume: "00000000-0000-4000-8000-000000000000",
+			}),
+		).toBe(1);
+		expect(unknown.err[0]).toMatch(/^no run /);
+	});
+
+	it("explains an approval pause under the built-in policy", async () => {
+		const { app } = await setup({
+			script: [
+				[
+					{
+						type: "tool-call",
+						id: "c1",
+						name: "shell_exec",
+						args: { command: "pnpm test" },
+					},
+					finish("tool-calls"),
+				],
+			],
+		});
+		const t = recordingIo();
+		expect(await runCommand(app, t.io, { goal: "run the tests" })).toBe(2);
+		expect(t.out.at(-1)).toBe("paused: approval");
+		expect(t.err.join("\n")).toContain('overrides: { "shell.exec@1": 2 }');
+	});
+
+	it("leaves a run another process drives alone and points at Ctrl+C", async () => {
+		const { repo, app } = await setup({ hang: true });
+		const t = recordingIo();
+		const running = runCommand(app, t.io, { goal: "wait" });
+		await vi.waitFor(() => expect(t.out.length).toBeGreaterThan(0));
+		const runId = t.out[0]?.split(" ")[1] ?? "";
+		const second = await createApp({
+			workspaceDir: repo.workspaceDir,
+			globalDir: repo.globalDir,
+			logger: silent,
+			secrets: memorySecrets(),
+			providers: [scriptedProvider({ hang: true })],
+			recover: false,
+		});
+		if (!second.ok) throw new Error("second app");
+		const s = recordingIo();
+		expect(await stopCommand(second.value, s.io, runId)).toBe(1);
+		expect(s.err[0]).toContain("is running; a running run stops with Ctrl+C");
+		await second.value.stop();
+		t.interrupt();
+		expect(await running).toBe(1);
+	});
+
 	it("stores, lists and deletes a key without taking it from argv", async () => {
 		const secrets = memorySecrets();
 		const t = recordingIo("sk-test");

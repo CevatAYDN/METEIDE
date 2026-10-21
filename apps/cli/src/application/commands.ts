@@ -27,12 +27,14 @@ type Ended = RunView["status"];
 // Without a run id it follows the first run created after it subscribed: a CLI starts one run.
 const follow = (events: EventBus, io: Io, resume?: string) => {
 	let target = resume;
+	let pausedFor: string | undefined;
 	const ended = new Promise<Ended>((resolve) => {
 		const show = (e: MeteEvent) => {
 			if (target === undefined && e.type === "run.created") target = e.runId;
 			if (e.runId === undefined || e.runId !== target) return;
 			const line = eventLine(e);
 			if (line) io.out(line);
+			if (e.type === "run.paused") pausedFor = e.payload.reason;
 			const end = endOf(e);
 			if (end) done(end);
 		};
@@ -44,7 +46,7 @@ const follow = (events: EventBus, io: Io, resume?: string) => {
 			resolve(status);
 		};
 	});
-	return { ended, runId: () => target };
+	return { ended, runId: () => target, pausedFor: () => pausedFor };
 };
 
 const endOf = (e: MeteEvent): Ended | undefined => {
@@ -55,6 +57,13 @@ const endOf = (e: MeteEvent): Ended | undefined => {
 	return undefined;
 };
 
+// Approvals come in Phase 2; until then the user decides through the policy (ARCHITECTURE.md, CLI).
+const APPROVAL_HINT = [
+	"The agent needs an approval, and approvals come in Phase 2.",
+	"The built-in policy keeps shell.exec@1 at level 1. To let it run allow-listed commands,",
+	'add  overrides: { "shell.exec@1": 2 }  to .mete/policy.yaml.',
+];
+
 const withEngine = async (
 	app: App,
 	io: Io,
@@ -63,7 +72,8 @@ const withEngine = async (
 	const engine = engineOf(app);
 	if (engine.ok) return use(engine.value);
 	for (const line of engine.error) io.err(line);
-	io.err("Add a provider key with: mete key set openrouter");
+	if (app.inactive.some((m) => m.moduleId.startsWith("provider-")))
+		io.err("Add a provider key with: mete key set openrouter");
 	return 1;
 };
 
@@ -89,6 +99,8 @@ export const runCommand = (
 		});
 		const status = await run.ended;
 		stopWatching();
+		if (status === "paused" && run.pausedFor() === "approval")
+			for (const line of APPROVAL_HINT) io.err(line);
 		if (status === "paused")
 			io.err(`Resume it with: mete run --resume ${run.runId()}`);
 		return exitCode(status);
