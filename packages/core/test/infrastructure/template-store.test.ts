@@ -64,6 +64,18 @@ describe("loadTemplate", () => {
 		});
 	});
 
+	it("refuses a guardrail whose artifact type has no schema yet", async () => {
+		const text = yaml("solo", "Mine").replace(
+			"title: Draft }",
+			"title: Draft, guardrail: { schema: gdd@1 } }",
+		);
+		await put(teams(), "solo", text);
+		const r = await loadTemplate(dirs, "solo");
+		expect(r.ok ? [] : r.error).toMatchObject({
+			issues: ["tasks.0.guardrail.schema: gdd@1 has no schema yet"],
+		});
+	});
+
 	it("reports broken YAML as invalid_template", async () => {
 		await put(teams(), "solo", "roles: [");
 		expect(code(await loadTemplate(dirs, "solo"))).toBe("invalid_template");

@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+	artifactSchema,
 	err,
 	ok,
 	parseTemplate,
@@ -48,6 +49,15 @@ const readText = async (
 	}
 };
 
+// A guardrail needs its artifact schema; without it every submission would fail and spend quota.
+const unknownGuardrails = (t: TeamTemplate) =>
+	t.tasks.flatMap((task, i) => {
+		const schema = task.guardrail?.schema;
+		return schema && !artifactSchema(schema)
+			? [`tasks.${i}.guardrail.schema: ${schema} has no schema yet`]
+			: [];
+	});
+
 const fromText = (
 	id: string,
 	text: string,
@@ -59,13 +69,17 @@ const fromText = (
 		return err(invalid(e instanceof Error ? e.message : String(e)));
 	}
 	const t = parseTemplate(data);
-	if (t.ok && t.value.metadata.id !== id)
+	if (!t.ok) return t;
+	if (t.value.metadata.id !== id)
 		return err(
 			invalid(
 				`metadata.id: ${t.value.metadata.id} does not match the file name ${id}`,
 			),
 		);
-	return t;
+	const unknown = unknownGuardrails(t.value);
+	return unknown.length > 0
+		? err({ code: "invalid_template", issues: unknown })
+		: t;
 };
 
 /** Loads one template by id, the workspace's copy first. */

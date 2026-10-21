@@ -42,6 +42,8 @@ const TaskEntrySchema = z.strictObject({
 	messages: z.array(ChatRequestSchema.shape.messages.element),
 	/** Who approved the current submission: approver roles, "human" or "system". */
 	approvals: z.array(z.string()),
+	/** Guardrail repairs asked in the current attempt (docs/08, step 4). */
+	repairs: z.number().int().nonnegative(),
 });
 
 /** A team run's state as the run snapshot keeps it; checked on load like the rest. */
@@ -82,6 +84,7 @@ export const teamOf = (
 				},
 				messages: [],
 				approvals: [],
+				repairs: 0,
 			},
 		]),
 	),
@@ -101,6 +104,14 @@ export const keepMessages = (
 	const entry = team.tasks[id];
 	return entry
 		? withEntry(team, id, { ...entry, messages: [...messages] })
+		: team;
+};
+
+/** Counts one guardrail repair of a task. */
+export const addRepair = (team: TeamState, id: string): TeamState => {
+	const entry = team.tasks[id];
+	return entry
+		? withEntry(team, id, { ...entry, repairs: entry.repairs + 1 })
 		: team;
 };
 
@@ -124,6 +135,8 @@ export const applyTask = (
 		status: next.value,
 		context: next.context,
 		approvals: fresh ? [] : entry.approvals,
+		repairs:
+			event.type === "START" || event.type === "SUBMIT" ? 0 : entry.repairs,
 	};
 	const out = { team: withEntry(team, id, updated) };
 	return next.value === entry.status

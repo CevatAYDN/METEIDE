@@ -62,6 +62,7 @@ export type RunEvent =
 	| { type: "TOOL_DONE"; message: ToolMessage }
 	| { type: "MODEL"; agent: AgentRef }
 	| { type: "TEAM"; team: TeamState }
+	| { type: "REPAIR"; team: TeamState; content: string }
 	| {
 			type: "SWITCH";
 			task: string;
@@ -127,6 +128,16 @@ export const runMachine = setup({
 	on: {
 		MODEL: { actions: assign({ agent: ({ event }) => event.agent }) },
 		TEAM: { actions: assign({ team: ({ event }) => event.team }) },
+		// A guardrail repair stays in the attempt: one more user message, turns keep counting.
+		REPAIR: {
+			actions: assign(({ context, event }) => ({
+				team: event.team,
+				messages: [
+					...context.messages,
+					{ role: "user" as const, content: event.content },
+				],
+			})),
+		},
 		// A new attempt: its own turns, checkpoints and agent (docs/08, Task execution sequence).
 		SWITCH: {
 			actions: assign(({ event }) => ({

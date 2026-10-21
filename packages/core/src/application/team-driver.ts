@@ -1,4 +1,7 @@
+import { checkReport, repairMessage } from "../domain/guardrail.js";
+import type { TaskEvent } from "../domain/task-machine.js";
 import {
+	addRepair,
 	applyTask,
 	approve,
 	keepMessages,
@@ -6,7 +9,7 @@ import {
 	type TaskChange,
 	type TeamState,
 } from "../domain/team.js";
-import { taskConversation } from "../domain/team-run.js";
+import { guardrailOf, taskConversation } from "../domain/team-run.js";
 import {
 	apply,
 	type EngineState,
@@ -38,15 +41,37 @@ const stuck = (s: EngineState, l: Live) =>
 		message: "the team made no progress",
 	});
 
-/** Submits the active task with its agent's last reply as the report. */
-export const submit = (s: EngineState, l: Live, report: string) => {
+// Ends the attempt: its conversation is kept and the task moves on.
+const endAttempt = (s: EngineState, l: Live, event: TaskEvent) => {
 	const { team, task, messages } = l.snapshot.context;
 	if (!team || !task) return stuck(s, l);
-	const kept = keepMessages(team, task, messages);
-	const r = applyTask(kept, task, { type: "SUBMIT", report });
+	const r = applyTask(keepMessages(team, task, messages), task, event);
 	if (!r.change) return stuck(s, l);
 	apply(s, l, { type: "TEAM", team: r.team });
 	changed(s, l, team.tasks[task]?.id, r.change);
+};
+
+/**
+ * Submits the active task with its agent's last reply as the report, once the guardrail passes;
+ * a failed check asks for a repair up to max_retries times, then blocks the task (docs/08).
+ * shortcut: verify gates do not run yet; no Phase 2 template uses them.
+ */
+export const submit = (s: EngineState, l: Live, reply: string) => {
+	const { team, task } = l.snapshot.context;
+	if (!team || !task) return stuck(s, l);
+	const guard = guardrailOf(team, task);
+	const checked = checkReport(guard?.schema, reply);
+	if (checked.ok)
+		return endAttempt(s, l, { type: "SUBMIT", report: checked.report });
+	if (guard && (team.tasks[task]?.repairs ?? 0) < guard.max_retries) {
+		const content = repairMessage(guard.schema, checked.issues);
+		return apply(s, l, {
+			type: "REPAIR",
+			team: addRepair(team, task),
+			content,
+		});
+	}
+	return endAttempt(s, l, { type: "BLOCK", reason: "guardrail" });
 };
 
 // A task already in progress (after a block was resolved) keeps its agent and goes on.

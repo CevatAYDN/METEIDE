@@ -1,6 +1,7 @@
 import { parseTemplate, type TeamTemplate } from "@mete/contracts";
 import { describe, expect, it } from "vitest";
 import {
+	addRepair,
 	applyTask,
 	approve,
 	nextTeamStep,
@@ -129,6 +130,14 @@ describe("team state", () => {
 			to: "in_progress",
 		});
 		expect(applyTask(t, "a", { type: "APPROVE" }).change).toBeUndefined();
+	});
+
+	it("counts guardrail repairs per attempt", () => {
+		const t = run(teamOf(research()), "a", { type: "START", agentId: "x" });
+		const repaired = addRepair(addRepair(t, "a"), "a");
+		expect(repaired.tasks.a?.repairs).toBe(2);
+		const submitted = run(repaired, "a", { type: "SUBMIT", report: "r" });
+		expect(submitted.tasks.a?.repairs).toBe(0);
 	});
 
 	it("survives a JSON round trip through its schema", () => {

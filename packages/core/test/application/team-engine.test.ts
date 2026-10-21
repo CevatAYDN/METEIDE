@@ -21,6 +21,24 @@ tasks:
 budget: { cloud_requests: 5 }
 `;
 
+// One guarded task whose report must be a research-report@1, repaired at most once.
+const GUARDED = `apiVersion: mete/v1
+kind: TeamTemplate
+metadata: { id: duo, name: Duo, version: 1.0.0 }
+pattern: single
+roles:
+  - { id: writer, name: Writer, goal: Write, tier: fast, capabilities: [] }
+tasks:
+  - { id: report, role: writer, title: Report, guardrail: { schema: research-report@1, max_retries: 1 } }
+`;
+
+const REPORT = JSON.stringify({
+	title: "T",
+	summary: "S",
+	findings: [{ claim: "C", sourceIds: ["s1"] }],
+	sources: [{ id: "s1", url: "https://example.com", title: "E" }],
+});
+
 let root: string;
 let templates: TemplateDirs;
 beforeEach(async () => {
@@ -102,6 +120,41 @@ describe("team runs", () => {
 		const runId = await start(h);
 		await settled(h, runId, "paused");
 		expect(view(h, runId)?.pauseReason).toBe("approval");
+	});
+
+	it("asks for a repair when the report fails its guardrail and submits the repaired one", async () => {
+		await writeFile(join(templates.builtIn, "duo.yaml"), GUARDED);
+		const h = engineHarness({
+			scripts: [
+				reply("here are my notes"),
+				reply(`\`\`\`json\n${REPORT}\n\`\`\``),
+			],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "completed");
+		const repair = h.requests[1]?.messages.at(-1);
+		expect(repair?.role).toBe("user");
+		expect(String(repair?.content)).toContain(
+			"Your report does not match research-report@1",
+		);
+		expect(h.events.at(-1)?.payload).toEqual({ summary: REPORT });
+	});
+
+	it("blocks the task when the repairs run out and pauses the run", async () => {
+		await writeFile(join(templates.builtIn, "duo.yaml"), GUARDED);
+		const h = engineHarness({
+			scripts: [reply("notes"), reply("still notes")],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "paused");
+		expect(view(h, runId)?.pauseReason).toBe("approval");
+		const last = h.events
+			.filter((e) => e.type === "task.status.changed")
+			.at(-1);
+		expect(last?.payload).toEqual({ from: "in_progress", to: "blocked" });
+		expect(h.requests).toHaveLength(2);
 	});
 
 	it("answers not_found, bad_input and not_supported for templates it cannot use", async () => {

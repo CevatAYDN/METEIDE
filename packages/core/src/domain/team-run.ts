@@ -15,6 +15,10 @@ const taskOf = (team: TeamState, id: string) =>
 const roleOf = (team: TeamState, id: string) =>
 	team.template.roles.find((r) => r.id === taskOf(team, id)?.role);
 
+/** A task's guardrail, if it has one. */
+export const guardrailOf = (team: TeamState, id: string) =>
+	taskOf(team, id)?.guardrail;
+
 /** The seat of a task's agent: its role's tier, needs and capabilities. */
 export const seatOf = (team: TeamState, id: string): Seat => {
 	const role = roleOf(team, id);
