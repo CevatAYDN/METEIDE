@@ -20,7 +20,7 @@ Built-in tools cover files, shell, web and git; everything else arrives through 
 | `browser.screenshot@1` | url or file, viewport | image artifact | Playwright Chromium, downloaded on first use |
 | `seo.audit@1` | url, categories | score and findings per category | Lighthouse on Playwright Chromium |
 
-On Windows, file operations retry on lock errors 3 times after 100, 300 and 1,000 ms \[D\]. The shell tool tells the model the operating system and shell name in every call \[C\].
+On Windows, file operations retry on lock errors (`EBUSY`, `EPERM`, `EACCES`) 3 times after 100, 300 and 1,000 ms \[D\]. The shell tool tells the model the operating system and shell name in every call \[C\].
 
 ## MCP client
 
