@@ -1,9 +1,5 @@
 import type { LlmChatRequest, ModelInfo, Privacy, Tier } from "@mete/contracts";
-import {
-	CHAIN_LENGTH,
-	LONG_CONTEXT_MIN,
-	TIER_MIN_CONTEXT,
-} from "../defaults.js";
+import { LONG_CONTEXT_MIN, TIER_MIN_CONTEXT } from "../defaults.js";
 
 // Tier resolution and the privacy filter (docs/09, Tier resolution and Privacy).
 
@@ -56,7 +52,7 @@ export const usableModels = (
 		)
 		.map((d) => d.model);
 
-/** The chain for one call: at most 4 models, best first; empty when none fits. */
+/** The candidates for one call, best first; quota picks the first open one. Empty when none fits. */
 export const resolveChain = (
 	found: readonly Discovered[],
 	target: LlmChatRequest["target"],
@@ -73,7 +69,7 @@ export const resolveChain = (
 			meetsTier(m, target.tier) &&
 			(role.needs ?? []).every((n) => meetsNeed(m, n)),
 	);
-	return avoid(fit, role.avoidFamilies ?? [])
-		.sort((a, b) => b.contextWindow - a.contextWindow)
-		.slice(0, CHAIN_LENGTH);
+	return avoid(fit, role.avoidFamilies ?? []).sort(
+		(a, b) => b.contextWindow - a.contextWindow,
+	);
 };

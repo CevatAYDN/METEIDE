@@ -37,7 +37,7 @@ const DEFAULT: PrivacyRules = { allowTraining: false, sensitive: false };
 const ids = (chain: readonly ModelInfo[]) => chain.map((m) => m.id);
 
 describe("resolveChain for a tier", () => {
-	it("keeps free, current models that meet the tier, larger context first, at most 4", () => {
+	it("keeps every free, current model that meets the tier, larger context first", () => {
 		const found = [
 			model("small", { contextWindow: 16_000 }),
 			model("a", { contextWindow: 40_000 }),
@@ -53,6 +53,7 @@ describe("resolveChain for a tier", () => {
 			"c",
 			"a",
 			"d",
+			"e",
 		]);
 	});
 

@@ -149,6 +149,7 @@ const buildChat = (
 				first<SecretsMaskAdapter>(ctx.capabilities, "secrets.mask@1").mask(t),
 		},
 		rules: () => live.rules,
+		warn: (fields, msg) => ctx.logger.warn(fields, msg),
 		sleep: opts.sleep,
 		now: opts.now,
 		record: write,

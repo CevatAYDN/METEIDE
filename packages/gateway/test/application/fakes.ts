@@ -29,8 +29,15 @@ export const done: ChatChunk = {
 export const status = (code: number): ChatChunk => ({
 	type: "error",
 	error: {
+		// The same mapping as the providers' codeForStatus.
 		code:
-			code === 429 ? "rate_limited" : code >= 500 ? "server" : "bad_request",
+			code === 429
+				? "rate_limited"
+				: code === 401 || code === 403
+					? "unauthorized"
+					: code >= 500
+						? "server"
+						: "bad_request",
 		message: String(code),
 		status: code,
 		headers: new Headers(),
@@ -123,7 +130,9 @@ export const deps = (
 ) => {
 	const waits: number[] = [];
 	const calls: ModelCall[] = [];
+	const warned: Readonly<Record<string, unknown>>[] = [];
 	const d: ChatDeps = {
+		warn: (fields) => warned.push(fields),
 		mask: { mask: async (t) => ({ text: t, masked: 0 }) },
 		rules: () => ({ allowTraining: false, sensitive: false }),
 		sleep: async (ms) => {
@@ -133,7 +142,7 @@ export const deps = (
 		record: (c) => calls.push(c),
 		...over,
 	};
-	return { deps: d, waits, calls };
+	return { deps: d, waits, calls, warned };
 };
 
 export const collect = async (chunks: AsyncIterable<LlmChunk>) => {

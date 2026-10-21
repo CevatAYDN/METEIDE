@@ -127,6 +127,78 @@ describe("llm.chat@1 pipeline", () => {
 		});
 	});
 
+	it("reaches a model behind four of an exhausted provider", async () => {
+		const a = fakeProvider("a", [[done]]);
+		const b = fakeProvider("b", [[text("b"), done]]);
+		const q = fakeQuota(new Set(["a"]));
+		const { deps: d } = deps({
+			discover: async () => [
+				...["m1", "m2", "m3", "m4"].map((m) => offer(a.adapter, m, 200_000)),
+				offer(b.adapter, "n"),
+			],
+			quota: q.quota,
+		});
+		const out = await collect(createLlmChat(d).chat(req, signal()));
+		expect(out[0]).toMatchObject({ providerId: "b", reason: "quota" });
+		expect(out.at(-1)).toMatchObject({ type: "finish" });
+	});
+
+	it("leaves out a model that refused the key for later calls, and logs why", async () => {
+		const a = fakeProvider("a", [[status(401)]]);
+		const b = fakeProvider("b", [[text("b"), done]]);
+		const { deps: d, warned } = deps({
+			discover: async () => [
+				offer(a.adapter, "m", 100_000),
+				offer(b.adapter, "n"),
+			],
+			quota: fakeQuota().quota,
+		});
+		const chat = createLlmChat(d);
+		await collect(chat.chat(req, signal()));
+		await collect(chat.chat(req, signal()));
+		expect(a.seen).toHaveLength(1);
+		expect(b.seen).toHaveLength(2);
+		expect(warned).toEqual([
+			expect.objectContaining({ providerId: "a", modelId: "m" }),
+		]);
+	});
+
+	it("does not count refused models against the four tried per call", async () => {
+		const refusing = ["r1", "r2", "r3", "r4", "r5"].map((id) =>
+			fakeProvider(id, [[status(403)]]),
+		);
+		const b = fakeProvider("b", [[text("b"), done]]);
+		const { deps: d } = deps({
+			discover: async () => [
+				...refusing.map((p) => offer(p.adapter, "m", 100_000)),
+				offer(b.adapter, "n"),
+			],
+			quota: fakeQuota().quota,
+		});
+		const out = await collect(createLlmChat(d).chat(req, signal()));
+		expect(out.at(-1)).toMatchObject({ type: "finish" });
+	});
+
+	it("ends after four models failed for another reason", async () => {
+		const failing = ["f1", "f2", "f3", "f4"].map((id) =>
+			fakeProvider(id, [[status(400)]]),
+		);
+		const b = fakeProvider("b", [[text("b"), done]]);
+		const { deps: d } = deps({
+			discover: async () => [
+				...failing.map((p) => offer(p.adapter, "m", 100_000)),
+				offer(b.adapter, "n"),
+			],
+			quota: fakeQuota().quota,
+		});
+		const out = await collect(createLlmChat(d).chat(req, signal()));
+		expect(out.at(-1)).toMatchObject({
+			type: "error",
+			error: { code: "bad_request" },
+		});
+		expect(b.seen).toHaveLength(0);
+	});
+
 	it("moves on at once for a bad request and ends with the last error when the chain runs out", async () => {
 		const a = fakeProvider("a", [[status(400)]]);
 		const q = fakeQuota();

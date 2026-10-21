@@ -1,7 +1,7 @@
 // Named defaults for this package; each names the document tab that defines it (CONTRIBUTING.md).
 import type { Tier } from "@mete/contracts";
 
-/** Tier resolution: the chain is the first 4 candidates (tab 09, Tier resolution). */
+/** Tier resolution: a call tries at most 4 models; one that refused the key does not count (tab 09). */
 export const CHAIN_LENGTH = 4;
 
 /** Tab 09, Model tiers: minimum context window per tier, "k" read as 1000 tokens. */
