@@ -59,7 +59,7 @@ interface Handoff { id: string; workspaceId: string; runId: string;             
 | changes\_requested | in\_progress | The agent resumes with the feedback |
 | blocked | in\_progress | The human resolves the block (answer, new instruction, capability installed) |
 
-Default revision limit: 3 \[D\]. `approved` is final for a task.
+Default revision limit: 3 \[D\]. `approved` is final for a task. A blocked task records why: `clarification`, `capability_missing`, `guardrail` or `revision_limit`; the human's answer or instruction that resolves it, like an approver's feedback, goes to the next attempt \[D\].
 
 ## Run state machine
 
