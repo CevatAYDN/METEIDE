@@ -39,6 +39,14 @@ const REPORT = JSON.stringify({
 	sources: [{ id: "s1", url: "https://example.com", title: "E" }],
 });
 
+// The pipeline with the lead approving the write-up; `extra` adds top-level keys.
+const useLead = (extra = "") =>
+	writeFile(
+		join(templates.builtIn, "duo.yaml"),
+		PIPELINE.replace("context: [find] }", "context: [find], approval: lead }") +
+			extra,
+	);
+
 let root: string;
 let templates: TemplateDirs;
 beforeEach(async () => {
@@ -107,19 +115,104 @@ describe("team runs", () => {
 		).toEqual([{ role_id: "finder" }, { role_id: "writer" }]);
 	});
 
-	it("waits with reason approval for an approver role until reviews exist", async () => {
-		const withLead = PIPELINE.replace(
-			"context: [find] }",
-			"context: [find], approval: lead }",
-		);
-		await writeFile(join(templates.builtIn, "duo.yaml"), withLead);
+	it("lets the lead approve the write-up in a review of its own and completes", async () => {
+		await useLead();
 		const h = engineHarness({
-			scripts: [reply("facts"), reply("draft")],
+			scripts: [
+				reply("facts"),
+				reply("draft"),
+				reply('{"decision":"approve"}'),
+			],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "completed");
+		const review = h.requests[2];
+		expect(review?.target).toEqual({ tier: "reasoning" });
+		expect(String(review?.messages[1]?.content)).toContain(
+			"Submission:\ndraft",
+		);
+		const approvals = h.events.filter((e) => e.type.startsWith("approval."));
+		expect(approvals.map((e) => [e.type, e.payload])).toEqual([
+			["approval.requested", { approver: "lead" }],
+			["approval.resolved", { approver: "lead", decision: "approve" }],
+		]);
+		expect(
+			h.db.prepare("SELECT role_id FROM agents ORDER BY rowid").all(),
+		).toEqual([
+			{ role_id: "finder" },
+			{ role_id: "writer" },
+			{ role_id: "lead" },
+		]);
+	});
+
+	it("sends the work back with feedback and blocks it past the revision limit", async () => {
+		await useLead("policies: { revision_limit: 1 }\n");
+		const revise = reply('{"decision":"revise","feedback":"cite sources"}');
+		const h = engineHarness({
+			scripts: [
+				reply("facts"),
+				reply("draft"),
+				revise,
+				reply("draft 2"),
+				revise,
+			],
 			templates,
 		});
 		const runId = await start(h);
 		await settled(h, runId, "paused");
 		expect(view(h, runId)?.pauseReason).toBe("approval");
+		expect(h.requests[3]?.messages.at(-1)).toEqual({
+			role: "user",
+			content: "Feedback on your last submission: cite sources",
+		});
+		const last = h.events
+			.filter((e) => e.type === "task.status.changed")
+			.at(-1);
+		expect(last?.payload).toEqual({ from: "submitted", to: "blocked" });
+	});
+
+	it("asks the reviewer again for a reply that is no verdict", async () => {
+		await useLead();
+		const h = engineHarness({
+			scripts: [
+				reply("facts"),
+				reply("draft"),
+				reply("looks fine"),
+				reply('{"decision":"approve"}'),
+			],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "completed");
+		expect(String(h.requests[3]?.messages.at(-1)?.content)).toContain(
+			"Your verdict is not valid",
+		);
+	});
+
+	it("pauses a review on exhausted quota like any model call", async () => {
+		await useLead();
+		const resumesAt = "2026-10-22T00:00:00.000Z";
+		const h = engineHarness({
+			scripts: [
+				reply("facts"),
+				reply("draft"),
+				[
+					{
+						type: "error",
+						error: { code: "quota_exhausted", message: "spent", resumesAt },
+					},
+				],
+			],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "paused");
+		expect(view(h, runId)?.pauseReason).toBe("quota");
+		expect(h.events.find((e) => e.type === "run.paused")?.payload).toEqual({
+			reason: "quota",
+			resumesAt,
+		});
 	});
 
 	it("asks for a repair when the report fails its guardrail and submits the repaired one", async () => {

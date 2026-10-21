@@ -107,12 +107,14 @@ export const keepMessages = (
 		: team;
 };
 
-/** Counts one guardrail repair of a task. */
-export const addRepair = (team: TeamState, id: string): TeamState => {
+/** Sets how many repairs a task's current attempt or review has asked. */
+export const setRepairs = (
+	team: TeamState,
+	id: string,
+	repairs: number,
+): TeamState => {
 	const entry = team.tasks[id];
-	return entry
-		? withEntry(team, id, { ...entry, repairs: entry.repairs + 1 })
-		: team;
+	return entry ? withEntry(team, id, { ...entry, repairs }) : team;
 };
 
 /** Applies a task-machine event; an event the task's state ignores changes nothing. */

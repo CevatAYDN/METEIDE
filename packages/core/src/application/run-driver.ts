@@ -4,7 +4,7 @@ import { afterModelError } from "../domain/run-events.js";
 import { activeRole, activeSeat } from "../domain/team-run.js";
 import { apply, type EngineState, emit, type Live } from "./run-state.js";
 import { callModel, callTool, createCheckpoint } from "./steps.js";
-import { submit, teamTurn } from "./team-driver.js";
+import { submit, teamTurn, verdict } from "./team-driver.js";
 
 // The loop that moves a running run step by step (docs/08, Single agent), as module-level
 // functions over the engine's state record; a team run moves between tasks in team-driver.
@@ -114,19 +114,24 @@ const toolTurn = async (
 		apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
 };
 
-// A team run whose active task is not in progress moves between tasks first.
+// A reply that ends a conversation: a review's verdict, a task's report, or a single agent's summary.
+const finish = (s: EngineState, l: Live, reply: string) => {
+	const c = l.snapshot.context;
+	if (c.review) verdict(s, l, reply);
+	else if (c.team) submit(s, l, reply);
+	else apply(s, l, { type: "COMPLETE", at: s.deps.now(), summary: reply });
+};
+
+// A team run whose active task is not in progress or in review moves between tasks first.
 const step = async (s: EngineState, l: Live, token: object) => {
 	const c = l.snapshot.context;
-	if (c.team && (!c.task || c.team.tasks[c.task]?.status !== "in_progress"))
-		return teamTurn(s, l, c.team);
+	const working = c.task && c.team?.tasks[c.task]?.status === "in_progress";
+	if (c.team && !c.review && !working) return teamTurn(s, l, c.team);
 	const at = s.deps.now();
 	const next = nextStep(c, l.meta.budget, at);
 	if (next.kind === "model") return modelTurn(s, l, token);
 	if (next.kind === "tool") return toolTurn(s, l, token, next);
-	if (next.kind === "complete")
-		c.team
-			? submit(s, l, next.summary)
-			: apply(s, l, { type: "COMPLETE", at, summary: next.summary });
+	if (next.kind === "complete") finish(s, l, next.summary);
 	else if (next.kind === "fail")
 		apply(s, l, { type: "FAIL", at, code: next.code, message: next.message });
 	else apply(s, l, { type: "PAUSE", at, reason: next.reason });

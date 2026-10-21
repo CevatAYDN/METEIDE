@@ -107,7 +107,13 @@ export const engineHarness = (opts: {
 	const bus = createEventBus((e) => {
 		throw e;
 	});
-	for (const p of ["run.*", "agent.*", "checkpoint.*", "task.*"] as const)
+	for (const p of [
+		"run.*",
+		"agent.*",
+		"checkpoint.*",
+		"task.*",
+		"approval.*",
+	] as const)
 		bus.subscribe(p, (e) => events.push(e));
 	const requests: LlmChatRequest[] = [];
 	let n = 0;

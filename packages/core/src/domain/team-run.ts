@@ -19,9 +19,9 @@ const roleOf = (team: TeamState, id: string) =>
 export const guardrailOf = (team: TeamState, id: string) =>
 	taskOf(team, id)?.guardrail;
 
-/** The seat of a task's agent: its role's tier, needs and capabilities. */
-export const seatOf = (team: TeamState, id: string): Seat => {
-	const role = roleOf(team, id);
+/** The seat of a role's agent: its tier, needs and capabilities. */
+const roleSeat = (team: TeamState, roleId: string | undefined): Seat => {
+	const role = team.template.roles.find((r) => r.id === roleId);
 	return {
 		tier: role?.tier ?? "coder",
 		needs: [...(role?.needs ?? [])],
@@ -30,16 +30,23 @@ export const seatOf = (team: TeamState, id: string): Seat => {
 };
 
 /** The seat of the run's active agent: its task's role, or the single agent. */
-export const activeSeat = (c: RunContext): Seat =>
-	c.team && c.task ? seatOf(c.team, c.task) : SINGLE_AGENT;
+export const activeSeat = (c: RunContext): Seat => {
+	if (!c.team || !c.task) return SINGLE_AGENT;
+	return roleSeat(c.team, c.review ?? taskOf(c.team, c.task)?.role);
+};
+
+/** The seat of a task's agent: its role's tier, needs and capabilities. */
+export const seatOf = (team: TeamState, id: string): Seat =>
+	roleSeat(team, taskOf(team, id)?.role);
 
 /** The role, agent id and Task id the active task gives its agent; a single agent is role assistant. */
 export const activeRole = (c: RunContext) => {
 	const entry = c.team && c.task ? c.team.tasks[c.task] : undefined;
 	const roleId = c.team && c.task ? taskOf(c.team, c.task)?.role : undefined;
+	// A reviewer gets an agent of its own; the task's agent id is the worker's.
 	return {
-		roleId: roleId ?? "assistant",
-		agentId: entry?.context.agentId,
+		roleId: c.review ?? roleId ?? "assistant",
+		agentId: c.review ? undefined : entry?.context.agentId,
 		taskId: entry?.id,
 	};
 };

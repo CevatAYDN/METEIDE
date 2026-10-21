@@ -11,7 +11,8 @@ export type Checked =
 	| { readonly ok: true; readonly report: string }
 	| { readonly ok: false; readonly issues: string };
 
-const parsed = (text: string): { value: unknown } | undefined => {
+/** The JSON value of a reply, a fenced json block included. */
+export const jsonOf = (text: string): { value: unknown } | undefined => {
 	const body = FENCE.exec(text.trim())?.[1] ?? text.trim();
 	try {
 		return { value: JSON.parse(body) };
@@ -28,7 +29,7 @@ export const checkReport = (
 	if (schema === undefined) return { ok: true, report: reply };
 	const type = artifactSchema(schema);
 	if (!type) return { ok: false, issues: `${schema} has no schema` };
-	const json = parsed(reply);
+	const json = jsonOf(reply);
 	if (!json) return { ok: false, issues: "the reply is not JSON" };
 	const r = type.safeParse(json.value);
 	return r.success

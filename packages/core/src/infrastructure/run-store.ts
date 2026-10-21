@@ -122,6 +122,7 @@ const PersistedSchema = z.object({
 		endedAt: time,
 		team: TeamStateSchema.optional(),
 		task: text1.optional(),
+		review: text1.optional(),
 	}),
 });
 

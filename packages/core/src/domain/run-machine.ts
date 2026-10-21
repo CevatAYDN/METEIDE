@@ -53,6 +53,8 @@ export type RunContext = {
 	readonly team?: TeamState | undefined;
 	/** The team task whose conversation is in `messages`. */
 	readonly task?: string | undefined;
+	/** The approver role reviewing `task` in this conversation (docs/08, step 7). */
+	readonly review?: string | undefined;
 };
 
 /** What happens to a run. */
@@ -68,7 +70,9 @@ export type RunEvent =
 			task: string;
 			team: TeamState;
 			messages: readonly ChatMessage[];
+			review?: string;
 	  }
+	| { type: "REVIEWED"; team: TeamState }
 	| { type: "CHECKPOINTED"; step: number }
 	| { type: "PAUSE"; at: number; reason: PauseReason; resumesAt?: string }
 	| { type: "RESUME"; at: number }
@@ -147,7 +151,11 @@ export const runMachine = setup({
 				turns: 0,
 				checkpointed: -1,
 				agent: undefined,
+				review: event.review,
 			})),
+		},
+		REVIEWED: {
+			actions: assign(({ event }) => ({ team: event.team, review: undefined })),
 		},
 		TOOL_DONE: {
 			actions: assign({

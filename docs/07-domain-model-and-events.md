@@ -44,7 +44,7 @@ interface Handoff { id: string; workspaceId: string; runId: string;             
   createdAt: string; acceptedAt?: string; acceptedByRunId?: string }
 ```
 
-A `Task.id` is a UUID made when the run starts; the template's task id (`write_gdd`) stays in the run snapshot, and events name a task by its `Task.id` \[D\].
+A `Task.id` is a UUID made when the run starts; the template's task id (`write_gdd`) stays in the run snapshot, and events name a task by its `Task.id`. Tasks and approvals have no table of their own: the run snapshot keeps the tasks and who approved the current submission, and the approval history is the `approval.requested` and `approval.resolved` rows in `events` \[D\].
 
 `Message.summary` is the first sentence of the message body, cut to 80 characters. It MUST NOT be produced by an extra model call \[C\].
 
