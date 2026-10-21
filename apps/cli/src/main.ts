@@ -85,6 +85,22 @@ const unlessDriven = async (
 	return 1;
 };
 
+const run = (
+	opts: AppOptions,
+	io: Io,
+	what: { goal: string } | { resume: string },
+) =>
+	"resume" in what || what.goal
+		? locked(opts, io, () => withApp(opts, io, (a) => runCommand(a, io, what)))
+		: usage(io);
+
+const stop = (reader: AppOptions, io: Io, target: string | undefined) =>
+	target
+		? unlessDriven(reader, io, () =>
+				withApp(reader, io, (a) => stopCommand(a, io, target)),
+			)
+		: usage(io);
+
 const dispatch = (
 	p: Parsed,
 	opts: AppOptions,
@@ -94,25 +110,16 @@ const dispatch = (
 	const reader = { ...opts, recover: false };
 	const goal = rest.join(" ").trim();
 	switch (command) {
-		case "run": {
-			const resume = p.values.resume;
-			const what = resume ? { resume } : { goal };
-			return resume || goal
-				? locked(opts, io, () =>
-						withApp(opts, io, (a) => runCommand(a, io, what)),
-					)
-				: usage(io);
-		}
+		case "run":
+			return run(
+				opts,
+				io,
+				p.values.resume ? { resume: p.values.resume } : { goal },
+			);
 		case "status":
 			return withApp(reader, io, (a) => statusCommand(a, io, rest[0]));
-		case "stop": {
-			const target = p.values.all ? "all" : rest[0];
-			return target
-				? unlessDriven(reader, io, () =>
-						withApp(reader, io, (a) => stopCommand(a, io, target)),
-					)
-				: usage(io);
-		}
+		case "stop":
+			return stop(reader, io, p.values.all ? "all" : rest[0]);
 		case "key":
 			return keyCommand(
 				opts.secrets ?? createKeychainStore(),

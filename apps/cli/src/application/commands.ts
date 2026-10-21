@@ -23,30 +23,38 @@ export type Io = {
 
 type Ended = RunView["status"];
 
-// Prints the run's events until it ends or pauses for anything but quota, which waits here.
+type Followed = {
+	target: string | undefined;
+	pausedFor: string | undefined;
+	done: (status: Ended) => void;
+};
+
 // Without a run id it follows the first run created after it subscribed: a CLI starts one run.
+const show = (f: Followed, io: Io, e: MeteEvent) => {
+	if (f.target === undefined && e.type === "run.created") f.target = e.runId;
+	if (e.runId === undefined || e.runId !== f.target) return;
+	const line = eventLine(e);
+	if (line) io.out(line);
+	if (e.type === "run.paused") f.pausedFor = e.payload.reason;
+	const end = endOf(e);
+	if (end) f.done(end);
+};
+
+const FOLLOWED = ["run.*", "agent.*", "checkpoint.*"] as const;
+
+// Prints the run's events until it ends or pauses for anything but quota, which waits here.
 const follow = (events: EventBus, io: Io, resume?: string) => {
-	let target = resume;
-	let pausedFor: string | undefined;
+	const f: Followed = { target: resume, pausedFor: undefined, done: () => {} };
 	const ended = new Promise<Ended>((resolve) => {
-		const show = (e: MeteEvent) => {
-			if (target === undefined && e.type === "run.created") target = e.runId;
-			if (e.runId === undefined || e.runId !== target) return;
-			const line = eventLine(e);
-			if (line) io.out(line);
-			if (e.type === "run.paused") pausedFor = e.payload.reason;
-			const end = endOf(e);
-			if (end) done(end);
-		};
-		const subs = (["run.*", "agent.*", "checkpoint.*"] as const).map((p) =>
-			events.subscribe(p, show),
+		const subs = FOLLOWED.map((p) =>
+			events.subscribe(p, (e) => show(f, io, e)),
 		);
-		const done = (status: Ended) => {
+		f.done = (status) => {
 			for (const s of subs) s.dispose();
 			resolve(status);
 		};
 	});
-	return { ended, runId: () => target, pausedFor: () => pausedFor };
+	return { ended, runId: () => f.target, pausedFor: () => f.pausedFor };
 };
 
 const endOf = (e: MeteEvent): Ended | undefined => {
@@ -84,35 +92,44 @@ export const runCommand = (
 	what: { goal: string } | { resume: string },
 ) =>
 	withEngine(app, io, async (engine) => {
-		const resume = "resume" in what ? what.resume : undefined;
-		const run = follow(app.events, io, resume);
-		const r = resume
-			? await engine.resume(resume)
-			: await engine.start({ goal: "goal" in what ? what.goal : "" });
+		const run = follow(
+			app.events,
+			io,
+			"resume" in what ? what.resume : undefined,
+		);
+		const r = await ("resume" in what
+			? engine.resume(what.resume)
+			: engine.start({ goal: what.goal }));
 		if (!r.ok) {
 			io.err(r.error.message);
 			return 1;
 		}
-		// Nothing awaits the handler, so a throwing cancel is reported; Ctrl+C again retries it.
-		const stopWatching = io.onInterrupt(() => {
-			const id = run.runId();
-			if (id)
-				engine
-					.cancel(id)
-					.catch((e: unknown) =>
-						io.err(
-							`could not cancel the run: ${e instanceof Error ? e.message : String(e)}`,
-						),
-					);
-		});
+		const stopWatching = cancelOnInterrupt(io, engine, run.runId);
 		const status = await run.ended;
 		stopWatching();
-		if (status === "paused" && run.pausedFor() === "approval")
-			for (const line of APPROVAL_HINT) io.err(line);
-		if (status === "paused")
-			io.err(`Resume it with: mete run --resume ${run.runId()}`);
+		if (status === "paused") explainPause(io, run.runId(), run.pausedFor());
 		return exitCode(status);
 	});
+
+// Nothing awaits the handler, so a throwing cancel is reported; Ctrl+C again retries it.
+const cancelOnInterrupt = (
+	io: Io,
+	engine: TeamEngineAdapter,
+	runId: () => string | undefined,
+) =>
+	io.onInterrupt(() => {
+		const id = runId();
+		if (!id) return;
+		engine.cancel(id).catch((e: unknown) => {
+			const why = e instanceof Error ? e.message : String(e);
+			io.err(`could not cancel the run: ${why}`);
+		});
+	});
+
+const explainPause = (io: Io, runId: string | undefined, reason?: string) => {
+	if (reason === "approval") for (const line of APPROVAL_HINT) io.err(line);
+	io.err(`Resume it with: mete run --resume ${runId}`);
+};
 
 /** `mete status [<run id>]`. */
 export const statusCommand = (app: App, io: Io, runId?: string) =>
@@ -135,21 +152,24 @@ export const stopCommand = (app: App, io: Io, target: string | "all") =>
 			return 1;
 		}
 		let code = 0;
-		for (const run of listed.value) {
-			if (run.status !== "paused") {
-				if (target === "all") continue;
-				io.err(
-					`${run.id} is ${run.status}; a running run stops with Ctrl+C in its mete run`,
-				);
-				code = 1;
-				continue;
-			}
-			const r = await engine.cancel(run.id);
-			io.out(r.ok ? `${run.id} cancelled` : r.error.message);
-			if (!r.ok) code = 1;
-		}
+		for (const run of listed.value)
+			if (run.status === "paused" || target !== "all")
+				code = Math.max(code, await stopOne(engine, io, run));
 		return code;
 	});
+
+// A run that is not paused is skipped by --all and refused when named.
+const stopOne = async (engine: TeamEngineAdapter, io: Io, run: RunView) => {
+	if (run.status !== "paused") {
+		io.err(
+			`${run.id} is ${run.status}; a running run stops with Ctrl+C in its mete run`,
+		);
+		return 1;
+	}
+	const r = await engine.cancel(run.id);
+	io.out(r.ok ? `${run.id} cancelled` : r.error.message);
+	return r.ok ? 0 : 1;
+};
 
 const PROVIDER =
 	/^(nvidia|openrouter|opencode-zen|custom:[a-z0-9]+(-[a-z0-9]+)*)$/;
@@ -175,34 +195,29 @@ export const keyCommand = async (
 	provider: string | undefined,
 ) => {
 	if (action === "list") return listKeys(secrets, io);
-	if (
-		(action !== "set" && action !== "delete") ||
-		!provider ||
-		!PROVIDER.test(provider)
-	) {
-		io.err(
-			"usage: mete key set|delete <nvidia|openrouter|opencode-zen|custom:<slug>>, mete key list",
-		);
-		return 1;
-	}
-	const name = apiKeyName(provider);
-	if (action === "delete") {
-		const r = await secrets.delete(name);
-		io.out(
-			r.ok
-				? r.value
-					? `${provider} key deleted`
-					: `${provider} had no key`
-				: r.error.message,
-		);
-		return r.ok ? 0 : 1;
-	}
+	const valid = provider !== undefined && PROVIDER.test(provider);
+	if (valid && action === "set") return setKey(secrets, io, provider);
+	if (valid && action === "delete") return deleteKey(secrets, io, provider);
+	io.err(
+		"usage: mete key set|delete <nvidia|openrouter|opencode-zen|custom:<slug>>, mete key list",
+	);
+	return 1;
+};
+
+const setKey = async (secrets: SecretStore, io: Io, provider: string) => {
 	const key = await io.readSecret(`${provider} API key: `);
 	if (!key) {
 		io.err("no key entered");
 		return 1;
 	}
-	const r = await secrets.set(name, key);
+	const r = await secrets.set(apiKeyName(provider), key);
 	io.out(r.ok ? `${provider} key saved in the keychain` : r.error.message);
+	return r.ok ? 0 : 1;
+};
+
+const deleteKey = async (secrets: SecretStore, io: Io, provider: string) => {
+	const r = await secrets.delete(apiKeyName(provider));
+	if (!r.ok) io.out(r.error.message);
+	else io.out(r.value ? `${provider} key deleted` : `${provider} had no key`);
 	return r.ok ? 0 : 1;
 };

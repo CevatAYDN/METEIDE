@@ -11,7 +11,15 @@ const readPiped = async () => {
 	return data.trim();
 };
 
-// Raw mode keeps the key off the screen; Ctrl+C gives up and returns nothing.
+// The value after one typed character; Enter ends the prompt and Ctrl+C gives up with nothing.
+const typed = (value: string, c: string) => {
+	if (c === "\r" || c === "\n") return { value, done: true };
+	if (c === CTRL_C) return { value: "", done: true };
+	const next = BACKSPACE.has(c) ? value.slice(0, -1) : value + c;
+	return { value: next, done: false };
+};
+
+// Raw mode keeps the key off the screen.
 const readHidden = (prompt: string) =>
 	new Promise<string>((resolve) => {
 		const stdin = process.stdin;
@@ -25,9 +33,9 @@ const readHidden = (prompt: string) =>
 		};
 		const onData = (chunk: Buffer | string) => {
 			for (const c of String(chunk)) {
-				if (c === "\r" || c === "\n") return finish(value);
-				if (c === CTRL_C) return finish("");
-				value = BACKSPACE.has(c) ? value.slice(0, -1) : value + c;
+				const t = typed(value, c);
+				value = t.value;
+				if (t.done) return finish(value);
 			}
 		};
 		process.stderr.write(prompt);
