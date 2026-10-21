@@ -113,7 +113,7 @@ Pool rules \[D\]:
 
 ## Scheduler
 
-1. Priority classes: P0 interactive (the user is waiting), P1 foreground runs, P2 scheduled or triggered runs. Higher classes go first; runs in the same class share capacity round-robin \[C\]. Waiting calls are served P0 first; within a class the scheduler serves one call per run in turn, and a new call waits behind waiting calls of its own or a higher class \[D\].
+1. Priority classes: P0 interactive (the user is waiting), P1 foreground runs, P2 scheduled or triggered runs. Higher classes go first; runs in the same class share capacity round-robin \[C\]. Waiting calls are served P0 first; within a class the scheduler serves one call per run in turn. A waiting call claims every provider in its chain that could serve it; a call served later in that order takes no capacity from a claimed provider, but may use any other provider in its chain \[D\]. A call blocked only by unsettled reservations or by claims waits; after 90 seconds it returns `quota_exhausted` with `resumesAt` set to the earliest known reset, or to now when none is known \[D\].
 2. Before each call the scheduler picks the first model in the chain whose provider has capacity in every unit, using prompt tokens plus `max_tokens` as the estimate, and reserves it. The response reconciles the reservation.
 3. No capacity anywhere: wait if a reset comes within 90 seconds; otherwise pause the run with reason `quota` and `resumesAt` set to the earliest reset \[D\].
 4. `media.*` calls are charged to their own provider units, separate from chat \[C\].
