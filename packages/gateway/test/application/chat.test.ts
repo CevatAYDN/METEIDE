@@ -300,6 +300,27 @@ describe("llm.chat@1 model_calls rows", () => {
 		]);
 	});
 
+	it("records the finish and its tokens when the caller stops at the finish chunk", async () => {
+		const a = fakeProvider("a", [[text("hi"), done]]);
+		const q = fakeQuota();
+		const { deps: d, calls } = deps({
+			discover: async () => [offer(a.adapter, "m")],
+			quota: q.quota,
+		});
+		for await (const chunk of createLlmChat(d).chat(req, signal()))
+			if (chunk.type === "finish") break;
+		expect(q.settled).toEqual([
+			{ id: "r1", actual: { tokens_per_minute: 5 }, observations: [] },
+		]);
+		expect(calls).toEqual([
+			expect.objectContaining({
+				outcome: "stop",
+				promptTokens: 3,
+				completionTokens: 2,
+			}),
+		]);
+	});
+
 	it("writes no row when no call was sent", async () => {
 		const a = fakeProvider("a", [[done]]);
 		const q = fakeQuota();

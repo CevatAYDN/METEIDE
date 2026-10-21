@@ -86,22 +86,37 @@ const reserveError = (e: ReserveFailed): LlmError =>
 				resumesAt: e.resumesAt,
 			};
 
+// How the call ended, set before the finish is yielded.
+type Ended = { outcome: Outcome | undefined };
+
+// Adds a chunk to the call's record; a finish chunk gives the outcome.
+const keep = (
+	seen: Seen,
+	c: Exclude<ChatChunk, { type: "error" }>,
+): Outcome | undefined => {
+	if (c.type === "text") seen.text += c.text;
+	if (c.type === "tool-call")
+		seen.toolCalls.push({ id: c.id, name: c.name, args: c.args });
+	return c.type === "finish"
+		? { kind: "finish", reason: c.reason, usage: c.usage }
+		: undefined;
+};
+
 // One provider call; error chunks become the outcome instead of being forwarded.
+// Text, tool calls and the finish are kept before their yield: a caller that stops
+// reading, as core does at the finish chunk, never resumes it.
 async function* attempt(
 	t: Try,
 	seen: Seen,
+	ended: Ended,
 	signal: AbortSignal,
 ): AsyncGenerator<LlmChunk, Outcome> {
 	let streamed = false;
 	for await (const c of t.o.adapter.chat(t.call, signal)) {
 		if (c.type === "error") return { kind: "error", error: c.error, streamed };
-		// Kept before the yield: a caller that stops reading never resumes it.
-		if (c.type === "text") seen.text += c.text;
-		if (c.type === "tool-call")
-			seen.toolCalls.push({ id: c.id, name: c.name, args: c.args });
+		ended.outcome = keep(seen, c);
 		yield c;
-		if (c.type === "finish")
-			return { kind: "finish", reason: c.reason, usage: c.usage };
+		if (ended.outcome) return ended.outcome;
 		streamed = true;
 	}
 	const error: ProviderError = {
@@ -164,16 +179,17 @@ async function* settled(
 			observations: [],
 		};
 	}
-	let outcome: Outcome | undefined;
+	const ended: Ended = { outcome: undefined };
 	let observations: readonly QuotaObservation[] = [];
 	const seen: Seen = { text: "", toolCalls: [] };
 	const start = deps.now();
 	try {
 		if (named) yield named;
-		outcome = yield* attempt(t, seen, signal);
-		observations = observationsOf(t.o, outcome);
-		return { outcome, observations };
+		ended.outcome = yield* attempt(t, seen, ended, signal);
+		observations = observationsOf(t.o, ended.outcome);
+		return { outcome: ended.outcome, observations };
 	} finally {
+		const { outcome } = ended;
 		deps.quota.settle(t.reservation, actualOf(outcome), observations);
 		deps.record(callRow(t, outcome, seen, { start, end: deps.now() }));
 	}
