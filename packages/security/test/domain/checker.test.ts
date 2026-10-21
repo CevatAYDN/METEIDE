@@ -25,7 +25,8 @@ const check = (
 	...extra,
 });
 
-const at = (autonomy: 0 | 1 | 2 | 3) => env({ autonomy });
+// Without the built-in shell.exec@1 override, so each level is seen on its own.
+const at = (autonomy: 0 | 1 | 2 | 3) => env({ autonomy, overrides: {} });
 const write = (path: string) => check("fs.write", { path });
 const shell = (command: string) =>
 	check("shell.exec", { capability: "shell.exec@1", command });
@@ -218,6 +219,13 @@ describe("decide: autonomy levels", () => {
 });
 
 describe("decide: overrides", () => {
+	it("the built-in policy asks before every command, allow-listed or not", () => {
+		expect(decide(shell("pnpm install"), env())).toEqual({
+			verdict: "ask",
+			rule: "autonomy:1",
+		});
+	});
+
 	it("lowers the level for one capability only", () => {
 		const e = env({ autonomy: 2, overrides: { "shell.exec@1": 1 } });
 		expect(decide(shell("pnpm install"), e)).toEqual({
