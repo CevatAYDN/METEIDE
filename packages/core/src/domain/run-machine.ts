@@ -5,6 +5,7 @@ import type {
 } from "@mete/contracts";
 import { assign, setup } from "xstate";
 import type { z } from "zod";
+import type { TeamState } from "./team.js";
 
 // The run state machine of docs/07 for a single-agent run (docs/08, Single agent). Pure:
 // callers apply events with xstate's transition() and persist the snapshot after each one.
@@ -26,8 +27,10 @@ export type RunContext = {
 	readonly goal: string;
 	readonly priority: 0 | 1 | 2;
 	readonly messages: readonly ChatMessage[];
-	/** Model replies so far; each one is also a cloud request of the budget. */
+	/** Model replies of the current attempt; MAX_TURNS limits them. */
 	readonly turns: number;
+	/** Model replies of the whole run, the cloud requests of the budget. */
+	readonly requests: number;
 	/** Running time before `since`. */
 	readonly activeMs: number;
 	/** When the current running stretch began. */
@@ -44,6 +47,8 @@ export type RunContext = {
 		| undefined;
 	readonly startedAt?: number | undefined;
 	readonly endedAt?: number | undefined;
+	/** A team run's tasks and template (docs/08); absent for a single agent. */
+	readonly team?: TeamState | undefined;
 };
 
 /** What happens to a run. */
@@ -52,6 +57,7 @@ export type RunEvent =
 	| { type: "REPLIED"; message: Assistant; finish: Finish }
 	| { type: "TOOL_DONE"; message: ToolMessage }
 	| { type: "MODEL"; agent: AgentRef }
+	| { type: "TEAM"; team: TeamState }
 	| { type: "CHECKPOINTED"; step: number }
 	| { type: "PAUSE"; at: number; reason: PauseReason; resumesAt?: string }
 	| { type: "RESUME"; at: number }
@@ -77,6 +83,7 @@ const reply = (c: RunContext, e: Extract<RunEvent, { type: "REPLIED" }>) => {
 	return {
 		messages: [...c.messages, e.message, ...more],
 		turns: c.turns + 1,
+		requests: c.requests + 1,
 	};
 };
 
@@ -101,6 +108,7 @@ export const runMachine = setup({
 		priority: input.priority,
 		messages: input.messages,
 		turns: 0,
+		requests: 0,
 		activeMs: 0,
 		checkpointed: -1,
 	}),
@@ -108,6 +116,7 @@ export const runMachine = setup({
 	// apply in paused too; a done machine ignores every event.
 	on: {
 		MODEL: { actions: assign({ agent: ({ event }) => event.agent }) },
+		TEAM: { actions: assign({ team: ({ event }) => event.team }) },
 		TOOL_DONE: {
 			actions: assign({
 				messages: ({ context, event }) => [...context.messages, event.message],

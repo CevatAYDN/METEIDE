@@ -16,6 +16,7 @@ import {
 	type RunSnapshot,
 	runMachine,
 } from "../domain/run-machine.js";
+import { TeamStateSchema } from "../domain/team.js";
 
 // The runs and agents tables in the workspace database (docs/07, core-engine tables).
 
@@ -96,6 +97,8 @@ const PersistedSchema = z.object({
 		priority: z.union([z.literal(0), z.literal(1), z.literal(2)]),
 		messages: z.array(ChatRequestSchema.shape.messages.element),
 		turns: z.number().int().nonnegative(),
+		// Rows from before the counter hold one attempt, so its turns are its requests.
+		requests: z.number().int().nonnegative().optional(),
 		activeMs: z.number().nonnegative(),
 		since: time,
 		checkpointed: z.number().int(),
@@ -112,6 +115,7 @@ const PersistedSchema = z.object({
 		error: z.strictObject({ code: text1, message: z.string() }).optional(),
 		startedAt: time,
 		endedAt: time,
+		team: TeamStateSchema.optional(),
 	}),
 });
 
@@ -120,7 +124,7 @@ const iso = (ms: number | undefined) =>
 
 const rowOf = (meta: RunMeta, s: RunSnapshot) => ({
 	workspaceId: meta.workspaceId,
-	templateId: null,
+	templateId: s.context.team?.template.metadata.id ?? null,
 	goal: s.context.goal,
 	status: s.value,
 	pauseReason: s.value === "paused" ? (s.context.pause?.reason ?? null) : null,
@@ -167,7 +171,11 @@ const metaOf = (r: Row): RunMeta => ({
 /** A snapshot read back from its JSON; throws on a damaged row. */
 export const loadSnapshot = (json: string): RunSnapshot => {
 	const p = PersistedSchema.parse(JSON.parse(json));
-	return runMachine.resolveState({ value: p.value, context: p.context });
+	const requests = p.context.requests ?? p.context.turns;
+	return runMachine.resolveState({
+		value: p.value,
+		context: { ...p.context, requests },
+	});
 };
 
 type Orm = ReturnType<typeof drizzle>;

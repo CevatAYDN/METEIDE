@@ -53,7 +53,7 @@ const modelOrLimit = (c: RunContext, budget: Budget, at: number): NextStep => {
 			message: `the run reached ${MAX_TURNS} model turns`,
 		};
 	if (
-		c.turns >= budget.cloudRequests ||
+		c.requests >= budget.cloudRequests ||
 		activeTime(c, at) >= budget.maxHours * HOUR_MS
 	)
 		return { kind: "pause", reason: "budget" };

@@ -10,6 +10,7 @@ const base: RunContext = {
 	priority: 1,
 	messages: [{ role: "user", content: "g" }],
 	turns: 0,
+	requests: 0,
 	activeMs: 0,
 	since: 0,
 	checkpointed: -1,
@@ -84,7 +85,11 @@ describe("nextStep", () => {
 		});
 		const pause = { kind: "pause", reason: "budget" };
 		const twoCalls = { cloudRequests: 2, maxHours: 6 };
-		expect(nextStep({ ...base, turns: 2 }, twoCalls, 0)).toEqual(pause);
+		expect(nextStep({ ...base, requests: 2 }, twoCalls, 0)).toEqual(pause);
+		// turns count one attempt, requests the whole run (docs/08)
+		expect(nextStep({ ...base, turns: 2 }, twoCalls, 0)).toEqual({
+			kind: "model",
+		});
 		const oneHour = { cloudRequests: 150, maxHours: 1 };
 		expect(nextStep({ ...base, activeMs: HOUR }, oneHour, 0)).toEqual(pause);
 		expect(nextStep(base, oneHour, HOUR)).toEqual(pause);

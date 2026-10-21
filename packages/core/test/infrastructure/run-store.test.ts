@@ -1,3 +1,4 @@
+import { parseTemplate } from "@mete/contracts";
 import Database from "better-sqlite3";
 import { describe, expect, it } from "vitest";
 import { initialTransition, transition } from "xstate";
@@ -6,6 +7,7 @@ import {
 	type RunSnapshot,
 	runMachine,
 } from "../../src/domain/run-machine.js";
+import { teamOf } from "../../src/domain/team.js";
 import {
 	createRunStore,
 	loadSnapshot,
@@ -130,6 +132,31 @@ describe("run store", () => {
 		const done = snapshot({ type: "START", at: T0 }, { type: "MODEL", agent });
 		expect(() => store.save(meta("r2"), done)).toThrow();
 		expect(store.list("r2")).toEqual([]);
+	});
+
+	it("keeps a team run's template id and state, and reads a row from before the request counter", () => {
+		const { store } = open();
+		const template = parseTemplate({
+			apiVersion: "mete/v1",
+			kind: "TeamTemplate",
+			metadata: { id: "solo", name: "Solo", version: "1.0.0" },
+			pattern: "pipeline",
+			roles: [
+				{ id: "w", name: "W", goal: "g", tier: "fast", capabilities: [] },
+			],
+			tasks: [{ id: "t", role: "w", title: "T" }],
+		});
+		if (!template.ok) throw new Error("template");
+		const team = teamOf(template.value);
+		const s = snapshot({ type: "START", at: T0 }, { type: "TEAM", team });
+		store.save(meta("r1"), s);
+		expect(store.list("r1")[0]?.templateId).toBe("solo");
+		expect(store.load("r1")?.snapshot.context.team).toEqual(team);
+		const old = runMachine.getPersistedSnapshot(snapshot());
+		const json = JSON.stringify(old).replace('"requests":0,', "");
+		expect(
+			loadSnapshot(json.replace('"turns":0', '"turns":3')).context.requests,
+		).toBe(3);
 	});
 
 	it("refuses a damaged snapshot", () => {
