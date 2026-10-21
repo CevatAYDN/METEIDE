@@ -16,7 +16,10 @@
 	},
 	"dependencies": {
 		"@mete/contracts": "workspace:*",
-		"@mete/kernel": "workspace:*"
+		"@mete/kernel": "workspace:*",
+		"@vscode/ripgrep": "1.18.0",
+		"ignore": "7.0.12",
+		"zod": "4.6.5"
 	},
 	"devDependencies": {
 		"@mete/testing": "workspace:*"
