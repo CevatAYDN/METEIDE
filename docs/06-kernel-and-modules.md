@@ -69,6 +69,16 @@ export interface ScopedStorage {
 }
 export interface StorageSqlAdapter { scopeFor(moduleId: string): ScopedStorage }   // the composition root builds ModuleContext.storage with it
 
+// policy.check@1 and secrets.mask@1, defined in @mete/contracts; decision order in SECURITY.md (Policy file).
+export type PolicyAction = "fs.write" | "fs.delete" | "fs.write.outside" | "shell.exec" | "git.commit" | "git.push" | "git.merge"
+  | "net.fetch" | "plugin.install" | "mcp.install" | "mcp.sampling" | "runtime.install" | "release.publish" | "vault.write.personal";
+export type PolicyCheckInput = { action: PolicyAction; capability: CapabilityRef; adapterId: string; args: unknown;   // args are hashed into the audit log
+  runId?: string; agentId?: string; path?: string; command?: string; tainted?: boolean };
+export type PolicyVerdict = { verdict: "allow" | "ask" | "deny"; rule: string };   // rule names the step that fired
+export type AuditFailed = { code: "audit_failed"; message: string };            // callers treat it as deny
+export interface PolicyCheckAdapter { check(input: PolicyCheckInput): Result<PolicyVerdict, AuditFailed> }
+export interface SecretsMaskAdapter { mask(text: string): Promise<{ text: string; masked: number }> }   // tab 09 replacement format
+
 export interface CapabilityRegistry {
   provide<C>(ref: CapabilityRef, adapter: Adapter<C>): Disposable;
   resolve<C>(ref: CapabilityRef, need?: FeatureSet): Result<AdapterChain<C>, CapabilityMissing>;
@@ -145,6 +155,8 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 | Capability | Purpose | Default adapters, in fallback order | When the chain is empty |
 | --- | --- | --- | --- |
 | `storage.sql@1` | The workspace and global SQLite databases, with per-module migrations | Native (storage module) | Never empty (essential) |
+| `policy.check@1` | Allow, ask or deny a side-effect action, and write its audit row | Native (security module) | Never empty (essential) |
+| `secrets.mask@1` | Replace secrets in outbound text | Native (security module, secretlint) | Never empty (essential) |
 | `llm.chat@1` | Chat with tools and streaming | Gateway → tier chain of discovered free models | Run pauses with reason `quota` or `no_model` |
 | `llm.embed@1` | Embeddings | NVIDIA embedding model | Vector search off; hybrid search continues |
 | `llm.rerank@1` | Reranking | NVIDIA rerank model | Rerank skipped |

@@ -31,9 +31,27 @@ budget: { cloud_requests_per_run: 150, max_hours: 6 }
 approval_timeout_hours: 24
 ```
 
-The effective budget of a run is the smaller of the template's `budget` and the policy's `budget` \[D\].
+The file above is also the built-in default: a key the workspace and global files leave out takes its value from it \[D\]. The effective budget of a run is the smaller of the template's `budget` and the policy's `budget` \[D\].
 
-Action ids used by the policy: `fs.write`, `fs.delete` (a `fs.write@1` call with `delete: true`), `fs.write.outside`, `shell.exec`, `git.commit`, `git.push`, `git.merge`, `net.fetch`, `plugin.install`, `mcp.install`, `mcp.sampling`, `runtime.install`, `release.publish`, `vault.write.personal` \[D\]. Patterns use glob syntax.
+Action ids used by the policy: `fs.write`, `fs.delete` (a `fs.write@1` call with `delete: true`), `fs.write.outside`, `shell.exec`, `git.commit`, `git.push`, `git.merge`, `net.fetch`, `plugin.install`, `mcp.install`, `mcp.sampling`, `runtime.install`, `release.publish`, `vault.write.personal` \[D\]. Patterns use glob syntax \[D\]:
+
+- Path patterns (`never_allow` paths, protected paths): `*` and `?` stay within one folder, `**` crosses folders, `dir/**` also matches `dir` itself, and names that start with a dot match like any other name. `~` is the home folder. Paths are compared as absolute paths with `/` separators, without case on Windows.
+- Command patterns (`shell.allow`, `never_allow` commands): `*` matches any text, including `/`, and the whole command must match after trimming and collapsing spaces.
+- A `never_allow` path rule for `fs.write` also covers `fs.delete` and `fs.write.outside`, and protected paths cover all three.
+- `policy.check@1` receives the real absolute path the adapter will touch; resolving symbolic links is the caller's job.
+
+`policy.check@1` decides in this order, and the decision names the step that fired \[D\]:
+
+1. A `never_allow` rule matches: deny.
+2. A write to a protected path: deny.
+3. The effective level is the lower of `autonomy` and the capability's entry in `overrides`.
+4. Level 0: deny, because suggest mode writes nothing.
+5. Level 3: allow, except `fs.write` or `fs.delete` outside the workspace and the global `worktrees/` and `snapshots/` folders, which is denied because level 3 never asks.
+6. The action is in `always_ask`: ask.
+7. Level 1: ask.
+8. Level 2: allow `fs.write` inside the workspace or the global `worktrees/` and `snapshots/` folders, `shell.exec` matching `shell.allow`, `git.commit`, `net.fetch` (its result is tainted external content) and `runtime.install` (runtimes download by themselves, tab 18); ask for everything else, including `fs.write.outside`.
+
+`policy.check@1` also takes a `tainted` flag and records it in the audit log; the flag changes no decision until the core remembers approvals (Phase 2).
 
 Protected paths: agents MUST NOT write `.mete/policy.yaml`, `.mete/bindings.yaml` or `.mete/mcp.yaml`; only the user changes them \[D\].
 
@@ -65,7 +83,7 @@ Third-party code still runs with the user's operating-system rights; METE enforc
 
 ## Audit log
 
-Every side-effect action writes a row to the workspace `mete.db`: time, run, agent, action, capability, adapter, SHA-256 of the arguments, decision and matching policy rule. The log is viewable and exportable as JSON \[C\].
+Every side-effect action writes a row to the workspace `mete.db`: time, run, agent, action, capability, adapter, SHA-256 of the arguments, decision and matching policy rule. The log is viewable and exportable as JSON \[C\]. `policy.check@1` writes the row in the same call, into the `audit_log` table; when the row cannot be written the check returns `audit_failed`, and callers MUST treat that as deny \[D\].
 
 ## Triggers
 
