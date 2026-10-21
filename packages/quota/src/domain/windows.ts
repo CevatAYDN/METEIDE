@@ -10,8 +10,8 @@ export type Entry = { readonly at: number; readonly amount: number };
 /** What a window depends on. */
 export type WindowSpec = Pick<QuotaUnitSpec, "unit" | "reset">;
 
-const MINUTE = 60_000;
-const DAY = 86_400_000;
+export const MINUTE = 60_000;
+export const DAY = 86_400_000;
 
 /** The length of a sliding window, taken from the unit name. */
 export const windowLength = (unit: QuotaUnitSpec["unit"]): number => {

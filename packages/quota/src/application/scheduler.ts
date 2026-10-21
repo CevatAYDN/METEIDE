@@ -122,15 +122,27 @@ const tryServe = (
 	return "blocked";
 };
 
+// Every waiter, copied, so removing one while looping is safe.
+const allWaiters = (st: SchedulerState) =>
+	st.classes.flatMap((runs) => [...runs.values()].flat());
+
 const expire = (st: SchedulerState, now: number) => {
-	for (const runs of st.classes)
-		for (const list of [...runs.values()])
-			for (const w of list) {
-				if (now - w.start < QUOTA_WAIT_MAX_MS) continue;
-				const { earliest } = openings(checks(st, w, now), new Set());
-				remove(st, w);
-				w.done(exhausted(earliest ?? now));
-			}
+	for (const w of allWaiters(st)) {
+		if (now - w.start < QUOTA_WAIT_MAX_MS) continue;
+		const { earliest } = openings(checks(st, w, now), new Set());
+		remove(st, w);
+		w.done(exhausted(earliest ?? now));
+	}
+};
+
+// Deleting and setting again moves the run to the back of its class.
+const advance = (
+	runs: Map<string, Waiter[]>,
+	runId: string,
+	list: Waiter[],
+) => {
+	runs.delete(runId);
+	if (list.length > 1) runs.set(runId, list.slice(1));
 };
 
 // One pass gives each run's head one turn, P0 first; returns whether anything changed.
@@ -142,13 +154,9 @@ const pass = (st: SchedulerState): boolean => {
 	for (const runs of st.classes)
 		for (const [runId, list] of [...runs]) {
 			const head = list[0];
-			if (!head) continue;
-			const result = tryServe(st, head, claimed, now);
-			if (result === "blocked") continue;
-			// Deleting and setting again moves the run to the back of its class.
+			if (!head || tryServe(st, head, claimed, now) === "blocked") continue;
 			changed = true;
-			runs.delete(runId);
-			if (list.length > 1) runs.set(runId, list.slice(1));
+			advance(runs, runId, list);
 		}
 	return changed;
 };

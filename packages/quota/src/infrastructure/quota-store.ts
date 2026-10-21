@@ -12,7 +12,7 @@ import {
 import { z } from "zod";
 import { SLIDING_MONTH_DAYS } from "../defaults.js";
 import type { LimitRow, UsageRow } from "../domain/pool.js";
-import { type Entry, windowLength } from "../domain/windows.js";
+import { DAY, type Entry, MINUTE, windowLength } from "../domain/windows.js";
 
 // Day and month usage and learned limits in the global database (docs/09, Quota pool).
 
@@ -65,8 +65,6 @@ const quotaLimits = sqliteTable(
 	(t) => [primaryKey({ columns: [t.providerId, t.unit] })],
 );
 
-const MINUTE = 60_000;
-const DAY = 86_400_000;
 const SourceSchema = z.enum(["header", "discovered"]);
 
 // Minute units are counted in memory only.
@@ -102,69 +100,67 @@ const groupUsage = (
 	return [...groups.values()];
 };
 
+type Orm = ReturnType<typeof drizzle>;
+type Saved = { usage: UsageRow[]; limits: LimitRow[] };
+
+const saveUsage = (orm: Orm, row: UsageRow) => {
+	const key = and(
+		eq(quotaUsage.providerId, row.providerId),
+		eq(quotaUsage.unit, row.unit),
+		eq(quotaUsage.scopeKey, row.scopeKey),
+	);
+	orm.delete(quotaUsage).where(key).run();
+	const { providerId, unit, scopeKey } = row;
+	for (const [windowStart, used] of toBuckets(row.entries))
+		orm
+			.insert(quotaUsage)
+			.values({ providerId, unit, scopeKey, windowStart, used })
+			.run();
+};
+
+const saveLimit = (orm: Orm, row: LimitRow, updatedAt: string) => {
+	orm
+		.insert(quotaLimits)
+		.values({ ...row, updatedAt })
+		.onConflictDoUpdate({
+			target: [quotaLimits.providerId, quotaLimits.unit],
+			set: { limit: row.limit, source: row.source, updatedAt },
+		})
+		.run();
+};
+
+/** Saved usage newer than the longest window, and learned limits. */
+const load = (orm: Orm, now: number): Saved => {
+	const oldest = now - (SLIDING_MONTH_DAYS + 1) * DAY;
+	orm.delete(quotaUsage).where(lt(quotaUsage.windowStart, oldest)).run();
+	const usage = groupUsage(orm.select().from(quotaUsage).all());
+	const limits = orm
+		.select()
+		.from(quotaLimits)
+		.all()
+		.map((r) => ({
+			providerId: r.providerId,
+			unit: QuotaUnitSchema.parse(r.unit),
+			limit: r.limit,
+			source: SourceSchema.parse(r.source),
+		}));
+	return { usage, limits };
+};
+
 /** Reads and writes saved quota state; `now` dates rows and prunes old buckets. */
 export const createQuotaStore = (
 	db: BetterSqlite3.Database,
 	now: () => number,
 ) => {
 	const orm = drizzle(db);
-	const saveUsage = (row: UsageRow) => {
-		const key = and(
-			eq(quotaUsage.providerId, row.providerId),
-			eq(quotaUsage.unit, row.unit),
-			eq(quotaUsage.scopeKey, row.scopeKey),
-		);
-		orm.delete(quotaUsage).where(key).run();
-		for (const [windowStart, used] of toBuckets(row.entries))
-			orm
-				.insert(quotaUsage)
-				.values({
-					providerId: row.providerId,
-					unit: row.unit,
-					scopeKey: row.scopeKey,
-					windowStart,
-					used,
-				})
-				.run();
-	};
-	const saveLimit = (row: LimitRow) => {
-		const values = { ...row, updatedAt: new Date(now()).toISOString() };
-		orm
-			.insert(quotaLimits)
-			.values(values)
-			.onConflictDoUpdate({
-				target: [quotaLimits.providerId, quotaLimits.unit],
-				set: {
-					limit: row.limit,
-					source: row.source,
-					updatedAt: values.updatedAt,
-				},
-			})
-			.run();
-	};
 	return {
-		/** Saved usage newer than the longest window, and learned limits. */
-		load(): { usage: UsageRow[]; limits: LimitRow[] } {
-			const oldest = now() - (SLIDING_MONTH_DAYS + 1) * DAY;
-			orm.delete(quotaUsage).where(lt(quotaUsage.windowStart, oldest)).run();
-			const usage = groupUsage(orm.select().from(quotaUsage).all());
-			const limits = orm
-				.select()
-				.from(quotaLimits)
-				.all()
-				.map((r) => ({
-					providerId: r.providerId,
-					unit: QuotaUnitSchema.parse(r.unit),
-					limit: r.limit,
-					source: SourceSchema.parse(r.source),
-				}));
-			return { usage, limits };
-		},
+		load: () => load(orm, now()),
 		/** Writes changed day and month usage and learned limits in one transaction. */
 		save(dirty: { usage: readonly UsageRow[]; limits: readonly LimitRow[] }) {
+			const updatedAt = new Date(now()).toISOString();
 			db.transaction(() => {
-				for (const row of dirty.usage.filter(persisted)) saveUsage(row);
-				for (const row of dirty.limits) saveLimit(row);
+				for (const row of dirty.usage.filter(persisted)) saveUsage(orm, row);
+				for (const row of dirty.limits) saveLimit(orm, row, updatedAt);
 			})();
 		},
 	};

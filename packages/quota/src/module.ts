@@ -69,6 +69,32 @@ const emitter =
 			...body,
 		});
 
+// The pool with the settings limits and the usage saved by earlier processes.
+const openPool = (ctx: ModuleContext, now: () => number) => {
+	if (!ctx.storage) return err("storage.sql@1 was not provided");
+	const migrated = ctx.storage.migrate("global", QUOTA_MIGRATIONS);
+	if (!migrated.ok) return err(migrated.error.message);
+	const config = ctx.config.get("quota", QuotaConfigSchema);
+	if (!config.ok) {
+		const { file, path, reason } = config.error;
+		return err(`${file} ${path}: ${reason}`);
+	}
+	const { limits } = config.value;
+	const pool = createPool({
+		settingsLimit: (providerId, unit) =>
+			limits.find((l) => l.providerId === providerId && l.unit === unit)?.limit,
+	});
+	const store = createQuotaStore(ctx.storage.global, now);
+	try {
+		// shortcut: saved usage is read once, so the CLI and the daemon running at the
+		// same time each count alone; read the window from the database in check() then.
+		pool.load(store.load());
+	} catch (error) {
+		return err(`saved quota could not be read: ${String(error)}`);
+	}
+	return ok({ pool, store });
+};
+
 /** Creates the quota module, which provides quota.reserve@1. */
 export const createQuotaModule = (opts: QuotaOptions): MeteModule => {
 	const now = opts.now ?? Date.now;
@@ -76,28 +102,9 @@ export const createQuotaModule = (opts: QuotaOptions): MeteModule => {
 	return {
 		manifest: MANIFEST,
 		async activate(ctx) {
-			if (!ctx.storage) return err(failed("storage.sql@1 was not provided"));
-			const migrated = ctx.storage.migrate("global", QUOTA_MIGRATIONS);
-			if (!migrated.ok) return err(failed(migrated.error.message));
-			const config = ctx.config.get("quota", QuotaConfigSchema);
-			if (!config.ok) {
-				const { file, path, reason } = config.error;
-				return err(failed(`${file} ${path}: ${reason}`));
-			}
-			const { limits } = config.value;
-			const pool = createPool({
-				settingsLimit: (providerId, unit) =>
-					limits.find((l) => l.providerId === providerId && l.unit === unit)
-						?.limit,
-			});
-			const store = createQuotaStore(ctx.storage.global, now);
-			try {
-				// shortcut: saved usage is read once, so the CLI and the daemon running at the
-				// same time each count alone; read the window from the database in check() then.
-				pool.load(store.load());
-			} catch (error) {
-				return err(failed(`saved quota could not be read: ${String(error)}`));
-			}
+			const opened = openPool(ctx, now);
+			if (!opened.ok) return err(failed(opened.error));
+			const { pool, store } = opened.value;
 			const setTimer = opts.setTimer ?? realTimer;
 			const scheduler = createScheduler({ pool, now, setTimer });
 			const reserve = createQuotaReserve({

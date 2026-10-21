@@ -196,20 +196,28 @@ const closedUntil = (
 	return opensAt(s, st.entries, now, (u) => u < limit) ?? now;
 };
 
+// Adds one unit's closing or opening, and its opening time, to the sweep.
+const sweepUnit = (
+	ps: PoolState,
+	out: Sweep,
+	[key, st]: [string, State],
+	now: number,
+) => {
+	const s = specOf(ps, st.providerId, st.unit);
+	if (!s) return;
+	refresh(ps, key, st, now);
+	const until = closedUntil(ps, s, st, now);
+	const unit = { providerId: st.providerId, unit: st.unit };
+	if (until !== undefined && !st.closed)
+		out.closed.push({ ...unit, resetsAt: until });
+	if (until === undefined && st.closed) out.opened.push(unit);
+	if (until !== undefined) out.next = Math.min(out.next ?? until, until);
+	st.closed = until !== undefined;
+};
+
 const sweep = (ps: PoolState, now: number): Sweep => {
 	const out: Sweep = { closed: [], opened: [], next: undefined };
-	for (const [key, st] of ps.states) {
-		const s = specOf(ps, st.providerId, st.unit);
-		if (!s) continue;
-		refresh(ps, key, st, now);
-		const until = closedUntil(ps, s, st, now);
-		const unit = { providerId: st.providerId, unit: st.unit };
-		if (until !== undefined && !st.closed)
-			out.closed.push({ ...unit, resetsAt: until });
-		if (until === undefined && st.closed) out.opened.push(unit);
-		if (until !== undefined) out.next = Math.min(out.next ?? until, until);
-		st.closed = until !== undefined;
-	}
+	for (const entry of ps.states) sweepUnit(ps, out, entry, now);
 	return out;
 };
 
