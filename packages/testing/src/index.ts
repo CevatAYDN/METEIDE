@@ -1,5 +1,10 @@
 // Public API of this package: types, contracts and the module (CONTRIBUTING.md).
 export {
+	type FsTools,
+	type FsToolsHarness,
+	fsToolsContract,
+} from "./fs-tools.contract.js";
+export {
 	type LlmChatHarness,
 	type LlmScenario,
 	llmChatContract,
@@ -22,6 +27,10 @@ export {
 	type SecretsMaskHarness,
 	secretsMaskContract,
 } from "./secrets-mask.contract.js";
+export {
+	type ShellExecHarness,
+	shellExecContract,
+} from "./shell-exec.contract.js";
 export {
 	type StorageSqlHarness,
 	storageSqlContract,
