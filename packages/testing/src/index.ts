@@ -4,6 +4,11 @@ export {
 	policyCheckContract,
 } from "./policy-check.contract.js";
 export {
+	type ProviderChatHarness,
+	type ProviderScenario,
+	providerChatContract,
+} from "./provider-chat.contract.js";
+export {
 	QUOTA_KIT_NOW,
 	type QuotaReserveHarness,
 	quotaReserveContract,
