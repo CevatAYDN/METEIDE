@@ -44,6 +44,18 @@ const avoid = (list: ModelInfo[], families: readonly string[]) => {
 	return kept.length > 0 ? kept : list;
 };
 
+/** Discovered models that are free, not deprecated and pass the privacy filter. */
+export const usableModels = (
+	found: readonly Discovered[],
+	rules: PrivacyRules,
+): ModelInfo[] =>
+	found
+		.filter(
+			(d) =>
+				d.model.free && !d.model.deprecated && passesPrivacy(d.privacy, rules),
+		)
+		.map((d) => d.model);
+
 /** The chain for one call: at most 4 models, best first; empty when none fits. */
 export const resolveChain = (
 	found: readonly Discovered[],
@@ -51,12 +63,7 @@ export const resolveChain = (
 	rules: PrivacyRules,
 	role: Role = {},
 ): ModelInfo[] => {
-	const usable = found
-		.filter(
-			(d) =>
-				d.model.free && !d.model.deprecated && passesPrivacy(d.privacy, rules),
-		)
-		.map((d) => d.model);
+	const usable = usableModels(found, rules);
 	if (!("tier" in target))
 		return usable.filter(
 			(m) => m.providerId === target.providerId && m.id === target.modelId,

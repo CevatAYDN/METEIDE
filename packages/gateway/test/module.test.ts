@@ -278,6 +278,25 @@ describe("gateway module", () => {
 		await s.close();
 	});
 
+	it("lists usable models while active and none once deactivated", async () => {
+		const s = await setup();
+		s.registry.provide("provider.chat@1", {
+			id: "t",
+			trust: "first-party",
+			features: [],
+			impl: trainingProvider(),
+		});
+		const signal = new AbortController().signal;
+		expect(await s.gateway.models(signal)).toEqual([]);
+		await s.gateway.activate(s.ctx);
+		expect(await s.gateway.models(signal)).toEqual([
+			{ providerId: "a", modelId: "m" },
+		]);
+		await s.gateway.deactivate();
+		expect(await s.gateway.models(signal)).toEqual([]);
+		await s.close();
+	});
+
 	it("reports a failed log write and still finishes the call", async () => {
 		const s = await setup();
 		await s.gateway.activate(s.ctx);

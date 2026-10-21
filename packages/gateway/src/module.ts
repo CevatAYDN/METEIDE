@@ -2,6 +2,7 @@
 import {
 	err,
 	type LlmChatAdapter,
+	type ModelRef,
 	type ModuleManifest,
 	ok,
 	PrivacyConfigSchema,
@@ -19,7 +20,7 @@ import { z } from "zod";
 import { createLlmChat } from "./application/chat.js";
 import { createDiscovery } from "./application/prepare.js";
 import { MODEL_CALL_RETENTION_DAYS } from "./defaults.js";
-import type { PrivacyRules } from "./domain/resolve.js";
+import { type PrivacyRules, usableModels } from "./domain/resolve.js";
 import {
 	createModelCallLog,
 	MODEL_CALL_MIGRATIONS,
@@ -129,16 +130,22 @@ const discovery = (ctx: ModuleContext) => {
 	};
 };
 
+// What an active gateway serves from: its discovery and the privacy rules read at activation.
+type Live = {
+	readonly discover: ReturnType<typeof discovery>;
+	readonly rules: PrivacyRules;
+};
+
 const buildChat = (
 	ctx: ModuleContext,
-	rules: PrivacyRules,
+	live: Live,
 	opts: Required<GatewayOptions>,
 	write: (c: ModelCall) => void,
 ): LlmChatAdapter => {
 	const quota = () =>
 		first<QuotaReserveAdapter>(ctx.capabilities, "quota.reserve@1");
 	return createLlmChat({
-		discover: discovery(ctx),
+		discover: live.discover,
 		quota: {
 			define: (s) => quota().define(s),
 			reserve: (req, signal) => quota().reserve(req, signal),
@@ -148,7 +155,7 @@ const buildChat = (
 			mask: (t) =>
 				first<SecretsMaskAdapter>(ctx.capabilities, "secrets.mask@1").mask(t),
 		},
-		rules: () => rules,
+		rules: () => live.rules,
 		sleep: opts.sleep,
 		now: opts.now,
 		record: write,
@@ -172,16 +179,31 @@ const openLog = (
 	};
 };
 
+/** The gateway module and the models it offers, for `/v1/models`. */
+export type GatewayModule = MeteModule & {
+	/** Usable discovered models; empty while the module is inactive. */
+	models(signal: AbortSignal): Promise<ModelRef[]>;
+};
+
 /** Creates the gateway module, which provides llm.chat@1. */
 export const createGatewayModule = (
 	options: GatewayOptions = {},
-): MeteModule => {
+): GatewayModule => {
 	const opts = {
 		now: options.now ?? Date.now,
 		sleep: options.sleep ?? realSleep,
 	};
+	let live: Live | undefined;
 	return {
 		manifest: MANIFEST,
+		async models(signal) {
+			if (!live) return [];
+			const found = await live.discover(signal);
+			return usableModels(found, live.rules).map((m) => ({
+				providerId: m.providerId,
+				modelId: m.id,
+			}));
+		},
 		async activate(ctx) {
 			if (!ctx.storage) return err(failed("storage.sql@1 was not provided"));
 			const migrated = ctx.storage.migrate("workspace", MODEL_CALL_MIGRATIONS);
@@ -192,7 +214,8 @@ export const createGatewayModule = (
 				return err(failed(`${file} ${path}: ${reason}`));
 			}
 			const write = openLog(ctx, ctx.storage.workspace, opts.now);
-			const impl = buildChat(ctx, rules.value, opts, write);
+			live = { discover: discovery(ctx), rules: rules.value };
+			const impl = buildChat(ctx, live, opts, write);
 			ctx.disposables.add(
 				ctx.capabilities.provide("llm.chat@1", {
 					id: MANIFEST.id,
@@ -203,6 +226,8 @@ export const createGatewayModule = (
 			);
 			return ok(undefined);
 		},
-		async deactivate() {},
+		async deactivate() {
+			live = undefined;
+		},
 	};
 };
