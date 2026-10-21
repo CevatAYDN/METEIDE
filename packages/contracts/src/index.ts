@@ -16,6 +16,19 @@ export {
 	TimestampSchema,
 } from "./domain/ids.js";
 export {
+	type LlmChatAdapter,
+	type LlmChatRequest,
+	LlmChatRequestSchema,
+	type LlmChunk,
+	type LlmError,
+	type ModelRef,
+	ModelRefSchema,
+	type PrivacyConfig,
+	PrivacyConfigSchema,
+	type Tier,
+	TierSchema,
+} from "./domain/llm.js";
+export {
 	type ActivationEvent,
 	ActivationEventSchema,
 	type ManifestParseError,

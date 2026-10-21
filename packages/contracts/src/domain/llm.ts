@@ -1,0 +1,80 @@
+import { z } from "zod";
+import { IdSchema } from "./ids.js";
+import {
+	type ChatChunk,
+	ChatRequestSchema,
+	type ProviderError,
+} from "./provider.js";
+
+// llm.chat@1 from docs/06 (Kernel API) and docs/09 (Gateway, Privacy).
+
+const text = z.string().min(1);
+
+/** A model tier (docs/09, Model tiers). */
+export const TierSchema = z.enum([
+	"reasoning",
+	"coder",
+	"fast",
+	"long-context",
+	"vision",
+]);
+
+/** A model tier. */
+export type Tier = z.infer<typeof TierSchema>;
+
+/** One exact model of one provider. */
+export const ModelRefSchema = z.strictObject({
+	providerId: text,
+	modelId: text,
+});
+
+/** One exact model of one provider. */
+export type ModelRef = z.infer<typeof ModelRefSchema>;
+
+/** Input of llm.chat@1: a tier or one exact model instead of `model`. */
+export const LlmChatRequestSchema = ChatRequestSchema.omit({
+	model: true,
+}).extend({
+	target: z.union([z.strictObject({ tier: TierSchema }), ModelRefSchema]),
+	runId: IdSchema,
+	priority: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+	needs: z.array(z.enum(["tool_calling", "vision", "long_context"])).optional(),
+	avoidFamilies: z.array(text).optional(),
+});
+
+/** What a caller asks llm.chat@1. */
+export type LlmChatRequest = z.infer<typeof LlmChatRequestSchema>;
+
+/** Why a routed call failed; `no_model` and `quota_exhausted` pause the run. */
+export type LlmError =
+	| ProviderError
+	| { readonly code: "no_model"; readonly message: string }
+	| {
+			readonly code: "quota_exhausted";
+			readonly message: string;
+			readonly resumesAt: string;
+	  };
+
+/** One streamed piece; a `model` chunk comes before the first chunk of every model used. */
+export type LlmChunk =
+	| Exclude<ChatChunk, { type: "error" }>
+	| {
+			readonly type: "model";
+			readonly providerId: string;
+			readonly modelId: string;
+			readonly reason: "first" | "quota" | "failed";
+	  }
+	| { readonly type: "error"; readonly error: LlmError };
+
+/** The gateway's adapter behind llm.chat@1. */
+export interface LlmChatAdapter {
+	chat(req: LlmChatRequest, signal: AbortSignal): AsyncIterable<LlmChunk>;
+}
+
+/** The `privacy:` section of settings.yaml (docs/09, Privacy). */
+export const PrivacyConfigSchema = z
+	.strictObject({ allowTraining: z.boolean().default(false) })
+	.prefault({});
+
+/** The user's privacy settings. */
+export type PrivacyConfig = z.infer<typeof PrivacyConfigSchema>;
