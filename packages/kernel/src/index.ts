@@ -1,6 +1,11 @@
 // Public API of this package: types, contracts and the module (CONTRIBUTING.md).
 
 export {
+	createLifecycle,
+	type Lifecycle,
+	type LifecycleOptions,
+} from "./application/lifecycle.js";
+export {
 	type Adapter,
 	type AdapterChain,
 	type AdapterUnavailable,
@@ -22,3 +27,13 @@ export {
 	type Handler,
 	type HandlerErrorSink,
 } from "./domain/event-bus.js";
+export type {
+	ConfigInvalid,
+	ConfigReader,
+	DisposableStore,
+	Logger,
+	MeteModule,
+	ModuleContext,
+	ModuleError,
+	ModuleState,
+} from "./domain/module.js";

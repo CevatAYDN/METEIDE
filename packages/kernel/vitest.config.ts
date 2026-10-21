@@ -5,8 +5,9 @@ export default defineConfig({
 	test: {
 		coverage: {
 			provider: "v8",
-			include: ["src/domain/**"],
-			thresholds: { lines: 90 },
+			include: ["src/**"],
+			exclude: ["src/index.ts"],
+			thresholds: { lines: 75, "src/domain/**": { lines: 90 } },
 		},
 	},
 });
