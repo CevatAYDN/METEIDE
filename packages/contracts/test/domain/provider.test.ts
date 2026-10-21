@@ -3,6 +3,7 @@ import {
 	ChatRequestSchema,
 	ModelInfoSchema,
 	PrivacySchema,
+	ProvidersConfigSchema,
 } from "../../src/domain/provider.js";
 
 describe("ChatRequestSchema", () => {
@@ -88,5 +89,36 @@ describe("PrivacySchema", () => {
 		expect(PrivacySchema.safeParse({ ...p, logs: "maybe" }).success).toBe(
 			false,
 		);
+	});
+});
+
+describe("ProvidersConfigSchema", () => {
+	const endpoint = {
+		slug: "my-lab",
+		name: "My lab",
+		baseUrl: "https://llm.example.test/v1",
+		format: "openai-chat",
+	};
+
+	it("defaults to no endpoints and gives an endpoint empty headers", () => {
+		expect(ProvidersConfigSchema.parse(undefined)).toEqual({ custom: [] });
+		expect(ProvidersConfigSchema.parse({ custom: [endpoint] }).custom).toEqual([
+			{ ...endpoint, headers: {} },
+		]);
+	});
+
+	it("rejects a bad slug, url or format and a slug used twice", () => {
+		const bad = (over: Record<string, unknown>) =>
+			ProvidersConfigSchema.safeParse({ custom: [{ ...endpoint, ...over }] })
+				.success;
+		expect(bad({ slug: "My Lab" })).toBe(false);
+		expect(bad({ baseUrl: "not a url" })).toBe(false);
+		expect(bad({ format: "ollama" })).toBe(false);
+		const twice = ProvidersConfigSchema.safeParse({
+			custom: [endpoint, endpoint],
+		});
+		expect(
+			twice.success ? [] : twice.error.issues.map((i) => i.path.join(".")),
+		).toEqual(["custom.1.slug"]);
 	});
 });

@@ -171,3 +171,42 @@ export interface ProviderAdapter {
 	observe(status: number, headers: Headers): QuotaObservation[];
 	privacy(model: ModelInfo): Privacy;
 }
+
+const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/** One custom endpoint from the `providers:` section; its key is in the keychain (docs/09). */
+const CustomEndpointSchema = z.strictObject({
+	slug: z.string().regex(SLUG, "expected a kebab-case slug"),
+	name: text,
+	baseUrl: z.url(),
+	format: z.enum(["openai-chat", "anthropic-messages", "google-gemini"]),
+	headers: z.record(z.string(), z.string()).default(() => ({})),
+});
+
+/** A custom endpoint. */
+export type CustomEndpoint = z.infer<typeof CustomEndpointSchema>;
+
+/** The `providers:` section of settings.yaml; each slug appears once. */
+export const ProvidersConfigSchema = z
+	.strictObject({
+		custom: z
+			.array(CustomEndpointSchema)
+			.readonly()
+			.default(() => []),
+	})
+	.superRefine((c, ctx) => {
+		const seen = new Set<string>();
+		c.custom.forEach((e, i) => {
+			if (seen.has(e.slug))
+				ctx.addIssue({
+					code: "custom",
+					path: ["custom", i, "slug"],
+					message: "a slug MUST appear once",
+				});
+			seen.add(e.slug);
+		});
+	})
+	.prefault({});
+
+/** The user's provider settings. */
+export type ProvidersConfig = z.infer<typeof ProvidersConfigSchema>;
