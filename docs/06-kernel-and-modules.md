@@ -58,8 +58,8 @@ export interface ConfigReader {
 
 export interface DisposableStore { add(d: Disposable): void; dispose(): void }
 
-// storage.sql@1, defined in @mete/contracts. A module prefixes its tables with `<moduleId>_`;
-// storage keeps each module's applied migrations in `<moduleId>_migrations`, so ledgers never collide.
+// storage.sql@1, defined in @mete/contracts. Each module owns unique table names (tab 07 `events`, tab 11 `graph_nodes`);
+// storage records applied migrations per module id in its own `storage_migrations` table, so ledgers never collide.
 export type Migration = { id: string; sql: string };   // applied once, in array order, each in a transaction
 export type MigrationError = { code: "migration_failed"; moduleId: string; migrationId: string; message: string };
 export interface ScopedStorage {
@@ -67,6 +67,7 @@ export interface ScopedStorage {
   global: Database;              // better-sqlite3 handle on mete.db in the global data folder
   migrate(scope: "workspace" | "global", migrations: Migration[]): Result<void, MigrationError>;
 }
+export interface StorageSqlAdapter { scopeFor(moduleId: string): ScopedStorage }   // the composition root builds ModuleContext.storage with it
 
 export interface CapabilityRegistry {
   provide<C>(ref: CapabilityRef, adapter: Adapter<C>): Disposable;
