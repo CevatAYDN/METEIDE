@@ -43,6 +43,9 @@ const counts = (spec: WindowSpec, now: number) =>
 const inWindow = (spec: WindowSpec, entries: readonly Entry[], now: number) =>
 	entries.filter(counts(spec, now)).sort((a, b) => a.at - b.at);
 
+/** The entries still counted at `now`, oldest first. */
+export const prune = inWindow;
+
 const sum = (entries: readonly Entry[]) =>
 	entries.reduce((total, e) => total + e.amount, 0);
 
