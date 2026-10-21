@@ -16,17 +16,17 @@ import { z } from "zod";
 import type { Budget } from "../domain/next-step.js";
 import { openingMessages } from "../domain/prompt.js";
 import { runMachine } from "../domain/run-machine.js";
+import { drive } from "./run-driver.js";
 import {
 	apply,
 	clearTimer,
-	drive,
 	type EngineDeps,
 	type EngineState,
 	emit,
 	hold,
 	iso,
 	type Live,
-} from "./run-driver.js";
+} from "./run-state.js";
 
 // team.engine@1 for single-agent runs (docs/06 engine types, docs/07 Run state machine, docs/08 Single agent).
 
