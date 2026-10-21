@@ -17,12 +17,27 @@
 		"enabled": true,
 		"rules": {
 			"preset": "recommended",
+			"complexity": {
+				"noExcessiveCognitiveComplexity": {
+					"level": "error",
+					"options": { "maxAllowedComplexity": 10 }
+				},
+				"noExcessiveLinesPerFunction": {
+					"level": "error",
+					"options": { "maxLines": 40 }
+				},
+				"useMaxParams": { "level": "error", "options": { "max": 4 } }
+			},
 			"suspicious": {
 				"noExplicitAny": "error"
 			},
 			"style": {
 				"noDefaultExport": "error",
-				"noEnum": "error"
+				"noEnum": "error",
+				"noExcessiveLinesPerFile": {
+					"level": "error",
+					"options": { "maxLines": 400 }
+				}
 			},
 			"nursery": {
 				"noFloatingPromises": "error"
@@ -43,6 +58,15 @@
 		}
 	},
 	"overrides": [
+		{
+			"includes": ["**/test/**", "packages/testing/**"],
+			"linter": {
+				"rules": {
+					"complexity": { "noExcessiveLinesPerFunction": "off" },
+					"style": { "noExcessiveLinesPerFile": "off" }
+				}
+			}
+		},
 		{
 			"includes": ["**/vitest.config.ts"],
 			"linter": {

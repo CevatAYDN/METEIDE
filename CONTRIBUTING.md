@@ -52,7 +52,7 @@ Imports point inward only: infrastructure → application → domain. dependency
 
 ## Size limits
 
-Defaults \[D\]: a function has at most 40 lines and 4 parameters (use an options object beyond that); a file has at most 400 lines; cyclomatic complexity is at most 10. Exceeding a limit requires a comment that explains why.
+Defaults \[D\]: a function has at most 40 lines and 4 parameters (use an options object beyond that); a file has at most 400 lines; complexity is at most 10. Exceeding a limit requires a comment that explains why. Biome enforces these in `pnpm check` (`biome.json`), measuring complexity as its cognitive complexity; tests and the contract kits in `@mete/testing` are exempt from the two line limits.
 
 ## Comments and documentation
 
