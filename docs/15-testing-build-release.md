@@ -31,12 +31,12 @@ Phase 1 baseline, recorded from a live `mete run` of an edit task on the referen
 
 | Metric | Value | Measured | Commit |
 | --- | --- | --- | --- |
-| CLI cold start | not measured yet | | |
-| Idle memory (RSS) | not measured yet | | |
-| Model calls per run | not measured yet | | |
-| Prompt and completion tokens per run | not measured yet | | |
-| Median model call latency | not measured yet | | |
-| Run wall time | not measured yet | | |
+| CLI cold start | 1.13 s, median of 5 `mete status` runs after a warm-up, Node 23.9.0 | 2026-10-22 | ab9f1c1 |
+| Idle memory (RSS) | 130 MB at the end of `mete status`, median of 5 (101 to 158 MB) | 2026-10-22 | ab9f1c1 |
+| Model calls per run | 21: 7 answered and 14 refused with 401 by two OpenRouter models on every turn | 2026-10-22 | ab9f1c1 |
+| Prompt and completion tokens per run | 14,000 prompt and 412 completion over the 7 answered calls | 2026-10-22 | ab9f1c1 |
+| Median model call latency | 1,065 ms for an answered call; 39 ms for a refused one | 2026-10-22 | ab9f1c1 |
+| Run wall time | 9.4 s; 65.0 s when the refused calls used up OpenRouter's 20 requests a minute and the gateway waited 50 s | 2026-10-22 | fc12407, ab9f1c1 |
 
 ## Local CI
 
