@@ -36,6 +36,11 @@ export {
 	storageSqlContract,
 } from "./storage-sql.contract.js";
 export {
+	type EngineScenario,
+	type TeamEngineHarness,
+	teamEngineContract,
+} from "./team-engine.contract.js";
+export {
 	type VcsGitHarness,
 	vcsGitContract,
 } from "./vcs-git.contract.js";
