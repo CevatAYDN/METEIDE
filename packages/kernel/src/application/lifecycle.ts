@@ -31,6 +31,8 @@ export type Lifecycle = {
 	readonly openWorkspace: () => Promise<void>;
 	readonly register: (module: MeteModule) => Promise<void>;
 	readonly deactivate: (moduleId: string) => Promise<void>;
+	/** Deactivates every active module, last activated first; nothing activates after it. */
+	readonly stop: () => Promise<void>;
 	/** Reports a crash outside activate and deactivate, such as a throwing event handler. */
 	readonly crash: (moduleId: string, error: unknown) => Promise<void>;
 	readonly state: (moduleId: string) => ModuleState | undefined;
@@ -41,9 +43,14 @@ type Entry = {
 	readonly budget: RestartBudget;
 	state: ModuleState;
 	ctx?: ModuleContext;
+	/** Activation count when it last became active, for the reverse order of stop(). */
+	activatedAt?: number;
 };
+
+// Increases for every activation in the process, so later activations sort after earlier ones.
+let activations = 0;
 type Entries = ReadonlyMap<string, Entry>;
-type Fired = { startup: boolean; workspace: boolean };
+type Fired = { startup: boolean; workspace: boolean; stopped: boolean };
 
 const CAPABILITY = "onCapability:";
 
@@ -152,6 +159,7 @@ const activate = async (opts: LifecycleOptions, entry: Entry) => {
 	}
 	if (result.ok) {
 		entry.state = "active";
+		entry.activatedAt = ++activations;
 		publish(opts, "module.activated", id);
 		return;
 	}
@@ -178,6 +186,7 @@ const settleAll = async (
 	entries: Entries,
 	fired: Fired,
 ) => {
+	if (fired.stopped) return;
 	promote(entries, fired);
 	for (let e = nextReady(entries, opts.registry); e; ) {
 		await activate(opts, e);
@@ -199,10 +208,10 @@ const createSerial = () => {
 /** Creates an empty lifecycle; calls run one at a time in call order. */
 export const createLifecycle = (opts: LifecycleOptions): Lifecycle => {
 	const entries = new Map<string, Entry>();
-	const fired: Fired = { startup: false, workspace: false };
+	const fired: Fired = { startup: false, workspace: false, stopped: false };
 	const serial = createSerial();
 	const settle = () => settleAll(opts, entries, fired);
-	const fire = (event: keyof Fired) =>
+	const fire = (event: "startup" | "workspace") =>
 		serial(async () => {
 			fired[event] = true;
 			await settle();
@@ -223,6 +232,14 @@ export const createLifecycle = (opts: LifecycleOptions): Lifecycle => {
 			serial(async () => {
 				const entry = entries.get(moduleId);
 				if (entry?.state === "active") await deactivate(opts, entry);
+			}),
+		stop: () =>
+			serial(async () => {
+				fired.stopped = true;
+				const active = [...entries.values()]
+					.filter((e) => e.state === "active")
+					.sort((a, b) => (b.activatedAt ?? 0) - (a.activatedAt ?? 0));
+				for (const e of active) await deactivate(opts, e);
 			}),
 		crash: (moduleId, error) =>
 			serial(async () => {

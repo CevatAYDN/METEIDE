@@ -327,6 +327,26 @@ describe("createLifecycle", () => {
 		expect(log().at(-1)).toBe('module.deactivated {"moduleId":"storage"}');
 	});
 
+	it("stops active modules last activated first and activates nothing after", async () => {
+		const { life, log } = await setup();
+		const storage = fakeModule(manifest("storage", ["storage.sql@1"]));
+		const quota = fakeModule(
+			manifest("quota", ["quota.reserve@1"], ["storage.sql@1"]),
+		);
+		const late = fakeModule(manifest("late", [], [], ["onWorkspaceOpen"]));
+		await life.register(quota.mod);
+		await life.register(storage.mod);
+		await life.register(late.mod);
+		await life.stop();
+		expect(log().slice(-2)).toEqual([
+			'module.deactivated {"moduleId":"quota"}',
+			'module.deactivated {"moduleId":"storage"}',
+		]);
+		await life.openWorkspace();
+		expect(life.state("late")).toBe("registered");
+		expect(life.state("storage")).toBe("inactive");
+	});
+
 	it("ignores deactivate for a module that is not active", async () => {
 		const { life, seen } = await setup();
 		await life.register(
