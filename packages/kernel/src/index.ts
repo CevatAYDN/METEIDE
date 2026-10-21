@@ -21,6 +21,11 @@ export {
 	createCircuitBreaker,
 } from "./domain/circuit-breaker.js";
 export {
+	BindingsSchema,
+	type ConfigLayers,
+	createConfigReader,
+} from "./domain/config-reader.js";
+export {
 	createEventBus,
 	type Disposable,
 	type EventBus,
