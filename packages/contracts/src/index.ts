@@ -24,6 +24,20 @@ export {
 	PermissionSchema,
 	parseManifest,
 } from "./domain/manifest.js";
+export {
+	type AuditFailed,
+	type MaskResult,
+	type Policy,
+	type PolicyAction,
+	PolicyActionSchema,
+	type PolicyCheckAdapter,
+	type PolicyCheckInput,
+	PolicyCheckInputSchema,
+	PolicySchema,
+	type PolicyVerdict,
+	PolicyVerdictSchema,
+	type SecretsMaskAdapter,
+} from "./domain/policy.js";
 export { err, ok, type Result } from "./domain/result.js";
 export {
 	CheckpointKindSchema,
