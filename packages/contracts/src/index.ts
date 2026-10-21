@@ -164,3 +164,11 @@ export {
 	VcsGitInputSchema,
 	type VcsGitOutput,
 } from "./domain/tools.js";
+export {
+	type WebFetchInput,
+	WebFetchInputSchema,
+	type WebFetchOutput,
+	type WebSearchInput,
+	WebSearchInputSchema,
+	type WebSearchOutput,
+} from "./domain/web.js";

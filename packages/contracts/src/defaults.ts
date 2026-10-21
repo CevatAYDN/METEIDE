@@ -34,3 +34,6 @@ export const TEMPLATE_DEFAULTS = {
 	maxHours: 6,
 	retrospective: false,
 } as const;
+
+/** Results web.search@1 returns when the caller names no maxResults (10 Tools, MCP and runtimes). */
+export const WEB_SEARCH_MAX_RESULTS = 8;

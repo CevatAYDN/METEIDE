@@ -154,6 +154,11 @@ export type FsGrepOutput = { matches: { path: string; line: number; text: string
 export type ShellExecInput = { command: string; cwd?: string; timeoutSec?: number; env?: Record<string, string> };
 export type ShellExecOutput = { exitCode: number | null; stdout: string; stderr: string;   // null when killed
   os: string; shell: string; timedOut: boolean };         // the model learns the OS and shell from every call
+// web.fetch@1 and web.search@1, defined in @mete/contracts; rules in tab 10 (Built-in tools). They return ToolError too.
+export type WebFetchInput = { url: string };                            // http or https only
+export type WebFetchOutput = { markdown: string; title: string; finalUrl: string };   // finalUrl: where redirects ended
+export type WebSearchInput = { query: string; maxResults?: number };    // maxResults defaults to 8
+export type WebSearchOutput = { results: { title: string; url: string; snippet: string }[] };
 
 // vcs.git@1, defined in @mete/contracts; rules in tab 10 (Built-in tools). Worktree and merge operations come with the
 // team engine (Phase 2). Checkpoint refs are refs/mete/checkpoints/<runId>/<n>, n counting from 1 per run.
