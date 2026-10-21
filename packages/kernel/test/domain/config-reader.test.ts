@@ -73,6 +73,38 @@ describe("createConfigReader", () => {
 			path: "mcp.servers.exa.command",
 		});
 	});
+
+	it("names the file whose array holds a bad item, since arrays replace", () => {
+		const fromWorkspace = createConfigReader(
+			layers({ args: ["a"] }, { args: ["b", 2] }),
+		).get("mcp", McpSchema);
+		expect(fromWorkspace.ok ? undefined : fromWorkspace.error).toMatchObject({
+			file: MCP,
+			path: "args.1",
+		});
+		const fromGlobal = createConfigReader(layers({ args: [1] }, {})).get(
+			"mcp",
+			McpSchema,
+		);
+		expect(fromGlobal.ok ? undefined : fromGlobal.error).toMatchObject({
+			file: GLOBAL,
+			path: "mcp.args.0",
+		});
+	});
+
+	it("names the workspace file for a key missing inside a workspace array item", () => {
+		const Schema = z.object({
+			items: z.array(z.object({ name: z.string() })).default([]),
+		});
+		const r = createConfigReader(layers({}, { items: [{}] })).get(
+			"mcp",
+			Schema,
+		);
+		expect(r.ok ? undefined : r.error).toMatchObject({
+			file: MCP,
+			path: "items.0.name",
+		});
+	});
 });
 
 describe("BindingsSchema", () => {

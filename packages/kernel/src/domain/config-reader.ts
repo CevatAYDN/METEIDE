@@ -38,9 +38,12 @@ const deepMerge = (base: unknown, over: unknown): unknown => {
 	);
 };
 
+// True when the workspace value sets the path, or an array on it: arrays replace whole,
+// so everything inside one came from the workspace.
 const hasPath = (value: unknown, path: ReadonlyArray<string>): boolean => {
 	let at = value;
 	for (const k of path) {
+		if (Array.isArray(at)) return true;
 		if (!isObject(at) || !Object.hasOwn(at, k)) return false;
 		at = at[k];
 	}
