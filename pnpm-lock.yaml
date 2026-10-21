@@ -80,7 +80,17 @@ importers:
 
   packages/security: {}
 
-  packages/storage: {}
+  packages/storage:
+    dependencies:
+      '@mete/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@mete/kernel':
+        specifier: workspace:*
+        version: link:../kernel
+      better-sqlite3:
+        specifier: 13.0.3
+        version: 13.0.3
 
   packages/testing: {}
 
@@ -475,6 +485,10 @@ packages:
   ast-v8-to-istanbul@1.0.7:
     resolution: {integrity: sha512-kFL68AG6ajd8fg248zwM9GQrUWEp79gsmjum34OEXjs4yHuUMZfYKwOLW9GMmB4oNvVrj+EAGxsP7ye2UR9UlA==}
 
+  better-sqlite3@13.0.3:
+    resolution: {integrity: sha512-RbOBxmLBG8uvFUc15X9+9SFemKcQ0WBuISBVkpuiaUB2qblC8UWlHEjdWVoZ8AdhSwmoEgsiXKfopX0CQxaACQ==}
+    engines: {node: '>=22'}
+
   cac@7.1.0:
     resolution: {integrity: sha512-LMDU/U2yA4IPIY8KT0NsNPWEYZvAMkbgyspxJ6btJaYV+WMDOHAZCmB0lsTObiHaRS1V/ztKAl7+TSkTqXyeoA==}
     engines: {node: '>=20.19.0'}
@@ -759,6 +773,10 @@ packages:
     resolution: {integrity: sha512-uKdg2G3GNCKQn9byYOpxbGqrT2fGO5KRt5J/8b3pok8rT6qxGWF6hxMyJiEYtAf+FVyYuD9hRaDqX5uPFYJ4ZQ==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
+
+  node-addon-api@8.9.2:
+    resolution: {integrity: sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg==}
+    engines: {node: ^18 || ^20 || >= 21}
 
   node@runtime:24.21.0:
     resolution:
@@ -1446,6 +1464,10 @@ snapshots:
       estree-walker: 3.0.3
       js-tokens: 10.0.0
 
+  better-sqlite3@13.0.3:
+    dependencies:
+      node-addon-api: 8.9.2
+
   cac@7.1.0: {}
 
   chai@6.3.0: {}
@@ -1673,6 +1695,8 @@ snapshots:
   minimist@1.2.8: {}
 
   nanoid@3.3.20: {}
+
+  node-addon-api@8.9.2: {}
 
   node@runtime:24.21.0: {}
 

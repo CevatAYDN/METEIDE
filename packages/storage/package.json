@@ -12,6 +12,11 @@
 	},
 	"scripts": {
 		"build": "tsc -b",
-		"test": "vitest run --passWithNoTests"
+		"test": "vitest run --coverage"
+	},
+	"dependencies": {
+		"@mete/contracts": "workspace:*",
+		"@mete/kernel": "workspace:*",
+		"better-sqlite3": "13.0.3"
 	}
 }
