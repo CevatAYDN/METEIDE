@@ -36,8 +36,17 @@ const invalid = (file: string, reason: string): ConfigInvalid => ({
 	reason,
 });
 
-const isMissing = (e: unknown) =>
-	e instanceof Error && "code" in e && e.code === "ENOENT";
+const codeOf = (e: unknown) =>
+	e instanceof Error && "code" in e && typeof e.code === "string"
+		? e.code
+		: undefined;
+
+// An unreadable file is the environment, not a bug, so it is reported like invalid content.
+const unreadable = (file: string, e: unknown) =>
+	invalid(
+		file,
+		e instanceof Error ? `${codeOf(e) ?? e.name}: ${e.message}` : String(e),
+	);
 
 // An empty file parses to null and means "nothing set", like a missing one.
 const readYaml = async (file: string): Promise<Parsed> => {
@@ -45,8 +54,7 @@ const readYaml = async (file: string): Promise<Parsed> => {
 	try {
 		text = await withLockRetry(() => readFile(file, "utf8"));
 	} catch (e) {
-		if (isMissing(e)) return ok(undefined);
-		throw e;
+		return codeOf(e) === "ENOENT" ? ok(undefined) : err(unreadable(file, e));
 	}
 	try {
 		return ok(parse(text) ?? undefined);
@@ -55,20 +63,44 @@ const readYaml = async (file: string): Promise<Parsed> => {
 	}
 };
 
-// `wx` never overwrites: a workspace opened twice at once keeps the first id.
-const ensureWorkspaceFile = async (metaDir: string) => {
-	await mkdir(metaDir, { recursive: true });
-	const file = join(metaDir, "workspace.yaml");
-	const text = `id: ${crypto.randomUUID()}\n`;
-	await withLockRetry(() => writeFile(file, text, { flag: "wx" })).catch(
-		(e: unknown) => {
-			if (!(e instanceof Error && "code" in e && e.code === "EEXIST")) throw e;
-		},
-	);
+// `wx` never overwrites: a workspace opened twice at once keeps the first id,
+// and a user's own .gitignore stays as it is.
+const createOnce = async (file: string, text: string) => {
+	try {
+		await withLockRetry(() => writeFile(file, text, { flag: "wx" }));
+	} catch (e) {
+		if (codeOf(e) !== "EEXIST") return unreadable(file, e);
+	}
+	return undefined;
+};
+
+// What ARCHITECTURE.md (Data locations) keeps out of git.
+const GITIGNORE = "mete.db*\ncache/\nworktrees/\n";
+
+const ensureWorkspaceFiles = async (metaDir: string) => {
+	try {
+		await withLockRetry(() => mkdir(metaDir, { recursive: true }));
+	} catch (e) {
+		return [unreadable(metaDir, e)];
+	}
+	const results = [
+		await createOnce(
+			join(metaDir, "workspace.yaml"),
+			`id: ${crypto.randomUUID()}\n`,
+		),
+		await createOnce(join(metaDir, ".gitignore"), GITIGNORE),
+	];
+	return results.filter((r) => r !== undefined);
 };
 
 const readWorkspaceFiles = async (metaDir: string, errors: ConfigInvalid[]) => {
-	const names = await withLockRetry(() => readdir(metaDir));
+	let names: string[];
+	try {
+		names = await withLockRetry(() => readdir(metaDir));
+	} catch (e) {
+		errors.push(unreadable(metaDir, e));
+		return {};
+	}
 	const files: Record<string, { file: string; value: unknown }> = {};
 	for (const name of names.filter((n) => extname(n) === ".yaml").sort()) {
 		const file = join(metaDir, name);
@@ -93,12 +125,14 @@ const readGlobal = async (globalDir: string, errors: ConfigInvalid[]) => {
 
 const WorkspaceSchema = z.looseObject({ id: IdSchema });
 
-/** Loads global settings and `.mete/*.yaml`, creating `workspace.yaml` when missing. */
+/** Loads global settings and `.mete/*.yaml`, creating `workspace.yaml` and `.gitignore` when missing. */
 export const loadConfig = async (
 	dirs: ConfigDirs,
 ): Promise<Result<LoadedConfig, ReadonlyArray<ConfigInvalid>>> => {
 	const metaDir = join(dirs.workspaceDir, ".mete");
-	await ensureWorkspaceFile(metaDir);
+	const setup = await ensureWorkspaceFiles(metaDir);
+	// Without its own files the workspace has no id; later errors would only echo this.
+	if (setup.length > 0) return err(setup);
 	const errors: ConfigInvalid[] = [];
 	const layers: ConfigLayers = {
 		global: await readGlobal(dirs.globalDir, errors),

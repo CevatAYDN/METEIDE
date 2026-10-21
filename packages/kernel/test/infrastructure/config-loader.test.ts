@@ -98,6 +98,35 @@ describe("loadConfig", () => {
 		);
 	});
 
+	it("reports an unreadable file instead of throwing", async () => {
+		const d = await dirs();
+		await mkdir(join(d.workspaceDir, ".mete", "mcp.yaml"));
+		const r = await loadConfig(d);
+		expect(r.ok ? undefined : r.error[0]).toMatchObject({
+			file: join(d.workspaceDir, ".mete", "mcp.yaml"),
+			reason: expect.stringMatching(/^EISDIR/),
+		});
+	});
+
+	it("reports a workspace folder it cannot create", async () => {
+		const d = await dirs({ "not-a-dir": "" });
+		const r = await loadConfig({
+			...d,
+			workspaceDir: join(d.workspaceDir, "..", "not-a-dir"),
+		});
+		expect(r.ok ? undefined : r.error).toHaveLength(1);
+	});
+
+	it("writes .mete/.gitignore once and keeps a user's own", async () => {
+		const d = await dirs();
+		await loadConfig(d);
+		const file = join(d.workspaceDir, ".mete", ".gitignore");
+		expect(await readFile(file, "utf8")).toBe("mete.db*\ncache/\nworktrees/\n");
+		await writeFile(file, "custom\n");
+		await loadConfig(d);
+		expect(await readFile(file, "utf8")).toBe("custom\n");
+	});
+
 	it("rejects a settings file that is not a mapping", async () => {
 		const d = await dirs({ "global/settings.yaml": "- just\n- a list\n" });
 		const r = await loadConfig(d);
