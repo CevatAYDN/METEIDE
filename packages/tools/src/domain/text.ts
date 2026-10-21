@@ -33,7 +33,7 @@ const count = (text: string, part: string) => text.split(part).length - 1;
  */
 export const editText = (
 	text: string,
-	edit: { oldStr: string; newStr: string; replaceAll?: boolean },
+	edit: { oldStr: string; newStr: string; replaceAll?: boolean | undefined },
 ): { text: string; replacements: number } | { count: number } => {
 	const crlf = lineEnding(text) === "crlf";
 	const lf = (s: string) => (crlf ? s.replaceAll("\r\n", "\n") : s);
