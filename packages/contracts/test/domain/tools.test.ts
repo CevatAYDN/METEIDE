@@ -1,0 +1,73 @@
+import { describe, expect, it } from "vitest";
+import {
+	FsEditInputSchema,
+	FsReadInputSchema,
+	FsWriteInputSchema,
+	ShellConfigSchema,
+	ShellExecInputSchema,
+} from "../../src/domain/tools.js";
+
+describe("tool input schemas", () => {
+	it("accepts a line range and rejects a reversed or zero one", () => {
+		expect(
+			FsReadInputSchema.safeParse({ path: "a", startLine: 2, endLine: 2 })
+				.success,
+		).toBe(true);
+		for (const bad of [
+			{ path: "a", startLine: 3, endLine: 2 },
+			{ path: "a", startLine: 0 },
+			{ path: "" },
+			{ path: "a", extra: 1 },
+		])
+			expect(FsReadInputSchema.safeParse(bad).success).toBe(false);
+	});
+
+	it("takes content or a delete for fs.write, never both", () => {
+		expect(FsWriteInputSchema.parse({ path: "a", content: "" })).toEqual({
+			path: "a",
+			content: "",
+		});
+		expect(FsWriteInputSchema.parse({ path: "a", delete: true })).toEqual({
+			path: "a",
+			delete: true,
+		});
+		for (const bad of [
+			{ path: "a", delete: false },
+			{ path: "a", content: "x", delete: true },
+			{ path: "a" },
+		])
+			expect(FsWriteInputSchema.safeParse(bad).success).toBe(false);
+	});
+
+	it("needs a non-empty oldStr for fs.edit", () => {
+		expect(
+			FsEditInputSchema.safeParse({ path: "a", oldStr: "", newStr: "b" })
+				.success,
+		).toBe(false);
+	});
+
+	it("takes string env values and a positive whole timeout", () => {
+		const ok = { command: "ls", timeoutSec: 5, env: { A: "1" } };
+		expect(ShellExecInputSchema.parse(ok)).toEqual(ok);
+		for (const bad of [
+			{ command: "ls", timeoutSec: 0.5 },
+			{ command: "ls", env: { A: 1 } },
+			{ command: "" },
+		])
+			expect(ShellExecInputSchema.safeParse(bad).success).toBe(false);
+	});
+});
+
+describe("ShellConfigSchema", () => {
+	it("defaults to PowerShell and needs a path for Git Bash", () => {
+		expect(ShellConfigSchema.parse(undefined)).toEqual({
+			windows: "powershell",
+		});
+		expect(
+			ShellConfigSchema.parse({ windows: "git-bash", gitBashPath: "C:/bash" }),
+		).toEqual({ windows: "git-bash", gitBashPath: "C:/bash" });
+		expect(ShellConfigSchema.safeParse({ windows: "git-bash" }).success).toBe(
+			false,
+		);
+	});
+});
