@@ -17,6 +17,7 @@ import {
 	callModel,
 	callTool,
 	createCheckpoint,
+	SINGLE_AGENT,
 	type StepDeps,
 } from "./steps.js";
 
@@ -147,7 +148,7 @@ const modelTurn = async (s: EngineState, l: Live, token: object) => {
 	l.model = model;
 	const signal = AbortSignal.any([l.all.signal, model.signal]);
 	const { priority, messages } = l.snapshot.context;
-	const run = { runId: l.meta.id, priority, messages };
+	const run = { runId: l.meta.id, priority, messages, seat: SINGLE_AGENT };
 	emit(s, l, { type: "agent.thinking.started", payload: {} });
 	const out = await callModel(
 		s.deps,
@@ -200,8 +201,11 @@ const toolTurn = async (
 	t: ToolStep,
 ) => {
 	if (t.checkpoint && !(await checkpoint(s, l, token, t))) return;
-	const out = await callTool(s.deps, t.call, toolContext(l), (b) =>
-		emit(s, l, b),
+	const out = await callTool(
+		s.deps,
+		{ call: t.call, seat: SINGLE_AGENT },
+		toolContext(l),
+		(b) => emit(s, l, b),
 	);
 	if (out.kind === "result")
 		apply(s, l, { type: "TOOL_DONE", message: out.message });

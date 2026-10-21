@@ -3,11 +3,13 @@ import {
 	type ChatMessage,
 	err,
 	type LlmChatAdapter,
+	type LlmChatRequest,
 	type LlmChunk,
 	type LlmError,
 	ok,
 	type Result,
 	type SecretsMaskAdapter,
+	type Tier,
 	type ToolCall,
 	type ToolContext,
 	type VcsGitAdapter,
@@ -42,6 +44,28 @@ export type ModelOutcome =
 	  }
 	| { readonly kind: "error"; readonly error: LlmError }
 	| { readonly kind: "missing" };
+
+/** Who calls the model: a role's tier, needs and capabilities (docs/08); no list means every tool. */
+export type Seat = {
+	readonly tier: Tier;
+	readonly needs: NonNullable<LlmChatRequest["needs"]>;
+	readonly capabilities?: readonly string[];
+};
+
+/** The single agent of docs/08: the coder tier, tool calling and every workspace tool. */
+export const SINGLE_AGENT: Seat = { tier: "coder", needs: ["tool_calling"] };
+
+const FS_WILDCARD = /^fs\.\*@(\d+)$/;
+
+// `fs.*@1` stands for every fs capability of that version (docs/08, Team template schema).
+const covers = (granted: string, ref: string) => {
+	const version = FS_WILDCARD.exec(granted)?.[1];
+	if (version === undefined) return granted === ref;
+	return ref.startsWith("fs.") && ref.endsWith(`@${version}`);
+};
+
+const allowed = (seat: Seat, ref: string) =>
+	seat.capabilities?.some((c) => covers(c, ref)) ?? true;
 
 const SPECS = WORKSPACE_TOOLS.map((t) => ({ ref: t.ref, spec: toolSpec(t) }));
 
@@ -108,22 +132,28 @@ const read = async (
 	return { kind: "error", error: { code: "server", message } };
 };
 
-/** Asks the coder tier for the next reply, offering every workspace tool that is active. */
+/** Asks the seat's tier for the next reply, offering the seat's workspace tools that are active. */
 export const callModel = async (
 	deps: StepDeps,
-	run: { runId: string; priority: 0 | 1 | 2; messages: readonly ChatMessage[] },
+	run: {
+		runId: string;
+		priority: 0 | 1 | 2;
+		messages: readonly ChatMessage[];
+		seat: Seat;
+	},
 	onModel: (c: ModelChunk) => void,
 	signal: AbortSignal,
 ): Promise<ModelOutcome> => {
 	const chain = deps.registry.resolve<LlmChatAdapter>("llm.chat@1");
 	if (!chain.ok) return { kind: "missing" };
-	const tools = SPECS.filter((s) => deps.registry.has(s.ref)).map(
-		(s) => s.spec,
-	);
+	const tools = SPECS.filter(
+		(s) => deps.registry.has(s.ref) && allowed(run.seat, s.ref),
+	).map((s) => s.spec);
+	const needs = run.seat.needs;
 	const chunks = chain.value[0].impl.chat(
 		{
-			target: { tier: "coder" },
-			needs: ["tool_calling"],
+			target: { tier: run.seat.tier },
+			...(needs.length > 0 ? { needs: [...needs] } : {}),
 			runId: run.runId,
 			priority: run.priority,
 			messages: [...run.messages],
@@ -163,11 +193,13 @@ const refused = (deps: StepDeps, call: ToolCall, f: Failure) =>
 /** Runs one tool call after checking its arguments against the schema the model was offered. */
 export const callTool = async (
 	deps: StepDeps,
-	call: ToolCall,
+	{ call, seat }: { call: ToolCall; seat: Seat },
 	ctx: ToolContext,
 	emit: Emit,
 ): Promise<ToolOutcome> => {
-	const entry = WORKSPACE_TOOLS.find((t) => toolName(t.ref) === call.name);
+	const entry = WORKSPACE_TOOLS.find(
+		(t) => toolName(t.ref) === call.name && allowed(seat, t.ref),
+	);
 	if (!entry)
 		return refused(deps, call, {
 			code: "bad_input",
