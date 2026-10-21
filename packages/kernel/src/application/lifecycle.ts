@@ -2,10 +2,15 @@ import type { ActivationEvent, ModuleManifest } from "@mete/contracts";
 import type { CapabilityRegistry } from "../domain/capability-registry.js";
 import type { EventBus } from "../domain/event-bus.js";
 import type {
+	Logger,
 	MeteModule,
 	ModuleContext,
 	ModuleState,
 } from "../domain/module.js";
+import {
+	createRestartBudget,
+	type RestartBudget,
+} from "../domain/restart-budget.js";
 
 // Module lifecycle from docs/06-kernel-and-modules.md (Module lifecycle).
 // shortcut: onCommand never fires; wire it to the command system when apps/cli adds one.
@@ -16,6 +21,8 @@ export type LifecycleOptions = {
 	readonly events: EventBus;
 	readonly workspaceId: string;
 	readonly contextFor: (manifest: ModuleManifest) => ModuleContext;
+	readonly logger: Logger;
+	readonly now?: () => number;
 };
 
 /** Registers, activates and deactivates modules. */
@@ -24,11 +31,14 @@ export type Lifecycle = {
 	readonly openWorkspace: () => Promise<void>;
 	readonly register: (module: MeteModule) => Promise<void>;
 	readonly deactivate: (moduleId: string) => Promise<void>;
+	/** Reports a crash outside activate and deactivate, such as a throwing event handler. */
+	readonly crash: (moduleId: string, error: unknown) => Promise<void>;
 	readonly state: (moduleId: string) => ModuleState | undefined;
 };
 
 type Entry = {
 	readonly module: MeteModule;
+	readonly budget: RestartBudget;
 	state: ModuleState;
 	ctx?: ModuleContext;
 };
@@ -73,7 +83,11 @@ const nextReady = (entries: Entries, registry: CapabilityRegistry) =>
 
 const publish = (
 	opts: LifecycleOptions,
-	type: "module.activated" | "module.deactivated",
+	type:
+		| "module.activated"
+		| "module.deactivated"
+		| "module.crashed"
+		| "module.disabled",
 	moduleId: string,
 	reason?: string,
 ) =>
@@ -87,11 +101,55 @@ const publish = (
 		payload: reason === undefined ? { moduleId } : { moduleId, reason },
 	});
 
+// Only the error name is published: events persist, and a message may hold secrets.
+const reportCrash = (opts: LifecycleOptions, id: string, error: unknown) => {
+	opts.logger.error({ module: id, err: error }, "module crashed");
+	const name = error instanceof Error ? error.name : typeof error;
+	publish(opts, "module.crashed", id, name);
+};
+
+// Calls deactivate as cleanup; a second exception there is logged, not raised.
+const release = async (opts: LifecycleOptions, entry: Entry) => {
+	try {
+		await entry.module.deactivate();
+	} catch (error) {
+		opts.logger.error(
+			{ module: entry.module.manifest.id, err: error },
+			"deactivate failed",
+		);
+	}
+	entry.ctx?.disposables.dispose();
+};
+
+// Restarts at once by returning to resolving, unless the restart budget is spent.
+const onCrash = async (
+	opts: LifecycleOptions,
+	entry: Entry,
+	error: unknown,
+) => {
+	const { id } = entry.module.manifest;
+	reportCrash(opts, id, error);
+	entry.state = "restarting";
+	await release(opts, entry);
+	if (entry.budget.take()) {
+		entry.state = "resolving";
+		return;
+	}
+	entry.state = "disabled";
+	publish(opts, "module.disabled", id);
+};
+
 const activate = async (opts: LifecycleOptions, entry: Entry) => {
 	const { id } = entry.module.manifest;
 	const ctx = opts.contextFor(entry.module.manifest);
 	entry.ctx = ctx;
-	const result = await entry.module.activate(ctx);
+	let result: Awaited<ReturnType<MeteModule["activate"]>>;
+	try {
+		result = await entry.module.activate(ctx);
+	} catch (error) {
+		await onCrash(opts, entry, error);
+		return;
+	}
 	if (result.ok) {
 		entry.state = "active";
 		publish(opts, "module.activated", id);
@@ -104,10 +162,28 @@ const activate = async (opts: LifecycleOptions, entry: Entry) => {
 
 const deactivate = async (opts: LifecycleOptions, entry: Entry) => {
 	entry.state = "deactivating";
-	await entry.module.deactivate();
+	try {
+		await entry.module.deactivate();
+	} catch (error) {
+		reportCrash(opts, entry.module.manifest.id, error);
+	}
 	entry.ctx?.disposables.dispose();
 	entry.state = "inactive";
 	publish(opts, "module.deactivated", entry.module.manifest.id);
+};
+
+// Re-checks every waiting module after each activation, until none can start.
+const settleAll = async (
+	opts: LifecycleOptions,
+	entries: Entries,
+	fired: Fired,
+) => {
+	promote(entries, fired);
+	for (let e = nextReady(entries, opts.registry); e; ) {
+		await activate(opts, e);
+		promote(entries, fired);
+		e = nextReady(entries, opts.registry);
+	}
 };
 
 // Serializes calls so two registrations never activate the same module twice.
@@ -125,15 +201,7 @@ export const createLifecycle = (opts: LifecycleOptions): Lifecycle => {
 	const entries = new Map<string, Entry>();
 	const fired: Fired = { startup: false, workspace: false };
 	const serial = createSerial();
-	// Re-checks every waiting module after each activation, until none can start.
-	const settle = async () => {
-		promote(entries, fired);
-		for (let e = nextReady(entries, opts.registry); e; ) {
-			await activate(opts, e);
-			promote(entries, fired);
-			e = nextReady(entries, opts.registry);
-		}
-	};
+	const settle = () => settleAll(opts, entries, fired);
 	const fire = (event: keyof Fired) =>
 		serial(async () => {
 			fired[event] = true;
@@ -147,13 +215,21 @@ export const createLifecycle = (opts: LifecycleOptions): Lifecycle => {
 				const { id } = module.manifest;
 				if (entries.has(id))
 					throw new Error(`module ${id} is already registered`);
-				entries.set(id, { module, state: "registered" });
+				const budget = createRestartBudget(opts.now);
+				entries.set(id, { module, budget, state: "registered" });
 				await settle();
 			}),
 		deactivate: (moduleId) =>
 			serial(async () => {
 				const entry = entries.get(moduleId);
 				if (entry?.state === "active") await deactivate(opts, entry);
+			}),
+		crash: (moduleId, error) =>
+			serial(async () => {
+				const entry = entries.get(moduleId);
+				if (entry?.state !== "active") return;
+				await onCrash(opts, entry, error);
+				await settle();
 			}),
 		state: (moduleId) => entries.get(moduleId)?.state,
 	};

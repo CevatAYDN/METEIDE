@@ -57,10 +57,12 @@ export interface MeteModule {
 	deactivate(): Promise<void>;
 }
 
-/** Lifecycle states; the supervisor adds `restarting` and `disabled`. */
+/** Lifecycle states from docs/06. */
 export type ModuleState =
 	| "registered"
 	| "resolving"
 	| "active"
 	| "deactivating"
-	| "inactive";
+	| "inactive"
+	| "restarting"
+	| "disabled";

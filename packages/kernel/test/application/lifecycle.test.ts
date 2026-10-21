@@ -7,6 +7,10 @@ import {
 } from "@mete/contracts";
 import { describe, expect, it, vi } from "vitest";
 import { createLifecycle } from "../../src/application/lifecycle.js";
+import {
+	SUPERVISOR_MAX_RESTARTS,
+	SUPERVISOR_WINDOW_MS,
+} from "../../src/defaults.js";
 import { createCapabilityRegistry } from "../../src/domain/capability-registry.js";
 import { createEventBus } from "../../src/domain/event-bus.js";
 import type { MeteModule, ModuleContext } from "../../src/domain/module.js";
@@ -83,16 +87,114 @@ const setup = async (start = true) => {
 			},
 		};
 	};
+	let t = 0;
+	const errors = vi.fn();
+	const noop = () => {};
 	const life = createLifecycle({
 		registry,
 		events,
 		workspaceId: WORKSPACE,
 		contextFor,
+		logger: { error: errors, warn: noop, info: noop, debug: noop },
+		now: () => t,
 	});
 	const log = () => seen.map((e) => `${e.type} ${JSON.stringify(e.payload)}`);
 	if (start) await life.start();
-	return { life, registry, seen, log };
+	const advance = (ms: number) => (t += ms);
+	return { life, registry, seen, log, errors, advance };
 };
+
+// Throws from activate the first `times` calls, or from deactivate when asked.
+const crashingModule = (
+	m: ModuleManifest,
+	opts: { activateThrows?: number; deactivateThrows?: boolean },
+) => {
+	let calls = 0;
+	const deactivate = vi.fn(async () => {
+		if (opts.deactivateThrows) throw new RangeError("bad state");
+	});
+	const mod: MeteModule = {
+		manifest: m,
+		activate: async () => {
+			calls += 1;
+			if (calls <= (opts.activateThrows ?? 0)) throw new TypeError("boom");
+			return ok(undefined);
+		},
+		deactivate,
+	};
+	return { mod, deactivate };
+};
+
+describe("supervisor", () => {
+	it("restarts a module that crashes while active", async () => {
+		const { life, log, errors } = await setup();
+		const { mod, deactivate } = fakeModule(manifest("vault"));
+		await life.register(mod);
+		await life.crash("vault", new TypeError("handler failed"));
+		expect(deactivate).toHaveBeenCalledOnce();
+		expect(errors).toHaveBeenCalledOnce();
+		expect(life.state("vault")).toBe("active");
+		expect(log()).toEqual([
+			'module.activated {"moduleId":"vault"}',
+			'module.crashed {"moduleId":"vault","reason":"TypeError"}',
+			'module.activated {"moduleId":"vault"}',
+		]);
+	});
+
+	it("disables a module after the maximum restarts in the window", async () => {
+		const { life, log } = await setup();
+		await life.register(
+			crashingModule(manifest("broken"), { activateThrows: 99 }).mod,
+		);
+		expect(life.state("broken")).toBe("disabled");
+		expect(log()).toEqual([
+			...Array(SUPERVISOR_MAX_RESTARTS + 1).fill(
+				'module.crashed {"moduleId":"broken","reason":"TypeError"}',
+			),
+			'module.disabled {"moduleId":"broken"}',
+		]);
+	});
+
+	it("keeps restarting when crashes are spread past the window", async () => {
+		const { life, advance } = await setup();
+		await life.register(fakeModule(manifest("vault")).mod);
+		for (let i = 0; i <= SUPERVISOR_MAX_RESTARTS; i++) {
+			await life.crash("vault", new Error("again"));
+			advance(SUPERVISOR_WINDOW_MS);
+		}
+		expect(life.state("vault")).toBe("active");
+	});
+
+	it("still deactivates a module whose deactivate throws", async () => {
+		const { life, log } = await setup();
+		const vault = crashingModule(manifest("vault"), { deactivateThrows: true });
+		await life.register(vault.mod);
+		await life.deactivate("vault");
+		expect(life.state("vault")).toBe("inactive");
+		expect(log().slice(1)).toEqual([
+			'module.crashed {"moduleId":"vault","reason":"RangeError"}',
+			'module.deactivated {"moduleId":"vault"}',
+		]);
+	});
+
+	it("restarts even when cleanup throws, and names a non-Error by its type", async () => {
+		const { life, log, errors } = await setup();
+		const vault = crashingModule(manifest("vault"), { deactivateThrows: true });
+		await life.register(vault.mod);
+		await life.crash("vault", "plain string");
+		expect(errors).toHaveBeenCalledTimes(2);
+		expect(life.state("vault")).toBe("active");
+		expect(log()[1]).toBe(
+			'module.crashed {"moduleId":"vault","reason":"string"}',
+		);
+	});
+
+	it("ignores a crash report for a module that is not active", async () => {
+		const { life, seen } = await setup();
+		await life.crash("unknown", new Error("late"));
+		expect(seen).toEqual([]);
+	});
+});
 
 describe("activation events", () => {
 	it("keeps an onStartup module registered until the kernel starts", async () => {
