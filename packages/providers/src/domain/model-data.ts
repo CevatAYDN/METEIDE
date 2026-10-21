@@ -1,4 +1,4 @@
-import { type ModelInfo, PrivacySchema } from "@mete/contracts";
+import { type ModelInfo, type Privacy, PrivacySchema } from "@mete/contracts";
 import { z } from "zod";
 
 // models.yaml from docs/09 (Provider adapter): facts per provider and exact model id.
@@ -82,3 +82,16 @@ export const withRow = (
 				free: row.free,
 			}
 		: info;
+
+const UNKNOWN: Privacy = {
+	trains: "unknown",
+	logs: "unknown",
+	publishes: "unknown",
+};
+
+/** A model's privacy from its row; unknown without one (docs/09, provider facts). */
+export const privacyFromRows =
+	(rows: Readonly<Record<string, ModelRow>>) =>
+	(model: ModelInfo): Privacy =>
+		(Object.hasOwn(rows, model.id) ? rows[model.id]?.privacy : undefined) ??
+		UNKNOWN;

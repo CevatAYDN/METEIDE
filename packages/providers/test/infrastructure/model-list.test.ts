@@ -10,36 +10,44 @@ const json = (body: unknown, status = 200) =>
 	});
 
 describe("listModelIds", () => {
-	it("sends the key and returns the listed ids", async () => {
-		let auth: string | null = null;
-		const r = await listModelIds(URL_, "k", signal(), async (_u, init) => {
-			auth = new Headers(init?.headers).get("authorization");
-			return json({ object: "list", data: [{ id: "a" }, { id: "b" }] });
+	it("sends the key and extra headers and returns the listed ids", async () => {
+		let sent = new Headers();
+		const r = await listModelIds(URL_, "k", signal(), {
+			headers: { "x-team": "mete", authorization: "not this" },
+			fetch: async (_u, init) => {
+				sent = new Headers(init?.headers);
+				return json({ object: "list", data: [{ id: "a" }, { id: "b" }] });
+			},
 		});
 		expect(r).toEqual({ ok: true, value: ["a", "b"] });
-		expect(auth).toBe("Bearer k");
+		expect(sent.get("authorization")).toBe("Bearer k");
+		expect(sent.get("x-team")).toBe("mete");
 	});
 
 	it("maps a status, an unexpected body, a failed fetch and an abort", async () => {
-		const status = await listModelIds(URL_, "k", signal(), async () =>
-			json({}, 401),
-		);
+		const status = await listModelIds(URL_, "k", signal(), {
+			fetch: async () => json({}, 401),
+		});
 		expect(!status.ok && [status.error.code, status.error.status]).toEqual([
 			"unauthorized",
 			401,
 		]);
-		const body = await listModelIds(URL_, "k", signal(), async () =>
-			json({ models: [] }),
-		);
+		const body = await listModelIds(URL_, "k", signal(), {
+			fetch: async () => json({ models: [] }),
+		});
 		expect(!body.ok && body.error.code).toBe("server");
-		const down = await listModelIds(URL_, "k", signal(), async () => {
-			throw new TypeError("fetch failed");
+		const down = await listModelIds(URL_, "k", signal(), {
+			fetch: async () => {
+				throw new TypeError("fetch failed");
+			},
 		});
 		expect(!down.ok && down.error.code).toBe("network");
 		const c = new AbortController();
 		c.abort();
-		const aborted = await listModelIds(URL_, "k", c.signal, async () => {
-			throw new DOMException("aborted", "AbortError");
+		const aborted = await listModelIds(URL_, "k", c.signal, {
+			fetch: async () => {
+				throw new DOMException("aborted", "AbortError");
+			},
 		});
 		expect(!aborted.ok && aborted.error.code).toBe("aborted");
 	});

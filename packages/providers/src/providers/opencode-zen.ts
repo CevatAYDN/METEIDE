@@ -1,4 +1,4 @@
-import { ok, type Privacy, type ProviderAdapter } from "@mete/contracts";
+import { ok, type ProviderAdapter } from "@mete/contracts";
 import type { MeteModule } from "@mete/kernel";
 import {
 	createProviderModule,
@@ -7,7 +7,7 @@ import {
 	type ProviderModuleOptions,
 } from "../application/provider-module.js";
 import { ZEN_BASE_URL, ZEN_MODELS_URL, ZEN_QUOTA } from "../defaults.js";
-import { chatModels } from "../domain/model-data.js";
+import { chatModels, privacyFromRows } from "../domain/model-data.js";
 import { observeMinute429 } from "../domain/observe.js";
 import { listModelIds } from "../infrastructure/model-list.js";
 import { createOpenAIChat } from "../infrastructure/openai-chat.js";
@@ -16,11 +16,6 @@ import { createOpenAIChat } from "../infrastructure/openai-chat.js";
 // privacy per model from models.yaml.
 
 const ID = "opencode-zen";
-const UNKNOWN: Privacy = {
-	trains: "unknown",
-	logs: "unknown",
-	publishes: "unknown",
-};
 
 const build = (env: ProviderEnv): ProviderAdapter => {
 	const fetch = env.fetch ? { fetch: env.fetch } : {};
@@ -34,21 +29,15 @@ const build = (env: ProviderEnv): ProviderAdapter => {
 		id: ID,
 		format: "openai-chat",
 		async listModels(signal) {
-			const ids = await listModelIds(
-				ZEN_MODELS_URL,
-				env.apiKey,
-				signal,
-				env.fetch,
-			);
+			const ids = await listModelIds(ZEN_MODELS_URL, env.apiKey, signal, {
+				fetch: env.fetch,
+			});
 			return ids.ok ? ok(chatModels(ID, ids.value, env.models)) : ids;
 		},
 		chat,
 		quotaUnits: () => [...ZEN_QUOTA],
 		observe: (status, headers) => observeMinute429(status, headers, env.now()),
-		privacy: (model) =>
-			(Object.hasOwn(env.models, model.id)
-				? env.models[model.id]?.privacy
-				: undefined) ?? UNKNOWN,
+		privacy: privacyFromRows(env.models),
 	};
 };
 

@@ -14,6 +14,7 @@ export const fetchJson = async <S extends z.ZodType>(
 		schema: S;
 		fetch?: typeof globalThis.fetch | undefined;
 		body?: unknown;
+		headers?: Record<string, string> | undefined;
 	},
 ): Promise<Result<z.infer<S>, ProviderError>> => {
 	try {
@@ -21,6 +22,7 @@ export const fetchJson = async <S extends z.ZodType>(
 		const res = await (opts.fetch ?? globalThis.fetch)(url, {
 			method: post ? "POST" : "GET",
 			headers: {
+				...opts.headers,
 				authorization: `Bearer ${apiKey}`,
 				accept: "application/json",
 				...(post ? { "content-type": "application/json" } : {}),
@@ -59,11 +61,14 @@ export const listModelIds = async (
 	url: string,
 	apiKey: string,
 	signal: AbortSignal,
-	fetcher?: typeof globalThis.fetch,
+	opts: {
+		fetch?: typeof globalThis.fetch | undefined;
+		headers?: Record<string, string> | undefined;
+	} = {},
 ): Promise<Result<string[], ProviderError>> => {
 	const list = await fetchJson(url, apiKey, signal, {
 		schema: IdListSchema,
-		fetch: fetcher,
+		...opts,
 	});
 	return list.ok ? ok(list.value.data.map((m) => m.id)) : list;
 };

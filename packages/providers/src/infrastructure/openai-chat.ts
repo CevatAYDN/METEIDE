@@ -130,6 +130,7 @@ export const createOpenAIChat = (opts: OpenAIChatOptions) => {
 		name: opts.name,
 		baseURL: opts.baseURL,
 		apiKey: opts.apiKey,
+		// shortcut: every endpoint gets stream_options.include_usage; make it an option if one rejects it (a bad_request chunk).
 		includeUsage: true,
 		...(opts.headers ? { headers: opts.headers } : {}),
 		...(opts.fetch ? { fetch: opts.fetch } : {}),

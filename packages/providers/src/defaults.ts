@@ -55,3 +55,14 @@ export const NVIDIA_QUOTA: readonly QuotaUnitSpec[] = [
 		reset: "sliding",
 	},
 ];
+
+/** A custom endpoint's limit is learned from 429 responses, like OpenCode Zen's (09 API keys). */
+export const customQuota = (providerId: string): QuotaUnitSpec[] => [
+	{
+		providerId,
+		unit: "requests_per_minute",
+		limit: "discover",
+		scope: "account",
+		reset: "sliding",
+	},
+];

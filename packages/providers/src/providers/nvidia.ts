@@ -43,7 +43,9 @@ const build = (env: ProviderEnv): ProviderAdapter => {
 				`${NVIDIA_BASE_URL}/models`,
 				env.apiKey,
 				signal,
-				env.fetch,
+				{
+					fetch: env.fetch,
+				},
 			);
 			return ids.ok ? ok(chatModels(ID, ids.value, env.models)) : ids;
 		},
