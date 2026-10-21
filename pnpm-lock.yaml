@@ -78,7 +78,14 @@ importers:
 
   packages/quota: {}
 
-  packages/security: {}
+  packages/security:
+    dependencies:
+      '@mete/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@mete/kernel':
+        specifier: workspace:*
+        version: link:../kernel
 
   packages/storage:
     dependencies:
