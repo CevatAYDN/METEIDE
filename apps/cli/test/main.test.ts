@@ -5,6 +5,7 @@ import type { MeteEvent, RunView } from "@mete/contracts";
 import { afterEach, describe, expect, it } from "vitest";
 import { eventLine, exitCode, statusLines } from "../src/domain/format.js";
 import { fileLogger, moduleLogger } from "../src/infrastructure/log.js";
+import { runLockFile, takeRunLock } from "../src/infrastructure/run-lock.js";
 import { main } from "../src/main.js";
 import { memorySecrets, recordingIo, silent, tempRepo } from "./helpers.js";
 
@@ -56,6 +57,28 @@ describe("mete main", () => {
 		const keys = recordingIo();
 		expect(await main(["key", "list"], keys.io, env)).toBe(0);
 		expect(keys.out).toHaveLength(3);
+	});
+
+	it("refuses run and stop while another mete run holds the workspace", async () => {
+		const repo = await tempRepo({ "a.txt": "a\n" });
+		close = repo.close;
+		const lock = await takeRunLock(runLockFile(repo.workspaceDir));
+		if (!lock.ok) throw new Error(lock.error);
+		const env = {
+			cwd: repo.workspaceDir,
+			globalDir: repo.globalDir,
+			logger: silent,
+			secrets: memorySecrets(),
+		};
+		for (const argv of [
+			["run", "g"],
+			["stop", "--all"],
+		]) {
+			const t = recordingIo();
+			expect(await main(argv, t.io, env)).toBe(1);
+			expect(t.err[0]).toContain(`another mete run (pid ${process.pid})`);
+		}
+		await lock.value();
 	});
 
 	it("writes JSON log lines with the module id into the day's file", async () => {

@@ -12,6 +12,12 @@ import {
 } from "./application/commands.js";
 import { type App, type AppOptions, createApp } from "./infrastructure/app.js";
 import { fileLogger } from "./infrastructure/log.js";
+import {
+	heldMessage,
+	lockHolder,
+	runLockFile,
+	takeRunLock,
+} from "./infrastructure/run-lock.js";
 
 // Entry of the mete binary (ARCHITECTURE.md, CLI): parses arguments and runs one command.
 
@@ -52,6 +58,33 @@ const withApp = async (
 	}
 };
 
+// Recovery runs when core-engine activates, so the lock is taken before the app exists.
+const locked = async (opts: AppOptions, io: Io, use: () => Promise<number>) => {
+	const lock = await takeRunLock(runLockFile(opts.workspaceDir));
+	if (!lock.ok) {
+		io.err(lock.error);
+		return 1;
+	}
+	try {
+		return await use();
+	} finally {
+		await lock.value();
+	}
+};
+
+// A run held by a live mete run is cancelled with Ctrl+C there, never from here.
+const unlessDriven = async (
+	opts: AppOptions,
+	io: Io,
+	use: () => Promise<number>,
+) => {
+	const file = runLockFile(opts.workspaceDir);
+	const pid = await lockHolder(file);
+	if (pid === undefined) return use();
+	io.err(heldMessage(pid, file));
+	return 1;
+};
+
 const dispatch = (
 	p: Parsed,
 	opts: AppOptions,
@@ -61,20 +94,23 @@ const dispatch = (
 	const reader = { ...opts, recover: false };
 	const goal = rest.join(" ").trim();
 	switch (command) {
-		case "run":
-			if (p.values.resume)
-				return withApp(opts, io, (a) =>
-					runCommand(a, io, { resume: p.values.resume ?? "" }),
-				);
-			return goal
-				? withApp(opts, io, (a) => runCommand(a, io, { goal }))
+		case "run": {
+			const resume = p.values.resume;
+			const what = resume ? { resume } : { goal };
+			return resume || goal
+				? locked(opts, io, () =>
+						withApp(opts, io, (a) => runCommand(a, io, what)),
+					)
 				: usage(io);
+		}
 		case "status":
 			return withApp(reader, io, (a) => statusCommand(a, io, rest[0]));
 		case "stop": {
 			const target = p.values.all ? "all" : rest[0];
 			return target
-				? withApp(reader, io, (a) => stopCommand(a, io, target))
+				? unlessDriven(reader, io, () =>
+						withApp(reader, io, (a) => stopCommand(a, io, target)),
+					)
 				: usage(io);
 		}
 		case "key":
