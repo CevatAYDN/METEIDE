@@ -25,6 +25,32 @@ interface ModelInfo { id: string; providerId: string; family: string; contextWin
 
 Custom endpoints are created from a form: name, base URL, API key, extra headers, format. On save METE calls `GET <base>/models` and fills `ModelInfo` from the returned metadata. Unknown capabilities stay `"unknown"`; the "Test" button sends one probe call per selected model, only when the user presses it \[D\].
 
+The shapes `chat`, `embed` and `rerank` use are in tab 06. `chat` streams chunks and ends with exactly one `finish` or one `error` chunk; it never throws for a provider failure, and the gateway passes an `error` chunk's status and headers to `observe()`. Each provider module provides its one adapter object under every capability its row in tab 06 lists \[D\].
+
+`GET <base>/models` from NVIDIA and OpenCode Zen returns model ids only, so `@mete/providers` ships `models.yaml` beside `tiers.yaml`: per provider, exact model ids with `capability` (`chat`, `embed` or `rerank`), `contextWindow`, `toolCalling`, `vision`, `free`, `family` and, where a provider's privacy differs per model, `privacy`. Like `tiers.yaml` it is data the user and the community edit \[D\]:
+
+- A model the provider lists with neither metadata nor a row gets `contextWindow: 0` and `free: false`, so it fits no tier.
+- A row whose id the provider no longer lists is not offered.
+- `deprecated` comes only from provider metadata.
+- Ids are exact, never patterns; a new free model needs a new row.
+- Discovery sends no probe calls.
+
+API keys live in the operating system keychain through `ModuleContext.secrets` (tab 06), which the composition root builds from the keychain store in `@mete/security` on `@napi-rs/keyring`; it is not a capability. Keys are kept under service `mete` and account `providers/<providerId>/apiKey`, or `providers/custom:<slug>/apiKey` for a custom endpoint. A provider module whose key is missing fails activation with "no API key" and stays inactive until the user adds one. Provider modules declare the `net` and `secrets` permissions. Custom endpoints are kept in the `providers:` section of `settings.yaml` as `custom: [{ slug, name, baseUrl, format, headers }]`; their keys never go into a file \[D\].
+
+Provider facts, checked on 2026-10-21 against each provider's documentation \[D\]:
+
+| Provider | Chat endpoint | Model list | Free models | Limit signals | Privacy |
+| --- | --- | --- | --- | --- | --- |
+| NVIDIA Build | `https://integrate.api.nvidia.com/v1`, `openai-chat` | `/models`: ids only, chat, embedding and rerank models together; `models.yaml` rows decide which model serves which capability | Every model with a row (trial access) | No rate-limit headers documented; a 429, with `Retry-After` when present | `trains: true`, `logs: true`, `publishes: false`: the NVIDIA API Trial Terms of Service, section 3.3 (iv), collect user and generated content "to improve NVIDIA products and services, including AI models" |
+| OpenRouter | `https://openrouter.ai/api/v1`, `openai-chat`, with `provider: { data_collection: "deny" }` unless the user opted in | `/models` with metadata: `context_length`, `supported_parameters` (`tools`), input modalities, `pricing`, `expiration_date` | Ids ending `:free` | Successful responses carry no rate-limit headers. A 429 from OpenRouter's own limits carries `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset`, plus `Retry-After` when every provider gave one; a 429 from an upstream provider carries `error.metadata.provider_code` instead. A limit hit while streaming arrives as an event with `finish_reason: "error"`. Free-model daily limits count per UTC day | With `data_collection: "deny"`: `trains: false`, `publishes: false`, `logs: "unknown"`; a `:free` model that only collecting providers serve then fails at request time |
+| OpenCode Zen | `https://opencode.ai/inference/openai/v1`, `openai-chat` (most free models) | `https://opencode.ai/inference/v1/models`: ids only | The `-free` ids and `big-pickle`, as rows in `models.yaml` | Not documented; limits are `discover` (Quota pool) | Per model: Big Pickle, Exo Free, the MiMo free models and LL Alpha Free may be used to improve the model; the Nemotron free models are logged for NVIDIA's improvement (`trains: true` for all of these); Beam Free is kept 30 days and not trained on; the rest keep no data |
+
+`observe()` rules \[D\]:
+
+- OpenRouter: only a 429 that carries `X-RateLimit-*` headers is an exhausted observation, for `requests_per_day` when `X-RateLimit-Limit` is 50 or more (the documented daily limits are 50 and 1,000) and `requests_per_minute` otherwise (documented as 20); an upstream 429 closes nothing. `X-RateLimit-Reset` is not read, because its unit is not documented; `Retry-After` gives `resetsAt`. A limit hit while streaming carries no headers and closes nothing; the next request's 429 does.
+- NVIDIA and OpenCode Zen: a 429 is an exhausted observation for `requests_per_minute`, with `resetsAt` from `Retry-After` when present.
+- NVIDIA's embedding and rerank endpoints are recorded here with the NVIDIA adapter.
+
 ## Model tiers
 
 | Tier | Used for | Hard requirements |

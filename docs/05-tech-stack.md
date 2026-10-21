@@ -44,7 +44,7 @@ This is the only valid technology list. Anything not listed here needs an ADR be
 
 | Area | Technology | Role |
 | --- | --- | --- |
-| Model access | Vercel AI SDK with `@ai-sdk/openai-compatible`, `@openrouter/ai-sdk-provider`, `@ai-sdk/anthropic`, `@ai-sdk/google` | One interface for every provider format |
+| Model access | Vercel AI SDK provider packages without the `ai` core: `@ai-sdk/openai-compatible` for NVIDIA, OpenRouter, OpenCode Zen and `openai-chat` custom endpoints; `@ai-sdk/anthropic` and `@ai-sdk/google` for custom endpoints of those formats (ADR-039) | One interface for every provider format |
 | Schemas | Zod | Contracts, configuration, artifacts, structured outputs |
 | Workflow engine | XState v5 | Team engine, run and task state machines, actors, snapshot persistence; the kernel's module lifecycle is a plain transition table |
 | Concurrency | Own priority waiting list and quota windows in `@mete/quota` (ADR-038) | Quota scheduling |

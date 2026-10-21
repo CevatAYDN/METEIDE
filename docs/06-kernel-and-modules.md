@@ -80,6 +80,37 @@ export type AuditFailed = { code: "audit_failed"; message: string };            
 export interface PolicyCheckAdapter { check(input: PolicyCheckInput): Result<PolicyVerdict, AuditFailed> }
 export interface SecretsMaskAdapter { mask(text: string): Promise<{ text: string; masked: number }> }   // tab 09 replacement format
 
+// provider.chat@1, provider.embed@1 and provider.rerank@1, defined in @mete/contracts; ProviderAdapter and ModelInfo
+// are in tab 09. Each provider module provides one adapter object under every ref it supports.
+export type ContentPart = { type: "text"; text: string } | { type: "image"; mediaType: string; data: string };   // base64 image
+export type ToolCall = { id: string; name: string; args: unknown };
+export type ChatMessage =
+  | { role: "system"; content: string }
+  | { role: "user"; content: string | ContentPart[] }
+  | { role: "assistant"; content: string; toolCalls?: ToolCall[] }
+  | { role: "tool"; toolCallId: string; content: string };
+export type ToolSpec = { name: string; description: string; parameters: unknown };   // parameters is a JSON Schema
+export type ChatRequest = { model: string; messages: ChatMessage[]; tools?: ToolSpec[]; maxTokens?: number; temperature?: number };
+export type ProviderError = { code: "rate_limited" | "unauthorized" | "bad_request" | "server" | "network" | "aborted";
+  message: string; status?: number; headers?: Headers };   // status and headers go to observe()
+export type ChatChunk =
+  | { type: "text"; text: string }
+  | { type: "tool-call"; id: string; name: string; args: unknown }
+  | { type: "finish"; reason: "stop" | "length" | "tool-calls" | "content-filter" | "other"; usage: { prompt: number; completion: number } }
+  | { type: "error"; error: ProviderError };   // the last chunk; chat never throws for a provider failure
+export type EmbedRequest = { model: string; input: string[] };
+export type EmbedResponse = { vectors: number[][] };   // one vector per input, in order
+export type RerankRequest = { model: string; query: string; documents: string[] };
+export type RerankResponse = { scores: number[] };     // one score per document, in order
+
+// ModuleContext.secrets: the operating system keychain (tab 12), service "mete"; account names in tab 09.
+export type SecretError = { code: "secret_failed"; message: string };
+export interface SecretStore {
+  get(name: string): Promise<Result<string | undefined, SecretError>>;
+  set(name: string, value: string): Promise<Result<void, SecretError>>;
+  delete(name: string): Promise<Result<boolean, SecretError>>;   // false when there was nothing to delete
+}
+
 // quota.reserve@1, defined in @mete/contracts; QuotaUnit and QuotaUnitSpec are in tab 09, pool rules in tab 09 (Quota pool).
 export type QuotaAmounts = Partial<Record<QuotaUnit, number>>;
 export type QuotaObservation = { unit: QuotaUnit; limit?: number; remaining?: number; resetsAt?: string; exhausted: boolean };
