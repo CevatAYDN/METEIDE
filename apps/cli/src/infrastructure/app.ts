@@ -157,7 +157,7 @@ export const createApp = async (
 	});
 };
 
-/** Why team.engine@1 is missing: the modules still waiting and the capabilities they wait for. */
+/** Why team.engine@2 is missing: the modules still waiting and the capabilities they wait for. */
 export const waiting = (app: App) =>
 	app.modules.flatMap((m) => {
 		const { id, requires } = m.manifest;
@@ -168,7 +168,7 @@ export const waiting = (app: App) =>
 
 /** The engine, or the lines that say why it is not active. */
 export const engineOf = (app: App): Result<TeamEngineAdapter, string[]> => {
-	const r = app.registry.resolve<TeamEngineAdapter>("team.engine@1");
+	const r = app.registry.resolve<TeamEngineAdapter>("team.engine@2");
 	if (r.ok) return ok(r.value[0].impl);
 	const off = app.inactive.map(
 		(m) => `${m.moduleId} is not active (${m.reason})`,

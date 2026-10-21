@@ -1,4 +1,5 @@
 import {
+	type ApprovalInput,
 	type EngineError,
 	err,
 	ok,
@@ -19,6 +20,7 @@ import {
 	loadTemplate,
 	type TemplateError,
 } from "../infrastructure/template-store.js";
+import { recordDecision } from "./approvals.js";
 import { drive } from "./run-driver.js";
 import {
 	apply,
@@ -32,7 +34,7 @@ import {
 	platformOf,
 } from "./run-state.js";
 
-// team.engine@1 (docs/06 engine types, docs/07 Run state machine, docs/08 Single agent and teams).
+// team.engine@2 (docs/06 engine types, docs/07 Run state machine, docs/08 Single agent and teams).
 
 type Out<T> = Promise<Result<T, EngineError>>;
 
@@ -194,6 +196,19 @@ const resume = async (s: EngineState, runId: string): Out<void> => {
 	return ok(undefined);
 };
 
+// The human's decision clears the approval pause, so the run goes on at once (docs/07).
+const approveRun = async (
+	s: EngineState,
+	runId: string,
+	input: ApprovalInput,
+): Out<void> => {
+	const l = find(s, runId);
+	if (!l.ok) return l;
+	const recorded = recordDecision(s, l.value, input);
+	if (!recorded.ok) return recorded;
+	return resume(s, runId);
+};
+
 const cancel = async (s: EngineState, runId: string): Out<void> => {
 	const l = find(s, runId);
 	if (!l.ok) return l;
@@ -266,7 +281,7 @@ const stop = async (s: EngineState) => {
 	await Promise.allSettled([...s.live.values()].map((l) => l.loop));
 };
 
-/** Creates team.engine@1; the module calls `recover` when it activates and `stop` when it deactivates. */
+/** Creates team.engine@2; the module calls `recover` when it activates and `stop` when it deactivates. */
 export const createEngine = (deps: EngineDeps) => {
 	const s: EngineState = {
 		deps,
@@ -278,6 +293,7 @@ export const createEngine = (deps: EngineDeps) => {
 		pause: (runId) => pause(s, runId),
 		resume: (runId) => resume(s, runId),
 		cancel: (runId) => cancel(s, runId),
+		approve: (runId, input) => approveRun(s, runId, input),
 		status: (runId) => status(s, runId),
 	};
 	return { engine, recover: () => recover(s), stop: () => stop(s) };

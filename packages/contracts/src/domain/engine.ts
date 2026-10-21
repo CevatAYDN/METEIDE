@@ -1,8 +1,12 @@
 import { z } from "zod";
 import type { Result } from "./result.js";
-import type { PauseReasonSchema, RunStatusSchema } from "./states.js";
+import {
+	DecisionSchema,
+	type PauseReasonSchema,
+	type RunStatusSchema,
+} from "./states.js";
 
-// team.engine@1 from docs/06 (Kernel API); run states in docs/07, single-agent rules in docs/08.
+// team.engine@2 from docs/06 (Kernel API); run states in docs/07, single-agent and team rules in docs/08.
 
 /** A run's state (docs/07, Run state machine). */
 export type RunStatus = z.infer<typeof RunStatusSchema>;
@@ -16,6 +20,24 @@ export const RunStartSchema = z.strictObject({
 
 /** What starts a run. */
 export type RunStart = z.input<typeof RunStartSchema>;
+
+/**
+ * The human's decision on a task that waits for them (docs/08): a submission in human_checkpoints
+ * or with approval: human, or a blocked task. Without taskId it is the only task that waits.
+ */
+export const ApprovalInputSchema = z
+	.strictObject({
+		taskId: z.string().min(1).optional(),
+		decision: DecisionSchema,
+		feedback: z.string().trim().min(1).optional(),
+	})
+	.refine((a) => a.decision === "approve" || a.feedback !== undefined, {
+		message: "a revision needs feedback",
+		path: ["feedback"],
+	});
+
+/** The human's decision on a waiting task. */
+export type ApprovalInput = z.input<typeof ApprovalInputSchema>;
 
 /** A run as `status` shows it: the Run entity of docs/07 without its snapshot. */
 export type RunView = {
@@ -47,11 +69,16 @@ export type EngineError =
 			readonly status: RunStatus;
 	  };
 
-/** team.engine@1: starts and steers runs; observers read the run.* and agent.* events. */
+/** team.engine@2: starts and steers runs; observers read the run.*, task.* and agent.* events. */
 export interface TeamEngineAdapter {
 	start(req: RunStart): Promise<Result<{ runId: string }, EngineError>>;
 	pause(runId: string): Promise<Result<void, EngineError>>;
 	resume(runId: string): Promise<Result<void, EngineError>>;
 	cancel(runId: string): Promise<Result<void, EngineError>>;
+	/** Records the human's decision on a run paused for approval, then resumes it (team.engine@2). */
+	approve(
+		runId: string,
+		input: ApprovalInput,
+	): Promise<Result<void, EngineError>>;
 	status(runId?: string): Result<RunView[], EngineError>;
 }

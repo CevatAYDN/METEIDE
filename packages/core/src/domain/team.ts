@@ -161,8 +161,9 @@ export const applyTask = (
 		status: next.value,
 		context: next.context,
 		approvals: fresh ? [] : entry.approvals,
-		repairs:
-			event.type === "START" || event.type === "SUBMIT" ? 0 : entry.repairs,
+		repairs: ["START", "SUBMIT", "UNBLOCK"].includes(event.type)
+			? 0
+			: entry.repairs,
 	};
 	const out = { team: withEntry(team, id, updated) };
 	return next.value === entry.status
@@ -211,6 +212,41 @@ const review = (team: TeamState, ids: readonly string[]) => {
 			return { kind: "approve", taskId: id, by: next } as const;
 	}
 	return undefined;
+};
+
+/** The tasks only the human can move on: a submission whose next approval is the human's, or a blocked task. */
+export const waitingForHuman = (team: TeamState) =>
+	team.template.tasks
+		.map((t) => t.id)
+		.filter((id) => {
+			const s = statusOf(team, id);
+			return (
+				s === "blocked" ||
+				(s === "submitted" && missing(team, id)[0] === "human")
+			);
+		});
+
+/**
+ * Applies the human's decision to a task that waits for them; undefined when it does not wait.
+ * A blocked task goes back to work with the feedback as its instruction, whatever the decision.
+ */
+export const decide = (
+	team: TeamState,
+	id: string,
+	{
+		decision,
+		feedback,
+	}: { decision: "approve" | "revise"; feedback?: string | undefined },
+) => {
+	if (!waitingForHuman(team).includes(id)) return undefined;
+	if (statusOf(team, id) === "blocked")
+		return applyTask(team, id, {
+			type: "UNBLOCK",
+			instruction: feedback ?? "Go on with the task.",
+		});
+	return decision === "approve"
+		? approve(team, id, "human")
+		: applyTask(team, id, { type: "REVISE", feedback: feedback ?? "" });
 };
 
 /** Decides the team's next step from its state alone, in template order. */

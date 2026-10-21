@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { RunStartSchema } from "../../src/domain/engine.js";
+import {
+	ApprovalInputSchema,
+	RunStartSchema,
+} from "../../src/domain/engine.js";
 import { shellName } from "../../src/domain/tools.js";
 
-describe("team.engine@1 input", () => {
+describe("team.engine@2 input", () => {
 	it("defaults the priority to 1 and keeps a null template", () => {
 		expect(RunStartSchema.parse({ goal: "fix the bug" })).toEqual({
 			goal: "fix the bug",
@@ -21,6 +24,26 @@ describe("team.engine@1 input", () => {
 			{ goal: "g", extra: true },
 		])
 			expect(RunStartSchema.safeParse(bad).success).toBe(false);
+	});
+});
+
+describe("team.engine@2 approval input", () => {
+	it("takes a decision, an optional task and feedback", () => {
+		expect(ApprovalInputSchema.parse({ decision: "approve" })).toEqual({
+			decision: "approve",
+		});
+		const revise = { taskId: "report", decision: "revise", feedback: "cite" };
+		expect(ApprovalInputSchema.parse(revise)).toEqual(revise);
+	});
+
+	it("refuses a revision without feedback, an unknown decision and extra keys", () => {
+		for (const bad of [
+			{ decision: "revise" },
+			{ decision: "revise", feedback: " " },
+			{ decision: "maybe" },
+			{ decision: "approve", extra: 1 },
+		])
+			expect(ApprovalInputSchema.safeParse(bad).success).toBe(false);
 	});
 });
 

@@ -201,16 +201,29 @@ const lastReport = (team: TeamState) => {
 	return (last && team.tasks[last]?.context.report) || "";
 };
 
+// Only the human can go on: a human approval, or a blocked task.
+const waitForHuman = (
+	s: EngineState,
+	l: Live,
+	team: TeamState,
+	ids: readonly string[],
+) => {
+	if (!apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" }))
+		return;
+	const payload = { approver: "human" };
+	for (const id of ids)
+		if (team.tasks[id]?.status === "submitted")
+			emit(s, l, { type: "approval.requested", payload }, team.tasks[id]?.id);
+};
+
 /** Moves a team run whose active task is not in progress. */
 export const teamTurn = (s: EngineState, l: Live, team: TeamState) => {
 	const next = nextTeamStep(team);
-	const at = s.deps.now();
 	if (next.kind === "work") return open(s, l, team, next.taskId);
 	if (next.kind === "start") return start(s, l, team, next.taskId);
 	if (next.kind === "accept") return accept(s, l, team, next.taskId);
 	if (next.kind === "approve") return openReview(s, l, team, next);
-	if (next.kind === "complete")
-		return apply(s, l, { type: "COMPLETE", at, summary: lastReport(team) });
-	// Only the human can go on: a human approval, or a blocked task.
-	return apply(s, l, { type: "PAUSE", at, reason: "approval" });
+	if (next.kind === "wait") return waitForHuman(s, l, team, next.taskIds);
+	const summary = lastReport(team);
+	return apply(s, l, { type: "COMPLETE", at: s.deps.now(), summary });
 };

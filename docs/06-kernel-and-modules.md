@@ -191,7 +191,8 @@ export interface QuotaReserveAdapter {
     observations: readonly QuotaObservation[]): Result<void, UnknownReservation>;
 }
 
-// team.engine@1, defined in @mete/contracts; run states and the runs table in tab 07, single-agent rules in tab 08.
+// team.engine@2, defined in @mete/contracts; run states and the runs table in tab 07, single-agent and team rules in tab 08.
+// @2 added approve: the human's decision on a task that waits for them (tab 08, Task execution sequence).
 // A templateId starts a team run from that template (tab 08): not_found when no folder has it, bad_input when it is
 // invalid, not_supported when the composition root gave core-engine no template folders.
 // A template file is parsed by TeamTemplateSchema / parseTemplate in @mete/contracts (keys as in YAML, tab 08):
@@ -199,6 +200,8 @@ export interface QuotaReserveAdapter {
 export type RunStatus = "queued" | "running" | "paused" | "completed" | "failed" | "cancelled";
 export type RunStart = { goal: string; templateId?: string | null; priority?: 0 | 1 | 2 };   // priority defaults to 1
 export type RunView = Omit<Run, "snapshot">;                 // Run in tab 07
+export type ApprovalInput = { taskId?: string; decision: "approve" | "revise"; feedback?: string };   // revise needs feedback;
+                                 // taskId is the template task id or the Task id; without it, the only task that waits
 export type EngineError =
   | { code: "bad_input" | "not_found" | "not_supported"; message: string }
   | { code: "invalid_state"; message: string; status: RunStatus };   // the run's status does not allow the call
@@ -208,6 +211,8 @@ export interface TeamEngineAdapter {
                                                                // flight, while a running tool call finishes and is kept
   resume(runId: string): Promise<Result<void, EngineError>>;   // a paused run, from its last saved step
   cancel(runId: string): Promise<Result<void, EngineError>>;   // aborts everything in flight; the kill switch calls it
+  approve(runId: string, input: ApprovalInput): Promise<Result<void, EngineError>>;   // a run paused for approval;
+                                                               // records the decision, then resumes the run
   status(runId?: string): Result<RunView[], EngineError>;      // one run, or all runs of the workspace, newest first
 }
 
@@ -269,15 +274,15 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | tools-web | `@mete/tools` | optional | `web.fetch@1`, `web.search@1` (HTTP adapters) | `policy.check@1` | `mcp.tools@1` | in-process |
 | vcs-git | `@mete/tools` | optional | `vcs.git@1` | `policy.check@1` | none | in-process |
 | mcp-client | `@mete/mcp` | optional | `mcp.tools@1`, `runtime.ensure@1`, mapping adapters for any capability | `policy.check@1` | `registry.search@1` | in-process; servers in child processes |
-| mcp-server | `@mete/mcp` | optional | METE as an MCP server | `team.engine@1` | `knowledge.search@1` | in-process |
+| mcp-server | `@mete/mcp` | optional | METE as an MCP server | `team.engine@2` | `knowledge.search@1` | in-process |
 | registry | `@mete/mcp` | optional | `registry.search@1` | `web.fetch@1` | none | in-process |
 | knowledge-graph | `@mete/knowledge` | optional | `code.graph@1` | `fs.read@1` | `llm.chat@1` | worker |
 | vault | `@mete/knowledge` | optional | `vault.read@1`, `vault.write@1` | `fs.read@1`, `fs.write@1` | none | in-process |
 | knowledge-search | `@mete/knowledge` | optional | `knowledge.search@1`, `knowledge.index@1` | `fs.grep@1` | `llm.embed@1`, `llm.rerank@1`, `code.graph@1`, `vault.read@1` | worker |
-| core-engine | `@mete/core` | essential | `team.engine@1` (native), runs, router, artifacts, checkpoints | `llm.chat@1`, `fs.*`, `policy.check@1`, `secrets.mask@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@1`, `knowledge.search@1`, `vault.*` | in-process |
-| autonomy | `@mete/core` | optional | triggers, schedules | `team.engine@1` | `issues.source@1` | in-process |
+| core-engine | `@mete/core` | essential | `team.engine@2` (native), runs, router, artifacts, checkpoints | `llm.chat@1`, `fs.*`, `policy.check@1`, `secrets.mask@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@1`, `knowledge.search@1`, `vault.*` | in-process |
+| autonomy | `@mete/core` | optional | triggers, schedules | `team.engine@2` | `issues.source@1` | in-process |
 | browser | `@mete/tools` | optional | `browser.screenshot@1`, `seo.audit@1` | `runtime.ensure@1` | none | process |
-| engine-crewai, engine-metagpt, engine-chatdev | `@mete/engines` | optional | `team.engine@1` | `runtime.ensure@1`, `llm.chat@1` | none | process |
+| engine-crewai, engine-metagpt, engine-chatdev | `@mete/engines` | optional | `team.engine@2` | `runtime.ensure@1`, `llm.chat@1` | none | process |
 | ui-board, ui-flow, ui-studio, ui-replay | `@mete/ui-*` | optional | UI views (subscribe to events) | none | none | renderer |
 
 Until the knowledge layer, the gateway provides only `llm.chat@1`: no provider adapter lists its embedding or rerank models (`listModels` returns chat models), so `llm.embed@1`, `llm.rerank@1` and their gateway endpoints come with the knowledge layer, and their chains are empty until then \[D\].
@@ -303,7 +308,7 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 | `code.graph@1` | Query code structure | tree-sitter graph; Graphify through MCP as an alternative | `knowledge.search@1` works without it |
 | `knowledge.search@1` | Hybrid search | knowledge-search module | Plain ripgrep search |
 | `vault.read@1`, `vault.write@1` | Notes and lessons | vault module | Lessons are not saved; runs continue |
-| `team.engine@1` | Execute a team template | Native XState engine; optional CrewAI, MetaGPT, ChatDev | Never empty (essential) |
+| `team.engine@2` | Execute a team template | Native XState engine; optional CrewAI, MetaGPT, ChatDev | Never empty (essential) |
 | `media.image.generate@1`, `media.image.edit@1` | Images | MCP mapping adapters (for example an NVIDIA NIM MCP server with FLUX, Hugging Face Spaces) | Artist writes specs and placeholders |
 | `media.3d.fromText@1`, `media.3d.fromImage@1` | 3D assets | MCP mapping adapters (for example TRELLIS) | Artist writes specs and placeholders |
 | `3d.cleanup@1`, `3d.export@1` | Mesh cleanup and export | MCP or CLI adapters (Blender, 3ds Max, others) | Raw generated file is kept |

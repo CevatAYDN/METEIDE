@@ -5,6 +5,8 @@ export {
 	ResearchReportSchema,
 } from "./domain/artifacts.js";
 export {
+	type ApprovalInput,
+	ApprovalInputSchema,
 	type EngineError,
 	type RunStart,
 	RunStartSchema,

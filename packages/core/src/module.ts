@@ -27,7 +27,7 @@ const MANIFEST: ModuleManifest = {
 	displayName: "Core engine",
 	class: "essential",
 	trust: "core",
-	provides: ["team.engine@1"],
+	provides: ["team.engine@2"],
 	requires: [
 		"llm.chat@1",
 		"fs.read@1",
@@ -59,7 +59,7 @@ const realTimer: EngineDeps["setTimer"] = (fn, ms) => {
 	return () => clearTimeout(t);
 };
 
-/** Creates core-engine, which provides team.engine@1 for single-agent and team runs. */
+/** Creates core-engine, which provides team.engine@2 for single-agent and team runs. */
 export const createCoreEngineModule = (opts: CoreEngineOptions): MeteModule => {
 	let stop: (() => Promise<void>) | undefined;
 	return {
@@ -88,7 +88,7 @@ export const createCoreEngineModule = (opts: CoreEngineOptions): MeteModule => {
 			if (opts.recover !== false) created.recover();
 			stop = created.stop;
 			ctx.disposables.add(
-				ctx.capabilities.provide("team.engine@1", {
+				ctx.capabilities.provide("team.engine@2", {
 					id: MANIFEST.id,
 					trust: "core",
 					features: [],

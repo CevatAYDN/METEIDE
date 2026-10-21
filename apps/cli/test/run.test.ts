@@ -155,8 +155,9 @@ describe("mete run with an engine that throws", () => {
 				throw new Error("SQLITE_BUSY");
 			},
 			status: () => ok([]),
+			approve: async () => ok(undefined),
 		};
-		registry.provide("team.engine@1", {
+		registry.provide("team.engine@2", {
 			id: "fake-engine",
 			trust: "core",
 			features: [],

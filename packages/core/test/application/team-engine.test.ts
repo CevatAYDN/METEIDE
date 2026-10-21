@@ -209,6 +209,57 @@ describe("team runs", () => {
 		expect(await readFile(join(root, path), "utf8")).toBe("draft 2");
 	});
 
+	it("waits for the human at a checkpoint and goes on once they approve", async () => {
+		await writeFile(
+			join(templates.builtIn, "duo.yaml"),
+			`${PIPELINE}policies: { human_checkpoints: [write] }\n`,
+		);
+		const h = engineHarness({
+			scripts: [reply("facts"), reply("draft")],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "paused");
+		const asked = h.events.find((e) => e.type === "approval.requested");
+		expect(asked?.payload).toEqual({ approver: "human" });
+		const r = await h.engine.approve(runId, { decision: "approve" });
+		expect(r.ok).toBe(true);
+		await settled(h, runId, "completed");
+		const resolved = h.events.find((e) => e.type === "approval.resolved");
+		expect(resolved?.payload).toEqual({
+			approver: "human",
+			decision: "approve",
+		});
+		const again = await h.engine.approve(runId, { decision: "approve" });
+		expect(again.ok ? "ok" : again.error.code).toBe("invalid_state");
+	});
+
+	it("sends a blocked task back to work with the human's instruction", async () => {
+		await writeFile(join(templates.builtIn, "duo.yaml"), GUARDED);
+		const h = engineHarness({
+			scripts: [reply("notes"), reply("still notes"), reply(REPORT)],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "paused");
+		const missing = await h.engine.approve(runId, {
+			taskId: "nope",
+			decision: "approve",
+		});
+		expect(missing.ok ? "ok" : missing.error.code).toBe("not_found");
+		const r = await h.engine.approve(runId, {
+			taskId: "report",
+			decision: "revise",
+			feedback: "Answer with the JSON only",
+		});
+		expect(r.ok).toBe(true);
+		await settled(h, runId, "completed");
+		expect(h.requests[2]?.messages.at(-1)).toEqual({
+			role: "user",
+			content: "Feedback on your last submission: Answer with the JSON only",
+		});
+	});
+
 	it("asks the reviewer again for a reply that is no verdict", async () => {
 		await useLead();
 		const h = engineHarness({

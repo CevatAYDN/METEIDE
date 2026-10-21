@@ -101,8 +101,8 @@ const setup = async (scenario: EngineScenario | "none") => {
 };
 
 const engineOf = (registry: ModuleContext["capabilities"]) => {
-	const r = registry.resolve<TeamEngineAdapter>("team.engine@1");
-	if (!r.ok) throw new Error("team.engine@1 missing");
+	const r = registry.resolve<TeamEngineAdapter>("team.engine@2");
+	if (!r.ok) throw new Error("team.engine@2 missing");
 	return r.value[0].impl;
 };
 
@@ -149,13 +149,13 @@ describe("core-engine module", () => {
 		await h.close();
 	});
 
-	it("pauses its running runs and stops providing team.engine@1 on deactivate", async () => {
+	it("pauses its running runs and stops providing team.engine@2 on deactivate", async () => {
 		const h = await setup("slow");
 		const engine = engineOf(h.registry);
 		const started = await engine.start({ goal: "wait" });
 		if (!started.ok) throw new Error(started.error.message);
 		await h.close();
-		expect(h.registry.has("team.engine@1")).toBe(false);
+		expect(h.registry.has("team.engine@2")).toBe(false);
 		expect(h.events.map((e) => e.type)).toEqual([
 			"run.created",
 			"run.started",

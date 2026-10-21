@@ -7,7 +7,7 @@ import type {
 } from "@mete/contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// Contract kit for team.engine@1 (docs/06 engine types, docs/07 Run state machine, docs/08 Single agent).
+// Contract kit for team.engine@2 (docs/06 engine types, docs/07 Run state machine, docs/08 Single agent and teams).
 
 /**
  * What the model behind the engine does: answer at once with text, take its time until
@@ -24,9 +24,9 @@ export type TeamEngineHarness = (scenario: EngineScenario) => Promise<{
 
 const UNKNOWN = "00000000-0000-4000-8000-000000000000";
 
-/** Every team.engine@1 adapter MUST pass these tests. */
+/** Every team.engine@2 adapter MUST pass these tests. */
 export const teamEngineContract = (name: string, open: TeamEngineHarness) =>
-	describe(`team.engine@1 contract: ${name}`, () => {
+	describe(`team.engine@2 contract: ${name}`, () => {
 		let close: (() => Promise<void>) | undefined;
 		afterEach(async () => {
 			await close?.();
@@ -69,15 +69,18 @@ export const teamEngineContract = (name: string, open: TeamEngineHarness) =>
 			expect(view(engine, runId).endedAt).toBeDefined();
 		});
 
-		it("refuses templates, empty goals and unknown runs", async () => {
+		it("refuses unknown templates, empty goals and unknown runs", async () => {
 			const { engine } = await setup("answers");
 			const code = async (p: Promise<Result<unknown, EngineError>>) => {
 				const r = await p;
 				return r.ok ? "ok" : r.error.code;
 			};
-			expect(await code(engine.start({ goal: "g", templateId: "x" }))).toBe(
-				"not_supported",
+			// An engine without templates refuses them; one with templates does not know x.
+			expect(["not_supported", "not_found"]).toContain(
+				await code(engine.start({ goal: "g", templateId: "x" })),
 			);
+			const decision = { decision: "approve" } as const;
+			expect(await code(engine.approve(UNKNOWN, decision))).toBe("not_found");
 			expect(await code(engine.start({ goal: " " }))).toBe("bad_input");
 			for (const call of [engine.pause, engine.resume, engine.cancel])
 				expect(await code(call.call(engine, UNKNOWN))).toBe("not_found");
@@ -110,6 +113,14 @@ export const teamEngineContract = (name: string, open: TeamEngineHarness) =>
 			expect(events.map((e) => e.type)).toEqual(
 				expect.arrayContaining(["run.paused", "run.resumed", "run.cancelled"]),
 			);
+		});
+
+		it("refuses an approval for a run that does not wait for one", async () => {
+			const { engine } = await setup("answers");
+			const runId = await started(engine);
+			await until(engine, runId, "completed");
+			const r = await engine.approve(runId, { decision: "approve" });
+			expect(r.ok ? "ok" : r.error.code).toBe("invalid_state");
 		});
 
 		it("pauses with reason quota and a resume time when quota is used up", async () => {
