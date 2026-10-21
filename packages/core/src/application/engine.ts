@@ -161,11 +161,16 @@ const status: (
 };
 
 /** Pauses, reason user, the runs an earlier process left running (docs/07). */
+// A damaged row is skipped with a warning, so one bad run never keeps the module from activating.
 const recover = (s: EngineState) => {
 	for (const id of s.deps.store.unfinished()) {
-		const l = find(s, id);
-		if (l.ok)
-			apply(s, l.value, { type: "PAUSE", at: s.deps.now(), reason: "user" });
+		try {
+			const l = find(s, id);
+			if (l.ok)
+				apply(s, l.value, { type: "PAUSE", at: s.deps.now(), reason: "user" });
+		} catch (e) {
+			s.deps.logger.warn({ err: e, runId: id }, "run not recovered");
+		}
 	}
 };
 

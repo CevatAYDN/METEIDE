@@ -18,6 +18,7 @@ import { createEngine } from "../../src/application/engine.js";
 import {
 	createRunStore,
 	RUN_MIGRATIONS,
+	type RunStore,
 } from "../../src/infrastructure/run-store.js";
 
 // A real registry, bus and database around scripted fake adapters, with a manual clock.
@@ -80,6 +81,8 @@ export const engineHarness = (opts: {
 	llm?: boolean;
 	/** A database an earlier engine used, as after a restart. */
 	db?: Database.Database;
+	/** Changes the store, for example to make a write fail. */
+	wrapStore?: (store: RunStore) => RunStore;
 }) => {
 	const registry = createCapabilityRegistry(() => []);
 	const events: MeteEvent[] = [];
@@ -121,7 +124,8 @@ export const engineHarness = (opts: {
 			? { policy: { file: ".mete/policy.yaml", value: opts.policy } }
 			: {},
 	});
-	const store = createRunStore(db);
+	const plain = createRunStore(db);
+	const store = opts.wrapStore ? opts.wrapStore(plain) : plain;
 	const created = createEngine({
 		workspaceId: randomUUID(),
 		registry,

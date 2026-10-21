@@ -380,4 +380,45 @@ describe("single-agent engine", () => {
 		await crashed.stop();
 		await later.stop();
 	});
+
+	it("skips a damaged row on recovery and keeps the others", async () => {
+		const crashed = engineHarness({ scripts: [slow] });
+		const kept = await begin(crashed);
+		await vi.waitFor(() => expect(crashed.requests).toHaveLength(1));
+		const row = crashed.db.prepare("SELECT * FROM runs").get();
+		crashed.db
+			.prepare(
+				"INSERT INTO runs SELECT ?, workspace_id, template_id, goal, status, pause_reason, autonomy_level, budget_cloud_requests, budget_max_hours, '{}', created_at, started_at, ended_at FROM runs",
+			)
+			.run(crypto.randomUUID());
+		expect(row).toBeDefined();
+		const later = engineHarness({ scripts: [slow], db: crashed.db });
+		expect(() => later.recover()).not.toThrow();
+		expect(view(later, kept)).toMatchObject({
+			status: "paused",
+			pauseReason: "user",
+		});
+		await crashed.stop();
+	});
+
+	it("survives a run row that cannot be written and goes on after pause and resume", async () => {
+		let saves = 0;
+		const h = engineHarness({
+			scripts: [reply("", [{ name: "nope", args: {} }]), reply("done")],
+			wrapStore: (store) => ({
+				...store,
+				save: (meta, snap) => {
+					saves++;
+					if (saves === 3 || saves === 4) throw new Error("SQLITE_BUSY");
+					store.save(meta, snap);
+				},
+			}),
+		});
+		const runId = await begin(h);
+		await vi.waitFor(() => expect(saves).toBeGreaterThanOrEqual(4));
+		expect(view(h, runId)?.status).toBe("running");
+		expect((await h.engine.pause(runId)).ok).toBe(true);
+		expect((await h.engine.resume(runId)).ok).toBe(true);
+		await settled(h, runId, "completed");
+	});
 });

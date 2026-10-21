@@ -127,7 +127,7 @@ const onModel = (s: EngineState, l: Live, c: ModelChunk) => {
 	if (agent?.providerId === to.providerId && agent.modelId === to.modelId)
 		return;
 	const next = { id: agent?.id ?? s.deps.newId(), ...to };
-	apply(s, l, { type: "MODEL", agent: next });
+	if (!apply(s, l, { type: "MODEL", agent: next })) return; // a done run
 	s.deps.store.saveAgent(l.meta.id, next, l.snapshot.context.turns);
 	if (!agent)
 		return emit(s, l, {
@@ -230,13 +230,13 @@ const loop = async (s: EngineState, l: Live, token: object) => {
 		// A throwing adapter is a bug; only the error name is kept, as for module.crashed (docs/06).
 		s.deps.logger.error({ err: e, runId: l.meta.id }, "run step threw");
 		const message = e instanceof Error ? e.name : "Error";
-		if (l.token === token)
-			apply(s, l, {
-				type: "FAIL",
-				at: s.deps.now(),
-				code: "internal",
-				message,
-			});
+		const fail = { type: "FAIL", code: "internal", message } as const;
+		try {
+			if (l.token === token) apply(s, l, { ...fail, at: s.deps.now() });
+		} catch (again) {
+			// The row cannot be written either (a busy database); the run stays as last saved.
+			s.deps.logger.error({ err: again, runId: l.meta.id }, "run not failed");
+		}
 	}
 };
 
@@ -245,7 +245,7 @@ export const drive = (s: EngineState, l: Live) => {
 	const token = {};
 	l.token = token;
 	l.all = new AbortController();
-	l.loop = l.loop.then(() => loop(s, l, token));
+	l.loop = l.loop.catch(() => undefined).then(() => loop(s, l, token));
 };
 
 /** Holds a run in memory. */
