@@ -59,6 +59,7 @@ export const folders = async () => {
 export const setup = async (
 	dirs: { workspaceDir: string; globalDir: string },
 	quota: unknown = {},
+	now?: () => number,
 ) => {
 	const time = clock();
 	const events: MeteEvent[] = [];
@@ -95,7 +96,7 @@ export const setup = async (
 	};
 	const quotaModule = createQuotaModule({
 		workspaceId: WORKSPACE,
-		now: time.now,
+		now: now ?? time.now,
 		setTimer: time.setTimer,
 	});
 	const adapter = () => {
