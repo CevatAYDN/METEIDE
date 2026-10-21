@@ -7,6 +7,7 @@ import {
 	type ShellConfig,
 	ShellExecInputSchema,
 	type ShellExecOutput,
+	shellName,
 	type ToolContext,
 	type ToolError,
 } from "@mete/contracts";
@@ -33,17 +34,14 @@ export const shellCommand = (
 	command: string,
 	platform = process.platform,
 ) => {
+	const name = shellName(config, platform);
 	if (platform !== "win32")
-		return { file: "/bin/sh", args: ["-c", command], name: "sh" };
-	if (config.windows === "git-bash" && config.gitBashPath)
-		return {
-			file: config.gitBashPath,
-			args: ["-c", command],
-			name: "Git Bash",
-		};
+		return { file: "/bin/sh", args: ["-c", command], name };
+	if (name === "Git Bash" && config.gitBashPath)
+		return { file: config.gitBashPath, args: ["-c", command], name };
 	// An absolute path, so an `env` without PATH still finds it.
 	const ps = join(
-		process.env.SystemRoot ?? "C:Windows",
+		process.env.SystemRoot ?? "C:\\Windows",
 		"System32",
 		"WindowsPowerShell",
 		"v1.0",
@@ -55,7 +53,7 @@ export const shellCommand = (
 		"-Command",
 		PS_HEAD + command + PS_TAIL,
 	];
-	return { file: ps, args, name: "Windows PowerShell" };
+	return { file: ps, args, name };
 };
 
 /** The working folder: inside the boundary, existing and a folder. */

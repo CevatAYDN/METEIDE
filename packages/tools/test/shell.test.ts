@@ -65,6 +65,17 @@ describe("shellCommand", () => {
 		expect(ps.file.toLowerCase()).toMatch(/powershell\.exe$/);
 		expect(ps.args.at(-1)).toMatch(/UTF8[\s\S]*\nls\n[\s\S]*exit/);
 	});
+
+	it("falls back to C:\\Windows when SystemRoot is unset", () => {
+		const root = process.env.SystemRoot;
+		delete process.env.SystemRoot;
+		try {
+			const ps = shellCommand({ windows: "powershell" }, "ls", "win32");
+			expect(ps.file.startsWith(join("C:\\Windows", "System32"))).toBe(true);
+		} finally {
+			if (root !== undefined) process.env.SystemRoot = root;
+		}
+	});
 });
 
 describe("shellTool", () => {
