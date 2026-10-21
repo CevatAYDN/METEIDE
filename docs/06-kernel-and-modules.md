@@ -51,6 +51,12 @@ export interface CapabilityRegistry {
   has(ref: CapabilityRef): boolean;
 }
 
+export type Disposable = { dispose(): void };
+export type Handler<T extends MeteEvent["type"]> = (event: Extract<MeteEvent, { type: T }>) => void;
+
+// Delivery is synchronous, in subscription order. "agent.*" matches whole leading segments
+// (agent.tool.called, not agentx.created). A throwing handler goes to the supervisor's error sink
+// and the other handlers still run. An event that fails its schema throws (a bug).
 export interface EventBus {
   publish<E extends MeteEvent>(event: E): void;
   subscribe<T extends MeteEvent["type"]>(type: T | `${string}.*`, handler: Handler<T>): Disposable;

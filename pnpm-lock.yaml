@@ -55,7 +55,11 @@ importers:
 
   packages/gateway: {}
 
-  packages/kernel: {}
+  packages/kernel:
+    dependencies:
+      '@mete/contracts':
+        specifier: workspace:*
+        version: link:../contracts
 
   packages/knowledge: {}
 
