@@ -28,6 +28,13 @@ const ApiCallErrorSchema = z.object({
 	responseHeaders: z.record(z.string(), z.string()).optional(),
 });
 
+// The error object a provider sends inside the stream (`{"error": {...}}`), which the SDK
+// forwards as a plain object; a numeric code is an HTTP status.
+const InBandErrorSchema = z.object({
+	message: z.string(),
+	code: z.union([z.number(), z.string()]).optional(),
+});
+
 /** Any thrown or streamed failure as a ProviderError. */
 export const toProviderError = (
 	error: unknown,
@@ -43,8 +50,15 @@ export const toProviderError = (
 			status: api.data.statusCode,
 			headers: new Headers(api.data.responseHeaders),
 		};
-	const message = error instanceof Error ? error.message : String(error);
-	return { code: "network", message };
+	if (error instanceof Error)
+		return { code: "network", message: error.message };
+	const inBand = InBandErrorSchema.safeParse(error);
+	if (!inBand.success) return { code: "network", message: String(error) };
+	const { code, message } = inBand.data;
+	return {
+		code: typeof code === "number" ? codeForStatus(code) : "server",
+		message,
+	};
 };
 
 const parseArgs = (input: string): unknown => {
