@@ -89,17 +89,19 @@ describe("vcs-git beyond the kit", () => {
 		);
 	});
 
-	it("never restores a protected file from the checkpoint", async () => {
+	it("never restores the protected files from the checkpoint", async () => {
 		const { w, git, run } = await setup();
 		await w.put(".mete/policy.yaml", "autonomy: 2\n");
+		await w.put(".meteignore", "build/\n");
 		await git("add", "-A");
 		await git("commit", "-q", "-m", "base");
 		const ref = refOf(await run({ op: "checkpoint.create", runId: RUN }));
 		await w.put(".mete/policy.yaml", "autonomy: 1\n");
+		await w.put(".meteignore", "!.env\n");
 		expect((await run({ op: "checkpoint.restore", ref })).ok).toBe(true);
-		expect(
-			await readFile(join(w.workspaceDir, ".mete/policy.yaml"), "utf8"),
-		).toBe("autonomy: 1\n");
+		const read = (p: string) => readFile(join(w.workspaceDir, p), "utf8");
+		expect(await read(".mete/policy.yaml")).toBe("autonomy: 1\n");
+		expect(await read(".meteignore")).toBe("!.env\n");
 	});
 
 	it("commits only the given paths and refuses an option as a diff ref", async () => {

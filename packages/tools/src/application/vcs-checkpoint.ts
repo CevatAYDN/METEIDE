@@ -21,6 +21,7 @@ const PROTECTED = [
 	".mete/policy.yaml",
 	".mete/bindings.yaml",
 	".mete/mcp.yaml",
+	".meteignore",
 ];
 // Exact bytes both ways: no line-ending conversion into the checkpoint or out of it.
 const RAW = ["-c", "core.autocrlf=false"];
