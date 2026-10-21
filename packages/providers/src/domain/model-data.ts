@@ -66,3 +66,19 @@ export const chatModels = (
 			},
 		];
 	});
+
+/** A provider's own facts about a model, overridden by a row the user or models.yaml gives. */
+export const withRow = (
+	info: ModelInfo,
+	row: ModelRow | undefined,
+): ModelInfo =>
+	row
+		? {
+				...info,
+				family: row.family,
+				contextWindow: row.contextWindow,
+				toolCalling: row.toolCalling,
+				vision: row.vision,
+				free: row.free,
+			}
+		: info;
