@@ -90,6 +90,16 @@ describe("decide: input and hard rules", () => {
 			"allow",
 		);
 	});
+
+	it("denies writes and deletes of the workspace's .meteignore", () => {
+		expect(decide(write("/repo/.meteignore"), at(3)).rule).toBe(
+			"protected_path",
+		);
+		expect(
+			decide(check("fs.delete", { path: "/repo/.meteignore" }), at(3)).rule,
+		).toBe("protected_path");
+		expect(decide(write("/repo/sub/.meteignore"), at(3)).verdict).toBe("allow");
+	});
 });
 
 describe("decide: fs.write.outside", () => {

@@ -27,10 +27,12 @@ const WRITES: ReadonlySet<PolicyAction> = new Set([
 	"fs.delete",
 	"fs.write.outside",
 ]);
+// SECURITY.md, Protected paths: a re-include line in .meteignore would open what it hides.
 const PROTECTED = [
 	".mete/policy.yaml",
 	".mete/bindings.yaml",
 	".mete/mcp.yaml",
+	".meteignore",
 ];
 const LEVEL2_ALLOWED: ReadonlySet<PolicyAction> = new Set([
 	"git.commit",
