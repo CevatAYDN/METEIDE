@@ -135,6 +135,14 @@ export const ShellConfigSchema = z
 	.prefault({});
 export type ShellConfig = z.infer<typeof ShellConfigSchema>;
 
+/** The shell name shell.exec@1 reports on `platform` (a process.platform value). */
+export const shellName = (config: ShellConfig, platform: string) => {
+	if (platform !== "win32") return "sh";
+	return config.windows === "git-bash" && config.gitBashPath
+		? "Git Bash"
+		: "Windows PowerShell";
+};
+
 const CHECKPOINT_REF = /^refs\/mete\/checkpoints\/[^/]+\/[1-9]\d*$/;
 
 /** Input of vcs.git@1 in Phase 1; worktree and merge come with the team engine. */

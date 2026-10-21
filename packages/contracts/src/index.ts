@@ -1,5 +1,13 @@
 // Public API of this package: types, contracts and the module (CONTRIBUTING.md).
 export {
+	type EngineError,
+	type RunStart,
+	RunStartSchema,
+	type RunStatus,
+	type RunView,
+	type TeamEngineAdapter,
+} from "./domain/engine.js";
+export {
 	EVENT_TYPES,
 	type EventParseError,
 	type EventType,
@@ -97,6 +105,7 @@ export {
 	MessageKindSchema,
 	PauseReasonSchema,
 	QuotaUnitSchema,
+	RunStatusSchema,
 	TaskStatusSchema,
 } from "./domain/states.js";
 export type {
@@ -129,6 +138,7 @@ export {
 	type ShellExecInput,
 	ShellExecInputSchema,
 	type ShellExecOutput,
+	shellName,
 	type ToolAdapter,
 	type ToolContext,
 	type ToolError,

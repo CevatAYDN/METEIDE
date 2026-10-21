@@ -2,6 +2,16 @@ import { z } from "zod";
 
 // Closed sets from docs/07-domain-model-and-events.md and docs/09-models-providers-quota.md.
 
+/** Run state machine states. */
+export const RunStatusSchema = z.enum([
+	"queued",
+	"running",
+	"paused",
+	"completed",
+	"failed",
+	"cancelled",
+]);
+
 /** Why a run is paused. */
 export const PauseReasonSchema = z.enum([
 	"quota",
