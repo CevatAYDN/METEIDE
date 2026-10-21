@@ -1,4 +1,4 @@
-import type { ModuleManifest, Result } from "@mete/contracts";
+import type { ModuleManifest, Result, ScopedStorage } from "@mete/contracts";
 import type { ZodType } from "zod";
 import type { CapabilityRegistry } from "./capability-registry.js";
 import type { Disposable, EventBus } from "./event-bus.js";
@@ -40,13 +40,15 @@ export type DisposableStore = Disposable & {
 	readonly add: (d: Disposable) => void;
 };
 
-// shortcut: `storage` and `secrets` are optional in docs/06 and arrive with the storage and security slices.
+// shortcut: `secrets` is optional in docs/06 and arrives with the security slice.
 /** Services the kernel hands a module when it activates. */
 export type ModuleContext = {
 	readonly capabilities: CapabilityRegistry;
 	readonly events: EventBus;
 	readonly config: ConfigReader;
 	readonly logger: Logger;
+	/** Only when `requires` has storage.sql@1; namespaced by module id. */
+	readonly storage?: ScopedStorage;
 	readonly disposables: DisposableStore;
 };
 
