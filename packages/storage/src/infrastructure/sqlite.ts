@@ -20,8 +20,9 @@ export type Db = Database.Database;
 export const openDatabase = async (file: string): Promise<Db> => {
 	await withLockRetry(() => mkdir(dirname(file), { recursive: true }));
 	const db = new Database(file);
-	db.pragma("journal_mode = WAL");
+	// First, so switching to WAL already waits for another process's lock.
 	db.pragma(`busy_timeout = ${BUSY_TIMEOUT_MS}`);
+	db.pragma("journal_mode = WAL");
 	return db;
 };
 
