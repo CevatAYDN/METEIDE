@@ -54,6 +54,38 @@ export const QuotaRequestSchema = z.strictObject({
 /** What a caller asks quota.reserve@1. */
 export type QuotaRequest = z.infer<typeof QuotaRequestSchema>;
 
+/** The `quota` configuration (docs/09, effective limit); one entry per provider unit. */
+export const QuotaConfigSchema = z
+	.strictObject({
+		limits: z
+			.array(
+				z.strictObject({
+					providerId: text,
+					unit: QuotaUnitSchema,
+					limit: z.number().positive(),
+				}),
+			)
+			.readonly()
+			.default(() => []),
+	})
+	.superRefine((c, ctx) => {
+		const seen = new Set<string>();
+		c.limits.forEach((l, i) => {
+			const key = `${l.providerId} ${l.unit}`;
+			if (seen.has(key))
+				ctx.addIssue({
+					code: "custom",
+					path: ["limits", i],
+					message: "a provider unit MUST appear once",
+				});
+			seen.add(key);
+		});
+	})
+	.prefault({});
+
+/** The user's quota limits. */
+export type QuotaConfig = z.infer<typeof QuotaConfigSchema>;
+
 /** Capacity held for one call on the chosen chain entry. */
 export type Reservation = {
 	readonly id: string;

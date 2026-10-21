@@ -41,6 +41,8 @@ export {
 export {
 	type QuotaAmounts,
 	QuotaAmountsSchema,
+	type QuotaConfig,
+	QuotaConfigSchema,
 	type QuotaObservation,
 	QuotaObservationSchema,
 	type QuotaRequest,

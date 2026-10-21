@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	QuotaAmountsSchema,
+	QuotaConfigSchema,
 	QuotaObservationSchema,
 	QuotaRequestSchema,
 	QuotaUnitSpecSchema,
@@ -70,6 +71,27 @@ describe("QuotaObservationSchema", () => {
 				resetsAt: "in 30 seconds",
 				exhausted: false,
 			}).success,
+		).toBe(false);
+	});
+});
+
+describe("QuotaConfigSchema", () => {
+	it("defaults to no limits and rejects a provider unit set twice", () => {
+		expect(QuotaConfigSchema.parse(undefined)).toEqual({ limits: [] });
+		const limit = {
+			providerId: "nvidia",
+			unit: "requests_per_minute",
+			limit: 30,
+		};
+		expect(QuotaConfigSchema.parse({ limits: [limit] }).limits).toEqual([
+			limit,
+		]);
+		const twice = QuotaConfigSchema.safeParse({ limits: [limit, limit] });
+		expect(
+			twice.success ? [] : twice.error.issues.map((i) => i.path.join(".")),
+		).toEqual(["limits.1"]);
+		expect(
+			QuotaConfigSchema.safeParse({ limits: [{ ...limit, limit: 0 }] }).success,
 		).toBe(false);
 	});
 });
