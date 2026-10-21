@@ -10,10 +10,10 @@ Templates ask for a tier, the router picks a free model for it at runtime, and e
 interface ProviderAdapter {
   readonly id: string;                         // "nvidia" | "openrouter" | "opencode-zen" | "custom:<slug>"
   readonly format: "openai-chat" | "anthropic-messages" | "google-gemini";
-  listModels(): Promise<Result<ModelInfo[], ProviderError>>;
+  listModels(signal: AbortSignal): Promise<Result<ModelInfo[], ProviderError>>;
   chat(req: ChatRequest, signal: AbortSignal): AsyncIterable<ChatChunk>;
-  embed?(req: EmbedRequest): Promise<Result<EmbedResponse, ProviderError>>;
-  rerank?(req: RerankRequest): Promise<Result<RerankResponse, ProviderError>>;
+  embed?(req: EmbedRequest, signal: AbortSignal): Promise<Result<EmbedResponse, ProviderError>>;
+  rerank?(req: RerankRequest, signal: AbortSignal): Promise<Result<RerankResponse, ProviderError>>;
   quotaUnits(): QuotaUnitSpec[];
   observe(status: number, headers: Headers): QuotaObservation[];   // reads rate-limit headers and 429s
   privacy(model: ModelInfo): { trains: boolean | "unknown"; logs: boolean | "unknown"; publishes: boolean | "unknown" };
