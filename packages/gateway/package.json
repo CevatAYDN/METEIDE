@@ -16,5 +16,8 @@
 	},
 	"dependencies": {
 		"@mete/contracts": "workspace:*"
+	},
+	"devDependencies": {
+		"@mete/testing": "workspace:*"
 	}
 }

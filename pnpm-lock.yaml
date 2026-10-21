@@ -61,6 +61,10 @@ importers:
       '@mete/contracts':
         specifier: workspace:*
         version: link:../contracts
+    devDependencies:
+      '@mete/testing':
+        specifier: workspace:*
+        version: link:../testing
 
   packages/kernel:
     dependencies:
