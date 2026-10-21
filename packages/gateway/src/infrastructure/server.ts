@@ -134,6 +134,8 @@ const streamed = (
 	});
 };
 
+// shortcut: no body size limit; only a holder of the session token on 127.0.0.1 reaches it,
+// add hono/body-limit when the server is wired into an app.
 const readBody = async (raw: Request) => {
 	try {
 		return WireRequestSchema.safeParse(await raw.json());
