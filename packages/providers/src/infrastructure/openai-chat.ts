@@ -9,6 +9,7 @@ import type {
 } from "@mete/contracts";
 import { err, ok } from "@mete/contracts";
 import { z } from "zod";
+import { codeForStatus } from "../domain/errors.js";
 import { type CallOptions, toPrompt, toTools } from "./openai-prompt.js";
 
 // The `openai-chat` format (docs/09) on @ai-sdk/openai-compatible (ADR-039): chat
@@ -45,13 +46,6 @@ const ApiCallErrorSchema = z.object({
 	responseHeaders: z.record(z.string(), z.string()).optional(),
 });
 
-const codeFor = (status: number): ProviderError["code"] => {
-	if (status === 429) return "rate_limited";
-	if (status === 401 || status === 403) return "unauthorized";
-	if (status >= 500) return "server";
-	return "bad_request";
-};
-
 /** Any thrown or streamed failure as a ProviderError. */
 export const toProviderError = (
 	error: unknown,
@@ -62,7 +56,7 @@ export const toProviderError = (
 	const api = ApiCallErrorSchema.safeParse(error);
 	if (api.success && api.data.statusCode !== undefined)
 		return {
-			code: codeFor(api.data.statusCode),
+			code: codeForStatus(api.data.statusCode),
 			message: api.data.message,
 			status: api.data.statusCode,
 			headers: new Headers(api.data.responseHeaders),

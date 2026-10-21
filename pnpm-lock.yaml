@@ -82,6 +82,9 @@ importers:
       '@mete/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@mete/kernel':
+        specifier: workspace:*
+        version: link:../kernel
       yaml:
         specifier: 2.9.1
         version: 2.9.1
