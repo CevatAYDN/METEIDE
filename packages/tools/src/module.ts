@@ -2,10 +2,12 @@
 import { join } from "node:path";
 import {
 	type CapabilityRef,
+	err,
 	type ModuleManifest,
 	ok,
 	type PolicyCheckAdapter,
 	type Result,
+	ShellConfigSchema,
 	type ToolAdapter,
 	type ToolContext,
 	type ToolError,
@@ -19,6 +21,7 @@ import {
 	readFileTool,
 } from "./application/fs-read.js";
 import { editTool, writeTool } from "./application/fs-write.js";
+import { shellTool } from "./application/shell.js";
 import { realTarget } from "./infrastructure/files.js";
 
 /** Where the workspace and the global data folder are; the composition root passes them. */
@@ -94,6 +97,54 @@ export const createToolsFsModule = (opts: ToolsOptions): MeteModule => ({
 				}),
 			);
 		}
+		return ok(undefined);
+	},
+	async deactivate() {},
+});
+
+const SHELL_MANIFEST: ModuleManifest = {
+	id: "tools-shell",
+	version: "0.0.0",
+	displayName: "Shell tool",
+	class: "essential",
+	trust: "core",
+	provides: ["shell.exec@1"],
+	requires: ["policy.check@1"],
+	optional: [],
+	activation: ["onStartup"],
+	isolation: "in-process",
+	permissions: ["shell"],
+};
+
+/** The tools-shell module: shell.exec@1 (docs/10); reads the `shell:` settings section. */
+export const createToolsShellModule = (opts: ToolsOptions): MeteModule => ({
+	manifest: SHELL_MANIFEST,
+	async activate(ctx) {
+		const shell = ctx.config.get("shell", ShellConfigSchema);
+		if (!shell.ok)
+			return err({
+				code: "activation_failed",
+				moduleId: SHELL_MANIFEST.id,
+				message: `${shell.error.file} ${shell.error.path}: ${shell.error.reason}`,
+			});
+		const deps = {
+			adapterId: SHELL_MANIFEST.id,
+			workspaceDir: await realTarget(opts.workspaceDir),
+			worktreesDir: await realTarget(join(opts.globalDir, "worktrees")),
+			policy: policyOf(ctx.capabilities),
+			shell: shell.value,
+		};
+		const impl: ToolAdapter<unknown, unknown> = {
+			run: (input, c) => shellTool(deps, input, c),
+		};
+		ctx.disposables.add(
+			ctx.capabilities.provide("shell.exec@1", {
+				id: SHELL_MANIFEST.id,
+				trust: "core",
+				features: [],
+				impl,
+			}),
+		);
 		return ok(undefined);
 	},
 	async deactivate() {},
