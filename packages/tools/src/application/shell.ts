@@ -11,6 +11,7 @@ import {
 	type ToolError,
 } from "@mete/contracts";
 import { SHELL_TIMEOUT_SEC } from "../defaults.js";
+import { blockedEnvKeys } from "../domain/env-rules.js";
 import { kindOf } from "../infrastructure/files.js";
 import { runProcess } from "../infrastructure/process.js";
 import { type FsDeps, outside, parse, permit, place } from "./fs-common.js";
@@ -78,6 +79,12 @@ export const shellTool = async (
 ): Promise<Result<ShellExecOutput, ToolError>> => {
 	const i = parse(ShellExecInputSchema, input);
 	if (!i.ok) return i;
+	const blocked = blockedEnvKeys(i.value.env ?? {});
+	if (blocked.length > 0)
+		return err({
+			code: "bad_input",
+			message: `env may not set ${blocked.join(", ")}: they change which program runs`,
+		});
 	const cwd = await workingDir(deps, i.value.cwd ?? ".");
 	if (!cwd.ok) return cwd;
 	const { command } = i.value;

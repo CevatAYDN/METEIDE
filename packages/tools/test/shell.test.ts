@@ -113,6 +113,29 @@ describe("shellTool", () => {
 		},
 	);
 
+	it("refuses env keys that change which program runs, before asking policy", async () => {
+		const { deps } = await setup();
+		let asked = 0;
+		const counting: ShellDeps = {
+			...deps,
+			policy: () => ({
+				check: () => {
+					asked++;
+					return ok({ verdict: "allow", rule: "test" });
+				},
+			}),
+		};
+		for (const env of [{ PATH: "." }, { NODE_OPTIONS: "--require ./x.js" }]) {
+			const r = await shellTool(
+				counting,
+				{ command: "node -v", env },
+				{ signal: new AbortController().signal },
+			);
+			expect(r.ok ? undefined : r.error.code).toBe("bad_input");
+		}
+		expect(asked).toBe(0);
+	});
+
 	it("refuses a file or a missing folder as cwd", async () => {
 		const { deps, w } = await setup();
 		await w.put("a.txt", "a");
