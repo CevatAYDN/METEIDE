@@ -31,7 +31,7 @@ budget: { cloud_requests_per_run: 150, max_hours: 6 }
 approval_timeout_hours: 24
 ```
 
-The file above is also the built-in default: a key the workspace and global files leave out takes its value from it \[D\]. The effective budget of a run is the smaller of the template's `budget` and the policy's `budget` \[D\].
+The file above is also the built-in default: a key the workspace and global files leave out takes its value from it \[D\]. Only overrides the user wrote must stay at or below `autonomy`; the built-in `overrides` is filled in after that check, so `autonomy: 0` without an `overrides` key is valid \[D\]. The effective budget of a run is the smaller of the template's `budget` and the policy's `budget` \[D\].
 
 Action ids used by the policy: `fs.write`, `fs.delete` (a `fs.write@1` call with `delete: true`), `fs.write.outside`, `shell.exec`, `git.commit`, `git.push`, `git.merge`, `net.fetch`, `plugin.install`, `mcp.install`, `mcp.sampling`, `runtime.install`, `release.publish`, `vault.write.personal` \[D\]. Patterns use glob syntax \[D\]:
 
