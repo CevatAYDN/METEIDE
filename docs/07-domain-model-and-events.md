@@ -81,7 +81,7 @@ interface MeteEvent<T extends string = string, P = unknown> {
 }
 ```
 
-Events are append-only rows in the workspace `mete.db`. Default retention: 90 days of events; run summaries forever \[D\]. Payload schemas live in `@mete/contracts` and are validated before publish.
+Events are append-only rows in the workspace `mete.db`. Default retention: 90 days of events; run summaries forever \[D\]. Payload schemas live in `@mete/contracts` and are validated before publish. `workspaceId` is a UUID kept in `.mete/workspace.yaml`, created when the workspace is first opened; the composition root (`apps/cli`, `apps/desktop`) passes it to the kernel at start.
 
 ## Event catalog
 

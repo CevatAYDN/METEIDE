@@ -46,7 +46,7 @@ This is the only valid technology list. Anything not listed here needs an ADR be
 | --- | --- | --- |
 | Model access | Vercel AI SDK with `@ai-sdk/openai-compatible`, `@openrouter/ai-sdk-provider`, `@ai-sdk/anthropic`, `@ai-sdk/google` | One interface for every provider format |
 | Schemas | Zod | Contracts, configuration, artifacts, structured outputs |
-| Workflow engine | XState v5 | State machines, actors, snapshot persistence |
+| Workflow engine | XState v5 | Team engine, run and task state machines, actors, snapshot persistence; the kernel's module lifecycle is a plain transition table |
 | Concurrency | p-queue + METE token buckets | Quota scheduling |
 | Database | SQLite through better-sqlite3 (WAL) + Drizzle ORM | Runs, tasks, events, indexes |
 | Keyword search | SQLite FTS5 | Built into SQLite |

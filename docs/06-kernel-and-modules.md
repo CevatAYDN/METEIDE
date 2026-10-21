@@ -40,10 +40,23 @@ export interface ModuleContext {
   events: EventBus;
   config: ConfigReader;
   logger: Logger;
-  storage: ScopedStorage;        // namespaced by module id
-  secrets: SecretStore;          // only with "secrets" permission
+  storage?: ScopedStorage;       // namespaced by module id; only when `requires` has storage.sql@1
+  secrets?: SecretStore;         // only with "secrets" permission
   disposables: DisposableStore;
 }
+
+export type ModuleError = { code: "activation_failed"; moduleId: string; message: string };  // message is for logs; users see i18n text
+
+type LogFn = (fields: Readonly<Record<string, unknown>>, msg: string) => void;   // pino argument order
+export interface Logger { error: LogFn; warn: LogFn; info: LogFn; debug: LogFn }
+
+// The loader validates whole files with Zod when it loads them; get() returns a typed slice.
+export type ConfigInvalid = { code: "config_invalid"; file: string; path: string; reason: string };
+export interface ConfigReader {
+  get<T>(key: string, schema: ZodType<T>): Result<T, ConfigInvalid>;
+}
+
+export interface DisposableStore { add(d: Disposable): void; dispose(): void }
 
 export interface CapabilityRegistry {
   provide<C>(ref: CapabilityRef, adapter: Adapter<C>): Disposable;
@@ -72,7 +85,7 @@ export interface EventBus {
 
 ## Module lifecycle
 
-`registered` → `resolving` (waiting for `requires`) → `active` → `deactivating` → `inactive`. From `active`, a crash moves the module to `restarting`; after 3 restarts in 5 minutes it moves to `disabled` and publishes `module.disabled` \[D\]. A module whose `requires` never resolves stays `resolving` and the UI shows which capability is missing.
+`registered` → `resolving` (waiting for `requires`) → `active` → `deactivating` → `inactive`. From `active`, a crash moves the module to `restarting`; after 3 restarts in 5 minutes it moves to `disabled` and publishes `module.disabled` \[D\]. A module whose `requires` never resolves stays `resolving` and the UI shows which capability is missing. The kernel re-checks every `resolving` module after each `module.activated`. A module whose `activate` returns an error goes to `inactive` and publishes `module.deactivated` with the error code as reason. Lifecycle events carry `source: "kernel"` and the workspace id the composition root passes when it starts the kernel.
 
 ## Capability resolution
 
