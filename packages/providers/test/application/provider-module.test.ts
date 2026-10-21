@@ -111,7 +111,8 @@ describe("provider module", () => {
 			b: row({ family: "user" }),
 			c: row(),
 		});
-		expect(registry.has("provider.chat@1")).toBe(true);
+		const chat = registry.resolve("provider.chat@1");
+		expect(chat.ok && chat.value.map((a) => a.id)).toEqual(["p"]);
 		expect(registry.has("provider.embed@1")).toBe(true);
 		await m.deactivate();
 		expect(registry.has("provider.chat@1")).toBe(false);

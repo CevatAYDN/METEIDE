@@ -92,8 +92,9 @@ export const createProviderModule = (
 				now: opts.now ?? Date.now,
 				...(opts.fetch ? { fetch: opts.fetch } : {}),
 			});
+			// Bindings and quota name a provider by its provider id (docs/10, bindings.yaml).
 			const base = {
-				id: manifest.id,
+				id: def.providerId,
 				trust: manifest.trust,
 				features: [],
 			} as const;
