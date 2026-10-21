@@ -5,12 +5,8 @@ import type {
 } from "@mete/contracts";
 import { createCapabilityRegistry } from "@mete/kernel";
 import { describe, expect, it } from "vitest";
-import {
-	callModel,
-	callTool,
-	type Seat,
-	SINGLE_AGENT,
-} from "../../src/application/steps.js";
+import { callModel, callTool } from "../../src/application/steps.js";
+import { type Seat, SINGLE_AGENT } from "../../src/domain/tools.js";
 import { reply } from "../helpers/engine.js";
 
 const setup = (refs: CapabilityRef[]) => {

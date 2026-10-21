@@ -1,4 +1,5 @@
 import {
+	type ChatMessage,
 	ChatRequestSchema,
 	TaskStatusSchema,
 	type TeamTemplate,
@@ -83,6 +84,18 @@ const withEntry = (team: TeamState, id: string, entry: TaskEntry) => ({
 	...team,
 	tasks: { ...team.tasks, [id]: entry },
 });
+
+/** Keeps a task's conversation while another task works. */
+export const keepMessages = (
+	team: TeamState,
+	id: string,
+	messages: readonly ChatMessage[],
+): TeamState => {
+	const entry = team.tasks[id];
+	return entry
+		? withEntry(team, id, { ...entry, messages: [...messages] })
+		: team;
+};
 
 /** Applies a task-machine event; an event the task's state ignores changes nothing. */
 export const applyTask = (

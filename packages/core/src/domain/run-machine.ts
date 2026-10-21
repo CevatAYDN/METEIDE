@@ -49,6 +49,8 @@ export type RunContext = {
 	readonly endedAt?: number | undefined;
 	/** A team run's tasks and template (docs/08); absent for a single agent. */
 	readonly team?: TeamState | undefined;
+	/** The team task whose conversation is in `messages`. */
+	readonly task?: string | undefined;
 };
 
 /** What happens to a run. */
@@ -58,6 +60,12 @@ export type RunEvent =
 	| { type: "TOOL_DONE"; message: ToolMessage }
 	| { type: "MODEL"; agent: AgentRef }
 	| { type: "TEAM"; team: TeamState }
+	| {
+			type: "SWITCH";
+			task: string;
+			team: TeamState;
+			messages: readonly ChatMessage[];
+	  }
 	| { type: "CHECKPOINTED"; step: number }
 	| { type: "PAUSE"; at: number; reason: PauseReason; resumesAt?: string }
 	| { type: "RESUME"; at: number }
@@ -117,6 +125,17 @@ export const runMachine = setup({
 	on: {
 		MODEL: { actions: assign({ agent: ({ event }) => event.agent }) },
 		TEAM: { actions: assign({ team: ({ event }) => event.team }) },
+		// A new attempt: its own turns, checkpoints and agent (docs/08, Task execution sequence).
+		SWITCH: {
+			actions: assign(({ event }) => ({
+				task: event.task,
+				team: event.team,
+				messages: event.messages,
+				turns: 0,
+				checkpointed: -1,
+				agent: undefined,
+			})),
+		},
 		TOOL_DONE: {
 			actions: assign({
 				messages: ({ context, event }) => [...context.messages, event.message],

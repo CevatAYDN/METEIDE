@@ -6,7 +6,9 @@ import {
 	FsListInputSchema,
 	FsReadInputSchema,
 	FsWriteInputSchema,
+	type LlmChatRequest,
 	ShellExecInputSchema,
+	type Tier,
 	type ToolCall,
 	type ToolSpec,
 	VcsGitInputSchema,
@@ -105,3 +107,26 @@ export const isWrite = (call: ToolCall) => {
 		return z.object({ op: z.literal("commit") }).safeParse(call.args).success;
 	return ref !== undefined && WRITES.has(ref);
 };
+
+/** Who calls the model: a role's tier, needs and capabilities (docs/08); no list means every tool. */
+export type Seat = {
+	readonly tier: Tier;
+	readonly needs: NonNullable<LlmChatRequest["needs"]>;
+	readonly capabilities?: readonly string[];
+};
+
+/** The single agent of docs/08: the coder tier, tool calling and every workspace tool. */
+export const SINGLE_AGENT: Seat = { tier: "coder", needs: ["tool_calling"] };
+
+const FS_WILDCARD = /^fs\.\*@(\d+)$/;
+
+// `fs.*@1` stands for every fs capability of that version (docs/08, Team template schema).
+const covers = (granted: string, ref: string) => {
+	const version = FS_WILDCARD.exec(granted)?.[1];
+	if (version === undefined) return granted === ref;
+	return ref.startsWith("fs.") && ref.endsWith(`@${version}`);
+};
+
+/** Whether a seat may use a capability. */
+export const allowed = (seat: Seat, ref: string) =>
+	seat.capabilities?.some((c) => covers(c, ref)) ?? true;

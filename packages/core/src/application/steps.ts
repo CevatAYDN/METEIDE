@@ -3,13 +3,11 @@ import {
 	type ChatMessage,
 	err,
 	type LlmChatAdapter,
-	type LlmChatRequest,
 	type LlmChunk,
 	type LlmError,
 	ok,
 	type Result,
 	type SecretsMaskAdapter,
-	type Tier,
 	type ToolCall,
 	type ToolContext,
 	type VcsGitAdapter,
@@ -17,7 +15,13 @@ import {
 import type { CapabilityRegistry } from "@mete/kernel";
 import { z } from "zod";
 import type { EventBody } from "../domain/run-events.js";
-import { toolName, toolSpec, WORKSPACE_TOOLS } from "../domain/tools.js";
+import {
+	allowed,
+	type Seat,
+	toolName,
+	toolSpec,
+	WORKSPACE_TOOLS,
+} from "../domain/tools.js";
 
 // One model call, one tool call and one checkpoint of a single-agent run (docs/08, Single agent).
 
@@ -44,28 +48,6 @@ export type ModelOutcome =
 	  }
 	| { readonly kind: "error"; readonly error: LlmError }
 	| { readonly kind: "missing" };
-
-/** Who calls the model: a role's tier, needs and capabilities (docs/08); no list means every tool. */
-export type Seat = {
-	readonly tier: Tier;
-	readonly needs: NonNullable<LlmChatRequest["needs"]>;
-	readonly capabilities?: readonly string[];
-};
-
-/** The single agent of docs/08: the coder tier, tool calling and every workspace tool. */
-export const SINGLE_AGENT: Seat = { tier: "coder", needs: ["tool_calling"] };
-
-const FS_WILDCARD = /^fs\.\*@(\d+)$/;
-
-// `fs.*@1` stands for every fs capability of that version (docs/08, Team template schema).
-const covers = (granted: string, ref: string) => {
-	const version = FS_WILDCARD.exec(granted)?.[1];
-	if (version === undefined) return granted === ref;
-	return ref.startsWith("fs.") && ref.endsWith(`@${version}`);
-};
-
-const allowed = (seat: Seat, ref: string) =>
-	seat.capabilities?.some((c) => covers(c, ref)) ?? true;
 
 const SPECS = WORKSPACE_TOOLS.map((t) => ({ ref: t.ref, spec: toolSpec(t) }));
 

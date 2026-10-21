@@ -1,13 +1,9 @@
 import type { LlmChunk, ToolContext } from "@mete/contracts";
 import { type NextStep, nextStep } from "../domain/next-step.js";
 import { afterModelError } from "../domain/run-events.js";
+import { SINGLE_AGENT } from "../domain/tools.js";
 import { apply, type EngineState, emit, type Live } from "./run-state.js";
-import {
-	callModel,
-	callTool,
-	createCheckpoint,
-	SINGLE_AGENT,
-} from "./steps.js";
+import { callModel, callTool, createCheckpoint } from "./steps.js";
 
 // The loop that moves a running single-agent run step by step (docs/08, Single agent), as
 // module-level functions over the engine's state record.
