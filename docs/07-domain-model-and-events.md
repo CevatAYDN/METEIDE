@@ -74,7 +74,7 @@ Default revision limit: 3 \[D\]. `approved` is final for a task.
 
 Runs persist their XState snapshot after every transition, so a restart resumes them exactly \[C\].
 
-When core-engine activates with recovery on (its default; the CLI turns it on only for `mete run`), a run still `running` from an earlier process becomes `paused` with reason `user` and publishes `run.paused`; a paused run continues only through `resume`, from its last saved step. The `quota` timer of a paused run lives in the process that paused it \[D\].
+When core-engine activates with recovery on (its default; the CLI turns it on only for `mete run`), a run still `running` from an earlier process becomes `paused` with reason `user` and publishes `run.paused`; a run still `queued` first starts, publishing `run.started`, and then pauses the same way. A paused run continues only through `resume`, from its last saved step. A row whose snapshot cannot be read is marked `failed` with a warning in the log and publishes no event, and `resume` or `cancel` of it answers `not_found`. The `quota` timer of a paused run lives in the process that paused it \[D\].
 
 ## Event envelope
 

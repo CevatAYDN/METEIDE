@@ -419,6 +419,78 @@ describe("single-agent engine", () => {
 		await crashed.stop();
 	});
 
+	it("marks a damaged row failed on recovery and answers not_found for it", async () => {
+		const h = engineHarness({ scripts: [slow] });
+		const runId = await begin(h);
+		await vi.waitFor(() => expect(h.requests).toHaveLength(1));
+		h.db.prepare("UPDATE runs SET snapshot = '{}'").run();
+		const later = engineHarness({ scripts: [slow], db: h.db });
+		for (const r of [
+			await later.engine.resume(runId),
+			await later.engine.cancel(runId),
+		])
+			expect(r.ok ? "ok" : r.error.code).toBe("not_found");
+		later.recover();
+		expect(view(later, runId)?.status).toBe("failed");
+		await h.stop();
+	});
+
+	it("pauses a run an earlier process left queued", async () => {
+		let saves = 0;
+		const crashed = engineHarness({
+			scripts: [slow],
+			wrapStore: (store) => ({
+				...store,
+				save: (meta, snap) => {
+					if (++saves === 2) throw new Error("crash");
+					store.save(meta, snap);
+				},
+			}),
+		});
+		await expect(crashed.engine.start({ goal: "g" })).rejects.toThrow("crash");
+		const [row] = crashed.store.list();
+		expect(row?.status).toBe("queued");
+		const later = engineHarness({ scripts: [slow], db: crashed.db });
+		later.recover();
+		expect(view(later, row?.id ?? "")).toMatchObject({
+			status: "paused",
+			pauseReason: "user",
+		});
+	});
+
+	it("logs a resume that throws at the quota reset instead of rejecting", async () => {
+		const resumesAt = new Date(T0 + 60_000).toISOString();
+		const quota: LlmChunk[] = [
+			{
+				type: "error",
+				error: { code: "quota_exhausted", message: "q", resumesAt },
+			},
+		];
+		let broken = false;
+		const h = engineHarness({
+			scripts: [quota],
+			wrapStore: (store) => ({
+				...store,
+				save: (meta, snap) => {
+					if (broken) throw new Error("SQLITE_BUSY");
+					store.save(meta, snap);
+				},
+			}),
+		});
+		const runId = await begin(h);
+		await settled(h, runId, "paused");
+		broken = true;
+		const rejected = vi.fn();
+		process.once("unhandledRejection", rejected);
+		h.timers[0]?.fn();
+		await new Promise((r) => setTimeout(r, 20));
+		process.off("unhandledRejection", rejected);
+		expect(rejected).not.toHaveBeenCalled();
+		expect(
+			h.logged.some((l) => l.msg === "run not resumed at the quota reset"),
+		).toBe(true);
+	});
+
 	it("survives a run row that cannot be written and goes on after pause and resume", async () => {
 		let saves = 0;
 		const h = engineHarness({

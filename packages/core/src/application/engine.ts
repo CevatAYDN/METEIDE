@@ -58,14 +58,28 @@ const policy = (
 	return ok({ autonomy: p.value.autonomy, budget });
 };
 
+// A row whose snapshot cannot be read is not_found, so callers answer instead of throwing.
+const loaded = (s: EngineState, runId: string) => {
+	try {
+		return ok(s.deps.store.load(runId));
+	} catch (e) {
+		const why = e instanceof Error ? e.name : "error";
+		return err<EngineError>({
+			code: "not_found",
+			message: `run ${runId} cannot be read (${why})`,
+		});
+	}
+};
+
 const find = (s: EngineState, runId: string): Result<Live, EngineError> => {
 	const held = s.live.get(runId);
 	if (held) return ok(held);
-	const row = z.uuid().safeParse(runId).success
-		? s.deps.store.load(runId)
-		: undefined;
-	return row
-		? ok(hold(s, row.meta, row.snapshot))
+	if (!z.uuid().safeParse(runId).success)
+		return err({ code: "not_found", message: `no run ${runId}` });
+	const row = loaded(s, runId);
+	if (!row.ok) return row;
+	return row.value
+		? ok(hold(s, row.value.meta, row.value.snapshot))
 		: err({ code: "not_found", message: `no run ${runId}` });
 };
 
@@ -160,18 +174,46 @@ const status: (
 	return ok(runs);
 };
 
-/** Pauses, reason user, the runs an earlier process left running (docs/07). */
-// A damaged row is skipped with a warning, so one bad run never keeps the module from activating.
+// A queued run never started, so it starts and pauses at once; START is a no-op for a running one.
+const pauseLeftOver = (s: EngineState, l: Live) => {
+	const at = s.deps.now();
+	apply(s, l, { type: "START", at });
+	apply(s, l, { type: "PAUSE", at, reason: "user" });
+};
+
+/** Pauses, reason user, the runs an earlier process left queued or running (docs/07). */
+// A damaged row is marked failed with a warning, so one bad run never keeps the module from activating.
 const recover = (s: EngineState) => {
 	for (const id of s.deps.store.unfinished()) {
 		try {
 			const l = find(s, id);
-			if (l.ok)
-				apply(s, l.value, { type: "PAUSE", at: s.deps.now(), reason: "user" });
+			if (l.ok) pauseLeftOver(s, l.value);
+			else {
+				s.deps.store.markFailed(id, iso(s.deps.now()));
+				s.deps.logger.warn(
+					{ runId: id, reason: l.error.message },
+					"run failed",
+				);
+			}
 		} catch (e) {
 			s.deps.logger.warn({ err: e, runId: id }, "run not recovered");
 		}
 	}
+};
+
+// Nothing awaits the timer, so a failed or throwing resume is logged rather than lost.
+const quotaReset = (s: EngineState, runId: string) => {
+	const log = (fields: Record<string, unknown>) =>
+		s.deps.logger.error(
+			{ runId, ...fields },
+			"run not resumed at the quota reset",
+		);
+	resume(s, runId).then(
+		(r) => {
+			if (!r.ok) log({ code: r.error.code });
+		},
+		(e: unknown) => log({ err: e }),
+	);
 };
 
 /** Pauses every running run, aborts what is in flight and waits for the loops to stop. */
@@ -189,7 +231,7 @@ export const createEngine = (deps: EngineDeps) => {
 	const s: EngineState = {
 		deps,
 		live: new Map(),
-		onQuotaReset: (runId) => void resume(s, runId),
+		onQuotaReset: (runId) => quotaReset(s, runId),
 	};
 	const engine: TeamEngineAdapter = {
 		start: (req) => start(s, req),

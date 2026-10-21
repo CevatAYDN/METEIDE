@@ -204,6 +204,14 @@ export const createRunStore = (db: BetterSqlite3.Database) => {
 			const r = row(id);
 			return r && { meta: metaOf(r), snapshot: loadSnapshot(r.snapshot) };
 		},
+		/** Ends a run whose snapshot cannot be read; the snapshot stays for inspection. */
+		markFailed: (id: string, endedAt: string) => {
+			orm
+				.update(runs)
+				.set({ status: "failed", pauseReason: null, endedAt })
+				.where(eq(runs.id, id))
+				.run();
+		},
 		/** One run or all runs, newest first. */
 		list: (id?: string): RunView[] =>
 			orm

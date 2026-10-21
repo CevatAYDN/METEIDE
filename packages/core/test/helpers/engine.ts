@@ -30,7 +30,23 @@ export type Script =
 
 export const T0 = Date.parse("2026-10-21T10:00:00.000Z");
 
-const silent = { error() {}, warn() {}, info() {}, debug() {} };
+/** A logger that keeps what was logged. */
+const recordingLogger = () => {
+	const logged: { level: string; msg: string }[] = [];
+	const at =
+		(level: string) =>
+		(_fields: Readonly<Record<string, unknown>>, msg: string) =>
+			logged.push({ level, msg });
+	return {
+		logged,
+		logger: {
+			error: at("error"),
+			warn: at("warn"),
+			info: at("info"),
+			debug() {},
+		},
+	};
+};
 
 /** A reply with text and the given tool calls. */
 export const reply = (
@@ -124,6 +140,7 @@ export const engineHarness = (opts: {
 			? { policy: { file: ".mete/policy.yaml", value: opts.policy } }
 			: {},
 	});
+	const { logged, logger } = recordingLogger();
 	const plain = createRunStore(db);
 	const store = opts.wrapStore ? opts.wrapStore(plain) : plain;
 	const created = createEngine({
@@ -131,7 +148,7 @@ export const engineHarness = (opts: {
 		registry,
 		events: bus,
 		config,
-		logger: silent,
+		logger,
 		store,
 		now: () => clock.now,
 		newId: randomUUID,
@@ -146,7 +163,17 @@ export const engineHarness = (opts: {
 		os: "TestOS 1",
 		platform: "linux",
 	});
-	return { ...created, events, requests, db, store, clock, timers, registry };
+	return {
+		...created,
+		events,
+		requests,
+		db,
+		store,
+		clock,
+		timers,
+		registry,
+		logged,
+	};
 };
 
 /** Types of the events published so far. */
