@@ -2,8 +2,8 @@ import type BetterSqlite3 from "better-sqlite3";
 import type { Result } from "./result.js";
 
 // storage.sql@1 from docs/06-kernel-and-modules.md (Kernel API).
-// A module prefixes its tables with `<moduleId>_`; storage keeps each module's applied
-// migrations in `<moduleId>_migrations`, so ledgers never collide.
+// Each module owns unique table names; storage records applied migrations per module id
+// in its own `storage_migrations` table, so ledgers never collide.
 
 /** One schema step; applied once, in array order, each in a transaction. */
 export type Migration = { readonly id: string; readonly sql: string };
@@ -27,4 +27,9 @@ export interface ScopedStorage {
 		scope: StorageScope,
 		migrations: ReadonlyArray<Migration>,
 	): Result<void, MigrationError>;
+}
+
+/** The storage.sql@1 adapter; the composition root builds `ModuleContext.storage` with it. */
+export interface StorageSqlAdapter {
+	scopeFor(moduleId: string): ScopedStorage;
 }

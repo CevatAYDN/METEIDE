@@ -38,4 +38,5 @@ export type {
 	MigrationError,
 	ScopedStorage,
 	StorageScope,
+	StorageSqlAdapter,
 } from "./domain/storage.js";
