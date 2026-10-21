@@ -7,11 +7,18 @@ const L6 = "(apps/|packages/ui-)";
 module.exports = {
 	forbidden: [
 		{
-			name: "kernel-contracts-standalone",
-			comment: "kernel and contracts MUST NOT import any other METE package",
+			name: "contracts-standalone",
+			comment: "contracts MUST NOT import any METE package (ADR-036)",
 			severity: "error",
-			from: { path: "^packages/(kernel|contracts)/" },
-			to: { path: "^(packages|apps)/", pathNot: "^packages/$1/" },
+			from: { path: "^packages/contracts/" },
+			to: { path: "^(packages|apps)/", pathNot: "^packages/contracts/" },
+		},
+		{
+			name: "kernel-only-contracts",
+			comment: "kernel MUST import only contracts (ADR-036)",
+			severity: "error",
+			from: { path: "^packages/kernel/" },
+			to: { path: "^(packages|apps)/", pathNot: "^packages/(kernel|contracts)/" },
 		},
 		{
 			name: "no-upward-from-platform",

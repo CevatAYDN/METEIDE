@@ -20,7 +20,7 @@ Dependency rules, enforced by dependency-cruiser in local CI \[C\]:
 - A package MUST import only from its own layer's contracts or from lower layers.
 - A package MUST import other packages only through their public `index.ts`.
 - A capability module MUST NOT import another capability module. It resolves the capability through the kernel registry.
-- `kernel` and `contracts` MUST NOT import any other METE package.
+- `contracts` MUST NOT import any METE package. `kernel` MUST import only `contracts` (ADR-036).
 
 ## Process model
 

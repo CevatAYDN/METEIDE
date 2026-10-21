@@ -2,7 +2,7 @@
 
 Repository files: `docs/adr/NNN-<slug>.md`, one per row. Depends on: 02 Glossary, 03 Architecture.
 
-These 35 decisions are accepted. Changing one requires a new ADR that marks the old one "Superseded by ADR-NNN"; code MUST follow the accepted set.
+These 36 decisions are accepted. Changing one requires a new ADR that marks the old one "Superseded by ADR-NNN"; code MUST follow the accepted set.
 
 | ADR | Decision | Reason | Rejected alternatives | Source |
 | --- | --- | --- | --- | --- |
@@ -41,6 +41,7 @@ These 35 decisions are accepted. Changing one requires a new ADR that marks the 
 | 033 | Conventional Commits; Changesets for SemVer versions | Machine-readable history; changelogs for free | Free-form commits | D |
 | 034 | Expected failures return `Result<T, E>`; exceptions only for programmer errors | Explicit error paths that models cannot ignore | Exceptions everywhere | D |
 | 035 | A new runtime dependency requires a new ADR | Keeps the stack small and reviewed | Free dependency addition | D |
+| 036 | Shared kernel types (`Result`, `CapabilityRef`, `ModuleManifest`, event envelope) live in `@mete/contracts`; `kernel` imports `contracts` and nothing else; `contracts` imports no METE package | ROADMAP builds `contracts` before `kernel` because the kernel depends on it; tab 07 puts event schemas, including the kernel's `module.*` events, in `@mete/contracts` | Types inside `kernel` (contracts would then import kernel); a third shared package | D |
 
 ## ADR file template
 
