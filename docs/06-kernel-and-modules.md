@@ -58,6 +58,16 @@ export interface ConfigReader {
 
 export interface DisposableStore { add(d: Disposable): void; dispose(): void }
 
+// storage.sql@1, defined in @mete/contracts. A module prefixes its tables with `<moduleId>_`;
+// storage keeps each module's applied migrations in `<moduleId>_migrations`, so ledgers never collide.
+export type Migration = { id: string; sql: string };   // applied once, in array order, each in a transaction
+export type MigrationError = { code: "migration_failed"; moduleId: string; migrationId: string; message: string };
+export interface ScopedStorage {
+  workspace: Database;           // better-sqlite3 handle on .mete/mete.db; wrap it with drizzle() to query
+  global: Database;              // better-sqlite3 handle on mete.db in the global data folder
+  migrate(scope: "workspace" | "global", migrations: Migration[]): Result<void, MigrationError>;
+}
+
 export interface CapabilityRegistry {
   provide<C>(ref: CapabilityRef, adapter: Adapter<C>): Disposable;
   resolve<C>(ref: CapabilityRef, need?: FeatureSet): Result<AdapterChain<C>, CapabilityMissing>;
@@ -85,7 +95,7 @@ export interface EventBus {
 
 ## Module lifecycle
 
-`registered` → `resolving` (waiting for `requires`) → `active` → `deactivating` → `inactive`. From `active`, a crash moves the module to `restarting`; after 3 restarts in 5 minutes it moves to `disabled` and publishes `module.disabled` \[D\]. A module whose `requires` never resolves stays `resolving` and the UI shows which capability is missing. A registered module moves to `resolving` when one of its activation events fires: `onStartup` when the composition root starts the kernel; `onWorkspaceOpen` when it opens the workspace (the CLI at once, the desktop when a folder opens); `onCapability:<ref>` when a `resolving` module requires that capability; `onCommand:<id>` when that command runs, once the CLI and desktop command system exists. Until then it stays `registered`. `requires` gates activation only: when a provider later deactivates, its dependents stay active and handle `CapabilityMissing` (Capability resolution, step 5). The kernel re-checks every `resolving` module after each `module.activated`. A module whose `activate` returns an error goes to `inactive` and publishes `module.deactivated` with the error code as reason. Lifecycle events carry `source: "kernel"` and the workspace id the composition root passes when it starts the kernel.
+`registered` → `resolving` (waiting for `requires`) → `active` → `deactivating` → `inactive`. From `active`, a crash moves the module to `restarting`; after 3 restarts in 5 minutes it moves to `disabled` and publishes `module.disabled` \[D\]. A module whose `requires` never resolves stays `resolving` and the UI shows which capability is missing. A registered module moves to `resolving` when one of its activation events fires: `onStartup` when the composition root starts the kernel; `onWorkspaceOpen` when it opens the workspace (the CLI at once, the desktop when a folder opens); `onCapability:<ref>` when a `resolving` module requires that capability; `onCommand:<id>` when that command runs, once the CLI and desktop command system exists. Until then it stays `registered`. `requires` gates activation only: when a provider later deactivates, its dependents stay active and handle `CapabilityMissing` (Capability resolution, step 5). The kernel re-checks every `resolving` module after each `module.activated`. A module whose `activate` returns an error goes to `inactive` and publishes `module.deactivated` with the error code as reason. Lifecycle events carry `source: "kernel"` and the workspace id the composition root passes when it starts the kernel. The composition root registers storage first, so the events of every later module are persisted.
 
 A crash is an exception thrown by `activate` or `deactivate`, or a `crash(moduleId, error)` call from the composition root (the module's event handler threw on its own bus view, or its child process exited). On a crash the kernel logs the error, publishes `module.crashed` with the error name as reason (never the message, which may hold secrets), moves the module to `restarting`, calls its `deactivate`, releases its disposables and returns it to `resolving` at once, with no delay. A module that already restarted 3 times in the last 5 minutes moves to `disabled` instead, publishes `module.disabled` and stays there until the kernel restarts. An exception from a `deactivate` the composition root asked for is logged and published as `module.crashed`, and the module still ends `inactive`. Lifecycle calls and `loadConfig` run to completion and take no `AbortSignal`; nothing in them is cancellable.
 
@@ -133,6 +143,7 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 
 | Capability | Purpose | Default adapters, in fallback order | When the chain is empty |
 | --- | --- | --- | --- |
+| `storage.sql@1` | The workspace and global SQLite databases, with per-module migrations | Native (storage module) | Never empty (essential) |
 | `llm.chat@1` | Chat with tools and streaming | Gateway → tier chain of discovered free models | Run pauses with reason `quota` or `no_model` |
 | `llm.embed@1` | Embeddings | NVIDIA embedding model | Vector search off; hybrid search continues |
 | `llm.rerank@1` | Reranking | NVIDIA rerank model | Rerank skipped |

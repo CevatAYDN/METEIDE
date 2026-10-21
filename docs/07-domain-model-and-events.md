@@ -83,6 +83,8 @@ interface MeteEvent<T extends string = string, P = unknown> {
 
 Events are append-only rows in the workspace `mete.db`. Default retention: 90 days of events; run summaries forever \[D\]. Payload schemas live in `@mete/contracts` and are validated before publish. `workspaceId` is a UUID kept in `.mete/workspace.yaml`, created when the workspace is first opened; the composition root (`apps/cli`, `apps/desktop`) passes it to the kernel at start.
 
+Storage persists every catalog event by subscribing once per domain (`run.*`, `task.*`, ...) and inserting it synchronously into the `events` table: `seq` integer primary key (replay order), the envelope columns, `payload` as JSON, with indexes on `(run_id, seq)` and `(type, seq)`. It deletes events older than the retention when it activates. Both databases use WAL and a busy timeout of 5 seconds \[D\].
+
 ## Event catalog
 
 | Type | Payload | Published by |
