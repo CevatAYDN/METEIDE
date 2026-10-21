@@ -1,4 +1,5 @@
 import {
+	type ChatChunk,
 	type ChatRequest,
 	err,
 	type LlmChatAdapter,
@@ -13,9 +14,11 @@ import {
 	type ReserveFailed,
 	type Result,
 	type SecretsMaskAdapter,
+	type ToolCall,
 } from "@mete/contracts";
 import { type PrivacyRules, resolveChain } from "../domain/resolve.js";
 import { afterFailure, estimateTokens } from "../domain/retry.js";
+import type { ModelCall } from "../infrastructure/model-calls.js";
 import { maskMessages, type Offered } from "./prepare.js";
 
 // The llm.chat@1 request pipeline (docs/09, Gateway): privacy filter → secret masking →
@@ -28,11 +31,14 @@ export type ChatDeps = {
 	readonly rules: () => PrivacyRules;
 	readonly sleep: (ms: number, signal: AbortSignal) => Promise<void>;
 	readonly now: () => number;
+	/** Keeps one row per provider call for replay (docs/07, model_calls). */
+	readonly record: (call: ModelCall) => void;
 };
 
 type Outcome =
 	| {
 			readonly kind: "finish";
+			readonly reason: Extract<ChatChunk, { type: "finish" }>["reason"];
 			readonly usage: { prompt: number; completion: number };
 	  }
 	| {
@@ -44,6 +50,17 @@ type Outcome =
 type Attempted = {
 	readonly outcome: Outcome;
 	readonly observations: readonly QuotaObservation[];
+};
+
+// What a model streamed, kept for the model_calls row.
+type Seen = { text: string; readonly toolCalls: ToolCall[] };
+
+// One reserved call on one model.
+type Try = {
+	readonly o: Offered;
+	readonly reservation: string;
+	readonly call: ChatRequest;
+	readonly req: LlmChatRequest;
 };
 
 type Walk = {
@@ -71,15 +88,20 @@ const reserveError = (e: ReserveFailed): LlmError =>
 
 // One provider call; error chunks become the outcome instead of being forwarded.
 async function* attempt(
-	o: Offered,
-	call: ChatRequest,
+	t: Try,
+	seen: Seen,
 	signal: AbortSignal,
 ): AsyncGenerator<LlmChunk, Outcome> {
 	let streamed = false;
-	for await (const c of o.adapter.chat(call, signal)) {
+	for await (const c of t.o.adapter.chat(t.call, signal)) {
 		if (c.type === "error") return { kind: "error", error: c.error, streamed };
+		// Kept before the yield: a caller that stops reading never resumes it.
+		if (c.type === "text") seen.text += c.text;
+		if (c.type === "tool-call")
+			seen.toolCalls.push({ id: c.id, name: c.name, args: c.args });
 		yield c;
-		if (c.type === "finish") return { kind: "finish", usage: c.usage };
+		if (c.type === "finish")
+			return { kind: "finish", reason: c.reason, usage: c.usage };
 		streamed = true;
 	}
 	const error: ProviderError = {
@@ -102,16 +124,39 @@ const actualOf = (outcome: Outcome | undefined): QuotaAmounts =>
 		? { tokens_per_minute: outcome.usage.prompt + outcome.usage.completion }
 		: {};
 
-// Settles exactly once, also when the caller stops reading mid-stream.
+// A caller that stopped reading leaves no outcome; it is logged as aborted.
+const callRow = (
+	t: Try,
+	outcome: Outcome | undefined,
+	seen: Seen,
+	times: { readonly start: number; readonly end: number },
+): ModelCall => ({
+	ts: new Date(times.start).toISOString(),
+	runId: t.req.runId,
+	providerId: t.o.model.providerId,
+	modelId: t.o.model.id,
+	tier: "tier" in t.req.target ? t.req.target.tier : null,
+	request: { messages: t.call.messages, tools: t.call.tools ?? [] },
+	response: seen,
+	promptTokens: outcome?.kind === "finish" ? outcome.usage.prompt : 0,
+	completionTokens: outcome?.kind === "finish" ? outcome.usage.completion : 0,
+	latencyMs: times.end - times.start,
+	outcome:
+		outcome === undefined
+			? "aborted"
+			: outcome.kind === "finish"
+				? outcome.reason
+				: outcome.error.code,
+});
+
+// Settles and logs exactly once, also when the caller stops reading mid-stream.
 async function* settled(
 	deps: ChatDeps,
-	o: Offered,
-	reservation: string,
-	call: ChatRequest,
+	t: Try,
 	signal: AbortSignal,
 ): AsyncGenerator<LlmChunk, Attempted> {
 	if (signal.aborted) {
-		deps.quota.settle(reservation, null, []);
+		deps.quota.settle(t.reservation, null, []);
 		return {
 			outcome: { kind: "error", error: ABORTED, streamed: false },
 			observations: [],
@@ -119,12 +164,15 @@ async function* settled(
 	}
 	let outcome: Outcome | undefined;
 	let observations: readonly QuotaObservation[] = [];
+	const seen: Seen = { text: "", toolCalls: [] };
+	const start = deps.now();
 	try {
-		outcome = yield* attempt(o, call, signal);
-		observations = observationsOf(o, outcome);
+		outcome = yield* attempt(t, seen, signal);
+		observations = observationsOf(t.o, outcome);
 		return { outcome, observations };
 	} finally {
-		deps.quota.settle(reservation, actualOf(outcome), observations);
+		deps.quota.settle(t.reservation, actualOf(outcome), observations);
+		deps.record(callRow(t, outcome, seen, { start, end: deps.now() }));
 	}
 }
 
@@ -219,7 +267,8 @@ async function* walk(
 		const named = nameModel(st, o, w.chain[0]);
 		if (named) yield named;
 		const call = { ...w.call, model: o.model.id };
-		const { outcome, observations } = yield* settled(deps, o, id, call, signal);
+		const t: Try = { o, reservation: id, call, req: w.req };
+		const { outcome, observations } = yield* settled(deps, t, signal);
 		if (outcome.kind === "finish") return;
 		const end = await onFailure(deps, st, { o, outcome, observations }, signal);
 		if (end) return yield fail(end);

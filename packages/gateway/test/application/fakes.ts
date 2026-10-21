@@ -13,6 +13,7 @@ import {
 	type ReserveFailed,
 } from "@mete/contracts";
 import type { ChatDeps } from "../../src/application/chat.js";
+import type { ModelCall } from "../../src/infrastructure/model-calls.js";
 
 // Hand-written fakes from contracts types; no test reaches a real provider.
 
@@ -121,6 +122,7 @@ export const deps = (
 	over: Partial<ChatDeps> & Pick<ChatDeps, "discover" | "quota">,
 ) => {
 	const waits: number[] = [];
+	const calls: ModelCall[] = [];
 	const d: ChatDeps = {
 		mask: { mask: async (t) => ({ text: t, masked: 0 }) },
 		rules: () => ({ allowTraining: false, sensitive: false }),
@@ -128,9 +130,10 @@ export const deps = (
 			waits.push(ms);
 		},
 		now: () => NOW,
+		record: (c) => calls.push(c),
 		...over,
 	};
-	return { deps: d, waits };
+	return { deps: d, waits, calls };
 };
 
 export const collect = async (chunks: AsyncIterable<LlmChunk>) => {

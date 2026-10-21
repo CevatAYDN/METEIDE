@@ -229,3 +229,74 @@ describe("llm.chat@1 pipeline", () => {
 		expect(q.settled).toEqual([{ id: "r1", actual: {}, observations: [] }]);
 	});
 });
+
+describe("llm.chat@1 model_calls rows", () => {
+	it("records every provider call, retries included, with the masked request", async () => {
+		const a = fakeProvider("a", [[status(429)], [text("o"), text("k"), done]]);
+		const q = fakeQuota();
+		const { deps: d, calls } = deps({
+			discover: async () => [offer(a.adapter, "m")],
+			quota: q.quota,
+			mask: {
+				mask: async (t) => ({
+					text: t.replace("sk-live", "[SECRET:x]"),
+					masked: 1,
+				}),
+			},
+		});
+		await collect(createLlmChat(d).chat(req, signal()));
+		expect(calls).toEqual([
+			expect.objectContaining({
+				outcome: "rate_limited",
+				promptTokens: 0,
+				tier: "coder",
+			}),
+			{
+				ts: new Date(NOW).toISOString(),
+				runId: RUN,
+				providerId: "a",
+				modelId: "m",
+				tier: "coder",
+				request: {
+					messages: [{ role: "user", content: "hello [SECRET:x]" }],
+					tools: [],
+				},
+				response: { text: "ok", toolCalls: [] },
+				promptTokens: 3,
+				completionTokens: 2,
+				latencyMs: 0,
+				outcome: "stop",
+			},
+		]);
+	});
+
+	it("logs a call the caller stopped reading as aborted, and a model target without a tier", async () => {
+		const a = fakeProvider("a", [[text("1"), text("2"), done]]);
+		const { deps: d, calls } = deps({
+			discover: async () => [offer(a.adapter, "m")],
+			quota: fakeQuota().quota,
+		});
+		const exact = { ...req, target: { providerId: "a", modelId: "m" } };
+		for await (const chunk of createLlmChat(d).chat(exact, signal()))
+			if (chunk.type === "text") break;
+		expect(calls).toEqual([
+			expect.objectContaining({
+				tier: null,
+				outcome: "aborted",
+				response: { text: "1", toolCalls: [] },
+			}),
+		]);
+	});
+
+	it("writes no row when no call was sent", async () => {
+		const a = fakeProvider("a", [[done]]);
+		const q = fakeQuota();
+		q.failWith({ code: "aborted" });
+		const { deps: d, calls } = deps({
+			discover: async () => [offer(a.adapter, "m")],
+			quota: q.quota,
+		});
+		await collect(createLlmChat(d).chat(req, signal()));
+		expect(calls).toEqual([]);
+	});
+});

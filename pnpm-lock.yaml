@@ -61,6 +61,12 @@ importers:
       '@mete/contracts':
         specifier: workspace:*
         version: link:../contracts
+      better-sqlite3:
+        specifier: 13.0.3
+        version: 13.0.3
+      drizzle-orm:
+        specifier: 0.45.3
+        version: 0.45.3(@types/better-sqlite3@9.6.0)(better-sqlite3@13.0.3)
     devDependencies:
       '@mete/testing':
         specifier: workspace:*
