@@ -7,6 +7,7 @@ import {
 	type LlmError,
 	ok,
 	type Result,
+	type SecretsMaskAdapter,
 	type ToolCall,
 	type ToolContext,
 	type VcsGitAdapter,
@@ -43,6 +44,28 @@ export type ModelOutcome =
 	| { readonly kind: "missing" };
 
 const SPECS = WORKSPACE_TOOLS.map((t) => ({ ref: t.ref, spec: toolSpec(t) }));
+
+/** Text the run keeps, with secrets masked (docs/07); kept as is while no secrets.mask@1 is active. */
+const masked = async (deps: StepDeps, text: string) => {
+	const chain = deps.registry.resolve<SecretsMaskAdapter>("secrets.mask@1");
+	return chain.ok ? (await chain.value[0].impl.mask(text)).text : text;
+};
+
+// The reply text becomes the summary and the provider's error text the failure message.
+const maskOutcome = async (
+	deps: StepDeps,
+	o: ModelOutcome,
+): Promise<ModelOutcome> => {
+	if (o.kind === "replied") {
+		const content = await masked(deps, o.message.content);
+		return { ...o, message: { ...o.message, content } };
+	}
+	if (o.kind === "error") {
+		const message = await masked(deps, o.error.message);
+		return { ...o, error: { ...o.error, message } };
+	}
+	return o;
+};
 
 const read = async (
 	chunks: AsyncIterable<LlmChunk>,
@@ -88,7 +111,7 @@ export const callModel = async (
 		},
 		signal,
 	);
-	return read(chunks, onModel);
+	return maskOutcome(deps, await read(chunks, onModel));
 };
 
 /** How one tool call ended; `approval` means the policy asked and nothing ran. */
@@ -101,13 +124,21 @@ type AnyTool = {
 	run(input: unknown, ctx: ToolContext): Promise<Result<unknown, Failure>>;
 };
 
-const result = (call: ToolCall, r: Result<unknown, Failure>): ToolOutcome => ({
-	kind: "result",
-	message: { role: "tool", toolCallId: call.id, content: JSON.stringify(r) },
-});
+// The mask's replacement has no JSON-special characters, so the content stays JSON.
+const result = async (
+	deps: StepDeps,
+	call: ToolCall,
+	r: Result<unknown, Failure>,
+): Promise<ToolOutcome> => {
+	const content = await masked(deps, JSON.stringify(r));
+	return {
+		kind: "result",
+		message: { role: "tool", toolCallId: call.id, content },
+	};
+};
 
-const refused = (call: ToolCall, code: string, message: string) =>
-	result(call, err({ code, message }));
+const refused = (deps: StepDeps, call: ToolCall, f: Failure) =>
+	result(deps, call, err(f));
 
 /** Runs one tool call after checking its arguments against the schema the model was offered. */
 export const callTool = async (
@@ -117,13 +148,23 @@ export const callTool = async (
 	emit: Emit,
 ): Promise<ToolOutcome> => {
 	const entry = WORKSPACE_TOOLS.find((t) => toolName(t.ref) === call.name);
-	if (!entry) return refused(call, "bad_input", `unknown tool ${call.name}`);
+	if (!entry)
+		return refused(deps, call, {
+			code: "bad_input",
+			message: `unknown tool ${call.name}`,
+		});
 	const args = entry.schema.safeParse(call.args);
 	if (!args.success)
-		return refused(call, "bad_input", z.prettifyError(args.error));
+		return refused(deps, call, {
+			code: "bad_input",
+			message: z.prettifyError(args.error),
+		});
 	const chain = deps.registry.resolve<AnyTool>(entry.ref);
 	if (!chain.ok)
-		return refused(call, "capability_missing", `${entry.ref} is not active`);
+		return refused(deps, call, {
+			code: "capability_missing",
+			message: `${entry.ref} is not active`,
+		});
 	const [adapter] = chain.value;
 	const capability = entry.ref;
 	emit({
@@ -139,7 +180,7 @@ export const callTool = async (
 	});
 	if (!out.ok && out.error.code === "approval_required" && "rule" in out.error)
 		return { kind: "approval", rule: String(out.error.rule) };
-	return result(call, out);
+	return result(deps, call, out);
 };
 
 /** Records the working tree before a writing step; no vcs.git@1 means no checkpoint (Phase 4). */

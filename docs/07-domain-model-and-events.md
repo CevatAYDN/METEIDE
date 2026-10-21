@@ -72,7 +72,7 @@ Default revision limit: 3 \[D\]. `approved` is final for a task.
 | running | failed | An unrecoverable error (for example invalid template detected at runtime) |
 | any but completed | cancelled | The user cancels |
 
-Runs persist their XState snapshot after every transition, so a restart resumes them exactly \[C\].
+Runs persist their XState snapshot after every transition, so a restart resumes them exactly \[C\]. Before core-engine keeps text it did not write itself, it masks secrets in it through `secrets.mask@1`: each tool result before it joins the conversation, the model's reply text and a model error's message, so the snapshot, `run.completed.summary` and `run.failed.message` hold masked text (ADR-021). The goal is the user's own text and is kept as typed.
 
 When core-engine activates with recovery on (its default; the CLI turns it on only for `mete run`), a run still `running` from an earlier process becomes `paused` with reason `user` and publishes `run.paused`; a run still `queued` first starts, publishing `run.started`, and then pauses the same way. A paused run continues only through `resume`, from its last saved step. A row whose snapshot cannot be read is marked `failed` with a warning in the log and publishes no event, and `resume` or `cancel` of it answers `not_found`. The `quota` timer of a paused run lives in the process that paused it \[D\].
 

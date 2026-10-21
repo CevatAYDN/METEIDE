@@ -31,6 +31,7 @@ const MANIFEST: ModuleManifest = {
 		"fs.glob@1",
 		"fs.grep@1",
 		"policy.check@1",
+		"secrets.mask@1",
 		"storage.sql@1",
 	],
 	optional: ["shell.exec@1", "vcs.git@1"],

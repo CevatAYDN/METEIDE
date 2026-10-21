@@ -262,6 +262,56 @@ describe("single-agent engine", () => {
 		expect(h.requests).toHaveLength(2);
 	});
 
+	it("masks tool output, the summary and a failure message before the run keeps them", async () => {
+		const mask = async (text: string) => ({
+			text: text.replaceAll("sk-SECRET", "[SECRET:1]"),
+			masked: 1,
+		});
+		const withMask = (h: ReturnType<typeof engineHarness>) =>
+			h.registry.provide("secrets.mask@1", {
+				id: "security",
+				trust: "core",
+				features: [],
+				impl: { mask },
+			});
+		const h = engineHarness({
+			scripts: [
+				reply("", [{ name: "fs_read", args: { path: ".env" } }]),
+				reply("The key is sk-SECRET."),
+			],
+			tools: [
+				[
+					"fs.read@1",
+					async () =>
+						ok({ content: "KEY=sk-SECRET", totalLines: 1, lineEnding: "none" }),
+				],
+			],
+		});
+		withMask(h);
+		const runId = await begin(h);
+		await settled(h, runId, "completed");
+		const stored = h.db.prepare("SELECT snapshot FROM runs").pluck().get();
+		expect(String(stored)).not.toContain("sk-SECRET");
+		expect(h.events.at(-1)?.payload).toEqual({
+			summary: "The key is [SECRET:1].",
+		});
+		const failing = engineHarness({
+			scripts: [
+				[
+					{
+						type: "error",
+						error: { code: "bad_request", message: "bad key sk-SECRET" },
+					},
+				],
+			],
+		});
+		withMask(failing);
+		await settled(failing, await begin(failing), "failed");
+		expect(failing.events.at(-1)?.payload).toMatchObject({
+			message: "bad key [SECRET:1]",
+		});
+	});
+
 	it("fails at the turn limit", async () => {
 		const h = engineHarness({
 			scripts: [reply("", [{ name: "fs_read", args: { path: "a" } }])],
