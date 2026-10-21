@@ -166,8 +166,13 @@ const observeUnit = (
 	const { key, st } = stateFor(ps, s, modelId);
 	refresh(ps, key, st, now);
 	if (o.limit !== undefined) learn(ps, s, { header: o.limit });
+	// An observation follows the record of the refused call that brought it; that call
+	// is not part of the limit.
+	const refused = amountFor(s.unit, {});
 	if (o.exhausted && limitOf(ps, s) === UNLIMITED)
-		learn(ps, s, { discovered: Math.max(1, usage(s, st.entries, now)) });
+		learn(ps, s, {
+			discovered: Math.max(1, usage(s, st.entries, now) - refused),
+		});
 	const remaining = o.exhausted ? 0 : o.remaining;
 	const limit = limitOf(ps, s);
 	if (remaining !== undefined && Number.isFinite(limit)) {

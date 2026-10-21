@@ -157,9 +157,10 @@ describe("pool: limits and observations", () => {
 		expect(p.limit("p", "requests_per_minute")).toBe(1);
 	});
 
-	it("discovers a limit from the first exhausted observation", () => {
+	it("discovers a limit from the first exhausted observation, without the rejected call", () => {
 		const p = pool([spec({ limit: "discover" })]);
-		for (let i = 0; i < 7; i++) use(p, "m", T0 + i);
+		// 7 calls went through; the 8th was refused, settled and recorded before it observes.
+		for (let i = 0; i < 8; i++) use(p, "m", T0 + i);
 		expect(p.check("p", "m", {}, T0 + 10).kind).toBe("open");
 		p.observe(
 			"p",
@@ -168,9 +169,10 @@ describe("pool: limits and observations", () => {
 			T0 + 10,
 		);
 		expect(p.limit("p", "requests_per_minute")).toBe(7);
+		// Usage is cut to the limit from the oldest call, so the next one to leave is at T0 + 1.
 		expect(p.check("p", "m", {}, T0 + 10)).toEqual({
 			kind: "wait",
-			opensAt: T0 + MIN,
+			opensAt: T0 + 1 + MIN,
 		});
 	});
 
