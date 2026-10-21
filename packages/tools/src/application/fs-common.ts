@@ -64,6 +64,18 @@ export const ignoredError = (path: string): ToolError => ({
 export const rules = (deps: FsDeps): Promise<Result<IgnoreCheck, ToolError>> =>
 	loadIgnore(deps.workspaceDir, deps.worktreesDir);
 
+/** Where a path to write or edit really is; refused when .meteignore excludes it (docs/10). */
+export const placeToChange = async (
+	deps: FsDeps,
+	path: string,
+): Promise<Result<Place, ToolError>> => {
+	const at = await place(deps, path);
+	if (!at.ok) return at;
+	const ignored = await rules(deps);
+	if (!ignored.ok) return ignored;
+	return ignored.value(at.value.real) ? err(ignoredError(path)) : at;
+};
+
 /** Parses a model's input at the boundary. */
 export const parse = <T>(
 	schema: ZodType<T>,

@@ -2,6 +2,7 @@ import {
 	err,
 	FsEditInputSchema,
 	type FsEditOutput,
+	type FsWriteInput,
 	FsWriteInputSchema,
 	type FsWriteOutput,
 	ok,
@@ -11,14 +12,7 @@ import {
 } from "@mete/contracts";
 import { editText, isBinary } from "../domain/text.js";
 import { deleteFile, readBytes, writeText } from "../infrastructure/files.js";
-import {
-	type FsDeps,
-	ignoredError,
-	parse,
-	permit,
-	place,
-	rules,
-} from "./fs-common.js";
+import { type FsDeps, parse, permit, placeToChange } from "./fs-common.js";
 
 // fs.write@1 and fs.edit@1 (docs/10, Built-in tools): policy.check@1 first, then the file.
 
@@ -31,12 +25,9 @@ export const writeTool = async (
 ): Out<FsWriteOutput> => {
 	const i = parse(FsWriteInputSchema, input);
 	if (!i.ok) return i;
-	const at = await place(deps, i.value.path);
+	const at = await placeToChange(deps, i.value.path);
 	if (!at.ok) return at;
 	const p = at.value;
-	const ignored = await rules(deps);
-	if (!ignored.ok) return ignored;
-	if (ignored.value(p.real)) return err(ignoredError(i.value.path));
 	const del = "delete" in i.value;
 	const action = del ? "fs.delete" : p.inside ? "fs.write" : "fs.write.outside";
 	const allowed = permit(
@@ -45,13 +36,16 @@ export const writeTool = async (
 		ctx,
 	);
 	if (!allowed.ok) return allowed;
-	if ("delete" in i.value) {
-		const gone = await deleteFile(p.real);
+	return change(p.real, i.value);
+};
+
+const change = async (real: string, i: FsWriteInput): Out<FsWriteOutput> => {
+	if ("delete" in i) {
+		const gone = await deleteFile(real);
 		return gone.ok ? ok({ bytes: 0 }) : gone;
 	}
-	const { content, createOnly } = i.value;
-	const written = await writeText(p.real, content, createOnly);
-	return written.ok ? ok({ bytes: Buffer.byteLength(content) }) : written;
+	const written = await writeText(real, i.content, i.createOnly);
+	return written.ok ? ok({ bytes: Buffer.byteLength(i.content) }) : written;
 };
 
 export const editTool = async (
@@ -61,12 +55,9 @@ export const editTool = async (
 ): Out<FsEditOutput> => {
 	const i = parse(FsEditInputSchema, input);
 	if (!i.ok) return i;
-	const at = await place(deps, i.value.path);
+	const at = await placeToChange(deps, i.value.path);
 	if (!at.ok) return at;
 	const p = at.value;
-	const ignored = await rules(deps);
-	if (!ignored.ok) return ignored;
-	if (ignored.value(p.real)) return err(ignoredError(i.value.path));
 	const action = p.inside ? "fs.write" : "fs.write.outside";
 	const allowed = permit(
 		deps,
