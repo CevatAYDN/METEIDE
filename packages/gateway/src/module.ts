@@ -1,3 +1,208 @@
 // MeteModule entry (docs/06-kernel-and-modules.md). Modules in this package: gateway.
-// Phase 1 fills manifest, activate and deactivate.
-export {};
+import {
+	err,
+	type LlmChatAdapter,
+	type ModuleManifest,
+	ok,
+	PrivacyConfigSchema,
+	type ProviderAdapter,
+	type QuotaReserveAdapter,
+	type SecretsMaskAdapter,
+} from "@mete/contracts";
+import type {
+	CapabilityRegistry,
+	MeteModule,
+	ModuleContext,
+	ModuleError,
+} from "@mete/kernel";
+import { z } from "zod";
+import { createLlmChat } from "./application/chat.js";
+import { createDiscovery } from "./application/prepare.js";
+import { MODEL_CALL_RETENTION_DAYS } from "./defaults.js";
+import type { PrivacyRules } from "./domain/resolve.js";
+import {
+	createModelCallLog,
+	MODEL_CALL_MIGRATIONS,
+	type ModelCall,
+} from "./infrastructure/model-calls.js";
+
+/** Clock and sleep are injectable for tests. */
+export type GatewayOptions = {
+	readonly now?: () => number;
+	readonly sleep?: (ms: number, signal: AbortSignal) => Promise<void>;
+};
+
+const MANIFEST: ModuleManifest = {
+	id: "gateway",
+	version: "0.0.0",
+	displayName: "Gateway",
+	class: "essential",
+	trust: "core",
+	provides: ["llm.chat@1"],
+	requires: [
+		"storage.sql@1",
+		"quota.reserve@1",
+		"secrets.mask@1",
+		"provider.chat@1",
+	],
+	optional: ["provider.embed@1", "provider.rerank@1"],
+	activation: ["onStartup"],
+	isolation: "in-process",
+	permissions: [],
+};
+
+// The kernel checks workspace.yaml's id; the gateway reads only its sensitivity (docs/09, Privacy).
+const WorkspaceSchema = z
+	.looseObject({
+		sensitivity: z.enum(["normal", "sensitive"]).default("normal"),
+	})
+	.prefault({});
+
+const DAY_MS = 86_400_000;
+
+const failed = (message: string): ModuleError => ({
+	code: "activation_failed",
+	moduleId: MANIFEST.id,
+	message,
+});
+
+const realSleep = (ms: number, signal: AbortSignal) =>
+	new Promise<void>((resolve) => {
+		const t = setTimeout(resolve, ms);
+		signal.addEventListener(
+			"abort",
+			() => {
+				clearTimeout(t);
+				resolve();
+			},
+			{ once: true },
+		);
+	});
+
+const first = <C>(registry: CapabilityRegistry, ref: `${string}@1`): C => {
+	const r = registry.resolve<C>(ref);
+	if (!r.ok) throw new Error(`${ref} is required but not provided`);
+	return r.value[0].impl;
+};
+
+const readRules = (ctx: ModuleContext) => {
+	const privacy = ctx.config.get("privacy", PrivacyConfigSchema);
+	if (!privacy.ok) return err(privacy.error);
+	const workspace = ctx.config.get("workspace", WorkspaceSchema);
+	if (!workspace.ok) return err(workspace.error);
+	const sensitive = workspace.value.sensitivity === "sensitive";
+	return ok<PrivacyRules>({
+		allowTraining: privacy.value.allowTraining,
+		sensitive,
+	});
+};
+
+// Listings are kept per quota adapter: a restarted quota module has no units defined.
+const discovery = (ctx: ModuleContext) => {
+	let kept:
+		| {
+				quota: QuotaReserveAdapter;
+				discover: ReturnType<typeof createDiscovery>;
+		  }
+		| undefined;
+	const providers = () => {
+		const r = ctx.capabilities.resolve<ProviderAdapter>("provider.chat@1");
+		return r.ok ? r.value.map((a) => a.impl) : [];
+	};
+	return (signal: AbortSignal) => {
+		const quota = first<QuotaReserveAdapter>(
+			ctx.capabilities,
+			"quota.reserve@1",
+		);
+		if (kept?.quota !== quota) {
+			const warn = (msg: string) => ctx.logger.warn({}, msg);
+			kept = {
+				quota,
+				discover: createDiscovery({
+					providers,
+					define: (s) => quota.define(s),
+					warn,
+				}),
+			};
+		}
+		return kept.discover(signal);
+	};
+};
+
+const buildChat = (
+	ctx: ModuleContext,
+	rules: PrivacyRules,
+	opts: Required<GatewayOptions>,
+	write: (c: ModelCall) => void,
+): LlmChatAdapter => {
+	const quota = () =>
+		first<QuotaReserveAdapter>(ctx.capabilities, "quota.reserve@1");
+	return createLlmChat({
+		discover: discovery(ctx),
+		quota: {
+			define: (s) => quota().define(s),
+			reserve: (req, signal) => quota().reserve(req, signal),
+			settle: (id, actual, obs) => quota().settle(id, actual, obs),
+		},
+		mask: {
+			mask: (t) =>
+				first<SecretsMaskAdapter>(ctx.capabilities, "secrets.mask@1").mask(t),
+		},
+		rules: () => rules,
+		sleep: opts.sleep,
+		now: opts.now,
+		record: write,
+	});
+};
+
+// Prunes old rows; a failed write is reported, never thrown into the caller's stream.
+const openLog = (
+	ctx: ModuleContext,
+	db: Parameters<typeof createModelCallLog>[0],
+	now: () => number,
+) => {
+	const log = createModelCallLog(db);
+	log.prune(new Date(now() - MODEL_CALL_RETENTION_DAYS * DAY_MS).toISOString());
+	return (c: ModelCall) => {
+		try {
+			log.write(c);
+		} catch (error) {
+			ctx.logger.warn({ error: String(error) }, "model_calls row not written");
+		}
+	};
+};
+
+/** Creates the gateway module, which provides llm.chat@1. */
+export const createGatewayModule = (
+	options: GatewayOptions = {},
+): MeteModule => {
+	const opts = {
+		now: options.now ?? Date.now,
+		sleep: options.sleep ?? realSleep,
+	};
+	return {
+		manifest: MANIFEST,
+		async activate(ctx) {
+			if (!ctx.storage) return err(failed("storage.sql@1 was not provided"));
+			const migrated = ctx.storage.migrate("workspace", MODEL_CALL_MIGRATIONS);
+			if (!migrated.ok) return err(failed(migrated.error.message));
+			const rules = readRules(ctx);
+			if (!rules.ok) {
+				const { file, path, reason } = rules.error;
+				return err(failed(`${file} ${path}: ${reason}`));
+			}
+			const write = openLog(ctx, ctx.storage.workspace, opts.now);
+			const impl = buildChat(ctx, rules.value, opts, write);
+			ctx.disposables.add(
+				ctx.capabilities.provide("llm.chat@1", {
+					id: MANIFEST.id,
+					trust: "core",
+					features: [],
+					impl,
+				}),
+			);
+			return ok(undefined);
+		},
+		async deactivate() {},
+	};
+};

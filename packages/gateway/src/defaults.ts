@@ -27,3 +27,6 @@ export const CHARS_PER_TOKEN = 4;
 
 /** Tab 09, Tier resolution: the `long_context` need asks for the long-context tier's window. */
 export const LONG_CONTEXT_MIN = TIER_MIN_CONTEXT["long-context"];
+
+/** Tab 07, model_calls: rows follow the event retention of 90 days. */
+export const MODEL_CALL_RETENTION_DAYS = 90;
