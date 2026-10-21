@@ -338,4 +338,18 @@ describe("mete stop and mete key", () => {
 			1,
 		);
 	});
+
+	it("keeps a search provider's key under its own account", async () => {
+		const secrets = memorySecrets();
+		expect(
+			await keyCommand(secrets, recordingIo("tvly-x").io, "set", "tavily"),
+		).toBe(0);
+		expect(await secrets.get("search/tavily/apiKey")).toEqual({
+			ok: true,
+			value: "tvly-x",
+		});
+		const l = recordingIo();
+		await keyCommand(secrets, l.io, "list", undefined);
+		expect(l.out).toContain("tavily         key set");
+	});
 });

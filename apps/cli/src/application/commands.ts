@@ -7,6 +7,7 @@ import type {
 } from "@mete/contracts";
 import type { EventBus } from "@mete/kernel";
 import { apiKeyName } from "@mete/providers";
+import { searchKeyName } from "@mete/tools";
 import { eventLine, exitCode, statusLines } from "../domain/format.js";
 import { type App, engineOf } from "../infrastructure/app.js";
 
@@ -232,12 +233,17 @@ const stopOne = async (engine: TeamEngineAdapter, io: Io, run: RunView) => {
 };
 
 const PROVIDER =
-	/^(nvidia|openrouter|opencode-zen|custom:[a-z0-9]+(-[a-z0-9]+)*)$/;
-const BUILT_IN = ["nvidia", "openrouter", "opencode-zen"];
+	/^(nvidia|openrouter|opencode-zen|tavily|custom:[a-z0-9]+(-[a-z0-9]+)*)$/;
+const BUILT_IN = ["nvidia", "openrouter", "opencode-zen", "tavily"];
+const SEARCH = new Set(["tavily"]);
+
+// Model providers keep providers/<id>/apiKey, search providers search/<id>/apiKey (docs/09, docs/10).
+const accountOf = (id: string) =>
+	SEARCH.has(id) ? searchKeyName(id) : apiKeyName(id);
 
 const listKeys = async (secrets: SecretStore, io: Io) => {
 	for (const id of BUILT_IN) {
-		const r = await secrets.get(apiKeyName(id));
+		const r = await secrets.get(accountOf(id));
 		if (!r.ok) {
 			io.err(r.error.message);
 			return 1;
@@ -259,7 +265,7 @@ export const keyCommand = async (
 	if (valid && action === "set") return setKey(secrets, io, provider);
 	if (valid && action === "delete") return deleteKey(secrets, io, provider);
 	io.err(
-		"usage: mete key set|delete <nvidia|openrouter|opencode-zen|custom:<slug>>, mete key list",
+		"usage: mete key set|delete <nvidia|openrouter|opencode-zen|tavily|custom:<slug>>, mete key list",
 	);
 	return 1;
 };
@@ -270,13 +276,13 @@ const setKey = async (secrets: SecretStore, io: Io, provider: string) => {
 		io.err("no key entered");
 		return 1;
 	}
-	const r = await secrets.set(apiKeyName(provider), key);
+	const r = await secrets.set(accountOf(provider), key);
 	io.out(r.ok ? `${provider} key saved in the keychain` : r.error.message);
 	return r.ok ? 0 : 1;
 };
 
 const deleteKey = async (secrets: SecretStore, io: Io, provider: string) => {
-	const r = await secrets.delete(apiKeyName(provider));
+	const r = await secrets.delete(accountOf(provider));
 	if (!r.ok) io.out(r.error.message);
 	else io.out(r.value ? `${provider} key deleted` : `${provider} had no key`);
 	return r.ok ? 0 : 1;

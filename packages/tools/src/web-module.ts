@@ -1,7 +1,13 @@
-// MeteModule entry of tools-web (docs/06-kernel-and-modules.md): web.fetch@1 over HTTP.
-import { type ModuleManifest, ok, type ToolAdapter } from "@mete/contracts";
-import type { MeteModule } from "@mete/kernel";
+// MeteModule entry of tools-web (docs/06-kernel-and-modules.md): web.fetch@1 and web.search@1 over HTTP.
+import {
+	type CapabilityRef,
+	type ModuleManifest,
+	ok,
+	type ToolAdapter,
+} from "@mete/contracts";
+import type { MeteModule, ModuleContext } from "@mete/kernel";
 import { fetchTool, type WebDeps } from "./application/web-fetch.js";
+import { tavilySearch } from "./application/web-search.js";
 import { policyOf } from "./module.js";
 
 /** What tools-web may be given; tests pass a fake fetch, nothing else reaches the network. */
@@ -13,15 +19,45 @@ const WEB_MANIFEST: ModuleManifest = {
 	displayName: "Web tools",
 	class: "optional",
 	trust: "core",
-	provides: ["web.fetch@1"],
+	provides: ["web.fetch@1", "web.search@1"],
 	requires: ["policy.check@1"],
 	optional: ["mcp.tools@1"],
 	activation: ["onStartup"],
 	isolation: "in-process",
-	permissions: ["net"],
+	permissions: ["net", "secrets"],
 };
 
-/** The tools-web module: web.fetch@1 now; web.search@1 comes with its HTTP adapters. */
+/** The keychain account of a search provider's API key (docs/10), like providers/<id>/apiKey. */
+export const searchKeyName = (id: string) => `search/${id}/apiKey`;
+
+const provide = (
+	ctx: ModuleContext,
+	ref: CapabilityRef,
+	impl: ToolAdapter<unknown, unknown>,
+) =>
+	ctx.disposables.add(
+		ctx.capabilities.provide(ref, {
+			id: WEB_MANIFEST.id,
+			trust: "core",
+			features: [],
+			impl,
+		}),
+	);
+
+// web.search@1 only with a key; without one the module still provides web.fetch@1 and warns.
+const searchKey = async (ctx: ModuleContext) => {
+	const key = await ctx.secrets?.get(searchKeyName("tavily"));
+	if (key?.ok && key.value) return key.value;
+	const why =
+		key && !key.ok ? key.error.message : "no Tavily key (mete key set tavily)";
+	ctx.logger.warn(
+		{ moduleId: WEB_MANIFEST.id, reason: why },
+		"web.search@1 not provided",
+	);
+	return undefined;
+};
+
+/** The tools-web module: web.fetch@1, and web.search@1 through Tavily when its key is set. */
 export const createToolsWebModule = (
 	opts: ToolsWebOptions = {},
 ): MeteModule => ({
@@ -32,17 +68,14 @@ export const createToolsWebModule = (
 			policy: policyOf(ctx.capabilities),
 			fetch: opts.fetch ?? fetch,
 		};
-		const impl: ToolAdapter<unknown, unknown> = {
+		provide(ctx, "web.fetch@1", {
 			run: (input, c) => fetchTool(deps, input, c),
-		};
-		ctx.disposables.add(
-			ctx.capabilities.provide("web.fetch@1", {
-				id: WEB_MANIFEST.id,
-				trust: "core",
-				features: [],
-				impl,
-			}),
-		);
+		});
+		const apiKey = await searchKey(ctx);
+		if (apiKey)
+			provide(ctx, "web.search@1", {
+				run: (input, c) => tavilySearch({ ...deps, apiKey }, input, c),
+			});
 		return ok(undefined);
 	},
 	async deactivate() {},

@@ -56,7 +56,7 @@ describe("mete main", () => {
 		);
 		const keys = recordingIo();
 		expect(await main(["key", "list"], keys.io, env)).toBe(0);
-		expect(keys.out).toHaveLength(3);
+		expect(keys.out).toHaveLength(4); // the three model providers and tavily
 	});
 
 	it("refuses run and stop while another mete run holds the workspace", async () => {

@@ -32,3 +32,9 @@ export const WEB_FETCH_TIMEOUT_MS = 30_000;
 
 /** Tab 10, Built-in tools: redirects web.fetch@1 follows. */
 export const WEB_FETCH_MAX_REDIRECTS = 5;
+
+/** Tab 10, Built-in tools: Tavily's search endpoint (docs/05, search providers). */
+export const TAVILY_SEARCH_URL = "https://api.tavily.com/search";
+
+/** Tab 10, Built-in tools: the most results Tavily returns for one search. */
+export const TAVILY_MAX_RESULTS = 20;

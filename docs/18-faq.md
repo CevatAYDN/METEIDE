@@ -53,7 +53,7 @@ Each answer is binding and names the tab that holds the full rule. A question no
 | Do I need Python? | No manual install. uv downloads Python when a server needs it | 10 |
 | Do I need Docker? | No. It is used only for container-based MCP servers, and only if already installed | 10, 12 |
 | Do VS Code extensions work? | Yes, from Open VSX through Theia. They become agent tools only if they expose MCP | 10 |
-| Does web search need a key? | No. The default is Exa MCP without a key; free keys add fallbacks | 06, 10 |
+| Does web search need a key? | Not from Phase 3: the default is Exa MCP without a key, and free keys add fallbacks. Until the MCP client comes, `web.search@1` needs a free Tavily key (`mete key set tavily`) | 06, 10 |
 | Can other tools use METE? | Yes. `mete mcp` exposes teams and knowledge as MCP tools | 10 |
 
 ## Knowledge
