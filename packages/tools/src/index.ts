@@ -2,5 +2,6 @@
 export {
 	createToolsFsModule,
 	createToolsShellModule,
+	createVcsGitModule,
 	type ToolsOptions,
 } from "./module.js";

@@ -11,6 +11,7 @@ import {
 	type ToolAdapter,
 	type ToolContext,
 	type ToolError,
+	type VcsGitAdapter,
 } from "@mete/contracts";
 import type { CapabilityRegistry, MeteModule } from "@mete/kernel";
 import type { FsDeps } from "./application/fs-common.js";
@@ -22,7 +23,9 @@ import {
 } from "./application/fs-read.js";
 import { editTool, writeTool } from "./application/fs-write.js";
 import { shellTool } from "./application/shell.js";
+import { vcsTool } from "./application/vcs.js";
 import { realTarget } from "./infrastructure/files.js";
+import { repoRoot } from "./infrastructure/git.js";
 
 /** Where the workspace and the global data folder are; the composition root passes them. */
 export type ToolsOptions = {
@@ -140,6 +143,53 @@ export const createToolsShellModule = (opts: ToolsOptions): MeteModule => ({
 		ctx.disposables.add(
 			ctx.capabilities.provide("shell.exec@1", {
 				id: SHELL_MANIFEST.id,
+				trust: "core",
+				features: [],
+				impl,
+			}),
+		);
+		return ok(undefined);
+	},
+	async deactivate() {},
+});
+
+const VCS_MANIFEST: ModuleManifest = {
+	id: "vcs-git",
+	version: "0.0.0",
+	displayName: "Git",
+	class: "optional",
+	trust: "core",
+	provides: ["vcs.git@1"],
+	requires: ["policy.check@1"],
+	optional: [],
+	activation: ["onStartup"],
+	isolation: "in-process",
+	permissions: ["fs.read", "fs.write"],
+};
+
+/** The vcs-git module: vcs.git@1 (docs/10); without a repository or git it does not activate. */
+export const createVcsGitModule = (opts: ToolsOptions): MeteModule => ({
+	manifest: VCS_MANIFEST,
+	async activate(ctx) {
+		const workspaceDir = await realTarget(opts.workspaceDir);
+		const root = await repoRoot(workspaceDir);
+		if (!root.ok)
+			return err({
+				code: "activation_failed",
+				moduleId: VCS_MANIFEST.id,
+				message: root.error.message,
+			});
+		const deps = {
+			adapterId: VCS_MANIFEST.id,
+			workspaceDir,
+			worktreesDir: await realTarget(join(opts.globalDir, "worktrees")),
+			policy: policyOf(ctx.capabilities),
+			root: root.value,
+		};
+		const impl: VcsGitAdapter = { run: (input, c) => vcsTool(deps, input, c) };
+		ctx.disposables.add(
+			ctx.capabilities.provide("vcs.git@1", {
+				id: VCS_MANIFEST.id,
 				trust: "core",
 				features: [],
 				impl,
