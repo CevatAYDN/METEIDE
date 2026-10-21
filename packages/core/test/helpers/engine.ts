@@ -52,7 +52,10 @@ export const reply = (
 ];
 
 /** A call that waits until it is aborted. */
-export const slow: Script = async function* (_req, signal) {
+export const slow = async function* (
+	_req: LlmChatRequest,
+	signal: AbortSignal,
+): AsyncGenerator<LlmChunk> {
 	await new Promise((resolve) => signal.addEventListener("abort", resolve));
 	yield { type: "error", error: { code: "aborted", message: "aborted" } };
 };
