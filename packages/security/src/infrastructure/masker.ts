@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { MaskResult } from "@mete/contracts";
 import { lintSource } from "@secretlint/core";
 import { creator as recommended } from "@secretlint/secretlint-rule-preset-recommend";
+import { MASK_TAG_HEX } from "../defaults.js";
 
 // secrets.mask@1 from docs/09 (Privacy): secretlint rules, `[SECRET:<first 8 hex of sha256>]`.
 
@@ -12,7 +13,7 @@ const CONFIG = {
 };
 
 const tag = (secret: string) =>
-	`[SECRET:${createHash("sha256").update(secret).digest("hex").slice(0, 8)}]`;
+	`[SECRET:${createHash("sha256").update(secret).digest("hex").slice(0, MASK_TAG_HEX)}]`;
 
 // Sorted and merged, so overlapping findings from two rules replace one span once.
 const merge = (ranges: ReadonlyArray<readonly [number, number]>) => {
