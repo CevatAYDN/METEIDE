@@ -20,6 +20,7 @@ import {
 	RUN_MIGRATIONS,
 	type RunStore,
 } from "../../src/infrastructure/run-store.js";
+import type { TemplateDirs } from "../../src/infrastructure/template-store.js";
 
 // A real registry, bus and database around scripted fake adapters, with a manual clock.
 
@@ -99,13 +100,14 @@ export const engineHarness = (opts: {
 	db?: Database.Database;
 	/** Changes the store, for example to make a write fail. */
 	wrapStore?: (store: RunStore) => RunStore;
+	templates?: TemplateDirs;
 }) => {
 	const registry = createCapabilityRegistry(() => []);
 	const events: MeteEvent[] = [];
 	const bus = createEventBus((e) => {
 		throw e;
 	});
-	for (const p of ["run.*", "agent.*", "checkpoint.*"] as const)
+	for (const p of ["run.*", "agent.*", "checkpoint.*", "task.*"] as const)
 		bus.subscribe(p, (e) => events.push(e));
 	const requests: LlmChatRequest[] = [];
 	let n = 0;
@@ -162,6 +164,7 @@ export const engineHarness = (opts: {
 		},
 		os: "TestOS 1",
 		platform: "linux",
+		templates: opts.templates,
 	});
 	return {
 		...created,

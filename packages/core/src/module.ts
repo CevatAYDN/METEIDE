@@ -5,6 +5,7 @@ import { err, type ModuleManifest, ok } from "@mete/contracts";
 import type { MeteModule, ModuleError } from "@mete/kernel";
 import { createEngine, type EngineDeps } from "./application/engine.js";
 import { createRunStore, RUN_MIGRATIONS } from "./infrastructure/run-store.js";
+import type { TemplateDirs } from "./infrastructure/template-store.js";
 
 /** What the composition root passes; clock and timer are injectable for tests. */
 export type CoreEngineOptions = {
@@ -13,6 +14,8 @@ export type CoreEngineOptions = {
 	readonly setTimer?: EngineDeps["setTimer"];
 	/** Pause runs an earlier process left running (docs/07); off for a process that only reads runs. */
 	readonly recover?: boolean;
+	/** The built-in templates/ folder and the workspace root; without them team runs are refused. */
+	readonly templates?: TemplateDirs;
 };
 
 const MANIFEST: ModuleManifest = {
@@ -52,7 +55,7 @@ const realTimer: EngineDeps["setTimer"] = (fn, ms) => {
 	return () => clearTimeout(t);
 };
 
-/** Creates core-engine, which provides team.engine@1 for single-agent runs (Phase 1). */
+/** Creates core-engine, which provides team.engine@1 for single-agent and team runs. */
 export const createCoreEngineModule = (opts: CoreEngineOptions): MeteModule => {
 	let stop: (() => Promise<void>) | undefined;
 	return {
@@ -73,6 +76,7 @@ export const createCoreEngineModule = (opts: CoreEngineOptions): MeteModule => {
 				setTimer: opts.setTimer ?? realTimer,
 				os: `${type()} ${release()}`,
 				platform: process.platform,
+				templates: opts.templates,
 			});
 			if (opts.recover !== false) created.recover();
 			stop = created.stop;

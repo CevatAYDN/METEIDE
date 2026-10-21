@@ -136,6 +136,8 @@ Rules:
 
 A task's `dependsOn` is its template task's `context`. A submitted task with no `approval` that is not in `human_checkpoints` is approved at once; with both, the approver role approves first and then the human; a revision forgets the approvals of the earlier submission. The core keeps the tasks and the template the run started from in the run snapshot, so a changed file does not change a running team \[D\].
 
+A team run's budget is the lower of the policy's and the template's, so a template never raises the user's limit. Each task gets one agent with its role's tier, needs and capabilities (`fs.*@1` stands for every `fs` tool), opened with a system message (role name, goal, backstory, operating system and shell) and a user message (the run's goal, the task title and the reports of its `context` tasks); a revision goes on in the same conversation with the feedback. The agent's reply without a tool call is the task's report, and the run completes with the last template task's report as its summary. Until approver roles review, a task that waits for one pauses the run with reason `approval` like a human approval \[D\].
+
 ## Agent context assembly
 
 Each model call receives only: role goal and backstory, the task, its acceptance criteria, the start brief (Run memory), the needed sections of `context` artifacts, up to 8 `knowledge.search@1` results, matching skills, and the operating system and shell name \[C\]. When the context reaches 70% of the model's window, older turns are summarized into the run log \[D\].

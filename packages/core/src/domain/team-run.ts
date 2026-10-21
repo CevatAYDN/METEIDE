@@ -1,7 +1,8 @@
 import type { ChatMessage } from "@mete/contracts";
 import type { Platform } from "./prompt.js";
+import type { RunContext } from "./run-machine.js";
 import type { TeamState } from "./team.js";
-import type { Seat } from "./tools.js";
+import { type Seat, SINGLE_AGENT } from "./tools.js";
 
 // What a team task's agent receives (docs/08, Agent context assembly): its role, the goal, the
 // task and the reports of its context tasks. Pure.
@@ -21,6 +22,21 @@ export const seatOf = (team: TeamState, id: string): Seat => {
 		tier: role?.tier ?? "coder",
 		needs: [...(role?.needs ?? [])],
 		capabilities: role?.capabilities ?? [],
+	};
+};
+
+/** The seat of the run's active agent: its task's role, or the single agent. */
+export const activeSeat = (c: RunContext): Seat =>
+	c.team && c.task ? seatOf(c.team, c.task) : SINGLE_AGENT;
+
+/** The role, agent id and Task id the active task gives its agent; a single agent is role assistant. */
+export const activeRole = (c: RunContext) => {
+	const entry = c.team && c.task ? c.team.tasks[c.task] : undefined;
+	const roleId = c.team && c.task ? taskOf(c.team, c.task)?.role : undefined;
+	return {
+		roleId: roleId ?? "assistant",
+		agentId: entry?.context.agentId,
+		taskId: entry?.id,
 	};
 };
 

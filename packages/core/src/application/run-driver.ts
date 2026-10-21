@@ -1,12 +1,13 @@
 import type { LlmChunk, ToolContext } from "@mete/contracts";
 import { type NextStep, nextStep } from "../domain/next-step.js";
 import { afterModelError } from "../domain/run-events.js";
-import { SINGLE_AGENT } from "../domain/tools.js";
+import { activeRole, activeSeat } from "../domain/team-run.js";
 import { apply, type EngineState, emit, type Live } from "./run-state.js";
 import { callModel, callTool, createCheckpoint } from "./steps.js";
+import { submit, teamTurn } from "./team-driver.js";
 
-// The loop that moves a running single-agent run step by step (docs/08, Single agent), as
-// module-level functions over the engine's state record.
+// The loop that moves a running run step by step (docs/08, Single agent), as module-level
+// functions over the engine's state record; a team run moves between tasks in team-driver.
 
 const owns = (l: Live, token: object) =>
 	l.token === token && l.snapshot.value === "running";
@@ -22,21 +23,23 @@ type ModelChunk = Extract<LlmChunk, { type: "model" }>;
 // agent.created for the first model, agent.model.changed when a later call uses another one.
 const onModel = (s: EngineState, l: Live, c: ModelChunk) => {
 	const agent = l.snapshot.context.agent;
+	const { roleId, agentId, taskId } = activeRole(l.snapshot.context);
 	const to = { providerId: c.providerId, modelId: c.modelId };
 	if (agent?.providerId === to.providerId && agent.modelId === to.modelId)
 		return;
-	const next = { id: agent?.id ?? s.deps.newId(), ...to };
+	const id = agent?.id ?? agentId ?? s.deps.newId();
+	const next = { id, ...(taskId ? { roleId } : {}), ...to };
 	if (!apply(s, l, { type: "MODEL", agent: next })) return; // a done run
 	if (!agent)
-		return emit(s, l, {
-			type: "agent.created",
-			payload: { roleId: "assistant", ...to },
-		});
+		return emit(
+			s,
+			l,
+			{ type: "agent.created", payload: { roleId, ...to } },
+			taskId,
+		);
 	const from = { providerId: agent.providerId, modelId: agent.modelId };
-	emit(s, l, {
-		type: "agent.model.changed",
-		payload: { from, to, reason: c.reason },
-	});
+	const payload = { from, to, reason: c.reason };
+	emit(s, l, { type: "agent.model.changed", payload }, taskId);
 };
 
 const modelTurn = async (s: EngineState, l: Live, token: object) => {
@@ -44,8 +47,10 @@ const modelTurn = async (s: EngineState, l: Live, token: object) => {
 	l.model = model;
 	const signal = AbortSignal.any([l.all.signal, model.signal]);
 	const { priority, messages } = l.snapshot.context;
-	const run = { runId: l.meta.id, priority, messages, seat: SINGLE_AGENT };
-	emit(s, l, { type: "agent.thinking.started", payload: {} });
+	const seat = activeSeat(l.snapshot.context);
+	const task = activeRole(l.snapshot.context).taskId;
+	const run = { runId: l.meta.id, priority, messages, seat };
+	emit(s, l, { type: "agent.thinking.started", payload: {} }, task);
 	const out = await callModel(
 		s.deps,
 		run,
@@ -53,7 +58,7 @@ const modelTurn = async (s: EngineState, l: Live, token: object) => {
 		signal,
 	).finally(() => {
 		l.model = undefined;
-		emit(s, l, { type: "agent.thinking.ended", payload: {} });
+		emit(s, l, { type: "agent.thinking.ended", payload: {} }, task);
 	});
 	if (!owns(l, token)) return; // paused or cancelled meanwhile: the reply is dropped
 	const at = s.deps.now();
@@ -99,9 +104,9 @@ const toolTurn = async (
 	if (t.checkpoint && !(await checkpoint(s, l, token, t))) return;
 	const out = await callTool(
 		s.deps,
-		{ call: t.call, seat: SINGLE_AGENT },
+		{ call: t.call, seat: activeSeat(l.snapshot.context) },
 		toolContext(l),
-		(b) => emit(s, l, b),
+		(b) => emit(s, l, b, activeRole(l.snapshot.context).taskId),
 	);
 	if (out.kind === "result")
 		apply(s, l, { type: "TOOL_DONE", message: out.message });
@@ -109,13 +114,19 @@ const toolTurn = async (
 		apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
 };
 
+// A team run whose active task is not in progress moves between tasks first.
 const step = async (s: EngineState, l: Live, token: object) => {
+	const c = l.snapshot.context;
+	if (c.team && (!c.task || c.team.tasks[c.task]?.status !== "in_progress"))
+		return teamTurn(s, l, c.team);
 	const at = s.deps.now();
-	const next = nextStep(l.snapshot.context, l.meta.budget, at);
+	const next = nextStep(c, l.meta.budget, at);
 	if (next.kind === "model") return modelTurn(s, l, token);
 	if (next.kind === "tool") return toolTurn(s, l, token, next);
 	if (next.kind === "complete")
-		apply(s, l, { type: "COMPLETE", at, summary: next.summary });
+		c.team
+			? submit(s, l, next.summary)
+			: apply(s, l, { type: "COMPLETE", at, summary: next.summary });
 	else if (next.kind === "fail")
 		apply(s, l, { type: "FAIL", at, code: next.code, message: next.message });
 	else apply(s, l, { type: "PAUSE", at, reason: next.reason });

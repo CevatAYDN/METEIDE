@@ -103,7 +103,12 @@ const PersistedSchema = z.object({
 		since: time,
 		checkpointed: z.number().int(),
 		agent: z
-			.strictObject({ id: text1, providerId: text1, modelId: text1 })
+			.strictObject({
+				id: text1,
+				roleId: text1.optional(),
+				providerId: text1,
+				modelId: text1,
+			})
 			.optional(),
 		pause: z
 			.strictObject({
@@ -190,7 +195,7 @@ const saveAgent = (
 ) => {
 	const values = {
 		runId,
-		roleId: "assistant",
+		roleId: agent.roleId ?? "assistant",
 		providerId: agent.providerId,
 		modelId: agent.modelId,
 		requests,

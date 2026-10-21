@@ -1,5 +1,12 @@
-import type { ConfigReader, EventBus, Logger } from "@mete/kernel";
+import { ok, type Result, ShellConfigSchema, shellName } from "@mete/contracts";
+import type {
+	ConfigInvalid,
+	ConfigReader,
+	EventBus,
+	Logger,
+} from "@mete/kernel";
 import { transition } from "xstate";
+import type { Platform } from "../domain/prompt.js";
 import { type EventBody, runEventOf } from "../domain/run-events.js";
 import {
 	type RunEvent,
@@ -7,6 +14,7 @@ import {
 	runMachine,
 } from "../domain/run-machine.js";
 import type { RunMeta, RunStore } from "../infrastructure/run-store.js";
+import type { TemplateDirs } from "../infrastructure/template-store.js";
 import type { StepDeps } from "./steps.js";
 
 // The engine's state and the primitives every driver uses: apply an event, publish, hold a run.
@@ -23,6 +31,8 @@ export type EngineDeps = StepDeps & {
 	/** The operating system as shell.exec@1 reports it, and process.platform. */
 	readonly os: string;
 	readonly platform: string;
+	/** Where team templates are read from; no folders means team runs are not supported. */
+	readonly templates?: TemplateDirs | undefined;
 };
 
 /**
@@ -51,7 +61,20 @@ const MAX_DELAY_MS = 2_147_483_647;
 
 export const iso = (ms: number) => new Date(ms).toISOString();
 
-export const emit = (s: EngineState, l: Live, body: EventBody) => {
+/** The operating system and the shell shell.exec@1 runs, as the prompts name them (docs/08). */
+export const platformOf = (s: EngineState): Result<Platform, ConfigInvalid> => {
+	const shell = s.deps.config.get("shell", ShellConfigSchema);
+	if (!shell.ok) return shell;
+	return ok({ os: s.deps.os, shell: shellName(shell.value, s.deps.platform) });
+};
+
+/** Publishes an event of the run, of one of its tasks when `taskId` is given. */
+export const emit = (
+	s: EngineState,
+	l: Live,
+	body: EventBody,
+	taskId?: string,
+) => {
 	const agent = l.snapshot.context.agent;
 	s.deps.events.publish({
 		id: s.deps.newId(),
@@ -59,6 +82,7 @@ export const emit = (s: EngineState, l: Live, body: EventBody) => {
 		schema: 1,
 		workspaceId: s.deps.workspaceId,
 		runId: l.meta.id,
+		...(taskId ? { taskId } : {}),
 		...(agent ? { agentId: agent.id } : {}),
 		source: "core-engine",
 		...body,

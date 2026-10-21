@@ -1,6 +1,7 @@
 import {
 	type ChatMessage,
 	ChatRequestSchema,
+	IdSchema,
 	TaskStatusSchema,
 	type TeamTemplate,
 	TeamTemplateSchema,
@@ -33,6 +34,8 @@ const TaskContextSchema = z.strictObject({
 });
 
 const TaskEntrySchema = z.strictObject({
+	/** The Task entity's id (docs/07); events name the task by it. */
+	id: IdSchema,
 	status: TaskStatusSchema,
 	context: TaskContextSchema,
 	/** The task's conversation, kept while another task works. */
@@ -62,12 +65,16 @@ export type TeamStep =
 export type TaskChange = { readonly from: TaskStatus; readonly to: TaskStatus };
 
 /** A new team run: every task todo. */
-export const teamOf = (template: TeamTemplate): TeamState => ({
+export const teamOf = (
+	template: TeamTemplate,
+	newId: () => string = () => crypto.randomUUID(),
+): TeamState => ({
 	template,
 	tasks: Object.fromEntries(
 		template.tasks.map((t) => [
 			t.id,
 			{
+				id: newId(),
 				status: "todo",
 				context: {
 					revisionLimit: template.policies.revision_limit,

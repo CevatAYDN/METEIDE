@@ -18,6 +18,8 @@ type ToolMessage = Extract<ChatMessage, { role: "tool" }>;
 /** The model behind the run's one agent. */
 export type AgentRef = {
 	readonly id: string;
+	/** The team role it plays; a single agent is role assistant. */
+	readonly roleId?: string | undefined;
 	readonly providerId: string;
 	readonly modelId: string;
 };

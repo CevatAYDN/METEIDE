@@ -6,16 +6,19 @@ import {
 	type Result,
 	type RunStart,
 	RunStartSchema,
-	ShellConfigSchema,
-	shellName,
 	type TeamEngineAdapter,
 } from "@mete/contracts";
 import type { ConfigInvalid } from "@mete/kernel";
-import { initialTransition } from "xstate";
+import { initialTransition, transition } from "xstate";
 import { z } from "zod";
 import type { Budget } from "../domain/next-step.js";
 import { openingMessages } from "../domain/prompt.js";
 import { runMachine } from "../domain/run-machine.js";
+import { type TeamState, teamOf } from "../domain/team.js";
+import {
+	loadTemplate,
+	type TemplateError,
+} from "../infrastructure/template-store.js";
 import { drive } from "./run-driver.js";
 import {
 	apply,
@@ -26,9 +29,10 @@ import {
 	hold,
 	iso,
 	type Live,
+	platformOf,
 } from "./run-state.js";
 
-// team.engine@1 for single-agent runs (docs/06 engine types, docs/07 Run state machine, docs/08 Single agent).
+// team.engine@1 (docs/06 engine types, docs/07 Run state machine, docs/08 Single agent and teams).
 
 type Out<T> = Promise<Result<T, EngineError>>;
 
@@ -44,16 +48,22 @@ const invalid = (l: Live, call: string): Result<never, EngineError> =>
 		status: l.snapshot.value,
 	});
 
-// The policy's autonomy and budget (SECURITY.md); there is no template budget yet.
+// The policy's autonomy and budget (SECURITY.md); a team run takes the lower of the policy's
+// and its template's budget, so a template never raises the user's limit.
 const policy = (
 	s: EngineState,
+	team?: TeamState,
 ): Result<{ autonomy: 0 | 1 | 2 | 3; budget: Budget }, EngineError> => {
 	const p = s.deps.config.get("policy", PolicySchema);
 	if (!p.ok) return err(fromConfig(p.error));
 	const b = p.value.budget;
+	const t = team?.template.budget;
 	const budget = {
-		cloudRequests: b.cloud_requests_per_run,
-		maxHours: b.max_hours,
+		cloudRequests: Math.min(
+			b.cloud_requests_per_run,
+			t?.cloud_requests ?? Infinity,
+		),
+		maxHours: Math.min(b.max_hours, t?.max_hours ?? Infinity),
 	};
 	return ok({ autonomy: p.value.autonomy, budget });
 };
@@ -87,21 +97,18 @@ const begin = (
 	s: EngineState,
 	goal: string,
 	priority: 0 | 1 | 2,
+	team?: TeamState,
 ): Result<{ runId: string }, EngineError> => {
-	const p = policy(s);
+	const p = policy(s, team);
 	if (!p.ok) return p;
-	const shell = s.deps.config.get("shell", ShellConfigSchema);
-	if (!shell.ok) return err(fromConfig(shell.error));
-	const where = {
-		os: s.deps.os,
-		shell: shellName(shell.value, s.deps.platform),
-	};
-	const messages = openingMessages(goal, where);
-	const [snapshot] = initialTransition(runMachine, {
-		goal,
-		priority,
-		messages,
-	});
+	const where = platformOf(s);
+	if (!where.ok) return err(fromConfig(where.error));
+	// A team task opens its own conversation when it starts (team-driver).
+	const messages = team ? [] : openingMessages(goal, where.value);
+	const [fresh] = initialTransition(runMachine, { goal, priority, messages });
+	const snapshot = team
+		? transition(runMachine, fresh, { type: "TEAM", team })[0]
+		: fresh;
 	const at = s.deps.now();
 	const meta = {
 		id: s.deps.newId(),
@@ -112,22 +119,55 @@ const begin = (
 	};
 	s.deps.store.save(meta, snapshot);
 	const l = hold(s, meta, snapshot);
-	emit(s, l, { type: "run.created", payload: { templateId: null, goal } });
+	const templateId = team?.template.metadata.id ?? null;
+	emit(s, l, { type: "run.created", payload: { templateId, goal } });
+	if (team) created(s, l, team);
 	apply(s, l, { type: "START", at });
 	drive(s, l);
 	return ok({ runId: meta.id });
 };
 
+// task.created for every task, in template order, before the run starts.
+const created = (s: EngineState, l: Live, team: TeamState) => {
+	const idOf = (id: string) => team.tasks[id]?.id ?? id;
+	for (const t of team.template.tasks)
+		emit(
+			s,
+			l,
+			{
+				type: "task.created",
+				payload: {
+					title: t.title,
+					roleId: t.role,
+					dependsOn: (t.context ?? []).map(idOf),
+				},
+			},
+			idOf(t.id),
+		);
+};
+
+const fromTemplate = (e: TemplateError): EngineError =>
+	e.code === "invalid_template"
+		? { code: "bad_input", message: e.issues.join("; ") }
+		: {
+				code: e.code === "not_found" ? "not_found" : "bad_input",
+				message: e.message,
+			};
+
 const start = async (s: EngineState, req: RunStart): Out<{ runId: string }> => {
 	const r = RunStartSchema.safeParse(req);
 	if (!r.success)
 		return err({ code: "bad_input", message: z.prettifyError(r.error) });
-	if (r.data.templateId)
+	const { goal, priority, templateId } = r.data;
+	if (!templateId) return begin(s, goal, priority);
+	if (!s.deps.templates)
 		return err({
 			code: "not_supported",
-			message: "team templates come with the team engine (Phase 2)",
+			message: "no template folders are set",
 		});
-	return begin(s, r.data.goal, r.data.priority);
+	const t = await loadTemplate(s.deps.templates, templateId);
+	if (!t.ok) return err(fromTemplate(t.error));
+	return begin(s, goal, priority, teamOf(t.value, s.deps.newId));
 };
 
 const pause = async (s: EngineState, runId: string): Out<void> => {
@@ -145,7 +185,7 @@ const resume = async (s: EngineState, runId: string): Out<void> => {
 	if (!l.ok) return l;
 	if (!l.value.snapshot.can({ type: "RESUME", at: 0 }))
 		return invalid(l.value, "resume");
-	const p = policy(s);
+	const p = policy(s, l.value.snapshot.context.team);
 	if (!p.ok) return p;
 	l.value.meta = { ...l.value.meta, budget: p.value.budget };
 	clearTimer(l.value);
