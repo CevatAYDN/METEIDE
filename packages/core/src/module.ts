@@ -11,6 +11,8 @@ export type CoreEngineOptions = {
 	readonly workspaceId: string;
 	readonly now?: () => number;
 	readonly setTimer?: EngineDeps["setTimer"];
+	/** Pause runs an earlier process left running (docs/07); off for a process that only reads runs. */
+	readonly recover?: boolean;
 };
 
 const MANIFEST: ModuleManifest = {
@@ -71,7 +73,7 @@ export const createCoreEngineModule = (opts: CoreEngineOptions): MeteModule => {
 				os: `${type()} ${release()}`,
 				platform: process.platform,
 			});
-			created.recover();
+			if (opts.recover !== false) created.recover();
 			stop = created.stop;
 			ctx.disposables.add(
 				ctx.capabilities.provide("team.engine@1", {

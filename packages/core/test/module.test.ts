@@ -6,6 +6,7 @@ import type {
 	LlmChatAdapter,
 	LlmChunk,
 	MeteEvent,
+	StorageSqlAdapter,
 	TeamEngineAdapter,
 } from "@mete/contracts";
 import {
@@ -119,6 +120,32 @@ describe("core-engine module", () => {
 			code: "activation_failed",
 			moduleId: "core-engine",
 		});
+		await h.close();
+	});
+
+	it("leaves running rows alone when recovery is off", async () => {
+		const h = await setup("slow");
+		const engine = engineOf(h.registry);
+		const started = await engine.start({ goal: "wait" });
+		if (!started.ok) throw new Error(started.error.message);
+		const reader = createCoreEngineModule({
+			workspaceId: randomUUID(),
+			recover: false,
+		});
+		const sql = h.registry.resolve<StorageSqlAdapter>("storage.sql@1");
+		if (!sql.ok) throw new Error("storage.sql@1 missing");
+		const ctx = {
+			...h.base,
+			storage: sql.value[0].impl.scopeFor("core-engine"),
+			disposables: { add() {}, dispose() {} },
+		};
+		const registry = createCapabilityRegistry(() => []);
+		expect((await reader.activate({ ...ctx, capabilities: registry })).ok).toBe(
+			true,
+		);
+		const other = engineOf(registry).status(started.value.runId);
+		expect(other.ok && other.value[0]?.status).toBe("running");
+		await reader.deactivate();
 		await h.close();
 	});
 
