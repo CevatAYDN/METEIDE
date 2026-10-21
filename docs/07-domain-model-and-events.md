@@ -70,6 +70,8 @@ Default revision limit: 3 \[D\]. `approved` is final for a task.
 
 Runs persist their XState snapshot after every transition, so a restart resumes them exactly \[C\].
 
+When core-engine activates, a run still `queued` or `running` from an earlier process becomes `paused` with reason `user` and publishes `run.paused`; a paused run continues only through `resume`, from its last saved step. The `quota` timer of a paused run lives in the process that paused it \[D\].
+
 ## Event envelope
 
 ```ts
@@ -86,6 +88,8 @@ Events are append-only rows in the workspace `mete.db`. Default retention: 90 da
 Storage persists every catalog event by subscribing once per domain (`run.*`, `task.*`, ...) and inserting it synchronously into the `events` table: `seq` integer primary key (replay order), the envelope columns, `payload` as JSON, with indexes on `(run_id, seq)` and `(type, seq)`. It deletes events older than the retention when it activates. Both databases use WAL and a busy timeout of 5 seconds \[D\].
 
 The gateway writes one row per provider call, retries included, into the workspace `model_calls` table: `id`, `ts`, `run_id`, `provider_id`, `model_id`, `tier` (null for a model target), `request` (the masked messages and tools as sent, JSON), `response` (text and tool calls, JSON), `prompt_tokens`, `completion_tokens`, `latency_ms` and `outcome` (the finish reason or the error code), with an index on `(run_id, ts)`. Rows follow the event retention, deleted when the gateway activates \[D\].
+
+core-engine keeps runs in the workspace `runs` table: `id`, `workspace_id`, `template_id` (null for a single agent), `goal`, `status`, `pause_reason`, `autonomy_level`, `budget_cloud_requests`, `budget_max_hours`, `snapshot` (the XState persisted snapshot as JSON; it holds the conversation), `created_at`, `started_at` and `ended_at`, with an index on `status`. Agents go into `agents`: `id`, `run_id`, `role_id`, `provider_id`, `model_id` and `requests`, with an index on `run_id`. A run's row is written after every transition and before its event is published. Run rows are kept forever \[D\].
 
 ## Event catalog
 

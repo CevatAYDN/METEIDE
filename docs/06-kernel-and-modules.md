@@ -190,6 +190,22 @@ export interface QuotaReserveAdapter {
     observations: readonly QuotaObservation[]): Result<void, UnknownReservation>;
 }
 
+// team.engine@1, defined in @mete/contracts; run states and the runs table in tab 07, single-agent rules in tab 08.
+// Phase 1 runs single-agent tasks only: a templateId returns not_supported until the team engine (Phase 2).
+export type RunStatus = "queued" | "running" | "paused" | "completed" | "failed" | "cancelled";
+export type RunStart = { goal: string; templateId?: string | null; priority?: 0 | 1 | 2 };   // priority defaults to 1
+export type RunView = Omit<Run, "snapshot">;                 // Run in tab 07
+export type EngineError =
+  | { code: "bad_input" | "not_found" | "not_supported"; message: string }
+  | { code: "invalid_state"; message: string; status: RunStatus };   // the run's status does not allow the call
+export interface TeamEngineAdapter {
+  start(req: RunStart): Promise<Result<{ runId: string }, EngineError>>;   // after run.created and run.started
+  pause(runId: string): Promise<Result<void, EngineError>>;    // a running run, reason user; aborts the step in flight
+  resume(runId: string): Promise<Result<void, EngineError>>;   // a paused run, from its last saved step
+  cancel(runId: string): Promise<Result<void, EngineError>>;   // the kill switch calls it for every run
+  status(runId?: string): Result<RunView[], EngineError>;      // one run, or all runs of the workspace, newest first
+}
+
 export interface CapabilityRegistry {
   provide<C>(ref: CapabilityRef, adapter: Adapter<C>): Disposable;
   resolve<C>(ref: CapabilityRef, need?: FeatureSet): Result<AdapterChain<C>, CapabilityMissing>;
@@ -253,7 +269,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | knowledge-graph | `@mete/knowledge` | optional | `code.graph@1` | `fs.read@1` | `llm.chat@1` | worker |
 | vault | `@mete/knowledge` | optional | `vault.read@1`, `vault.write@1` | `fs.read@1`, `fs.write@1` | none | in-process |
 | knowledge-search | `@mete/knowledge` | optional | `knowledge.search@1`, `knowledge.index@1` | `fs.grep@1` | `llm.embed@1`, `llm.rerank@1`, `code.graph@1`, `vault.read@1` | worker |
-| core-engine | `@mete/core` | essential | `team.engine@1` (native), runs, router, artifacts, checkpoints | `llm.chat@1`, `fs.*`, `policy.check@1` | `vcs.git@1`, `knowledge.search@1`, `vault.*` | in-process |
+| core-engine | `@mete/core` | essential | `team.engine@1` (native), runs, router, artifacts, checkpoints | `llm.chat@1`, `fs.*`, `policy.check@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@1`, `knowledge.search@1`, `vault.*` | in-process |
 | autonomy | `@mete/core` | optional | triggers, schedules | `team.engine@1` | `issues.source@1` | in-process |
 | browser | `@mete/tools` | optional | `browser.screenshot@1`, `seo.audit@1` | `runtime.ensure@1` | none | process |
 | engine-crewai, engine-metagpt, engine-chatdev | `@mete/engines` | optional | `team.engine@1` | `runtime.ensure@1`, `llm.chat@1` | none | process |

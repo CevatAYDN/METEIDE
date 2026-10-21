@@ -77,7 +77,7 @@ Third-party code still runs with the user's operating-system rights; METE enforc
 ## Checkpoints and rollback
 
 - Git workspaces: before every step that may write, METE records the state as a commit under `refs/mete/checkpoints/<run id>/<n>`, which creates no branches \[D\].
-- Other workspaces: before the first write to a file in a step, that file is copied to the global `snapshots/<run id>/<n>/` folder \[D\].
+- Other workspaces: before the first write to a file in a step, that file is copied to the global `snapshots/<run id>/<n>/` folder \[D\]. Snapshots come with Phase 4; until then only git workspaces get checkpoints.
 - Every checkpoint can be restored with one click; restoring publishes `rollback.performed`.
 - Checkpoints are kept 14 days after the run ends \[D\].
 

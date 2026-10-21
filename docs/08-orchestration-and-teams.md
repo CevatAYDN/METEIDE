@@ -11,6 +11,20 @@ The native team engine executes YAML team templates as XState machines; models o
 3. Confidence below 0.7: ask the user to choose among the suggested templates \[D\].
 4. Simple requests run as a single agent (role `assistant`, workspace tools). The rule is: never build a team for a simple task \[C\].
 
+## Single agent
+
+Phase 1 runs every request as a single agent; the router and team templates come with the team engine (Phase 2). Rules \[D\]:
+
+- The agent has role `assistant` and calls `llm.chat@1` with tier `coder`, needs `tool_calling` and the run's priority (default 1).
+- The conversation starts with a system message (the role, the operating system and the shell name) and the goal as the user message.
+- Each workspace capability with an active adapter (`fs.*@1`, `shell.exec@1`, `vcs.git@1`) becomes one model tool, named by the capability id with `.` replaced by `_` and the version left out (`fs.read@1` → `fs_read`), with the JSON Schema of its input schema in `@mete/contracts`. `vcs_git` offers only `status`, `diff` and `commit`; checkpoints are the core's. A tool's result goes back to the model as JSON: `{ "ok": true, "value": … }` or `{ "ok": false, "error": { "code": …, "message": … } }`.
+- A step is one model reply and the tool calls it asks for. Before the first writing call of a step (`fs.write@1`, `fs.edit@1`, `shell.exec@1`, or a `vcs.git@1` commit) the core creates a checkpoint through `vcs.git@1` and publishes `checkpoint.created`; when that fails, the run fails with code `checkpoint_failed`. Without `vcs.git@1` no checkpoint is made; file snapshots come with Phase 4.
+- A reply without tool calls completes the run with its text as the summary, unless its finish reason is `length`: then a user message asks the model to continue, and another turn runs.
+- A run has at most 25 model turns; the run fails with code `turn_limit` instead of a 26th.
+- Pauses: `quota_exhausted` pauses with reason `quota` and its `resumesAt`, and the run resumes by itself then; `no_model` and `network` pause with those reasons; a tool's `approval_required` pauses with reason `approval`, and until approvals exist only `resume` clears it, repeating that tool call; the budget pauses with reason `budget`. Other pauses clear only through `resume`. A tool's `denied` goes back to the model as the tool result; any other model error fails the run with that error's code.
+- The budget is the policy's `budget` (tab 12), read when the run starts and again on resume. Each `llm.chat@1` call that returns a reply counts as one cloud request; `max_hours` counts running time only.
+- Summarizing older turns at 70% of the context window (Agent context assembly) comes with the team engine.
+
 ## Workflow patterns
 
 | Pattern | Shape | Typical template |
