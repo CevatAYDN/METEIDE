@@ -130,6 +130,29 @@ export interface SecretStore {
   delete(name: string): Promise<Result<boolean, SecretError>>;   // false when there was nothing to delete
 }
 
+// fs.*@1 and shell.exec@1, defined in @mete/contracts with a Zod schema per input; rules in tab 10 (Built-in tools).
+// Paths are absolute or relative to the workspace root; outputs name paths relative to it.
+export type ToolCall = { runId?: string; agentId?: string; tainted?: boolean; signal: AbortSignal };   // passed on to policy.check@1
+export type ToolError = { message: string } & (
+  | { code: "bad_input" | "not_found" | "outside_workspace" | "ignored" | "exists" | "is_directory" | "binary" | "io" }
+  | { code: "match_count"; count: number }                 // fs.edit: oldStr did not match exactly once
+  | { code: "denied" | "approval_required"; rule: string }); // the policy verdict deny or ask, with its rule
+export interface ToolAdapter<I, O> { run(input: I, call: ToolCall): Promise<Result<O, ToolError>> }
+export type FsReadInput = { path: string; startLine?: number; endLine?: number };   // 1-based, inclusive
+export type FsReadOutput = { content: string; totalLines: number; lineEnding: "lf" | "crlf" | "mixed" | "none" };
+export type FsWriteInput = { path: string; content: string; createOnly?: boolean } | { path: string; delete: true };
+export type FsWriteOutput = { bytes: number };            // 0 for a delete
+export type FsEditInput = { path: string; oldStr: string; newStr: string; replaceAll?: boolean };
+export type FsEditOutput = { replacements: number };
+export type FsListInput = { path: string };               // children of a folder; folder paths end with "/"
+export type FsGlobInput = { pattern: string; path?: string };
+export type FsPathsOutput = { paths: string[] };          // fs.list@1 and fs.glob@1
+export type FsGrepInput = { pattern: string; glob?: string; caseSensitive?: boolean; maxResults?: number };
+export type FsGrepOutput = { matches: { path: string; line: number; text: string }[]; truncated: boolean };
+export type ShellExecInput = { command: string; cwd?: string; timeoutSec?: number; env?: Record<string, string> };
+export type ShellExecOutput = { exitCode: number | null; stdout: string; stderr: string;   // null when killed
+  os: string; shell: string; timedOut: boolean };         // the model learns the OS and shell from every call
+
 // quota.reserve@1, defined in @mete/contracts; QuotaUnit and QuotaUnitSpec are in tab 09, pool rules in tab 09 (Quota pool).
 export type QuotaAmounts = Partial<Record<QuotaUnit, number>>;
 export type QuotaObservation = { unit: QuotaUnit; limit?: number; remaining?: number; resetsAt?: string; exhausted: boolean };
@@ -232,7 +255,7 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 | `llm.embed@1` | Embeddings | NVIDIA embedding model | Vector search off; hybrid search continues |
 | `llm.rerank@1` | Reranking | NVIDIA rerank model | Rerank skipped |
 | `fs.*@1` | Files: read, write, edit, list, glob, grep | Native | Never empty (essential) |
-| `shell.exec@1` | Run commands under policy | Native PTY | Never empty (essential) |
+| `shell.exec@1` | Run commands under policy | Native (child process) | Never empty (essential) |
 | `web.fetch@1` | Page to clean Markdown | Native reader | Steps needing it are blocked with a notice |
 | `web.search@1` | Web search returning URLs | Exa MCP (no key) → Tavily → Exa API → You.com → Firecrawl | Steps needing it are blocked with a notice |
 | `vcs.git@1` | Status, diff, worktrees, checkpoints | simple-git | Core uses file snapshots |

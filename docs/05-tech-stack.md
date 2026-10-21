@@ -66,10 +66,10 @@ This is the only valid technology list. Anything not listed here needs an ADR be
 
 | Area | Technology | Role |
 | --- | --- | --- |
-| Grep | `@vscode/ripgrep` | Bundled ripgrep binary per platform |
-| Glob | tinyglobby | File patterns; policy patterns use a small own matcher in `@mete/security`, because `node:path` `matchesGlob` skips dot files and compares Windows paths with case |
+| Grep | `@vscode/ripgrep` | Bundled ripgrep binary per platform; also lists files for `fs.list@1` and `fs.glob@1` (`rg --files`), because it applies `.gitignore` and `.meteignore` rules itself |
+| Glob | ripgrep `--glob` | File patterns; policy patterns use a small own matcher in `@mete/security`, because `node:path` `matchesGlob` skips dot files and compares Windows paths with case |
 | File watching | `@parcel/watcher` | Incremental indexing |
-| Terminal | node-pty | Shell tool and terminal |
+| Terminal | node-pty | Interactive terminal; `shell.exec@1` uses `node:child_process` instead, because a PTY merges stdout and stderr |
 | Git | simple-git (git CLI) | Status, diff, worktrees, checkpoints |
 | Diff | diff (jsdiff) | Edit application and diff views |
 | MCP | `@modelcontextprotocol/sdk` | Client and server |

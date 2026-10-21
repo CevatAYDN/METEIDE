@@ -9,7 +9,7 @@ Built-in tools cover files, shell, web and git; everything else arrives through 
 | Capability | Input | Output | Rules |
 | --- | --- | --- | --- |
 | `fs.read@1` | path, startLine?, endLine? | content, totalLines, lineEnding | Workspace or worktree only; `.meteignore` paths refused |
-| `fs.write@1` | path and content (createOnly?), or path and delete: true | bytes written | Workspace or worktree only; the step was checkpointed first |
+| `fs.write@1` | path and content (createOnly?), or path and delete: true | bytes written | Workspace or worktree; elsewhere only when `policy.check@1` allows `fs.write.outside`; the step was checkpointed first |
 | `fs.edit@1` | path, oldStr, newStr, replaceAll? | replacements | `oldStr` MUST match exactly once unless `replaceAll`; otherwise an error with the match count. The file's existing line endings are kept \[C\] |
 | `fs.list@1`, `fs.glob@1` | path or pattern | paths | Respects `.gitignore` and `.meteignore` |
 | `fs.grep@1` | pattern, glob?, caseSensitive?, maxResults (default 200) | matches with file and line | ripgrep |
@@ -21,6 +21,15 @@ Built-in tools cover files, shell, web and git; everything else arrives through 
 | `seo.audit@1` | url, categories | score and findings per category | Lighthouse on Playwright Chromium |
 
 On Windows, file operations retry on lock errors (`EBUSY`, `EPERM`, `EACCES`) 3 times after 100, 300 and 1,000 ms \[D\]. The shell tool tells the model the operating system and shell name in every call \[C\].
+
+Rules shared by the file and shell tools (types in tab 06) \[D\]:
+
+- Reads (`fs.read@1`, `fs.list@1`, `fs.glob@1`, `fs.grep@1`) stay inside the workspace and the global `worktrees/` folder. Paths are resolved through symbolic links before any check; a new file uses its parent folder.
+- Every write asks `policy.check@1` first: `fs.write@1` and `fs.edit@1` with action `fs.write`, or `fs.write.outside` outside the workspace and worktrees; a delete with `fs.delete`; `shell.exec@1` with `shell.exec` and the command. A `deny` verdict returns `denied` and an `ask` verdict returns `approval_required`, both with the verdict's rule; the core then pauses the run with reason `approval` until approvals exist (Phase 2).
+- The default `.meteignore` lines from tab 09 always apply; the workspace's `.meteignore` adds lines on top and MAY re-include a default with `!`. Ignored files are refused by `fs.read@1` and `fs.edit@1` and left out of `fs.list@1`, `fs.glob@1` and `fs.grep@1`.
+- Text is UTF-8; a file with a NUL byte in its first 8 KB is `binary`. `fs.edit@1` matches `oldStr` and `newStr` with LF line endings in a CRLF file and writes CRLF back; in a file with mixed endings it matches the raw text.
+- `shell.exec@1` runs `powershell.exe -NoProfile -NonInteractive -Command <command>` on Windows and `/bin/sh -c <command>` elsewhere, as a child process with separate stdout and stderr, in `cwd` (default: the workspace root), which stays inside the workspace and worktrees like a read; `env` adds variables to the inherited environment. The `shell` settings section picks Git Bash on Windows: `shell: { windows: git-bash, gitBashPath: <path> }` (default `windows: powershell`); when Git Bash is chosen but not found, the call fails with `io`. A timeout kills the whole process tree.
+- A stream longer than 30,000 characters keeps its first and last 15,000 characters with a `[<n> characters cut]` line between them.
 
 ## MCP client
 
