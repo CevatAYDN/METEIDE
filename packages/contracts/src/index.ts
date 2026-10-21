@@ -39,6 +39,25 @@ export {
 	type SecretsMaskAdapter,
 } from "./domain/policy.js";
 export {
+	type ChatChunk,
+	type ChatMessage,
+	type ChatRequest,
+	ChatRequestSchema,
+	type ContentPart,
+	type EmbedRequest,
+	type EmbedResponse,
+	type ModelInfo,
+	ModelInfoSchema,
+	type Privacy,
+	PrivacySchema,
+	type ProviderAdapter,
+	type ProviderError,
+	type RerankRequest,
+	type RerankResponse,
+	type ToolCall,
+	type ToolSpec,
+} from "./domain/provider.js";
+export {
 	type QuotaAmounts,
 	QuotaAmountsSchema,
 	type QuotaConfig,
@@ -55,6 +74,7 @@ export {
 	type UnknownReservation,
 } from "./domain/quota.js";
 export { err, ok, type Result } from "./domain/result.js";
+export type { SecretError, SecretStore } from "./domain/secrets.js";
 export {
 	CheckpointKindSchema,
 	DecisionSchema,
