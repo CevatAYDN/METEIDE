@@ -9,8 +9,8 @@ import {
 	RUNNER_STDERR_CHARS,
 } from "../defaults.js";
 
-// Chromium for the browser module, installed by Playwright's own installer on first use (docs/10).
-// shortcut: runtime.ensure@1 does not cover Chromium yet; upgrade when docs/06 says what it gives the browser module.
+// Chromium for the browser module, installed by Playwright's own installer on first use; it does
+// not go through runtime.ensure@1, which hash-checks every download (docs/10).
 
 /** Whether Chromium is there, and how to install it; the tests pass a fake. */
 export type Chromium = {
