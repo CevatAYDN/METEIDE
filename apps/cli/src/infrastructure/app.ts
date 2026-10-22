@@ -33,6 +33,7 @@ import { createQuotaModule } from "@mete/quota";
 import { createKeychainStore, createSecurityModule } from "@mete/security";
 import { createStorageModule } from "@mete/storage";
 import {
+	createBrowserModule,
 	createToolsFsModule,
 	createToolsShellModule,
 	createToolsWebModule,
@@ -108,6 +109,7 @@ const modulesFor = (opts: AppOptions, workspaceId: string): MeteModule[] => {
 		createToolsShellModule(dirs),
 		createVcsGitModule(dirs),
 		createToolsWebModule(opts.fetch ? { fetch: opts.fetch } : {}),
+		createBrowserModule({ workspaceDir: opts.workspaceDir }),
 		createMcpClientModule({
 			workspaceDir: opts.workspaceDir,
 			adaptersDir: BUILT_IN_ADAPTERS,
