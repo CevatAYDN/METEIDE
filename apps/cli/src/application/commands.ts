@@ -132,7 +132,7 @@ const teamHint = (runId: string | undefined) => [
 
 /** What a run command does: start a run, resume one, or answer a team task and go on. */
 export type RunWhat =
-	| { goal: string; templateId?: string }
+	| { goal: string; templateId?: string; continue?: true }
 	| { resume: string }
 	| { approve: string; input: ApprovalInput };
 
@@ -143,7 +143,10 @@ const begin = (engine: TeamEngineAdapter, what: RunWhat) => {
 	if ("resume" in what) return engine.resume(what.resume);
 	if ("approve" in what) return engine.approve(what.approve, what.input);
 	const template = what.templateId ? { templateId: what.templateId } : {};
-	return engine.start({ goal: what.goal, ...template });
+	// --continue without a goal takes the handoff's goal (docs/08, Run memory).
+	const goal = what.goal ? { goal: what.goal } : {};
+	const more = what.continue ? { continue: true as const } : {};
+	return engine.start({ ...goal, ...template, ...more });
 };
 
 /** `mete run` (a goal, --template, --resume), `mete approve` and `mete revise`. */

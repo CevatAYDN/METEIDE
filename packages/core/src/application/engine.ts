@@ -12,7 +12,6 @@ import {
 import type { ConfigInvalid } from "@mete/kernel";
 import { initialTransition, transition } from "xstate";
 import { z } from "zod";
-import { offerLine, startBrief } from "../domain/brief.js";
 import type { Budget } from "../domain/next-step.js";
 import { openingMessages } from "../domain/prompt.js";
 import { runMachine } from "../domain/run-machine.js";
@@ -22,6 +21,7 @@ import {
 	type TemplateError,
 } from "../infrastructure/template-store.js";
 import { recordDecision } from "./approvals.js";
+import { type Opening, offerBrief, takeHandoff } from "./continue.js";
 import { drive } from "./run-driver.js";
 import {
 	apply,
@@ -96,25 +96,24 @@ const find = (s: EngineState, runId: string): Result<Live, EngineError> => {
 		: err({ code: "not_found", message: `no run ${runId}` });
 };
 
-// The start brief of a new run: for now only the offer of the newest open handoff (docs/08).
-// shortcut: journal and decision notes join it with the knowledge layer (Phase 4).
-const briefFor = (s: EngineState) => {
-	const open = s.deps.handoffs?.newestOpen(s.deps.workspaceId);
-	const offer = open ? offerLine(open, s.deps.now()) : undefined;
-	return startBrief({ entries: [], offer });
+/** What begin() needs: the run id made before a handoff was taken, the goal, the opening. */
+type Begin = {
+	readonly id: string;
+	readonly goal: string;
+	readonly priority: 0 | 1 | 2;
+	readonly team?: TeamState | undefined;
+	readonly opening: Opening;
 };
 
 const begin = (
 	s: EngineState,
-	goal: string,
-	priority: 0 | 1 | 2,
-	team?: TeamState,
+	{ id, goal, priority, team, opening }: Begin,
 ): Result<{ runId: string }, EngineError> => {
 	const p = policy(s, team);
 	if (!p.ok) return p;
 	const where = platformOf(s);
 	if (!where.ok) return err(fromConfig(where.error));
-	const brief = briefFor(s);
+	const brief = opening.brief;
 	// A team task opens its own conversation when it starts (team-driver).
 	const messages = team ? [] : openingMessages(goal, where.value, brief);
 	const input = { goal, priority, messages, brief };
@@ -124,7 +123,7 @@ const begin = (
 		: fresh;
 	const at = s.deps.now();
 	const meta = {
-		id: s.deps.newId(),
+		id,
 		workspaceId: s.deps.workspaceId,
 		autonomyLevel: p.value.autonomy,
 		budget: p.value.budget,
@@ -134,6 +133,11 @@ const begin = (
 	const l = hold(s, meta, snapshot);
 	const templateId = team?.template.metadata.id ?? null;
 	emit(s, l, { type: "run.created", payload: { templateId, goal } });
+	if (opening.accepted)
+		emit(s, l, {
+			type: "handoff.accepted",
+			payload: { handoffId: opening.accepted, byRunId: id },
+		});
 	apply(s, l, { type: "START", at });
 	if (team) created(s, l, team);
 	drive(s, l);
@@ -171,16 +175,36 @@ const start = async (s: EngineState, req: RunStart): Out<{ runId: string }> => {
 	const r = RunStartSchema.safeParse(req);
 	if (!r.success)
 		return err({ code: "bad_input", message: z.prettifyError(r.error) });
-	const { goal, priority, templateId } = r.data;
-	if (!templateId) return begin(s, goal, priority);
+	const team = await teamFor(s, r.data.templateId);
+	if (!team.ok) return team;
+	// The template is checked first, so a bad one never uses up a handoff.
+	const id = s.deps.newId();
+	const opening = r.data.continue ? takeHandoff(s, id) : ok(offerBrief(s));
+	if (!opening.ok) return opening;
+	// The schema asks for a goal unless the run continues, and a handoff always names one.
+	const goal = r.data.goal ?? opening.value.goal ?? "";
+	const { priority } = r.data;
+	return begin(s, {
+		id,
+		goal,
+		priority,
+		team: team.value,
+		opening: opening.value,
+	});
+};
+
+const teamFor = async (
+	s: EngineState,
+	templateId: string | null | undefined,
+): Promise<Result<TeamState | undefined, EngineError>> => {
+	if (!templateId) return ok(undefined);
 	if (!s.deps.templates)
 		return err({
 			code: "not_supported",
 			message: "no template folders are set",
 		});
 	const t = await loadTemplate(s.deps.templates, templateId);
-	if (!t.ok) return err(fromTemplate(t.error));
-	return begin(s, goal, priority, teamOf(t.value, s.deps.newId));
+	return t.ok ? ok(teamOf(t.value, s.deps.newId)) : err(fromTemplate(t.error));
 };
 
 const pause = async (s: EngineState, runId: string): Out<void> => {

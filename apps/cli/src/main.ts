@@ -28,6 +28,7 @@ const USAGE = [
 	'  mete run "<goal>"            run a single agent on the goal in this folder',
 	'  mete run --template <id> "<goal>"   run a team template on the goal',
 	"  mete run --resume <run id>   resume a paused run",
+	'  mete run --continue ["<goal>"]   go on from the last run\'s handoff',
 	"  mete approve <run id> [<task id>]   approve a team task that waits for you",
 	'  mete revise <run id> <task id> "<feedback>"   send it back with feedback',
 	"  mete status [<run id>]       list the runs of this folder",
@@ -39,6 +40,7 @@ const USAGE = [
 const OPTIONS = {
 	resume: { type: "string" },
 	template: { type: "string" },
+	continue: { type: "boolean" },
 	all: { type: "boolean" },
 	help: { type: "boolean", short: "h" },
 } as const;
@@ -93,7 +95,7 @@ const unlessDriven = async (
 };
 
 const run = (opts: AppOptions, io: Io, what: RunWhat) =>
-	!("goal" in what) || what.goal
+	!("goal" in what) || what.goal || what.continue
 		? locked(opts, io, () => withApp(opts, io, (a) => runCommand(a, io, what)))
 		: usage(io);
 
@@ -117,7 +119,9 @@ const answer = (
 
 const goalOf = (p: Parsed, goal: string): RunWhat => {
 	if (p.values.resume) return { resume: p.values.resume };
-	return p.values.template ? { goal, templateId: p.values.template } : { goal };
+	const template = p.values.template ? { templateId: p.values.template } : {};
+	const more = p.values.continue ? { continue: true as const } : {};
+	return { goal, ...template, ...more };
 };
 
 const stop = (reader: AppOptions, io: Io, target: string | undefined) =>

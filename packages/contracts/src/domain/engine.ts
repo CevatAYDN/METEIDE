@@ -12,11 +12,18 @@ import {
 export type RunStatus = z.infer<typeof RunStatusSchema>;
 
 /** What starts a run; a templateId is refused until the team engine (Phase 2). */
-export const RunStartSchema = z.strictObject({
-	goal: z.string().trim().min(1),
-	templateId: z.string().min(1).nullable().optional(),
-	priority: z.union([z.literal(0), z.literal(1), z.literal(2)]).default(1),
-});
+export const RunStartSchema = z
+	.strictObject({
+		goal: z.string().trim().min(1).optional(),
+		templateId: z.string().min(1).nullable().optional(),
+		priority: z.union([z.literal(0), z.literal(1), z.literal(2)]).default(1),
+		// Take the newest open handoff (docs/08, Run memory); the goal then defaults to its goal.
+		continue: z.literal(true).optional(),
+	})
+	.refine((r) => r.goal !== undefined || r.continue === true, {
+		message: "a goal is needed unless the run continues a handoff",
+		path: ["goal"],
+	});
 
 /** What starts a run. */
 export type RunStart = z.input<typeof RunStartSchema>;

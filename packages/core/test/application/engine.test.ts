@@ -243,6 +243,28 @@ describe("single-agent engine", () => {
 		expect(user.endsWith("second goal")).toBe(true);
 	});
 
+	it("continues from the newest open handoff once, with its goal and body", async () => {
+		const h = engineHarness({ scripts: [reply("done")] });
+		expect(await h.engine.start({ continue: true })).toMatchObject({
+			ok: false,
+			error: { code: "not_found" },
+		});
+		const first = await begin(h, "first goal");
+		await settled(h, first, "completed");
+		const next = await h.engine.start({ continue: true });
+		if (!next.ok) throw new Error(next.error.message);
+		await settled(h, next.value.runId, "completed");
+		expect(view(h, next.value.runId)?.goal).toBe("first goal");
+		const user = String(h.requests[1]?.messages[1]?.content);
+		expect(user).toContain("Goal: first goal\nStopped: completed");
+		const taken = h.db
+			.prepare(
+				"SELECT state, accepted_by_run_id AS by FROM handoffs WHERE run_id = ?",
+			)
+			.get(first);
+		expect(taken).toEqual({ state: "accepted", by: next.value.runId });
+	});
+
 	it("pauses for approval and repeats the same tool call on resume", async () => {
 		const shell = vi
 			.fn()

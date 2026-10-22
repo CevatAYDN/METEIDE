@@ -82,12 +82,16 @@ const age = (ms: number) => {
 	return "just now";
 };
 
+/** The goal a handoff body names on its Goal: line. */
+export const handoffGoal = (body: string) =>
+	/^Goal: (.*)$/m.exec(body)?.[1] ?? "unknown goal";
+
 /** The one line a new run gets about an open handoff: its id, goal and age, never its body. */
 export const offerLine = (
 	h: { id: string; body: string; createdAt: string },
 	now: number,
 ) => {
-	const goal = /^Goal: (.*)$/m.exec(h.body)?.[1] ?? "unknown goal";
+	const goal = handoffGoal(h.body);
 	const when = age(now - Date.parse(h.createdAt));
 	return `An earlier run left handoff ${h.id} (${when}) for the goal "${goal}". Run mete run --continue to take it.`;
 };

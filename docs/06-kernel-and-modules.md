@@ -205,7 +205,8 @@ export interface QuotaReserveAdapter {
 // A template file is parsed by TeamTemplateSchema / parseTemplate in @mete/contracts (keys as in YAML, tab 08):
 // parseTemplate(input: unknown): Result<TeamTemplate, { code: "invalid_template"; issues: string[] }>.
 export type RunStatus = "queued" | "running" | "paused" | "completed" | "failed" | "cancelled";
-export type RunStart = { goal: string; templateId?: string | null; priority?: 0 | 1 | 2 };   // priority defaults to 1
+export type RunStart = { goal?: string; templateId?: string | null; priority?: 0 | 1 | 2;   // priority defaults to 1
+  continue?: true };             // take the newest open handoff (tab 08, Run memory); goal is needed unless continue
 export type RunView = Omit<Run, "snapshot">;                 // Run in tab 07
 export type ApprovalInput = { taskId?: string; decision: "approve" | "revise"; feedback?: string };   // revise needs feedback;
                                  // taskId is the template task id or the Task id; without it, the only task that waits

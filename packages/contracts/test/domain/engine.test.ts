@@ -16,6 +16,15 @@ describe("team.engine@2 input", () => {
 		).toEqual({ goal: "g", templateId: null, priority: 0 });
 	});
 
+	it("lets a run that continues a handoff leave out its goal", () => {
+		expect(RunStartSchema.parse({ continue: true })).toEqual({
+			continue: true,
+			priority: 1,
+		});
+		expect(RunStartSchema.safeParse({}).success).toBe(false);
+		expect(RunStartSchema.safeParse({ continue: false }).success).toBe(false);
+	});
+
 	it("refuses an empty goal, an unknown priority and extra keys", () => {
 		for (const bad of [
 			{ goal: "  " },

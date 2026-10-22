@@ -79,6 +79,7 @@ export const teamEngineContract = (name: string, open: TeamEngineHarness) =>
 			expect(["not_supported", "not_found"]).toContain(
 				await code(engine.start({ goal: "g", templateId: "x" })),
 			);
+			expect(await code(engine.start({ continue: true }))).toBe("not_found");
 			const decision = { decision: "approve" } as const;
 			expect(await code(engine.approve(UNKNOWN, decision))).toBe("not_found");
 			expect(await code(engine.start({ goal: " " }))).toBe("bad_input");
