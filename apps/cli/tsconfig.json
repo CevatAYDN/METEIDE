@@ -20,6 +20,9 @@
 			"path": "../../packages/kernel"
 		},
 		{
+			"path": "../../packages/mcp"
+		},
+		{
 			"path": "../../packages/providers"
 		},
 		{

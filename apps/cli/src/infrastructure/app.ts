@@ -22,6 +22,7 @@ import {
 	type MeteModule,
 	type ModuleContext,
 } from "@mete/kernel";
+import { createMcpClientModule } from "@mete/mcp";
 import {
 	createCustomModule,
 	createNvidiaModule,
@@ -102,6 +103,7 @@ const modulesFor = (opts: AppOptions, workspaceId: string): MeteModule[] => {
 		createToolsShellModule(dirs),
 		createVcsGitModule(dirs),
 		createToolsWebModule(opts.fetch ? { fetch: opts.fetch } : {}),
+		createMcpClientModule({ workspaceDir: opts.workspaceDir }),
 		createCoreEngineModule({
 			workspaceId,
 			recover: opts.recover !== false,

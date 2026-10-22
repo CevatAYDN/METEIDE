@@ -56,6 +56,9 @@ importers:
       '@mete/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
+      '@mete/mcp':
+        specifier: workspace:*
+        version: link:../../packages/mcp
       '@mete/providers':
         specifier: workspace:*
         version: link:../../packages/providers
