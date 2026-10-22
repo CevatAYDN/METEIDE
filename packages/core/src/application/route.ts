@@ -10,6 +10,10 @@ import { callModel } from "./steps.js";
 
 const ROUTER: Seat = { tier: "fast", needs: [], capabilities: [] };
 
+// shortcut: the router call has no run yet, so stop() cannot abort it (the gateway's own
+// retries bound it), and its model_calls row names a run id that a choose_template answer
+// never creates; route through a pre-created run when the desktop shows routing.
+
 // The templates the router may pick; one that does not load is logged, and a folder that
 // cannot be read gives the reason instead.
 const offered = async (s: EngineState) => {
