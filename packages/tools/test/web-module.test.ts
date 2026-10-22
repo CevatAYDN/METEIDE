@@ -24,11 +24,12 @@ describe("tools-web", () => {
 		expect((await createToolsWebModule().activate(ctx)).ok).toBe(true);
 		expect(without.registry.has("web.fetch@1")).toBe(true);
 		expect(without.registry.has("web.search@1")).toBe(false);
-		expect(warned).toEqual(["web.search@1 not provided"]);
+		expect(warned).toEqual(["Tavily web.search@1 adapter not provided"]);
 
 		const keyed = toolContext("allow");
 		const secrets = secretsWith({ [searchKeyName("tavily")]: "tvly-x" });
 		await createToolsWebModule().activate({ ...keyed.ctx, secrets });
-		expect(keyed.registry.has("web.search@1")).toBe(true);
+		const chain = keyed.registry.resolve("web.search@1");
+		expect(chain.ok && chain.value.map((a) => a.id)).toEqual(["tavily"]);
 	});
 });

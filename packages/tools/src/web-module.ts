@@ -27,6 +27,9 @@ const WEB_MANIFEST: ModuleManifest = {
 	permissions: ["net", "secrets"],
 };
 
+// The Tavily adapter's own id, so bindings name it as docs/10 does (web.search@1: [exa-mcp, tavily]).
+const TAVILY = "tavily";
+
 /** The keychain account of a search provider's API key (docs/10), like providers/<id>/apiKey. */
 export const searchKeyName = (id: string) => `search/${id}/apiKey`;
 
@@ -34,10 +37,11 @@ const provide = (
 	ctx: ModuleContext,
 	ref: CapabilityRef,
 	impl: ToolAdapter<unknown, unknown>,
+	id = WEB_MANIFEST.id,
 ) =>
 	ctx.disposables.add(
 		ctx.capabilities.provide(ref, {
-			id: WEB_MANIFEST.id,
+			id,
 			trust: "core",
 			features: [],
 			impl,
@@ -46,13 +50,13 @@ const provide = (
 
 // web.search@1 only with a key; without one the module still provides web.fetch@1 and warns.
 const searchKey = async (ctx: ModuleContext) => {
-	const key = await ctx.secrets?.get(searchKeyName("tavily"));
+	const key = await ctx.secrets?.get(searchKeyName(TAVILY));
 	if (key?.ok && key.value) return key.value;
 	const why =
 		key && !key.ok ? key.error.message : "no Tavily key (mete key set tavily)";
 	ctx.logger.warn(
 		{ moduleId: WEB_MANIFEST.id, reason: why },
-		"web.search@1 not provided",
+		"Tavily web.search@1 adapter not provided",
 	);
 	return undefined;
 };
@@ -73,9 +77,15 @@ export const createToolsWebModule = (
 		});
 		const apiKey = await searchKey(ctx);
 		if (apiKey)
-			provide(ctx, "web.search@1", {
-				run: (input, c) => tavilySearch({ ...deps, apiKey }, input, c),
-			});
+			provide(
+				ctx,
+				"web.search@1",
+				{
+					run: (input, c) =>
+						tavilySearch({ ...deps, adapterId: TAVILY, apiKey }, input, c),
+				},
+				TAVILY,
+			);
 		return ok(undefined);
 	},
 	async deactivate() {},
