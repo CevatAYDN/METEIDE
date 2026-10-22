@@ -16,6 +16,7 @@ import {
 import Database from "better-sqlite3";
 import { createEngine } from "../../src/application/engine.js";
 import type { ArtifactStore } from "../../src/infrastructure/artifact-store.js";
+import { createHandoffStore } from "../../src/infrastructure/handoff-store.js";
 import {
 	createRunStore,
 	RUN_MIGRATIONS,
@@ -161,6 +162,7 @@ export const engineHarness = (opts: {
 		config,
 		logger,
 		store,
+		handoffs: createHandoffStore(db),
 		now: () => clock.now,
 		newId: randomUUID,
 		setTimer: (fn, ms) => {

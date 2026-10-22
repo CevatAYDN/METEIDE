@@ -5,6 +5,7 @@ import { err, type ModuleManifest, ok } from "@mete/contracts";
 import type { MeteModule, ModuleError } from "@mete/kernel";
 import { createEngine, type EngineDeps } from "./application/engine.js";
 import { createArtifactStore } from "./infrastructure/artifact-store.js";
+import { createHandoffStore } from "./infrastructure/handoff-store.js";
 import { createRunStore, RUN_MIGRATIONS } from "./infrastructure/run-store.js";
 import type { TemplateDirs } from "./infrastructure/template-store.js";
 
@@ -75,6 +76,7 @@ export const createCoreEngineModule = (opts: CoreEngineOptions): MeteModule => {
 				config: ctx.config,
 				logger: ctx.logger,
 				store: createRunStore(ctx.storage.workspace),
+				handoffs: createHandoffStore(ctx.storage.workspace),
 				now: opts.now ?? Date.now,
 				newId: randomUUID,
 				setTimer: opts.setTimer ?? realTimer,

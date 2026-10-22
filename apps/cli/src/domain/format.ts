@@ -64,6 +64,10 @@ const teamLine = (e: MeteEvent, title: string): string | undefined => {
 		case "artifact.created":
 		case "artifact.updated":
 			return `artifact ${e.payload.path}`;
+		case "handoff.created":
+			return `handoff ${e.payload.handoffId} left for the next run`;
+		case "handoff.accepted":
+			return `handoff ${e.payload.handoffId} taken by run ${e.payload.byRunId}`;
 		default:
 			return undefined;
 	}

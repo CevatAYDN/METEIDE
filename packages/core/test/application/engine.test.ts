@@ -116,10 +116,14 @@ describe("single-agent engine", () => {
 		const runId = await begin(h);
 		await settled(h, runId, "paused");
 		expect(view(h, runId)?.pauseReason).toBe("quota");
+		// A quota pause leaves no handoff; the end of the run does (docs/08, Run memory).
+		const handoffs = () => h.db.prepare("SELECT state FROM handoffs").all();
+		expect(handoffs()).toEqual([]);
 		expect(h.timers.map((t) => t.ms)).toEqual([60_000]);
 		h.clock.now = T0 + 60_000;
 		h.timers[0]?.fn();
 		await settled(h, runId, "completed");
+		expect(handoffs()).toEqual([{ state: "open" }]);
 		expect(typesOf(h.events).filter((t) => t.startsWith("run."))).toEqual([
 			"run.created",
 			"run.started",
@@ -170,6 +174,60 @@ describe("single-agent engine", () => {
 		expect(
 			JSON.parse(String(h.requests[1]?.messages.at(-1)?.content)),
 		).toMatchObject({ ok: false, error: { code: "bad_input" } });
+	});
+
+	it("leaves a handoff at an approval pause that names failures and files, never tool output", async () => {
+		const read = vi.fn<Tool>(async () => ok({ content: "MARKER-OUTPUT" }));
+		const edit = vi.fn<Tool>(async () =>
+			err({ code: "match_count", message: "MARKER-ERROR" }),
+		);
+		const write = vi.fn<Tool>(async () =>
+			err({ code: "approval_required", rule: "autonomy:1", message: "ask" }),
+		);
+		const h = engineHarness({
+			scripts: [
+				reply("", [{ name: "fs_read", args: { path: "a.md" } }]),
+				reply("", [
+					{ name: "fs_edit", args: { path: "b.md", oldStr: "x", newStr: "y" } },
+				]),
+				reply("", [
+					{
+						name: "fs_write",
+						args: { path: "c.md", content: "MARKER-CONTENT" },
+					},
+				]),
+			],
+			tools: [
+				["fs.read@1", read],
+				["fs.edit@1", edit],
+				["fs.write@1", write],
+			],
+		});
+		const runId = await begin(h);
+		await settled(h, runId, "paused");
+		const rows = h.db
+			.prepare("SELECT run_id, state, body FROM handoffs")
+			.all() as {
+			run_id: string;
+			state: string;
+			body: string;
+		}[];
+		expect(rows).toHaveLength(1);
+		expect(rows[0]).toMatchObject({ run_id: runId, state: "open" });
+		expect(rows[0]?.body).toBe(
+			[
+				"# Handoff",
+				"Goal: rename foo to bar",
+				"Stopped: paused (approval)",
+				"Open question: paused for approval",
+				"Failed tool calls:",
+				"- fs_edit: match_count",
+				"Files changed:",
+				"- b.md",
+				"- c.md",
+			].join("\n"),
+		);
+		expect(rows[0]?.body).not.toMatch(/MARKER/);
 	});
 
 	it("pauses for approval and repeats the same tool call on resume", async () => {

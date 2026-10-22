@@ -6,6 +6,7 @@ import type {
 	Logger,
 } from "@mete/kernel";
 import { transition } from "xstate";
+import { handoffBody } from "../domain/handoff.js";
 import type { Platform } from "../domain/prompt.js";
 import { type EventBody, runEventOf } from "../domain/run-events.js";
 import {
@@ -14,6 +15,7 @@ import {
 	runMachine,
 } from "../domain/run-machine.js";
 import type { ArtifactStore } from "../infrastructure/artifact-store.js";
+import type { HandoffStore } from "../infrastructure/handoff-store.js";
 import type { RunMeta, RunStore } from "../infrastructure/run-store.js";
 import type { TemplateDirs } from "../infrastructure/template-store.js";
 import type { StepDeps } from "./steps.js";
@@ -36,6 +38,8 @@ export type EngineDeps = StepDeps & {
 	readonly templates?: TemplateDirs | undefined;
 	/** Where team runs keep their artifacts; without it none are written. */
 	readonly artifacts?: ArtifactStore | undefined;
+	/** Where runs leave their handoffs (docs/07); without it none are written. */
+	readonly handoffs?: HandoffStore | undefined;
 };
 
 /**
@@ -112,6 +116,37 @@ const armTimer = (s: EngineState, l: Live, resumesAt: string) => {
 	);
 };
 
+// A run leaves a handoff when it ends, or pauses for anything but quota (docs/08, Run memory);
+// that includes the user pauses of stop() and recovery, as the rule says.
+const handoffDue = (body: EventBody) =>
+	body.type === "run.completed" ||
+	body.type === "run.failed" ||
+	body.type === "run.cancelled" ||
+	(body.type === "run.paused" && body.payload.reason !== "quota");
+
+// A handoff that cannot be written never fails the run; it is logged with the run id.
+const leaveHandoff = (s: EngineState, l: Live) => {
+	const store = s.deps.handoffs;
+	if (!store) return;
+	const id = s.deps.newId();
+	try {
+		const body = handoffBody(l.snapshot.context, l.snapshot.value);
+		const at = iso(s.deps.now());
+		const row = {
+			id,
+			workspaceId: l.meta.workspaceId,
+			runId: l.meta.id,
+			body,
+			createdAt: at,
+		};
+		store.write(row);
+	} catch (e) {
+		s.deps.logger.error({ err: e, runId: l.meta.id }, "handoff not written");
+		return;
+	}
+	emit(s, l, { type: "handoff.created", payload: { handoffId: id } });
+};
+
 /** Applies one event; the row is written before the event is published (docs/07). */
 export const apply = (s: EngineState, l: Live, event: RunEvent) => {
 	if (!l.snapshot.can(event)) return false;
@@ -121,6 +156,7 @@ export const apply = (s: EngineState, l: Live, event: RunEvent) => {
 	l.snapshot = next;
 	const body = runEventOf(prev, next);
 	if (body) emit(s, l, body);
+	if (body && handoffDue(body)) leaveHandoff(s, l);
 	if (event.type === "PAUSE" && event.resumesAt)
 		armTimer(s, l, event.resumesAt);
 	return true;

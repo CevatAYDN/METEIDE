@@ -17,6 +17,7 @@ import {
 	runMachine,
 } from "../domain/run-machine.js";
 import { TeamStateSchema } from "../domain/team.js";
+import { HANDOFF_MIGRATIONS } from "./handoff-store.js";
 
 // The runs and agents tables in the workspace database (docs/07, core-engine tables).
 
@@ -50,6 +51,7 @@ export const RUN_MIGRATIONS: ReadonlyArray<Migration> = [
 		);
 		CREATE INDEX agents_run ON agents (run_id)`,
 	},
+	...HANDOFF_MIGRATIONS,
 ];
 
 const runs = sqliteTable("runs", {
