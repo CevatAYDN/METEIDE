@@ -63,6 +63,38 @@ const fill = async (s: ReturnType<typeof setup>, providerId: string) => {
 	s.pool.record(r.value.held, {}, T0);
 };
 
+describe("scheduler: the daily spending cap (ADR-042)", () => {
+	it("pauses a paid chain at the cap until midnight UTC and still grants a free one", async () => {
+		const cap: QuotaUnitSpec = {
+			providerId: "*",
+			unit: "usd_per_day",
+			limit: 1,
+			scope: "account",
+			reset: "fixed_daily",
+		};
+		// The cap first, the providers' own units after, as the gateway's discovery does.
+		const s = setup([cap]);
+		s.pool.define([rpm("paid", 100), rpm("free", 100)]);
+		const paid: QuotaRequest = {
+			runId: RUN_A,
+			priority: 1,
+			chain: [
+				{ providerId: "paid", modelId: "pro", estimate: { usd_per_day: 0.9 } },
+			],
+			estimate: {},
+		};
+		const first = await s.scheduler.reserve(paid, never);
+		if (!first.ok) throw new Error("first paid call");
+		s.pool.record(first.value.held, { usd_per_day: 0.9 }, T0);
+		expect(await s.scheduler.reserve(paid, never)).toEqual({
+			ok: false,
+			error: { code: "quota_exhausted", resumesAt: "2026-10-22T00:00:00.000Z" },
+		});
+		const free = await s.scheduler.reserve(req(RUN_B, 1, ["free"]), never);
+		expect(free.ok && free.value.providerId).toBe("free");
+	});
+});
+
 describe("scheduler: reserving", () => {
 	it("reserves the first chain entry with capacity", async () => {
 		const s = setup([rpm("a", 1), rpm("b", 1)]);
