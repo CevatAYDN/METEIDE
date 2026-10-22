@@ -50,6 +50,7 @@ describe("mcp-client over stdio", () => {
 			"fixture/echo",
 			"fixture/fail",
 			"fixture/pixel",
+			"fixture/search",
 		]);
 	});
 

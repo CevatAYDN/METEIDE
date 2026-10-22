@@ -1,4 +1,4 @@
-// A small MCP server over stdio for the client tests: echo, fail and pixel.
+// A small MCP server over stdio for the client tests: echo, fail, pixel and search.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -20,4 +20,20 @@ server.registerTool("fail", { description: "Always fails" }, async () => ({
 server.registerTool("pixel", { description: "One image" }, async () => ({
 	content: [{ type: "image", data: PIXEL, mimeType: "image/png" }],
 }));
+// Answers like Exa's web_search_advanced_exa: the results as JSON text, the query as each title.
+server.registerTool(
+	"search",
+	{
+		description: "JSON results",
+		inputSchema: { query: z.string(), numResults: z.number() },
+	},
+	async ({ query, numResults }) => {
+		const results = Array.from({ length: Math.min(numResults, 2) }, (_, i) => ({
+			title: query,
+			url: `https://r${i}.example/`,
+			highlights: ["one", "two"],
+		}));
+		return { content: [{ type: "text", text: JSON.stringify({ results }) }] };
+	},
+);
 await server.connect(new StdioServerTransport());

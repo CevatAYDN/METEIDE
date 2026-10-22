@@ -1,6 +1,5 @@
 import {
 	err,
-	type McpCallInput,
 	McpCallInputSchema,
 	type McpCallOutput,
 	type McpToolInfo,
@@ -8,12 +7,12 @@ import {
 	ok,
 	type PolicyCheckAdapter,
 	type Result,
-	type ToolContext,
 	type ToolError,
 } from "@mete/contracts";
 import type { Logger } from "@mete/kernel";
 import type { ContentBlock } from "@modelcontextprotocol/sdk/types.js";
 import { toContent } from "./content.js";
+import { permit } from "./permit.js";
 import type { Session, Sessions } from "./sessions.js";
 
 // mcp.tools@1 (docs/10, level 1 raw access): every call asks policy.check@1 with action
@@ -28,49 +27,6 @@ export type McpToolsDeps = {
 };
 
 const why = (e: unknown) => (e instanceof Error ? e.message : String(e));
-
-const caller = (ctx: ToolContext) => ({
-	...(ctx.runId === undefined ? {} : { runId: ctx.runId }),
-	...(ctx.agentId === undefined ? {} : { agentId: ctx.agentId }),
-	...(ctx.tainted === undefined ? {} : { tainted: ctx.tainted }),
-});
-
-const permit = (
-	deps: McpToolsDeps,
-	input: Required<McpCallInput> & { args: Record<string, unknown> },
-	ctx: ToolContext,
-): Result<void, ToolError> => {
-	const policy = deps.policy();
-	const command = `${input.server}/${input.tool}`;
-	if (!policy)
-		return err({
-			code: "denied",
-			rule: "capability_missing",
-			message: "policy.check@1 is not provided",
-		});
-	const v = policy.check({
-		action: "mcp.call",
-		capability: "mcp.tools@1",
-		adapterId: deps.adapterId,
-		command,
-		args: input.args,
-		...caller(ctx),
-	});
-	if (!v.ok)
-		return err({
-			code: "denied",
-			rule: "audit_failed",
-			message: v.error.message,
-		});
-	const { verdict, rule } = v.value;
-	if (verdict === "allow") return ok(undefined);
-	const code = verdict === "ask" ? "approval_required" : "denied";
-	return err({
-		code,
-		rule,
-		message: `mcp.call ${command}: ${verdict} (${rule})`,
-	});
-};
 
 const list: (deps: McpToolsDeps) => McpToolsAdapter["list"] =
 	(deps) => async (signal) => {
@@ -102,7 +58,17 @@ const call: (deps: McpToolsDeps) => McpToolsAdapter["call"] =
 		if (!parsed.success)
 			return err({ code: "bad_input", message: parsed.error.message });
 		const input = parsed.data;
-		const allowed = permit(deps, input, ctx);
+		const allowed = permit(
+			deps.policy(),
+			{
+				adapterId: deps.adapterId,
+				action: "mcp.call",
+				capability: "mcp.tools@1",
+				command: `${input.server}/${input.tool}`,
+				args: input.args,
+			},
+			ctx,
+		);
 		if (!allowed.ok) return allowed;
 		const s = await deps.sessions.get(input.server, ctx.signal);
 		if (!s.ok) return s;
