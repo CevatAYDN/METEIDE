@@ -108,6 +108,7 @@ describe("mcp-client sampling", () => {
 			runId: "run-1",
 			priority: 1,
 			maxTokens: 20,
+			temperature: 0.2,
 			messages: [
 				{ role: "system", content: "Be brief" },
 				{ role: "user", content: "Say hi" },

@@ -56,6 +56,7 @@ const request = (
 	priority: SAMPLING_PRIORITY,
 	messages: messagesOf(p),
 	...(p.maxTokens ? { maxTokens: p.maxTokens } : {}),
+	...(p.temperature === undefined ? {} : { temperature: p.temperature }),
 });
 
 type Heard = { text: string; model: string; reason: string };

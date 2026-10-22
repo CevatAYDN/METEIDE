@@ -55,6 +55,7 @@ server.registerTool("summon", { description: "Asks a model" }, async () => {
 		messages: [{ role: "user", content: { type: "text", text: "Say hi" } }],
 		systemPrompt: "Be brief",
 		maxTokens: 20,
+		temperature: 0.2,
 		modelPreferences: { intelligencePriority: 0.9 },
 	});
 	const words = r.content.type === "text" ? r.content.text : r.content.type;
