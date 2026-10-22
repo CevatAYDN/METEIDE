@@ -8,7 +8,7 @@ import {
 } from "@mete/contracts";
 import type { CapabilityRegistry, Logger } from "@mete/kernel";
 import { z } from "zod";
-import { mcpModelTools } from "../domain/mcp-tools.js";
+import { type McpModelTool, mcpModelTools } from "../domain/mcp-tools.js";
 import type { EventBody } from "../domain/run-events.js";
 import { allowed, type Seat } from "../domain/tools.js";
 
@@ -40,7 +40,7 @@ const listed = async (
 	const all = await impl.list(signal);
 	if (!all.ok) {
 		deps.logger.warn({ reason: all.error.message }, "MCP tools not listed");
-		return new Map();
+		return new Map<string, McpModelTool>();
 	}
 	const { tools, skipped } = mcpModelTools(all.value);
 	for (const s of skipped) deps.logger.warn(s, "MCP tool left out");
