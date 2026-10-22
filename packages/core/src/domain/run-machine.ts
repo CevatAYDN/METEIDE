@@ -68,6 +68,7 @@ export type RunEvent =
 	| { type: "TOOL_DONE"; message: ToolMessage; external?: boolean }
 	| { type: "MODEL"; agent: AgentRef }
 	| { type: "TEAM"; team: TeamState }
+	| { type: "SUMMARIZED"; messages: readonly ChatMessage[] }
 	| { type: "REPAIR"; team: TeamState; content: string }
 	| {
 			type: "SWITCH";
@@ -138,6 +139,14 @@ export const runMachine = setup({
 	on: {
 		MODEL: { actions: assign({ agent: ({ event }) => event.agent }) },
 		TEAM: { actions: assign({ team: ({ event }) => event.team }) },
+		// A summary is a cloud request but no agent turn; checkpoint indexes no longer hold.
+		SUMMARIZED: {
+			actions: assign(({ context, event }) => ({
+				messages: event.messages,
+				requests: context.requests + 1,
+				checkpointed: -1,
+			})),
+		},
 		// A guardrail repair stays in the attempt: one more user message, turns keep counting.
 		REPAIR: {
 			actions: assign(({ context, event }) => ({

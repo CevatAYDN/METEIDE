@@ -265,6 +265,28 @@ describe("single-agent engine", () => {
 		expect(taken).toEqual({ state: "accepted", by: next.value.runId });
 	});
 
+	it("summarizes older turns on the fast tier once the conversation passes 70% of the window", async () => {
+		const read = vi.fn<Tool>(async () => ok({ content: "z".repeat(100_000) }));
+		const h = engineHarness({
+			scripts: [
+				reply("", [{ name: "fs_read", args: { path: "big.log" } }]),
+				reply("big.log is a long build log; the error is on line 12"),
+				reply("done"),
+			],
+			tools: [["fs.read@1", read]],
+		});
+		const runId = await begin(h);
+		await settled(h, runId, "completed");
+		const [, summary, after] = h.requests;
+		expect(summary?.target).toEqual({ tier: "fast" });
+		expect(summary?.tools).toBeUndefined();
+		const sent = JSON.stringify(after?.messages);
+		expect(sent).toContain("<summary> Earlier turns");
+		expect(sent).not.toContain("zzzz");
+		const done = h.events.find((e) => e.type === "run.summarized");
+		expect(done?.payload).toEqual({ messages: 2, chars: 52 });
+	});
+
 	it("pauses for approval and repeats the same tool call on resume", async () => {
 		const shell = vi
 			.fn()

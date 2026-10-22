@@ -23,7 +23,7 @@ A request without a template runs as a single agent; a template id starts a team
 - A run has at most 25 model turns; the run fails with code `turn_limit` instead of a 26th.
 - Pauses: `quota_exhausted` pauses with reason `quota` and its `resumesAt`, and the run resumes by itself then, unless its row is no longer paused because another process cancelled it; `no_model` and `network` pause with those reasons; a tool's `approval_required` pauses with reason `approval`, and until approvals exist only `resume` clears it, repeating that tool call; the budget pauses with reason `budget`. Other pauses clear only through `resume`. A user pause aborts a model call in flight, which runs again on resume; a tool call in flight finishes and its result is kept, so no side effect runs twice. A tool's `denied` goes back to the model as the tool result; any other model error fails the run with that error's code.
 - The budget is the policy's `budget` (tab 12), read when the run starts and again on resume. Each `llm.chat@1` call that returns a reply counts as one cloud request; `max_hours` counts running time only.
-- Summarizing older turns at 70% of the context window (Agent context assembly) comes with the team engine.
+- Older turns are summarized at 70% of the context window as Agent context assembly says, for the single agent too.
 
 ## Run memory: handoffs and the start brief
 
@@ -148,7 +148,7 @@ The guardrail reads the report as JSON, a fenced `json` code block included, and
 
 ## Agent context assembly
 
-Each model call receives only: role goal and backstory, the task, its acceptance criteria, the start brief (Run memory), the needed sections of `context` artifacts, up to 8 `knowledge.search@1` results, matching skills, and the operating system and shell name \[C\]. When the context reaches 70% of the model's window, older turns are summarized into the run log \[D\].
+Each model call receives only: role goal and backstory, the task, its acceptance criteria, the start brief (Run memory), the needed sections of `context` artifacts, up to 8 `knowledge.search@1` results, matching skills, and the operating system and shell name \[C\]. When the context reaches 70% of the model's window, older turns are summarized into the run log \[D\]. The window counted is the tier's minimum (tab 09), because the gateway may pick another model of the tier at any call; tokens are estimated as characters divided by 4. Before a model call, a conversation past that point keeps its system message, its first user message and its 4 newest turns (a turn is an assistant message with its tool results), and the turns between become one user message labeled as data, written by the `fast` tier without tools. The summary call counts as a cloud request of the budget, not as an agent turn, pauses on quota or a missing model like any call, and publishes `run.summarized` with the number of messages it replaced and its length. An empty summary still replaces the turns and is logged as a warning \[D\].
 
 ## Parallel work and merging
 

@@ -52,6 +52,11 @@ const PAYLOADS = {
 	"run.completed": z.strictObject({ summary: z.string() }),
 	"run.failed": z.strictObject({ code: text, message: z.string() }),
 	"run.cancelled": none,
+	// Older turns became one summary (docs/08, Agent context assembly): how many messages, how long.
+	"run.summarized": z.strictObject({
+		messages: z.number().int().positive(),
+		chars: z.number().int().nonnegative(),
+	}),
 	"task.created": z.strictObject({
 		title: text,
 		roleId: text,

@@ -1,4 +1,5 @@
 // Named defaults for this package; each names the document tab that defines it (CONTRIBUTING.md).
+import type { Tier } from "./domain/llm.js";
 
 /** Built-in policy: the example `.mete/policy.yaml` (12 Autonomy and security). */
 export const DEFAULT_POLICY = {
@@ -37,3 +38,15 @@ export const TEMPLATE_DEFAULTS = {
 
 /** Results web.search@1 returns when the caller names no maxResults (10 Tools, MCP and runtimes). */
 export const WEB_SEARCH_MAX_RESULTS = 8;
+
+/** Tab 09, Model tiers: minimum context window per tier, "k" read as 1000 tokens. */
+export const TIER_MIN_CONTEXT: Readonly<Record<Tier, number>> = {
+	reasoning: 32_000,
+	coder: 32_000,
+	fast: 8_000,
+	"long-context": 128_000,
+	vision: 0,
+};
+
+/** Tab 09, Gateway: the quota estimate counts this many prompt characters as one token. */
+export const CHARS_PER_TOKEN = 4;

@@ -112,6 +112,7 @@ From Phase 2, handoffs go into the workspace `handoffs` table: `id`, `workspace_
 | `run.completed` | summary | core-engine |
 | `run.failed` | error code, message | core-engine |
 | `run.cancelled` | none | core-engine |
+| `run.summarized` | messages (how many were replaced), chars (the summary's length) | core-engine |
 | `task.created` | title, roleId, dependsOn | core-engine |
 | `task.assigned` | agentId | core-engine |
 | `task.status.changed` | from, to | core-engine |

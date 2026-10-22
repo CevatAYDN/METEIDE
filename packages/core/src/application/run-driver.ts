@@ -1,9 +1,11 @@
 import type { LlmChunk, ToolContext } from "@mete/contracts";
+import { toSummarize } from "../domain/compact.js";
 import { type NextStep, nextStep } from "../domain/next-step.js";
 import { afterModelError } from "../domain/run-events.js";
 import { activeRole, activeSeat } from "../domain/team-run.js";
 import { apply, type EngineState, emit, type Live } from "./run-state.js";
 import { callModel, callTool, createCheckpoint } from "./steps.js";
+import { summarizeTurn } from "./summarize.js";
 import { submit, teamTurn, verdict } from "./team-driver.js";
 
 // The loop that moves a running run step by step (docs/08, Single agent), as module-level
@@ -134,7 +136,11 @@ const step = async (s: EngineState, l: Live, token: object) => {
 	if (c.team && !c.review && !working) return teamTurn(s, l, c.team);
 	const at = s.deps.now();
 	const next = nextStep(c, l.meta.budget, at);
-	if (next.kind === "model") return modelTurn(s, l, token);
+	if (next.kind === "model") {
+		const older = toSummarize(c.messages, activeSeat(c).tier);
+		if (older) return summarizeTurn(s, l, older, () => owns(l, token));
+		return modelTurn(s, l, token);
+	}
 	if (next.kind === "tool") return toolTurn(s, l, token, next);
 	if (next.kind === "complete") return finish(s, l, next.summary);
 	if (next.kind === "fail")
