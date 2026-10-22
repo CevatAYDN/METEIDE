@@ -33,6 +33,7 @@ import {
 } from "@mete/mcp";
 import {
 	createCustomModule,
+	createGroqModule,
 	createNvidiaModule,
 	createOpenCodeZenModule,
 	createOpenRouterModule,
@@ -137,6 +138,7 @@ const modulesFor = (
 			createNvidiaModule(),
 			createOpenRouterModule(),
 			createOpenCodeZenModule(),
+			createGroqModule(),
 			createCustomModule(),
 		]),
 		createGatewayModule(),

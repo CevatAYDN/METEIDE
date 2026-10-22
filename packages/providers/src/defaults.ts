@@ -16,6 +16,10 @@ export const ZEN_QUOTA: readonly QuotaUnitSpec[] = [
 	},
 ];
 
+/** Groq's OpenAI-compatible chat and model list endpoints (09 Provider adapter, provider facts). */
+export const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
+export const GROQ_MODELS_URL = "https://api.groq.com/openai/v1/models";
+
 /** OpenRouter's API (09 Provider adapter, provider facts). */
 export const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 

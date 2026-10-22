@@ -161,3 +161,28 @@ opencode-zen:
     privacy: { trains: false, logs: false, publishes: false }
     source: models.dev, opencode.ai/docs/zen
     checked: "2026-10-21"
+
+# Free ids from console.groq.com/docs/rate-limits; privacy from console.groq.com/docs/your-data
+# (no retention by default, logs kept up to 30 days for troubleshooting) and Groq's services
+# agreement (no training on inputs or outputs); the rest of each row from models.dev.
+groq:
+  openai/gpt-oss-120b:
+    capability: chat
+    contextWindow: 131072
+    toolCalling: true
+    vision: false
+    free: true
+    family: gpt-oss
+    privacy: { trains: false, logs: true, publishes: false }
+    source: models.dev, console.groq.com/docs/your-data
+    checked: "2026-10-22"
+  openai/gpt-oss-20b:
+    capability: chat
+    contextWindow: 131072
+    toolCalling: true
+    vision: false
+    free: true
+    family: gpt-oss
+    privacy: { trains: false, logs: true, publishes: false }
+    source: models.dev, console.groq.com/docs/your-data
+    checked: "2026-10-22"

@@ -56,7 +56,7 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 - `mete mcp [<folder>]` serves the folder (the current one by default) to an MCP host over stdio (tab 10, METE as an MCP server). Like `mete run` it holds the run lock with recovery on for its whole life; stdout carries only the protocol and every message of its own goes to standard error. Without an active core-engine it says why and exits 1. It stops with exit 0 when the host closes stdin or on Ctrl+C [D].
 - `mete stop <run id>` or `mete stop --all` cancels paused runs. A running run belongs to the `mete run` that holds it and stops with Ctrl+C there; there is no daemon in Phase 1. Only `mete run` turns on core-engine's recovery, so `status` sees a run another terminal drives as `running`. One `mete run` drives a workspace at a time until the daemon: it holds `.mete/cache/run.lock` with its process id from before recovery until its modules have stopped, a second `mete run` refuses with exit 1 while that process lives, and a lock left by a process that is gone is taken over. While the lock is held, `mete stop` refuses too and points at Ctrl+C in the holding terminal, because that process also waits for its quota-paused run.
 - `mete registry search "<words>"` asks the `registry.search@1` adapters in order, the official registry and then the local one, and prints one line per entry, `<id> <version>  <runtime>  <source>`, with its description indented below; it installs nothing, prints `no entries for "<words>"` when none match and exits 1 when the search fails (tab 10, Registries) [D]. `mete registry add <name>` writes the newest version of that official registry server into `.mete/mcp.yaml` and prints what the user still has to fill in; exit 1 when it is refused (tab 10, Registries) [D].
-- `mete key set <provider id>` reads a key from a hidden prompt, or from standard input when it is not a terminal, never from the command line, and stores it under the tab 09 keychain account; `mete key delete <provider id>` removes it; `mete key list` names the providers that have a key, never the key. Provider ids: `nvidia`, `openrouter`, `opencode-zen`, `custom:<slug>`, and the search provider `tavily`, whose key goes under `search/tavily/apiKey` (tab 10).
+- `mete key set <provider id>` reads a key from a hidden prompt, or from standard input when it is not a terminal, never from the command line, and stores it under the tab 09 keychain account; `mete key delete <provider id>` removes it; `mete key list` names the providers that have a key, never the key. Provider ids: `nvidia`, `openrouter`, `opencode-zen`, `groq`, `custom:<slug>`, and the search provider `tavily`, whose key goes under `search/tavily/apiKey` (tab 10).
 - Arguments are parsed with `node:util` `parseArgs`. Logs are pino JSON lines in the global `logs/mete-<YYYY-MM-DD>.log`; the terminal shows only the event lines and errors.
 
 ## Failure handling
@@ -105,7 +105,7 @@ mete/
     security/        policy engine, permissions, secret masking, audit log
     quota/           multi-unit quota pool and scheduler
     gateway/         local OpenAI-compatible gateway (Hono)
-    providers/       provider adapter base + nvidia, openrouter, opencode-zen, custom
+    providers/       provider adapter base + nvidia, openrouter, opencode-zen, groq, custom
     tools/           fs, edit, grep, glob, shell, web fetch, web search chain
     mcp/             MCP client and server, runtime manager, registry adapters
     knowledge/       code graph, vault, hybrid search

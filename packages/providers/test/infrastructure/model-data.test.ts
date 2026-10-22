@@ -26,7 +26,7 @@ describe("shipped models.yaml", () => {
 		expect(rows.length).toBeGreaterThan(0);
 		for (const r of rows) {
 			expect(r.source).toBeTruthy();
-			expect(r.checked).toBe("2026-10-21");
+			expect(r.checked).toMatch(/^2026-10-2[12]$/);
 		}
 	});
 
@@ -53,5 +53,23 @@ describe("shipped models.yaml", () => {
 		await writeFile(file, "nvidia:\n  m: { capability: chat }\n");
 		await expect(loadShippedModels(pathToFileURL(file))).rejects.toThrow();
 		await rm(dir, { recursive: true, force: true });
+	});
+});
+
+describe("Groq's shipped rows", () => {
+	it("name its free chat models with tool calling and the privacy of its data page", async () => {
+		const groq = (await loadShippedModels()).groq ?? {};
+		expect(Object.keys(groq).sort()).toEqual([
+			"openai/gpt-oss-120b",
+			"openai/gpt-oss-20b",
+		]);
+		for (const r of Object.values(groq)) {
+			expect(r).toMatchObject({
+				capability: "chat",
+				free: true,
+				toolCalling: true,
+				privacy: { trains: false, logs: true, publishes: false },
+			});
+		}
 	});
 });

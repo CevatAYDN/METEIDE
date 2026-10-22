@@ -8,6 +8,7 @@ import {
 import { type ProviderScenario, providerChatContract } from "@mete/testing";
 import type { ProviderDefinition } from "../src/application/provider-module.js";
 import { createCustomModule } from "../src/providers/custom.js";
+import { GROQ } from "../src/providers/groq.js";
 import { NVIDIA } from "../src/providers/nvidia.js";
 import { OPENCODE_ZEN } from "../src/providers/opencode-zen.js";
 import { OPENROUTER } from "../src/providers/openrouter.js";
@@ -144,6 +145,7 @@ const builtIn = (def: ProviderDefinition) =>
 builtIn(NVIDIA);
 builtIn(OPENROUTER);
 builtIn(OPENCODE_ZEN);
+builtIn(GROQ);
 
 const custom = (format: string, stream: () => Response) =>
 	providerChatContract(`custom ${format}`, async (scenario) => {
