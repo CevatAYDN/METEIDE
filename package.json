@@ -9,6 +9,7 @@
 	},
 	"scripts": {
 		"check": "biome check . && tsc -b && tsc -p tsconfig.test.json && depcruise packages apps && turbo run test",
+		"check:mcp": "pnpm build && node scripts/mcp-conformance.mjs",
 		"test": "turbo run test",
 		"build": "turbo run build",
 		"test:record": "echo \"test:record is not built yet; provider tests use hand-written fetch fakes (docs/15)\" && exit 1"

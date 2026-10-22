@@ -51,6 +51,7 @@ pnpm check                         Biome + tsc + dependency-cruiser + affected t
 pnpm test                          all tests
 pnpm --filter @mete/<pkg> test     one package
 pnpm build                         build all packages
+pnpm check:mcp                     release tier: MCP Inspector conformance of `mete mcp` (downloads it)
 pnpm test:record                   humans only: records LLM cassettes with real keys (not built yet)
 
 ## Environment
