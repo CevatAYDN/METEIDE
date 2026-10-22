@@ -1,5 +1,5 @@
 ---
-"@mete/contracts": major
+"@mete/contracts": minor
 "@mete/core": minor
 "@mete/testing": minor
 "@mete/cli": patch

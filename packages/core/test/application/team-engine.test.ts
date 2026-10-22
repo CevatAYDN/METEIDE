@@ -234,6 +234,33 @@ describe("team runs", () => {
 		expect(again.ok ? "ok" : again.error.code).toBe("invalid_state");
 	});
 
+	it("takes the human's approval in a new process that reads the team run back", async () => {
+		await writeFile(
+			join(templates.builtIn, "duo.yaml"),
+			`${PIPELINE.replace("context: [find] }", "context: [find], expected_output: artifact:research-report@1 }")}policies: { human_checkpoints: [write] }\n`,
+		);
+		const artifacts = createArtifactStore(root);
+		const first = engineHarness({
+			scripts: [reply("facts"), reply("draft")],
+			templates,
+			artifacts,
+		});
+		const runId = await start(first);
+		await settled(first, runId, "paused");
+		await first.stop();
+		// Every field of a rich team snapshot goes through the strict schemas here.
+		const later = engineHarness({
+			scripts: [],
+			db: first.db,
+			templates,
+			artifacts,
+		});
+		const r = await later.engine.approve(runId, { decision: "approve" });
+		expect(r.ok ? "ok" : r.error.message).toBe("ok");
+		await settled(later, runId, "completed");
+		expect(later.events.at(-1)?.payload).toEqual({ summary: "draft" });
+	});
+
 	it("sends a blocked task back to work with the human's instruction", async () => {
 		await writeFile(join(templates.builtIn, "duo.yaml"), GUARDED);
 		const h = engineHarness({
