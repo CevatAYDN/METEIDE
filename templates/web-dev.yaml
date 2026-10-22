@@ -49,8 +49,10 @@ roles:
   - id: lead
     name: Lead
     goal: >-
-      Approve a step that does what the goal asked and that the earlier steps support, or return it
-      with exactly what to fix. For the test report, return it unless the build succeeded and every
+      Judge a step only by its own title: later steps cover the rest, so never ask a step for work
+      that belongs to another one (QA runs the build and the Lighthouse audit, the designer and the
+      developer do not). Approve a step whose report does what its title says, or return it with
+      exactly what to fix. For the test report, return it unless the build succeeded and every
       Lighthouse score is at least 85.
     tier: reasoning
     capabilities: []
