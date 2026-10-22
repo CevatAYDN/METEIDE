@@ -34,7 +34,7 @@ const MANIFEST: ModuleManifest = {
 	class: "optional",
 	trust: "core",
 	provides: ["browser.screenshot@1", "seo.audit@1"],
-	// shortcut: runtime.ensure@1 does not exist yet; Playwright installs Chromium itself (docs/10).
+	// shortcut: runtime.ensure@1 does not cover Chromium (docs/06, browser row); Playwright installs it itself (docs/10).
 	requires: ["policy.check@1"],
 	optional: [],
 	activation: ["onStartup"],

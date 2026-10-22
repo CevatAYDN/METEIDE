@@ -10,7 +10,7 @@ import {
 } from "../defaults.js";
 
 // Chromium for the browser module, installed by Playwright's own installer on first use (docs/10).
-// shortcut: no runtime manager yet; upgrade to runtime.ensure@1 when it exists.
+// shortcut: runtime.ensure@1 does not cover Chromium yet; upgrade when docs/06 says what it gives the browser module.
 
 /** Whether Chromium is there, and how to install it; the tests pass a fake. */
 export type Chromium = {

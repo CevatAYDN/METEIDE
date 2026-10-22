@@ -141,6 +141,7 @@ const managed = async (
 const MAJOR = /^v(\d+)\./;
 
 // A system Node.js new enough is used as it is; otherwise the pinned one (docs/10).
+// shortcut: only `node` is checked, so a system Node.js without npm fails on npx; upgrade by also checking npx.
 const node = async (deps: EnsureDeps, ctx: ToolContext): Out => {
 	const found = deps.system.which("node");
 	const v =
