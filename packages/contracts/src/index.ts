@@ -18,6 +18,14 @@ export {
 	SeoScoresSchema,
 } from "./domain/browser.js";
 export {
+	DAEMON_ERROR_CODE,
+	DAEMON_METHODS,
+	DaemonErrorDataSchema,
+	DaemonStatusParamsSchema,
+	DaemonStatusResultSchema,
+	RunViewSchema,
+} from "./domain/daemon.js";
+export {
 	type ApprovalInput,
 	ApprovalInputSchema,
 	type EngineError,
