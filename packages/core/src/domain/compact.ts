@@ -11,13 +11,20 @@ import { SUMMARY_AT, SUMMARY_KEEP_TURNS } from "../defaults.js";
 // gateway may pick another model of the tier at any call and never one with a smaller window.
 // Pure.
 
-const sizeOf = (m: ChatMessage) =>
-	typeof m.content === "string"
-		? m.content.length
-		: m.content.reduce(
-				(n, p) => n + (p.type === "text" ? p.text.length : 0),
-				0,
-			);
+// A reply's tool calls go to the model again on every turn, so their arguments weigh as much as text
+// (a large fs_write body is mostly arguments). shortcut: image parts count nothing, the docs name no weight for them.
+const sizeOf = (m: ChatMessage) => {
+	const text =
+		typeof m.content === "string"
+			? m.content.length
+			: m.content.reduce(
+					(n, p) => n + (p.type === "text" ? p.text.length : 0),
+					0,
+				);
+	return m.role === "assistant" && m.toolCalls
+		? text + JSON.stringify(m.toolCalls).length
+		: text;
+};
 
 /** How the conversation splits: the opening, the turns to summarize, the newest turns. */
 export type Split = {

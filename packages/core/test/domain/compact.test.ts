@@ -23,6 +23,24 @@ describe("context compaction", () => {
 		expect(toSummarize(small, "fast")).toBeUndefined();
 	});
 
+	it("counts the arguments of tool calls, so large writes trigger a summary too", () => {
+		const write = (n: number): ChatMessage[] => [
+			{
+				role: "assistant",
+				content: "",
+				toolCalls: [
+					{ id: `c${n}`, name: "fs_write", args: { text: "x".repeat(5000) } },
+				],
+			},
+			{ role: "tool", toolCallId: `c${n}`, content: "{}" },
+		];
+		const writes = [...opening, ...[1, 2, 3, 4, 5, 6].flatMap(write)];
+		expect(toSummarize(writes, "fast")?.middle).toHaveLength(4);
+		// The same turns with small arguments stay under the window.
+		const small = [...opening, ...[1, 2].flatMap(write)];
+		expect(toSummarize(small, "fast")).toBeUndefined();
+	});
+
 	it("keeps the opening and the newest turns, each tool result with its call", () => {
 		const big = [
 			...opening,
