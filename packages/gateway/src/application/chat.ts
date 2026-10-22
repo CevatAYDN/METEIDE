@@ -27,6 +27,7 @@ import {
 	forgive,
 	type Memory,
 	newMemory,
+	noteBlocked,
 	refuse,
 	report,
 	strike,
@@ -367,6 +368,7 @@ async function* chat(
 	// A listing cut short by the abort is empty; that is not no_model.
 	if (signal.aborted) return yield fail(ABORTED);
 	const offered = found.filter((o) => !memory.refused.has(keyOf(o)));
+	noteBlocked(deps.warn, memory, offered, deps.rules());
 	const models = resolveChain(offered, req.target, deps.rules(), req);
 	const chain = demoted(
 		models.flatMap((m) => offered.filter((o) => o.model === m)),

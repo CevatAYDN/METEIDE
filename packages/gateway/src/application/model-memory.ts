@@ -1,23 +1,30 @@
 import type { ProviderError } from "@mete/contracts";
 import { DEMOTE_AFTER } from "../defaults.js";
+import {
+	type Discovered,
+	type PrivacyRules,
+	privacyBlocked,
+} from "../domain/resolve.js";
 
 // What the gateway remembers between calls about models that did not answer (docs/09, Gateway,
 // Retries in detail): a refused key leaves a model out, a rejected request is only logged.
 
 /**
- * The models left out, the models whose rejection of a request was logged already, and how many
- * calls in a row each model failed.
+ * The models left out, the models whose rejection of a request was logged already, how many calls
+ * in a row each model failed, and the providers whose privacy exclusion was logged already.
  */
 export type Memory = {
 	readonly refused: Set<string>;
 	readonly reported: Set<string>;
 	readonly strikes: Map<string, number>;
+	readonly blocked: Set<string>;
 };
 
 export const newMemory = (): Memory => ({
 	refused: new Set(),
 	reported: new Set(),
 	strikes: new Map(),
+	blocked: new Set(),
 });
 
 const struck = (memory: Memory, key: string) =>
@@ -89,4 +96,24 @@ export const report = (
 		{ ...who.fields, ...why(e) },
 		"model rejected the request; it is tried again on the next call",
 	);
+};
+
+/**
+ * A provider whose models the privacy rules all leave out would otherwise never be used, with no word
+ * why: the user added its key, so it is logged once per provider and process.
+ */
+export const noteBlocked = (
+	warn: Warn,
+	memory: Memory,
+	found: readonly Discovered[],
+	rules: PrivacyRules,
+) => {
+	for (const providerId of privacyBlocked(found, rules)) {
+		if (memory.blocked.has(providerId)) continue;
+		memory.blocked.add(providerId);
+		warn(
+			{ providerId },
+			"every model of this provider is left out by the privacy rules; allowTraining: true in privacy.yaml admits those that train, never in a sensitive workspace",
+		);
+	}
 };

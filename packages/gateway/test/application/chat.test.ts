@@ -236,6 +236,24 @@ describe("llm.chat@1 pipeline", () => {
 		]);
 	});
 
+	it("says once per provider why none of its models is used when the privacy rules leave all of them out", async () => {
+		const a = fakeProvider("a", [[text("a"), done]]);
+		const b = fakeProvider("b", [[text("b"), done]]);
+		const trains = {
+			...offer(a.adapter, "m", 100_000),
+			privacy: { trains: true, logs: true, publishes: false } as const,
+		};
+		const { deps: d, warned } = deps({
+			discover: async () => [trains, offer(b.adapter, "n")],
+			quota: fakeQuota().quota,
+		});
+		const chat = createLlmChat(d);
+		await collect(chat.chat(req, signal()));
+		await collect(chat.chat(req, signal()));
+		expect(a.seen).toHaveLength(0);
+		expect(warned).toEqual([{ providerId: "a" }]);
+	});
+
 	it("logs why a model rejected the request once, and still tries it again on the next call", async () => {
 		const a = fakeProvider("a", [[status(400)]]);
 		const b = fakeProvider("b", [[text("b"), done]]);

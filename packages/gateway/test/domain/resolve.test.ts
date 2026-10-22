@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	type Discovered,
 	type PrivacyRules,
+	privacyBlocked,
 	resolveChain,
 } from "../../src/domain/resolve.js";
 
@@ -137,6 +138,38 @@ describe("resolveChain privacy filter", () => {
 	it("keeps a sensitive workspace strict even when training is allowed", () => {
 		const strict = { allowTraining: true, sensitive: true };
 		expect(ids(resolveChain(found, tier, strict))).toEqual(["safe"]);
+	});
+});
+
+describe("privacyBlocked", () => {
+	const of = (providerId: string, id: string, privacy: Privacy) =>
+		model(id, { providerId }, privacy);
+
+	it("names a provider whose current models all fail the privacy filter", () => {
+		const found = [
+			of("g", "a", TRAINS),
+			of("g", "b", UNKNOWN),
+			of("ok", "c", SAFE),
+			of("mixed", "d", TRAINS),
+			of("mixed", "e", SAFE),
+			of("old", "f", TRAINS),
+		];
+		found[5] = model("f", { providerId: "old", deprecated: true }, TRAINS);
+		expect(privacyBlocked(found, DEFAULT)).toEqual(["g"]);
+	});
+
+	it("names nothing once training is allowed, or for a provider with no model of the mode", () => {
+		const found = [
+			of("g", "a", TRAINS),
+			model("p", { providerId: "paid", free: false }, TRAINS),
+		];
+		expect(
+			privacyBlocked(found, { allowTraining: true, sensitive: false }),
+		).toEqual([]);
+		expect(privacyBlocked(found, DEFAULT)).toEqual(["g"]);
+		expect(
+			privacyBlocked(found, { allowTraining: true, sensitive: true }),
+		).toEqual(["g"]);
 	});
 });
 

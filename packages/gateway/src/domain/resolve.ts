@@ -57,6 +57,23 @@ export const usableModels = (
 		)
 		.map((d) => d.model);
 
+/** The providers that list current models of the mode, none of which passes the privacy filter. */
+export const privacyBlocked = (
+	found: readonly Discovered[],
+	rules: PrivacyRules,
+): string[] => {
+	const current = found.filter(
+		(d) => inMode(d.model, rules.mode ?? "free") && !d.model.deprecated,
+	);
+	const ids = new Set(current.map((d) => d.model.providerId));
+	return [...ids].filter(
+		(id) =>
+			!current.some(
+				(d) => d.model.providerId === id && passesPrivacy(d.privacy, rules),
+			),
+	);
+};
+
 /** The candidates for one call, best first; quota picks the first open one. Empty when none fits. */
 export const resolveChain = (
 	found: readonly Discovered[],
