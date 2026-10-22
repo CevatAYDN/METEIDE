@@ -33,6 +33,7 @@ import { createQuotaModule } from "@mete/quota";
 import { createKeychainStore, createSecurityModule } from "@mete/security";
 import { createStorageModule } from "@mete/storage";
 import {
+	type BrowserOptions,
 	createBrowserModule,
 	createToolsFsModule,
 	createToolsShellModule,
@@ -69,6 +70,8 @@ export type AppOptions = {
 	readonly templatesDir?: string;
 	/** The fetch tools-web and remote MCP servers use; tests pass a fake, so nothing reaches the network. */
 	readonly fetch?: typeof fetch;
+	/** The browser runner and Chromium; tests pass fakes, so no browser starts. */
+	readonly browser?: Pick<BrowserOptions, "run" | "chromium">;
 };
 
 /** A started app. */
@@ -109,7 +112,7 @@ const modulesFor = (opts: AppOptions, workspaceId: string): MeteModule[] => {
 		createToolsShellModule(dirs),
 		createVcsGitModule(dirs),
 		createToolsWebModule(opts.fetch ? { fetch: opts.fetch } : {}),
-		createBrowserModule({ workspaceDir: opts.workspaceDir }),
+		createBrowserModule({ workspaceDir: opts.workspaceDir, ...opts.browser }),
 		createMcpClientModule({
 			workspaceDir: opts.workspaceDir,
 			adaptersDir: BUILT_IN_ADAPTERS,

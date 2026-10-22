@@ -42,6 +42,8 @@ The Phase 1 exit gate counts as passed on 2026-10-22 \[D\]. Live runs finished t
 
 Phase 2 exit gate, as of 2026-10-22: `apps/cli/test/research.test.ts` runs `templates/research.yaml` through every real module with scripted models, a Tavily fake and a page fake. It turns a topic into a cited `research-report@1` that the lead approves, and it blocks the report after the fourth revision (the default limit of 3), pauses for the human and completes once the human sends it back. The gate counts as passed on these tests on 2026-10-22, as Phase 1 did with its pause and resume; the live run with free models and a Tavily key is still open, and the first one closes that gap [D].
 
+Phase 3 exit gate, as of 2026-10-22: `apps/cli/test/seo-audit.test.ts` runs `templates/seo-audit.yaml` through every real module with scripted models, a fake browser runner, a Tavily fake and a page fake. It turns a URL into a `seo-audit@1` whose every fix cites an audit of the Lighthouse report, and its search falls back from the built-in Exa server to Tavily. A one-off run of the real browser runner on 2026-10-22 took a screenshot and a Lighthouse audit of `https://example.com/`. Still open: the full template run on a real URL with free models, and the MCP Inspector conformance check of `mete mcp`, which does not exist yet \[D\].
+
 ## Local CI
 
 | Hook or script | Runs |

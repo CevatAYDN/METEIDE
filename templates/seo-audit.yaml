@@ -1,0 +1,65 @@
+# The SEO audit team of docs/08 (Built-in templates): a technical auditor, a content analyst and a
+# competitor scout work in parallel on the page named by the goal; the SEO lead merges their notes
+# into a ranked seo-audit@1. The lead writes the report, so the schema guardrail is its check.
+apiVersion: mete/v1
+kind: TeamTemplate
+metadata:
+  id: seo-audit
+  name: SEO audit
+  version: 1.0.0
+  description: A URL becomes a ranked list of fixes
+pattern: parallel_then_synthesize
+roles:
+  - id: technical_auditor
+    name: Technical auditor
+    goal: >-
+      Audit the page the goal names with the SEO audit tool and take a screenshot of it. Note the four
+      category scores exactly as the tool returns them, and every audit that scores below 100 with its
+      id, title and details.
+    backstory: You report what the audit measured and never guess a score.
+    tier: reasoning
+    needs: [tool_calling]
+    capabilities: [seo.audit@1, browser.screenshot@1, web.fetch@1]
+  - id: content_analyst
+    name: Content analyst
+    goal: >-
+      Read the page the goal names and note its title, headings, meta description, the main topic and
+      what a reader would miss on it.
+    tier: reasoning
+    needs: [tool_calling]
+    capabilities: [web.fetch@1]
+  - id: competitor_scout
+    name: Competitor scout
+    goal: >-
+      Search the web for pages on the same topic as the page the goal names, read the best two, and
+      note what they do better, with their URLs.
+    tier: reasoning
+    needs: [tool_calling]
+    capabilities: [web.search@1, web.fetch@1]
+  - id: seo_lead
+    name: SEO lead
+    goal: >-
+      Merge the notes into one SEO audit and reply with only this JSON object:
+      {"url": "https://...", "summary": "...", "scores": {"performance": 0, "accessibility": 0,
+      "bestPractices": 0, "seo": 0}, "fixes": [{"priority": "high", "title": "...", "why": "...",
+      "how": "...", "auditIds": ["meta-description"]}]}.
+      Copy url and scores from the technical auditor's notes. Rank the fixes with the most important
+      first; priority is high, medium or low, and every fix names at least one audit id from the notes.
+    tier: reasoning
+    capabilities: []
+tasks:
+  - id: technical
+    role: technical_auditor
+    title: Audit the page and note its scores and failing audits
+  - id: content
+    role: content_analyst
+    title: Review the page's content and structure
+  - id: competitors
+    role: competitor_scout
+    title: Compare the page with competing pages
+  - id: report
+    role: seo_lead
+    title: Write the ranked SEO audit
+    context: [technical, content, competitors]
+    expected_output: artifact:seo-audit@1
+    guardrail: { schema: seo-audit@1, max_retries: 2 }
