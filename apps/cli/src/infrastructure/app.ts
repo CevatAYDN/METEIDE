@@ -23,6 +23,7 @@ import {
 	type ModuleContext,
 } from "@mete/kernel";
 import {
+	type Authorize,
 	type Confirm,
 	createMcpClientModule,
 	createMcpServerModule,
@@ -84,6 +85,8 @@ export type AppOptions = {
 	readonly elicit?: Elicit;
 	/** How an MCP server's sampling request asks the user once; only a command with a terminal sets it. */
 	readonly confirm?: Confirm;
+	/** How the user signs in to a remote MCP server once; only a command with a terminal sets it. */
+	readonly authorize?: Authorize;
 	/** Only `mete mcp` sets it: the transport mcp-server answers on (docs/10). */
 	readonly serve?: Transport;
 };
@@ -150,6 +153,7 @@ const modulesFor = (
 			...(opts.fetch ? { fetch: opts.fetch } : {}),
 			...(opts.elicit ? { elicit: opts.elicit } : {}),
 			...(opts.confirm ? { confirm: opts.confirm } : {}),
+			...(opts.authorize ? { authorize: opts.authorize } : {}),
 		}),
 		createCoreEngineModule({
 			workspaceId,

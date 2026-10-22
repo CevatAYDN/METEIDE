@@ -47,7 +47,13 @@ export const signIn = async (
 			),
 		);
 	const pasted = await authorize(server.id, url.href, signal);
-	if (pasted === undefined) return err(failed(server, "sign-in cancelled"));
+	if (pasted === undefined)
+		return err(
+			failed(
+				server,
+				"no sign-in was given; sign in once with `mete run` in a terminal",
+			),
+		);
 	const code = flow.codeFrom(pasted);
 	if (!code.ok) return err(failed(server, code.error));
 	try {

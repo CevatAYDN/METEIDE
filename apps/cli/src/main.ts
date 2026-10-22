@@ -5,6 +5,7 @@ import type { SecretStore } from "@mete/contracts";
 import { globalDataDir, type Logger } from "@mete/kernel";
 import { serveStdio, type Transport } from "@mete/mcp";
 import { createKeychainStore } from "@mete/security";
+import { terminalAuthorize } from "./application/authorize.js";
 import {
 	eventsCommand,
 	type Io,
@@ -105,15 +106,17 @@ const unlessDriven = async (
 	return 1;
 };
 
-// A run command has a terminal, so an MCP server may ask the user a question, or a model, through it.
+// A run command has a terminal, so an MCP server may ask the user a question, a model, or a sign-in through it.
+const asking = (io: Io) => ({
+	elicit: terminalElicit(io),
+	confirm: terminalConfirm(io),
+	authorize: terminalAuthorize(io),
+});
+
 const run = (opts: AppOptions, io: Io, what: RunWhat) =>
 	!("goal" in what) || what.goal || what.continue
 		? locked(opts, io, () =>
-				withApp(
-					{ ...opts, elicit: terminalElicit(io), confirm: terminalConfirm(io) },
-					io,
-					(a) => runCommand(a, io, what),
-				),
+				withApp({ ...opts, ...asking(io) }, io, (a) => runCommand(a, io, what)),
 			)
 		: usage(io);
 
