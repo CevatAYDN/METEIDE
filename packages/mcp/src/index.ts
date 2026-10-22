@@ -9,6 +9,10 @@ export {
 	type McpClientOptions,
 } from "./module.js";
 export {
+	createRegistryModule,
+	type RegistryOptions,
+} from "./registry-module.js";
+export {
 	createMcpServerModule,
 	type McpServerOptions,
 } from "./server-module.js";

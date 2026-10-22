@@ -77,3 +77,13 @@ export const RUNTIME_PINS = {
 	"node" | "python",
 	{ dir: string; version: string; assets: Record<string, PinnedAsset> }
 >;
+
+/** Tab 10, Registries: the official MCP registry's server list. */
+export const OFFICIAL_REGISTRY_URL =
+	"https://registry.modelcontextprotocol.io/v0.1/servers";
+
+/** Tab 10, Registries: entries one search asks the official registry for. */
+export const REGISTRY_SEARCH_LIMIT = 20;
+
+/** Tab 10, Registries: how long one registry search may take. */
+export const REGISTRY_TIMEOUT_MS = 30_000;

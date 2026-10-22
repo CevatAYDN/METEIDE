@@ -11,6 +11,7 @@ import {
 	keyCommand,
 	mcpCommand,
 	type RunWhat,
+	registryCommand,
 	runCommand,
 	statusCommand,
 	stopCommand,
@@ -39,6 +40,7 @@ const USAGE = [
 	"  mete events <run id>         show a run's history: time, event, module, task, agent",
 	"  mete stop <run id> | --all   cancel paused runs",
 	"  mete mcp [<folder>]          serve this folder's teams to an MCP host (Claude Code, Cursor, Cline)",
+	'  mete registry search "<words>"   find MCP servers in the official MCP registry; installs nothing',
 	"  mete key set|delete <provider id>, mete key list",
 ].join("\n");
 
@@ -155,6 +157,14 @@ const mcp = (opts: AppOptions, io: Io, serve: Serve, folder?: string) => {
 	});
 };
 
+// mete registry search "<words>": read-only, like mete status.
+const registry = (reader: AppOptions, io: Io, [sub, ...words]: string[]) => {
+	const query = words.join(" ").trim();
+	return sub === "search" && query
+		? withApp(reader, io, (a) => registryCommand(a, io, query))
+		: usage(io);
+};
+
 const dispatch = (
 	p: Parsed,
 	opts: AppOptions,
@@ -180,6 +190,8 @@ const dispatch = (
 			return stop(reader, io, p.values.all ? "all" : rest[0]);
 		case "mcp":
 			return mcp(opts, io, serve, rest[0]);
+		case "registry":
+			return registry(reader, io, rest);
 		case "key":
 			return keyCommand(
 				opts.secrets ?? createKeychainStore(),

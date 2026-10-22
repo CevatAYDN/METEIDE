@@ -25,6 +25,7 @@ import {
 import {
 	createMcpClientModule,
 	createMcpServerModule,
+	createRegistryModule,
 	type Transport,
 } from "@mete/mcp";
 import {
@@ -135,6 +136,7 @@ const modulesFor = (
 		createVcsGitModule(dirs),
 		createToolsWebModule(opts.fetch ? { fetch: opts.fetch } : {}),
 		createBrowserModule({ workspaceDir: opts.workspaceDir, ...opts.browser }),
+		createRegistryModule(opts.fetch ? { fetch: opts.fetch } : {}),
 		createMcpClientModule({
 			workspaceDir: opts.workspaceDir,
 			adaptersDir: BUILT_IN_ADAPTERS,
