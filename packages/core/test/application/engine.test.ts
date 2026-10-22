@@ -287,6 +287,30 @@ describe("single-agent engine", () => {
 		expect(done?.payload).toEqual({ messages: 2, chars: 52 });
 	});
 
+	it("summarizes once when the newest turns alone fill the window, never the summary again", async () => {
+		const read = vi.fn<Tool>(async () => ok({ content: "z".repeat(25_000) }));
+		const call = reply("", [{ name: "fs_read", args: { path: "big.log" } }]);
+		const h = engineHarness({
+			scripts: [
+				call,
+				call,
+				call,
+				call,
+				call,
+				reply("the first read"),
+				reply("done"),
+			],
+			tools: [["fs.read@1", read]],
+		});
+		const runId = await begin(h);
+		await settled(h, runId, "completed");
+		const fast = h.requests.filter(
+			(r) => "tier" in r.target && r.target.tier === "fast",
+		);
+		expect(fast).toHaveLength(1);
+		expect(h.requests).toHaveLength(7);
+	});
+
 	it("pauses for approval and repeats the same tool call on resume", async () => {
 		const shell = vi
 			.fn()
