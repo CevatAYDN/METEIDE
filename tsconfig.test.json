@@ -5,7 +5,7 @@
 		"noEmit": true,
 		"declaration": false,
 		// packages/ui-theia is CommonJS and its classes use inversify's legacy decorators (ADR-002), and
-		// this one project type-checks its tests with the others; Biome still asks for `import type`.
+		// this one project type-checks its tests with the others; tsc no longer enforces `import type` there (Biome only warns).
 		"experimentalDecorators": true,
 		"verbatimModuleSyntax": false,
 		"types": ["node"]
