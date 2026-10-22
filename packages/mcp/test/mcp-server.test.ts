@@ -2,6 +2,7 @@ import {
 	type ApprovalInput,
 	err,
 	type MeteEvent,
+	ModuleManifestSchema,
 	ok,
 	type RunStart,
 	type RunView,
@@ -106,8 +107,11 @@ describe("mcp-server", () => {
 		await s?.module.deactivate();
 	});
 
-	it("lists its four tools", async () => {
+	it("has a valid manifest and lists its four tools", async () => {
 		s = await serve();
+		expect(ModuleManifestSchema.safeParse(s.module.manifest).success).toBe(
+			true,
+		);
 		const { tools } = await s.client.listTools();
 		expect(tools.map((t) => t.name)).toEqual([
 			"mete_run_team",

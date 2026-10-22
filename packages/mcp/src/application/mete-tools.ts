@@ -4,6 +4,7 @@ import {
 	DecisionSchema,
 	type EngineError,
 	type MeteEvent,
+	RunStatusSchema,
 	type RunView,
 	TaskStatusSchema,
 	type TeamEngineAdapter,
@@ -17,6 +18,7 @@ import { runProgress } from "../domain/run-view.js";
 // The tools of METE as an MCP server (docs/10): teams run here, answers come back as tool results.
 
 /** A run's persisted events and the rows that no longer parse, or undefined when none can be read. */
+// shortcut: the CLI reads storage's events table for this, as for `mete events`; an events-read capability comes with the desktop.
 export type RunHistory = (runId: string) =>
 	| {
 			readonly events: readonly MeteEvent[];
@@ -52,7 +54,7 @@ const answer = <T extends Record<string, unknown>>(
 const NO_ENGINE = "team.engine@2 is not active";
 
 const StatusOutput = {
-	status: z.string(),
+	status: RunStatusSchema,
 	reason: z.string().optional(),
 	tasks: z.array(
 		z.object({ id: z.string(), title: z.string(), status: TaskStatusSchema }),
@@ -85,15 +87,17 @@ const taskStatus =
 				{ runId, seq: b.seq, reason: b.issues },
 				"run event cannot be read",
 			);
-		return answer(statusOf(view.value[0], h.events));
+		const run = view.value[0];
+		if (!run) return failed(`not_found: no run ${runId}`);
+		return answer(statusOf(run, h.events));
 	};
 
 // The engine knows the run's state; its events tell the tasks, artifacts, output and failure.
-const statusOf = (run: RunView | undefined, events: readonly MeteEvent[]) => {
+const statusOf = (run: RunView, events: readonly MeteEvent[]) => {
 	const { failure, ...progress } = runProgress(events);
-	const reason = run?.pauseReason ?? failure;
+	const reason = run.pauseReason ?? failure;
 	return {
-		status: run?.status ?? "unknown",
+		status: run.status,
 		...(reason ? { reason } : {}),
 		...progress,
 	};
