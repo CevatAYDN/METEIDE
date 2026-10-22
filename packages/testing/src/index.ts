@@ -24,6 +24,11 @@ export {
 	quotaReserveContract,
 } from "./quota-reserve.contract.js";
 export {
+	type RegistryHarness,
+	type RegistryWorld,
+	registrySearchContract,
+} from "./registry-search.contract.js";
+export {
 	type SecretsMaskHarness,
 	secretsMaskContract,
 } from "./secrets-mask.contract.js";
