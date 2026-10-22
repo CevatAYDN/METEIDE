@@ -22,6 +22,7 @@ import {
 } from "../infrastructure/template-store.js";
 import { recordDecision } from "./approvals.js";
 import { type Opening, offerBrief, takeHandoff } from "./continue.js";
+import { routeFor } from "./route.js";
 import { drive } from "./run-driver.js";
 import {
 	apply,
@@ -175,10 +176,17 @@ const start = async (s: EngineState, req: RunStart): Out<{ runId: string }> => {
 	const r = RunStartSchema.safeParse(req);
 	if (!r.success)
 		return err({ code: "bad_input", message: z.prettifyError(r.error) });
-	const team = await teamFor(s, r.data.templateId);
+	const id = s.deps.newId();
+	// No template named: the router decides; null asks for a single agent (docs/08, Router).
+	const { templateId, goal: asked, priority: p } = r.data;
+	const routed =
+		templateId === undefined && asked && !r.data.continue
+			? await routeFor(s, { goal: asked, runId: id, priority: p })
+			: ok(templateId);
+	if (!routed.ok) return routed;
+	const team = await teamFor(s, routed.value);
 	if (!team.ok) return team;
 	// The template is checked first, so a bad one never uses up a handoff.
-	const id = s.deps.newId();
 	const opening = r.data.continue ? takeHandoff(s, id) : ok(offerBrief(s));
 	if (!opening.ok) return opening;
 	// The schema asks for a goal unless the run continues, and a handoff always names one.

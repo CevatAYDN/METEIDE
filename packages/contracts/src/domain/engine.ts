@@ -74,6 +74,12 @@ export type EngineError =
 			readonly code: "invalid_state";
 			readonly message: string;
 			readonly status: RunStatus;
+	  }
+	| {
+			/** The router was unsure (docs/08, Router): no run started; the user picks one. */
+			readonly code: "choose_template";
+			readonly message: string;
+			readonly suggestions: readonly string[];
 	  };
 
 /** team.engine@2: starts and steers runs; observers read the run.*, task.* and agent.* events. */

@@ -403,6 +403,30 @@ describe("team runs", () => {
 		expect(h.requests).toHaveLength(2);
 	});
 
+	it("routes a run without a template, and lets the user choose when the router is unsure", async () => {
+		const sure = reply('{"mode":"team","templateId":"duo","confidence":0.9}');
+		const h = engineHarness({
+			scripts: [sure, reply("facts"), reply("the write-up")],
+			templates,
+		});
+		const r = await h.engine.start({ goal: "free models" });
+		if (!r.ok) throw new Error(r.error.message);
+		await settled(h, r.value.runId, "completed");
+		expect(view(h, r.value.runId)?.templateId).toBe("duo");
+		expect(h.requests[0]?.target).toEqual({ tier: "fast" });
+
+		const unsure = reply('{"mode":"team","templateId":"duo","confidence":0.4}');
+		const other = engineHarness({ scripts: [unsure], templates });
+		expect(await other.engine.start({ goal: "free models" })).toEqual({
+			ok: false,
+			error: expect.objectContaining({
+				code: "choose_template",
+				suggestions: ["duo"],
+			}),
+		});
+		expect(other.engine.status()).toEqual({ ok: true, value: [] });
+	});
+
 	it("answers not_found, bad_input and not_supported for templates it cannot use", async () => {
 		const h = engineHarness({ scripts: [], templates });
 		const code = async (templateId: string) => {

@@ -25,7 +25,8 @@ import {
 
 const USAGE = [
 	"usage:",
-	'  mete run "<goal>"            run a single agent on the goal in this folder',
+	'  mete run "<goal>"            run the goal in this folder; the router picks a single agent or a team',
+	'  mete run --single "<goal>"   run a single agent without asking the router',
 	'  mete run --template <id> "<goal>"   run a team template on the goal',
 	"  mete run --resume <run id>   resume a paused run",
 	'  mete run --continue ["<goal>"]   go on from the last run\'s handoff',
@@ -41,6 +42,7 @@ const OPTIONS = {
 	resume: { type: "string" },
 	template: { type: "string" },
 	continue: { type: "boolean" },
+	single: { type: "boolean" },
 	all: { type: "boolean" },
 	help: { type: "boolean", short: "h" },
 } as const;
@@ -119,7 +121,11 @@ const answer = (
 
 const goalOf = (p: Parsed, goal: string): RunWhat => {
 	if (p.values.resume) return { resume: p.values.resume };
-	const template = p.values.template ? { templateId: p.values.template } : {};
+	const template = p.values.single
+		? { templateId: null }
+		: p.values.template
+			? { templateId: p.values.template }
+			: {};
 	const more = p.values.continue ? { continue: true as const } : {};
 	return { goal, ...template, ...more };
 };

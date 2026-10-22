@@ -54,6 +54,8 @@ const setup = async (b?: Behaviour) => {
 	const app = await createApp({
 		workspaceDir: repo.workspaceDir,
 		globalDir: repo.globalDir,
+		// No built-in templates: these runs are single agents, so the router never asks a model.
+		templatesDir: join(repo.globalDir, "no-templates"),
 		logger: silent,
 		secrets: memorySecrets(),
 		providers: b ? [scriptedProvider(b)] : [],

@@ -58,6 +58,8 @@ export type AppOptions = {
 	readonly providers?: readonly MeteModule[];
 	/** Only the process that drives runs recovers them (docs/07); default true. */
 	readonly recover?: boolean;
+	/** The built-in templates folder; the repository's templates/ by default. */
+	readonly templatesDir?: string;
 	/** The fetch tools-web uses; tests pass a fake, so nothing reaches the network. */
 	readonly fetch?: typeof fetch;
 };
@@ -103,7 +105,10 @@ const modulesFor = (opts: AppOptions, workspaceId: string): MeteModule[] => {
 		createCoreEngineModule({
 			workspaceId,
 			recover: opts.recover !== false,
-			templates: { builtIn: BUILT_IN_TEMPLATES, workspace: opts.workspaceDir },
+			templates: {
+				builtIn: opts.templatesDir ?? BUILT_IN_TEMPLATES,
+				workspace: opts.workspaceDir,
+			},
 			workspaceDir: opts.workspaceDir,
 		}),
 	];

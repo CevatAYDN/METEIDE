@@ -14,3 +14,6 @@ export const SUMMARY_AT = 0.7;
 
 /** Newest turns a summary keeps word for word (08 Orchestration and teams, Agent context assembly). */
 export const SUMMARY_KEEP_TURNS = 4;
+
+/** Below this confidence the router lets the user choose (08 Orchestration and teams, Router). */
+export const ROUTER_MIN_CONFIDENCE = 0.7;

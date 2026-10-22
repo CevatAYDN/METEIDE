@@ -212,7 +212,8 @@ export type ApprovalInput = { taskId?: string; decision: "approve" | "revise"; f
                                  // taskId is the template task id or the Task id; without it, the only task that waits
 export type EngineError =
   | { code: "bad_input" | "not_found" | "not_supported"; message: string }
-  | { code: "invalid_state"; message: string; status: RunStatus };   // the run's status does not allow the call
+  | { code: "invalid_state"; message: string; status: RunStatus }    // the run's status does not allow the call
+  | { code: "choose_template"; message: string; suggestions: string[] };   // the router was unsure; no run started
 export interface TeamEngineAdapter {
   start(req: RunStart): Promise<Result<{ runId: string }, EngineError>>;   // after run.created and run.started
   pause(runId: string): Promise<Result<void, EngineError>>;    // a running run, reason user; aborts the model call in

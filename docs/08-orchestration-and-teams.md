@@ -11,9 +11,11 @@ The native team engine executes YAML team templates as XState machines; models o
 3. Confidence below 0.7: ask the user to choose among the suggested templates \[D\].
 4. Simple requests run as a single agent (role `assistant`, workspace tools). The rule is: never build a team for a simple task \[C\].
 
+A start without `templateId` is routed; `templateId: null` asks for a single agent without the router (`mete run --single`), and `--continue` is never routed. The router, on the `fast` tier without tools, sees every template of both folders by id, name and description; one that does not load is left out with a warning. Its reply is checked against the schema; below 0.7 confidence `start` answers `choose_template` with the suggested template ids (the named one, or all of them) and no run is created. A reply that is no route or names no known template, a model error or a missing `llm.chat@1` falls back to a single agent with a warning in the log. The router call comes before the run exists, so it is not part of the run's budget \[D\].
+
 ## Single agent
 
-A request without a template runs as a single agent; a template id starts a team run, and the router that picks a template by itself comes later. Rules \[D\]:
+The single agent runs every request that the router or the user (`templateId: null`) did not give to a team. Rules \[D\]:
 
 - The agent has role `assistant` and calls `llm.chat@1` with tier `coder`, needs `tool_calling` and the run's priority (default 1).
 - The conversation starts with a system message (the role, the operating system and the shell name) and the goal as the user message.

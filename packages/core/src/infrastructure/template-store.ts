@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
 	artifactSchema,
@@ -99,4 +99,30 @@ export const loadTemplate = async (
 		if (text.value !== undefined) return fromText(id, text.value);
 	}
 	return err({ code: "not_found", message: `no template ${id}` });
+};
+
+const idsIn = async (dir: string) => {
+	try {
+		const names = await withLockRetry(() => readdir(dir));
+		return names.filter((n) => n.endsWith(".yaml")).map((n) => n.slice(0, -5));
+	} catch (e) {
+		if (codeOf(e) === "ENOENT") return [];
+		throw e;
+	}
+};
+
+/** What the router may pick: every template both folders hold, and those that do not load. */
+export const listTemplates = async (dirs: TemplateDirs) => {
+	const ids = new Set([
+		...(await idsIn(join(dirs.workspace, ".mete", "teams"))),
+		...(await idsIn(dirs.builtIn)),
+	]);
+	const templates: TeamTemplate[] = [];
+	const broken: { id: string; error: TemplateError }[] = [];
+	for (const id of [...ids].sort()) {
+		const t = await loadTemplate(dirs, id);
+		if (t.ok) templates.push(t.value);
+		else broken.push({ id, error: t.error });
+	}
+	return { templates, broken };
 };

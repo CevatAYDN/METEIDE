@@ -1,5 +1,6 @@
 import type {
 	ApprovalInput,
+	EngineError,
 	MeteEvent,
 	RunView,
 	SecretStore,
@@ -132,7 +133,7 @@ const teamHint = (runId: string | undefined) => [
 
 /** What a run command does: start a run, resume one, or answer a team task and go on. */
 export type RunWhat =
-	| { goal: string; templateId?: string; continue?: true }
+	| { goal: string; templateId?: string | null; continue?: true }
 	| { resume: string }
 	| { approve: string; input: ApprovalInput };
 
@@ -142,11 +143,23 @@ const targetOf = (what: RunWhat) =>
 const begin = (engine: TeamEngineAdapter, what: RunWhat) => {
 	if ("resume" in what) return engine.resume(what.resume);
 	if ("approve" in what) return engine.approve(what.approve, what.input);
-	const template = what.templateId ? { templateId: what.templateId } : {};
+	// null asks for a single agent; no templateId lets the router decide (docs/08, Router).
+	const template =
+		what.templateId !== undefined ? { templateId: what.templateId } : {};
 	// --continue without a goal takes the handoff's goal (docs/08, Run memory).
 	const goal = what.goal ? { goal: what.goal } : {};
 	const more = what.continue ? { continue: true as const } : {};
 	return engine.start({ ...goal, ...template, ...more });
+};
+
+// A start that did not start: the router's suggestions exit 2 like a pause, the rest exits 1.
+const refused = (io: Io, e: EngineError) => {
+	io.err(e.message);
+	if (e.code !== "choose_template") return 1;
+	for (const id of e.suggestions)
+		io.err(`  mete run --template ${id} "<goal>"`);
+	io.err('  mete run --single "<goal>"');
+	return 2;
 };
 
 /** `mete run` (a goal, --template, --resume), `mete approve` and `mete revise`. */
@@ -157,10 +170,7 @@ export const runCommand = (app: App, io: Io, what: RunWhat) =>
 		const titles = namesOf(seen?.events ?? []).titles;
 		const run = follow(app.events, io, target, titles);
 		const r = await begin(engine, what);
-		if (!r.ok) {
-			io.err(r.error.message);
-			return 1;
-		}
+		if (!r.ok) return refused(io, r.error);
 		const stopWatching = cancelOnInterrupt(io, engine, run.runId);
 		const status = await run.ended;
 		stopWatching();
