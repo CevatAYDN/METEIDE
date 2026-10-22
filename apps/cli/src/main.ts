@@ -11,11 +11,11 @@ import {
 	keyCommand,
 	mcpCommand,
 	type RunWhat,
-	registryCommand,
 	runCommand,
 	statusCommand,
 	stopCommand,
 } from "./application/commands.js";
+import { registryCommand } from "./application/registry.js";
 import { type App, type AppOptions, createApp } from "./infrastructure/app.js";
 import { fileLogger } from "./infrastructure/log.js";
 import {

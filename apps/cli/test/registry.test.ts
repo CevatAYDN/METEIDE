@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { registryCommand } from "../src/application/commands.js";
+import { registryCommand } from "../src/application/registry.js";
 import { createApp } from "../src/infrastructure/app.js";
 import { memorySecrets, recordingIo, silent, tempRepo } from "./helpers.js";
 
