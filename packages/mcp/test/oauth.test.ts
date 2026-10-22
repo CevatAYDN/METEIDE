@@ -15,6 +15,7 @@ import { moduleContext } from "./helpers/context.js";
 const BASE = "https://mcp.example";
 // A JWT pair can be longer than the Windows keychain keeps in one entry (1280 characters, measured).
 const TOKEN = "t".repeat(3000);
+const REFRESHED = "r".repeat(3000);
 const KEYCHAIN_LIMIT = 1280;
 const signal = new AbortController().signal;
 const remote = {
@@ -52,7 +53,9 @@ const remoteServer = async () => {
 		sessions.set(id, transport);
 		return transport;
 	};
-	const seen = { registered: 0, tokens: 0 };
+	const seen = { registered: 0, tokens: 0, refreshes: 0 };
+	// The one access token the server accepts; `expire` makes the one it handed out stop working.
+	const accepted = { token: TOKEN };
 	const metadata = (pathname: string) => {
 		if (pathname.startsWith("/.well-known/oauth-protected-resource"))
 			return json({ resource: `${BASE}/mcp`, authorization_servers: [BASE] });
@@ -69,6 +72,25 @@ const remoteServer = async () => {
 			token_endpoint_auth_methods_supported: ["none"],
 		});
 	};
+	const refresh = (form: URLSearchParams) => {
+		if (form.get("refresh_token") !== "refresh-1")
+			return json({ error: "invalid_grant" }, 400);
+		seen.refreshes += 1;
+		accepted.token = REFRESHED;
+		return json({
+			access_token: REFRESHED,
+			refresh_token: "refresh-2",
+			token_type: "Bearer",
+		});
+	};
+	const grant = (form: URLSearchParams) =>
+		form.get("code") === "good-code"
+			? json({
+					access_token: TOKEN,
+					refresh_token: "refresh-1",
+					token_type: "Bearer",
+				})
+			: json({ error: "invalid_grant" }, 400);
 	const oauth = async (req: Request, pathname: string) => {
 		if (pathname === "/register") {
 			seen.registered += 1;
@@ -77,13 +99,13 @@ const remoteServer = async () => {
 		if (pathname !== "/token") return undefined;
 		seen.tokens += 1;
 		const form = new URLSearchParams(await req.text());
-		return form.get("code") === "good-code"
-			? json({ access_token: TOKEN, token_type: "Bearer" })
-			: json({ error: "invalid_grant" }, 400);
+		return form.get("grant_type") === "refresh_token"
+			? refresh(form)
+			: grant(form);
 	};
 	const mcpEndpoint = async (req: Request, pathname: string) => {
 		if (pathname !== "/mcp") return new Response("", { status: 404 });
-		if (req.headers.get("authorization") === `Bearer ${TOKEN}`)
+		if (req.headers.get("authorization") === `Bearer ${accepted.token}`)
 			return (await session(req)).handleRequest(req);
 		const resource = `${BASE}/.well-known/oauth-protected-resource`;
 		return new Response("", {
@@ -101,7 +123,13 @@ const remoteServer = async () => {
 	};
 	const fetchFake: typeof fetch = (input, init) =>
 		answer(new Request(input, init));
-	return { fetch: fetchFake, seen };
+	return {
+		fetch: fetchFake,
+		seen,
+		expire: () => {
+			accepted.token = "expired";
+		},
+	};
 };
 
 const memorySecrets = (): SecretStore & { names: () => string[] } => {
@@ -115,6 +143,20 @@ const memorySecrets = (): SecretStore & { names: () => string[] } => {
 		delete: async (n) => ok(m.delete(n)),
 		names: () => [...m.keys()],
 	};
+};
+
+// The tokens as the client keeps them: numbered pieces, `<name>` holding how many.
+const savedTokens = async (secrets: SecretStore) => {
+	const name = `mcp/${BASE}/tokens`;
+	const count = await secrets.get(name);
+	let text = "";
+	for (let i = 0; count.ok && i < Number(count.value); i++) {
+		const piece = await secrets.get(`${name}/${i}`);
+		text += piece.ok ? (piece.value ?? "") : "";
+	}
+	return z
+		.object({ access_token: z.string(), refresh_token: z.string() })
+		.parse(JSON.parse(text));
 };
 
 // What the browser lands on after the user allows access: the code, and the state the sign-in sent.
@@ -181,7 +223,32 @@ describe("mcp-client OAuth", () => {
 		// Another process, another module: no host to ask, the keychain has the tokens.
 		const second = await start(server, secrets);
 		expect(await second.echo()).toBe("hi");
-		expect(server.seen).toEqual({ registered: 1, tokens: 1 });
+		expect(server.seen).toEqual({ registered: 1, tokens: 1, refreshes: 0 });
+		await second.module.deactivate();
+	});
+
+	it("renews an expired access token with the refresh token, without asking the user", async () => {
+		const server = await remoteServer();
+		const secrets = memorySecrets();
+		const first = await start(server, secrets, {
+			authorize: async (_id, url) => landing(url),
+		});
+		expect(await first.echo()).toBe("hi");
+		await first.module.deactivate();
+		server.expire();
+		let asked = 0;
+		const second = await start(server, secrets, {
+			authorize: async () => {
+				asked += 1;
+				return undefined;
+			},
+		});
+		expect(await second.echo()).toBe("hi");
+		expect(asked).toBe(0);
+		expect(server.seen.refreshes).toBe(1);
+		const saved = await savedTokens(secrets);
+		expect(saved.access_token).toBe(REFRESHED);
+		expect(saved.refresh_token).toBe("refresh-2");
 		await second.module.deactivate();
 	});
 
