@@ -23,6 +23,7 @@ import {
 	type ModuleContext,
 } from "@mete/kernel";
 import {
+	type Confirm,
 	createMcpClientModule,
 	createMcpServerModule,
 	createRegistryModule,
@@ -81,6 +82,8 @@ export type AppOptions = {
 	readonly browser?: Pick<BrowserOptions, "run" | "chromium">;
 	/** How MCP servers ask the user for input; only a command with a terminal sets it, so a server that asks otherwise gets an error. */
 	readonly elicit?: Elicit;
+	/** How an MCP server's sampling request asks the user once; only a command with a terminal sets it. */
+	readonly confirm?: Confirm;
 	/** Only `mete mcp` sets it: the transport mcp-server answers on (docs/10). */
 	readonly serve?: Transport;
 };
@@ -146,6 +149,7 @@ const modulesFor = (
 			globalDir: opts.globalDir,
 			...(opts.fetch ? { fetch: opts.fetch } : {}),
 			...(opts.elicit ? { elicit: opts.elicit } : {}),
+			...(opts.confirm ? { confirm: opts.confirm } : {}),
 		}),
 		createCoreEngineModule({
 			workspaceId,

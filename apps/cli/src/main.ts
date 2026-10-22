@@ -15,6 +15,7 @@ import {
 	statusCommand,
 	stopCommand,
 } from "./application/commands.js";
+import { terminalConfirm } from "./application/confirm.js";
 import { terminalElicit } from "./application/elicit.js";
 import { registryAddCommand, registryCommand } from "./application/registry.js";
 import { type App, type AppOptions, createApp } from "./infrastructure/app.js";
@@ -104,12 +105,14 @@ const unlessDriven = async (
 	return 1;
 };
 
-// A run command has a terminal, so an MCP server may ask the user a question through it.
+// A run command has a terminal, so an MCP server may ask the user a question, or a model, through it.
 const run = (opts: AppOptions, io: Io, what: RunWhat) =>
 	!("goal" in what) || what.goal || what.continue
 		? locked(opts, io, () =>
-				withApp({ ...opts, elicit: terminalElicit(io) }, io, (a) =>
-					runCommand(a, io, what),
+				withApp(
+					{ ...opts, elicit: terminalElicit(io), confirm: terminalConfirm(io) },
+					io,
+					(a) => runCommand(a, io, what),
 				),
 			)
 		: usage(io);

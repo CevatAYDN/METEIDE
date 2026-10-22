@@ -58,6 +58,8 @@ Cancelling a run sends `notifications/cancelled` for the call in flight (pausing
 
 The commands that drive a run (`mete run`, `mete approve`, `mete revise`) answer a server's form request in the terminal: the server's name and message first, as plain text, then one question per field. A bad answer is asked once more and then declines the request, end of input cancels it, and a form with a multiple-choice field is declined. When standard input is not a terminal the request is declined without a word, and the other commands, `mete mcp` among them, offer no elicitation, so a server that asks gets an error. URL requests are never offered; the desktop form comes in Phase 5 \[D\].
 
+Sampling is offered under the same commands. A request spends the budget of the run whose tool call is in flight on that server and stops when that run stops; without a run it is refused. `policy.check@1` decides first with `mcp.sampling`: where it asks, METE asks you once per server until it exits, names the server and says it spends the run's budget, and a no is asked again at the next request; without a terminal the answer is no. The request goes to `llm.chat@1` with a tier from its priorities (`reasoning` when intelligence counts most, `fast` when speed does, otherwise `coder`); model-name hints are ignored, and a request with images or tools is refused \[D\].
+
 A stdio server starts in the workspace folder, not in the folder `mete` was launched from, and the client tells every server that folder as its one root \[D\]; the vault roots join it in Phase 4.
 
 Server configuration lives in `.mete/mcp.yaml` (workspace) and in global settings:

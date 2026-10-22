@@ -23,6 +23,9 @@ const CONTROL = /[\u0000-\u001f\u007f-\u009f]/g;
 
 const clean = (text: string) => text.replace(CONTROL, " ").trim();
 
+/** y, yes, true, n, no or false; anything else is undefined. */
+export const yesNo = (line: string) => BOOLEANS.get(line.toLowerCase());
+
 const options = (f: Field): readonly string[] | undefined => {
 	if ("enum" in f) return f.enum;
 	if ("oneOf" in f) return f.oneOf.map((o) => o.const);
@@ -38,7 +41,7 @@ const parseNumber = (type: "number" | "integer", line: string) => {
 const parse = (f: Field, line: string): Value | undefined => {
 	const list = options(f);
 	if (list) return list.includes(line) ? line : undefined;
-	if (f.type === "boolean") return BOOLEANS.get(line.toLowerCase());
+	if (f.type === "boolean") return yesNo(line);
 	if (f.type === "number" || f.type === "integer")
 		return parseNumber(f.type, line);
 	return f.type === "string" ? line : undefined;
