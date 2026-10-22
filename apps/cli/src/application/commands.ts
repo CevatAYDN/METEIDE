@@ -27,6 +27,8 @@ export type Io = {
 	readonly err: (line: string) => void;
 	/** Reads a secret without echo, or standard input when it is not a terminal. */
 	readonly readSecret: (prompt: string) => Promise<string>;
+	/** Asks one line on the terminal; undefined when the user gave up. Absent when standard input is not a terminal. */
+	readonly readLine?: (prompt: string) => Promise<string | undefined>;
 	/** Calls `fn` on Ctrl+C until the returned function is called. */
 	readonly onInterrupt: (fn: () => void) => () => void;
 };

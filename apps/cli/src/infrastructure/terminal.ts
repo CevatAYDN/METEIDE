@@ -1,3 +1,4 @@
+import { createInterface, type Interface } from "node:readline";
 import type { Io } from "../application/commands.js";
 
 // The process terminal behind Io: lines to stdout and stderr, a secret read without echo.
@@ -44,12 +45,37 @@ const readHidden = (prompt: string) =>
 		stdin.on("data", onData);
 	});
 
+// One readline for the process, so lines typed ahead survive between prompts; it is paused between
+// them, so it does not keep the process alive. The prompt goes to stderr, so stdout keeps only the
+// run's lines. Ctrl+D ends the input: no answer. Ctrl+C cancels the run, as it does anywhere else.
+let asker: { rl: Interface; lines: AsyncIterator<string> } | undefined;
+const readTyped = async (prompt: string) => {
+	if (!asker) {
+		const rl = createInterface({
+			input: process.stdin,
+			output: process.stderr,
+		});
+		rl.on("SIGINT", () => {
+			rl.close();
+			process.emit("SIGINT", "SIGINT");
+		});
+		asker = { rl, lines: rl[Symbol.asyncIterator]() };
+	}
+	asker.rl.setPrompt(prompt);
+	asker.rl.prompt();
+	const next = await asker.lines.next();
+	if (next.done) return undefined;
+	asker.rl.pause();
+	return next.value;
+};
+
 /** The real terminal. */
 export const processIo: Io = {
 	out: (line) => void process.stdout.write(`${line}\n`),
 	err: (line) => void process.stderr.write(`${line}\n`),
 	readSecret: (prompt) =>
 		process.stdin.isTTY ? readHidden(prompt) : readPiped(),
+	...(process.stdin.isTTY ? { readLine: readTyped } : {}),
 	onInterrupt: (fn) => {
 		process.on("SIGINT", fn);
 		return () => void process.off("SIGINT", fn);

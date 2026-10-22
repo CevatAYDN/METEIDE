@@ -26,6 +26,7 @@ import {
 	createMcpClientModule,
 	createMcpServerModule,
 	createRegistryModule,
+	type Elicit,
 	type Transport,
 } from "@mete/mcp";
 import {
@@ -78,6 +79,8 @@ export type AppOptions = {
 	readonly fetch?: typeof fetch;
 	/** The browser runner and Chromium; tests pass fakes, so no browser starts. */
 	readonly browser?: Pick<BrowserOptions, "run" | "chromium">;
+	/** How MCP servers ask the user for input; only a command with a terminal sets it, so a server that asks otherwise gets an error. */
+	readonly elicit?: Elicit;
 	/** Only `mete mcp` sets it: the transport mcp-server answers on (docs/10). */
 	readonly serve?: Transport;
 };
@@ -142,6 +145,7 @@ const modulesFor = (
 			adaptersDir: BUILT_IN_ADAPTERS,
 			globalDir: opts.globalDir,
 			...(opts.fetch ? { fetch: opts.fetch } : {}),
+			...(opts.elicit ? { elicit: opts.elicit } : {}),
 		}),
 		createCoreEngineModule({
 			workspaceId,

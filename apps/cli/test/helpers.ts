@@ -64,15 +64,24 @@ export const memorySecrets = (
 	};
 };
 
-/** An Io that records lines and reads a fixed secret. */
-export const recordingIo = (secret = "") => {
+/** An Io that records lines and reads a fixed secret; with `answers` it also has a terminal that types them in turn. */
+export const recordingIo = (secret = "", answers?: (string | undefined)[]) => {
 	const out: string[] = [];
 	const err: string[] = [];
+	const prompts: string[] = [];
 	let interrupt: (() => void) | undefined;
 	const io: Io = {
 		out: (l) => void out.push(l),
 		err: (l) => void err.push(l),
 		readSecret: async () => secret,
+		...(answers
+			? {
+					readLine: async (prompt: string) => {
+						prompts.push(prompt);
+						return answers.shift();
+					},
+				}
+			: {}),
 		onInterrupt: (fn) => {
 			interrupt = fn;
 			return () => {
@@ -80,7 +89,7 @@ export const recordingIo = (secret = "") => {
 			};
 		},
 	};
-	return { io, out, err, interrupt: () => interrupt?.() };
+	return { io, out, err, prompts, interrupt: () => interrupt?.() };
 };
 
 const MANIFEST: ModuleManifest = {

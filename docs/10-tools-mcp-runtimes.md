@@ -56,6 +56,8 @@ Each saved file adds one line to `.mete/assets/manifest.jsonl`: `path`, `mediaTy
 
 Cancelling a run sends `notifications/cancelled` for the call in flight (pausing lets it finish, docs/08). A progress step goes to the log until the team panel shows it in Phase 5, and a call that reports progress is not cut off by the request timeout. A `tools/list_changed` notice makes the client read the server's tool list again, so the next call sees the new tools \[D\].
 
+The commands that drive a run (`mete run`, `mete approve`, `mete revise`) answer a server's form request in the terminal: the server's name and message first, as plain text, then one question per field. A bad answer is asked once more and then declines the request, end of input cancels it, and a form with a multiple-choice field is declined. When standard input is not a terminal the request is declined without a word, and the other commands, `mete mcp` among them, offer no elicitation, so a server that asks gets an error. URL requests are never offered; the desktop form comes in Phase 5 \[D\].
+
 A stdio server starts in the workspace folder, not in the folder `mete` was launched from, and the client tells every server that folder as its one root \[D\]; the vault roots join it in Phase 4.
 
 Server configuration lives in `.mete/mcp.yaml` (workspace) and in global settings:

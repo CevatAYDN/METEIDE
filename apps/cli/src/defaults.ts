@@ -4,3 +4,6 @@
 export const BUILT_IN_BINDINGS = {
 	"web.search@1": ["exa-mcp", "tavily"],
 } as const;
+
+/** Tab 10, MCP client (Elicitation): how many times the terminal asks one field before it declines the request. */
+export const ELICIT_TRIES = 2;
