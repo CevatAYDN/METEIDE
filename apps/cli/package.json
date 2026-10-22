@@ -28,7 +28,8 @@
 		"@mete/security": "workspace:*",
 		"@mete/storage": "workspace:*",
 		"@mete/tools": "workspace:*",
-		"pino": "10.4.0"
+		"pino": "10.4.0",
+		"vscode-jsonrpc": "9.0.3"
 	},
 	"devDependencies": {
 		"@modelcontextprotocol/sdk": "1.32.1"

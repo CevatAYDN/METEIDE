@@ -1,0 +1,88 @@
+import type { Readable, Writable } from "node:stream";
+import {
+	DAEMON_ERROR_CODE,
+	DAEMON_METHODS,
+	DaemonStatusParamsSchema,
+	EVENT_TYPES,
+	type TeamEngineAdapter,
+} from "@mete/contracts";
+import type { EventBus } from "@mete/kernel";
+import {
+	createMessageConnection,
+	ErrorCodes,
+	type MessageConnection,
+	ResponseError,
+	StreamMessageReader,
+	StreamMessageWriter,
+} from "vscode-jsonrpc/node";
+import type { App } from "../infrastructure/app.js";
+import { type Io, withEngine } from "./commands.js";
+
+// `mete daemon`: protocol version 1 of ARCHITECTURE.md (Daemon protocol, ADR-045).
+
+/** What the daemon reads requests from and writes answers and events to. */
+export type DaemonStreams = {
+	readonly input: Readable;
+	readonly output: Writable;
+};
+
+// A refused call keeps the EngineError code in data, so the desktop can tell not_found from a bug.
+const serveStatus = (conn: MessageConnection, engine: TeamEngineAdapter) =>
+	conn.onRequest(DAEMON_METHODS.status, (params: unknown) => {
+		const p = DaemonStatusParamsSchema.safeParse(params ?? {});
+		if (!p.success)
+			throw new ResponseError(ErrorCodes.InvalidParams, p.error.message);
+		const r = engine.status(p.data.runId);
+		if (!r.ok)
+			throw new ResponseError(DAEMON_ERROR_CODE, r.error.message, {
+				code: r.error.code,
+			});
+		return r.value;
+	});
+
+// The bus has no catch-all pattern, so each event domain gets its own subscription; one event
+// matches one domain, so the notifications keep the publish order.
+const forwardEvents = (events: EventBus, conn: MessageConnection, io: Io) => {
+	const domains = new Set(EVENT_TYPES.map((t) => t.slice(0, t.indexOf("."))));
+	const subscriptions = [...domains].map((domain) =>
+		events.subscribe(`${domain}.*`, (e) => {
+			conn.sendNotification(DAEMON_METHODS.event, e).catch((error: unknown) => {
+				const why = error instanceof Error ? error.message : String(error);
+				io.err(`could not send ${e.type}: ${why}`);
+			});
+		}),
+	);
+	return () => {
+		for (const s of subscriptions) s.dispose();
+	};
+};
+
+/**
+ * `mete daemon`: serves the workspace to one desktop client until it closes the input or Ctrl+C.
+ * stdout carries only the protocol, so every line here goes to stderr.
+ */
+export const daemonCommand = (
+	app: App,
+	io: Io,
+	workspaceDir: string,
+	streams: DaemonStreams,
+) =>
+	withEngine(app, io, async (engine) => {
+		io.err(`serving METE to a desktop client for ${workspaceDir}`);
+		const conn = createMessageConnection(
+			new StreamMessageReader(streams.input),
+			new StreamMessageWriter(streams.output),
+		);
+		serveStatus(conn, engine);
+		const unsubscribe = forwardEvents(app.events, conn, io);
+		conn.listen();
+		let stop = () => {};
+		await new Promise<void>((resolve) => {
+			conn.onClose(() => resolve());
+			stop = io.onInterrupt(resolve);
+		});
+		stop();
+		unsubscribe();
+		conn.dispose();
+		return 0;
+	});

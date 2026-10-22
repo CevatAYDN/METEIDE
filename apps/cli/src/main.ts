@@ -17,6 +17,7 @@ import {
 	stopCommand,
 } from "./application/commands.js";
 import { terminalConfirm } from "./application/confirm.js";
+import { type DaemonStreams, daemonCommand } from "./application/daemon.js";
 import { terminalElicit } from "./application/elicit.js";
 import { registryAddCommand, registryCommand } from "./application/registry.js";
 import { type App, type AppOptions, createApp } from "./infrastructure/app.js";
@@ -43,6 +44,7 @@ const USAGE = [
 	"  mete events <run id>         show a run's history: time, event, module, task, agent",
 	"  mete stop <run id> | --all   cancel paused runs",
 	"  mete mcp [<folder>]          serve this folder's teams to an MCP host (Claude Code, Cursor, Cline)",
+	"  mete daemon [<folder>]       serve this folder to the METE desktop over stdio (JSON-RPC)",
 	'  mete registry search "<words>"   find MCP servers in the official MCP registry; installs nothing',
 	"  mete registry add <name>     add a registry server's newest version to .mete/mcp.yaml",
 	"  mete key set|delete <provider id>, mete key list",
@@ -156,18 +158,34 @@ const stop = (reader: AppOptions, io: Io, target: string | undefined) =>
 			)
 		: usage(io);
 
+// The folder a long-running command serves: the one it was given, or the current one.
+const inFolder = (opts: AppOptions, folder?: string) => ({
+	...opts,
+	workspaceDir: folder ? resolve(opts.workspaceDir, folder) : opts.workspaceDir,
+});
+
 // The lock and recovery as for mete run: this process drives the runs it starts until the host leaves.
 const mcp = (opts: AppOptions, io: Io, serve: Serve, folder?: string) => {
-	const workspaceDir = folder
-		? resolve(opts.workspaceDir, folder)
-		: opts.workspaceDir;
-	const at = { ...opts, workspaceDir };
+	const at = inFolder(opts, folder);
 	return locked(at, io, () => {
 		const { transport, closed } = serve();
 		return withApp({ ...at, serve: transport }, io, (a) =>
-			mcpCommand(a, io, workspaceDir, closed),
+			mcpCommand(a, io, at.workspaceDir, closed),
 		);
 	});
+};
+
+// The same lock and recovery as mete mcp; the streams open only once an engine is there to serve.
+const daemon = (
+	opts: AppOptions,
+	io: Io,
+	open: () => DaemonStreams,
+	folder?: string,
+) => {
+	const at = inFolder(opts, folder);
+	return locked(at, io, () =>
+		withApp(at, io, (a) => daemonCommand(a, io, at.workspaceDir, open())),
+	);
 };
 
 // mete registry search "<words>": read-only, like mete status.
@@ -189,7 +207,7 @@ const dispatch = (
 	p: Parsed,
 	opts: AppOptions,
 	io: Io,
-	serve: Serve,
+	ends: Ends,
 ): Promise<number> | number => {
 	const [command, ...rest] = p.positionals;
 	const reader = { ...opts, recover: false };
@@ -209,7 +227,9 @@ const dispatch = (
 		case "stop":
 			return stop(reader, io, p.values.all ? "all" : rest[0]);
 		case "mcp":
-			return mcp(opts, io, serve, rest[0]);
+			return mcp(opts, io, ends.serve, rest[0]);
+		case "daemon":
+			return daemon(opts, io, ends.daemon, rest[0]);
 		case "registry":
 			return registry(reader, io, rest);
 		case "key":
@@ -231,6 +251,14 @@ const usage = (io: Io, asked = false) => {
 
 type Serve = () => { transport: Transport; closed: Promise<void> };
 
+// The two ways a command talks to another program instead of the terminal.
+type Ends = { readonly serve: Serve; readonly daemon: () => DaemonStreams };
+
+const stdio = (): DaemonStreams => ({
+	input: process.stdin,
+	output: process.stdout,
+});
+
 /** Where the command runs; the rest is replaceable for tests. */
 export type Env = {
 	readonly cwd: string;
@@ -239,6 +267,8 @@ export type Env = {
 	readonly secrets?: SecretStore;
 	/** The transport `mete mcp` answers on; stdio by default. */
 	readonly serve?: Serve;
+	/** The streams `mete daemon` speaks on; stdio by default. */
+	readonly daemon?: () => DaemonStreams;
 };
 
 /** Runs one command for `argv` (without node and the script) and returns the exit code. */
@@ -266,6 +296,6 @@ export const main = async (
 		parsed,
 		{ workspaceDir: env.cwd, globalDir, logger, ...secrets },
 		io,
-		env.serve ?? serveStdio,
+		{ serve: env.serve ?? serveStdio, daemon: env.daemon ?? stdio },
 	);
 };

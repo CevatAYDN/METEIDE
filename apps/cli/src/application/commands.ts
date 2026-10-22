@@ -134,7 +134,7 @@ const APPROVAL_HINT = [
 	'add  overrides: { "shell.exec@1": 2 }  to .mete/policy.yaml.',
 ];
 
-const withEngine = async (
+export const withEngine = async (
 	app: App,
 	io: Io,
 	use: (engine: TeamEngineAdapter) => Promise<number>,
