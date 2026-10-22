@@ -55,10 +55,20 @@ const show = (f: Followed, io: Io, e: MeteEvent) => {
 		f.titles.set(e.taskId, e.payload.title);
 	const line = eventLine(e, (id) => f.titles.get(id));
 	if (line) io.out(line);
+	hintAt(io, e);
 	f.why = whyOf(e) ?? f.why;
 	const end = endOf(e);
 	if (end) f.done(end);
 };
+
+const hintAt = (io: Io, e: MeteEvent) => {
+	if (e.type === "run.paused" && e.payload.reason === "quota")
+		io.err(QUOTA_HINT);
+};
+
+// A quota pause waits for the reset; paid models can carry on meanwhile (ADR-042).
+const QUOTA_HINT =
+	"The run waits for the quota reset. To go on with paid models when the free ones run out, set models: both in .mete/gateway.yaml (spending is capped by dailySpendUsd, 1 US dollar a day by default).";
 
 const FOLLOWED = [
 	"run.*",

@@ -12,7 +12,7 @@ Each answer is binding and names the tab that holds the full rule. A question no
 | Do I need a GPU? | No. All models run at free cloud providers | 01 |
 | Does it work offline? | No. Runs pause when the network is lost and resume when it returns | 03 |
 | Can I use local models? | METE does not ship, manage or support them. A custom endpoint accepts any URL, including localhost, without support | 01 |
-| Can I use a paid provider? | Yes. From Phase 2 the model mode `paid` or `both` admits paid models from OpenRouter, a custom endpoint or any provider with priced models, under a daily spending cap; `both` uses free models first and paid ones when the free limits run out. METE is designed and tested for free providers and never requires a paid one (ADR-042) \[D\] | 09 |
+| Can I use a paid provider? | Yes. The model mode `paid` or `both` admits paid models from OpenRouter, a custom endpoint or any provider with priced models, under a daily spending cap; `both` uses free models first and paid ones when the free limits run out. Turn it on with `models: both` (or `paid`) in the `gateway:` settings or `.mete/gateway.yaml`, and set the cap with `dailySpendUsd`. METE is designed and tested for free providers and never requires a paid one (ADR-042) \[D\] | 09 |
 | Which platforms? | Windows 10 and 11 first, Linux built through WSL2, macOS after the MVP | Overview |
 | Can companies use it commercially? | Yes. Apache-2.0 | 04 |
 | Is there telemetry? | No. Logs stay on the machine; an opt-in memory server the user runs receives only vault notes and handoffs (Phase 7) | 04, 11 |
