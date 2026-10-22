@@ -1,4 +1,5 @@
 import {
+	type CapabilityRef,
 	type ChatChunk,
 	type ChatMessage,
 	err,
@@ -10,12 +11,13 @@ import {
 	type SecretsMaskAdapter,
 	TOOL_CATALOG,
 	type ToolCall,
+	type ToolCatalogEntry,
 	type ToolContext,
 	toolName,
 	toolSpec,
 	type VcsGitAdapter,
 } from "@mete/contracts";
-import type { CapabilityRegistry } from "@mete/kernel";
+import type { AdapterChain, CapabilityRegistry } from "@mete/kernel";
 import { z } from "zod";
 import type { EventBody } from "../domain/run-events.js";
 import { allowed, EXTERNAL_LABEL, type Seat } from "../domain/tools.js";
@@ -181,6 +183,53 @@ ${json}`
 const refused = (deps: StepDeps, call: ToolCall, f: Failure) =>
 	result(deps, call, err(f));
 
+type Attempt = {
+	readonly deps: StepDeps;
+	readonly input: unknown;
+	readonly ctx: ToolContext;
+	readonly emit: Emit;
+};
+
+const attempt = async (
+	{ deps, input, ctx, emit }: Attempt,
+	ref: CapabilityRef,
+	adapter: { readonly id: string; readonly impl: AnyTool },
+) => {
+	emit({
+		type: "agent.tool.called",
+		payload: { capability: ref, adapterId: adapter.id },
+	});
+	const t0 = deps.now();
+	const out = await adapter.impl.run(input, ctx);
+	const durationMs = Math.max(0, deps.now() - t0);
+	emit({
+		type: "agent.tool.completed",
+		payload: {
+			capability: ref,
+			ok: out.ok,
+			durationMs,
+			...(out.ok ? {} : { error: { code: out.error.code } }),
+		},
+	});
+	return out;
+};
+
+// docs/06, Capability resolution: an io failure moves to the next adapter, each attempt with its
+// own events; a write tool never does, so a half-done write is not repeated by another adapter.
+const walk = async (
+	a: Attempt,
+	entry: ToolCatalogEntry,
+	chain: AdapterChain<AnyTool>,
+) => {
+	const [first, ...rest] = chain;
+	let out = await attempt(a, entry.ref, first);
+	for (const next of entry.write ? [] : rest) {
+		if (out.ok || out.error.code !== "io") break;
+		out = await attempt(a, entry.ref, next);
+	}
+	return out;
+};
+
 /** Runs one tool call after checking its arguments against the schema the model was offered. */
 export const callTool = async (
 	deps: StepDeps,
@@ -208,24 +257,11 @@ export const callTool = async (
 			code: "capability_missing",
 			message: `${entry.ref} is not active`,
 		});
-	const [adapter] = chain.value;
-	const capability = entry.ref;
-	emit({
-		type: "agent.tool.called",
-		payload: { capability, adapterId: adapter.id },
-	});
-	const t0 = deps.now();
-	const out = await adapter.impl.run(args.data, ctx);
-	const durationMs = Math.max(0, deps.now() - t0);
-	emit({
-		type: "agent.tool.completed",
-		payload: {
-			capability,
-			ok: out.ok,
-			durationMs,
-			...(out.ok ? {} : { error: { code: out.error.code } }),
-		},
-	});
+	const out = await walk(
+		{ deps, input: args.data, ctx, emit },
+		entry,
+		chain.value,
+	);
 	if (!out.ok && out.error.code === "approval_required" && "rule" in out.error)
 		return { kind: "approval", rule: String(out.error.rule) };
 	return result(deps, call, out, entry.external === true);

@@ -84,6 +84,47 @@ describe("steps for a seat", () => {
 		expect(JSON.parse(json ?? "")).toEqual({ ok: true, value: {} });
 	});
 
+	it("tries the next adapter after an io failure, but never for a write tool", async () => {
+		const { deps } = setup([]);
+		const io = { ok: false, error: { code: "io", message: "down" } };
+		const adapter = (id: string, out: unknown, ref: CapabilityRef) =>
+			deps.registry.provide(ref, {
+				id,
+				trust: "core",
+				features: [],
+				impl: { run: async () => out },
+			});
+		adapter("exa-mcp", io, "web.search@1");
+		adapter("tavily", { ok: true, value: { results: [] } }, "web.search@1");
+		adapter("first", io, "fs.write@1");
+		adapter("second", { ok: true, value: { bytes: 1 } }, "fs.write@1");
+		const seat: Seat = {
+			tier: "fast",
+			needs: [],
+			capabilities: ["web.search@1", "fs.write@1"],
+		};
+		const tried = async (name: string, args: unknown) => {
+			const adapters: string[] = [];
+			await callTool(
+				deps,
+				{ call: { id: "c", name, args }, seat },
+				{ signal },
+				(e) => {
+					if (e.type === "agent.tool.called")
+						adapters.push(e.payload.adapterId);
+				},
+			);
+			return adapters;
+		};
+		expect(await tried("web_search", { query: "q" })).toEqual([
+			"exa-mcp",
+			"tavily",
+		]);
+		expect(await tried("fs_write", { path: "a", content: "x" })).toEqual([
+			"first",
+		]);
+	});
+
 	it("tells the model a capability is missing when its optional module is not there", async () => {
 		const { deps } = setup([]);
 		const call = { id: "c", name: "shell_exec", args: { command: "ls" } };

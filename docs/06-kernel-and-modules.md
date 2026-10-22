@@ -283,7 +283,7 @@ A crash is an exception thrown by `activate` or `deactivate`, or a `crash(module
 1. Collect active adapters for the same capability id and major version.
 2. Order them by the binding list: the user's list for that capability (`bindings.yaml` or the `bindings:` settings section), otherwise the built-in list the composition root passes to `loadConfig` \[D\]; adapters not in the binding follow, core before first-party before third-party, then in registration order. One adapter id provides a capability at most once; a second `provide` is a bug and throws.
 3. Remove adapters whose circuit is open or that lack a required feature.
-4. Return the chain. The caller tries the first adapter; on `AdapterUnavailable` it moves to the next.
+4. Return the chain. The caller tries the first adapter; on `AdapterUnavailable` it moves to the next. core-engine's tool calls also move to the next adapter after an `io` failure, each attempt with its own `agent.tool.called` and `agent.tool.completed` events; a write tool (TOOL_CATALOG `write`) never moves on, and `denied`, `approval_required` and `bad_input` end the call \[D\].
 5. An empty chain returns `CapabilityMissing`. Callers MUST handle it: degrade, skip with a notice, or pause the run. They MUST NOT crash.
 
 Adapter circuit breaker defaults: open after 5 consecutive failures, half-open after 60 seconds \[D\]. The module that owns an adapter reports each call's success or failure to the adapter's circuit; the registry only reads `isOpen()`. A success closes the circuit; a failure while half-open opens it again for another 60 seconds.
