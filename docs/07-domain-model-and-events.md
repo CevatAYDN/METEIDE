@@ -121,7 +121,7 @@ From Phase 2, handoffs go into the workspace `handoffs` table: `id`, `workspace_
 | `agent.thinking.started` / `agent.thinking.ended` | none | core-engine |
 | `agent.message.sent` | messageId, from, to, kind, summary | core-engine |
 | `agent.tool.called` | capability, adapterId | core-engine |
-| `agent.tool.completed` | capability, ok, durationMs | core-engine |
+| `agent.tool.completed` | capability, ok, durationMs, error? (the code of a failed call, never its message) | core-engine |
 | `artifact.created` / `artifact.updated` | artifactId, type, path | core-engine |
 | `verify.completed` | gate, ok, details | core-engine |
 | `review.requested` / `review.completed` | reviewerRoleId, decision? | core-engine |

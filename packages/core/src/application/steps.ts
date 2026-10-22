@@ -223,7 +223,12 @@ export const callTool = async (
 	const durationMs = Math.max(0, deps.now() - t0);
 	emit({
 		type: "agent.tool.completed",
-		payload: { capability, ok: out.ok, durationMs },
+		payload: {
+			capability,
+			ok: out.ok,
+			durationMs,
+			...(out.ok ? {} : { error: { code: out.error.code } }),
+		},
 	});
 	if (!out.ok && out.error.code === "approval_required" && "rule" in out.error)
 		return { kind: "approval", rule: String(out.error.rule) };

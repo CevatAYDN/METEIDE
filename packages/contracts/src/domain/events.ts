@@ -93,6 +93,8 @@ const PAYLOADS = {
 		capability: CapabilityRefSchema,
 		ok: z.boolean(),
 		durationMs: z.number().nonnegative(),
+		// Why a failed call failed: the code only, never a message that may hold tool output.
+		error: z.strictObject({ code: text }).optional(),
 	}),
 	"artifact.created": artifact,
 	"artifact.updated": artifact,

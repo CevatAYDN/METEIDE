@@ -4,6 +4,7 @@ import type { SecretStore } from "@mete/contracts";
 import { globalDataDir, type Logger } from "@mete/kernel";
 import { createKeychainStore } from "@mete/security";
 import {
+	eventsCommand,
 	type Io,
 	keyCommand,
 	type RunWhat,
@@ -30,6 +31,7 @@ const USAGE = [
 	"  mete approve <run id> [<task id>]   approve a team task that waits for you",
 	'  mete revise <run id> <task id> "<feedback>"   send it back with feedback',
 	"  mete status [<run id>]       list the runs of this folder",
+	"  mete events <run id>         show a run's history: time, event, module, task, agent",
 	"  mete stop <run id> | --all   cancel paused runs",
 	"  mete key set|delete <provider id>, mete key list",
 ].join("\n");
@@ -139,6 +141,10 @@ const dispatch = (
 		case "approve":
 		case "revise":
 			return answer(opts, io, rest, command);
+		case "events":
+			return rest[0]
+				? withApp(reader, io, async (a) => eventsCommand(a, io, rest[0] ?? ""))
+				: usage(io);
 		case "status":
 			return withApp(reader, io, (a) => statusCommand(a, io, rest[0]));
 		case "stop":

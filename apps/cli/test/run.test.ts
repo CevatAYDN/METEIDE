@@ -187,8 +187,8 @@ describe("mete run --template and mete approve", () => {
 		expect(await runCommand(app, after.io, { approve: runId, input })).toBe(0);
 		expect(after.out).toEqual(
 			expect.arrayContaining([
-				// A new process has not seen task.created, so it names the task by its short id.
-				expect.stringMatching(/^human approved: [0-9a-f]{8}$/),
+				// The history names the task, as in a new terminal.
+				"human approved: Summarize",
 				"completed\none summary",
 			]),
 		);

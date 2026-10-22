@@ -1,4 +1,9 @@
-import { EVENT_TYPES, type MeteEvent, type Migration } from "@mete/contracts";
+import {
+	EVENT_TYPES,
+	type MeteEvent,
+	type Migration,
+	parseEvent,
+} from "@mete/contracts";
 import type { Disposable, EventBus } from "@mete/kernel";
 import { EVENT_RETENTION_DAYS } from "../defaults.js";
 import type { Db } from "./sqlite.js";
@@ -58,4 +63,58 @@ export const pruneEvents = (db: Db, now: number) => {
 		now - EVENT_RETENTION_DAYS * 86_400_000,
 	).toISOString();
 	db.prepare("DELETE FROM events WHERE ts < ?").run(cutoff);
+};
+
+/** A row that is no valid event any more; reported, never skipped in silence. */
+export type BrokenEvent = { readonly seq: number; readonly issues: string };
+
+type Row = {
+	seq: number;
+	id: string;
+	type: string;
+	ts: string;
+	schema: number;
+	workspace_id: string;
+	run_id: string | null;
+	task_id: string | null;
+	agent_id: string | null;
+	source: string;
+	payload: string;
+};
+
+const envelopeOf = (r: Row) => ({
+	id: r.id,
+	type: r.type,
+	ts: r.ts,
+	schema: r.schema,
+	workspaceId: r.workspace_id,
+	...(r.run_id ? { runId: r.run_id } : {}),
+	...(r.task_id ? { taskId: r.task_id } : {}),
+	...(r.agent_id ? { agentId: r.agent_id } : {}),
+	source: r.source,
+	payload: JSON.parse(r.payload) as unknown,
+});
+
+/** One run's persisted events in replay order, each checked against its schema again. */
+export const readRunEvents = (db: Db, runId: string) => {
+	const rows = db
+		.prepare("SELECT * FROM events WHERE run_id = ? ORDER BY seq")
+		.all(runId) as Row[];
+	const events: MeteEvent[] = [];
+	const broken: BrokenEvent[] = [];
+	for (const row of rows) {
+		let parsed: ReturnType<typeof parseEvent>;
+		try {
+			parsed = parseEvent(envelopeOf(row));
+		} catch (e) {
+			broken.push({
+				seq: row.seq,
+				issues: e instanceof Error ? e.message : String(e),
+			});
+			continue;
+		}
+		if (parsed.ok) events.push(parsed.value);
+		else broken.push({ seq: row.seq, issues: parsed.error.issues.join("; ") });
+	}
+	return { events, broken };
 };

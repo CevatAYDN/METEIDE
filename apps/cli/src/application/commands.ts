@@ -8,8 +8,15 @@ import type {
 import type { EventBus } from "@mete/kernel";
 import { apiKeyName } from "@mete/providers";
 import { searchKeyName } from "@mete/tools";
-import { eventLine, exitCode, statusLines } from "../domain/format.js";
+import {
+	eventLine,
+	exitCode,
+	historyLine,
+	namesOf,
+	statusLines,
+} from "../domain/format.js";
 import { type App, engineOf } from "../infrastructure/app.js";
+import { runHistory } from "../infrastructure/history.js";
 
 // The mete commands (ARCHITECTURE.md, CLI). Each returns the process exit code.
 
@@ -62,10 +69,16 @@ const FOLLOWED = [
 ] as const;
 
 // Prints the run's events until it ends or pauses for anything but quota, which waits here.
-const follow = (events: EventBus, io: Io, resume?: string) => {
+// `titles` comes from the run's history, so a new terminal names tasks it never saw created.
+const follow = (
+	events: EventBus,
+	io: Io,
+	resume?: string,
+	titles: ReadonlyMap<string, string> = new Map(),
+) => {
 	const f: Followed = {
 		target: resume,
-		titles: new Map(),
+		titles: new Map(titles),
 		why: undefined,
 		done: () => {},
 	};
@@ -136,7 +149,10 @@ const begin = (engine: TeamEngineAdapter, what: RunWhat) => {
 /** `mete run` (a goal, --template, --resume), `mete approve` and `mete revise`. */
 export const runCommand = (app: App, io: Io, what: RunWhat) =>
 	withEngine(app, io, async (engine) => {
-		const run = follow(app.events, io, targetOf(what));
+		const target = targetOf(what);
+		const seen = target ? runHistory(app, target) : undefined;
+		const titles = namesOf(seen?.events ?? []).titles;
+		const run = follow(app.events, io, target, titles);
 		const r = await begin(engine, what);
 		if (!r.ok) {
 			io.err(r.error.message);
@@ -190,6 +206,27 @@ const explain = (
 			: [];
 	for (const line of lines) io.err(line);
 	if (!answer) io.err(`Resume it with: mete run --resume ${runId}`);
+};
+
+/**
+ * `mete events <run id>`: the run's persisted history, one line per event: when, what, which
+ * module, which task and agent role. A row that no longer parses is reported, never skipped.
+ */
+export const eventsCommand = (app: App, io: Io, runId: string) => {
+	const h = runHistory(app, runId);
+	if (!h) {
+		io.err("storage.sql@1 is not active, so no events can be read");
+		return 1;
+	}
+	if (h.events.length === 0 && h.broken.length === 0) {
+		io.err(`no events for run ${runId}`);
+		return 1;
+	}
+	const names = namesOf(h.events);
+	for (const e of h.events) io.out(historyLine(e, names));
+	for (const b of h.broken)
+		io.err(`event ${b.seq} cannot be read: ${b.issues}`);
+	return h.broken.length > 0 ? 1 : 0;
 };
 
 /** `mete status [<run id>]`. */

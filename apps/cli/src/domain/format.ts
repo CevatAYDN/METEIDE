@@ -36,7 +36,8 @@ const agentLine = (e: MeteEvent): string | undefined => {
 			return `tool  ${e.payload.capability}`;
 		case "agent.tool.completed": {
 			const ms = Math.round(e.payload.durationMs);
-			return `      ${e.payload.ok ? "ok" : "failed"} in ${ms} ms`;
+			const why = e.payload.error ? ` (${e.payload.error.code})` : "";
+			return `      ${e.payload.ok ? "ok" : "failed"}${why} in ${ms} ms`;
 		}
 		case "checkpoint.created":
 			return `checkpoint ${e.payload.ref}`;
@@ -93,3 +94,34 @@ export const statusLines = (runs: readonly RunView[]) =>
 					: r.status;
 				return `${r.id}  ${state.padEnd(16)}  ${r.goal}`;
 			});
+
+/** The task titles and agent roles of a run, from its task.created and agent.created events. */
+export const namesOf = (events: readonly MeteEvent[]) => {
+	const titles = new Map<string, string>();
+	const roles = new Map<string, string>();
+	for (const e of events) {
+		if (e.type === "task.created" && e.taskId)
+			titles.set(e.taskId, e.payload.title);
+		if (e.type === "agent.created" && e.agentId)
+			roles.set(e.agentId, e.payload.roleId);
+	}
+	return { titles, roles };
+};
+
+/**
+ * One `mete events` line: when, which event, the module that published it, the task and the
+ * agent's role, and what happened. An event mete run does not show keeps its payload as JSON.
+ */
+export const historyLine = (
+	e: MeteEvent,
+	names: ReturnType<typeof namesOf>,
+) => {
+	const name = (map: ReadonlyMap<string, string>, id: string) =>
+		map.get(id) ?? id.slice(0, 8);
+	const task = e.taskId ? `  task=${name(names.titles, e.taskId)}` : "";
+	const agent = e.agentId ? `  agent=${name(names.roles, e.agentId)}` : "";
+	const line = eventLine(e, (id) => names.titles.get(id));
+	const detail =
+		line?.trim().replaceAll("\n", " | ") ?? JSON.stringify(e.payload);
+	return `${e.ts}  ${e.type.padEnd(22)} ${e.source}${task}${agent}  ${detail}`;
+};

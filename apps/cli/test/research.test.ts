@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type ChatChunk, ResearchReportSchema } from "@mete/contracts";
 import { afterEach, describe, expect, it } from "vitest";
-import { runCommand } from "../src/application/commands.js";
+import { eventsCommand, runCommand } from "../src/application/commands.js";
 import { createApp } from "../src/infrastructure/app.js";
 import {
 	memorySecrets,
@@ -146,5 +146,20 @@ describe("the research template", () => {
 		const runId = runIdOf(t.out);
 		expect(await runCommand(app, after.io, { approve: runId, input })).toBe(0);
 		expect(after.out.at(-1)).toBe(`completed\n${REPORT}`);
+		const history = recordingIo();
+		expect(eventsCommand(app, history.io, runId)).toBe(0);
+		// When, what, which module, which task: one line answers each.
+		const blocked = history.out.find((l) => l.endsWith(": blocked")) ?? "";
+		expect(blocked).toMatch(/^\d{4}-\d\d-\d\dT\S+Z {2}task\.status\.changed /);
+		expect(blocked).toContain(
+			" core-engine  task=Write the cited research report",
+		);
+		expect(
+			eventsCommand(
+				app,
+				recordingIo().io,
+				"00000000-0000-4000-8000-000000000000",
+			),
+		).toBe(1);
 	});
 });
