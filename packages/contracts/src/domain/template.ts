@@ -177,6 +177,44 @@ const twice = (r: Refs, kind: string, list: readonly string[]) => {
 		issue(r, [`${kind}s`], `${kind} ${id} is defined twice`);
 };
 
+type Deps = ReadonlyMap<string, readonly string[]>;
+
+// The first circle among the tasks' `context` found from `id`, as the ids in order with the first one
+// repeated at the end; `path` is how the walk got here and `done` the tasks known to lead to no circle.
+const circleFrom = (
+	deps: Deps,
+	id: string,
+	path: readonly string[],
+	done: Set<string>,
+): string[] | undefined => {
+	const at = path.indexOf(id);
+	if (at >= 0) return [...path.slice(at), id];
+	if (done.has(id)) return undefined;
+	for (const d of deps.get(id) ?? []) {
+		const found = circleFrom(deps, d, [...path, id], done);
+		if (found) return found;
+	}
+	done.add(id);
+	return undefined;
+};
+
+// A task waits for the tasks of its context, so tasks that wait for each other never start.
+const checkCircle = (r: Refs, tasks: Base["tasks"]) => {
+	const deps: Deps = new Map(tasks.map((x) => [x.id, x.context ?? []]));
+	const done = new Set<string>();
+	for (const id of deps.keys()) {
+		const circle = circleFrom(deps, id, [], done);
+		if (circle) {
+			issue(
+				r,
+				["tasks"],
+				`tasks wait for each other in a circle: ${circle.join(" -> ")}`,
+			);
+			return;
+		}
+	}
+};
+
 const checkRefs = (t: Base, ctx: z.RefinementCtx) => {
 	const roleIds = t.roles.map((x) => x.id);
 	const taskIds = t.tasks.map((x) => x.id);
@@ -192,6 +230,7 @@ const checkRefs = (t: Base, ctx: z.RefinementCtx) => {
 	t.tasks.forEach((x, i) => {
 		checkTask(r, ["tasks", i], x);
 	});
+	checkCircle(r, t.tasks);
 	for (const [role, f] of Object.entries(t.spawn_defaults ?? {})) {
 		known(r, ["spawn_defaults", role], [role], "role");
 		checkTask(r, ["spawn_defaults", role], f);

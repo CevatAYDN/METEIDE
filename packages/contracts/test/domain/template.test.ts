@@ -201,6 +201,34 @@ describe("parseTemplate", () => {
 		]);
 	});
 
+	it("names the circle when tasks wait for each other, even through one task alone", () => {
+		const t = minimal();
+		const task = (id: string, context: string[]) =>
+			({ ...t.tasks[0], id, context }) as never;
+		const ring = {
+			...t,
+			tasks: [task("a", ["c"]), task("b", ["a"]), task("c", ["b"])],
+		};
+		expect(issues(ring)).toEqual([
+			"tasks: tasks wait for each other in a circle: a -> c -> b -> a",
+		]);
+		const alone = { ...t, tasks: [task("a", ["a"])] };
+		expect(issues(alone)).toEqual([
+			"tasks: tasks wait for each other in a circle: a -> a",
+		]);
+		// A task two others wait for is no circle.
+		const diamond = {
+			...t,
+			tasks: [
+				task("a", []),
+				task("b", ["a"]),
+				task("c", ["a"]),
+				task("d", ["b", "c"]),
+			],
+		};
+		expect(issues(diamond)).toEqual([]);
+	});
+
 	it("rejects duplicate ids and a role named human", () => {
 		const t = minimal();
 		const role = t.roles[0];
