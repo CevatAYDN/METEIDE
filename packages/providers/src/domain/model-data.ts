@@ -1,4 +1,9 @@
-import { type ModelInfo, type Privacy, PrivacySchema } from "@mete/contracts";
+import {
+	type ModelInfo,
+	ModelInfoSchema,
+	type Privacy,
+	PrivacySchema,
+} from "@mete/contracts";
 import { z } from "zod";
 
 // models.yaml from docs/09 (Provider adapter): facts per provider and exact model id.
@@ -14,6 +19,8 @@ export const ModelRowSchema = z.strictObject({
 	free: z.boolean(),
 	family: z.string().min(1),
 	privacy: PrivacySchema.optional(),
+	// A paid model's price, US dollars per million tokens (docs/09, ADR-042).
+	price: ModelInfoSchema.shape.price,
 	source: z.string().min(1).optional(),
 	checked: z.iso.date().optional(),
 });
@@ -53,18 +60,17 @@ export const chatModels = (
 	listed.flatMap((id): ModelInfo[] => {
 		const row = Object.hasOwn(rows, id) ? rows[id] : undefined;
 		if (row && row.capability !== "chat") return [];
-		return [
-			{
-				id,
-				providerId,
-				family: row?.family ?? "",
-				contextWindow: row?.contextWindow ?? 0,
-				toolCalling: row?.toolCalling ?? "unknown",
-				vision: row?.vision ?? "unknown",
-				free: row?.free ?? false,
-				deprecated: false,
-			},
-		];
+		const bare: ModelInfo = {
+			id,
+			providerId,
+			family: "",
+			contextWindow: 0,
+			toolCalling: "unknown",
+			vision: "unknown",
+			free: false,
+			deprecated: false,
+		};
+		return [withRow(bare, row)];
 	});
 
 /** A provider's own facts about a model, overridden by a row the user or models.yaml gives. */
@@ -80,6 +86,7 @@ export const withRow = (
 				toolCalling: row.toolCalling,
 				vision: row.vision,
 				free: row.free,
+				...(row.price ? { price: row.price } : {}),
 			}
 		: info;
 

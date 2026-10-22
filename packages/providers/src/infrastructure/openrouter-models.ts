@@ -17,8 +17,23 @@ const ModelSchema = z.object({
 		.nullish(),
 	supported_parameters: z.array(z.string()).nullish(),
 	expiration_date: z.string().nullish(),
+	// US dollars per token, as decimal strings.
+	pricing: z.object({ prompt: z.string(), completion: z.string() }).nullish(),
 });
 const ListSchema = z.object({ data: z.array(ModelSchema) });
+
+// A paid model's price per million tokens (ADR-042); a free or unpriced model has none.
+const priceOf = (m: z.infer<typeof ModelSchema>) => {
+	if (!m.pricing || m.id.endsWith(":free")) return {};
+	const input = Number(m.pricing.prompt) * 1_000_000;
+	const output = Number(m.pricing.completion) * 1_000_000;
+	const known =
+		Number.isFinite(input) &&
+		Number.isFinite(output) &&
+		input >= 0 &&
+		output >= 0;
+	return known && input + output > 0 ? { price: { input, output } } : {};
+};
 
 const toInfo = (m: z.infer<typeof ModelSchema>, now: number): ModelInfo => {
 	const expires = m.expiration_date
@@ -34,6 +49,7 @@ const toInfo = (m: z.infer<typeof ModelSchema>, now: number): ModelInfo => {
 		free: m.id.endsWith(":free"),
 		// "deprecated" read as: OpenRouter has set an expiration date that has passed.
 		deprecated: Number.isFinite(expires) && expires <= now,
+		...priceOf(m),
 	};
 };
 

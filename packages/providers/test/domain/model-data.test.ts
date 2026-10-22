@@ -68,6 +68,16 @@ describe("chatModels", () => {
 		]);
 	});
 
+	it("gives a priced row its price (ADR-042)", () => {
+		const rows = {
+			paid: row({ free: false, price: { input: 0.2, output: 0.8 } }),
+		};
+		expect(chatModels("custom:x", ["paid"], rows)[0]?.price).toEqual({
+			input: 0.2,
+			output: 0.8,
+		});
+	});
+
 	it("does not read inherited properties as rows", () => {
 		expect(chatModels("p", ["constructor"], {})[0]?.contextWindow).toBe(0);
 	});
