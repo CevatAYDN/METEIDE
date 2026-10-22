@@ -62,7 +62,7 @@ Writing rules, to keep the vault clean \[C\]:
 
 ## Run reports
 
-From Phase 4, when a run ends the knowledge module appends a section for it to the workspace vault's `journal/YYYY-MM-DD.md`: goal, status, models used, tool calls per capability, failed calls with their error codes, checkpoints, changed files and the summary, built from the run's events without a model call. Prompts and tool output are never copied. Run reports and handoffs (tab 08, Run memory) are written by the core, not by agents, and do not count toward the 3-notes limit \[D\].
+From Phase 6, when a run ends the knowledge module appends a section for it to the workspace vault's `journal/YYYY-MM-DD.md`: goal, status, models used, tool calls per capability, failed calls with their error codes, checkpoints, changed files and the summary, built from the run's events without a model call. Prompts and tool output are never copied. Run reports and handoffs (tab 08, Run memory) are written by the core, not by agents, and do not count toward the 3-notes limit \[D\].
 
 ## Aging and restore
 
