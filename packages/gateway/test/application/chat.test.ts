@@ -65,6 +65,56 @@ describe("llm.chat@1 pipeline", () => {
 		]);
 	});
 
+	it("in both mode tries free models first and gives a paid one its cost to reserve and settle", async () => {
+		const free = fakeProvider("free", [[text("hi"), done]]);
+		const paid = fakeProvider("paid", [[text("hi"), done]]);
+		const pro = offer(paid.adapter, "pro", 100_000);
+		const priced = {
+			...pro,
+			model: { ...pro.model, free: false, price: { input: 2, output: 10 } },
+		};
+		// The free provider is spent, so the pool grants the paid entry.
+		const q = fakeQuota(new Set(["free"]));
+		const { deps: d } = deps({
+			discover: async () => [priced, offer(free.adapter, "small", 40_000)],
+			quota: q.quota,
+			rules: () => ({ allowTraining: false, sensitive: false, mode: "both" }),
+		});
+		await collect(createLlmChat(d).chat(req, signal()));
+		// Prompt: 14 tokens with 10 for the completion; 4 prompt tokens at $2, 10 at $10 per million.
+		expect(q.reserved[0]?.chain).toEqual([
+			{ providerId: "free", modelId: "small" },
+			{
+				providerId: "paid",
+				modelId: "pro",
+				estimate: { usd_per_day: (4 * 2 + 10 * 10) / 1e6 },
+			},
+		]);
+		expect(q.settled[0]?.actual).toEqual({
+			tokens_per_minute: 5,
+			usd_per_day: (3 * 2 + 2 * 10) / 1e6,
+		});
+	});
+
+	it("leaves paid models out in the default free mode", async () => {
+		const paid = fakeProvider("paid", [[text("hi"), done]]);
+		const pro = offer(paid.adapter, "pro", 100_000);
+		const priced = {
+			...pro,
+			model: { ...pro.model, free: false, price: { input: 2, output: 10 } },
+		};
+		const q = fakeQuota();
+		const { deps: d } = deps({
+			discover: async () => [priced],
+			quota: q.quota,
+		});
+		const out = await collect(createLlmChat(d).chat(req, signal()));
+		expect(out.at(-1)).toMatchObject({
+			type: "error",
+			error: { code: "no_model" },
+		});
+	});
+
 	it("retries a 429 on the same model after the wait, observing and settling each call", async () => {
 		const obs = [{ unit: "requests_per_minute", exhausted: true } as const];
 		const a = fakeProvider("a", [[status(429)], [text("ok"), done]], () => obs);

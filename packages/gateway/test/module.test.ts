@@ -162,7 +162,17 @@ describe("gateway module", () => {
 		expect(await s.gateway.activate(s.ctx)).toEqual(ok(undefined));
 		const out = await collect(s.chat().chat(req, new AbortController().signal));
 		expect(out.map((c) => c.type)).toEqual(["model", "text", "finish"]);
-		expect(s.defined).toHaveLength(1);
+		// The spending cap over every provider (ADR-042), then the provider's own units.
+		expect(s.defined[0]).toEqual([
+			{
+				providerId: "*",
+				unit: "usd_per_day",
+				limit: 1,
+				scope: "account",
+				reset: "fixed_daily",
+			},
+		]);
+		expect(s.defined).toHaveLength(2);
 		expect(
 			s.db.prepare("SELECT provider_id, outcome FROM model_calls").all(),
 		).toEqual([{ provider_id: "a", outcome: "stop" }]);
@@ -273,8 +283,8 @@ describe("gateway module", () => {
 		});
 		const out = await collect(s.chat().chat(req, new AbortController().signal));
 		expect(out.at(-1)?.type).toBe("finish");
-		expect(s.defined).toHaveLength(1);
-		expect(again).toHaveLength(1);
+		expect(s.defined).toHaveLength(2);
+		expect(again).toHaveLength(2);
 		await s.close();
 	});
 

@@ -6,6 +6,7 @@ import {
 	type LlmChatRequest,
 	type LlmChunk,
 	type LlmError,
+	type ModelInfo,
 	ok,
 	type ProviderError,
 	type QuotaAmounts,
@@ -19,6 +20,7 @@ import {
 import { CHAIN_LENGTH } from "../defaults.js";
 import { type PrivacyRules, resolveChain } from "../domain/resolve.js";
 import { afterFailure, estimateTokens } from "../domain/retry.js";
+import { costOf } from "../domain/spend.js";
 import type { ModelCall } from "../infrastructure/model-calls.js";
 import { maskMessages, type Offered } from "./prepare.js";
 
@@ -73,6 +75,8 @@ type Walk = {
 	readonly call: Omit<ChatRequest, "model">;
 	readonly chain: readonly Offered[];
 	readonly estimate: QuotaAmounts;
+	/** Prompt tokens and the completion it may take, for a paid model's cost (ADR-042). */
+	readonly tokens: { readonly prompt: number; readonly completion: number };
 };
 
 const ABORTED: ProviderError = {
@@ -139,9 +143,16 @@ const observationsOf = (o: Offered, outcome: Outcome) =>
 			)
 		: [];
 
-const actualOf = (outcome: Outcome | undefined): QuotaAmounts =>
+// A paid call also settles what its reported usage cost (ADR-042).
+const actualOf = (
+	outcome: Outcome | undefined,
+	model: ModelInfo,
+): QuotaAmounts =>
 	outcome?.kind === "finish"
-		? { tokens_per_minute: outcome.usage.prompt + outcome.usage.completion }
+		? {
+				tokens_per_minute: outcome.usage.prompt + outcome.usage.completion,
+				...costOf(model, outcome.usage),
+			}
 		: {};
 
 // A caller that stopped reading leaves no outcome; it is logged as aborted.
@@ -195,7 +206,11 @@ async function* settled(
 		return { outcome: ended.outcome, observations };
 	} finally {
 		const { outcome } = ended;
-		deps.quota.settle(t.reservation, actualOf(outcome), observations);
+		deps.quota.settle(
+			t.reservation,
+			actualOf(outcome, t.o.model),
+			observations,
+		);
 		deps.record(callRow(t, outcome, seen, { start, end: deps.now() }));
 	}
 }
@@ -204,6 +219,12 @@ const refOf = (o: Offered) => ({
 	providerId: o.model.providerId,
 	modelId: o.model.id,
 });
+
+// A paid entry carries its estimated cost, so the spending cap holds it back (ADR-042).
+const entryOf = (o: Offered, tokens: Walk["tokens"]) => {
+	const cost = costOf(o.model, tokens);
+	return { ...refOf(o), ...("usd_per_day" in cost ? { estimate: cost } : {}) };
+};
 
 type WalkState = {
 	remaining: readonly Offered[];
@@ -230,7 +251,7 @@ const grant = async (
 	signal: AbortSignal,
 ): Promise<Result<{ o: Offered; id: string }, LlmError>> => {
 	const { runId, priority } = w.req;
-	const chain = remaining.map(refOf);
+	const chain = remaining.map((o) => entryOf(o, w.tokens));
 	const r = await deps.quota.reserve(
 		{ runId, priority, chain, estimate: w.estimate },
 		signal,
@@ -356,7 +377,12 @@ async function* chat(
 	const { target, runId, priority, needs, avoidFamilies, ...rest } = req;
 	const call = { ...rest, messages };
 	const estimate = { tokens_per_minute: estimateTokens(call) };
-	yield* walk(deps, { req, call, chain, estimate }, refused, signal);
+	const prompt = estimateTokens({
+		messages: call.messages,
+		...(call.tools ? { tools: call.tools } : {}),
+	});
+	const tokens = { prompt, completion: call.maxTokens ?? 0 };
+	yield* walk(deps, { req, call, chain, estimate, tokens }, refused, signal);
 }
 
 /** The gateway's routed chat; it remembers the models that refused their key. */

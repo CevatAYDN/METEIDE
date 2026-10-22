@@ -1,5 +1,6 @@
 import type { LlmChatRequest, ModelInfo, Privacy, Tier } from "@mete/contracts";
 import { LONG_CONTEXT_MIN, TIER_MIN_CONTEXT } from "../defaults.js";
+import { inMode, type ModelMode } from "./spend.js";
 
 // Tier resolution and the privacy filter (docs/09, Tier resolution and Privacy).
 
@@ -13,6 +14,8 @@ export type Discovered = {
 export type PrivacyRules = {
 	readonly allowTraining: boolean;
 	readonly sensitive: boolean;
+	/** Which models are candidates (ADR-042); free when left out. */
+	readonly mode?: ModelMode;
 };
 
 type Need = NonNullable<LlmChatRequest["needs"]>[number];
@@ -40,7 +43,7 @@ const avoid = (list: ModelInfo[], families: readonly string[]) => {
 	return kept.length > 0 ? kept : list;
 };
 
-/** Discovered models that are free, not deprecated and pass the privacy filter. */
+/** Discovered models of the mode (free by default), not deprecated, that pass the privacy filter. */
 export const usableModels = (
 	found: readonly Discovered[],
 	rules: PrivacyRules,
@@ -48,7 +51,9 @@ export const usableModels = (
 	found
 		.filter(
 			(d) =>
-				d.model.free && !d.model.deprecated && passesPrivacy(d.privacy, rules),
+				inMode(d.model, rules.mode ?? "free") &&
+				!d.model.deprecated &&
+				passesPrivacy(d.privacy, rules),
 		)
 		.map((d) => d.model);
 
@@ -69,7 +74,9 @@ export const resolveChain = (
 			meetsTier(m, target.tier) &&
 			(role.needs ?? []).every((n) => meetsNeed(m, n)),
 	);
-	return avoid(fit, role.avoidFamilies ?? []).sort(
+	const sorted = avoid(fit, role.avoidFamilies ?? []).sort(
 		(a, b) => b.contextWindow - a.contextWindow,
 	);
+	// both: the free candidates first, then the paid ones, each in the usual order (ADR-042).
+	return [...sorted.filter((m) => m.free), ...sorted.filter((m) => !m.free)];
 };

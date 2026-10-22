@@ -22,3 +22,6 @@ export const LONG_CONTEXT_MIN = TIER_MIN_CONTEXT["long-context"];
 
 /** Tab 07, model_calls: rows follow the event retention of 90 days. */
 export const MODEL_CALL_RETENTION_DAYS = 90;
+
+/** Tab 09, Gateway (ADR-042): the daily spending cap over paid models, in US dollars. */
+export const DAILY_SPEND_USD = 1;

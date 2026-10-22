@@ -23,6 +23,7 @@ import { createLlmChat } from "./application/chat.js";
 import { createDiscovery } from "./application/prepare.js";
 import { MODEL_CALL_RETENTION_DAYS } from "./defaults.js";
 import { type PrivacyRules, usableModels } from "./domain/resolve.js";
+import { GatewaySettingsSchema, spendSpec } from "./domain/spend.js";
 import {
 	createModelCallLog,
 	MODEL_CALL_MIGRATIONS,
@@ -80,20 +81,27 @@ const first = <C>(registry: CapabilityRegistry, ref: CapabilityRef): C => {
 	return r.value[0].impl;
 };
 
+// The privacy rules and the model mode with its spending cap (ADR-042), read at activation.
 const readRules = (ctx: ModuleContext) => {
 	const privacy = ctx.config.get("privacy", PrivacyConfigSchema);
 	if (!privacy.ok) return err(privacy.error);
+	const settings = ctx.config.get("gateway", GatewaySettingsSchema);
+	if (!settings.ok) return err(settings.error);
 	const workspace = ctx.config.get("workspace", WorkspaceSchema);
 	if (!workspace.ok) return err(workspace.error);
 	const sensitive = workspace.value.sensitivity === "sensitive";
-	return ok<PrivacyRules>({
-		allowTraining: privacy.value.allowTraining,
-		sensitive,
+	return ok({
+		rules: {
+			allowTraining: privacy.value.allowTraining,
+			sensitive,
+			mode: settings.value.models,
+		} satisfies PrivacyRules,
+		dailySpendUsd: settings.value.dailySpendUsd,
 	});
 };
 
 // Listings are kept per quota adapter: a restarted quota module has no units defined.
-const discovery = (ctx: ModuleContext) => {
+const discovery = (ctx: ModuleContext, dailySpendUsd: number) => {
 	let kept:
 		| {
 				quota: QuotaReserveAdapter;
@@ -110,6 +118,8 @@ const discovery = (ctx: ModuleContext) => {
 			"quota.reserve@2",
 		);
 		if (kept?.quota !== quota) {
+			// The spending cap is METE's own unit over every provider (ADR-042).
+			quota.define([spendSpec(dailySpendUsd)]);
 			const warn = (msg: string) => ctx.logger.warn({}, msg);
 			kept = {
 				quota,
@@ -214,7 +224,11 @@ export const createGatewayModule = (
 				return err(failed(`${file} ${path}: ${reason}`));
 			}
 			const write = openLog(ctx, ctx.storage.workspace, opts.now);
-			live = { discover: discovery(ctx), rules: rules.value };
+			const { dailySpendUsd } = rules.value;
+			live = {
+				discover: discovery(ctx, dailySpendUsd),
+				rules: rules.value.rules,
+			};
 			const impl = buildChat(ctx, live, opts, write);
 			ctx.disposables.add(
 				ctx.capabilities.provide("llm.chat@1", {
