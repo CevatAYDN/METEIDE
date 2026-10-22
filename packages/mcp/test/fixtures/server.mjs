@@ -108,6 +108,21 @@ server.registerTool(
 			});
 			await new Promise((resolve) => setTimeout(resolve, 50));
 		}
+		// A contract kit sets the hits or an outage through the environment.
+		if (process.env.EXA_DOWN)
+			return {
+				content: [{ type: "text", text: "backend down" }],
+				isError: true,
+			};
+		const given = process.env.EXA_HITS;
+		if (given) {
+			const hits = JSON.parse(given).slice(0, numResults);
+			const results = hits.map(({ snippet, ...hit }) => ({
+				...hit,
+				highlights: [snippet],
+			}));
+			return { content: [{ type: "text", text: JSON.stringify({ results }) }] };
+		}
 		const results = Array.from({ length: Math.min(numResults, 2) }, (_, i) => ({
 			title: query,
 			url: `https://r${i}.example/`,

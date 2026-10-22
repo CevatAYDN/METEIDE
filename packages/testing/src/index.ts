@@ -44,3 +44,9 @@ export {
 	type VcsGitHarness,
 	vcsGitContract,
 } from "./vcs-git.contract.js";
+export {
+	type WebSearchHarness,
+	type WebSearchHit,
+	type WebSearchWorld,
+	webSearchContract,
+} from "./web-search.contract.js";
