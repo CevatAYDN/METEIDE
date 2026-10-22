@@ -24,6 +24,31 @@ describe("checkReport", () => {
 		});
 	});
 
+	it("takes the first fenced block of a reply that talks around it, and nothing else", () => {
+		const talk = `İşte rapor:\n\`\`\`json\n${JSON.stringify(report)}\n\`\`\`\nUmarım yardımcı olur.`;
+		expect(checkReport("research-report@1", talk)).toEqual({
+			ok: true,
+			report: JSON.stringify(report),
+		});
+		const plain = `Here it is:\n\`\`\`\n${JSON.stringify(report)}\n\`\`\``;
+		expect(checkReport("research-report@1", plain).ok).toBe(true);
+		// A reply that is JSON stays JSON, even when a string inside it holds a fence.
+		const inner = { ...report, summary: "see ```json\n{}\n``` above" };
+		expect(checkReport("research-report@1", JSON.stringify(inner))).toEqual({
+			ok: true,
+			report: JSON.stringify(inner),
+		});
+		// No repair of the value itself: a trailing comma is still a failure for the repair message.
+		const comma = `\`\`\`json\n{"title":"T",}\n\`\`\``;
+		expect(checkReport("research-report@1", comma)).toEqual({
+			ok: false,
+			issues: "the reply is not JSON",
+		});
+		expect(checkReport("research-report@1", "no fence, no JSON").ok).toBe(
+			false,
+		);
+	});
+
 	it("names what is wrong for the repair message", () => {
 		const r = checkReport("research-report@1", '{"title":"T"}');
 		expect(r.ok).toBe(false);

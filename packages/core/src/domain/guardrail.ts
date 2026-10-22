@@ -4,21 +4,27 @@ import { z } from "zod";
 // The guardrail step of docs/08 (Task execution sequence, step 4): a report must parse as its
 // schema's JSON. Pure.
 
-const FENCE = /^```(?:json)?\s*\n([\s\S]*?)\n```$/;
+// The first fenced code block anywhere in a reply, so a sentence before or after it does not matter.
+const FENCE = /```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n[ \t]*```/i;
 
 /** A checked report: the JSON kept compact, or what is wrong with it. */
 export type Checked =
 	| { readonly ok: true; readonly report: string }
 	| { readonly ok: false; readonly issues: string };
 
-/** The JSON value of a reply, a fenced json block included. */
-export const jsonOf = (text: string): { value: unknown } | undefined => {
-	const body = FENCE.exec(text.trim())?.[1] ?? text.trim();
+const parse = (body: string): { value: unknown } | undefined => {
 	try {
 		return { value: JSON.parse(body) };
 	} catch {
 		return undefined;
 	}
+};
+
+/** The JSON value of a reply: the whole reply when it parses, else the text of its first fenced block. */
+export const jsonOf = (text: string): { value: unknown } | undefined => {
+	const whole = text.trim();
+	const fenced = FENCE.exec(whole)?.[1];
+	return parse(whole) ?? (fenced === undefined ? undefined : parse(fenced));
 };
 
 /** Checks a reply against a guardrail schema such as `research-report@1`; no schema passes it. */
