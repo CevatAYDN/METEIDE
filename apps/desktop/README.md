@@ -8,7 +8,7 @@ Modules: none (not a MeteModule)
 
 ```
 pnpm install
-pnpm build                             # compiles packages/ui-theia: the bundle loads its dist/
+pnpm build                             # compiles packages/ui-theia (the bundle loads its dist/) and apps/cli (the daemon)
 pnpm --filter @mete/desktop bundle     # generates src-gen/ and lib/ with esbuild
 pnpm --filter @mete/desktop start      # opens the window
 ```
@@ -17,7 +17,7 @@ pnpm --filter @mete/desktop start      # opens the window
 
 ## What the first window contains
 
-Only the Theia shell: the menu bar, the file navigator, the editor, preferences and messages (`@theia/core`, `electron`, `filesystem`, `workspace`, `navigator`, `editor`, `monaco`, `preferences`, `messages`). The METE extension (`@mete/ui-theia`) adds one command, "METE: Status", which says METE is not connected yet. There is no METE panel and no daemon connection yet. The terminal (`@theia/terminal`, native `node-pty`) and the extension host (`@theia/plugin-ext`) are not in the first boot (shortcut: ADR-002 wants both, they join with the panels).
+Only the Theia shell: the menu bar, the file navigator, the editor, preferences and messages (`@theia/core`, `electron`, `filesystem`, `workspace`, `navigator`, `editor`, `monaco`, `preferences`, `messages`). The METE extension (`@mete/ui-theia`) adds one command, "METE: Status": it starts `mete daemon` for the open folder and says how many runs the folder has, or why the daemon is not running (a provider key is missing, `mete run` holds the folder). There is no METE panel yet. The terminal (`@theia/terminal`, native `node-pty`) and the extension host (`@theia/plugin-ext`) are not in the first boot (shortcut: ADR-002 wants both, they join with the panels).
 
 ## Decisions behind the layout
 

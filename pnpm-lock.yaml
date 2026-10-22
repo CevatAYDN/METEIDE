@@ -87,6 +87,9 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@mete/cli':
+        specifier: workspace:*
+        version: link:../cli
       '@mete/ui-theia':
         specifier: workspace:*
         version: link:../../packages/ui-theia
@@ -413,9 +416,24 @@ importers:
 
   packages/ui-theia:
     dependencies:
+      '@mete/cli':
+        specifier: workspace:*
+        version: link:../../apps/cli
+      '@mete/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@theia/core':
         specifier: 1.76.0
         version: 1.76.0(@theia/electron@1.76.0(electron@42.8.1(supports-color@8.1.1)))(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/workspace':
+        specifier: 1.76.0
+        version: 1.76.0(@theia/electron@1.76.0(electron@42.8.1(supports-color@8.1.1)))(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      vscode-jsonrpc:
+        specifier: 9.0.3
+        version: 9.0.3
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
     devDependencies:
       reflect-metadata:
         specifier: 0.2.2

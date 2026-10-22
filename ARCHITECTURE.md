@@ -71,7 +71,7 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 | `mete/status` | request | `{ runId? }` | the `RunView` list that `mete status` prints; on failure a JSON-RPC error whose `data.code` is the `EngineError` code |
 | `mete/event` | notification, daemon to client | one `MeteEvent` (docs/07) | none; every catalog event the bus publishes, in publish order |
 
-A client that starts the daemon from Electron sets `ELECTRON_RUN_AS_NODE=1`. A new message or a changed shape needs an ADR and a new protocol version \[D\].
+A client that starts the daemon from Electron sets `ELECTRON_RUN_AS_NODE=1`. The desktop backend starts the daemon when the first message for a folder is sent, keeps one daemon for one folder at a time and stops it by closing its input \[D\]. A new message or a changed shape needs an ADR and a new protocol version \[D\].
 
 ## Failure handling
 

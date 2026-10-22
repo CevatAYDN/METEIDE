@@ -6,11 +6,17 @@ Modules: none (not a MeteModule)
 
 ## What it contains
 
-One frontend module with one command, "METE: Status" in the command palette (docs/13, Design system). Today it only says that METE is not connected to the daemon yet; there is no backend module and no panel (shortcut: the daemon connection is the next slice, and the first panel brings TSX and `@types/react`). The label and the message go through `nls.localize` (docs/05, Localization); the Turkish resource file is not written yet (shortcut: it joins the English and Turkish item of Phase 5).
+- A frontend module with one command, "METE: Status" in the command palette (docs/13, Design system). It asks the backend for the runs of the first open folder and shows their count and the newest five by status and goal, "Open a folder first" without a folder, or why the daemon gave none (it stopped, it keeps stopping, it refused, its answer did not parse), with the daemon's exit code and last stderr lines.
+- A backend module with one RPC service (`/services/mete-daemon`, method `status`). The backend owns the daemon: the first call for a folder starts `mete daemon <folder>` on its own Node with `ELECTRON_RUN_AS_NODE=1`, one folder at a time (another folder replaces it), and the backend closes its input on exit, which is how a daemon is asked to stop. A daemon that ended on its own starts again on the next call, at most 3 times in 5 minutes (ARCHITECTURE, Failure handling). There is no panel yet (shortcut: the first panel brings TSX and `@types/react`, event streaming and eager restarts).
+- Every label and message goes through `nls.localize` (docs/05, Localization). The Turkish resource file is not written yet (shortcut: it joins the English and Turkish item of Phase 5).
+
+The first start in a folder needs what `mete status` needs: a provider key (`mete key set openrouter`), and no `mete run` or other `mete daemon` holding the folder's run lock. When it is missing, the command says so.
 
 ## Decisions behind the layout
 
 - The package is CommonJS (no `"type": "module"`, `verbatimModuleSyntax` off), because Theia's generated backend loads extension modules with `require` and reads `module.default` (ADR-002). It sets `experimentalDecorators`, because inversify's `@injectable()` and `@inject()` are legacy decorators; `emitDecoratorMetadata` stays off, so every dependency is a property injection, as in Theia's own classes.
 - `package.json` has no `exports`: the generated application imports the module files by path (`theiaExtensions`).
-- Only `@mete/contracts` may be imported from other METE packages, and only this package and `apps/desktop` may import `@theia/*` (dependency-cruiser rules `desktop-talks-to-the-daemon` and `theia-only-in-ui-theia`).
-- The bundle loads `dist/`, so run `pnpm build` before `pnpm --filter @mete/desktop bundle`.
+- Only `@mete/contracts` may be imported from other METE packages, and only this package and `apps/desktop` may import `@theia/*` (dependency-cruiser rules `desktop-talks-to-the-daemon` and `theia-only-in-ui-theia`). The one `@mete/cli` lookup (`require.resolve` of its `package.json`, to find the `mete` entry file) is a path, not an import, and dependency-cruiser does not follow `require.resolve`, so no rule sees it.
+- The backend is bundled into `apps/desktop/lib/backend`, so that lookup starts there: `apps/desktop` depends on `@mete/cli` as well.
+- The bundle loads `dist/` of this package and the daemon runs `dist/` of `@mete/cli`, so run `pnpm build` before `pnpm --filter @mete/desktop bundle`.
+- Tests: the host runs against a fake daemon, a Node script that speaks protocol version 1 over real pipes. The command test replaces two Theia browser modules (they need a DOM) with stubs; the window check covers the real wiring.

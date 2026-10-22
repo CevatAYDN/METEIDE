@@ -7,7 +7,8 @@
 	"types": "dist/index.d.ts",
 	"theiaExtensions": [
 		{
-			"frontend": "dist/infrastructure/frontend-module"
+			"frontend": "dist/infrastructure/frontend-module",
+			"backend": "dist/infrastructure/backend-module"
 		}
 	],
 	"scripts": {
@@ -15,7 +16,12 @@
 		"test": "vitest run --passWithNoTests"
 	},
 	"dependencies": {
-		"@theia/core": "1.76.0"
+		"@mete/cli": "workspace:*",
+		"@mete/contracts": "workspace:*",
+		"@theia/core": "1.76.0",
+		"@theia/workspace": "1.76.0",
+		"vscode-jsonrpc": "9.0.3",
+		"zod": "4.6.5"
 	},
 	"devDependencies": {
 		"reflect-metadata": "0.2.2"
