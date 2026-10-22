@@ -10,7 +10,7 @@ import {
 	type ModuleContext,
 } from "@mete/kernel";
 
-/** A module context with the given settings sections, a policy that always answers `verdict`, and the reasons of every warning. */
+/** A module context with the given settings sections, a policy that always answers `verdict`, the reasons of every warning and every info line. */
 export const moduleContext = (
 	verdict: PolicyVerdict["verdict"],
 	sections: Readonly<Record<string, unknown>> = {},
@@ -26,6 +26,7 @@ export const moduleContext = (
 		impl: policy,
 	});
 	const warnings: string[] = [];
+	const infos: Record<string, unknown>[] = [];
 	const log = () => {};
 	const ctx = {
 		capabilities: registry,
@@ -41,10 +42,12 @@ export const moduleContext = (
 			warn: (fields: Readonly<Record<string, unknown>>) => {
 				warnings.push(String(fields.reason ?? ""));
 			},
-			info: log,
+			info: (fields: Readonly<Record<string, unknown>>, msg: string) => {
+				infos.push({ ...fields, msg });
+			},
 			debug: log,
 		},
 		disposables: { add: () => {}, dispose: () => {} },
 	} satisfies ModuleContext;
-	return { ctx, registry, warnings };
+	return { ctx, registry, warnings, infos };
 };

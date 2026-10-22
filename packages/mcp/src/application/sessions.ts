@@ -74,6 +74,44 @@ const withRuntime = async (
 	return ok({ ...server, env: { ...server.env, PATH } });
 };
 
+// The client lists the workspace as its one root and follows the server's tool list (docs/10, MCP client).
+const newClient = (
+	deps: SessionDeps,
+	server: McpServer,
+	state: { tools: readonly Tool[] },
+) => {
+	const client = new Client(
+		{ name: "mete", version: deps.version },
+		{
+			capabilities: { roots: {} },
+			listChanged: {
+				tools: {
+					onChanged: (error, tools) => {
+						const at = { moduleId: deps.moduleId, server: server.id };
+						if (!tools)
+							return deps.logger.warn(
+								{ ...at, reason: error?.message ?? "" },
+								"MCP server tool list could not be refreshed",
+							);
+						state.tools = tools;
+						deps.logger.info(
+							{ ...at, tools: tools.length },
+							"MCP server tool list changed",
+						);
+					},
+				},
+			},
+		},
+	);
+	// shortcut: the workspace is the only root; upgrade with the vault roots in Phase 4 (docs/10, Roots).
+	const root = {
+		uri: pathToFileURL(deps.workspaceDir).href,
+		name: "workspace",
+	};
+	client.setRequestHandler(ListRootsRequestSchema, () => ({ roots: [root] }));
+	return client;
+};
+
 const connect = async (
 	deps: SessionDeps,
 	server: McpServer,
@@ -89,22 +127,18 @@ const connect = async (
 		deps.fetch,
 		deps.workspaceDir,
 	);
-	const client = new Client(
-		{ name: "mete", version: deps.version },
-		{ capabilities: { roots: {} } },
-	);
-	// shortcut: the workspace is the only root; upgrade with the vault roots in Phase 4 (docs/10, Roots).
-	const root = {
-		uri: pathToFileURL(deps.workspaceDir).href,
-		name: "workspace",
-	};
-	client.setRequestHandler(ListRootsRequestSchema, () => ({ roots: [root] }));
+	const state: { tools: readonly Tool[] } = { tools: [] };
+	const client = newClient(deps, server, state);
 	try {
 		await client.connect(transport, { signal });
-		// shortcut: the list is read once per connection; upgrade with list-change notifications (docs/10).
-		const { tools } = await client.listTools(undefined, { signal });
+		state.tools = (await client.listTools(undefined, { signal })).tools;
 		client.onclose = () => closed(stderr());
-		return ok({ client, tools });
+		return ok({
+			client,
+			get tools() {
+				return state.tools;
+			},
+		});
 	} catch (e) {
 		await client.close().catch(() => {});
 		return err(io(server.id, e, stderr()));

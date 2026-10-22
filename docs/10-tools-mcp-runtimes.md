@@ -54,6 +54,8 @@ METE supports the whole protocol, not only tool calls \[C\]:
 
 Each saved file adds one line to `.mete/assets/manifest.jsonl`: `path`, `mediaType`, `bytes`, `sha256`, the `server` and `tool` that made it, the `runId` when the call has one, and `at` \[D\]. A license field joins with the Assets view (tab 13).
 
+Cancelling a run sends `notifications/cancelled` for the call in flight (pausing lets it finish, docs/08). A progress step goes to the log until the team panel shows it in Phase 5, and a call that reports progress is not cut off by the request timeout. A `tools/list_changed` notice makes the client read the server's tool list again, so the next call sees the new tools \[D\].
+
 A stdio server starts in the workspace folder, not in the folder `mete` was launched from, and the client tells every server that folder as its one root \[D\]; the vault roots join it in Phase 4.
 
 Server configuration lives in `.mete/mcp.yaml` (workspace) and in global settings:

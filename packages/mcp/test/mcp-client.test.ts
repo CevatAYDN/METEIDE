@@ -9,7 +9,7 @@ import type {
 	McpToolsAdapter,
 	PolicyVerdict,
 } from "@mete/contracts";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { openTransport } from "../src/infrastructure/transport.js";
 import { createMcpClientModule } from "../src/module.js";
 import { moduleContext } from "./helpers/context.js";
@@ -32,10 +32,15 @@ const start = async (
 	workspaceDir: string,
 ) => {
 	const module = createMcpClientModule({ workspaceDir, builtInServers: [] });
-	const { ctx, registry } = moduleContext(verdict, { mcp: { servers } });
+	const { ctx, registry, infos } = moduleContext(verdict, { mcp: { servers } });
 	const activated = await module.activate(ctx);
 	const r = registry.resolve<McpToolsAdapter>("mcp.tools@1");
-	return { module, activated, tools: r.ok ? r.value[0].impl : undefined };
+	return {
+		module,
+		activated,
+		infos,
+		tools: r.ok ? r.value[0].impl : undefined,
+	};
 };
 
 describe("mcp-client over stdio", () => {
@@ -57,6 +62,10 @@ describe("mcp-client over stdio", () => {
 			"fixture/fail",
 			"fixture/pixel",
 			"fixture/where",
+			"fixture/slow",
+			"fixture/cancelled",
+			"fixture/grow",
+			"fixture/steps",
 			"fixture/web_search_advanced_exa",
 		]);
 	});
@@ -124,6 +133,78 @@ describe("mcp-client over stdio", () => {
 		);
 		expect(server?.ok === false && server.error.message).toMatch(
 			/no MCP server other/,
+		);
+	});
+});
+
+describe("mcp-client notifications", () => {
+	let dir = "";
+	let s: Awaited<ReturnType<typeof start>>;
+	beforeAll(async () => {
+		dir = await mkdtemp(join(tmpdir(), "mete-mcp-"));
+		s = await start("allow", [fixture], dir);
+	});
+	afterAll(async () => {
+		await s.module.deactivate();
+		await rm(dir, { recursive: true, force: true });
+	});
+	const call = (tool: string, signal_ = signal) =>
+		s.tools?.call({ server: "fixture", tool }, { signal: signal_ });
+	const text = (r: Awaited<ReturnType<typeof call>>) => {
+		const block = r?.ok ? r.value.content[0] : undefined;
+		return block?.type === "text" ? block.text : "";
+	};
+
+	it("tells the server a call is cancelled when the run's signal aborts, and the session keeps working", async () => {
+		await call("cancelled"); // starts the server, so the abort lands on the call and not on the connect
+		const stop = new AbortController();
+		const slow = call("slow", stop.signal);
+		setTimeout(() => stop.abort(), 100);
+		const started = Date.now();
+		const r = await slow;
+		expect(r?.ok === false && r.error.code).toBe("io");
+		expect(Date.now() - started).toBeLessThan(2000);
+		await vi.waitFor(async () =>
+			expect(text(await call("cancelled"))).toBe("1"),
+		);
+	});
+
+	it("logs each progress step of a call", async () => {
+		await call("steps");
+		const steps = s.infos.filter((i) => i.msg === "MCP tool progress");
+		expect(steps).toEqual([
+			{
+				moduleId: "mcp-client",
+				server: "fixture",
+				tool: "steps",
+				progress: 1,
+				total: 2,
+				message: "step 1",
+				msg: "MCP tool progress",
+			},
+			{
+				moduleId: "mcp-client",
+				server: "fixture",
+				tool: "steps",
+				progress: 2,
+				total: 2,
+				message: "step 2",
+				msg: "MCP tool progress",
+			},
+		]);
+	});
+
+	it("lists a tool the server adds after it connected", async () => {
+		const names = async () => {
+			const r = await s.tools?.list(signal);
+			return r?.ok ? r.value.map((t) => t.name) : [];
+		};
+		expect(await names()).not.toContain("grown");
+		await call("grow");
+		await vi.waitFor(async () => expect(await names()).toContain("grown"));
+		expect(text(await call("grown"))).toBe("grown");
+		expect(s.infos.some((i) => i.msg === "MCP server tool list changed")).toBe(
+			true,
 		);
 	});
 });

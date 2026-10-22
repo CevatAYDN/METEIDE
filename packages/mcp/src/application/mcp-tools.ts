@@ -11,7 +11,10 @@ import {
 	type ToolError,
 } from "@mete/contracts";
 import type { Logger } from "@mete/kernel";
-import type { ContentBlock } from "@modelcontextprotocol/sdk/types.js";
+import type {
+	ContentBlock,
+	Progress,
+} from "@modelcontextprotocol/sdk/types.js";
 import { toContent } from "./content.js";
 import { permit } from "./permit.js";
 import type { Session, Sessions } from "./sessions.js";
@@ -78,20 +81,39 @@ const call: (deps: McpToolsDeps) => McpToolsAdapter["call"] =
 				code: "not_found",
 				message: `MCP server ${input.server} has no tool ${input.tool}`,
 			});
-		return invoke(deps.workspaceDir, s.value, input, ctx);
+		return invoke(deps, s.value, input, ctx);
 	};
 
+type Call = { server: string; tool: string; args: Record<string, unknown> };
+
+const callOptions = (deps: McpToolsDeps, input: Call, ctx: ToolContext) => ({
+	signal: ctx.signal,
+	// A tool that reports progress is a long one; the SDK's request timeout would kill it otherwise.
+	resetTimeoutOnProgress: true,
+	// shortcut: progress reaches the log only; upgrade with the team panel (Phase 5, docs/10).
+	onprogress: (p: Progress) =>
+		deps.logger.info(
+			{
+				moduleId: deps.adapterId,
+				server: input.server,
+				tool: input.tool,
+				...p,
+			},
+			"MCP tool progress",
+		),
+});
+
 const invoke = async (
-	workspaceDir: string,
+	deps: McpToolsDeps,
 	session: Session,
-	input: { server: string; tool: string; args: Record<string, unknown> },
+	input: Call,
 	ctx: ToolContext,
 ): Promise<Result<McpCallOutput, ToolError>> => {
 	try {
 		const r = await session.client.callTool(
 			{ name: input.tool, arguments: input.args },
 			undefined,
-			{ signal: ctx.signal },
+			callOptions(deps, input, ctx),
 		);
 		// A server on the old protocol answers with toolResult instead of content.
 		const blocks = (r.content ?? [
@@ -99,7 +121,10 @@ const invoke = async (
 		]) as ContentBlock[];
 		const { server, tool } = input;
 		const origin = { server, tool, ...(ctx.runId ? { runId: ctx.runId } : {}) };
-		const content = await toContent({ workspaceDir, origin }, blocks);
+		const content = await toContent(
+			{ workspaceDir: deps.workspaceDir, origin },
+			blocks,
+		);
 		return ok({ content, isError: r.isError === true });
 	} catch (e) {
 		return err({
