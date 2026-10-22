@@ -313,7 +313,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | vcs-git | `@mete/tools` | optional | `vcs.git@1` | `policy.check@1` | none | in-process |
 | mcp-client | `@mete/mcp` | optional | `mcp.tools@1`, `runtime.ensure@1`, mapping adapters for any capability | `policy.check@1` | `registry.search@1` | in-process; servers in child processes |
 | mcp-server | `@mete/mcp` | optional | METE as an MCP server | `team.engine@2` | `knowledge.search@1` | in-process |
-| registry | `@mete/mcp` | optional | `registry.search@1` | `web.fetch@1` | none | in-process |
+| registry | `@mete/mcp` | optional | `registry.search@1` | `policy.check@1` | none | in-process |
 | knowledge-graph | `@mete/knowledge` | optional | `code.graph@1` | `fs.read@1` | `llm.chat@1` | worker |
 | vault | `@mete/knowledge` | optional | `vault.read@1`, `vault.write@1` | `fs.read@1`, `fs.write@1` | none | in-process |
 | knowledge-search | `@mete/knowledge` | optional | `knowledge.search@1`, `knowledge.index@1` | `fs.grep@1` | `llm.embed@1`, `llm.rerank@1`, `code.graph@1`, `vault.read@1` | worker |

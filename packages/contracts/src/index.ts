@@ -147,6 +147,14 @@ export {
 	type ReserveFailed,
 	type UnknownReservation,
 } from "./domain/quota.js";
+export {
+	type RegistryEntry,
+	RegistryEntrySchema,
+	type RegistrySearchAdapter,
+	type RegistrySearchInput,
+	RegistrySearchInputSchema,
+	type RegistrySearchOutput,
+} from "./domain/registry.js";
 export { err, ok, type Result } from "./domain/result.js";
 export {
 	type RuntimeEnsureAdapter,
