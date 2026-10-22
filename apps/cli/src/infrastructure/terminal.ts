@@ -69,6 +69,9 @@ const readTyped = async (prompt: string) => {
 	return next.value;
 };
 
+/** Closes the prompt reader if a prompt ever opened it; a run that ends with a question still open would otherwise keep the process alive. */
+export const closeTerminal = () => asker?.rl.close();
+
 /** The real terminal. */
 export const processIo: Io = {
 	out: (line) => void process.stdout.write(`${line}\n`),
