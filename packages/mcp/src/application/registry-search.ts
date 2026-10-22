@@ -4,6 +4,7 @@ import {
 	type PolicyCheckAdapter,
 	type RegistrySearchAdapter,
 	RegistrySearchInputSchema,
+	type Result,
 	type ToolError,
 } from "@mete/contracts";
 import { z } from "zod";
@@ -30,18 +31,34 @@ export type RegistryDeps = {
 const io = (message: string) =>
 	err<ToolError>({ code: "io", message: `official MCP registry: ${message}` });
 
-const read = async (deps: RegistryDeps, url: URL, signal: AbortSignal) => {
+/** One GET of the official registry, parsed with `schema`; a 404 is not_found. */
+export const readOfficial = async <T>(
+	deps: RegistryDeps,
+	url: URL,
+	schema: z.ZodType<T>,
+	signal: AbortSignal,
+): Promise<Result<T, ToolError>> => {
 	try {
 		const res = await deps.fetch(url, { signal });
 		const text = await res.text();
+		if (res.status === 404)
+			return err({
+				code: "not_found",
+				message: `official MCP registry has no ${url.pathname}`,
+			});
 		if (!res.ok) return io(`answered ${res.status}: ${text.slice(0, 200)}`);
-		const answer = OfficialAnswerSchema.safeParse(JSON.parse(text));
+		const answer = schema.safeParse(JSON.parse(text));
 		return answer.success
-			? ok(answer.data.servers)
+			? ok(answer.data)
 			: io("sent an answer METE cannot read");
 	} catch (e) {
 		return io(e instanceof Error ? e.message : String(e));
 	}
+};
+
+const read = async (deps: RegistryDeps, url: URL, signal: AbortSignal) => {
+	const answer = await readOfficial(deps, url, OfficialAnswerSchema, signal);
+	return answer.ok ? ok(answer.value.servers) : answer;
 };
 
 /** The official registry's newest servers that match the query; another kind than mcp finds none. */

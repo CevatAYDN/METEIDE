@@ -1,5 +1,10 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { registryCommand } from "../src/application/registry.js";
+import {
+	registryAddCommand,
+	registryCommand,
+} from "../src/application/registry.js";
 import { createApp } from "../src/infrastructure/app.js";
 import { memorySecrets, recordingIo, silent, tempRepo } from "./helpers.js";
 
@@ -51,5 +56,49 @@ describe("mete registry search", () => {
 				u.startsWith("https://registry.modelcontextprotocol.io/"),
 			),
 		).toBe(true);
+	});
+
+	it("adds a server's newest version to .mete/mcp.yaml and refuses it twice", async () => {
+		const repo = await tempRepo({ "a.txt": "a\n" });
+		const pkg = {
+			registryType: "pypi",
+			identifier: "files-mcp",
+			version: "0.3.1",
+			environmentVariables: [{ name: "ROOT", isRequired: true }],
+		};
+		const record = {
+			server: { name: "io.github.a/files", version: "0.3.1", packages: [pkg] },
+		};
+		const fetch = async () => Response.json(record);
+		const app = await createApp({
+			workspaceDir: repo.workspaceDir,
+			globalDir: repo.globalDir,
+			logger: silent,
+			secrets: memorySecrets(),
+			providers: [],
+			fetch,
+		});
+		if (!app.ok) throw new Error(JSON.stringify(app.error));
+		close = async () => {
+			await app.value.stop();
+			await repo.close();
+		};
+		const target = {
+			name: "io.github.a/files",
+			workspaceDir: repo.workspaceDir,
+			fetch,
+		};
+		const t = recordingIo();
+		expect(await registryAddCommand(app.value, t.io, target)).toBe(0);
+		const file = join(repo.workspaceDir, ".mete", "mcp.yaml");
+		expect(t.out).toEqual([
+			`added files to ${file}: uvx files-mcp==0.3.1`,
+			"the registry names no permissions for it; check what it can reach before a run uses it",
+			"to do: set the environment variable ROOT under env",
+		]);
+		expect(await readFile(file, "utf8")).toContain("command: uvx");
+		const again = recordingIo();
+		expect(await registryAddCommand(app.value, again.io, target)).toBe(1);
+		expect(again.err[0]).toContain("server ids must be unique");
 	});
 });

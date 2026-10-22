@@ -15,7 +15,7 @@ import {
 	statusCommand,
 	stopCommand,
 } from "./application/commands.js";
-import { registryCommand } from "./application/registry.js";
+import { registryAddCommand, registryCommand } from "./application/registry.js";
 import { type App, type AppOptions, createApp } from "./infrastructure/app.js";
 import { fileLogger } from "./infrastructure/log.js";
 import {
@@ -41,6 +41,7 @@ const USAGE = [
 	"  mete stop <run id> | --all   cancel paused runs",
 	"  mete mcp [<folder>]          serve this folder's teams to an MCP host (Claude Code, Cursor, Cline)",
 	'  mete registry search "<words>"   find MCP servers in the official MCP registry; installs nothing',
+	"  mete registry add <name>     add a registry server's newest version to .mete/mcp.yaml",
 	"  mete key set|delete <provider id>, mete key list",
 ].join("\n");
 
@@ -160,9 +161,16 @@ const mcp = (opts: AppOptions, io: Io, serve: Serve, folder?: string) => {
 // mete registry search "<words>": read-only, like mete status.
 const registry = (reader: AppOptions, io: Io, [sub, ...words]: string[]) => {
 	const query = words.join(" ").trim();
-	return sub === "search" && query
-		? withApp(reader, io, (a) => registryCommand(a, io, query))
-		: usage(io);
+	if (sub === "search" && query)
+		return withApp(reader, io, (a) => registryCommand(a, io, query));
+	const [name] = words;
+	if (sub !== "add" || !name || words.length > 1) return usage(io);
+	const target = {
+		name,
+		workspaceDir: reader.workspaceDir,
+		fetch: reader.fetch ?? fetch,
+	};
+	return withApp(reader, io, (a) => registryAddCommand(a, io, target));
 };
 
 const dispatch = (
