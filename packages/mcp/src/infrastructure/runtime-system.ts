@@ -37,6 +37,7 @@ const exec = (file: string, args: string[], signal: AbortSignal) =>
 	});
 
 // bsdtar ships with Windows 10 and reads .zip; a tar earlier on PATH (Git's GNU tar) cannot.
+// shortcut: GNU tar on Linux reads no zip, so .zip and .mcpb binaries fail there; upgrade when a zip reader is chosen.
 const TAR = WIN
 	? join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe")
 	: "tar";

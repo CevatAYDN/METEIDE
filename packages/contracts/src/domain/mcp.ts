@@ -14,18 +14,35 @@ const permissions = z
 	.readonly()
 	.default(() => []);
 
-const StdioServerSchema = z.strictObject({
-	id: serverId,
-	transport: z.literal("stdio"),
-	runtime: z.enum(["node", "python", "binary", "container"]),
-	command: text,
-	args: z
-		.array(z.string())
-		.readonly()
-		.default(() => []),
-	env: z.record(z.string(), z.string()).optional(),
-	permissions,
-});
+// A binary server names the https download and its SHA-256 (runtime.ensure@1); no other runtime does.
+const StdioServerSchema = z
+	.strictObject({
+		id: serverId,
+		transport: z.literal("stdio"),
+		runtime: z.enum(["node", "python", "binary", "container"]),
+		command: text,
+		args: z
+			.array(z.string())
+			.readonly()
+			.default(() => []),
+		env: z.record(z.string(), z.string()).optional(),
+		url: z.url({ protocol: /^https$/ }).optional(),
+		sha256: z
+			.string()
+			.regex(/^[0-9a-f]{64}$/, "expected a lowercase SHA-256")
+			.optional(),
+		permissions,
+	})
+	.refine(
+		(s) =>
+			(s.runtime === "binary") ===
+			(s.url !== undefined && s.sha256 !== undefined),
+		{
+			message:
+				"a binary server needs url and sha256, and only a binary server has them",
+			path: ["runtime"],
+		},
+	);
 
 const RemoteServerSchema = z.strictObject({
 	id: serverId,

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -178,5 +179,40 @@ describe("mcp-client runtimes", () => {
 		});
 		expect(registry.resolve("runtime.ensure@1").ok).toBe(true);
 		await module.deactivate();
+	});
+
+	it("downloads a binary server's pinned file and puts its folder first on PATH", async () => {
+		const globalDir = await mkdtemp(join(tmpdir(), "mete-rt-"));
+		const bytes = Buffer.from("tool");
+		const sha256 = createHash("sha256").update(bytes).digest("hex");
+		const opened: McpServer[] = [];
+		const module = createMcpClientModule({
+			workspaceDir: globalDir,
+			builtInServers: [],
+			globalDir,
+			fetch: async () => new Response(bytes),
+			open: (server, fetchFn) => {
+				opened.push(server);
+				return openTransport(server, fetchFn);
+			},
+		});
+		const url = "https://a.example/tool";
+		const tool = { ...fixture, id: "tool", runtime: "binary", url, sha256 };
+		const { ctx, registry } = moduleContext("allow", {
+			mcp: { servers: [tool] },
+		});
+		await module.activate(ctx);
+		const r = registry.resolve<McpToolsAdapter>("mcp.tools@1");
+		const echo = await (r.ok ? r.value[0].impl : undefined)?.call(
+			{ server: "tool", tool: "echo", args: { text: "hi" } },
+			{ signal },
+		);
+		expect(echo?.ok).toBe(true);
+		const bin = join(globalDir, "runtimes", "bin", sha256);
+		const path = opened[0]?.transport === "stdio" ? opened[0].env?.PATH : "";
+		expect(path?.startsWith(`${bin}${delimiter}`)).toBe(true);
+		expect(existsSync(join(bin, "tool"))).toBe(true);
+		await module.deactivate();
+		await rm(globalDir, { recursive: true, force: true });
 	});
 });

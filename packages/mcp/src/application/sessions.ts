@@ -54,14 +54,10 @@ const withRuntime = async (
 	server: McpServer,
 	signal: AbortSignal,
 ): Promise<Result<McpServer, ToolError>> => {
-	// shortcut: a binary server runs its command as configured; upgrade when registry entries give its url and hash.
-	if (
-		server.transport !== "stdio" ||
-		server.runtime === "binary" ||
-		!deps.ensure
-	)
-		return ok(server);
-	const r = await deps.ensure.run({ runtime: server.runtime }, { signal });
+	if (server.transport !== "stdio" || !deps.ensure) return ok(server);
+	const { runtime, url = "", sha256 = "" } = server;
+	const input = runtime === "binary" ? { runtime, url, sha256 } : { runtime };
+	const r = await deps.ensure.run(input, { signal });
 	if (!r.ok)
 		return err({
 			...r.error,

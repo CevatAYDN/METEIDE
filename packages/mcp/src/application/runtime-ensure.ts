@@ -41,7 +41,8 @@ type Out = Promise<Result<RuntimeEnsureOutput, ToolError>>;
 
 const io = (message: string) => err<ToolError>({ code: "io", message });
 const why = (e: unknown) => (e instanceof Error ? e.message : String(e));
-const ARCHIVE = /\.(zip|tar\.gz|tgz)$/;
+// An .mcpb bundle is a zip archive.
+const ARCHIVE = /\.(zip|mcpb|tar\.gz|tgz)$/;
 
 const download = async (
 	deps: EnsureDeps,
