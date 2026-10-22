@@ -2,6 +2,7 @@
 // mcp-server (server-module.ts); registry follows in a later Phase 3 slice.
 import {
 	err,
+	type LlmChatAdapter,
 	McpConfigSchema,
 	type McpServer,
 	type ModuleManifest,
@@ -13,9 +14,11 @@ import type {
 	MeteModule,
 	ModuleContext,
 } from "@mete/kernel";
+import { type Calls, createCalls } from "./application/calls.js";
 import { mcpTools } from "./application/mcp-tools.js";
 import { provideMappings } from "./application/provide-mappings.js";
 import { createRuntimeEnsure } from "./application/runtime-ensure.js";
+import { type Confirm, createSampling } from "./application/sampling.js";
 import {
 	createSessions,
 	type Elicit,
@@ -47,6 +50,8 @@ export type McpClientOptions = {
 	readonly runtimeSystem?: RuntimeSystem;
 	/** How the host asks the user when a server requests input; without it elicitation is not offered. */
 	readonly elicit?: Elicit;
+	/** How the host asks the user a yes or no question; without it sampling is not offered. */
+	readonly confirm?: Confirm;
 };
 
 // mcp.yaml's servers first; a built-in server fills in only when no entry has its id (docs/10).
@@ -66,17 +71,39 @@ const MANIFEST: ModuleManifest = {
 	trust: "core",
 	provides: ["mcp.tools@1", "runtime.ensure@1"],
 	requires: ["policy.check@1"],
-	optional: ["registry.search@1"],
+	optional: ["registry.search@1", "llm.chat@1"],
 	activation: ["onStartup"],
 	isolation: "in-process",
 	permissions: ["shell", "net", "fs.write"],
 };
+
+const chatOf =
+	(registry: CapabilityRegistry) => (): LlmChatAdapter | undefined => {
+		const r = registry.resolve<LlmChatAdapter>("llm.chat@1");
+		return r.ok ? r.value[0].impl : undefined;
+	};
 
 const policyOf =
 	(registry: CapabilityRegistry) => (): PolicyCheckAdapter | undefined => {
 		const r = registry.resolve<PolicyCheckAdapter>("policy.check@1");
 		return r.ok ? r.value[0].impl : undefined;
 	};
+
+// Sampling is offered only when the host can ask the user (docs/10, MCP client).
+const samplingOf = (
+	ctx: ModuleContext,
+	opts: McpClientOptions,
+	calls: Calls,
+) =>
+	opts.confirm
+		? createSampling({
+				adapterId: MANIFEST.id,
+				policy: policyOf(ctx.capabilities),
+				chat: chatOf(ctx.capabilities),
+				confirm: opts.confirm,
+				current: calls.current,
+			})
+		: undefined;
 
 // mcp.tools@1 for raw calls, then one adapter per runnable mapping entry.
 const provideAll = async (
@@ -135,6 +162,30 @@ const runtimeEnsure = (ctx: ModuleContext, opts: McpClientOptions) => {
 	return impl;
 };
 
+// The connections of every configured server, with what the host lets them ask of the user and the model.
+const openSessions = (
+	ctx: ModuleContext,
+	opts: McpClientOptions,
+	servers: readonly McpServer[],
+) => {
+	const ensure = runtimeEnsure(ctx, opts);
+	const calls = createCalls();
+	const sample = samplingOf(ctx, opts, calls);
+	return createSessions({
+		moduleId: MANIFEST.id,
+		version: MANIFEST.version,
+		servers,
+		workspaceDir: opts.workspaceDir,
+		open: opts.open ?? openTransport,
+		...(opts.fetch ? { fetch: opts.fetch } : {}),
+		logger: ctx.logger,
+		...(ensure ? { ensure } : {}),
+		...(opts.elicit ? { elicit: opts.elicit } : {}),
+		calls,
+		...(sample ? { sample } : {}),
+	});
+};
+
 /** The mcp-client module: mcp.tools@1 over the servers of mcp.yaml (docs/10, MCP client). */
 export const createMcpClientModule = (opts: McpClientOptions): MeteModule => {
 	let sessions: Sessions | undefined;
@@ -154,18 +205,7 @@ export const createMcpClientModule = (opts: McpClientOptions): MeteModule => {
 				config.value.servers,
 				opts.builtInServers ?? BUILT_IN_SERVERS,
 			);
-			const ensure = runtimeEnsure(ctx, opts);
-			sessions = createSessions({
-				moduleId: MANIFEST.id,
-				version: MANIFEST.version,
-				servers,
-				workspaceDir: opts.workspaceDir,
-				open: opts.open ?? openTransport,
-				...(opts.fetch ? { fetch: opts.fetch } : {}),
-				logger: ctx.logger,
-				...(ensure ? { ensure } : {}),
-				...(opts.elicit ? { elicit: opts.elicit } : {}),
-			});
+			sessions = openSessions(ctx, opts, servers);
 			await provideAll(ctx, opts, servers, sessions);
 			return ok(undefined);
 		},

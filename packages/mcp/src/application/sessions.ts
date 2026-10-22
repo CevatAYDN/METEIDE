@@ -11,6 +11,7 @@ import {
 import type { Logger } from "@mete/kernel";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import {
+	CreateMessageRequestSchema,
 	type ElicitRequestFormParams,
 	ElicitRequestSchema,
 	type ElicitResult,
@@ -20,6 +21,8 @@ import {
 	type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { OpenTransport } from "../infrastructure/transport.js";
+import type { Calls } from "./calls.js";
+import type { Sample } from "./sampling.js";
 
 // One connection per configured server, opened on first use so a run pays only for the
 // servers it calls; a closed connection is dropped and the next call reconnects (docs/10).
@@ -50,6 +53,10 @@ export type SessionDeps = {
 	readonly ensure?: RuntimeEnsureAdapter;
 	/** How the host asks the user; without it the client does not offer elicitation and a server's request fails. */
 	readonly elicit?: Elicit;
+	/** The tool call in flight per server; sampling reads the run it belongs to from it. */
+	readonly calls: Calls;
+	/** Answers sampling requests; without it the client does not offer sampling. */
+	readonly sample?: Sample;
 };
 
 const why = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -115,7 +122,7 @@ const newClient = (
 	server: McpServer,
 	state: { tools: readonly Tool[] },
 ) => {
-	const { elicit } = deps;
+	const { elicit, sample } = deps;
 	const client = new Client(
 		{ name: "mete", version: deps.version },
 		{
@@ -123,6 +130,7 @@ const newClient = (
 				roots: {},
 				// Form requests only: a URL request would open a browser, which METE does not do.
 				...(elicit ? { elicitation: { form: {} } } : {}),
+				...(sample ? { sampling: {} } : {}),
 			},
 			listChanged: {
 				tools: { onChanged: onToolsChanged(deps, server, state) },
@@ -135,6 +143,10 @@ const newClient = (
 		name: "workspace",
 	};
 	client.setRequestHandler(ListRootsRequestSchema, () => ({ roots: [root] }));
+	if (sample)
+		client.setRequestHandler(CreateMessageRequestSchema, ({ params }, extra) =>
+			sample(server.id, params, extra.signal),
+		);
 	if (elicit)
 		client.setRequestHandler(ElicitRequestSchema, ({ params }, extra) =>
 			params.mode === "url"
@@ -239,6 +251,7 @@ export const createSessions = (deps: SessionDeps) => {
 		get,
 		close,
 		servers: deps.servers,
+		calls: deps.calls,
 		/** The options of one callTool: the run's signal, progress in the log, no timeout while it reports. */
 		callOptions: callOptions(deps),
 	};

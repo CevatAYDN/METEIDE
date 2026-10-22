@@ -49,6 +49,17 @@ server.registerTool("grow", { description: "Adds a tool" }, async () => {
 	}));
 	return { content: [{ type: "text", text: "ok" }] };
 });
+// Asks the client's model a question (sampling) and answers with the model's name and words.
+server.registerTool("summon", { description: "Asks a model" }, async () => {
+	const r = await server.server.createMessage({
+		messages: [{ role: "user", content: { type: "text", text: "Say hi" } }],
+		systemPrompt: "Be brief",
+		maxTokens: 20,
+		modelPreferences: { intelligencePriority: 0.9 },
+	});
+	const words = r.content.type === "text" ? r.content.text : r.content.type;
+	return { content: [{ type: "text", text: `${r.model}: ${words}` }] };
+});
 // Asks the user a name through the client (elicitation) and answers with it, or with what they did instead.
 server.registerTool("ask", { description: "Asks a name" }, async () => {
 	const r = await server.server.elicitInput({

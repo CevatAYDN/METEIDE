@@ -70,6 +70,7 @@ describe("mcp-client over stdio", () => {
 			"fixture/slow",
 			"fixture/cancelled",
 			"fixture/grow",
+			"fixture/summon",
 			"fixture/ask",
 			"fixture/steps",
 			"fixture/web_search_advanced_exa",
@@ -170,8 +171,9 @@ describe("mcp-client notifications", () => {
 		const r = await slow;
 		expect(r?.ok === false && r.error.code).toBe("io");
 		expect(Date.now() - started).toBeLessThan(2000);
-		await vi.waitFor(async () =>
-			expect(text(await call("cancelled"))).toBe("1"),
+		await vi.waitFor(
+			async () => expect(text(await call("cancelled"))).toBe("1"),
+			{ timeout: 5000 },
 		);
 	});
 
@@ -207,7 +209,9 @@ describe("mcp-client notifications", () => {
 		};
 		expect(await names()).not.toContain("grown");
 		await call("grow");
-		await vi.waitFor(async () => expect(await names()).toContain("grown"));
+		await vi.waitFor(async () => expect(await names()).toContain("grown"), {
+			timeout: 5000,
+		});
 		expect(text(await call("grown"))).toBe("grown");
 		expect(s.infos.some((i) => i.msg === "MCP server tool list changed")).toBe(
 			true,

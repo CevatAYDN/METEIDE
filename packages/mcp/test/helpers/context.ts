@@ -1,4 +1,5 @@
 import {
+	type LlmChatAdapter,
 	ok,
 	type PolicyCheckAdapter,
 	type PolicyVerdict,
@@ -10,14 +11,24 @@ import {
 	type ModuleContext,
 } from "@mete/kernel";
 
-/** A module context with the given settings sections, a policy that always answers `verdict`, the reasons of every warning and every info line. */
+type Verdict = PolicyVerdict["verdict"];
+
+/**
+ * A module context with the given settings sections, a policy that answers `verdict` (or what the
+ * function says for an action), the reasons of every warning and every info line. `chat` is the
+ * llm.chat@1 adapter the registry offers, when given.
+ */
 export const moduleContext = (
-	verdict: PolicyVerdict["verdict"],
+	verdict: Verdict | ((action: string) => Verdict),
 	sections: Readonly<Record<string, unknown>> = {},
+	chat?: LlmChatAdapter,
 ) => {
 	const registry = createCapabilityRegistry(() => []);
 	const policy: PolicyCheckAdapter = {
-		check: () => ok({ verdict, rule: `kit:${verdict}` }),
+		check: (input) => {
+			const v = typeof verdict === "function" ? verdict(input.action) : verdict;
+			return ok({ verdict: v, rule: `kit:${v}` });
+		},
 	};
 	registry.provide("policy.check@1", {
 		id: "security",
@@ -25,6 +36,13 @@ export const moduleContext = (
 		features: [],
 		impl: policy,
 	});
+	if (chat)
+		registry.provide("llm.chat@1", {
+			id: "gateway",
+			trust: "core",
+			features: [],
+			impl: chat,
+		});
 	const warnings: string[] = [];
 	const infos: Record<string, unknown>[] = [];
 	const log = () => {};

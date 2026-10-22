@@ -90,10 +90,17 @@ const invoke = async (
 	ctx: ToolContext,
 ): Promise<Result<McpCallOutput, ToolError>> => {
 	try {
-		const r = await session.client.callTool(
-			{ name: input.tool, arguments: input.args },
-			undefined,
-			deps.sessions.callOptions(input.server, input.tool, ctx.signal),
+		const options = deps.sessions.callOptions(
+			input.server,
+			input.tool,
+			ctx.signal,
+		);
+		const r = await deps.sessions.calls.during(input.server, ctx, () =>
+			session.client.callTool(
+				{ name: input.tool, arguments: input.args },
+				undefined,
+				options,
+			),
 		);
 		// A server on the old protocol answers with toolResult instead of content.
 		const blocks = (r.content ?? [

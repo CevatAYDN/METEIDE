@@ -87,3 +87,9 @@ export const REGISTRY_SEARCH_LIMIT = 20;
 
 /** Tab 10, Registries: how long one registry search may take. */
 export const REGISTRY_TIMEOUT_MS = 30_000;
+
+/** Tab 10, MCP client (Sampling): a model-preference priority from this value up counts as high. */
+export const SAMPLING_PRIORITY_HIGH = 0.7;
+
+/** Tab 09, quota (priority classes): sampling runs inside a foreground run, so class P1. */
+export const SAMPLING_PRIORITY = 1;

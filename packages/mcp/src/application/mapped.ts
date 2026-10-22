@@ -58,15 +58,23 @@ const callTool = async (
 	deps: MappedDeps,
 	t: Target,
 	args: unknown,
-	signal: AbortSignal,
+	ctx: ToolContext,
 ): Promise<Result<Scope, string>> => {
+	const { signal } = ctx;
 	const s = await deps.sessions.get(t.mapping.server, signal);
 	if (!s.ok) return err(s.error.message);
 	try {
-		const r = await s.value.client.callTool(
-			{ name: t.entry.tool, arguments: args as Record<string, unknown> },
-			undefined,
-			deps.sessions.callOptions(t.mapping.server, t.entry.tool, signal),
+		const options = deps.sessions.callOptions(
+			t.mapping.server,
+			t.entry.tool,
+			signal,
+		);
+		const r = await deps.sessions.calls.during(t.mapping.server, ctx, () =>
+			s.value.client.callTool(
+				{ name: t.entry.tool, arguments: args as Record<string, unknown> },
+				undefined,
+				options,
+			),
 		);
 		const blocks = Array.isArray(r.content) ? r.content : [];
 		const texts = blocks.flatMap((b) => (b.type === "text" ? [b.text] : []));
@@ -112,7 +120,7 @@ const run = async (
 	};
 	const allowed = permit(deps.policy(), check, ctx);
 	if (!allowed.ok) return allowed;
-	const result = await callTool(deps, t, args.value, ctx.signal);
+	const result = await callTool(deps, t, args.value, ctx);
 	if (!result.ok) return err(failed(t)(result.error));
 	const out = outputOf(t, { ...base, result: result.value });
 	return out.ok ? out : err(failed(t)(out.error));
