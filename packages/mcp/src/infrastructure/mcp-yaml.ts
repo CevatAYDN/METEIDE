@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
 	err,
@@ -26,6 +26,18 @@ const load = async (file: string) => {
 	}
 };
 
+// The text is written beside the file and renamed over it; when the rename fails (a locked file), the copy goes.
+const replace = async (file: string, text: string) => {
+	const temp = `${file}.${process.pid}.tmp`;
+	try {
+		await writeFile(temp, text);
+		await withLockRetry(() => rename(temp, file));
+	} catch (e) {
+		await rm(temp, { force: true });
+		throw e;
+	}
+};
+
 /** Appends `server` to <workspace>/.mete/mcp.yaml; the file's path, or why it was not written. */
 export const addMcpServer = async (
 	workspaceDir: string,
@@ -49,8 +61,6 @@ export const addMcpServer = async (
 			`${file}: ${checked.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`,
 		);
 	await mkdir(dirname(file), { recursive: true });
-	const temp = `${file}.${process.pid}.tmp`;
-	await writeFile(temp, doc.toString());
-	await withLockRetry(() => rename(temp, file));
+	await replace(file, doc.toString());
 	return ok(file);
 };

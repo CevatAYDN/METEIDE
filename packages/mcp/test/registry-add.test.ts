@@ -1,4 +1,12 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+	chmod,
+	mkdir,
+	mkdtemp,
+	readdir,
+	readFile,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ok, type PolicyVerdict } from "@mete/contracts";
@@ -125,6 +133,19 @@ describe("adding a server to .mete/mcp.yaml", () => {
 		expect(exa.ok === false && exa.error.message).toMatch(/built-in server id/);
 		expect(await readFile(file(), "utf8")).toBe(text);
 	});
+
+	// A read-only target is how Windows refuses the rename, the way an editor holding the file does.
+	it.skipIf(process.platform !== "win32")(
+		"leaves no temporary copy behind when the rename fails",
+		async () => {
+			await mkdir(join(dir, ".mete"));
+			await writeFile(file(), "servers: []\n");
+			await chmod(file(), 0o444);
+			await expect(addMcpServer(dir, entry)).rejects.toThrow();
+			expect(await readdir(join(dir, ".mete"))).toEqual(["mcp.yaml"]);
+			await chmod(file(), 0o666);
+		},
+	);
 
 	it("refuses a file that is not valid YAML without touching it", async () => {
 		await mkdir(join(dir, ".mete"));
