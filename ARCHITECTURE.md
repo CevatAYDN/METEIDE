@@ -40,6 +40,7 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 
 - The core runs as a separate daemon so a crash in agent work never takes the editor down \[D\].
 - The desktop backend talks to the daemon with `vscode-jsonrpc` over stdio. Events stream to the UI as JSON-RPC notifications \[C\].
+- The daemon is the CLI's `mete daemon` command and its messages are listed in Daemon protocol below (ADR-045) \[D\].
 - The gateway accepts connections only from 127.0.0.1 and requires a per-session bearer token generated at daemon start \[D\].
 - Modules with `trust: third-party` MUST run in a child process. Core and first-party modules MAY run in process \[C\].
 
@@ -54,10 +55,22 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 - `mete events <run id>` prints the run's persisted events in order, one line each: the time, the event type, the module that published it, the task by its title and the agent by its role, and what happened (the line `mete run` shows, or the payload as JSON). A row that no longer parses is reported on standard error with exit 1, never skipped. `mete run --resume`, `mete approve` and `mete revise` read the task titles from the same history [D].
 - `mete status [<run id>]` lists runs, newest first, with status, pause reason and goal.
 - `mete mcp [<folder>]` serves the folder (the current one by default) to an MCP host over stdio (tab 10, METE as an MCP server). Like `mete run` it holds the run lock with recovery on for its whole life; stdout carries only the protocol and every message of its own goes to standard error. Without an active core-engine it says why and exits 1. It stops with exit 0 when the host closes stdin or on Ctrl+C [D].
-- `mete stop <run id>` or `mete stop --all` cancels paused runs. A running run belongs to the `mete run` that holds it and stops with Ctrl+C there; there is no daemon in Phase 1. Only `mete run` turns on core-engine's recovery, so `status` sees a run another terminal drives as `running`. One `mete run` drives a workspace at a time until the daemon: it holds `.mete/cache/run.lock` with its process id from before recovery until its modules have stopped, a second `mete run` refuses with exit 1 while that process lives, and a lock left by a process that is gone is taken over. While the lock is held, `mete stop` refuses too and points at Ctrl+C in the holding terminal, because that process also waits for its quota-paused run.
+- `mete daemon [<folder>]` serves the folder (the current one by default) to one desktop client over stdio (Daemon protocol). Like `mete mcp` it holds the run lock with recovery on for its whole life, stdout carries only the protocol, and without an active core-engine it says why and exits 1. It stops with exit 0 when the client closes stdin or on Ctrl+C, after the lifecycle has stopped [D].
+- `mete stop <run id>` or `mete stop --all` cancels paused runs. A running run belongs to the `mete run` that holds it and stops with Ctrl+C there; `mete daemon` holds the lock the same way. Only `mete run` turns on core-engine's recovery, so `status` sees a run another terminal drives as `running`. One `mete run` (or `mete daemon`) drives a workspace at a time: it holds `.mete/cache/run.lock` with its process id from before recovery until its modules have stopped, a second `mete run` or `mete daemon` refuses with exit 1 while that process lives, and a lock left by a process that is gone is taken over. While the lock is held, `mete stop` refuses too and points at Ctrl+C in the holding terminal, because that process also waits for its quota-paused run.
 - `mete registry search "<words>"` asks the `registry.search@1` adapters in order, the official registry and then the local one, and prints one line per entry, `<id> <version>  <runtime>  <source>`, with its description indented below; it installs nothing, prints `no entries for "<words>"` when none match and exits 1 when the search fails (tab 10, Registries) [D]. `mete registry add <name>` writes the newest version of that official registry server into `.mete/mcp.yaml` and prints what the user still has to fill in; exit 1 when it is refused (tab 10, Registries) [D].
 - `mete key set <provider id>` reads a key from a hidden prompt, or from standard input when it is not a terminal, never from the command line, and stores it under the tab 09 keychain account; `mete key delete <provider id>` removes it; `mete key list` names the providers that have a key, never the key. Provider ids: `nvidia`, `openrouter`, `opencode-zen`, `groq`, `google`, `custom:<slug>`, and the search provider `tavily`, whose key goes under `search/tavily/apiKey` (tab 10).
 - Arguments are parsed with `node:util` `parseArgs`. Logs are pino JSON lines in the global `logs/mete-<YYYY-MM-DD>.log`; the terminal shows only the event lines and errors.
+
+## Daemon protocol
+
+`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 1 has one request and one notification, and each side validates what it receives with the schemas in `@mete/contracts` (`daemon.ts`) \[D\]:
+
+| Message | Kind | Params | Result |
+| --- | --- | --- | --- |
+| `mete/status` | request | `{ runId? }` | the `RunView` list that `mete status` prints; on failure a JSON-RPC error whose `data.code` is the `EngineError` code |
+| `mete/event` | notification, daemon to client | one `MeteEvent` (docs/07) | none; every catalog event the bus publishes, in publish order |
+
+A client that starts the daemon from Electron sets `ELECTRON_RUN_AS_NODE=1`. A new message or a changed shape needs an ADR and a new protocol version \[D\].
 
 ## Failure handling
 
@@ -113,6 +126,7 @@ mete/
     engines/         optional adapters: crewai, metagpt, chatdev (Python via uv)
     ui-kit/          design tokens and shared React components
     ui-studio/       studio view (PixiJS)
+    ui-theia/        Theia extension: the daemon connection and the METE panels
     testing/         contract test kits, MSW fixtures, helpers
   templates/         research, seo-audit, web-dev, game-studio
   adapters/          declarative adapter mappings (YAML)
