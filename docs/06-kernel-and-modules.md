@@ -191,23 +191,31 @@ export type AdapterMapping = { apiVersion: "mete/v1"; kind: "AdapterMapping"; me
       output: TemplateValue; action?: PolicyAction; features?: string[] }> }   // action defaults to mcp.call
   | { type: "cli" | "http"; implements: Record<CapabilityRef, unknown> });   // not run yet
 
-// vcs.git@1, defined in @mete/contracts; rules in tab 10 (Built-in tools). Worktree and merge operations come with the
-// team engine (Phase 2). Checkpoint refs are refs/mete/checkpoints/<runId>/<n>, n counting from 1 per run.
+// vcs.git@2, defined in @mete/contracts; rules in tab 10 (Built-in tools). The model offers the first three operations; the
+// rest are the core's. Checkpoint refs are refs/mete/checkpoints/<runId>/<n>, n counting from 1 per run. A task's worktree is
+// <global>/worktrees/<runId>/<taskId> on branch mete/<runId>/<taskId>, so no input names a path or a branch.
 export type VcsGitInput =
   | { op: "status" }
   | { op: "diff"; staged?: boolean; ref?: string; path?: string }
   | { op: "commit"; message: string; paths?: string[] }     // without paths every change is staged (git add -A)
   | { op: "checkpoint.create"; runId: string }
   | { op: "checkpoint.restore"; ref: string }
-  | { op: "checkpoint.prune"; runId: string };                // core calls it 14 days after the run ends
+  | { op: "checkpoint.prune"; runId: string }                 // core calls it 14 days after the run ends
+  | { op: "worktree.create"; runId: string; taskId: string }  // new branch at HEAD; uncommitted changes are not in it
+  | { op: "worktree.remove"; runId: string; taskId: string }
+  | { op: "merge"; runId: string; taskId: string; message: string };   // commits the worktree's changes, then merges its branch
 export type VcsGitOutput =
   | { op: "status"; branch: string | null; files: { path: string; index: string; worktree: string }[] }
   | { op: "diff"; diff: string }                              // cut like a shell stream
   | { op: "commit"; sha: string }
   | { op: "checkpoint.create"; ref: string; sha: string }
   | { op: "checkpoint.restore"; ref: string }
-  | { op: "checkpoint.prune"; removed: number };
-export type VcsError = ToolError | { code: "nothing_to_commit"; message: string };
+  | { op: "checkpoint.prune"; removed: number }
+  | { op: "worktree.create"; path: string; branch: string; sha: string }
+  | { op: "worktree.remove"; removed: boolean }               // false when there was no worktree
+  | { op: "merge"; sha: string };                             // the workspace's HEAD after the merge
+export type VcsError = ToolError | { code: "nothing_to_commit"; message: string }
+  | { code: "merge_conflict"; message: string; paths: string[] };   // the merge was undone
 export interface VcsGitAdapter { run(input: VcsGitInput, ctx: ToolContext): Promise<Result<VcsGitOutput, VcsError>> }
 
 // quota.reserve@2, defined in @mete/contracts; QuotaUnit and QuotaUnitSpec are in tab 09, pool rules in tab 09 (Quota pool).
@@ -312,14 +320,14 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | tools-fs | `@mete/tools` | essential | `fs.read@1`, `fs.write@1`, `fs.edit@1`, `fs.list@1`, `fs.glob@1`, `fs.grep@1` | `policy.check@1` | none | in-process |
 | tools-shell | `@mete/tools` | essential | `shell.exec@1` | `policy.check@1` | none | in-process |
 | tools-web | `@mete/tools` | optional | `web.fetch@1`, `web.search@1` (HTTP adapters) | `policy.check@1` | `mcp.tools@1` | in-process |
-| vcs-git | `@mete/tools` | optional | `vcs.git@1` | `policy.check@1` | none | in-process |
+| vcs-git | `@mete/tools` | optional | `vcs.git@2` | `policy.check@1` | none | in-process |
 | mcp-client | `@mete/mcp` | optional | `mcp.tools@1`, `runtime.ensure@1`, mapping adapters for any capability | `policy.check@1` | `registry.search@1`, `llm.chat@1` | in-process; servers in child processes |
 | mcp-server | `@mete/mcp` | optional | METE as an MCP server | `team.engine@2` | `knowledge.search@1` | in-process |
 | registry | `@mete/mcp` | optional | `registry.search@1` | `policy.check@1` | none | in-process |
 | knowledge-graph | `@mete/knowledge` | optional | `code.graph@1` | `fs.read@1` | `llm.chat@1` | worker |
 | vault | `@mete/knowledge` | optional | `vault.read@1`, `vault.write@1` | `fs.read@1`, `fs.write@1` | none | in-process |
 | knowledge-search | `@mete/knowledge` | optional | `knowledge.search@1`, `knowledge.index@1` | `fs.grep@1` | `llm.embed@1`, `llm.rerank@1`, `code.graph@1`, `vault.read@1` | worker |
-| core-engine | `@mete/core` | essential | `team.engine@2` (native), runs, router, artifacts, checkpoints | `llm.chat@1`, `fs.*`, `policy.check@1`, `secrets.mask@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@1`, `web.fetch@1`, `web.search@1`, `mcp.tools@1`, `knowledge.search@1`, `vault.*` | in-process |
+| core-engine | `@mete/core` | essential | `team.engine@2` (native), runs, router, artifacts, checkpoints | `llm.chat@1`, `fs.*`, `policy.check@1`, `secrets.mask@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@2`, `web.fetch@1`, `web.search@1`, `mcp.tools@1`, `knowledge.search@1`, `vault.*` | in-process |
 | autonomy | `@mete/core` | optional | triggers, schedules | `team.engine@2` | `issues.source@1` | in-process |
 | browser | `@mete/tools` | optional | `browser.screenshot@1`, `seo.audit@1` | `policy.check@1` | none | in-process; each call in a child process; Chromium comes from Playwright's own installer, not `runtime.ensure@1` (tab 10) \[D\] |
 | engine-crewai, engine-metagpt, engine-chatdev | `@mete/engines` | optional | `team.engine@2` | `runtime.ensure@1`, `llm.chat@1` | none | process |
@@ -344,7 +352,7 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 | `shell.exec@1` | Run commands under policy | Native (child process) | Never empty (essential) |
 | `web.fetch@1` | Page to clean Markdown | Native reader | Steps needing it are blocked with a notice |
 | `web.search@1` | Web search returning URLs | Exa MCP (no key) → Tavily → Exa API → You.com → Firecrawl | Steps needing it are blocked with a notice |
-| `vcs.git@1` | Status, diff, worktrees, checkpoints | simple-git | Core uses file snapshots |
+| `vcs.git@2` | Status, diff, worktrees, checkpoints | simple-git | Core uses file snapshots |
 | `code.graph@1` | Query code structure | tree-sitter graph; Graphify through MCP as an alternative | `knowledge.search@1` works without it |
 | `knowledge.search@1` | Hybrid search | knowledge-search module | Plain ripgrep search |
 | `vault.read@1`, `vault.write@1` | Notes and lessons | vault module | Lessons are not saved; runs continue |

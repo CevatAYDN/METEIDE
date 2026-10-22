@@ -84,7 +84,7 @@ export const TOOL_CATALOG: readonly ToolCatalogEntry[] = [
 			"Run a shell command in the workspace and return its exit code and output.",
 	},
 	{
-		ref: "vcs.git@1",
+		ref: "vcs.git@2",
 		// Only a commit writes; status and diff only read.
 		write: (args) =>
 			z.object({ op: z.literal("commit") }).safeParse(args).success,

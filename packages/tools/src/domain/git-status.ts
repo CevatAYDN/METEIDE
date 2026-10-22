@@ -1,4 +1,4 @@
-// `git status --porcelain=v1 -z --branch` as vcs.git@1 status output (docs/06).
+// `git status --porcelain=v1 -z --branch` as vcs.git@2 status output (docs/06).
 
 type StatusFile = { path: string; index: string; worktree: string };
 

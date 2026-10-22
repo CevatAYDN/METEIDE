@@ -84,7 +84,7 @@ export const policyCheckContract = (name: string, open: PolicyCheckHarness) =>
 			expect(
 				ask({
 					action: "git.push",
-					capability: "vcs.git@1",
+					capability: "vcs.git@2",
 					adapterId: "kit",
 					args: {},
 				}),

@@ -306,13 +306,13 @@ export const callTool = async (
 	return finished(deps, call, out, entry.external === true);
 };
 
-/** Records the working tree before a writing step; no vcs.git@1 means no checkpoint (Phase 4). */
+/** Records the working tree before a writing step; no vcs.git@2 means no checkpoint (Phase 4). */
 export const createCheckpoint = async (
 	deps: StepDeps,
 	runId: string,
 	signal: AbortSignal,
 ): Promise<Result<string | undefined, string>> => {
-	const chain = deps.registry.resolve<VcsGitAdapter>("vcs.git@1");
+	const chain = deps.registry.resolve<VcsGitAdapter>("vcs.git@2");
 	if (!chain.ok) return ok(undefined);
 	const r = await chain.value[0].impl.run(
 		{ op: "checkpoint.create", runId },

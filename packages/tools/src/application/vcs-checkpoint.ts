@@ -25,7 +25,7 @@ const PROTECTED = [
 ];
 // Exact bytes both ways: no line-ending conversion into the checkpoint or out of it.
 const RAW = ["-c", "core.autocrlf=false"];
-const IDENTITY = {
+export const IDENTITY = {
 	GIT_AUTHOR_NAME: "METE",
 	GIT_AUTHOR_EMAIL: "",
 	GIT_COMMITTER_NAME: "METE",
@@ -44,7 +44,7 @@ const refsOf = async (git: Git, runId: string) => {
 };
 
 /** HEAD's commit, or undefined before the first commit. */
-const head = async (git: Git) => {
+export const head = async (git: Git) => {
 	const out = await git(["rev-parse", "--verify", "--quiet", "HEAD"]);
 	return out.ok && out.value.trim() !== "" ? out.value.trim() : undefined;
 };

@@ -30,7 +30,7 @@ const gameStudio = () => ({
 			name: "Lead",
 			goal: "Approve or return work",
 			tier: "reasoning",
-			capabilities: ["fs.read@1", "vcs.git@1"],
+			capabilities: ["fs.read@1", "vcs.git@2"],
 			watches: ["gdd@1", "task-list@1"],
 		},
 		{

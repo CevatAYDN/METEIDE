@@ -18,7 +18,7 @@ export type Seat = {
 export const SINGLE_AGENT: Seat = {
 	tier: "coder",
 	needs: ["tool_calling"],
-	capabilities: ["fs.*@1", "shell.exec@1", "vcs.git@1"],
+	capabilities: ["fs.*@1", "shell.exec@1", "vcs.git@2"],
 };
 
 const FS_WILDCARD = /^fs\.\*@(\d+)$/;

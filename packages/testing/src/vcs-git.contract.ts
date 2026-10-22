@@ -8,7 +8,7 @@ import type {
 } from "@mete/contracts";
 import { afterEach, describe, expect, it } from "vitest";
 
-// Contract kit for vcs.git@1 (docs/06 tool types, docs/10 Built-in tools).
+// Contract kit for vcs.git@2 (docs/06 tool types, docs/10 Built-in tools).
 
 /**
  * Opens the adapter on a fresh git repository without commits whose policy.check@1
@@ -20,10 +20,14 @@ export type VcsGitHarness = (verdict: PolicyVerdict["verdict"]) => Promise<{
 	readonly put: (path: string, text: string) => Promise<void>;
 	readonly read: (path: string) => Promise<string | undefined>;
 	readonly remove: (path: string) => Promise<void>;
+	/** Writes a file at an absolute path, such as one inside a worktree. */
+	readonly putAt: (absolutePath: string, text: string) => Promise<void>;
+	readonly exists: (absolutePath: string) => Promise<boolean>;
 	readonly close: () => Promise<void>;
 }>;
 
 const RUN = "7f3c2a1e-4b5d-4c6e-8f9a-0b1c2d3e4f5a";
+const TASK = "1b2c3d4e-5f60-4718-9a0b-c1d2e3f4a5b6";
 const ctx = { signal: new AbortController().signal };
 
 const value = (r: Result<VcsGitOutput, VcsError>) => {
@@ -31,9 +35,9 @@ const value = (r: Result<VcsGitOutput, VcsError>) => {
 	return r.value;
 };
 
-/** Every vcs.git@1 adapter MUST pass these tests. */
+/** Every vcs.git@2 adapter MUST pass these tests. */
 export const vcsGitContract = (name: string, open: VcsGitHarness) =>
-	describe(`vcs.git@1 contract: ${name}`, () => {
+	describe(`vcs.git@2 contract: ${name}`, () => {
 		let close: (() => Promise<void>) | undefined;
 		afterEach(async () => {
 			await close?.();
@@ -140,5 +144,77 @@ export const vcsGitContract = (name: string, open: VcsGitHarness) =>
 				ref: `refs/mete/checkpoints/${RUN}/1`,
 			});
 			expect(gone.ok ? undefined : gone.error.code).toBe("not_found");
+		});
+
+		const worktree = async (r: Awaited<ReturnType<typeof repo>>) => {
+			const made = value(
+				await r.run({ op: "worktree.create", runId: RUN, taskId: TASK }),
+			);
+			if (made.op !== "worktree.create") throw new Error("not a worktree");
+			return made;
+		};
+
+		it("starts a worktree at HEAD, merges its work into the workspace and removes it", async () => {
+			const r = await repo();
+			await r.put("a.txt", "a\n");
+			const base = value(await r.run({ op: "commit", message: "base" }));
+			const made = await worktree(r);
+			expect(made.branch).toBe(`mete/${RUN}/${TASK}`);
+			expect(made.sha).toBe(base.op === "commit" ? base.sha : "");
+			expect(await r.exists(made.path)).toBe(true);
+			await r.putAt(`${made.path}/b.txt`, "b\n");
+			expect(await r.read("b.txt")).toBeUndefined();
+			const merged = value(
+				await r.run({ op: "merge", runId: RUN, taskId: TASK, message: "task" }),
+			);
+			expect(merged).toMatchObject({
+				op: "merge",
+				sha: expect.stringMatching(/^[0-9a-f]{40}$/),
+			});
+			expect(merged.op === "merge" && merged.sha).not.toBe(made.sha);
+			expect(await r.read("b.txt")).toBe("b\n");
+			expect(value(await r.run({ op: "status" }))).toMatchObject({ files: [] });
+			const gone = { op: "worktree.remove", runId: RUN, taskId: TASK } as const;
+			expect(value(await r.run(gone))).toEqual({
+				op: "worktree.remove",
+				removed: true,
+			});
+			expect(await r.exists(made.path)).toBe(false);
+			expect(value(await r.run(gone))).toEqual({
+				op: "worktree.remove",
+				removed: false,
+			});
+		});
+
+		it("refuses a worktree before the first commit", async () => {
+			const r = await repo();
+			const made = await r.run({
+				op: "worktree.create",
+				runId: RUN,
+				taskId: TASK,
+			});
+			expect(made.ok ? undefined : made.error.code).toBe("io");
+		});
+
+		it("names the files of a merge conflict and leaves the workspace as it was", async () => {
+			const r = await repo();
+			await r.put("a.txt", "base\n");
+			await r.run({ op: "commit", message: "base" });
+			const made = await worktree(r);
+			await r.putAt(`${made.path}/a.txt`, "task\n");
+			await r.put("a.txt", "main\n");
+			await r.run({ op: "commit", message: "main" });
+			const merged = await r.run({
+				op: "merge",
+				runId: RUN,
+				taskId: TASK,
+				message: "task",
+			});
+			expect(merged.ok ? undefined : merged.error).toMatchObject({
+				code: "merge_conflict",
+				paths: ["a.txt"],
+			});
+			expect(await r.read("a.txt")).toBe("main\n");
+			expect(value(await r.run({ op: "status" }))).toMatchObject({ files: [] });
 		});
 	});

@@ -1,4 +1,5 @@
 import {
+	type CapabilityRef,
 	err,
 	ok,
 	type PolicyAction,
@@ -98,7 +99,7 @@ export const permit = (
 	deps: Pick<FsDeps, "adapterId" | "policy">,
 	check: {
 		action: PolicyAction;
-		capability: `${string}@1`;
+		capability: CapabilityRef;
 		path?: string;
 		command?: string;
 		args: unknown;

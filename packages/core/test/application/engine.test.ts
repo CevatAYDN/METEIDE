@@ -51,7 +51,7 @@ describe("single-agent engine", () => {
 			],
 			tools: [
 				["fs.edit@1", edit],
-				["vcs.git@1", vcs],
+				["vcs.git@2", vcs],
 			],
 		});
 		const runId = await begin(h);
@@ -186,7 +186,7 @@ describe("single-agent engine", () => {
 				]),
 				reply("ok"),
 			],
-			tools: [["vcs.git@1", vcs]],
+			tools: [["vcs.git@2", vcs]],
 		});
 		const runId = await begin(h);
 		await settled(h, runId, "completed");
@@ -501,7 +501,7 @@ describe("single-agent engine", () => {
 			tools: [
 				["fs.edit@1", edit],
 				[
-					"vcs.git@1",
+					"vcs.git@2",
 					async () => err({ code: "io", message: "index.lock exists" }),
 				],
 			],

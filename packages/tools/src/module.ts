@@ -159,7 +159,7 @@ const VCS_MANIFEST: ModuleManifest = {
 	displayName: "Git",
 	class: "optional",
 	trust: "core",
-	provides: ["vcs.git@1"],
+	provides: ["vcs.git@2"],
 	requires: ["policy.check@1"],
 	optional: [],
 	activation: ["onStartup"],
@@ -167,7 +167,7 @@ const VCS_MANIFEST: ModuleManifest = {
 	permissions: ["fs.read", "fs.write"],
 };
 
-/** The vcs-git module: vcs.git@1 (docs/10); without a repository or git it does not activate. */
+/** The vcs-git module: vcs.git@2 (docs/10); without a repository or git it does not activate. */
 export const createVcsGitModule = (opts: ToolsOptions): MeteModule => ({
 	manifest: VCS_MANIFEST,
 	async activate(ctx) {
@@ -188,7 +188,7 @@ export const createVcsGitModule = (opts: ToolsOptions): MeteModule => ({
 		};
 		const impl: VcsGitAdapter = { run: (input, c) => vcsTool(deps, input, c) };
 		ctx.disposables.add(
-			ctx.capabilities.provide("vcs.git@1", {
+			ctx.capabilities.provide("vcs.git@2", {
 				id: VCS_MANIFEST.id,
 				trust: "core",
 				features: [],

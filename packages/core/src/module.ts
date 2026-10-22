@@ -43,7 +43,7 @@ const MANIFEST: ModuleManifest = {
 	],
 	optional: [
 		"shell.exec@1",
-		"vcs.git@1",
+		"vcs.git@2",
 		"web.fetch@1",
 		"web.search@1",
 		"mcp.tools@1",

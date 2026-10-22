@@ -20,8 +20,13 @@ import {
 	pruneCheckpoints,
 	restoreCheckpoint,
 } from "./vcs-checkpoint.js";
+import {
+	createWorktree,
+	mergeWorktree,
+	removeWorktree,
+} from "./vcs-worktree.js";
 
-// vcs.git@1 in Phase 1: status, diff, commit and checkpoints (docs/10, Built-in tools).
+// vcs.git@2: status, diff, commit, checkpoints, worktrees and merges (docs/10, Built-in tools).
 
 export type VcsDeps = FsDeps & { readonly root: string };
 
@@ -65,7 +70,7 @@ const commit = async (
 ): Out => {
 	const allowed = permit(
 		deps,
-		{ action: "git.commit", capability: "vcs.git@1", args: input },
+		{ action: "git.commit", capability: "vcs.git@2", args: input },
 		ctx,
 	);
 	if (!allowed.ok) return allowed;
@@ -81,6 +86,33 @@ const commit = async (
 	if (!done.ok) return done;
 	const sha = await git(["rev-parse", "HEAD"]);
 	return sha.ok ? ok({ op: "commit", sha: sha.value.trim() }) : sha;
+};
+
+type CoreOp = Exclude<VcsGitInput, { op: "status" | "diff" | "commit" }>;
+
+// The operations of the core, which the model never offers: checkpoints, worktrees and merges.
+const coreOp = (
+	deps: VcsDeps,
+	git: Git,
+	v: CoreOp,
+	signal: AbortSignal,
+): Out => {
+	switch (v.op) {
+		case "checkpoint.create":
+			return withIndex((index) => createCheckpoint(git, index, v.runId));
+		case "checkpoint.restore":
+			return withIndex((index) =>
+				restoreCheckpoint(deps.root, git, index, v.ref),
+			);
+		case "checkpoint.prune":
+			return pruneCheckpoints(git, v.runId);
+		case "worktree.create":
+			return createWorktree(deps, git, v);
+		case "worktree.remove":
+			return removeWorktree(deps, git, v);
+		case "merge":
+			return mergeWorktree(deps, git, v, signal);
+	}
 };
 
 export const vcsTool = async (
@@ -99,14 +131,8 @@ export const vcsTool = async (
 			return diff(git, v);
 		case "commit":
 			return commit(deps, git, v, ctx);
-		case "checkpoint.create":
-			return withIndex((index) => createCheckpoint(git, index, v.runId));
-		case "checkpoint.restore":
-			return withIndex((index) =>
-				restoreCheckpoint(deps.root, git, index, v.ref),
-			);
-		case "checkpoint.prune":
-			return pruneCheckpoints(git, v.runId);
+		default:
+			return coreOp(deps, git, v, ctx.signal);
 	}
 };
 

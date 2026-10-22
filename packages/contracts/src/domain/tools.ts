@@ -145,7 +145,11 @@ export const shellName = (config: ShellConfig, platform: string) => {
 
 const CHECKPOINT_REF = /^refs\/mete\/checkpoints\/[^/]+\/[1-9]\d*$/;
 
-/** Input of vcs.git@1 in Phase 1; worktree and merge come with the team engine. */
+/**
+ * Input of vcs.git@2. The operations after `commit` are the core's, never the model's (the
+ * model's schema takes the first three; keep the order). A worktree and its branch are named by
+ * the run and the task, so no input names a path or a branch.
+ */
 export const VcsGitInputSchema = z.discriminatedUnion("op", [
 	z.strictObject({ op: z.literal("status") }),
 	z.strictObject({
@@ -167,10 +171,26 @@ export const VcsGitInputSchema = z.discriminatedUnion("op", [
 			.regex(CHECKPOINT_REF, "a refs/mete/checkpoints/<run id>/<n> ref"),
 	}),
 	z.strictObject({ op: z.literal("checkpoint.prune"), runId: IdSchema }),
+	z.strictObject({
+		op: z.literal("worktree.create"),
+		runId: IdSchema,
+		taskId: IdSchema,
+	}),
+	z.strictObject({
+		op: z.literal("worktree.remove"),
+		runId: IdSchema,
+		taskId: IdSchema,
+	}),
+	z.strictObject({
+		op: z.literal("merge"),
+		runId: IdSchema,
+		taskId: IdSchema,
+		message: z.string().trim().min(1),
+	}),
 ]);
 export type VcsGitInput = z.infer<typeof VcsGitInputSchema>;
 
-/** Output of vcs.git@1, by operation. */
+/** Output of vcs.git@2, by operation. */
 export type VcsGitOutput =
 	| {
 			readonly op: "status";
@@ -189,14 +209,27 @@ export type VcsGitOutput =
 			readonly sha: string;
 	  }
 	| { readonly op: "checkpoint.restore"; readonly ref: string }
-	| { readonly op: "checkpoint.prune"; readonly removed: number };
+	| { readonly op: "checkpoint.prune"; readonly removed: number }
+	| {
+			readonly op: "worktree.create";
+			readonly path: string;
+			readonly branch: string;
+			readonly sha: string;
+	  }
+	| { readonly op: "worktree.remove"; readonly removed: boolean }
+	| { readonly op: "merge"; readonly sha: string };
 
-/** Why a vcs.git@1 call failed. */
+/** Why a vcs.git@2 call failed; a merge conflict names the files and leaves the workspace as it was. */
 export type VcsError =
 	| ToolError
-	| { readonly code: "nothing_to_commit"; readonly message: string };
+	| { readonly code: "nothing_to_commit"; readonly message: string }
+	| {
+			readonly code: "merge_conflict";
+			readonly message: string;
+			readonly paths: readonly string[];
+	  };
 
-/** The vcs-git module's adapter behind vcs.git@1. */
+/** The vcs-git module's adapter behind vcs.git@2. */
 export interface VcsGitAdapter {
 	run(
 		input: VcsGitInput,
