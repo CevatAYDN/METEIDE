@@ -112,6 +112,8 @@ describe("the research template", () => {
 			JSON.parse(await readFile(file, "utf8")),
 		);
 		expect(report.sources[0]?.url).toBe(PAGE);
+		// The built-in Exa server answers 404 here, so the search falls back to Tavily.
+		expect(t.out.filter((l) => l === "tool  web.search@1")).toHaveLength(2);
 		expect(t.out).toEqual(
 			expect.arrayContaining([
 				"tool  web.search@1",

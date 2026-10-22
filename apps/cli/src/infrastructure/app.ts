@@ -38,6 +38,7 @@ import {
 	createToolsWebModule,
 	createVcsGitModule,
 } from "@mete/tools";
+import { BUILT_IN_BINDINGS } from "../defaults.js";
 import { moduleLogger } from "./log.js";
 
 // The CLI's composition root (ARCHITECTURE.md, CLI): one workspace, every Phase 1 module in
@@ -65,7 +66,7 @@ export type AppOptions = {
 	readonly recover?: boolean;
 	/** The built-in templates folder; the repository's templates/ by default. */
 	readonly templatesDir?: string;
-	/** The fetch tools-web uses; tests pass a fake, so nothing reaches the network. */
+	/** The fetch tools-web and remote MCP servers use; tests pass a fake, so nothing reaches the network. */
 	readonly fetch?: typeof fetch;
 };
 
@@ -110,6 +111,7 @@ const modulesFor = (opts: AppOptions, workspaceId: string): MeteModule[] => {
 		createMcpClientModule({
 			workspaceDir: opts.workspaceDir,
 			adaptersDir: BUILT_IN_ADAPTERS,
+			...(opts.fetch ? { fetch: opts.fetch } : {}),
 		}),
 		createCoreEngineModule({
 			workspaceId,
@@ -147,7 +149,7 @@ const contextOf =
 export const createApp = async (
 	opts: AppOptions,
 ): Promise<Result<App, readonly ConfigInvalid[]>> => {
-	const config = await loadConfig(opts);
+	const config = await loadConfig(opts, BUILT_IN_BINDINGS);
 	if (!config.ok) return err(config.error);
 	const { workspaceId, reader, bindings } = config.value;
 	const registry = createCapabilityRegistry(bindings);
