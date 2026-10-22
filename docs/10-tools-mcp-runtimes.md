@@ -52,6 +52,8 @@ METE supports the whole protocol, not only tool calls \[C\]:
 | Progress, cancellation, list changes | Shown in the UI; cancellation follows run cancellation |
 | Content types | Text, image, audio, resource links; binary results are saved in `.mete/assets/` with a manifest entry |
 
+Each saved file adds one line to `.mete/assets/manifest.jsonl`: `path`, `mediaType`, `bytes`, `sha256`, the `server` and `tool` that made it, the `runId` when the call has one, and `at` \[D\]. A license field joins with the Assets view (tab 13).
+
 A stdio server starts in the workspace folder, not in the folder `mete` was launched from, and the client tells every server that folder as its one root \[D\]; the vault roots join it in Phase 4.
 
 Server configuration lives in `.mete/mcp.yaml` (workspace) and in global settings:

@@ -7,6 +7,7 @@ import {
 	ok,
 	type PolicyCheckAdapter,
 	type Result,
+	type ToolContext,
 	type ToolError,
 } from "@mete/contracts";
 import type { Logger } from "@mete/kernel";
@@ -77,26 +78,28 @@ const call: (deps: McpToolsDeps) => McpToolsAdapter["call"] =
 				code: "not_found",
 				message: `MCP server ${input.server} has no tool ${input.tool}`,
 			});
-		return invoke(deps.workspaceDir, s.value, input, ctx.signal);
+		return invoke(deps.workspaceDir, s.value, input, ctx);
 	};
 
 const invoke = async (
 	workspaceDir: string,
 	session: Session,
 	input: { server: string; tool: string; args: Record<string, unknown> },
-	signal: AbortSignal,
+	ctx: ToolContext,
 ): Promise<Result<McpCallOutput, ToolError>> => {
 	try {
 		const r = await session.client.callTool(
 			{ name: input.tool, arguments: input.args },
 			undefined,
-			{ signal },
+			{ signal: ctx.signal },
 		);
 		// A server on the old protocol answers with toolResult instead of content.
 		const blocks = (r.content ?? [
 			{ type: "text", text: JSON.stringify(r.toolResult) },
 		]) as ContentBlock[];
-		const content = await toContent(workspaceDir, blocks);
+		const { server, tool } = input;
+		const origin = { server, tool, ...(ctx.runId ? { runId: ctx.runId } : {}) };
+		const content = await toContent({ workspaceDir, origin }, blocks);
 		return ok({ content, isError: r.isError === true });
 	} catch (e) {
 		return err({

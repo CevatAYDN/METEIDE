@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync, realpathSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -76,7 +76,10 @@ describe("mcp-client over stdio", () => {
 
 	it("returns text, passes the server's error flag and saves images", async () => {
 		const call = (tool: string, args = {}) =>
-			s.tools?.call({ server: "fixture", tool, args }, { signal });
+			s.tools?.call(
+				{ server: "fixture", tool, args },
+				{ signal, runId: "run-1" },
+			);
 		expect(await call("echo", { text: "hi" })).toEqual({
 			ok: true,
 			value: { content: [{ type: "text", text: "hi" }], isError: false },
@@ -89,6 +92,24 @@ describe("mcp-client over stdio", () => {
 		expect(image?.type === "image" && existsSync(join(dir, image.path))).toBe(
 			true,
 		);
+		// One manifest line per saved file says which call made it (docs/10, content types).
+		const saved = join(dir, image?.type === "image" ? image.path : "");
+		const bytes = await readFile(saved);
+		const lines = (
+			await readFile(join(dir, ".mete", "assets", "manifest.jsonl"), "utf8")
+		)
+			.trim()
+			.split("\n");
+		expect(JSON.parse(lines.at(-1) ?? "")).toEqual({
+			path: image?.type === "image" ? image.path : "",
+			mediaType: "image/png",
+			bytes: bytes.length,
+			sha256: createHash("sha256").update(bytes).digest("hex"),
+			server: "fixture",
+			tool: "pixel",
+			runId: "run-1",
+			at: expect.stringMatching(/^\d{4}-\d\d-\d\dT/),
+		});
 	});
 
 	it("names an unknown server or tool", async () => {
