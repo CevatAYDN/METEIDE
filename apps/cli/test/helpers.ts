@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import {
 	type ChatChunk,
+	type ChatRequest,
 	type ModuleManifest,
 	ok,
 	type ProviderAdapter,
@@ -108,7 +109,7 @@ const MANIFEST: ModuleManifest = {
 
 /** How the scripted provider behaves: replies in order (the last repeats), no models, or a call that waits. */
 export type Behaviour =
-	| { script: ChatChunk[][] }
+	| { script: ChatChunk[][]; seen?: ChatRequest[] }
 	| { noModels: true }
 	| { hang: true };
 
@@ -129,14 +130,16 @@ export const scriptedProvider = (b: Behaviour): MeteModule => {
 		id: "fake",
 		format: "openai-chat",
 		listModels: async () => ok("noModels" in b ? [] : [model]),
-		async *chat(_req, signal) {
+		async *chat(req, signal) {
 			if ("hang" in b) {
 				await new Promise((r) => signal.addEventListener("abort", r));
 				yield { type: "error", error: { code: "aborted", message: "aborted" } };
 				return;
 			}
-			if ("script" in b)
+			if ("script" in b) {
+				b.seen?.push(req);
 				yield* b.script[Math.min(calls++, b.script.length - 1)] ?? [];
+			}
 		},
 		quotaUnits: () => [
 			{
