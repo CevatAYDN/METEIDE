@@ -17,8 +17,8 @@ Built-in tools cover files, shell, web and git; everything else arrives through 
 | `web.fetch@1` | url | markdown, title, finalUrl | readability + turndown; output cut to 100,000 characters \[D\] |
 | `web.search@1` | query, maxResults (default 8) | title, url, snippet per result | Fallback chain from 06 Kernel and modules |
 | `vcs.git@1` | operation: status, diff, commit, merge, worktree create or remove, checkpoint create, restore or prune | operation result | git CLI through simple-git; worktree and merge come with the team engine (Phase 2) |
-| `browser.screenshot@1` | url or file, viewport | image artifact | Playwright Chromium, downloaded on first use |
-| `seo.audit@1` | url, categories | score and findings per category | Lighthouse on Playwright Chromium |
+| `browser.screenshot@1` | url (http or https), fullPage (default false) | path of the image in `.mete/assets/`, width, height | Playwright Chromium, downloaded on first use; `policy.check@1` with `net.fetch`, public addresses only like `web.fetch@1` [D] |
+| `seo.audit@1` | url (http or https) | scores (performance, accessibility, bestPractices, seo, each 0-100), audits (id, title, score 0-100 or null when Lighthouse does not score it, details?), reportPath of the full report in `.mete/assets/` | Lighthouse on Playwright Chromium; a category Lighthouse leaves unscored fails the call with `io` naming it, never a 0; the result is external content [D] |
 
 On Windows, file operations retry on lock errors (`EBUSY`, `EPERM`, `EACCES`) 3 times after 100, 300 and 1,000 ms \[D\]. The shell tool tells the model the operating system and shell name in every call \[C\].
 

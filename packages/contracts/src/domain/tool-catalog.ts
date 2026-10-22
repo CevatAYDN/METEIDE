@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+	BrowserScreenshotInputSchema,
+	SeoAuditInputSchema,
+} from "./browser.js";
 import type { CapabilityRef } from "./ids.js";
 import type { ToolCall, ToolSpec } from "./provider.js";
 import {
@@ -97,6 +101,19 @@ export const TOOL_CATALOG: readonly ToolCatalogEntry[] = [
 		ref: "web.fetch@1",
 		schema: WebFetchInputSchema,
 		description: "Fetch a public web page as Markdown.",
+		external: true,
+	},
+	{
+		ref: "browser.screenshot@1",
+		schema: BrowserScreenshotInputSchema,
+		description:
+			"Take a screenshot of a public web page; returns the image path and size.",
+	},
+	{
+		ref: "seo.audit@1",
+		schema: SeoAuditInputSchema,
+		description:
+			"Run a Lighthouse audit of a public web page; returns category scores 0-100 and every audit.",
 		external: true,
 	},
 ];

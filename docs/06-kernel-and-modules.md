@@ -162,6 +162,13 @@ export type WebFetchInput = { url: string };                            // http 
 export type WebFetchOutput = { markdown: string; title: string; finalUrl: string };   // finalUrl: where redirects ended
 export type WebSearchInput = { query: string; maxResults?: number };    // maxResults defaults to 8
 export type WebSearchOutput = { results: { title: string; url: string; snippet: string }[] };
+// browser.screenshot@1 and seo.audit@1, defined in @mete/contracts; rules in tab 10 (Built-in tools). Paths are workspace-relative in .mete/assets/.
+export type BrowserScreenshotInput = { url: string; fullPage?: boolean };    // fullPage defaults to false
+export type BrowserScreenshotOutput = { path: string; width: number; height: number };
+export type SeoScores = { performance: number; accessibility: number; bestPractices: number; seo: number };   // 0-100
+export type SeoAuditInput = { url: string };
+export type SeoAuditOutput = { scores: SeoScores; audits: { id: string; title: string; score: number | null; details?: string }[];
+  reportPath: string };                                             // score null: Lighthouse does not score that audit
 // mcp.tools@1, defined in @mete/contracts with McpConfigSchema for .mete/mcp.yaml (tab 10, MCP client); policy action mcp.call.
 export type McpServer =
   | { id: string; transport: "stdio"; runtime: "node" | "python" | "binary" | "container"; command: string; args?: string[];

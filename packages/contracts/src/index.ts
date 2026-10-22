@@ -4,7 +4,19 @@ export {
 	artifactSchema,
 	type ResearchReport,
 	ResearchReportSchema,
+	type SeoAuditReport,
+	SeoAuditReportSchema,
 } from "./domain/artifacts.js";
+export {
+	type BrowserScreenshotInput,
+	BrowserScreenshotInputSchema,
+	type BrowserScreenshotOutput,
+	type SeoAuditInput,
+	SeoAuditInputSchema,
+	type SeoAuditOutput,
+	type SeoScores,
+	SeoScoresSchema,
+} from "./domain/browser.js";
 export {
 	type ApprovalInput,
 	ApprovalInputSchema,

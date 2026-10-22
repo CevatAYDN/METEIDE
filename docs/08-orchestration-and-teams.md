@@ -181,6 +181,8 @@ Artifact types defined in `@mete/contracts`: `gdd@1`, `task-list@1`, `research-r
 
 `research-report@1` is `{ title, summary, findings: [{ claim, sourceIds }], sources: [{ id, url, title }] }`: every finding cites at least one source, every cited id is in `sources`, source ids are unique and URLs are `http` or `https`; unknown keys are rejected. `artifactSchema(type)` in `@mete/contracts` returns a type's schema; the other types get theirs with their templates \[D\].
 
+`seo-audit@1` is `{ url, summary, scores: { performance, accessibility, bestPractices, seo }, fixes: [{ priority, title, why, how, auditIds }] }`: scores are integers from 0 to 100, `priority` is `high`, `medium` or `low`, the fixes are in rank order with the most important first, and every fix names at least one Lighthouse audit id \[D\].
+
 ## Optional engines
 
 When `engine` is `crewai`, `metagpt` or `chatdev`, the adapter maps roles to agents and tasks to tasks of that framework. Fields the framework cannot express are skipped with a warning. All their model calls go through the gateway, and the adapter publishes the same events, so views and quota behave the same \[C\].

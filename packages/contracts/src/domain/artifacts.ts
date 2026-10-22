@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SeoScoresSchema } from "./browser.js";
 
 // Artifact type schemas from docs/08 (Built-in templates); a guardrail validates output against them.
 
@@ -50,9 +51,31 @@ export const ResearchReportSchema = z
 /** A validated research report. */
 export type ResearchReport = z.output<typeof ResearchReportSchema>;
 
-// shortcut: only research-report@1 is defined; the other docs/08 types come with their templates.
+/** seo-audit@1: a page's scores and its ranked fixes; every fix names the audits behind it. */
+export const SeoAuditReportSchema = z.strictObject({
+	url: z.url({ protocol: /^https?$/ }),
+	summary: text,
+	scores: SeoScoresSchema,
+	fixes: z
+		.array(
+			z.strictObject({
+				priority: z.enum(["high", "medium", "low"]),
+				title: text,
+				why: text,
+				how: text,
+				auditIds: z.array(text).min(1).readonly(),
+			}),
+		)
+		.readonly(),
+});
+
+/** A validated SEO audit report; the fixes are in rank order, the most important first. */
+export type SeoAuditReport = z.output<typeof SeoAuditReportSchema>;
+
+// shortcut: only research-report@1 and seo-audit@1 are defined; the other docs/08 types come with their templates.
 const SCHEMAS: Readonly<Record<string, z.ZodType>> = {
 	"research-report@1": ResearchReportSchema,
+	"seo-audit@1": SeoAuditReportSchema,
 };
 
 /** The schema of an artifact type such as `research-report@1`, when one is defined. */
