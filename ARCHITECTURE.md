@@ -21,7 +21,7 @@ Dependency rules, enforced by dependency-cruiser in local CI \[C\]:
 - A package MUST import other packages only through their public `index.ts`.
 - A capability module MUST NOT import another capability module. It resolves the capability through the kernel registry.
 - `contracts` MUST NOT import any METE package. `kernel` MUST import only `contracts` (ADR-036).
-- `apps/desktop` and `ui-theia` MUST import no other METE package than `contracts`; they reach the core through the daemon (ADR-045). Only they import `@theia/*` \[D\].
+- `apps/desktop` and `ui-theia` MUST import no METE package below layer 6 other than `contracts`; they reach the core through the daemon (ADR-045), and they name `@mete/cli` only to find the daemon's `mete` entry file. Only they import `@theia/*` \[D\].
 
 ## Process model
 

@@ -78,8 +78,10 @@ describe("the daemon host", () => {
 			detail: "exit code 1: no provider key for /w",
 		});
 		expect(fake.state.starts).toHaveLength(3);
-		tick(1000);
+		// Known trap: fixing the cause (a provider key) does not reopen it before the window has passed.
 		fake.state.mode = "ok";
+		expect((await host.status("/w")).ok).toBe(false);
+		tick(1000);
 		expect((await host.status("/w")).ok).toBe(true);
 	});
 });
