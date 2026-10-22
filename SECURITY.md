@@ -50,9 +50,9 @@ Action ids used by the policy: `fs.write`, `fs.delete` (a `fs.write@1` call with
 6. Level 3: allow, except `fs.write` or `fs.delete` outside the workspace and the global `worktrees/` and `snapshots/` folders, which is denied because level 3 never asks.
 7. The action is in `always_ask`: ask.
 8. Level 1: ask.
-9. Level 2: allow `fs.write` inside the workspace or the global `worktrees/` and `snapshots/` folders, `shell.exec` matching `shell.allow`, `git.commit`, `net.fetch` (its result is tainted external content) and `runtime.install` (runtimes download by themselves, tab 18); ask for everything else, including `fs.write.outside`.
+9. Level 2: allow `fs.write` inside the workspace or the global `worktrees/` and `snapshots/` folders, except a write to a script manifest (`package.json`, `.npmrc`, `pnpm-workspace.yaml`, `.pnpmfile.cjs`, `lefthook.yml`, `.husky/`, `.git/hooks/` or `.git/config`, anywhere under the workspace folder), which asks, because it changes which program an allow-listed command runs; allow `shell.exec` matching `shell.allow`, `git.commit`, `net.fetch` (its result is tainted external content) and `runtime.install` (runtimes download by themselves, tab 18); ask for everything else, including `fs.write.outside`.
 
-The verdict's `rule` names the step: `missing_input` (1), `never_allow:<index>` (2, the rule's position in the list), `protected_path` (3), `autonomy:0` (5), `autonomy:3` or `autonomy:3:outside` (6), `always_ask` (7), `autonomy:1` (8), and `autonomy:2:inside`, `shell.allow`, `autonomy:2:action` or `autonomy:2` (9) \[D\].
+The verdict's `rule` names the step: `missing_input` (1), `never_allow:<index>` (2, the rule's position in the list), `protected_path` (3), `autonomy:0` (5), `autonomy:3` or `autonomy:3:outside` (6), `always_ask` (7), `autonomy:1` (8), and `autonomy:2:inside`, `autonomy:2:script_manifest`, `shell.allow`, `autonomy:2:action` or `autonomy:2` (9) \[D\].
 
 `policy.check@1` also takes a `tainted` flag and records it in the audit log; the flag changes no decision until the core remembers approvals. The core reads a step as the whole attempt: once a `web.fetch@1` or `web.search@1` result joined an attempt's conversation, every later tool call of that attempt passes `tainted: true`, and the next attempt starts untainted [D].
 
@@ -67,6 +67,7 @@ Protected paths: agents MUST NOT write `.mete/policy.yaml`, `.mete/bindings.yaml
 | Malicious or hijacked plugin or MCP server | Only the user installs; pinned versions; SHA-256 checks; permissions shown at install; child process; circuit breaker \[C\]. Node-based third-party processes SHOULD start with the Node.js permission model (`--permission` with only the declared paths) \[D\] |
 | Secret exfiltration | secretlint masking, `.meteignore`, keychain storage, no secrets in logs \[C\] |
 | Allow-listed command run with a planted program | `shell.exec@1` refuses `env` keys that change which program runs or what it loads (tab 10) \[D\] |
+| Allow-listed script runner with a planted script (`npm test`, `npm run *` or `pnpm *` after an agent edits `package.json`) | At level 2 a write to a script manifest asks, and checkpoints undo it; worktrees come with Phase 4. Residual: `pnpm *` can itself edit the manifest (`pnpm pkg set`, `pnpm exec`, `pnpm dlx`), the tests an agent writes run as its own code, and nothing runs in a sandbox. Narrowing `shell.allow` waits for the Phase 4 web-dev template, which shows which commands a coding run needs \[D\] |
 | Destructive commands | Allow list, `never_allow`, checkpoints, worktrees \[C\] |
 | Runaway loops and quota drain | Budgets, revision limit, 25-turn limit per attempt, kill switch \[C\] |
 | Agent raising its own rights | Protected paths above; the policy engine runs outside the agent's reach \[D\] |

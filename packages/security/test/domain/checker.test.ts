@@ -205,6 +205,28 @@ describe("decide: autonomy levels", () => {
 			});
 	});
 
+	it("level 2 asks before a write to a file that changes what a command runs", () => {
+		for (const path of [
+			"/repo/package.json",
+			"/repo/packages/a/package.json",
+			"/repo/.npmrc",
+			"/repo/pnpm-workspace.yaml",
+			"/repo/.pnpmfile.cjs",
+			"/repo/lefthook.yml",
+			"/repo/.husky/pre-commit",
+			"/repo/.git/hooks/pre-commit",
+			"/repo/.git/config",
+		])
+			expect(decide(write(path), at(2)), path).toEqual({
+				verdict: "ask",
+				rule: "autonomy:2:script_manifest",
+			});
+		// Near misses stay plain inside writes; level 3 trusts the run and writes them.
+		for (const path of ["/repo/src/package.json.md", "/repo/docs/.npmrc.md"])
+			expect(decide(write(path), at(2)).rule, path).toBe("autonomy:2:inside");
+		expect(decide(write("/repo/package.json"), at(3)).verdict).toBe("allow");
+	});
+
 	it("level 2 asks for outside writes and anything else", () => {
 		expect(decide(write("/etc/hosts"), at(2))).toEqual({
 			verdict: "ask",

@@ -46,6 +46,13 @@ export const policyCheckContract = (name: string, open: PolicyCheckHarness) =>
 			});
 		});
 
+		it("asks before a write to a package script manifest at level 2", async () => {
+			const h = await fresh();
+			expect(
+				verdict(h.adapter.check(write(join(h.workspaceDir, "package.json")))),
+			).toEqual({ verdict: "ask", rule: "autonomy:2:script_manifest" });
+		});
+
 		it("denies never_allow, protected paths and missing input", async () => {
 			const h = await fresh();
 			const deny = (input: PolicyCheckInput) => verdict(h.adapter.check(input));

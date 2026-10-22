@@ -4,6 +4,7 @@ import type {
 	PolicyCheckInput,
 	PolicyVerdict,
 } from "@mete/contracts";
+import { SCRIPT_MANIFESTS } from "../defaults.js";
 import {
 	commandMatches,
 	commandParts,
@@ -107,9 +108,15 @@ const hardDeny = (s: Subject, env: CheckerEnv): PolicyVerdict | undefined => {
 	return undefined;
 };
 
+const isScriptManifest = (path: string, env: CheckerEnv) =>
+	SCRIPT_MANIFESTS.some((p) => pathMatches(p, path, env));
+
 // Step 9: level 2 allowances; anything else asks.
 const levelTwo = (s: Subject, env: CheckerEnv) => {
-	if (s.action === "fs.write") return verdict("allow", "autonomy:2:inside");
+	if (s.action === "fs.write")
+		return isScriptManifest(s.path, env)
+			? verdict("ask", "autonomy:2:script_manifest")
+			: verdict("allow", "autonomy:2:inside");
 	if (
 		s.action === "shell.exec" &&
 		!hasShellOperator(s.command) &&
