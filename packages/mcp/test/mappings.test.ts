@@ -40,6 +40,7 @@ describe("level 2 MCP mappings", () => {
 	let module: ReturnType<typeof createMcpClientModule>;
 	let found: (id: string) => ToolAdapter<unknown, unknown> | undefined;
 	let warnings: string[] = [];
+	let infos: Record<string, unknown>[] = [];
 	beforeAll(async () => {
 		dir = await mkdtemp(join(tmpdir(), "mete-adapters-"));
 		await writeFile(
@@ -58,6 +59,7 @@ describe("level 2 MCP mappings", () => {
 		});
 		const c = moduleContext("allow", { mcp: { servers: [server] } });
 		warnings = c.warnings;
+		infos = c.infos;
 		expect((await module.activate(c.ctx)).ok).toBe(true);
 		const r = c.registry.resolve<ToolAdapter<unknown, unknown>>("web.search@1");
 		found = (id) => (r.ok ? r.value.find((a) => a.id === id)?.impl : undefined);
@@ -81,6 +83,24 @@ describe("level 2 MCP mappings", () => {
 				],
 			},
 		});
+	});
+
+	it("logs the progress of a mapped call like a raw one", async () => {
+		infos.length = 0;
+		await found("good-search")?.run(
+			{ query: "mete", maxResults: 1 },
+			{ signal },
+		);
+		expect(infos.filter((i) => i.msg === "MCP tool progress")).toEqual([
+			{
+				moduleId: "mcp-client",
+				server: "fixture",
+				tool: "web_search_advanced_exa",
+				progress: 1,
+				total: 1,
+				msg: "MCP tool progress",
+			},
+		]);
 	});
 
 	it("names the mapping, capability and field of an answer that fails the schema", async () => {

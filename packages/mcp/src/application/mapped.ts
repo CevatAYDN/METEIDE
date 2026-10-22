@@ -66,7 +66,7 @@ const callTool = async (
 		const r = await s.value.client.callTool(
 			{ name: t.entry.tool, arguments: args as Record<string, unknown> },
 			undefined,
-			{ signal },
+			deps.sessions.callOptions(t.mapping.server, t.entry.tool, signal),
 		);
 		const blocks = Array.isArray(r.content) ? r.content : [];
 		const texts = blocks.flatMap((b) => (b.type === "text" ? [b.text] : []));

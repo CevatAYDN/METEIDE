@@ -12,6 +12,7 @@ import type { Logger } from "@mete/kernel";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import {
 	ListRootsRequestSchema,
+	type Progress,
 	type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { OpenTransport } from "../infrastructure/transport.js";
@@ -153,6 +154,20 @@ const notConfigured = (id: string) =>
 		}),
 	);
 
+// A tool that reports progress is a long one; the SDK's request timeout would kill it otherwise.
+// shortcut: progress reaches the log only; upgrade with the team panel (Phase 5, docs/10).
+const callOptions =
+	(deps: SessionDeps) =>
+	(server: string, tool: string, signal: AbortSignal) => ({
+		signal,
+		resetTimeoutOnProgress: true,
+		onprogress: (p: Progress) =>
+			deps.logger.info(
+				{ moduleId: deps.moduleId, server, tool, ...p },
+				"MCP tool progress",
+			),
+	});
+
 export const createSessions = (deps: SessionDeps) => {
 	const live = new Map<string, Promise<Result<Session, ToolError>>>();
 	let closing = false;
@@ -189,7 +204,13 @@ export const createSessions = (deps: SessionDeps) => {
 			if (s.ok) await s.value.client.close().catch(() => {});
 	};
 
-	return { get, close, servers: deps.servers };
+	return {
+		get,
+		close,
+		servers: deps.servers,
+		/** The options of one callTool: the run's signal, progress in the log, no timeout while it reports. */
+		callOptions: callOptions(deps),
+	};
 };
 
 export type Sessions = ReturnType<typeof createSessions>;

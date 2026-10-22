@@ -11,10 +11,7 @@ import {
 	type ToolError,
 } from "@mete/contracts";
 import type { Logger } from "@mete/kernel";
-import type {
-	ContentBlock,
-	Progress,
-} from "@modelcontextprotocol/sdk/types.js";
+import type { ContentBlock } from "@modelcontextprotocol/sdk/types.js";
 import { toContent } from "./content.js";
 import { permit } from "./permit.js";
 import type { Session, Sessions } from "./sessions.js";
@@ -86,23 +83,6 @@ const call: (deps: McpToolsDeps) => McpToolsAdapter["call"] =
 
 type Call = { server: string; tool: string; args: Record<string, unknown> };
 
-const callOptions = (deps: McpToolsDeps, input: Call, ctx: ToolContext) => ({
-	signal: ctx.signal,
-	// A tool that reports progress is a long one; the SDK's request timeout would kill it otherwise.
-	resetTimeoutOnProgress: true,
-	// shortcut: progress reaches the log only; upgrade with the team panel (Phase 5, docs/10).
-	onprogress: (p: Progress) =>
-		deps.logger.info(
-			{
-				moduleId: deps.adapterId,
-				server: input.server,
-				tool: input.tool,
-				...p,
-			},
-			"MCP tool progress",
-		),
-});
-
 const invoke = async (
 	deps: McpToolsDeps,
 	session: Session,
@@ -113,7 +93,7 @@ const invoke = async (
 		const r = await session.client.callTool(
 			{ name: input.tool, arguments: input.args },
 			undefined,
-			callOptions(deps, input, ctx),
+			deps.sessions.callOptions(input.server, input.tool, ctx.signal),
 		);
 		// A server on the old protocol answers with toolResult instead of content.
 		const blocks = (r.content ?? [

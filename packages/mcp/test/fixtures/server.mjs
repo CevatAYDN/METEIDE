@@ -74,7 +74,15 @@ server.registerTool(
 		description: "JSON results",
 		inputSchema: { query: z.string(), numResults: z.number() },
 	},
-	async ({ query, numResults }) => {
+	async ({ query, numResults }, extra) => {
+		const progressToken = extra._meta?.progressToken;
+		if (progressToken !== undefined) {
+			await extra.sendNotification({
+				method: "notifications/progress",
+				params: { progressToken, progress: 1, total: 1 },
+			});
+			await new Promise((resolve) => setTimeout(resolve, 50));
+		}
 		const results = Array.from({ length: Math.min(numResults, 2) }, (_, i) => ({
 			title: query,
 			url: `https://r${i}.example/`,
