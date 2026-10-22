@@ -48,6 +48,10 @@ import { moduleLogger } from "./log.js";
 const BUILT_IN_TEMPLATES = fileURLToPath(
 	new URL("../../../../templates/", import.meta.url),
 );
+// The repository's adapters/ folder of level 2 mapping files, found the same way.
+const BUILT_IN_ADAPTERS = fileURLToPath(
+	new URL("../../../../adapters/", import.meta.url),
+);
 
 /** What the app is built from; secrets and providers are replaceable for tests. */
 export type AppOptions = {
@@ -103,7 +107,10 @@ const modulesFor = (opts: AppOptions, workspaceId: string): MeteModule[] => {
 		createToolsShellModule(dirs),
 		createVcsGitModule(dirs),
 		createToolsWebModule(opts.fetch ? { fetch: opts.fetch } : {}),
-		createMcpClientModule({ workspaceDir: opts.workspaceDir }),
+		createMcpClientModule({
+			workspaceDir: opts.workspaceDir,
+			adaptersDir: BUILT_IN_ADAPTERS,
+		}),
 		createCoreEngineModule({
 			workspaceId,
 			recover: opts.recover !== false,
