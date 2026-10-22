@@ -78,6 +78,7 @@ No magic numbers. Each package keeps its defaults in `src/defaults.ts`, each nam
 - Import paths must match file name case exactly (lint rule).
 - Temporary files through `os.tmpdir()`; no hardcoded drive letters or home paths.
 - File operations retry on Windows lock errors (10 Tools, MCP and runtimes).
+- `pnpm install` compiles `@theia/ffmpeg` and `native-keymap` (both are in `allowBuilds` for the desktop), so a machine needs a C++ toolchain: on Windows the Visual Studio C++ Build Tools, on Linux and WSL2 a compiler, `python3` and, for `native-keymap`, `libx11-dev` and `libxkbfile-dev` (its README) \[D\].
 
 ## Dependencies
 
