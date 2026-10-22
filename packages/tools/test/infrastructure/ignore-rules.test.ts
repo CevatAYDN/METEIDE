@@ -38,7 +38,19 @@ describe("loadIgnore", () => {
 	it("checks worktree paths and leaves other paths alone", async () => {
 		ws = await tempWorkspace();
 		const ignored = await load();
-		expect(ignored(join(ws.globalDir, "worktrees", "w1", ".env"))).toBe(true);
+		const tree = join(ws.globalDir, "worktrees", "r1", "t1");
+		expect(ignored(join(tree, ".env"))).toBe(true);
 		expect(ignored(join(ws.globalDir, "other", ".env"))).toBe(false);
+	});
+
+	it("anchors a rule in each worktree as it does in the workspace", async () => {
+		ws = await tempWorkspace();
+		await ws.put(".meteignore", "/only-root.txt\n");
+		const ignored = await load();
+		const tree = join(ws.globalDir, "worktrees", "r1", "t1");
+		for (const root of [ws.workspaceDir, tree]) {
+			expect(ignored(join(root, "only-root.txt")), root).toBe(true);
+			expect(ignored(join(root, "sub", "only-root.txt")), root).toBe(false);
+		}
 	});
 });

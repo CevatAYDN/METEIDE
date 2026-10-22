@@ -135,7 +135,10 @@ export interface SecretStore {
 // fs.*@1 and shell.exec@1, defined in @mete/contracts with a Zod schema per input; rules in tab 10 (Built-in tools).
 // Each capability is a ToolAdapter of its input and output. Paths are absolute or relative to the workspace root;
 // outputs name paths relative to it.
-export type ToolContext = { runId?: string; agentId?: string; tainted?: boolean; signal: AbortSignal };   // passed on to policy.check@1
+export type ToolContext = { runId?: string; agentId?: string; tainted?: boolean; cwd?: string; signal: AbortSignal };   // passed on to policy.check@1
+// cwd is a task's worktree (tab 08): tools-fs, tools-shell and vcs-git treat it as the workspace for that call, confine the call to
+// it and read .meteignore from the real workspace; no cwd means the workspace. A context field is optional and additive, so adding
+// one is no capability change and an adapter that does not know it ignores it (an MCP-mapped adapter keeps using the workspace) [D].
 export type ToolError = { message: string } & (
   | { code: "bad_input" | "not_found" | "outside_workspace" | "ignored" | "exists" | "is_directory" | "binary" | "io" }
   | { code: "match_count"; count: number }                 // fs.edit: oldStr did not match exactly once

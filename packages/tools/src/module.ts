@@ -14,7 +14,7 @@ import {
 	type VcsGitAdapter,
 } from "@mete/contracts";
 import type { CapabilityRegistry, MeteModule } from "@mete/kernel";
-import type { FsDeps } from "./application/fs-common.js";
+import { type FsDeps, scoped } from "./application/fs-common.js";
 import {
 	globTool,
 	grepTool,
@@ -89,7 +89,10 @@ export const createToolsFsModule = (opts: ToolsOptions): MeteModule => ({
 		};
 		for (const [ref, run] of FS_TOOLS) {
 			const impl: ToolAdapter<unknown, unknown> = {
-				run: (input, c) => run(deps, input, c),
+				run: async (input, c) => {
+					const d = await scoped(deps, c);
+					return d.ok ? run(d.value, input, c) : d;
+				},
 			};
 			ctx.disposables.add(
 				ctx.capabilities.provide(ref, {
@@ -138,7 +141,10 @@ export const createToolsShellModule = (opts: ToolsOptions): MeteModule => ({
 			shell: shell.value,
 		};
 		const impl: ToolAdapter<unknown, unknown> = {
-			run: (input, c) => shellTool(deps, input, c),
+			run: async (input, c) => {
+				const d = await scoped(deps, c);
+				return d.ok ? shellTool(d.value, input, c) : d;
+			},
 		};
 		ctx.disposables.add(
 			ctx.capabilities.provide("shell.exec@1", {
@@ -186,7 +192,18 @@ export const createVcsGitModule = (opts: ToolsOptions): MeteModule => ({
 			policy: policyOf(ctx.capabilities),
 			root: root.value,
 		};
-		const impl: VcsGitAdapter = { run: (input, c) => vcsTool(deps, input, c) };
+		const impl: VcsGitAdapter = {
+			run: async (input, c) => {
+				const d = await scoped(deps, c);
+				if (!d.ok) return d;
+				// A call in a worktree runs git there: its status, diff, commit and checkpoints.
+				const here =
+					c.cwd === undefined
+						? d.value
+						: { ...d.value, root: d.value.workspaceDir };
+				return vcsTool(here, input, c);
+			},
+		};
 		ctx.disposables.add(
 			ctx.capabilities.provide("vcs.git@2", {
 				id: VCS_MANIFEST.id,

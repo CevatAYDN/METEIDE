@@ -24,6 +24,33 @@ export type FsDeps = {
 	readonly workspaceDir: string;
 	readonly worktreesDir: string;
 	readonly policy: () => PolicyCheckAdapter | undefined;
+	/** Set for a call in a worktree: the real folders `.meteignore` is read from and anchored in. */
+	readonly ignore?: {
+		readonly workspaceDir: string;
+		readonly worktreesDir: string;
+	};
+};
+
+/**
+ * The deps for one call. A call with a working folder (ToolContext.cwd, a task's worktree) sees it as
+ * the workspace and is confined to it, while `.meteignore` still comes from the real workspace.
+ */
+export const scoped = async <D extends FsDeps>(
+	deps: D,
+	ctx: ToolContext,
+): Promise<Result<D, ToolError>> => {
+	if (ctx.cwd === undefined) return ok(deps);
+	const real = await realTarget(ctx.cwd);
+	if (real === deps.worktreesDir || !isInside(deps.worktreesDir, real))
+		return err({
+			code: "bad_input",
+			message: `${ctx.cwd} is not a folder inside the worktrees folder`,
+		});
+	const ignore = deps.ignore ?? {
+		workspaceDir: deps.workspaceDir,
+		worktreesDir: deps.worktreesDir,
+	};
+	return ok({ ...deps, workspaceDir: real, worktreesDir: real, ignore });
 };
 
 export type Place = {
@@ -63,7 +90,10 @@ export const ignoredError = (path: string): ToolError => ({
 
 /** The ignore rules as they are now. */
 export const rules = (deps: FsDeps): Promise<Result<IgnoreCheck, ToolError>> =>
-	loadIgnore(deps.workspaceDir, deps.worktreesDir);
+	loadIgnore(
+		deps.ignore?.workspaceDir ?? deps.workspaceDir,
+		deps.ignore?.worktreesDir ?? deps.worktreesDir,
+	);
 
 /** Where a path to write or edit really is; refused when .meteignore excludes it (docs/10). */
 export const placeToChange = async (

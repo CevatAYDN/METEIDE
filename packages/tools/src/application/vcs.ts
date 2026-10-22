@@ -90,6 +90,13 @@ const commit = async (
 
 type CoreOp = Exclude<VcsGitInput, { op: "status" | "diff" | "commit" }>;
 
+// These make a worktree or merge one, so they run on the repository, never inside a worktree.
+const REPO_LEVEL: ReadonlySet<VcsGitInput["op"]> = new Set([
+	"worktree.create",
+	"worktree.remove",
+	"merge",
+]);
+
 // The operations of the core, which the model never offers: checkpoints, worktrees and merges.
 const coreOp = (
 	deps: VcsDeps,
@@ -124,6 +131,11 @@ export const vcsTool = async (
 	if (!i.ok) return i;
 	const git = gitAt(deps.root, ctx.signal);
 	const v = i.value;
+	if (ctx.cwd !== undefined && REPO_LEVEL.has(v.op))
+		return err({
+			code: "bad_input",
+			message: `${v.op} works on the repository, not in a worktree: call it without a working folder`,
+		});
 	switch (v.op) {
 		case "status":
 			return status(git);

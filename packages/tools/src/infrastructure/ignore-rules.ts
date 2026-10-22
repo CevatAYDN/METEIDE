@@ -27,11 +27,16 @@ const fileLines = async (
 
 const posix = (rel: string) => rel.split(sep).join("/");
 
-/**
- * Reads the rules once per call so edits to `.meteignore` count at once.
- * shortcut: paths in a worktree are matched relative to the worktrees folder, so rules
- * anchored with "/" do not reach them; anchor them per worktree when core lays worktrees out.
- */
+// A path in a worktree is matched relative to its own worktree (worktrees/<run>/<task>), as a path
+// in the workspace is matched relative to the workspace, so rules anchored with "/" reach both.
+const rootOf = (workspaceDir: string, worktreesDir: string, path: string) => {
+	if (isInside(workspaceDir, path)) return workspaceDir;
+	if (!isInside(worktreesDir, path)) return worktreesDir;
+	const [run, task] = relative(worktreesDir, path).split(sep);
+	return run && task ? join(worktreesDir, run, task) : worktreesDir;
+};
+
+/** Reads the rules once per call so edits to `.meteignore` count at once. */
 export const loadIgnore = async (
 	workspaceDir: string,
 	worktreesDir: string,
@@ -42,7 +47,7 @@ export const loadIgnore = async (
 		.add([...METEIGNORE_DEFAULTS])
 		.add(lines.value);
 	return ok((path, folder = false) => {
-		const root = isInside(workspaceDir, path) ? workspaceDir : worktreesDir;
+		const root = rootOf(workspaceDir, worktreesDir, path);
 		const rel = posix(relative(root, path));
 		if (rel === "" || !isInside(root, path)) return false;
 		return rules.ignores(folder ? `${rel}/` : rel);

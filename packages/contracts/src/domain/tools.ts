@@ -7,11 +7,15 @@ import type { Result } from "./result.js";
 const path = z.string().min(1);
 const line = z.number().int().positive();
 
-/** Who calls a tool; passed on to policy.check@1. */
+/**
+ * Who calls a tool; passed on to policy.check@1. `cwd` is a task's worktree: the fs, shell and vcs
+ * tools then treat it as the workspace for the call, and without it they use the workspace.
+ */
 export type ToolContext = {
 	readonly runId?: string;
 	readonly agentId?: string;
 	readonly tainted?: boolean;
+	readonly cwd?: string;
 	readonly signal: AbortSignal;
 };
 
