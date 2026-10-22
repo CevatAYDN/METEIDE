@@ -28,3 +28,12 @@ export type WebSearchOutput = {
 		readonly snippet: string;
 	}[];
 };
+
+/** Output of web.search@1, checked where an adapter's answer is mapped (docs/10, Integration levels). */
+export const WebSearchOutputSchema = z.strictObject({
+	results: z
+		.array(
+			z.strictObject({ title: z.string(), url: webUrl, snippet: z.string() }),
+		)
+		.readonly(),
+}) satisfies z.ZodType<WebSearchOutput>;

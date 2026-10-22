@@ -57,6 +57,20 @@ export {
 	parseManifest,
 } from "./domain/manifest.js";
 export {
+	type AdapterMapping,
+	AdapterMappingSchema,
+	type EachValue,
+	EXPRESSION_ROOTS,
+	type Filter,
+	MAPPABLE_OUTPUTS,
+	type McpMapping,
+	type McpMappingEntry,
+	type TemplatePart,
+	type TemplateValue,
+	TemplateValueSchema,
+	templateParts,
+} from "./domain/mapping.js";
+export {
 	type McpCallInput,
 	McpCallInputSchema,
 	type McpCallOutput,
@@ -195,4 +209,5 @@ export {
 	type WebSearchInput,
 	WebSearchInputSchema,
 	type WebSearchOutput,
+	WebSearchOutputSchema,
 } from "./domain/web.js";

@@ -176,6 +176,13 @@ export interface McpToolsAdapter {
   list(signal: AbortSignal): Promise<Result<McpToolInfo[], ToolError>>;
   call(input: McpCallInput, ctx: ToolContext): Promise<Result<McpCallOutput, ToolError>>;
 }
+// Level 2 mapping files, defined in @mete/contracts as AdapterMappingSchema (tab 10, Integration levels).
+export type TemplateValue = string | number | boolean | null | TemplateValue[] | { [key: string]: TemplateValue }
+  | { each: string; as: TemplateValue };                              // each: one expression naming a list
+export type AdapterMapping = { apiVersion: "mete/v1"; kind: "AdapterMapping"; metadata: { id: string; version: string } } & (
+  | { type: "mcp"; server: string; implements: Record<CapabilityRef, { tool: string; args?: Record<string, TemplateValue>;
+      output: TemplateValue; action?: PolicyAction; features?: string[] }> }   // action defaults to mcp.call
+  | { type: "cli" | "http"; implements: Record<CapabilityRef, unknown> });   // not run yet
 
 // vcs.git@1, defined in @mete/contracts; rules in tab 10 (Built-in tools). Worktree and merge operations come with the
 // team engine (Phase 2). Checkpoint refs are refs/mete/checkpoints/<runId>/<n>, n counting from 1 per run.
