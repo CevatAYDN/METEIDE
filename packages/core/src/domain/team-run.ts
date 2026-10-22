@@ -19,6 +19,10 @@ const roleOf = (team: TeamState, id: string) =>
 export const guardrailOf = (team: TeamState, id: string) =>
 	taskOf(team, id)?.guardrail;
 
+/** A task's verify gates, in template order. */
+export const verifyOf = (team: TeamState, id: string) =>
+	taskOf(team, id)?.verify ?? [];
+
 /** The seat of a role's agent: its tier, needs and capabilities. */
 const roleSeat = (team: TeamState, roleId: string | undefined): Seat => {
 	const role = team.template.roles.find((r) => r.id === roleId);

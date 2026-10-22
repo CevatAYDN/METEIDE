@@ -1,9 +1,15 @@
-import type { LlmChunk, ToolContext } from "@mete/contracts";
+import type { LlmChunk } from "@mete/contracts";
 import { toSummarize } from "../domain/compact.js";
 import { type NextStep, nextStep } from "../domain/next-step.js";
 import { afterModelError } from "../domain/run-events.js";
 import { activeRole, activeSeat } from "../domain/team-run.js";
-import { apply, type EngineState, emit, type Live } from "./run-state.js";
+import {
+	apply,
+	type EngineState,
+	emit,
+	type Live,
+	toolContext,
+} from "./run-state.js";
 import { callModel, callTool, createCheckpoint } from "./steps.js";
 import { summarizeTurn } from "./summarize.js";
 import { submit, teamTurn, verdict } from "./team-driver.js";
@@ -13,13 +19,6 @@ import { submit, teamTurn, verdict } from "./team-driver.js";
 
 const owns = (l: Live, token: object) =>
 	l.token === token && l.snapshot.value === "running";
-
-const toolContext = (l: Live): ToolContext => {
-	const agent = l.snapshot.context.agent;
-	const ids = agent ? { agentId: agent.id } : {};
-	const taint = l.snapshot.context.tainted ? { tainted: true } : {};
-	return { runId: l.meta.id, ...ids, ...taint, signal: l.all.signal };
-};
 
 type ModelChunk = Extract<LlmChunk, { type: "model" }>;
 

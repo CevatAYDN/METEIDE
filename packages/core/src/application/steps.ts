@@ -53,7 +53,7 @@ export type ModelOutcome =
 const SPECS = TOOL_CATALOG.map((t) => ({ ref: t.ref, spec: toolSpec(t) }));
 
 /** Text the run keeps, with secrets masked (docs/07); kept as is while no secrets.mask@1 is active. */
-const masked = async (deps: StepDeps, text: string) => {
+export const masked = async (deps: StepDeps, text: string) => {
 	const chain = deps.registry.resolve<SecretsMaskAdapter>("secrets.mask@1");
 	return chain.ok ? (await chain.value[0].impl.mask(text)).text : text;
 };
@@ -246,6 +246,26 @@ const walk = async (
 		out = await attempt(a, entry.ref, next);
 	}
 	return out;
+};
+
+/**
+ * Runs a catalog capability for the engine itself, as a verify gate does: the same adapter chain,
+ * events and policy as an agent's call, but no model chose it and the seat's list does not apply.
+ */
+export const runCapability = async (
+	deps: StepDeps,
+	call: { ref: CapabilityRef; input: unknown },
+	ctx: ToolContext,
+	emit: Emit,
+): Promise<Result<unknown, Failure>> => {
+	const entry = TOOL_CATALOG.find((t) => t.ref === call.ref);
+	const chain = deps.registry.resolve<AnyTool>(call.ref);
+	if (!entry || !chain.ok)
+		return err({
+			code: "capability_missing",
+			message: `${call.ref} is not active`,
+		});
+	return walk({ deps, input: call.input, ctx, emit }, entry, chain.value);
 };
 
 /** Runs one tool call after checking its arguments against the schema the model was offered. */

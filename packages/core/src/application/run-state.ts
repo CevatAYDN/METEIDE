@@ -1,4 +1,10 @@
-import { ok, type Result, ShellConfigSchema, shellName } from "@mete/contracts";
+import {
+	ok,
+	type Result,
+	ShellConfigSchema,
+	shellName,
+	type ToolContext,
+} from "@mete/contracts";
 import type {
 	ConfigInvalid,
 	ConfigReader,
@@ -67,6 +73,14 @@ export type EngineState = {
 const MAX_DELAY_MS = 2_147_483_647;
 
 export const iso = (ms: number) => new Date(ms).toISOString();
+
+/** What a tool call of the run's active agent carries: the run, its agent, the taint and the stop signal. */
+export const toolContext = (l: Live): ToolContext => {
+	const agent = l.snapshot.context.agent;
+	const ids = agent ? { agentId: agent.id } : {};
+	const taint = l.snapshot.context.tainted ? { tainted: true } : {};
+	return { runId: l.meta.id, ...ids, ...taint, signal: l.all.signal };
+};
 
 /** The operating system and the shell shell.exec@1 runs, as the prompts name them (docs/08). */
 export const platformOf = (s: EngineState): Result<Platform, ConfigInvalid> => {

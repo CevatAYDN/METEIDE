@@ -441,3 +441,91 @@ describe("team runs", () => {
 		expect(r.ok ? "ok" : r.error.code).toBe("not_supported");
 	});
 });
+
+// One task whose report must pass the build command and a guardrail that allows one repair, so a
+// gate that spent that repair would block the task later. Its role lists no tools: a gate is not the agent's call.
+const GATED = `apiVersion: mete/v1
+kind: TeamTemplate
+metadata: { id: duo, name: Duo, version: 1.0.0 }
+pattern: single
+roles:
+  - { id: dev, name: Dev, goal: Build, tier: coder, capabilities: [] }
+tasks:
+  - id: build
+    role: dev
+    title: Build
+    verify: [{ run: "pnpm build" }]
+    guardrail: { schema: research-report@1, max_retries: 1 }
+`;
+
+const built = (exitCode: number | null, stderr = "") =>
+	ok({
+		exitCode,
+		stdout: "",
+		stderr,
+		os: "linux",
+		shell: "sh",
+		timedOut: false,
+	});
+
+describe("verify gates", () => {
+	it("send a failing build back with its output, spend no guardrail repair and pass once it succeeds", async () => {
+		await writeFile(join(templates.builtIn, "duo.yaml"), GATED);
+		const commands: unknown[] = [];
+		const shell: Tool = async (input) => {
+			commands.push(input);
+			return commands.length === 1
+				? built(1, "src/a.ts: error TS2304: Cannot find name 'x'")
+				: built(0);
+		};
+		const h = engineHarness({
+			// The second reply fails the guardrail: its one repair is still there after the gate.
+			scripts: [reply(REPORT), reply("notes"), reply(REPORT)],
+			tools: [["shell.exec@1", shell]],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "completed");
+		expect(commands).toHaveLength(3);
+		expect(commands[0]).toEqual({ command: "pnpm build" });
+		const feedback = h.requests[1]?.messages.at(-1);
+		expect(feedback?.role).toBe("user");
+		expect(String(feedback?.content)).toContain(
+			"The verify gate `pnpm build` exited with code 1.",
+		);
+		expect(String(feedback?.content)).toContain("error TS2304");
+		expect(h.events.at(-1)?.payload).toEqual({ summary: REPORT });
+	});
+
+	it("pause the run for approval when the policy asks about the command, and run it again on resume", async () => {
+		await writeFile(join(templates.builtIn, "duo.yaml"), GATED);
+		const asks = { code: "approval_required", message: "asks", rule: "r" };
+		let n = 0;
+		const shell: Tool = async () =>
+			n++ === 0 ? { ok: false, error: asks } : built(0);
+		const h = engineHarness({
+			scripts: [reply(REPORT)],
+			tools: [["shell.exec@1", shell]],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "paused");
+		expect(view(h, runId)?.pauseReason).toBe("approval");
+		h.engine.resume(runId);
+		await settled(h, runId, "completed");
+		expect(n).toBe(2);
+		expect(h.requests).toHaveLength(1);
+	});
+
+	it("block the task when no shell is active", async () => {
+		await writeFile(join(templates.builtIn, "duo.yaml"), GATED);
+		const h = engineHarness({ scripts: [reply(REPORT)], templates });
+		const runId = await start(h);
+		await settled(h, runId, "paused");
+		const last = h.events
+			.filter((e) => e.type === "task.status.changed")
+			.at(-1);
+		expect(last?.payload).toEqual({ from: "in_progress", to: "blocked" });
+		expect(h.requests).toHaveLength(1);
+	});
+});

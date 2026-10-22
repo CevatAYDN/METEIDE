@@ -17,7 +17,8 @@ import {
 	type TeamState,
 	withArtifact,
 } from "../domain/team.js";
-import { guardrailOf, taskConversation } from "../domain/team-run.js";
+import { guardrailOf, taskConversation, verifyOf } from "../domain/team-run.js";
+import { commandsOf, hasCapabilityGate } from "../domain/verify.js";
 import { announce, saveArtifact } from "./artifacts.js";
 import {
 	apply,
@@ -25,7 +26,9 @@ import {
 	emit,
 	type Live,
 	platformOf,
+	toolContext,
 } from "./run-state.js";
+import { verifyGates } from "./verify.js";
 
 // A team run between attempts (docs/08, Task execution sequence): start the next ready task,
 // accept a submission, let an approver role review it, wait for the human, or complete once
@@ -72,14 +75,48 @@ const endAttempt = (
 	changed(s, l, team.tasks[task]?.id, r.change);
 };
 
+// Runs the task's verify gates before the guardrail (docs/08, step 3); true when the report may go
+// on. A failed gate is one more user message in the attempt, with no repair counted, so the
+// attempt's turns are its only bound; a run paused or cancelled meanwhile submits again on resume.
+const verified = async (
+	s: EngineState,
+	l: Live,
+	team: TeamState,
+	task: string,
+) => {
+	const gates = verifyOf(team, task);
+	const taskId = team.tasks[task]?.id;
+	if (hasCapabilityGate(gates))
+		s.deps.logger.warn(
+			{ runId: l.meta.id, taskId },
+			"verify gates by capability are not run yet",
+		);
+	const commands = commandsOf(gates);
+	if (commands.length === 0) return true;
+	const gated = await verifyGates(s.deps, {
+		commands,
+		ctx: toolContext(l),
+		emit: (body) => emit(s, l, body, taskId),
+	});
+	if (l.snapshot.value !== "running") return false;
+	if (gated.kind === "passed") return true;
+	if (gated.kind === "failed")
+		apply(s, l, { type: "REPAIR", team, content: gated.content });
+	else if (gated.kind === "approval")
+		apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
+	else endAttempt(s, l, { type: "BLOCK", reason: "capability_missing" });
+	return false;
+};
+
 /**
- * Submits the active task with its agent's last reply as the report, once the guardrail passes;
- * a failed check asks for a repair up to max_retries times, then blocks the task (docs/08).
- * shortcut: verify gates do not run yet; no Phase 2 template uses them.
+ * Submits the active task with its agent's last reply as the report, once its verify gates and the
+ * guardrail pass; a failed check asks for a repair up to max_retries times, then blocks the task
+ * (docs/08).
  */
 export const submit = async (s: EngineState, l: Live, reply: string) => {
 	const { team, task } = l.snapshot.context;
 	if (!team || !task) return stuck(s, l);
+	if (!(await verified(s, l, team, task))) return;
 	const guard = guardrailOf(team, task);
 	const checked = checkReport(guard?.schema, reply);
 	if (checked.ok) {
