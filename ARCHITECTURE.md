@@ -7,7 +7,7 @@ METE is a microkernel. A small kernel loads modules; modules talk to each other 
 ## Layers
 
 ```
-6  Interfaces      apps/cli (mete)  |  apps/desktop (Theia + Electron)  |  ui-studio, ui-kit
+6  Interfaces      apps/cli (mete)  |  apps/desktop (Theia + Electron)  |  ui-theia, ui-studio, ui-kit
 5  Orchestration   core (native team engine, runs, tasks, artifacts, router, autonomy, triggers)
 4  Capabilities    providers | tools | mcp | knowledge | engines (optional Python adapters)
 3  Platform        storage | security | quota | gateway
@@ -21,6 +21,7 @@ Dependency rules, enforced by dependency-cruiser in local CI \[C\]:
 - A package MUST import other packages only through their public `index.ts`.
 - A capability module MUST NOT import another capability module. It resolves the capability through the kernel registry.
 - `contracts` MUST NOT import any METE package. `kernel` MUST import only `contracts` (ADR-036).
+- `apps/desktop` and `ui-theia` MUST import no other METE package than `contracts`; they reach the core through the daemon (ADR-045). Only they import `@theia/*` \[D\].
 
 ## Process model
 

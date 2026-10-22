@@ -60,6 +60,28 @@ module.exports = {
 			},
 		},
 		{
+			name: "theia-only-in-ui-theia",
+			comment:
+				"Theia is imported only by the desktop shell and its extension package (ADR-002, ADR-045)",
+			severity: "error",
+			from: {
+				path: "^(packages|apps)/",
+				pathNot: "^(packages/ui-theia|apps/desktop)/",
+			},
+			to: { path: "node_modules/@theia/" },
+		},
+		{
+			name: "desktop-talks-to-the-daemon",
+			comment:
+				"the desktop and its extension reach the core only through the daemon protocol: they import @mete/contracts and nothing else of METE (ADR-024, ADR-045)",
+			severity: "error",
+			from: { path: "^(packages/ui-theia|apps/desktop)/" },
+			to: {
+				path: "^(packages|apps)/[^/]+/src/",
+				pathNot: "^(packages/contracts|packages/ui-theia|apps/desktop)/",
+			},
+		},
+		{
 			name: "no-circular",
 			severity: "error",
 			from: {},

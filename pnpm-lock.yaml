@@ -87,6 +87,9 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@mete/ui-theia':
+        specifier: workspace:*
+        version: link:../../packages/ui-theia
       '@theia/core':
         specifier: 1.76.0
         version: 1.76.0(@theia/electron@1.76.0(electron@42.8.1(supports-color@8.1.1)))(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
@@ -407,6 +410,16 @@ importers:
   packages/ui-kit: {}
 
   packages/ui-studio: {}
+
+  packages/ui-theia:
+    dependencies:
+      '@theia/core':
+        specifier: 1.76.0
+        version: 1.76.0(@theia/electron@1.76.0(electron@42.8.1(supports-color@8.1.1)))(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+    devDependencies:
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
 
 packages:
 

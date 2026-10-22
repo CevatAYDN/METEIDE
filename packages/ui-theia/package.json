@@ -1,0 +1,23 @@
+{
+	"name": "@mete/ui-theia",
+	"version": "0.0.0",
+	"private": true,
+	"license": "Apache-2.0",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"theiaExtensions": [
+		{
+			"frontend": "dist/infrastructure/frontend-module"
+		}
+	],
+	"scripts": {
+		"build": "tsc -b",
+		"test": "vitest run --passWithNoTests"
+	},
+	"dependencies": {
+		"@theia/core": "1.76.0"
+	},
+	"devDependencies": {
+		"reflect-metadata": "0.2.2"
+	}
+}

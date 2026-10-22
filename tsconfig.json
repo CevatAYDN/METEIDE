@@ -47,6 +47,9 @@
 			"path": "packages/ui-studio"
 		},
 		{
+			"path": "packages/ui-theia"
+		},
+		{
 			"path": "apps/cli"
 		},
 		{

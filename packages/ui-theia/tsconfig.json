@@ -1,0 +1,13 @@
+{
+	"extends": "../../tsconfig.base.json",
+	// Theia loads extension modules with require and its classes use inversify's legacy decorators
+	// (ADR-002): this package has no "type": "module", so NodeNext emits CommonJS, and
+	// verbatimModuleSyntax would refuse an `export` in it.
+	"compilerOptions": {
+		"rootDir": "src",
+		"outDir": "dist",
+		"verbatimModuleSyntax": false,
+		"experimentalDecorators": true
+	},
+	"include": ["src"]
+}

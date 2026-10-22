@@ -25,6 +25,7 @@
 		}
 	},
 	"dependencies": {
+		"@mete/ui-theia": "workspace:*",
 		"@theia/core": "1.76.0",
 		"@theia/editor": "1.76.0",
 		"@theia/electron": "1.76.0",
