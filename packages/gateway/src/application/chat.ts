@@ -22,7 +22,15 @@ import { type PrivacyRules, resolveChain } from "../domain/resolve.js";
 import { afterFailure, estimateTokens } from "../domain/retry.js";
 import { costOf } from "../domain/spend.js";
 import type { ModelCall } from "../infrastructure/model-calls.js";
-import { type Memory, newMemory, refuse, report } from "./model-memory.js";
+import {
+	demoted,
+	forgive,
+	type Memory,
+	newMemory,
+	refuse,
+	report,
+	strike,
+} from "./model-memory.js";
 import { maskMessages, type Offered } from "./prepare.js";
 
 // The llm.chat@1 request pipeline (docs/09, Gateway): privacy filter → secret masking →
@@ -295,6 +303,7 @@ const moveOn = (
 	if (e.code === "unauthorized") refuse(deps.warn, st.memory, whoOf(o), e);
 	else {
 		st.tried++;
+		if (e.code !== "rate_limited") strike(st.memory, keyOf(o));
 		if (e.code === "bad_request") report(deps.warn, st.memory, whoOf(o), e);
 	}
 	return st.tried >= CHAIN_LENGTH ? e : undefined;
@@ -340,7 +349,7 @@ async function* walk(
 		const call = { ...w.call, model: o.model.id };
 		const t: Try = { o, reservation: id, call, req: w.req };
 		const { outcome, observations } = yield* settled(deps, t, named, signal);
-		if (outcome.kind === "finish") return;
+		if (outcome.kind === "finish") return void forgive(memory, keyOf(o));
 		const end = await onFailure(deps, st, { o, outcome, observations }, signal);
 		if (end) return yield fail(end);
 	}
@@ -359,7 +368,11 @@ async function* chat(
 	if (signal.aborted) return yield fail(ABORTED);
 	const offered = found.filter((o) => !memory.refused.has(keyOf(o)));
 	const models = resolveChain(offered, req.target, deps.rules(), req);
-	const chain = models.flatMap((m) => offered.filter((o) => o.model === m));
+	const chain = demoted(
+		models.flatMap((m) => offered.filter((o) => o.model === m)),
+		memory,
+		keyOf,
+	);
 	if (chain.length === 0)
 		return yield fail({
 			code: "no_model",

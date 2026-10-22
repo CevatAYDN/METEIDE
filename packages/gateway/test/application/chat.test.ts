@@ -260,6 +260,38 @@ describe("llm.chat@1 pipeline", () => {
 		]);
 	});
 
+	it("moves a model that failed three calls in a row to the end of the chain, and back after it answers", async () => {
+		const ok = [text("x"), done];
+		const a = fakeProvider("a", [
+			[status(400)],
+			[status(400)],
+			[status(400)],
+			ok,
+		]);
+		const b = fakeProvider("b", [ok, ok, ok, [status(400)], ok]);
+		const { deps: d } = deps({
+			discover: async () => [
+				offer(a.adapter, "m", 100_000),
+				offer(b.adapter, "n"),
+			],
+			quota: fakeQuota().quota,
+		});
+		const chat = createLlmChat(d);
+		const first = async () => {
+			const out = await collect(chat.chat(req, signal()));
+			return out.find((c) => c.type === "model");
+		};
+		// a is tried first and fails three calls in a row.
+		for (let i = 0; i < 3; i++)
+			expect(await first()).toMatchObject({ providerId: "a" });
+		expect(a.seen).toHaveLength(3);
+		// Now b comes first; a is tried only because b fails, and it answers.
+		expect(await first()).toMatchObject({ providerId: "b" });
+		expect(a.seen).toHaveLength(4);
+		// The answer put a back in its place.
+		expect(await first()).toMatchObject({ providerId: "a" });
+	});
+
 	it("does not count refused models against the four tried per call", async () => {
 		const refusing = ["r1", "r2", "r3", "r4", "r5"].map((id) =>
 			fakeProvider(id, [[status(403)]]),

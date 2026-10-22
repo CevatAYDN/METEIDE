@@ -1,18 +1,45 @@
 import type { ProviderError } from "@mete/contracts";
+import { DEMOTE_AFTER } from "../defaults.js";
 
 // What the gateway remembers between calls about models that did not answer (docs/09, Gateway,
 // Retries in detail): a refused key leaves a model out, a rejected request is only logged.
 
-/** The models left out, and the models whose rejection of a request was logged already. */
+/**
+ * The models left out, the models whose rejection of a request was logged already, and how many
+ * calls in a row each model failed.
+ */
 export type Memory = {
 	readonly refused: Set<string>;
 	readonly reported: Set<string>;
+	readonly strikes: Map<string, number>;
 };
 
 export const newMemory = (): Memory => ({
 	refused: new Set(),
 	reported: new Set(),
+	strikes: new Map(),
 });
+
+const struck = (memory: Memory, key: string) =>
+	(memory.strikes.get(key) ?? 0) >= DEMOTE_AFTER;
+
+/** The chain with the models that keep failing moved to its end, each group in its own order. */
+export const demoted = <T>(
+	chain: readonly T[],
+	memory: Memory,
+	keyOf: (item: T) => string,
+): T[] => [
+	...chain.filter((o) => !struck(memory, keyOf(o))),
+	...chain.filter((o) => struck(memory, keyOf(o))),
+];
+
+/** A model failed a call (a rate limit is the quota's business, not the model's). */
+export const strike = (memory: Memory, key: string) =>
+	memory.strikes.set(key, (memory.strikes.get(key) ?? 0) + 1);
+
+/** A model answered: it is back in its place. */
+export const forgive = (memory: Memory, key: string) =>
+	memory.strikes.delete(key);
 
 /** A model as the log names it: its key in the sets and the fields of its log line. */
 export type Who = {

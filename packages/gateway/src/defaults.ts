@@ -8,6 +8,9 @@ export { CHARS_PER_TOKEN, TIER_MIN_CONTEXT } from "@mete/contracts";
 /** Tier resolution: a call tries at most 4 models; one that refused the key does not count (tab 09). */
 export const CHAIN_LENGTH = 4;
 
+/** Calls in a row a model may fail, for a reason other than a rate limit, before it goes to the end of the chain (tab 09, Retries in detail). */
+export const DEMOTE_AFTER = 3;
+
 /** Tab 09, Gateway: back-off steps after a 429 or 5xx; with 3 failures only the first two are reached. */
 export const BACKOFF_MS = [2_000, 8_000, 30_000] as const;
 
