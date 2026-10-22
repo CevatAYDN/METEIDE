@@ -60,7 +60,7 @@ export type Live = {
 export type EngineState = {
 	readonly deps: EngineDeps;
 	readonly live: Map<string, Live>;
-	readonly onQuotaReset: (runId: string) => void;
+	readonly onPauseEnded: (runId: string) => void;
 };
 
 // setTimeout fires at once above 2^31 - 1 ms.
@@ -101,28 +101,33 @@ export const clearTimer = (l: Live) => {
 	l.cancelTimer = undefined;
 };
 
+// A quota or network pause ends by itself at its `resumesAt`; any other pause waits for a person.
+const selfResuming = (reason: string | undefined) =>
+	reason === "quota" || reason === "network";
+
 const armTimer = (s: EngineState, l: Live, resumesAt: string) => {
 	const wait = Math.max(0, Date.parse(resumesAt) - s.deps.now());
 	l.cancelTimer = s.deps.setTimer(
 		() => {
 			l.cancelTimer = undefined;
 			const c = l.snapshot;
-			if (c.value !== "paused" || c.context.pause?.reason !== "quota") return;
+			if (c.value !== "paused" || !selfResuming(c.context.pause?.reason))
+				return;
 			// Another process may have cancelled the run meanwhile (mete stop); the row decides.
 			if (s.deps.store.list(l.meta.id)[0]?.status === "paused")
-				s.onQuotaReset(l.meta.id);
+				s.onPauseEnded(l.meta.id);
 		},
 		Math.min(wait, MAX_DELAY_MS),
 	);
 };
 
-// A run leaves a handoff when it ends, or pauses for anything but quota (docs/08, Run memory);
+// A run leaves a handoff when it ends, or pauses for anything but quota or network (docs/08, Run memory);
 // that includes the user pauses of stop() and recovery, as the rule says.
 const handoffDue = (body: EventBody) =>
 	body.type === "run.completed" ||
 	body.type === "run.failed" ||
 	body.type === "run.cancelled" ||
-	(body.type === "run.paused" && body.payload.reason !== "quota");
+	(body.type === "run.paused" && !selfResuming(body.payload.reason));
 
 // A handoff that cannot be written never fails the run; it is logged with the run id.
 const leaveHandoff = (s: EngineState, l: Live) => {

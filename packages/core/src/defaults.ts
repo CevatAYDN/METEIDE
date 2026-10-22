@@ -20,3 +20,6 @@ export const ROUTER_MIN_CONFIDENCE = 0.7;
 
 /** The longest model tool name an MCP tool may get; OpenAI and Gemini allow 64 (10 Tools, MCP and runtimes, Integration levels). */
 export const MCP_TOOL_NAME_MAX = 64;
+
+/** How long a run paused for the network waits before it tries again (08 Orchestration and teams, Single agent, Pauses). */
+export const NETWORK_RETRY_MS = 30_000;

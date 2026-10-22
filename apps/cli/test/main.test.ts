@@ -3,6 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { MeteEvent, RunView } from "@mete/contracts";
 import { afterEach, describe, expect, it } from "vitest";
+import { endOf } from "../src/application/commands.js";
 import { eventLine, exitCode, statusLines } from "../src/domain/format.js";
 import { fileLogger, moduleLogger } from "../src/infrastructure/log.js";
 import { runLockFile, takeRunLock } from "../src/infrastructure/run-lock.js";
@@ -134,6 +135,15 @@ describe("output lines", () => {
 		expect(
 			eventLine(event("module.activated", { moduleId: "x" })),
 		).toBeUndefined();
+	});
+
+	it("keeps following a run that waits on its own, and stops at a pause only a person clears", () => {
+		const paused = (reason: string) => endOf(event("run.paused", { reason }));
+		expect(paused("quota")).toBeUndefined();
+		expect(paused("network")).toBeUndefined();
+		for (const reason of ["approval", "no_model", "budget", "user"])
+			expect(paused(reason), reason).toBe("paused");
+		expect(endOf(event("run.completed", { summary: "" }))).toBe("completed");
 	});
 
 	it("maps end states to exit codes and lists runs", () => {

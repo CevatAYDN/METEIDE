@@ -64,9 +64,14 @@ const show = (f: Followed, io: Io, e: MeteEvent) => {
 };
 
 const hintAt = (io: Io, e: MeteEvent) => {
-	if (e.type === "run.paused" && e.payload.reason === "quota")
-		io.err(QUOTA_HINT);
+	if (e.type !== "run.paused") return;
+	if (e.payload.reason === "quota") io.err(QUOTA_HINT);
+	if (e.payload.reason === "network") io.err(NETWORK_HINT);
 };
+
+// A network pause tries again by itself (docs/08, Single agent, Pauses).
+const NETWORK_HINT =
+	"The run waits for the network and tries again on its own; Ctrl+C stops it.";
 
 // A quota pause waits for the reset; paid models can carry on meanwhile (ADR-042).
 const QUOTA_HINT =
@@ -81,7 +86,7 @@ const FOLLOWED = [
 	"artifact.*",
 ] as const;
 
-// Prints the run's events until it ends or pauses for anything but quota, which waits here.
+// Prints the run's events until it ends or pauses for anything but quota or network, which wait here.
 // `titles` comes from the run's history, so a new terminal names tasks it never saw created.
 const follow = (
 	events: EventBus,
@@ -107,11 +112,17 @@ const follow = (
 	return { ended, runId: () => f.target, why: () => f.why };
 };
 
-const endOf = (e: MeteEvent): Ended | undefined => {
+/** The end state a run event reaches, or undefined while the run goes on or waits on its own (quota, network). */
+export const endOf = (e: MeteEvent): Ended | undefined => {
 	if (e.type === "run.completed") return "completed";
 	if (e.type === "run.failed") return "failed";
 	if (e.type === "run.cancelled") return "cancelled";
-	if (e.type === "run.paused" && e.payload.reason !== "quota") return "paused";
+	if (
+		e.type === "run.paused" &&
+		e.payload.reason !== "quota" &&
+		e.payload.reason !== "network"
+	)
+		return "paused";
 	return undefined;
 };
 

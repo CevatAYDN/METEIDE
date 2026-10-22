@@ -133,6 +133,26 @@ describe("single-agent engine", () => {
 		]);
 	});
 
+	it("pauses on a network error and tries again by itself 30 seconds later", async () => {
+		const h = engineHarness({
+			scripts: [
+				[{ type: "error", error: { code: "network", message: "offline" } }],
+				reply("done"),
+			],
+		});
+		const runId = await begin(h);
+		await settled(h, runId, "paused");
+		expect(view(h, runId)?.pauseReason).toBe("network");
+		// Like a quota pause, it leaves no handoff until the run ends.
+		const handoffs = () => h.db.prepare("SELECT state FROM handoffs").all();
+		expect(handoffs()).toEqual([]);
+		expect(h.timers.map((t) => t.ms)).toEqual([30_000]);
+		h.clock.now = T0 + 30_000;
+		h.timers[0]?.fn();
+		await settled(h, runId, "completed");
+		expect(handoffs()).toEqual([{ state: "open" }]);
+	});
+
 	it("leaves a quota-paused run alone at the reset when another process cancelled it", async () => {
 		const resumesAt = new Date(T0 + 60_000).toISOString();
 		const quota: LlmChunk[] = [
@@ -647,7 +667,7 @@ describe("single-agent engine", () => {
 		});
 	});
 
-	it("logs a resume that throws at the quota reset instead of rejecting", async () => {
+	it("logs a resume that throws when a pause ended instead of rejecting", async () => {
 		const resumesAt = new Date(T0 + 60_000).toISOString();
 		const quota: LlmChunk[] = [
 			{
@@ -676,7 +696,7 @@ describe("single-agent engine", () => {
 		process.off("unhandledRejection", rejected);
 		expect(rejected).not.toHaveBeenCalled();
 		expect(
-			h.logged.some((l) => l.msg === "run not resumed at the quota reset"),
+			h.logged.some((l) => l.msg === "run not resumed when its pause ended"),
 		).toBe(true);
 	});
 

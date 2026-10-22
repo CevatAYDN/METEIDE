@@ -300,11 +300,11 @@ const recover = (s: EngineState) => {
 };
 
 // Nothing awaits the timer, so a failed or throwing resume is logged rather than lost.
-const quotaReset = (s: EngineState, runId: string) => {
+const pauseEnded = (s: EngineState, runId: string) => {
 	const log = (fields: Record<string, unknown>) =>
 		s.deps.logger.error(
 			{ runId, ...fields },
-			"run not resumed at the quota reset",
+			"run not resumed when its pause ended",
 		);
 	resume(s, runId).then(
 		(r) => {
@@ -329,7 +329,7 @@ export const createEngine = (deps: EngineDeps) => {
 	const s: EngineState = {
 		deps,
 		live: new Map(),
-		onQuotaReset: (runId) => quotaReset(s, runId),
+		onPauseEnded: (runId) => pauseEnded(s, runId),
 	};
 	const engine: TeamEngineAdapter = {
 		start: (req) => start(s, req),

@@ -1,4 +1,5 @@
 import type { EventType, LlmError, MeteEvent } from "@mete/contracts";
+import { NETWORK_RETRY_MS } from "../defaults.js";
 import type { RunEvent, RunSnapshot } from "./run-machine.js";
 
 // Which run.* event a transition publishes (docs/07, Event catalog) and how a failed model call
@@ -54,9 +55,15 @@ export const afterModelError = (error: LlmError, at: number): Moves => {
 	switch (error.code) {
 		case "quota_exhausted":
 			return { type: "PAUSE", at, reason: "quota", resumesAt: error.resumesAt };
-		case "no_model":
 		case "network":
-			return { type: "PAUSE", at, reason: error.code };
+			return {
+				type: "PAUSE",
+				at,
+				reason: "network",
+				resumesAt: new Date(at + NETWORK_RETRY_MS).toISOString(),
+			};
+		case "no_model":
+			return { type: "PAUSE", at, reason: "no_model" };
 		default:
 			return { type: "FAIL", at, code: error.code, message: error.message };
 	}

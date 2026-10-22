@@ -46,12 +46,18 @@ describe("run events", () => {
 		expect(
 			afterModelError({ code: "quota_exhausted", message: "q", resumesAt }, at),
 		).toEqual({ type: "PAUSE", at, reason: "quota", resumesAt });
-		for (const code of ["no_model", "network"] as const)
-			expect(afterModelError({ code, message: "m" }, at)).toEqual({
-				type: "PAUSE",
-				at,
-				reason: code,
-			});
+		expect(afterModelError({ code: "no_model", message: "m" }, at)).toEqual({
+			type: "PAUSE",
+			at,
+			reason: "no_model",
+		});
+		// A network pause tries again by itself after NETWORK_RETRY_MS (30 s).
+		expect(afterModelError({ code: "network", message: "m" }, at)).toEqual({
+			type: "PAUSE",
+			at,
+			reason: "network",
+			resumesAt: new Date(at + 30_000).toISOString(),
+		});
 		expect(afterModelError({ code: "unauthorized", message: "m" }, at)).toEqual(
 			{ type: "FAIL", at, code: "unauthorized", message: "m" },
 		);
