@@ -100,6 +100,8 @@ describe("OpenRouter", () => {
 				vision: true,
 				free: false,
 				deprecated: false,
+				// $0.000001 per prompt token is $1 per million (ADR-042).
+				price: { input: 1, output: 0 },
 			},
 		]);
 	});
