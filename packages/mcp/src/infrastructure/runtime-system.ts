@@ -13,7 +13,7 @@ export type RuntimeSystem = {
 		command: string,
 		signal: AbortSignal,
 	) => Promise<string | undefined>;
-	/** Extracts a .zip, .tar.gz or .tgz archive into dir with the system tar. */
+	/** Extracts a .zip, .mcpb, .tar.gz or .tgz archive into dir with the system tar, or with unzip for a zip on Linux. */
 	readonly extract: (
 		archive: string,
 		dir: string,
@@ -37,10 +37,21 @@ const exec = (file: string, args: string[], signal: AbortSignal) =>
 	});
 
 // bsdtar ships with Windows 10 and reads .zip; a tar earlier on PATH (Git's GNU tar) cannot.
-// shortcut: GNU tar on Linux reads no zip, so .zip and .mcpb binaries fail there; upgrade when a zip reader is chosen.
 const TAR = WIN
 	? join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe")
 	: "tar";
+
+const ZIP = /\.(zip|mcpb)$/i;
+
+/** The command that unpacks `archive` into `dir`: GNU tar on Linux reads no zip, so a zip goes to unzip there. */
+export const unpackCommand = (
+	platform: NodeJS.Platform,
+	archive: string,
+	dir: string,
+): readonly [string, string[]] =>
+	platform === "linux" && ZIP.test(archive)
+		? ["unzip", ["-q", archive, "-d", dir]]
+		: [TAR, ["-xf", archive, "-C", dir]];
 
 export const runtimeSystem: RuntimeSystem = {
 	which,
@@ -49,7 +60,12 @@ export const runtimeSystem: RuntimeSystem = {
 		return r.ok ? r.value : undefined;
 	},
 	extract: async (archive, dir, signal) => {
-		const r = await exec(TAR, ["-xf", archive, "-C", dir], signal);
+		const [file, args] = unpackCommand(process.platform, archive, dir);
+		if (file === "unzip" && !which("unzip"))
+			return err(
+				"unzip is not installed, and METE needs it to open a .zip file on Linux",
+			);
+		const r = await exec(file, args, signal);
 		return r.ok ? ok(undefined) : r;
 	},
 };
