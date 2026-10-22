@@ -96,13 +96,17 @@ const start = async (autonomy: number) => {
 	});
 	const runId = /^run (\S+) started$/.exec(t.out[0] ?? "")?.[1] ?? "";
 	const events = runHistory(app.value.registry, runId)?.events ?? [];
-	return { code, seen, events, out: t.out };
+	return { code, seen, events, out: t.out, err: t.err };
 };
 
 describe("raw MCP tools through a team role", () => {
 	it("offers one model tool per server tool and hands the result over as external content", async () => {
 		const r = await start(3);
 		expect(r.code).toBe(0);
+		// Level 3 runs without verify gates and worktrees, and the run says so once.
+		expect(r.err.filter((l) => l.startsWith("autonomy 3:"))).toEqual([
+			"autonomy 3: verify gates and worktrees are not available yet (SECURITY.md); the run goes on with checkpoints only",
+		]);
 		const offered = r.seen[0]?.tools?.map((t) => t.name) ?? [];
 		expect(offered).toContain("mcp_fixture_echo");
 		const called = r.events.flatMap((e) =>
@@ -123,6 +127,7 @@ describe("raw MCP tools through a team role", () => {
 	it("asks before the call at autonomy 2: the run pauses and the model sees no result", async () => {
 		const r = await start(2);
 		expect(r.code).toBe(2);
+		expect(r.err.some((l) => l.startsWith("autonomy 3:"))).toBe(false);
 		expect(r.events.map((e) => e.type)).toContain("run.paused");
 		const result = r.seen[1]?.messages.find((m) => m.role === "tool");
 		expect(result).toBeUndefined();

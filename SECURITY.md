@@ -13,7 +13,7 @@ Without containers there is no operating-system isolation, so METE stays safe th
 | 2 Risky approval (default) | Reads, writes inside the workspace or a worktree, allow-listed commands | Everything in `always_ask` and every non-allow-listed command |
 | 3 Full autonomy | Everything except `never_allow`; writes only in worktrees or snapshots; a report at the end | Nothing during the run |
 
-The level is set per workspace and MAY be lowered per capability. Level 3 requires checkpoints and verify gates to be active \[C\].
+The level is set per workspace and MAY be lowered per capability. Level 3 requires checkpoints and verify gates to be active \[C\]. The gates and worktrees come with Phase 4; until then a CLI run at level 3 starts anyway and prints one line to stderr, `autonomy 3: verify gates and worktrees are not available yet (SECURITY.md); the run goes on with checkpoints only`, so the missing guarantee is never silent \[D\].
 
 ## Policy file
 
