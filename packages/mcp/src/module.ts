@@ -15,8 +15,13 @@ import type {
 } from "@mete/kernel";
 import { mcpTools } from "./application/mcp-tools.js";
 import { provideMappings } from "./application/provide-mappings.js";
+import { createRuntimeEnsure } from "./application/runtime-ensure.js";
 import { createSessions, type Sessions } from "./application/sessions.js";
 import { BUILT_IN_SERVERS } from "./defaults.js";
+import {
+	type RuntimeSystem,
+	runtimeSystem,
+} from "./infrastructure/runtime-system.js";
 import {
 	type OpenTransport,
 	openTransport,
@@ -32,6 +37,10 @@ export type McpClientOptions = {
 	readonly fetch?: typeof fetch;
 	/** Servers added to mcp.yaml's by id; tests pass none. */
 	readonly builtInServers?: readonly McpServer[];
+	/** The global folder whose runtimes/ holds managed runtimes; without it runtime.ensure@1 is not provided. */
+	readonly globalDir?: string;
+	/** What the runtime manager asks of the machine; tests pass a fake. */
+	readonly runtimeSystem?: RuntimeSystem;
 };
 
 // mcp.yaml's servers first; a built-in server fills in only when no entry has its id (docs/10).
@@ -49,7 +58,7 @@ const MANIFEST: ModuleManifest = {
 	displayName: "MCP client",
 	class: "optional",
 	trust: "core",
-	provides: ["mcp.tools@1"],
+	provides: ["mcp.tools@1", "runtime.ensure@1"],
 	requires: ["policy.check@1"],
 	optional: ["registry.search@1"],
 	activation: ["onStartup"],
@@ -98,6 +107,28 @@ const provideAll = async (
 	await provideMappings(ctx, deps, opts.adaptersDir);
 };
 
+// runtime.ensure@1 for this module's stdio servers and for other modules (docs/10, Managed runtimes).
+const runtimeEnsure = (ctx: ModuleContext, opts: McpClientOptions) => {
+	if (!opts.globalDir) return undefined;
+	const impl = createRuntimeEnsure({
+		adapterId: MANIFEST.id,
+		globalDir: opts.globalDir,
+		platform: `${process.platform}-${process.arch}`,
+		policy: policyOf(ctx.capabilities),
+		fetch: opts.fetch ?? fetch,
+		system: opts.runtimeSystem ?? runtimeSystem,
+	});
+	ctx.disposables.add(
+		ctx.capabilities.provide("runtime.ensure@1", {
+			id: MANIFEST.id,
+			trust: "core",
+			features: [],
+			impl,
+		}),
+	);
+	return impl;
+};
+
 /** The mcp-client module: mcp.tools@1 over the servers of mcp.yaml (docs/10, MCP client). */
 export const createMcpClientModule = (opts: McpClientOptions): MeteModule => {
 	let sessions: Sessions | undefined;
@@ -117,6 +148,7 @@ export const createMcpClientModule = (opts: McpClientOptions): MeteModule => {
 				config.value.servers,
 				opts.builtInServers ?? BUILT_IN_SERVERS,
 			);
+			const ensure = runtimeEnsure(ctx, opts);
 			sessions = createSessions({
 				moduleId: MANIFEST.id,
 				version: MANIFEST.version,
@@ -124,6 +156,7 @@ export const createMcpClientModule = (opts: McpClientOptions): MeteModule => {
 				open: opts.open ?? openTransport,
 				...(opts.fetch ? { fetch: opts.fetch } : {}),
 				logger: ctx.logger,
+				...(ensure ? { ensure } : {}),
 			});
 			await provideAll(ctx, opts, servers, sessions);
 			return ok(undefined);

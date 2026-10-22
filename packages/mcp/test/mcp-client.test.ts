@@ -1,10 +1,15 @@
 import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { McpToolsAdapter, PolicyVerdict } from "@mete/contracts";
+import type {
+	McpServer,
+	McpToolsAdapter,
+	PolicyVerdict,
+} from "@mete/contracts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { openTransport } from "../src/infrastructure/transport.js";
 import { createMcpClientModule } from "../src/module.js";
 import { moduleContext } from "./helpers/context.js";
 
@@ -129,5 +134,49 @@ describe("mcp-client refusals", () => {
 		expect(bad.activated.ok === false && bad.activated.error.message).toMatch(
 			/^settings\.yaml /,
 		);
+	});
+});
+
+describe("mcp-client runtimes", () => {
+	it("puts the runtime's folder first on the server's PATH and names a missing one", async () => {
+		const opened: McpServer[] = [];
+		const module = createMcpClientModule({
+			workspaceDir: tmpdir(),
+			builtInServers: [],
+			globalDir: tmpdir(),
+			runtimeSystem: {
+				which: (command) => (command === "node" ? "/rt" : undefined),
+				version: async () => "v22.0.0",
+				extract: async () => ({ ok: false, error: "unused" }),
+			},
+			open: (server, fetchFn) => {
+				opened.push(server);
+				return openTransport(server, fetchFn);
+			},
+		});
+		const docker = { ...fixture, id: "boxed", runtime: "container" };
+		const { ctx, registry } = moduleContext("allow", {
+			mcp: { servers: [fixture, docker] },
+		});
+		await module.activate(ctx);
+		const r = registry.resolve<McpToolsAdapter>("mcp.tools@1");
+		const tools = r.ok ? r.value[0].impl : undefined;
+		const echo = await tools?.call(
+			{ server: "fixture", tool: "echo", args: { text: "hi" } },
+			{ signal },
+		);
+		expect(echo?.ok).toBe(true);
+		const path = opened[0]?.transport === "stdio" ? opened[0].env?.PATH : "";
+		expect(path?.startsWith(`/rt${delimiter}`)).toBe(true);
+		const boxed = await tools?.call(
+			{ server: "boxed", tool: "echo" },
+			{ signal },
+		);
+		expect(boxed?.ok === false && boxed.error).toEqual({
+			code: "not_found",
+			message: "MCP server boxed: no docker or podman on PATH",
+		});
+		expect(registry.resolve("runtime.ensure@1").ok).toBe(true);
+		await module.deactivate();
 	});
 });

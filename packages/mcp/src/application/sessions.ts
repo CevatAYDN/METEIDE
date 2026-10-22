@@ -1,8 +1,10 @@
+import { delimiter } from "node:path";
 import {
 	err,
 	type McpServer,
 	ok,
 	type Result,
+	type RuntimeEnsureAdapter,
 	type ToolError,
 } from "@mete/contracts";
 import type { Logger } from "@mete/kernel";
@@ -26,6 +28,8 @@ export type SessionDeps = {
 	readonly open: OpenTransport;
 	readonly fetch?: typeof fetch;
 	readonly logger: Logger;
+	/** runtime.ensure@1; without it a stdio command runs as configured. */
+	readonly ensure?: RuntimeEnsureAdapter;
 };
 
 const why = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -44,6 +48,30 @@ const unsupported = (server: McpServer): ToolError | undefined =>
 			}
 		: undefined;
 
+// The runtime's folder goes first on PATH, so npx, uvx or docker runs as configured (docs/10).
+const withRuntime = async (
+	deps: SessionDeps,
+	server: McpServer,
+	signal: AbortSignal,
+): Promise<Result<McpServer, ToolError>> => {
+	// shortcut: a binary server runs its command as configured; upgrade when registry entries give its url and hash.
+	if (
+		server.transport !== "stdio" ||
+		server.runtime === "binary" ||
+		!deps.ensure
+	)
+		return ok(server);
+	const r = await deps.ensure.run({ runtime: server.runtime }, { signal });
+	if (!r.ok)
+		return err({
+			...r.error,
+			message: `MCP server ${server.id}: ${r.error.message}`,
+		});
+	const path = server.env?.PATH ?? process.env.PATH ?? "";
+	const PATH = `${r.value.binDir}${delimiter}${path}`;
+	return ok({ ...server, env: { ...server.env, PATH } });
+};
+
 const connect = async (
 	deps: SessionDeps,
 	server: McpServer,
@@ -52,7 +80,9 @@ const connect = async (
 ): Promise<Result<Session, ToolError>> => {
 	const refused = unsupported(server);
 	if (refused) return err(refused);
-	const { transport, stderr } = deps.open(server, deps.fetch);
+	const ready = await withRuntime(deps, server, signal);
+	if (!ready.ok) return ready;
+	const { transport, stderr } = deps.open(ready.value, deps.fetch);
 	const client = new Client({ name: "mete", version: deps.version });
 	try {
 		await client.connect(transport, { signal });

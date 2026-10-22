@@ -138,6 +138,7 @@ const modulesFor = (
 		createMcpClientModule({
 			workspaceDir: opts.workspaceDir,
 			adaptersDir: BUILT_IN_ADAPTERS,
+			globalDir: opts.globalDir,
 			...(opts.fetch ? { fetch: opts.fetch } : {}),
 		}),
 		createCoreEngineModule({
