@@ -176,7 +176,7 @@ const refused = (io: Io, e: EngineError) => {
 export const runCommand = (app: App, io: Io, what: RunWhat) =>
 	withEngine(app, io, async (engine) => {
 		const target = targetOf(what);
-		const seen = target ? runHistory(app, target) : undefined;
+		const seen = target ? runHistory(app.registry, target) : undefined;
 		const titles = namesOf(seen?.events ?? []).titles;
 		const run = follow(app.events, io, target, titles);
 		const r = await begin(engine, what);
@@ -236,7 +236,7 @@ const explain = (
  * module, which task and agent role. A row that no longer parses is reported, never skipped.
  */
 export const eventsCommand = (app: App, io: Io, runId: string) => {
-	const h = runHistory(app, runId);
+	const h = runHistory(app.registry, runId);
 	if (!h) {
 		io.err("storage.sql@1 is not active, so no events can be read");
 		return 1;
@@ -261,6 +261,25 @@ export const statusCommand = (app: App, io: Io, runId?: string) =>
 			return 1;
 		}
 		for (const line of statusLines(r.value)) io.out(line);
+		return 0;
+	});
+
+/**
+ * `mete mcp`: serves the workspace's teams to an MCP host until it closes stdin or Ctrl+C.
+ * stdout carries only the protocol, so every line here goes to stderr.
+ */
+export const mcpCommand = (
+	app: App,
+	io: Io,
+	workspaceDir: string,
+	closed: Promise<void>,
+) =>
+	withEngine(app, io, async () => {
+		io.err(`serving METE over MCP for ${workspaceDir}`);
+		await new Promise<void>((resolve) => {
+			const stop = io.onInterrupt(resolve);
+			void closed.then(resolve).finally(stop);
+		});
 		return 0;
 	});
 

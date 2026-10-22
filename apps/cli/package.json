@@ -29,5 +29,8 @@
 		"@mete/storage": "workspace:*",
 		"@mete/tools": "workspace:*",
 		"pino": "10.4.0"
+	},
+	"devDependencies": {
+		"@modelcontextprotocol/sdk": "1.32.1"
 	}
 }

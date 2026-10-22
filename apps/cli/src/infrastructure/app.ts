@@ -22,7 +22,11 @@ import {
 	type MeteModule,
 	type ModuleContext,
 } from "@mete/kernel";
-import { createMcpClientModule } from "@mete/mcp";
+import {
+	createMcpClientModule,
+	createMcpServerModule,
+	type Transport,
+} from "@mete/mcp";
 import {
 	createCustomModule,
 	createNvidiaModule,
@@ -41,6 +45,7 @@ import {
 	createVcsGitModule,
 } from "@mete/tools";
 import { BUILT_IN_BINDINGS } from "../defaults.js";
+import { runHistory } from "./history.js";
 import { moduleLogger } from "./log.js";
 
 // The CLI's composition root (ARCHITECTURE.md, CLI): one workspace, every Phase 1 module in
@@ -72,6 +77,8 @@ export type AppOptions = {
 	readonly fetch?: typeof fetch;
 	/** The browser runner and Chromium; tests pass fakes, so no browser starts. */
 	readonly browser?: Pick<BrowserOptions, "run" | "chromium">;
+	/** Only `mete mcp` sets it: the transport mcp-server answers on (docs/10). */
+	readonly serve?: Transport;
 };
 
 /** A started app. */
@@ -95,7 +102,22 @@ const disposables = () => {
 	};
 };
 
-const modulesFor = (opts: AppOptions, workspaceId: string): MeteModule[] => {
+// mcp-server reads run events through the registry, so it can be built before the app exists.
+const servedBy = (opts: AppOptions, registry: CapabilityRegistry) =>
+	opts.serve
+		? [
+				createMcpServerModule({
+					transport: opts.serve,
+					history: (runId) => runHistory(registry, runId),
+				}),
+			]
+		: [];
+
+const modulesFor = (
+	opts: AppOptions,
+	workspaceId: string,
+	registry: CapabilityRegistry,
+): MeteModule[] => {
 	const dirs = { workspaceDir: opts.workspaceDir, globalDir: opts.globalDir };
 	return [
 		createStorageModule(dirs),
@@ -127,6 +149,7 @@ const modulesFor = (opts: AppOptions, workspaceId: string): MeteModule[] => {
 			},
 			workspaceDir: opts.workspaceDir,
 		}),
+		...servedBy(opts, registry),
 	];
 };
 
@@ -180,7 +203,7 @@ export const createApp = async (
 		contextFor,
 		logger: opts.logger,
 	});
-	const modules = modulesFor(opts, workspaceId);
+	const modules = modulesFor(opts, workspaceId, registry);
 	for (const m of modules) await lifecycle.register(m);
 	await lifecycle.start();
 	await lifecycle.openWorkspace();

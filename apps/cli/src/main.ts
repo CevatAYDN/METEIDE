@@ -1,12 +1,15 @@
 import { homedir } from "node:os";
+import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import type { SecretStore } from "@mete/contracts";
 import { globalDataDir, type Logger } from "@mete/kernel";
+import { serveStdio, type Transport } from "@mete/mcp";
 import { createKeychainStore } from "@mete/security";
 import {
 	eventsCommand,
 	type Io,
 	keyCommand,
+	mcpCommand,
 	type RunWhat,
 	runCommand,
 	statusCommand,
@@ -35,6 +38,7 @@ const USAGE = [
 	"  mete status [<run id>]       list the runs of this folder",
 	"  mete events <run id>         show a run's history: time, event, module, task, agent",
 	"  mete stop <run id> | --all   cancel paused runs",
+	"  mete mcp [<folder>]          serve this folder's teams to an MCP host (Claude Code, Cursor, Cline)",
 	"  mete key set|delete <provider id>, mete key list",
 ].join("\n");
 
@@ -137,10 +141,25 @@ const stop = (reader: AppOptions, io: Io, target: string | undefined) =>
 			)
 		: usage(io);
 
+// The lock and recovery as for mete run: this process drives the runs it starts until the host leaves.
+const mcp = (opts: AppOptions, io: Io, serve: Serve, folder?: string) => {
+	const workspaceDir = folder
+		? resolve(opts.workspaceDir, folder)
+		: opts.workspaceDir;
+	const at = { ...opts, workspaceDir };
+	return locked(at, io, () => {
+		const { transport, closed } = serve();
+		return withApp({ ...at, serve: transport }, io, (a) =>
+			mcpCommand(a, io, workspaceDir, closed),
+		);
+	});
+};
+
 const dispatch = (
 	p: Parsed,
 	opts: AppOptions,
 	io: Io,
+	serve: Serve,
 ): Promise<number> | number => {
 	const [command, ...rest] = p.positionals;
 	const reader = { ...opts, recover: false };
@@ -159,6 +178,8 @@ const dispatch = (
 			return withApp(reader, io, (a) => statusCommand(a, io, rest[0]));
 		case "stop":
 			return stop(reader, io, p.values.all ? "all" : rest[0]);
+		case "mcp":
+			return mcp(opts, io, serve, rest[0]);
 		case "key":
 			return keyCommand(
 				opts.secrets ?? createKeychainStore(),
@@ -176,12 +197,16 @@ const usage = (io: Io, asked = false) => {
 	return asked ? 0 : 1;
 };
 
+type Serve = () => { transport: Transport; closed: Promise<void> };
+
 /** Where the command runs; the rest is replaceable for tests. */
 export type Env = {
 	readonly cwd: string;
 	readonly globalDir?: string;
 	readonly logger?: Logger;
 	readonly secrets?: SecretStore;
+	/** The transport `mete mcp` answers on; stdio by default. */
+	readonly serve?: Serve;
 };
 
 /** Runs one command for `argv` (without node and the script) and returns the exit code. */
@@ -209,5 +234,6 @@ export const main = async (
 		parsed,
 		{ workspaceDir: env.cwd, globalDir, logger, ...secrets },
 		io,
+		env.serve ?? serveStdio,
 	);
 };

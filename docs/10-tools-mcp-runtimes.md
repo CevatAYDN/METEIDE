@@ -156,3 +156,8 @@ The mcp-server module (`@mete/mcp`) serves these tools over the transport its ho
 | `mete_knowledge_search` | `{query}` | always an error until the knowledge base exists (Phase 4) |
 
 Every refusal of `team.engine@2` is a tool result with `isError` and the text `<code>: <message>`; a router that is unsure lists the templates to choose from.
+
+`mete mcp [<folder>]` serves one workspace: the folder given, else the current one. Hosts that start servers elsewhere (Cursor, Cline, Claude Desktop) pass the folder \[D\]. When the host leaves, the runs it started stop with the process and come back paused on the next start (tab 07, recovery) \[D\]. To add it:
+
+- Claude Code, from the project folder: `claude mcp add mete -- mete mcp`
+- Other hosts: `{"mcpServers": {"mete": {"command": "mete", "args": ["mcp", "<folder>"]}}}`

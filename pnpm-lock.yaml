@@ -77,6 +77,10 @@ importers:
       pino:
         specifier: 10.4.0
         version: 10.4.0
+    devDependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: 1.32.1
+        version: 1.32.1(supports-color@7.2.0)(zod@4.6.5)
 
   apps/desktop: {}
 
