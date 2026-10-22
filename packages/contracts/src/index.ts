@@ -148,6 +148,12 @@ export {
 	type UnknownReservation,
 } from "./domain/quota.js";
 export { err, ok, type Result } from "./domain/result.js";
+export {
+	type RuntimeEnsureAdapter,
+	type RuntimeEnsureInput,
+	RuntimeEnsureInputSchema,
+	type RuntimeEnsureOutput,
+} from "./domain/runtime.js";
 export type { SecretError, SecretStore } from "./domain/secrets.js";
 export {
 	CheckpointKindSchema,
