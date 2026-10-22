@@ -17,10 +17,11 @@ import {
 	toolSpec,
 	type VcsGitAdapter,
 } from "@mete/contracts";
-import type { AdapterChain, CapabilityRegistry } from "@mete/kernel";
+import type { AdapterChain, CapabilityRegistry, Logger } from "@mete/kernel";
 import { z } from "zod";
 import type { EventBody } from "../domain/run-events.js";
 import { allowed, EXTERNAL_LABEL, type Seat } from "../domain/tools.js";
+import { mcpSpecs, runMcpTool } from "./mcp-steps.js";
 
 // One model call, one tool call and one checkpoint of a single-agent run (docs/08, Single agent).
 
@@ -32,6 +33,7 @@ type ModelChunk = Extract<LlmChunk, { type: "model" }>;
 /** What the steps need from the module. */
 export type StepDeps = {
 	readonly registry: CapabilityRegistry;
+	readonly logger: Logger;
 	readonly now: () => number;
 };
 
@@ -127,9 +129,13 @@ export const callModel = async (
 ): Promise<ModelOutcome> => {
 	const chain = deps.registry.resolve<LlmChatAdapter>("llm.chat@1");
 	if (!chain.ok) return { kind: "missing" };
+	// A seat without MCP tools calls the model at once, with no wait in between.
+	const mcp = mcpSpecs(deps, run.seat, signal);
 	const tools = SPECS.filter(
 		(s) => deps.registry.has(s.ref) && allowed(run.seat, s.ref),
-	).map((s) => s.spec);
+	)
+		.map((s) => s.spec)
+		.concat(Array.isArray(mcp) ? mcp : await mcp);
 	const needs = run.seat.needs;
 	const chunks = chain.value[0].impl.chat(
 		{
@@ -178,6 +184,18 @@ ${json}`
 		message: { role: "tool", toolCallId: call.id, content },
 		...(external ? { external } : {}),
 	};
+};
+
+// A call the policy asked about ran nothing: the run pauses for the approval.
+const finished = (
+	deps: StepDeps,
+	call: ToolCall,
+	out: Result<unknown, Failure>,
+	external: boolean,
+): Promise<ToolOutcome> | ToolOutcome => {
+	if (!out.ok && out.error.code === "approval_required" && "rule" in out.error)
+		return { kind: "approval", rule: String(out.error.rule) };
+	return result(deps, call, out, external);
 };
 
 const refused = (deps: StepDeps, call: ToolCall, f: Failure) =>
@@ -240,11 +258,14 @@ export const callTool = async (
 	const entry = TOOL_CATALOG.find(
 		(t) => toolName(t.ref) === call.name && allowed(seat, t.ref),
 	);
-	if (!entry)
+	if (!entry) {
+		const mcp = await runMcpTool(deps, { call, seat }, ctx, emit);
+		if (mcp) return finished(deps, call, mcp, true);
 		return refused(deps, call, {
 			code: "bad_input",
 			message: `unknown tool ${call.name}`,
 		});
+	}
 	const args = entry.schema.safeParse(call.args);
 	if (!args.success)
 		return refused(deps, call, {
@@ -262,9 +283,7 @@ export const callTool = async (
 		entry,
 		chain.value,
 	);
-	if (!out.ok && out.error.code === "approval_required" && "rule" in out.error)
-		return { kind: "approval", rule: String(out.error.rule) };
-	return result(deps, call, out, entry.external === true);
+	return finished(deps, call, out, entry.external === true);
 };
 
 /** Records the working tree before a writing step; no vcs.git@1 means no checkpoint (Phase 4). */

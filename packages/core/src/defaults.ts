@@ -17,3 +17,6 @@ export const SUMMARY_KEEP_TURNS = 4;
 
 /** Below this confidence the router lets the user choose (08 Orchestration and teams, Router). */
 export const ROUTER_MIN_CONFIDENCE = 0.7;
+
+/** The longest model tool name an MCP tool may get; OpenAI and Gemini allow 64 (10 Tools, MCP and runtimes, Integration levels). */
+export const MCP_TOOL_NAME_MAX = 64;

@@ -33,7 +33,14 @@ const setup = (refs: CapabilityRef[]) => {
 				return { ok: true, value: {} };
 			},
 		});
-	return { deps: { registry, now: () => 0 }, asked, ran };
+	const warned: unknown[] = [];
+	const logger = {
+		error() {},
+		warn: (fields: unknown) => warned.push(fields),
+		info() {},
+		debug() {},
+	};
+	return { deps: { registry, logger, now: () => 0 }, asked, ran, warned };
 };
 
 const run = { runId: "r", priority: 1 as const, messages: [] };
@@ -157,5 +164,97 @@ describe("steps for a seat", () => {
 			ok: false,
 			error: { code: "bad_input", message: "unknown tool shell_exec" },
 		});
+	});
+});
+
+describe("raw MCP tools", () => {
+	const listed = [
+		{
+			server: "gh",
+			name: "create_issue",
+			description: "Open an issue.",
+			inputSchema: { type: "object" },
+		},
+		{
+			server: "gh",
+			name: "bad",
+			description: "",
+			inputSchema: { type: "string" },
+		},
+		{
+			server: "gh",
+			name: "x".repeat(60),
+			description: "",
+			inputSchema: { type: "object" },
+		},
+	];
+	const withMcp = (out: unknown) => {
+		const s = setup([]);
+		const calls: unknown[] = [];
+		s.deps.registry.provide("mcp.tools@1", {
+			id: "mcp-client",
+			trust: "core",
+			features: [],
+			impl: {
+				list: async () => ({ ok: true, value: listed }),
+				call: async (input: unknown) => {
+					calls.push(input);
+					return out;
+				},
+			},
+		});
+		return { ...s, calls };
+	};
+	const seat: Seat = { tier: "fast", needs: [], capabilities: ["mcp.tools@1"] };
+	const call = { id: "c", name: "mcp_gh_create_issue", args: { title: "t" } };
+
+	it("offers each server tool as mcp_<server>_<tool> and leaves out the bad ones", async () => {
+		const { deps, asked, warned } = withMcp(undefined);
+		await callModel(deps, { ...run, seat }, () => {}, signal);
+		expect(names(asked[0])).toEqual(["mcp_gh_create_issue"]);
+		expect(asked[0]?.tools?.[0]?.description).toBe(
+			"gh MCP server: Open an issue.",
+		);
+		expect(warned).toHaveLength(2);
+	});
+
+	it("calls the server's tool and labels its result as external", async () => {
+		const done = { ok: true, value: { content: [], isError: false } };
+		const { deps, calls } = withMcp(done);
+		const events: string[] = [];
+		const out = await callTool(deps, { call, seat }, { signal }, (e) =>
+			events.push(e.type),
+		);
+		expect(calls).toEqual([
+			{ server: "gh", tool: "create_issue", args: { title: "t" } },
+		]);
+		expect(out.kind === "result" && out.external).toBe(true);
+		const content = out.kind === "result" ? out.message.content : "";
+		expect(content.split("\n")[0]).toBe(EXTERNAL_LABEL);
+		expect(events).toEqual(["agent.tool.called", "agent.tool.completed"]);
+	});
+
+	it("pauses when the policy asks, and hides the tools from a seat without mcp.tools@1", async () => {
+		const ask = {
+			ok: false,
+			error: { code: "approval_required", rule: "mcp.call", message: "ask" },
+		};
+		const { deps, asked, calls } = withMcp(ask);
+		expect(await callTool(deps, { call, seat }, { signal }, () => {})).toEqual({
+			kind: "approval",
+			rule: "mcp.call",
+		});
+		await callModel(deps, { ...run, seat: researcher }, () => {}, signal);
+		expect(names(asked[0])).toBeUndefined();
+		const out = await callTool(
+			deps,
+			{ call, seat: researcher },
+			{ signal },
+			() => {},
+		);
+		expect(
+			out.kind === "result" && JSON.parse(out.message.content).error.code,
+		).toBe("bad_input");
+		expect(calls).toHaveLength(1);
 	});
 });

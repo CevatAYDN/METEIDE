@@ -41,7 +41,13 @@ const MANIFEST: ModuleManifest = {
 		"secrets.mask@1",
 		"storage.sql@1",
 	],
-	optional: ["shell.exec@1", "vcs.git@1", "web.fetch@1", "web.search@1"],
+	optional: [
+		"shell.exec@1",
+		"vcs.git@1",
+		"web.fetch@1",
+		"web.search@1",
+		"mcp.tools@1",
+	],
 	activation: ["onStartup"],
 	isolation: "in-process",
 	// fs.write: artifact files in .mete/artifacts/ (ARCHITECTURE.md, workspace files).

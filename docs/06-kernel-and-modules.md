@@ -317,7 +317,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | knowledge-graph | `@mete/knowledge` | optional | `code.graph@1` | `fs.read@1` | `llm.chat@1` | worker |
 | vault | `@mete/knowledge` | optional | `vault.read@1`, `vault.write@1` | `fs.read@1`, `fs.write@1` | none | in-process |
 | knowledge-search | `@mete/knowledge` | optional | `knowledge.search@1`, `knowledge.index@1` | `fs.grep@1` | `llm.embed@1`, `llm.rerank@1`, `code.graph@1`, `vault.read@1` | worker |
-| core-engine | `@mete/core` | essential | `team.engine@2` (native), runs, router, artifacts, checkpoints | `llm.chat@1`, `fs.*`, `policy.check@1`, `secrets.mask@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@1`, `web.fetch@1`, `web.search@1`, `knowledge.search@1`, `vault.*` | in-process |
+| core-engine | `@mete/core` | essential | `team.engine@2` (native), runs, router, artifacts, checkpoints | `llm.chat@1`, `fs.*`, `policy.check@1`, `secrets.mask@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@1`, `web.fetch@1`, `web.search@1`, `mcp.tools@1`, `knowledge.search@1`, `vault.*` | in-process |
 | autonomy | `@mete/core` | optional | triggers, schedules | `team.engine@2` | `issues.source@1` | in-process |
 | browser | `@mete/tools` | optional | `browser.screenshot@1`, `seo.audit@1` | `policy.check@1` (`runtime.ensure@1` once the runtime manager exists) | none | in-process; each call in a child process \[D\] |
 | engine-crewai, engine-metagpt, engine-chatdev | `@mete/engines` | optional | `team.engine@2` | `runtime.ensure@1`, `llm.chat@1` | none | process |

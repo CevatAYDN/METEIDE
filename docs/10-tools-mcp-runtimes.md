@@ -82,6 +82,8 @@ The mcp-client module provides `mcp.tools@1`. It starts a server on the first ca
 | 2 Mapping | A YAML file | The server, CLI or HTTP API implements a METE capability and can be bound |
 | 3 Code | A TypeScript adapter | Multi-step logic, conversions, special error handling |
 
+Level 1: a team role whose capabilities name `mcp.tools@1` gets each tool of each configured server as one model tool, `mcp_<server>_<tool>` with every character other than letters, digits, `_` and `-` turned into `_`, the server's input schema as its parameters, and a description that names the server. Templates never name servers (tab 08). A tool is left out, with a warning naming the server, the tool and the reason, when its name would exceed 64 characters, repeats an earlier name or its input schema is not an object. The tools are listed on every model call of such a role, so the first call starts every configured server (MCP client). A call goes to `mcp.tools@1` `call` with the server, the tool and the arguments, so it asks `mcp.call`; its result is external content, labeled and tainting like a web result, and it takes no checkpoint and never moves to another adapter \[D\].
+
 Level 2 mapping file:
 
 ```yaml
