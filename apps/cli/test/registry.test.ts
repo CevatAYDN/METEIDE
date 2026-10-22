@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -100,5 +100,71 @@ describe("mete registry search", () => {
 		const again = recordingIo();
 		expect(await registryAddCommand(app.value, again.io, target)).toBe(1);
 		expect(again.err[0]).toContain("server ids must be unique");
+	});
+});
+
+describe("mete registry search across the chain", () => {
+	const mine = {
+		id: "seo-team",
+		kind: "template",
+		version: "1.0.0",
+		description: "Files for my SEO team",
+		source: "https://example.org/seo-team.yaml",
+		runtime: "remote",
+		permissions: [],
+	};
+	// The official registry answers with `official`, or with an error status; the local one holds `mine`.
+	const search = async (official: unknown, query: string) => {
+		const repo = await tempRepo({ "a.txt": "a\n" });
+		await mkdir(join(repo.globalDir, "registry"), { recursive: true });
+		await writeFile(
+			join(repo.globalDir, "registry", "index.json"),
+			JSON.stringify({ entries: [mine] }),
+		);
+		const app = await createApp({
+			workspaceDir: repo.workspaceDir,
+			globalDir: repo.globalDir,
+			logger: silent,
+			secrets: memorySecrets(),
+			providers: [],
+			fetch: async () =>
+				official === undefined
+					? new Response("down", { status: 503 })
+					: Response.json({ servers: official }),
+		});
+		if (!app.ok) throw new Error(JSON.stringify(app.error));
+		close = async () => {
+			await app.value.stop();
+			await repo.close();
+		};
+		const t = recordingIo();
+		return { code: await registryCommand(app.value, t.io, query), t };
+	};
+
+	it("asks the local registry when the official one finds nothing", async () => {
+		const r = await search([], "seo");
+		expect(r.code).toBe(0);
+		expect(r.t.out).toEqual([
+			"seo-team 1.0.0  remote  https://example.org/seo-team.yaml",
+			"  Files for my SEO team",
+		]);
+	});
+
+	it("keeps the official answer when it has entries, and reports a broken registry that nobody made up for", async () => {
+		const official = await search(servers, "files");
+		expect(official.t.out[0]).toBe(
+			"io.github.a/files 0.1.4  node  npm:files-mcp",
+		);
+		expect(official.t.out).toHaveLength(2);
+		await close();
+		const down = await search(undefined, "nothing-matches");
+		expect(down.code).toBe(1);
+		expect(down.t.err[0]).toMatch(/official MCP registry: answered 503/);
+	});
+
+	it("falls back to the local registry when the official one is down", async () => {
+		const r = await search(undefined, "seo");
+		expect(r.code).toBe(0);
+		expect(r.t.out[0]).toMatch(/^seo-team 1\.0\.0/);
 	});
 });

@@ -1,13 +1,40 @@
-import type {
-	McpServer,
-	PolicyCheckAdapter,
-	RegistrySearchAdapter,
+import {
+	type McpServer,
+	ok,
+	type PolicyCheckAdapter,
+	type RegistrySearchAdapter,
+	type RegistrySearchOutput,
+	type Result,
+	type ToolError,
 } from "@mete/contracts";
 import { addMcpServer, officialInstall } from "@mete/mcp";
 import type { App } from "../infrastructure/app.js";
 import type { Io } from "./commands.js";
 
 // The mete registry commands (ARCHITECTURE.md, CLI); each returns the process exit code.
+
+// The chain in order (docs/06): the first adapter that finds entries answers; one that fails with `io` or finds
+// none passes the search on. When nobody finds anything the first failure is reported, so an empty registry
+// never hides a broken one; any other refusal (denied, bad input) stops the search.
+type Found = Result<RegistrySearchOutput, ToolError>;
+const settles = (r: Found) =>
+	r.ok ? r.value.entries.length > 0 : r.error.code !== "io";
+
+const search = async (
+	adapters: readonly { readonly impl: RegistrySearchAdapter }[],
+	query: string,
+	signal: AbortSignal,
+) => {
+	let failed: Found | undefined;
+	let empty: Found | undefined;
+	for (const { impl } of adapters) {
+		const r = await impl.run({ query }, { signal });
+		if (settles(r)) return r;
+		if (r.ok) empty ??= r;
+		else failed ??= r;
+	}
+	return failed ?? empty ?? ok<RegistrySearchOutput>({ entries: [] });
+};
 
 /** `mete registry search "<words>"`: lists matching registry entries, newest versions; installs nothing. */
 export const registryCommand = async (app: App, io: Io, query: string) => {
@@ -18,7 +45,7 @@ export const registryCommand = async (app: App, io: Io, query: string) => {
 	}
 	const ctl = new AbortController();
 	const stop = io.onInterrupt(() => ctl.abort());
-	const found = await r.value[0].impl.run({ query }, { signal: ctl.signal });
+	const found = await search(r.value, query, ctl.signal);
 	stop();
 	if (!found.ok) {
 		io.err(found.error.message);

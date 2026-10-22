@@ -1,14 +1,19 @@
-// The registry module (docs/06, docs/10 Registries): registry.search@1 over the official MCP registry.
+// The registry module (docs/06, docs/10 Registries): registry.search@1 over the official MCP registry and the local one.
 import {
 	type ModuleManifest,
 	ok,
 	type PolicyCheckAdapter,
 } from "@mete/contracts";
 import type { MeteModule } from "@mete/kernel";
+import { localRegistry } from "./application/local-registry.js";
 import { officialRegistry } from "./application/registry-search.js";
 
 /** What the registry module is given; tests pass a fake fetch, so nothing reaches the network. */
-export type RegistryOptions = { readonly fetch?: typeof fetch };
+/** `globalDir` holds the local registry (`registry/index.json`); without it only the official one is provided. */
+export type RegistryOptions = {
+	readonly fetch?: typeof fetch;
+	readonly globalDir?: string;
+};
 
 const MANIFEST: ModuleManifest = {
 	id: "registry",
@@ -21,10 +26,10 @@ const MANIFEST: ModuleManifest = {
 	optional: [],
 	activation: ["onStartup"],
 	isolation: "in-process",
-	permissions: ["net"],
+	permissions: ["net", "fs.read"],
 };
 
-// shortcut: the METE registry and the local folder adapters wait until their repository and folder are chosen (docs/10).
+// shortcut: the METE registry adapter waits for its repository (Phase 7); it will read the same index.json shape as the local one (docs/10).
 export const createRegistryModule = (
 	opts: RegistryOptions = {},
 ): MeteModule => ({
@@ -47,6 +52,15 @@ export const createRegistryModule = (
 				impl,
 			}),
 		);
+		if (opts.globalDir)
+			ctx.disposables.add(
+				ctx.capabilities.provide("registry.search@1", {
+					id: "local-registry",
+					trust: "core",
+					features: [],
+					impl: localRegistry(opts.globalDir),
+				}),
+			);
 		return Promise.resolve(ok(undefined));
 	},
 	deactivate: () => Promise.resolve(),
