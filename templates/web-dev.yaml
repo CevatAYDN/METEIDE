@@ -1,0 +1,74 @@
+# The web development team of docs/08 (Built-in templates): a UI designer briefs the page, a
+# frontend developer builds it in a worktree of its own and must pass `npm run build` before it can
+# submit, QA builds it again and audits the built folder with Lighthouse, and the lead approves each
+# step. The tasks run in this order; splitting work among several developers comes with `spawns`.
+# The goal names the page. Run it at autonomy 3: at level 2 a write to package.json asks every time.
+apiVersion: mete/v1
+kind: TeamTemplate
+metadata:
+  id: web-dev
+  name: Web development
+  version: 1.0.0
+  description: A page described in a sentence becomes a built, audited site
+pattern: hierarchical
+roles:
+  - id: ui_designer
+    name: UI designer
+    goal: >-
+      Turn the goal into a short brief for one static page: its purpose, the sections in order with
+      their text, a colour palette with hex values, the fonts to use (system fonts only), and the
+      layout for a phone and for a desktop. Reply with the brief only.
+    backstory: You design small, fast, accessible pages and leave out everything the page does not need.
+    tier: reasoning
+    capabilities: []
+  - id: frontend_developer
+    name: Frontend developer
+    goal: >-
+      Build the page from the brief as a static site with no dependencies, in the workspace.
+      Create package.json whose "build" script writes the finished site into the dist folder with
+      its index.html at the root (for example "build": "node build.mjs", where build.mjs copies the
+      files from src to dist). Create .gitignore with the lines node_modules and dist. Write semantic
+      HTML with a lang attribute, a viewport meta tag, a title and a meta description, give every
+      image alt text, and keep the CSS small. Run npm run build and fix what it reports until it
+      succeeds. Reply with the list of files you wrote.
+    backstory: You build fast, accessible pages by hand and check every command you run.
+    tier: coder
+    needs: [tool_calling]
+    capabilities: [fs.*@1, shell.exec@1]
+  - id: qa
+    name: QA
+    goal: >-
+      Check the finished page. Run npm run build and read dist/index.html. Run the SEO audit tool on
+      the folder dist and take a screenshot of it. Reply with a test report: the
+      build result, the four Lighthouse category scores exactly as the tool returns them, every audit
+      that scores below 90 with its id and title, and whether every score is at least 85.
+    backstory: You report what you measured and never round a score up.
+    tier: coder
+    needs: [tool_calling]
+    capabilities: [fs.read@1, shell.exec@1, seo.audit@2, browser.screenshot@2]
+  - id: lead
+    name: Lead
+    goal: >-
+      Approve a step that does what the goal asked and that the earlier steps support, or return it
+      with exactly what to fix. For the test report, return it unless the build succeeded and every
+      Lighthouse score is at least 85.
+    tier: reasoning
+    capabilities: []
+tasks:
+  - id: design
+    role: ui_designer
+    title: Write the design brief for the page
+    approval: lead
+  - id: build
+    role: frontend_developer
+    title: Build the page and pass the build
+    context: [design]
+    expected_output: artifact:code-change@1
+    verify: [{ run: "npm run build" }]
+    approval: lead
+  - id: test
+    role: qa
+    title: Build the page again and audit it with Lighthouse
+    context: [build]
+    expected_output: artifact:test-report@1
+    approval: lead
