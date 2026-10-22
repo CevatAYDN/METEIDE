@@ -93,6 +93,7 @@ export {
 	type ToolSpec,
 } from "./domain/provider.js";
 export {
+	ANY_PROVIDER,
 	type QuotaAmounts,
 	QuotaAmountsSchema,
 	type QuotaConfig,

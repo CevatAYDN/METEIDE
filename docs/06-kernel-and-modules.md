@@ -187,7 +187,7 @@ export type QuotaAmounts = Partial<Record<QuotaUnit, number>>;
 export type QuotaObservation = { unit: QuotaUnit; limit?: number; remaining?: number; resetsAt?: string; exhausted: boolean };
                                  // a provider's observe() reads response headers and 429s into these
 export type QuotaRequest = { runId: string; priority: 0 | 1 | 2;   // P0 interactive, P1 foreground, P2 scheduled
-  chain: readonly { providerId: string; modelId: string }[];
+  chain: readonly { providerId: string; modelId: string; estimate?: QuotaAmounts }[];   // @2: an entry's own amounts
   estimate: QuotaAmounts };      // requests default to 1; tokens are prompt tokens plus max_tokens
 export type Reservation = { id: string; providerId: string; modelId: string };
 export type ReserveFailed = { code: "quota_exhausted"; resumesAt: string } | { code: "aborted" };   // ISO 8601 times

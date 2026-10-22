@@ -23,6 +23,32 @@ const pool = (specs: QuotaUnitSpec[], opts: PoolOptions = {}) => {
 const use = (p: ReturnType<typeof createPool>, model: string, at: number) =>
 	p.record(p.hold("p", model, {}), {}, at);
 
+describe("pool: the daily spending cap (ADR-042)", () => {
+	it("spans every provider for paid calls and never holds back a free one", () => {
+		const cap = spec({
+			providerId: "*",
+			unit: "usd_per_day",
+			limit: 1,
+			reset: "fixed_daily",
+		});
+		const p = pool([
+			spec({ providerId: "free", limit: 100 }),
+			spec({ limit: 100 }),
+			cap,
+		]);
+		const paid = { usd_per_day: 0.6 };
+		expect(p.check("p", "gpt", paid, T0)).toEqual({ kind: "open" });
+		p.record(p.hold("p", "gpt", paid), paid, T0);
+		const next = p.check("p", "gpt", paid, T0 + 1000);
+		expect(next.kind).toBe("wait");
+		// 00:00 UTC of the next day.
+		expect(next.kind === "wait" && next.opensAt).toBe(
+			Date.parse("2026-10-22T00:00:00Z"),
+		);
+		expect(p.check("free", "llama", {}, T0 + 1000)).toEqual({ kind: "open" });
+	});
+});
+
 describe("pool: capacity", () => {
 	it("counts one request per call and opens when the oldest leaves", () => {
 		const p = pool([spec()]);

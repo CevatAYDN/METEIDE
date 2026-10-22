@@ -3,6 +3,7 @@ import type {
 	QuotaObservation,
 	QuotaUnitSpec,
 } from "@mete/contracts";
+import { ANY_PROVIDER } from "@mete/contracts";
 import {
 	keyOf,
 	learn,
@@ -99,6 +100,15 @@ const checkUnit = (
 	return at === undefined ? { kind: "wait" } : { kind: "wait", opensAt: at };
 };
 
+// A unit of provider "*" spans every provider (ADR-042, usd_per_day), but only for calls whose
+// amounts name it, so a free call never waits for the spending cap.
+const specsFor = (ps: PoolState, providerId: string, amounts: QuotaAmounts) => [
+	...(ps.specs.get(providerId) ?? []),
+	...(ps.specs.get(ANY_PROVIDER) ?? []).filter(
+		(s) => amounts[s.unit] !== undefined,
+	),
+];
+
 const check = (
 	ps: PoolState,
 	providerId: string,
@@ -106,7 +116,7 @@ const check = (
 	at: At,
 ): Check => {
 	let result: Fits = OPEN;
-	for (const s of ps.specs.get(providerId) ?? []) {
+	for (const s of specsFor(ps, providerId, amounts)) {
 		const r = checkUnit(ps, s, amounts, at);
 		if (r.kind === "never") return r;
 		result = merge(result, r);
@@ -120,7 +130,7 @@ const hold = (
 	modelId: string,
 	amounts: QuotaAmounts,
 ): Held => {
-	const parts = (ps.specs.get(providerId) ?? []).map((s) => {
+	const parts = specsFor(ps, providerId, amounts).map((s) => {
 		const { key, st } = stateFor(ps, s, modelId);
 		const amount = amountFor(s.unit, amounts);
 		st.pending += amount;

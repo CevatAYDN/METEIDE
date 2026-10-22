@@ -53,10 +53,16 @@ type SchedulerState = {
 
 type Entry = QuotaRequest["chain"][number];
 
+// An entry's own amounts, such as a paid model's cost, go over the request's (quota.reserve@2).
+const amountsOf = (w: Waiter, e: Entry) => ({
+	...w.req.estimate,
+	...e.estimate,
+});
+
 const checks = (st: SchedulerState, w: Waiter, now: number) =>
 	w.req.chain.map((e): [Entry, Check] => [
 		e,
-		st.opts.pool.check(e.providerId, e.modelId, w.req.estimate, now),
+		st.opts.pool.check(e.providerId, e.modelId, amountsOf(w, e), now),
 	]);
 
 // The earliest known opening, and whether some entry waits without a known time.
@@ -103,8 +109,9 @@ const tryServe = (
 		([e, c]) => c.kind === "open" && !claimed.has(e.providerId),
 	);
 	if (open) {
-		const [{ providerId, modelId }] = open;
-		const held = st.opts.pool.hold(providerId, modelId, w.req.estimate);
+		const [entry] = open;
+		const { providerId, modelId } = entry;
+		const held = st.opts.pool.hold(providerId, modelId, amountsOf(w, entry));
 		w.done(ok({ held, providerId, modelId }));
 		return "served";
 	}

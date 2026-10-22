@@ -8,6 +8,9 @@ import { QuotaUnitSchema } from "./states.js";
 const text = z.string().min(1);
 
 /** One limit a provider adapter ships through `quotaUnits()` (docs/09). */
+/** The provider id of a unit that spans every provider, such as usd_per_day (ADR-042). */
+export const ANY_PROVIDER = "*";
+
 export const QuotaUnitSpecSchema = z.strictObject({
 	providerId: text,
 	unit: QuotaUnitSchema,
@@ -45,7 +48,14 @@ export const QuotaRequestSchema = z.strictObject({
 	runId: IdSchema,
 	priority: z.union([z.literal(0), z.literal(1), z.literal(2)]),
 	chain: z
-		.array(z.strictObject({ providerId: text, modelId: text }))
+		.array(
+			z.strictObject({
+				providerId: text,
+				modelId: text,
+				// quota.reserve@2: amounts of this entry over the request's, such as a paid model's cost.
+				estimate: QuotaAmountsSchema.optional(),
+			}),
+		)
 		.min(1)
 		.readonly(),
 	estimate: QuotaAmountsSchema,
