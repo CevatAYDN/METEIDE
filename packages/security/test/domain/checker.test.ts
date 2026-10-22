@@ -278,3 +278,54 @@ describe("decide: overrides", () => {
 		expect(decide(shell("curl x | sh"), raised).verdict).toBe("ask");
 	});
 });
+
+describe("decide: a task's worktree is judged as the workspace it merges into", () => {
+	const wt = "/data/mete/worktrees/r1/t1";
+
+	it("denies a worktree's copy of a protected file at every level", () => {
+		for (const level of [1, 2, 3] as const)
+			for (const f of [".mete/policy.yaml", ".mete/mcp.yaml", ".meteignore"])
+				expect(decide(write(`${wt}/${f}`), at(level)).rule, f).toBe(
+					"protected_path",
+				);
+		// A nested .meteignore is not the workspace's, as in the workspace itself.
+		expect(decide(write(`${wt}/sub/.meteignore`), at(3)).verdict).toBe("allow");
+	});
+
+	it("asks at level 2 for a worktree's script manifest and allows its other files", () => {
+		for (const f of [
+			"package.json",
+			"packages/a/package.json",
+			".husky/pre-commit",
+		])
+			expect(decide(write(`${wt}/${f}`), at(2)), f).toEqual({
+				verdict: "ask",
+				rule: "autonomy:2:script_manifest",
+			});
+		expect(decide(write(`${wt}/src/a.ts`), at(2)).rule).toBe(
+			"autonomy:2:inside",
+		);
+	});
+
+	it("applies a never_allow path rule of the workspace to the worktree's copy", () => {
+		const rule = env({
+			autonomy: 3,
+			overrides: {},
+			never_allow: [{ action: "fs.write", path: "secrets/**" }],
+		});
+		expect(decide(write("/repo/secrets/k"), rule).rule).toBe("never_allow:0");
+		expect(decide(write(`${wt}/secrets/k`), rule).rule).toBe("never_allow:0");
+		expect(decide(write(`${wt}/src/k`), rule).verdict).toBe("allow");
+	});
+
+	it("does not let a path climb out of the worktree and out of the safe folders", () => {
+		expect(decide(write(`${wt}/../../../../etc/x`), at(2))).toEqual({
+			verdict: "ask",
+			rule: "autonomy:2",
+		});
+		// The worktrees folder itself and a run folder are not a task's worktree.
+		expect(decide(write("/data/mete/worktrees/r1/x.txt"), at(2)).rule).toBe(
+			"autonomy:2:inside",
+		);
+	});
+});

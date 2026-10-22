@@ -9,8 +9,8 @@ export const MASK_TAG_HEX = 8;
 /**
  * SECURITY.md, Policy file (decision order, step 9): at level 2 a write to one of these asks, because
  * the files change which program an allow-listed command runs (a package script, a hook, a loaded
- * config). Patterns are path globs under the workspace folder.
- * shortcut: a worktree's copy of these files is not matched; add the rebase when worktrees exist (Phase 4).
+ * config). Patterns are path globs under the workspace folder; a task's worktree is judged as the
+ * workspace it merges into (decide, asWorkspacePath).
  */
 export const SCRIPT_MANIFESTS: readonly string[] = [
 	"**/package.json",

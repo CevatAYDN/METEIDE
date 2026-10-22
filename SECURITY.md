@@ -56,7 +56,7 @@ The verdict's `rule` names the step: `missing_input` (1), `never_allow:<index>` 
 
 `policy.check@1` also takes a `tainted` flag and records it in the audit log; the flag changes no decision until the core remembers approvals. The core reads a step as the whole attempt: once a `web.fetch@1` or `web.search@1` result joined an attempt's conversation, every later tool call of that attempt passes `tainted: true`, and the next attempt starts untainted [D].
 
-Protected paths: agents MUST NOT write `.mete/policy.yaml`, `.mete/bindings.yaml`, `.mete/mcp.yaml` or the workspace's `.meteignore` (a re-include line would open the files it hides); only the user changes them, by hand or with a command they run such as `mete registry add` \[D\].
+Protected paths: agents MUST NOT write `.mete/policy.yaml`, `.mete/bindings.yaml`, `.mete/mcp.yaml` or the workspace's `.meteignore` (a re-include line would open the files it hides); only the user changes them, by hand or with a command they run such as `mete registry add` \[D\]. A task's worktree (`worktrees/<run id>/<task id>/`) is a copy of the workspace that merges back into it, so every rule that names a workspace path (`never_allow`, protected paths, script manifests) judges a path inside one as the same path in the workspace: the worktree's copy of `.mete/policy.yaml` is protected too \[D\].
 
 ## Threat model
 

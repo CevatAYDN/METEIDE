@@ -54,6 +54,17 @@ const isSafeWrite = (path: string, env: CheckerEnv) =>
 		`${env.globalDir}/snapshots`,
 	].some((dir) => isInside(normalizePath(dir, env), normalizePath(path, env)));
 
+// A task's worktree is a copy of the workspace that is merged back into it (docs/08), so the rules
+// that name a workspace path (never_allow, protected paths, script manifests) judge a path inside
+// one as the same path in the workspace: its copy of .mete/policy.yaml is as off limits as the original.
+const asWorkspacePath = (path: string, env: CheckerEnv) => {
+	const base = normalizePath(`${env.globalDir}/worktrees`, env);
+	const full = normalizePath(path, env);
+	if (!isInside(base, full)) return path;
+	const [run, task, ...rest] = full.slice(base.length + 1).split("/");
+	return run && task ? normalizePath(rest.join("/"), env) : path;
+};
+
 // What the rules see: the input with its inputs checked and a write outside the
 // safe folders classified as fs.write.outside, so every step agrees on the action.
 type Subject = {
@@ -77,7 +88,7 @@ const subjectOf = (
 	return {
 		action: outside ? "fs.write.outside" : input.action,
 		capability: input.capability,
-		path,
+		path: asWorkspacePath(path, env),
 		command: input.command ?? "",
 		safeWrite,
 	};
