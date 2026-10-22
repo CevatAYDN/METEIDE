@@ -65,7 +65,7 @@ export const NVIDIA: ProviderDefinition = {
 	providerId: ID,
 	moduleId: "provider-nvidia",
 	displayName: "NVIDIA Build",
-	provides: ["provider.chat@1", "provider.embed@1", "provider.rerank@1"],
+	provides: ["provider.chat@2", "provider.embed@1", "provider.rerank@1"],
 	build,
 };
 

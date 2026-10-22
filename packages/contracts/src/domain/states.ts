@@ -52,6 +52,8 @@ export const QuotaUnitSchema = z.enum([
 	"tokens_per_minute",
 	"credits_per_month",
 	"gpu_seconds_per_day",
+	// quota.reserve@2 (ADR-042): METE's own daily spending cap over every paid model.
+	"usd_per_day",
 ]);
 
 /** How a checkpoint is stored. */

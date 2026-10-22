@@ -89,7 +89,7 @@ const MANIFEST: ModuleManifest = {
 	displayName: "Fake provider",
 	class: "optional",
 	trust: "first-party",
-	provides: ["provider.chat@1"],
+	provides: ["provider.chat@2"],
 	requires: [],
 	optional: [],
 	activation: ["onStartup"],
@@ -145,7 +145,7 @@ export const scriptedProvider = (b: Behaviour): MeteModule => {
 		manifest: MANIFEST,
 		async activate(ctx) {
 			ctx.disposables.add(
-				ctx.capabilities.provide("provider.chat@1", {
+				ctx.capabilities.provide("provider.chat@2", {
 					id: "fake",
 					trust: "first-party",
 					features: [],

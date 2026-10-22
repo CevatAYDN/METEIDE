@@ -147,7 +147,7 @@ describe("NVIDIA", () => {
 		});
 		expect(createNvidiaModule().manifest).toMatchObject({
 			id: "provider-nvidia",
-			provides: ["provider.chat@1", "provider.embed@1", "provider.rerank@1"],
+			provides: ["provider.chat@2", "provider.embed@1", "provider.rerank@1"],
 		});
 	});
 });

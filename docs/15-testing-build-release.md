@@ -20,7 +20,7 @@ All checks run on the developer's machine through lefthook and package scripts; 
 
 Rules:
 
-- Tests MUST NOT call real model providers. Cassettes are recorded only by `pnpm test:record` with the developer's own keys and committed with secrets masked \[C\]. `pnpm test:record` is not built yet; until it is, provider and gateway tests answer through hand-written fetch fakes and agent flows through scripted `provider.chat@1` adapters, and MSW stays the planned replay tool (tab 05).
+- Tests MUST NOT call real model providers. Cassettes are recorded only by `pnpm test:record` with the developer's own keys and committed with secrets masked \[C\]. `pnpm test:record` is not built yet; until it is, provider and gateway tests answer through hand-written fetch fakes and agent flows through scripted `provider.chat@2` adapters, and MSW stays the planned replay tool (tab 05).
 - Coverage targets: 90% of lines in `domain/` folders, 75% per package overall \[D\].
 
 ## Performance budgets

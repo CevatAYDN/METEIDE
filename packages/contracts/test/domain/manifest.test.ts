@@ -8,7 +8,7 @@ const gateway = {
 	class: "essential",
 	trust: "core",
 	provides: ["llm.chat@1", "llm.embed@1", "llm.rerank@1"],
-	requires: ["quota.reserve@1", "secrets.mask@1", "provider.chat@1"],
+	requires: ["quota.reserve@2", "secrets.mask@1", "provider.chat@2"],
 	optional: ["provider.embed@1"],
 	activation: [
 		"onStartup",

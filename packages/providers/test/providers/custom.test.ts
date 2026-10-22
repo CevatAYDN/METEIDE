@@ -62,7 +62,7 @@ const setup = (
 };
 
 const adapters = (s: ReturnType<typeof setup>) => {
-	const r = s.registry.resolve<ProviderAdapter>("provider.chat@1");
+	const r = s.registry.resolve<ProviderAdapter>("provider.chat@2");
 	return r.ok ? r.value.map((a) => a.id) : [];
 };
 
@@ -117,7 +117,7 @@ describe("custom endpoints", () => {
 			},
 		);
 		await s.module.activate(s.ctx);
-		const r = s.registry.resolve<ProviderAdapter>("provider.chat@1");
+		const r = s.registry.resolve<ProviderAdapter>("provider.chat@2");
 		const adapter = r.ok ? r.value[0]?.impl : undefined;
 		const models = await adapter?.listModels(new AbortController().signal);
 		expect(s.seen[0]?.url).toBe("https://claude.test/v1/models?limit=1000");
@@ -144,7 +144,7 @@ describe("custom endpoints", () => {
 			ok: true,
 			value: undefined,
 		});
-		expect(s.registry.has("provider.chat@1")).toBe(false);
+		expect(s.registry.has("provider.chat@2")).toBe(false);
 	});
 
 	it("fails on a slug used twice, naming the file", async () => {
@@ -174,7 +174,7 @@ describe("custom endpoints", () => {
 			},
 		);
 		await s.module.activate(s.ctx);
-		const r = s.registry.resolve<ProviderAdapter>("provider.chat@1");
+		const r = s.registry.resolve<ProviderAdapter>("provider.chat@2");
 		const adapter = r.ok ? r.value[0]?.impl : undefined;
 		if (!adapter) throw new Error("no adapter");
 		const models = await adapter.listModels(new AbortController().signal);

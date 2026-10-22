@@ -116,7 +116,7 @@ const setup = async (workspace: Sections = {}) => {
 		define: (s: readonly QuotaUnitSpec[]) => void defined.push([...s]),
 	};
 	const core = { trust: "core", features: [] } as const;
-	const quotaHandle = registry.provide("quota.reserve@1", {
+	const quotaHandle = registry.provide("quota.reserve@2", {
 		id: "quota",
 		...core,
 		impl: quota,
@@ -127,7 +127,7 @@ const setup = async (workspace: Sections = {}) => {
 	registry.provide("secrets.mask@1", { id: "security", ...core, impl: mask });
 	const a = fakeProvider("a", [[text("hi"), done]]);
 	const provider = { ...a.adapter, listModels: async () => ok([model("a")]) };
-	registry.provide("provider.chat@1", {
+	registry.provide("provider.chat@2", {
 		id: "a",
 		trust: "first-party",
 		features: [],
@@ -171,7 +171,7 @@ describe("gateway module", () => {
 
 	it("excludes training providers by default and admits them when the user allows it", async () => {
 		const deny = await setup();
-		deny.registry.provide("provider.chat@1", {
+		deny.registry.provide("provider.chat@2", {
 			id: "t",
 			trust: "first-party",
 			features: [],
@@ -189,7 +189,7 @@ describe("gateway module", () => {
 		const allow = await setup({
 			privacy: { file: "privacy.yaml", value: { allowTraining: true } },
 		});
-		allow.registry.provide("provider.chat@1", {
+		allow.registry.provide("provider.chat@2", {
 			id: "t",
 			trust: "first-party",
 			features: [],
@@ -211,7 +211,7 @@ describe("gateway module", () => {
 				value: { id: RUN, sensitivity: "sensitive" },
 			},
 		});
-		s.registry.provide("provider.chat@1", {
+		s.registry.provide("provider.chat@2", {
 			id: "t",
 			trust: "first-party",
 			features: [],
@@ -262,7 +262,7 @@ describe("gateway module", () => {
 		s.quotaHandle.dispose();
 		const again: QuotaUnitSpec[][] = [];
 		const q = fakeQuota();
-		s.registry.provide("quota.reserve@1", {
+		s.registry.provide("quota.reserve@2", {
 			id: "quota",
 			trust: "core",
 			features: [],
@@ -280,7 +280,7 @@ describe("gateway module", () => {
 
 	it("lists usable models while active and none once deactivated", async () => {
 		const s = await setup();
-		s.registry.provide("provider.chat@1", {
+		s.registry.provide("provider.chat@2", {
 			id: "t",
 			trust: "first-party",
 			features: [],

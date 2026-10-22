@@ -45,7 +45,7 @@ const MANIFEST: ModuleManifest = {
 	displayName: "Custom endpoints",
 	class: "optional",
 	trust: "first-party",
-	provides: ["provider.chat@1", "provider.embed@1"],
+	provides: ["provider.chat@2", "provider.embed@1"],
 	requires: [],
 	optional: [],
 	activation: ["onStartup"],

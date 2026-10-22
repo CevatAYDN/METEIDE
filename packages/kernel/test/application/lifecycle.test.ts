@@ -278,7 +278,7 @@ describe("createLifecycle", () => {
 
 	it("keeps a module resolving until its requires resolve, then activates it", async () => {
 		const { life, log } = await setup();
-		const quota = manifest("quota", ["quota.reserve@1"], ["storage.sql@1"]);
+		const quota = manifest("quota", ["quota.reserve@2"], ["storage.sql@1"]);
 		await life.register(fakeModule(quota).mod);
 		expect(life.state("quota")).toBe("resolving");
 		await life.register(fakeModule(manifest("storage", ["storage.sql@1"])).mod);
@@ -292,10 +292,10 @@ describe("createLifecycle", () => {
 	it("activates a chain registered in reverse order", async () => {
 		const { life } = await setup();
 		await life.register(
-			fakeModule(manifest("gateway", ["llm.chat@1"], ["quota.reserve@1"])).mod,
+			fakeModule(manifest("gateway", ["llm.chat@1"], ["quota.reserve@2"])).mod,
 		);
 		await life.register(
-			fakeModule(manifest("quota", ["quota.reserve@1"], ["storage.sql@1"])).mod,
+			fakeModule(manifest("quota", ["quota.reserve@2"], ["storage.sql@1"])).mod,
 		);
 		expect(life.state("gateway")).toBe("resolving");
 		await life.register(fakeModule(manifest("storage", ["storage.sql@1"])).mod);
@@ -305,10 +305,10 @@ describe("createLifecycle", () => {
 	it("moves a module whose activate fails to inactive with the code as reason", async () => {
 		const { life, registry, log } = await setup();
 		await life.register(
-			fakeModule(manifest("provider-x", ["provider.chat@1"]), true).mod,
+			fakeModule(manifest("provider-x", ["provider.chat@2"]), true).mod,
 		);
 		expect(life.state("provider-x")).toBe("inactive");
-		expect(registry.has("provider.chat@1")).toBe(false);
+		expect(registry.has("provider.chat@2")).toBe(false);
 		expect(log()).toEqual([
 			'module.deactivated {"moduleId":"provider-x","reason":"activation_failed"}',
 		]);
@@ -331,7 +331,7 @@ describe("createLifecycle", () => {
 		const { life, log } = await setup();
 		const storage = fakeModule(manifest("storage", ["storage.sql@1"]));
 		const quota = fakeModule(
-			manifest("quota", ["quota.reserve@1"], ["storage.sql@1"]),
+			manifest("quota", ["quota.reserve@2"], ["storage.sql@1"]),
 		);
 		const late = fakeModule(manifest("late", [], [], ["onWorkspaceOpen"]));
 		await life.register(quota.mod);

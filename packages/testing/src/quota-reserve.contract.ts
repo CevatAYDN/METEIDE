@@ -5,7 +5,7 @@ import type {
 } from "@mete/contracts";
 import { afterEach, describe, expect, it } from "vitest";
 
-// Contract kit for quota.reserve@1 (docs/09, Quota pool).
+// Contract kit for quota.reserve@2 (docs/09, Quota pool).
 
 /** The fixed time every kit adapter's clock MUST return. */
 export const QUOTA_KIT_NOW = Date.parse("2026-10-21T12:00:00Z");
@@ -35,9 +35,9 @@ const ask = (...providers: string[]): QuotaRequest => ({
 
 const signal = () => new AbortController().signal;
 
-/** Every quota.reserve@1 adapter MUST pass these tests. */
+/** Every quota.reserve@2 adapter MUST pass these tests. */
 export const quotaReserveContract = (name: string, open: QuotaReserveHarness) =>
-	describe(`quota.reserve@1 contract: ${name}`, () => {
+	describe(`quota.reserve@2 contract: ${name}`, () => {
 		let close: (() => Promise<void>) | undefined;
 		afterEach(async () => {
 			await close?.();

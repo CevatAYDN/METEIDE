@@ -63,7 +63,7 @@ const definition = () => {
 		providerId: "p",
 		moduleId: "provider-p",
 		displayName: "P",
-		provides: ["provider.chat@1", "provider.embed@1"],
+		provides: ["provider.chat@2", "provider.embed@1"],
 		build: (env) => {
 			built.push(env);
 			return { id: "p" } as unknown as ProviderAdapter;
@@ -111,11 +111,11 @@ describe("provider module", () => {
 			b: row({ family: "user" }),
 			c: row(),
 		});
-		const chat = registry.resolve("provider.chat@1");
+		const chat = registry.resolve("provider.chat@2");
 		expect(chat.ok && chat.value.map((a) => a.id)).toEqual(["p"]);
 		expect(registry.has("provider.embed@1")).toBe(true);
 		await m.deactivate();
-		expect(registry.has("provider.chat@1")).toBe(false);
+		expect(registry.has("provider.chat@2")).toBe(false);
 	});
 
 	it("names the file of an invalid user row", async () => {

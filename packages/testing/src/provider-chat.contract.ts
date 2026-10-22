@@ -7,7 +7,7 @@ import {
 } from "@mete/contracts";
 import { afterEach, describe, expect, it } from "vitest";
 
-// Contract kit for provider.chat@1 (docs/06 provider types, docs/09 Provider adapter).
+// Contract kit for provider.chat@2 (docs/06 provider types, docs/09 Provider adapter).
 
 /** What the fake endpoint behind the adapter does: answer with text, or a 429. */
 export type ProviderScenario = "ok" | "rate-limited";
@@ -31,9 +31,9 @@ const collect = async (chunks: AsyncIterable<ChatChunk>) => {
 
 const terminal = (c: ChatChunk) => c.type === "finish" || c.type === "error";
 
-/** Every provider.chat@1 adapter MUST pass these tests. */
+/** Every provider.chat@2 adapter MUST pass these tests. */
 export const providerChatContract = (name: string, open: ProviderChatHarness) =>
-	describe(`provider.chat@1 contract: ${name}`, () => {
+	describe(`provider.chat@2 contract: ${name}`, () => {
 		let close: (() => Promise<void>) | undefined;
 		afterEach(async () => {
 			await close?.();

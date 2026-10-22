@@ -20,7 +20,8 @@ interface ProviderAdapter {
 }
 
 interface ModelInfo { id: string; providerId: string; family: string; contextWindow: number;
-  toolCalling: boolean | "unknown"; vision: boolean | "unknown"; free: boolean; deprecated: boolean }
+  toolCalling: boolean | "unknown"; vision: boolean | "unknown"; free: boolean; deprecated: boolean;
+  price?: { input: number; output: number } }   // provider.chat@2: US dollars per million tokens, paid models only
 ```
 
 Custom endpoints are created from a form: name, base URL, API key, extra headers, format. On save METE calls `GET <base>/models` and fills `ModelInfo` from the returned metadata. Unknown capabilities stay `"unknown"`; the "Test" button sends one probe call per selected model, only when the user presses it \[D\].
@@ -125,7 +126,8 @@ With probability 0.05 the router tries an untested candidate instead of the best
 ## Quota pool
 
 ```ts
-type QuotaUnit = "requests_per_minute" | "requests_per_day" | "tokens_per_minute" | "credits_per_month" | "gpu_seconds_per_day";
+type QuotaUnit = "requests_per_minute" | "requests_per_day" | "tokens_per_minute" | "credits_per_month" | "gpu_seconds_per_day"
+  | "usd_per_day";   // quota.reserve@2 (ADR-042): METE's own daily spending cap
 interface QuotaUnitSpec { providerId: string; unit: QuotaUnit; limit: number | "discover";
   scope: "account" | "model"; reset: "sliding" | "fixed_daily" | "fixed_monthly" }
 ```
@@ -146,7 +148,7 @@ Provider adapters ship these starting values, checked on 2026-10-21. They are ed
 | Firecrawl | credits\_per\_month | 1,000 | About 500 searches |
 | Exa MCP without key | requests\_per\_minute | discover | Learned from errors |
 
-`quota.reserve@1` (types in tab 06) is the pool's only entry point; the gateway calls it around every provider call \[D\]:
+`quota.reserve@2` (types in tab 06) is the pool's only entry point; the gateway calls it around every provider call \[D\]:
 
 - `define(specs)`: the gateway passes a provider adapter's `quotaUnits()` when it first resolves that provider; a later call for the same provider replaces its specs.
 - `reserve(req, signal)`: walks `req.chain` in order and reserves the first entry whose provider has capacity in every unit (Scheduler, step 2). The estimate is 1 request plus the caller's amounts for the other units; a unit without an amount only needs to be open. A unit has capacity when its usage, plus unsettled reservations, plus the amount fits its limit. An entry whose amount for some unit is above that unit's limit can never fit and is skipped. An empty chain, an entry whose provider was never defined, or a chain where every entry was skipped is a programmer error and throws. When no entry has capacity and a reset comes within 90 seconds the call waits; otherwise, or once it has waited 90 seconds, it returns `quota_exhausted` with `resumesAt` set to the earliest reset. An aborted signal returns `aborted`.

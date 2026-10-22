@@ -54,7 +54,7 @@ export type AppOptions = {
 	readonly globalDir: string;
 	readonly logger: Logger;
 	readonly secrets?: SecretStore;
-	/** Modules that provide provider.chat@1; the four built-in ones by default. */
+	/** Modules that provide provider.chat@2; the four built-in ones by default. */
 	readonly providers?: readonly MeteModule[];
 	/** Only the process that drives runs recovers them (docs/07); default true. */
 	readonly recover?: boolean;

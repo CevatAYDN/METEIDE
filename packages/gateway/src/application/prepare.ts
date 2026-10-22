@@ -15,7 +15,7 @@ import type { Discovered } from "../domain/resolve.js";
 export type Offered = Discovered & { readonly adapter: ProviderAdapter };
 
 export type DiscoveryDeps = {
-	/** The provider.chat@1 adapters registered now. */
+	/** The provider.chat@2 adapters registered now. */
 	readonly providers: () => readonly ProviderAdapter[];
 	readonly define: (specs: readonly QuotaUnitSpec[]) => void;
 	readonly warn: (msg: string) => void;

@@ -111,12 +111,12 @@ describe("OpenCode Zen", () => {
 		});
 	});
 
-	it("is the provider-opencode-zen module serving provider.chat@1", () => {
+	it("is the provider-opencode-zen module serving provider.chat@2", () => {
 		expect(OPENCODE_ZEN.moduleId).toBe("provider-opencode-zen");
-		expect(OPENCODE_ZEN.provides).toEqual(["provider.chat@1"]);
+		expect(OPENCODE_ZEN.provides).toEqual(["provider.chat@2"]);
 		expect(createOpenCodeZenModule().manifest).toMatchObject({
 			id: "provider-opencode-zen",
-			provides: ["provider.chat@1"],
+			provides: ["provider.chat@2"],
 			permissions: ["net", "secrets"],
 		});
 	});

@@ -1,6 +1,7 @@
 // MeteModule entry (docs/06-kernel-and-modules.md). Modules in this package: gateway.
 import { setTimeout as delay } from "node:timers/promises";
 import {
+	type CapabilityRef,
 	err,
 	type LlmChatAdapter,
 	type ModelRef,
@@ -43,9 +44,9 @@ const MANIFEST: ModuleManifest = {
 	provides: ["llm.chat@1"],
 	requires: [
 		"storage.sql@1",
-		"quota.reserve@1",
+		"quota.reserve@2",
 		"secrets.mask@1",
-		"provider.chat@1",
+		"provider.chat@2",
 	],
 	optional: ["provider.embed@1", "provider.rerank@1"],
 	activation: ["onStartup"],
@@ -73,7 +74,7 @@ const failed = (message: string): ModuleError => ({
 const realSleep = (ms: number, signal: AbortSignal) =>
 	delay(ms, undefined, { signal }).catch(() => undefined);
 
-const first = <C>(registry: CapabilityRegistry, ref: `${string}@1`): C => {
+const first = <C>(registry: CapabilityRegistry, ref: CapabilityRef): C => {
 	const r = registry.resolve<C>(ref);
 	if (!r.ok) throw new Error(`${ref} is required but not provided`);
 	return r.value[0].impl;
@@ -100,13 +101,13 @@ const discovery = (ctx: ModuleContext) => {
 		  }
 		| undefined;
 	const providers = () => {
-		const r = ctx.capabilities.resolve<ProviderAdapter>("provider.chat@1");
+		const r = ctx.capabilities.resolve<ProviderAdapter>("provider.chat@2");
 		return r.ok ? r.value.map((a) => a.impl) : [];
 	};
 	return (signal: AbortSignal) => {
 		const quota = first<QuotaReserveAdapter>(
 			ctx.capabilities,
-			"quota.reserve@1",
+			"quota.reserve@2",
 		);
 		if (kept?.quota !== quota) {
 			const warn = (msg: string) => ctx.logger.warn({}, msg);
@@ -136,7 +137,7 @@ const buildChat = (
 	write: (c: ModelCall) => void,
 ): LlmChatAdapter => {
 	const quota = () =>
-		first<QuotaReserveAdapter>(ctx.capabilities, "quota.reserve@1");
+		first<QuotaReserveAdapter>(ctx.capabilities, "quota.reserve@2");
 	return createLlmChat({
 		discover: live.discover,
 		quota: {

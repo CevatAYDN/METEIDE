@@ -46,7 +46,7 @@ export const OPENCODE_ZEN: ProviderDefinition = {
 	providerId: ID,
 	moduleId: "provider-opencode-zen",
 	displayName: "OpenCode Zen",
-	provides: ["provider.chat@1"],
+	provides: ["provider.chat@2"],
 	build,
 };
 

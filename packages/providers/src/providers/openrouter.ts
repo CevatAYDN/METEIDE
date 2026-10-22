@@ -87,7 +87,7 @@ export const OPENROUTER: ProviderDefinition = {
 	providerId: ID,
 	moduleId: "provider-openrouter",
 	displayName: "OpenRouter",
-	provides: ["provider.chat@1"],
+	provides: ["provider.chat@2"],
 	build,
 };
 

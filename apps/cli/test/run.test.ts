@@ -129,7 +129,7 @@ describe("mete run", () => {
 		expect(t.err).toEqual(
 			expect.arrayContaining([
 				"core-engine is not active.",
-				"gateway waits for provider.chat@1",
+				"gateway waits for provider.chat@2",
 				"core-engine waits for llm.chat@1",
 			]),
 		);

@@ -3,7 +3,7 @@ import { IdSchema, TimestampSchema } from "./ids.js";
 import type { Result } from "./result.js";
 import { QuotaUnitSchema } from "./states.js";
 
-// quota.reserve@1 from docs/06 (Kernel API) and docs/09 (Quota pool, Scheduler).
+// quota.reserve@2 from docs/06 (Kernel API) and docs/09 (Quota pool, Scheduler).
 
 const text = z.string().min(1);
 
@@ -51,7 +51,7 @@ export const QuotaRequestSchema = z.strictObject({
 	estimate: QuotaAmountsSchema,
 });
 
-/** What a caller asks quota.reserve@1. */
+/** What a caller asks quota.reserve@2. */
 export type QuotaRequest = z.infer<typeof QuotaRequestSchema>;
 
 /** The `quota` configuration (docs/09, effective limit); one entry per provider unit. */
@@ -104,7 +104,7 @@ export type UnknownReservation = {
 	readonly id: string;
 };
 
-/** The quota.reserve@1 adapter; the gateway settles every reservation it gets. */
+/** The quota.reserve@2 adapter; the gateway settles every reservation it gets. */
 export interface QuotaReserveAdapter {
 	define(specs: readonly QuotaUnitSpec[]): void;
 	reserve(

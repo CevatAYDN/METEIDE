@@ -12,7 +12,7 @@ import { NVIDIA } from "../src/providers/nvidia.js";
 import { OPENCODE_ZEN } from "../src/providers/opencode-zen.js";
 import { OPENROUTER } from "../src/providers/openrouter.js";
 
-// Runs the provider.chat@1 kit against every adapter, each behind a fake endpoint in
+// Runs the provider.chat@2 kit against every adapter, each behind a fake endpoint in
 // its own wire format; no test reaches a real provider.
 
 const NOW = Date.parse("2026-10-21T12:00:00Z");
@@ -185,7 +185,7 @@ const custom = (format: string, stream: () => Response) =>
 			now: () => NOW,
 		});
 		await module.activate(ctx);
-		const r = registry.resolve<ProviderAdapter>("provider.chat@1");
+		const r = registry.resolve<ProviderAdapter>("provider.chat@2");
 		if (!r.ok || !r.value[0]) throw new Error("no custom adapter");
 		return {
 			adapter: r.value[0].impl,

@@ -80,9 +80,10 @@ export type AuditFailed = { code: "audit_failed"; message: string };            
 export interface PolicyCheckAdapter { check(input: PolicyCheckInput): Result<PolicyVerdict, AuditFailed> }
 export interface SecretsMaskAdapter { mask(text: string): Promise<{ text: string; masked: number }> }   // tab 09 replacement format
 
-// provider.chat@1, provider.embed@1 and provider.rerank@1, defined in @mete/contracts; ProviderAdapter and ModelInfo
+// provider.chat@2, provider.embed@1 and provider.rerank@1, defined in @mete/contracts; ProviderAdapter and ModelInfo
 // are in tab 09. Each provider module provides one adapter object under every ref it supports.
-// From Phase 2, provider.chat@2 adds an optional ModelInfo.price (US dollars per million input and output tokens) for paid models (ADR-042).
+// provider.chat@2 (ADR-042) adds the optional ModelInfo.price = { input, output }, US dollars per million tokens, for paid
+// models; quota.reserve@2 adds the unit usd_per_day.
 export type ContentPart = { type: "text"; text: string } | { type: "image"; mediaType: string; data: string };   // base64 image
 export type ToolCall = { id: string; name: string; args: unknown };
 export type ChatMessage =
@@ -181,7 +182,7 @@ export type VcsGitOutput =
 export type VcsError = ToolError | { code: "nothing_to_commit"; message: string };
 export interface VcsGitAdapter { run(input: VcsGitInput, ctx: ToolContext): Promise<Result<VcsGitOutput, VcsError>> }
 
-// quota.reserve@1, defined in @mete/contracts; QuotaUnit and QuotaUnitSpec are in tab 09, pool rules in tab 09 (Quota pool).
+// quota.reserve@2, defined in @mete/contracts; QuotaUnit and QuotaUnitSpec are in tab 09, pool rules in tab 09 (Quota pool).
 export type QuotaAmounts = Partial<Record<QuotaUnit, number>>;
 export type QuotaObservation = { unit: QuotaUnit; limit?: number; remaining?: number; resetsAt?: string; exhausted: boolean };
                                  // a provider's observe() reads response headers and 429s into these
@@ -272,12 +273,12 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | --- | --- | --- | --- | --- | --- | --- |
 | storage | `@mete/storage` | essential | `storage.sql@1` | none | none | in-process |
 | security | `@mete/security` | essential | `policy.check@1`, `secrets.mask@1` | `storage.sql@1` | none | in-process |
-| quota | `@mete/quota` | essential | `quota.reserve@1` | `storage.sql@1` | none | in-process |
-| gateway | `@mete/gateway` | essential | `llm.chat@1` (routed), `llm.embed@1` (routed), `llm.rerank@1` (routed) | `storage.sql@1`, `quota.reserve@1`, `secrets.mask@1`, at least one `provider.chat@1` | `provider.embed@1`, `provider.rerank@1` | in-process |
-| provider-nvidia | `@mete/providers` | optional | `provider.chat@1`, `provider.embed@1`, `provider.rerank@1` | none | none | in-process |
-| provider-openrouter | `@mete/providers` | optional | `provider.chat@1` | none | none | in-process |
-| provider-opencode-zen | `@mete/providers` | optional | `provider.chat@1` | none | none | in-process |
-| provider-custom | `@mete/providers` | optional | `provider.chat@1`, `provider.embed@1` when the format supports it | none | none | in-process |
+| quota | `@mete/quota` | essential | `quota.reserve@2` | `storage.sql@1` | none | in-process |
+| gateway | `@mete/gateway` | essential | `llm.chat@1` (routed), `llm.embed@1` (routed), `llm.rerank@1` (routed) | `storage.sql@1`, `quota.reserve@2`, `secrets.mask@1`, at least one `provider.chat@2` | `provider.embed@1`, `provider.rerank@1` | in-process |
+| provider-nvidia | `@mete/providers` | optional | `provider.chat@2`, `provider.embed@1`, `provider.rerank@1` | none | none | in-process |
+| provider-openrouter | `@mete/providers` | optional | `provider.chat@2` | none | none | in-process |
+| provider-opencode-zen | `@mete/providers` | optional | `provider.chat@2` | none | none | in-process |
+| provider-custom | `@mete/providers` | optional | `provider.chat@2`, `provider.embed@1` when the format supports it | none | none | in-process |
 | tools-fs | `@mete/tools` | essential | `fs.read@1`, `fs.write@1`, `fs.edit@1`, `fs.list@1`, `fs.glob@1`, `fs.grep@1` | `policy.check@1` | none | in-process |
 | tools-shell | `@mete/tools` | essential | `shell.exec@1` | `policy.check@1` | none | in-process |
 | tools-web | `@mete/tools` | optional | `web.fetch@1`, `web.search@1` (HTTP adapters) | `policy.check@1` | `mcp.tools@1` | in-process |
@@ -296,7 +297,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 
 Until the knowledge layer, the gateway provides only `llm.chat@1`: no provider adapter lists its embedding or rerank models (`listModels` returns chat models), so `llm.embed@1`, `llm.rerank@1` and their gateway endpoints come with the knowledge layer, and their chains are empty until then \[D\].
 
-The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools-shell, core-engine, plus at least one active `provider.chat@1` adapter. The UI MUST NOT allow uninstalling essential modules; it MAY show them as "built in".
+The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools-shell, core-engine, plus at least one active `provider.chat@2` adapter. The UI MUST NOT allow uninstalling essential modules; it MAY show them as "built in".
 
 ## Capability catalog
 
@@ -305,7 +306,7 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 | `storage.sql@1` | The workspace and global SQLite databases, with per-module migrations | Native (storage module) | Never empty (essential) |
 | `policy.check@1` | Allow, ask or deny a side-effect action, and write its audit row | Native (security module) | Never empty (essential) |
 | `secrets.mask@1` | Replace secrets in outbound text | Native (security module, secretlint) | Never empty (essential) |
-| `quota.reserve@1` | Reserve and settle provider quota for a model call | Native (quota module) | Never empty (essential) |
+| `quota.reserve@2` | Reserve and settle provider quota for a model call | Native (quota module) | Never empty (essential) |
 | `llm.chat@1` | Chat with tools and streaming | Gateway → tier chain of discovered models the model mode allows (free by default, ADR-042) | Run pauses with reason `quota` or `no_model` |
 | `llm.embed@1` | Embeddings | NVIDIA embedding model | Vector search off; hybrid search continues |
 | `llm.rerank@1` | Reranking | NVIDIA rerank model | Rerank skipped |
