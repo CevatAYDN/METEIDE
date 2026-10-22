@@ -13,7 +13,7 @@ The native team engine executes YAML team templates as XState machines; models o
 
 ## Single agent
 
-Phase 1 runs every request as a single agent; the router and team templates come with the team engine (Phase 2). Rules \[D\]:
+A request without a template runs as a single agent; a template id starts a team run, and the router that picks a template by itself comes later. Rules \[D\]:
 
 - The agent has role `assistant` and calls `llm.chat@1` with tier `coder`, needs `tool_calling` and the run's priority (default 1).
 - The conversation starts with a system message (the role, the operating system and the shell name) and the goal as the user message.
