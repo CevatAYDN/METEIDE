@@ -38,3 +38,9 @@ export const TAVILY_SEARCH_URL = "https://api.tavily.com/search";
 
 /** Tab 10, Built-in tools: the most results Tavily returns for one search. */
 export const TAVILY_MAX_RESULTS = 20;
+
+/** Tab 10, Built-in tools: how long one browser.screenshot@1 or seo.audit@1 call may take. */
+export const BROWSER_TIMEOUT_MS = 120_000;
+
+/** Tab 10, Built-in tools: characters of the browser runner's stderr kept for its error messages. */
+export const RUNNER_STDERR_CHARS = 2000;

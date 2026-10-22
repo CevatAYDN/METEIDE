@@ -1,4 +1,5 @@
 // Public API of this package: types, contracts and the module (CONTRIBUTING.md).
+export { type BrowserOptions, createBrowserModule } from "./browser-module.js";
 export {
 	createToolsFsModule,
 	createToolsShellModule,

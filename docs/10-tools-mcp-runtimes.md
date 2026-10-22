@@ -20,6 +20,8 @@ Built-in tools cover files, shell, web and git; everything else arrives through 
 | `browser.screenshot@1` | url (http or https), fullPage (default false) | path of the image in `.mete/assets/`, width, height | Playwright Chromium, downloaded on first use; `policy.check@1` with `net.fetch`, public addresses only like `web.fetch@1` [D] |
 | `seo.audit@1` | url (http or https) | scores (performance, accessibility, bestPractices, seo, each 0-100), audits (id, title, score 0-100 or null when Lighthouse does not score it, details?), reportPath of the full report in `.mete/assets/` | Lighthouse on Playwright Chromium; a category Lighthouse leaves unscored fails the call with `io` naming it, never a 0; the result is external content [D] |
 
+The browser module runs each `browser.screenshot@1` and `seo.audit@1` call in a child process of its own, so a Chromium or Lighthouse crash never reaches the main process; a call that takes longer than 120 seconds is killed, and every failure returns `io` with the last 2000 characters of the child's stderr. A screenshot's page may request public addresses only; an audit checks the page's own address, and Lighthouse loads the page's resources itself. Lighthouse runs through its programmatic API, which never starts its error reporting \[D\].
+
 On Windows, file operations retry on lock errors (`EBUSY`, `EPERM`, `EACCES`) 3 times after 100, 300 and 1,000 ms \[D\]. The shell tool tells the model the operating system and shell name in every call \[C\].
 
 Rules shared by the file and shell tools (types in tab 06) \[D\]:
