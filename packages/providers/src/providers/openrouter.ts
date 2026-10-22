@@ -1,4 +1,5 @@
 import {
+	type ChatChunk,
 	ok,
 	type Privacy,
 	type ProviderAdapter,
@@ -25,8 +26,24 @@ import { listOpenRouterModels } from "../infrastructure/openrouter-models.js";
 
 const ID = "openrouter";
 
-// shortcut: data_collection is always "deny"; read the user's opt-in once Settings has one (docs/09 Privacy).
+// docs/09, Privacy: requests carry data_collection "deny" unless the user opted in.
 const ROUTING = { provider: { data_collection: "deny" } };
+
+// OpenRouter answers 404 "No endpoints found matching your data policy" when that routing leaves a model
+// no endpoint to serve it. It is the account's settings refusing the model, not a bad request, so it
+// counts as unauthorized: the gateway then leaves the model out instead of paying a request for it on
+// every call (docs/09, Retries in detail).
+const DATA_POLICY = /data policy/i;
+const policyRefusal = async function* (
+	chunks: AsyncIterable<ChatChunk>,
+): AsyncIterable<ChatChunk> {
+	for await (const c of chunks)
+		yield c.type === "error" &&
+		c.error.status === 404 &&
+		DATA_POLICY.test(c.error.message)
+			? { type: "error", error: { ...c.error, code: "unauthorized" } }
+			: c;
+};
 const PRIVACY: Privacy = { trains: false, logs: "unknown", publishes: false };
 
 // Only OpenRouter's own limits carry X-RateLimit-*; an upstream provider's 429 closes nothing.
@@ -57,7 +74,7 @@ const build = (env: ProviderEnv): ProviderAdapter => {
 		name: ID,
 		baseURL: OPENROUTER_BASE_URL,
 		apiKey: env.apiKey,
-		extraBody: ROUTING,
+		...(env.allowTraining ? {} : { extraBody: ROUTING }),
 		...fetch,
 	});
 	return {
@@ -75,7 +92,7 @@ const build = (env: ProviderEnv): ProviderAdapter => {
 				Object.hasOwn(env.models, id) ? env.models[id] : undefined;
 			return ok(listed.value.map((m) => withRow(m, row(m.id))));
 		},
-		chat,
+		chat: (req, signal) => policyRefusal(chat(req, signal)),
 		quotaUnits: () => [...OPENROUTER_QUOTA],
 		observe: (status, headers) => observe(status, headers, env.now()),
 		privacy: () => PRIVACY,

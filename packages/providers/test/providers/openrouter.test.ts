@@ -143,6 +143,53 @@ describe("OpenRouter", () => {
 		expect(sent[0]?.provider).toEqual({ data_collection: "deny" });
 	});
 
+	it("sends no routing preference when the user opted in to training", async () => {
+		const sent: Record<string, unknown>[] = [];
+		const a = OPENROUTER.build({
+			apiKey: "k",
+			models: {},
+			allowTraining: true,
+			fetch: routerFetch(sent, []),
+			now: () => NOW,
+		});
+		for await (const _ of a.chat(
+			{ model: "m", messages: [{ role: "user", content: "hi" }] },
+			new AbortController().signal,
+		));
+		expect(sent[0]).toBeDefined();
+		expect(sent[0]).not.toHaveProperty("provider");
+	});
+
+	it("reads OpenRouter's data-policy 404 as a refusal of the account's settings, any other 404 as a bad request", async () => {
+		const refusing = (message: string) =>
+			OPENROUTER.build({
+				apiKey: "k",
+				models: {},
+				fetch: async () =>
+					Response.json({ error: { message, code: 404 } }, { status: 404 }),
+				now: () => NOW,
+			});
+		const codeOf = async (message: string) => {
+			const chunks = [];
+			for await (const c of refusing(message).chat(
+				{ model: "m", messages: [{ role: "user", content: "hi" }] },
+				new AbortController().signal,
+			))
+				chunks.push(c);
+			const last = chunks.at(-1);
+			return last?.type === "error" ? last.error : undefined;
+		};
+		expect(
+			await codeOf(
+				"No endpoints found matching your data policy (Free model training). Configure: https://openrouter.ai/settings/privacy",
+			),
+		).toMatchObject({ code: "unauthorized", status: 404 });
+		expect(await codeOf("No such model")).toMatchObject({
+			code: "bad_request",
+			status: 404,
+		});
+	});
+
 	it("closes a unit only for OpenRouter's own 429, picking the unit by its limit", () => {
 		const a = adapter();
 		const platform = (limit: string, retry?: string) =>

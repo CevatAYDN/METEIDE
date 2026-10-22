@@ -35,7 +35,14 @@ const secrets = (saved: Record<string, string>): SecretStore => ({
 	delete: async () => ok(false),
 });
 
-const context = (opts: { secrets?: SecretStore; models?: unknown } = {}) => {
+const context = (
+	opts: {
+		secrets?: SecretStore;
+		models?: unknown;
+		privacy?: unknown;
+		workspace?: unknown;
+	} = {},
+) => {
 	const registry = createCapabilityRegistry(() => []);
 	const log = () => {};
 	const ctx: ModuleContext = {
@@ -45,10 +52,22 @@ const context = (opts: { secrets?: SecretStore; models?: unknown } = {}) => {
 		}),
 		config: createConfigReader({
 			global: { file: "settings.yaml", sections: {} },
-			workspace:
-				opts.models === undefined
+			workspace: {
+				...(opts.models === undefined
 					? {}
-					: { models: { file: ".mete/models.yaml", value: opts.models } },
+					: { models: { file: ".mete/models.yaml", value: opts.models } }),
+				...(opts.privacy === undefined
+					? {}
+					: { privacy: { file: ".mete/privacy.yaml", value: opts.privacy } }),
+				...(opts.workspace === undefined
+					? {}
+					: {
+							workspace: {
+								file: ".mete/workspace.yaml",
+								value: opts.workspace,
+							},
+						}),
+			},
 		}),
 		logger: { error: log, warn: log, info: log, debug: log },
 		disposables: { add: () => {}, dispose: () => {} },
@@ -116,6 +135,30 @@ describe("provider module", () => {
 		expect(registry.has("provider.embed@1")).toBe(true);
 		await m.deactivate();
 		expect(registry.has("provider.chat@2")).toBe(false);
+	});
+
+	it("hands the privacy opt-in to the adapter, and never in a sensitive workspace", async () => {
+		const allowed = async (more: {
+			privacy?: unknown;
+			workspace?: unknown;
+		}) => {
+			const { def, built } = definition();
+			const m = createProviderModule(def, { shippedModels });
+			const ctx = context({
+				secrets: secrets({ [apiKeyName("p")]: "k" }),
+				...more,
+			}).ctx;
+			expect((await m.activate(ctx)).ok).toBe(true);
+			return built[0]?.allowTraining;
+		};
+		expect(await allowed({})).toBe(false);
+		expect(await allowed({ privacy: { allowTraining: true } })).toBe(true);
+		expect(
+			await allowed({
+				privacy: { allowTraining: true },
+				workspace: { sensitivity: "sensitive" },
+			}),
+		).toBe(false);
 	});
 
 	it("names the file of an invalid user row", async () => {

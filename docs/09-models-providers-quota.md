@@ -118,7 +118,7 @@ With probability 0.05 the router tries an untested candidate instead of the best
 ## Privacy
 
 - Models whose provider trains on or publishes prompts are excluded unless the user enables them in Settings, after a warning that explains the effect \[C\].
-- OpenRouter requests carry the provider-routing preference `data_collection: "deny"` unless the user opted in \[D\].
+- OpenRouter requests carry the provider-routing preference `data_collection: "deny"` unless the user opted in with `allowTraining` in a workspace that is not `sensitive`; the provider modules read that at activation \[D\]. When that routing leaves a model no endpoint, OpenRouter answers `404 No endpoints found matching your data policy`; the adapter reports it as `unauthorized`, so the gateway leaves the model out for the process like one that refused the key, instead of paying a request for it on every call \[D\].
 - A workspace marked `sensitive` uses only models with `trains: false` and `publishes: false`, and shows a banner that its content goes to cloud providers \[D\].
 - A `trains` or `publishes` value of `"unknown"` counts as true. The Settings switch is `allowTraining` in the `privacy:` section (default `false`); when true it admits models that train on, publish or have unknown facts about prompts, except in a `sensitive` workspace. Like any section, `privacy:` can also come from the workspace as `.mete/privacy.yaml`, which turns the switch on for that workspace only. The gateway reads `sensitivity` (`normal` by default) from `.mete/workspace.yaml` \[D\].
 - Secret masking runs secretlint rules on every outbound request and replaces matches with `[SECRET:<first 8 hex of sha256>]` \[C\].
