@@ -29,9 +29,11 @@ const setup = (
 		platform?: string;
 		on?: Record<string, string>;
 		nodeVersion?: string;
+		answer?: boolean;
 	} = {},
 ) => {
 	const fetched: string[] = [];
+	const questions: string[] = [];
 	const checks: unknown[] = [];
 	const policy: PolicyCheckAdapter = {
 		check: (input) => {
@@ -58,8 +60,16 @@ const setup = (
 			return new Response(bytes);
 		},
 		system,
+		...(opts.answer === undefined
+			? {}
+			: {
+					confirm: async (_who: string, question: string) => {
+						questions.push(question);
+						return opts.answer === true;
+					},
+				}),
 	});
-	return { ensure, fetched, checks };
+	return { ensure, fetched, checks, questions };
 };
 
 describe("runtime.ensure@1", () => {
@@ -105,6 +115,34 @@ describe("runtime.ensure@1", () => {
 			ok({ binDir: join(uv, "uv-x86_64-unknown-linux-gnu") }),
 		);
 		expect(denied.checks).toEqual([]);
+	});
+
+	it("asks the user once when the host can, downloads on yes, and refuses on no", async () => {
+		const zip = {
+			runtime: "binary",
+			url: "https://a.example/t.zip",
+			sha256,
+		} as const;
+		const no = setup({ verdict: "ask", answer: false });
+		const refused = await no.ensure.run(zip, ctx);
+		expect(refused.ok === false && refused.error).toMatchObject({
+			code: "denied",
+			rule: "kit:ask",
+			message: "the user declined to download https://a.example/t.zip",
+		});
+		expect(no.fetched).toEqual([]);
+		const yes = setup({ verdict: "ask", answer: true });
+		expect((await yes.ensure.run(zip, ctx)).ok).toBe(true);
+		expect(yes.questions).toEqual([
+			"METE needs to download https://a.example/t.zip to run an MCP server. Allow it?",
+		]);
+		expect(yes.fetched).toEqual(["https://a.example/t.zip"]);
+		// A deny is not a question; the runtime the yes installed is removed so it is not simply reused.
+		await rm(join(dir, "runtimes"), { recursive: true });
+		const deny = setup({ verdict: "deny", answer: true });
+		const denied = await deny.ensure.run(zip, ctx);
+		expect(denied.ok === false && denied.error.code).toBe("denied");
+		expect(deny.questions).toEqual([]);
 	});
 
 	it("extracts a binary archive once for parallel calls and saves a plain binary as one file", async () => {

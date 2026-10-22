@@ -153,6 +153,7 @@ const runtimeEnsure = (ctx: ModuleContext, opts: McpClientOptions) => {
 		policy: policyOf(ctx.capabilities),
 		fetch: opts.fetch ?? fetch,
 		system: opts.runtimeSystem ?? runtimeSystem,
+		...(opts.confirm ? { confirm: opts.confirm } : {}),
 	});
 	ctx.disposables.add(
 		ctx.capabilities.provide("runtime.ensure@1", {

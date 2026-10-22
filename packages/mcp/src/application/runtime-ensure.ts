@@ -22,6 +22,7 @@ import {
 } from "../defaults.js";
 import type { RuntimeSystem } from "../infrastructure/runtime-system.js";
 import { permit } from "./permit.js";
+import type { Confirm } from "./sampling.js";
 
 // runtime.ensure@1 (docs/10, Managed runtimes): a runtime is found on the machine or downloaded
 // on first need, hash-checked before it is opened, and renamed into place only when complete.
@@ -34,6 +35,8 @@ export type EnsureDeps = {
 	readonly policy: () => PolicyCheckAdapter | undefined;
 	readonly fetch: typeof fetch;
 	readonly system: RuntimeSystem;
+	/** Asks the user when policy says `ask`; absent when the host has no terminal or dialog, and then the `ask` stays an error. */
+	readonly confirm?: Confirm;
 };
 
 type Download = { readonly url: string; readonly sha256: string };
@@ -91,6 +94,29 @@ const unpack = async (
 	return ok(undefined);
 };
 
+// A policy `ask` becomes one question to the user when the host can put one (autonomy 1, or `always_ask`).
+const approved = async (
+	deps: EnsureDeps,
+	refused: ToolError,
+	url: string,
+	signal: AbortSignal,
+): Promise<Result<void, ToolError>> => {
+	if (refused.code !== "approval_required" || !deps.confirm)
+		return err(refused);
+	const yes = await deps.confirm(
+		"runtime.ensure@1",
+		`METE needs to download ${url} to run an MCP server. Allow it?`,
+		signal,
+	);
+	return yes
+		? ok(undefined)
+		: err({
+				...refused,
+				code: "denied",
+				message: `the user declined to download ${url}`,
+			});
+};
+
 // shortcut: one process at a time; two METE processes installing the same runtime race on the rename, upgrade with a lock file.
 const install = async (
 	deps: EnsureDeps,
@@ -107,7 +133,10 @@ const install = async (
 		args: {},
 	} as const;
 	const allowed = permit(deps.policy(), check, ctx);
-	if (!allowed.ok) return allowed;
+	if (!allowed.ok) {
+		const granted = await approved(deps, allowed.error, file.url, ctx.signal);
+		if (!granted.ok) return granted;
+	}
 	const signal = AbortSignal.any([
 		ctx.signal,
 		AbortSignal.timeout(RUNTIME_INSTALL_TIMEOUT_MS),

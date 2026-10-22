@@ -19,7 +19,7 @@ import { permit } from "./permit.js";
 // decides first; an `ask` becomes one question to the user per server and process; then the
 // question goes to llm.chat@1 on the budget and signal of the run whose tool call is in flight.
 
-/** Asks the user a yes or no question for a server; the host decides how (CLI terminal, desktop dialog). */
+/** Asks the user a yes or no question for a server (or for a capability, when METE itself asks); the host decides how (CLI terminal, desktop dialog). */
 export type Confirm = (
 	server: string,
 	question: string,
