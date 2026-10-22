@@ -553,6 +553,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 // A fake vcs.git@2 that records what it was asked and in which working folder.
 const fakeVcs = (
 	create: () => Result<unknown, { code: string; message: string }>,
+	merge: () => Result<unknown, { code: string; message: string }> = () =>
+		ok({ op: "merge", sha: "m" }),
 ) => {
 	const calls: {
 		input: { op: string; runId?: string; taskId?: string };
@@ -562,6 +564,9 @@ const fakeVcs = (
 		const i = input as { op: string };
 		calls.push({ input: i, ...(ctx.cwd ? { cwd: ctx.cwd } : {}) });
 		if (i.op === "worktree.create") return create();
+		if (i.op === "merge") return merge();
+		if (i.op === "worktree.remove")
+			return ok({ op: "worktree.remove", removed: true });
 		return ok({
 			op: "checkpoint.create",
 			ref: "refs/mete/checkpoints/r/1",
@@ -605,7 +610,19 @@ describe("worktrees of writing tasks", () => {
 		const checkpoints = vcs.calls.filter(
 			(c) => c.input.op === "checkpoint.create",
 		);
-		expect(checkpoints.map((c) => c.cwd)).toEqual(["/wt"]);
+		// The task's own checkpoint is taken in its worktree, the one before the merge in the workspace.
+		expect(checkpoints.map((c) => c.cwd)).toEqual(["/wt", undefined]);
+		expect(vcs.calls.map((c) => c.input.op)).toEqual([
+			"worktree.create",
+			"checkpoint.create",
+			"checkpoint.create",
+			"merge",
+			"worktree.remove",
+		]);
+		const merged = vcs.calls.find((c) => c.input.op === "merge");
+		expect(merged?.input).toMatchObject({ runId, message: "Build" });
+		expect(merged?.input.taskId).toBe(creates[0]?.input.taskId);
+		expect(merged).not.toHaveProperty("cwd");
 	});
 
 	it("starts none without vcs.git@2 or when git cannot make one, and logs why", async () => {
@@ -641,5 +658,84 @@ describe("worktrees of writing tasks", () => {
 		expect(h.logged.some((l) => l.msg.includes("worktree not created"))).toBe(
 			true,
 		);
+	});
+});
+
+describe("merging an approved task's worktree", () => {
+	const made = () =>
+		ok({ op: "worktree.create", path: "/wt", branch: "b", sha: "s" });
+
+	it("pauses the run for the human when the merge conflicts, keeps the worktree and merges again on approve", async () => {
+		await writeFile(join(templates.builtIn, "duo.yaml"), BUILDER);
+		let tries = 0;
+		const vcs = fakeVcs(made, () => {
+			tries += 1;
+			return tries === 1
+				? {
+						ok: false,
+						error: {
+							code: "merge_conflict",
+							message: "merging a.txt conflicts with the workspace",
+							paths: ["a.txt"],
+						},
+					}
+				: ok({ op: "merge", sha: "m" });
+		});
+		const h = engineHarness({
+			scripts: [WRITE, reply("built"), reply("the report")],
+			tools: [
+				["fs.write@1", async () => ok({ bytes: 2 })],
+				["vcs.git@2", vcs.run],
+			],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "paused");
+		expect(view(h, runId)?.pauseReason).toBe("approval");
+		const failed = h.events.find((e) => e.type === "task.merge.failed");
+		expect(failed?.payload).toEqual({
+			code: "merge_conflict",
+			message: "merging a.txt conflicts with the workspace",
+			branch: `mete/${runId}/${failed?.taskId}`,
+			paths: ["a.txt"],
+		});
+		expect(vcs.calls.map((c) => c.input.op)).not.toContain("worktree.remove");
+
+		const revised = await h.engine.approve(runId, {
+			decision: "revise",
+			feedback: "x",
+		});
+		expect(revised.ok ? "ok" : revised.error.message).toContain(
+			"waits for its merge",
+		);
+		expect((await h.engine.approve(runId, { decision: "approve" })).ok).toBe(
+			true,
+		);
+		await settled(h, runId, "completed");
+		expect(tries).toBe(2);
+		expect(
+			vcs.calls.filter((c) => c.input.op === "worktree.remove"),
+		).toHaveLength(1);
+		expect(h.requests).toHaveLength(3);
+	});
+
+	it("starts the next task from the merged result: the merge comes before it", async () => {
+		await writeFile(join(templates.builtIn, "duo.yaml"), BUILDER);
+		const vcs = fakeVcs(made);
+		const h = engineHarness({
+			scripts: [WRITE, reply("built"), reply("the report")],
+			tools: [
+				["fs.write@1", async () => ok({ bytes: 2 })],
+				["vcs.git@2", vcs.run],
+			],
+			templates,
+		});
+		await settled(h, await start(h), "completed");
+		const assigned = h.events.filter((e) => e.type === "task.assigned");
+		expect(assigned).toHaveLength(2);
+		const mergeAt = vcs.calls.findIndex((c) => c.input.op === "merge");
+		expect(mergeAt).toBeGreaterThan(-1);
+		// The writer's request (the third model call) comes after the merge call was made.
+		expect(h.requests).toHaveLength(3);
 	});
 });

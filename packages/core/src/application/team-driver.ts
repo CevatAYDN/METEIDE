@@ -16,11 +16,13 @@ import {
 	type TaskChange,
 	type TeamState,
 	withArtifact,
+	withoutWorktree,
 } from "../domain/team.js";
 import {
 	guardrailOf,
 	isWriter,
 	taskConversation,
+	titleOf,
 	verifyOf,
 } from "../domain/team-run.js";
 import { commandsOf, hasCapabilityGate } from "../domain/verify.js";
@@ -33,7 +35,7 @@ import {
 	platformOf,
 	toolContext,
 } from "./run-state.js";
-import { startWorktree } from "./steps.js";
+import { createCheckpoint, landWorktree, startWorktree } from "./steps.js";
 import { verifyGates } from "./verify.js";
 
 // A team run between attempts (docs/08, Task execution sequence): start the next ready task,
@@ -253,6 +255,41 @@ const start = async (s: EngineState, l: Live, team: TeamState, id: string) => {
 	changed(s, l, taskId, r.change);
 };
 
+// An approved task's worktree lands in the workspace before the next task starts (so that one begins
+// from the merged result) and before the run completes. A merge that did not happen (a conflict, or
+// the user's own edits in the way) pauses the run for the human with the branch named; the worktree
+// and branch stay, and approving the task tries the merge again. The core's checkpoint before it
+// records the workspace, not the worktree.
+const merge = async (s: EngineState, l: Live, team: TeamState, id: string) => {
+	const entry = team.tasks[id];
+	if (!entry) return stuck(s, l);
+	const runId = l.meta.id;
+	const cp = await createCheckpoint(s.deps, { runId, signal: l.all.signal });
+	if (l.snapshot.value !== "running") return;
+	if (!cp.ok)
+		return apply(s, l, {
+			type: "FAIL",
+			at: s.deps.now(),
+			code: "checkpoint_failed",
+			message: cp.error,
+		});
+	if (cp.value)
+		emit(s, l, {
+			type: "checkpoint.created",
+			payload: { kind: "git", ref: cp.value },
+		});
+	const ids = { runId, taskId: entry.id, message: titleOf(team, id) };
+	const landed = await landWorktree(s.deps, ids, l.all.signal);
+	if (l.snapshot.value !== "running") return;
+	if (landed.kind === "landed")
+		return apply(s, l, { type: "TEAM", team: withoutWorktree(team, id) });
+	const { code, message, paths } = landed;
+	const branch = `mete/${runId}/${entry.id}`;
+	const payload = { code, message, branch, ...(paths ? { paths } : {}) };
+	emit(s, l, { type: "task.merge.failed", payload }, entry.id);
+	apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
+};
+
 const accept = (s: EngineState, l: Live, team: TeamState, id: string) => {
 	const r = approve(team, id, "system");
 	if (!r.change) return stuck(s, l);
@@ -292,6 +329,7 @@ export const teamTurn = (s: EngineState, l: Live, team: TeamState) => {
 	if (next.kind === "work") return open(s, l, team, next.taskId);
 	if (next.kind === "start") return start(s, l, team, next.taskId);
 	if (next.kind === "accept") return accept(s, l, team, next.taskId);
+	if (next.kind === "merge") return merge(s, l, team, next.taskId);
 	if (next.kind === "approve") return openReview(s, l, team, next);
 	if (next.kind === "wait") return waitForHuman(s, l, team, next.taskIds);
 	const summary = lastReport(team);

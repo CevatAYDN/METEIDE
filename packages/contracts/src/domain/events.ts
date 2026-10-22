@@ -67,6 +67,13 @@ const PAYLOADS = {
 		from: TaskStatusSchema,
 		to: TaskStatusSchema,
 	}),
+	// An approved task whose worktree did not merge into the workspace (docs/08, Parallel work and merging).
+	"task.merge.failed": z.strictObject({
+		code: text,
+		message: z.string(),
+		branch: text,
+		paths: z.array(text).readonly().optional(),
+	}),
 	"task.clarification.requested": z.strictObject({
 		toRoleId: text,
 		question: text,

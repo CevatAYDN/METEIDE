@@ -125,6 +125,18 @@ describe("output lines", () => {
 		expect(eventLine(event("run.resumed", {}))).toBe("resumed");
 		expect(
 			eventLine(
+				event("task.merge.failed", {
+					code: "merge_conflict",
+					message: "merging a.txt conflicts with the workspace",
+					branch: "mete/r/t",
+					paths: ["a.txt"],
+				}),
+			),
+		).toBe(
+			"task  : merge failed (merging a.txt conflicts with the workspace); the branch mete/r/t and its worktree are kept, so fix the cause and approve the task to merge again",
+		);
+		expect(
+			eventLine(
 				event("agent.tool.completed", {
 					capability: "fs.read@1",
 					ok: false,

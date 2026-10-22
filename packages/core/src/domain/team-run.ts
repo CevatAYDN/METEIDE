@@ -23,6 +23,10 @@ export const guardrailOf = (team: TeamState, id: string) =>
 export const isWriter = (team: TeamState, id: string) =>
 	writes(roleOf(team, id)?.capabilities ?? []);
 
+/** A task's title, which names its merge commit. */
+export const titleOf = (team: TeamState, id: string) =>
+	taskOf(team, id)?.title ?? id;
+
 /** A task's verify gates, in template order. */
 export const verifyOf = (team: TeamState, id: string) =>
 	taskOf(team, id)?.verify ?? [];

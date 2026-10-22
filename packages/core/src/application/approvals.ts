@@ -7,7 +7,12 @@ import {
 	type Result,
 } from "@mete/contracts";
 import { z } from "zod";
-import { decide, type TeamState, waitingForHuman } from "../domain/team.js";
+import {
+	decide,
+	type TeamState,
+	waitingForHuman,
+	waitsToMerge,
+} from "../domain/team.js";
 import { taskConversation } from "../domain/team-run.js";
 import {
 	apply,
@@ -22,6 +27,12 @@ import {
 
 const invalid = (l: Live, message: string): Result<never, EngineError> =>
 	err({ code: "invalid_state", message, status: l.snapshot.value });
+
+// Why a decision on this task is refused.
+const refusal = (team: TeamState, id: string) =>
+	waitsToMerge(team, id)
+		? `task ${id} is approved and waits for its merge: approve it to try the merge again`
+		: `task ${id} does not wait for you`;
 
 // A task named by its template id or its Task id; without one, the only task that waits.
 const pick = (
@@ -86,7 +97,7 @@ export const recordDecision = (
 	const id = pick(c.team, a.data.taskId);
 	if (!id.ok) return id;
 	const r = decide(c.team, id.value, a.data);
-	if (!r) return invalid(l, `task ${id.value} does not wait for you`);
+	if (!r) return invalid(l, refusal(c.team, id.value));
 	const applied = goOn(s, l, r.team, id.value);
 	if (!applied.ok) return applied;
 	const taskId = c.team.tasks[id.value]?.id;

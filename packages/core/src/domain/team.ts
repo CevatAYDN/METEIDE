@@ -70,7 +70,10 @@ type TaskEntry = TeamState["tasks"][string];
 
 /** What the team does next. */
 export type TeamStep =
-	| { readonly kind: "work" | "start" | "accept"; readonly taskId: string }
+	| {
+			readonly kind: "work" | "start" | "accept" | "merge";
+			readonly taskId: string;
+	  }
 	| { readonly kind: "approve"; readonly taskId: string; readonly by: string }
 	| { readonly kind: "wait"; readonly taskIds: readonly string[] }
 	| { readonly kind: "complete" };
@@ -130,6 +133,17 @@ export const withArtifact = (
 ): TeamState => {
 	const entry = team.tasks[id];
 	return entry ? withEntry(team, id, { ...entry, artifact }) : team;
+};
+
+/** Forgets a task's worktree once it is merged: an approved task is final, so no machine event does it. */
+export const withoutWorktree = (team: TeamState, id: string): TeamState => {
+	const entry = team.tasks[id];
+	return entry
+		? withEntry(team, id, {
+				...entry,
+				context: { ...entry.context, worktree: undefined },
+			})
+		: team;
 };
 
 /** Sets how many repairs a task's current attempt or review has asked. */
@@ -215,7 +229,10 @@ const review = (team: TeamState, ids: readonly string[]) => {
 	return undefined;
 };
 
-/** The tasks only the human can move on: a submission whose next approval is the human's, or a blocked task. */
+/**
+ * The tasks only the human can move on: a submission whose next approval is the human's, a blocked
+ * task, or an approved task whose merge failed and waits (approve tries it again).
+ */
 export const waitingForHuman = (team: TeamState) =>
 	team.template.tasks
 		.map((t) => t.id)
@@ -223,6 +240,7 @@ export const waitingForHuman = (team: TeamState) =>
 			const s = statusOf(team, id);
 			return (
 				s === "blocked" ||
+				unmerged(team, id) ||
 				(s === "submitted" && missing(team, id)[0] === "human")
 			);
 		});
@@ -240,6 +258,8 @@ export const decide = (
 	}: { decision: "approve" | "revise"; feedback?: string | undefined },
 ) => {
 	if (!waitingForHuman(team).includes(id)) return undefined;
+	// A failed merge is tried again by approving; there is nothing to revise.
+	if (unmerged(team, id)) return decision === "approve" ? { team } : undefined;
 	if (statusOf(team, id) === "blocked")
 		return applyTask(team, id, {
 			type: "UNBLOCK",
@@ -250,9 +270,19 @@ export const decide = (
 		: applyTask(team, id, { type: "REVISE", feedback: feedback ?? "" });
 };
 
-/** Decides the team's next step from its state alone, in template order. */
+// An approved task whose worktree is still set has work to land in the workspace.
+const unmerged = (team: TeamState, id: string) =>
+	statusOf(team, id) === "approved" &&
+	Boolean(team.tasks[id]?.context.worktree);
+
+/** Whether an approved task still has its worktree to merge. */
+export const waitsToMerge = (team: TeamState, id: string) => unmerged(team, id);
+
+/** Decides the team's next step from its state alone, in template order; a pending merge comes first. */
 export const nextTeamStep = (team: TeamState): TeamStep => {
 	const ids = team.template.tasks.map((t) => t.id);
+	const landing = ids.find((id) => unmerged(team, id));
+	if (landing) return { kind: "merge", taskId: landing };
 	const working = ids.find((id) => statusOf(team, id) === "in_progress");
 	if (working) return { kind: "work", taskId: working };
 	const reviewed = review(team, ids);

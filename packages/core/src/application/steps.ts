@@ -351,3 +351,55 @@ export const startWorktree = async (
 	);
 	return undefined;
 };
+
+/** How landing a task's worktree ended: merged and removed, or why the merge did not happen. */
+export type Landed =
+	| { readonly kind: "landed" }
+	| {
+			readonly kind: "failed";
+			readonly code: string;
+			readonly message: string;
+			readonly paths?: readonly string[];
+	  };
+
+/**
+ * Merges the task's branch into the workspace through vcs.git@2 and, once that worked, removes its
+ * worktree. A merge that did not happen leaves the worktree and branch as they are.
+ */
+export const landWorktree = async (
+	deps: StepDeps,
+	ids: {
+		readonly runId: string;
+		readonly taskId: string;
+		readonly message: string;
+	},
+	signal: AbortSignal,
+): Promise<Landed> => {
+	const chain = deps.registry.resolve<VcsGitAdapter>("vcs.git@2");
+	if (!chain.ok)
+		return {
+			kind: "failed",
+			code: "capability_missing",
+			message: "vcs.git@2 is not active",
+		};
+	const vcs = chain.value[0].impl;
+	const ctx = { runId: ids.runId, signal };
+	const merged = await vcs.run({ op: "merge", ...ids }, ctx);
+	if (!merged.ok) {
+		const { code, message } = merged.error;
+		const paths = "paths" in merged.error ? { paths: merged.error.paths } : {};
+		return { kind: "failed", code, message, ...paths };
+	}
+	const gone = {
+		op: "worktree.remove",
+		runId: ids.runId,
+		taskId: ids.taskId,
+	} as const;
+	const removed = await vcs.run(gone, ctx);
+	if (!removed.ok)
+		deps.logger.warn(
+			{ runId: ids.runId, taskId: ids.taskId, reason: removed.error.message },
+			"worktree not removed after its merge",
+		);
+	return { kind: "landed" };
+};

@@ -53,6 +53,8 @@ const teamLine = (e: MeteEvent, title: string): string | undefined => {
 			return `task  ${e.payload.title} (${e.payload.roleId})`;
 		case "task.status.changed":
 			return `task  ${title}: ${e.payload.to}`;
+		case "task.merge.failed":
+			return `task  ${title}: merge failed (${e.payload.message}); the branch ${e.payload.branch} and its worktree are kept, so fix the cause and approve the task to merge again`;
 		case "approval.requested":
 			return `waiting for ${e.payload.approver}: ${title}`;
 		case "approval.resolved": {
