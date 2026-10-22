@@ -16,6 +16,7 @@ import {
 import { isPublicHost } from "../domain/addresses.js";
 import { auditOutput, LhrSchema } from "../domain/lighthouse.js";
 import { pngSize } from "../domain/png.js";
+import type { Chromium } from "../infrastructure/chromium.js";
 import type { RunBrowser } from "../infrastructure/runner.js";
 import { parse, permit } from "./fs-common.js";
 
@@ -27,6 +28,7 @@ export type BrowserDeps = {
 	readonly workspaceDir: string;
 	readonly policy: () => PolicyCheckAdapter | undefined;
 	readonly run: RunBrowser;
+	readonly chromium: Chromium;
 };
 
 type Out<T> = Promise<Result<T, ToolError>>;
@@ -46,6 +48,25 @@ const allow = (
 			message: `${hostname} is not a public address`,
 		});
 	return permit(deps, { action: "net.fetch", capability, args }, ctx);
+};
+
+// Chromium is installed on first use, after the policy allows runtime.install (allowed at level 2).
+const ensureChromium = async (
+	deps: BrowserDeps,
+	capability: "browser.screenshot@1" | "seo.audit@1",
+	ctx: ToolContext,
+): Promise<Result<void, ToolError>> => {
+	if (deps.chromium.installed()) return ok(undefined);
+	const check = {
+		action: "runtime.install",
+		capability,
+		command: "playwright install chromium",
+		args: {},
+	} as const;
+	const allowed = permit(deps, check, ctx);
+	if (!allowed.ok) return allowed;
+	const installed = await deps.chromium.install(ctx.signal);
+	return installed.ok ? installed : err(io(installed.error));
 };
 
 // A new file name in .mete/assets/: the workspace-relative path and the absolute one.
@@ -78,6 +99,8 @@ export const screenshotTool = async (
 	if (!i.ok) return i;
 	const allowed = allow(deps, "browser.screenshot@1", i.value, ctx);
 	if (!allowed.ok) return allowed;
+	const ready = await ensureChromium(deps, "browser.screenshot@1", ctx);
+	if (!ready.ok) return ready;
 	const { path, out } = await asset(deps, "png");
 	const ran = await deps.run(
 		{ kind: "screenshot", ...i.value, out },
@@ -100,6 +123,8 @@ export const auditTool = async (
 	if (!i.ok) return i;
 	const allowed = allow(deps, "seo.audit@1", i.value, ctx);
 	if (!allowed.ok) return allowed;
+	const ready = await ensureChromium(deps, "seo.audit@1", ctx);
+	if (!ready.ok) return ready;
 	const { path, out } = await asset(deps, "lighthouse.json");
 	const ran = await deps.run(
 		{ kind: "audit", url: i.value.url, out },

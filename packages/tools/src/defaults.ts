@@ -44,3 +44,6 @@ export const BROWSER_TIMEOUT_MS = 120_000;
 
 /** Tab 10, Built-in tools: characters of the browser runner's stderr kept for its error messages. */
 export const RUNNER_STDERR_CHARS = 2000;
+
+/** Tab 10, Built-in tools: how long installing Chromium on first use may take. */
+export const CHROMIUM_INSTALL_TIMEOUT_MS = 600_000;

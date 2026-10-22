@@ -12,14 +12,19 @@ import {
 	type BrowserDeps,
 	screenshotTool,
 } from "./application/browser.js";
+import {
+	type Chromium,
+	playwrightChromium,
+} from "./infrastructure/chromium.js";
 import { realTarget } from "./infrastructure/files.js";
 import { forkRunner, type RunBrowser } from "./infrastructure/runner.js";
 import { policyOf } from "./module.js";
 
-/** What browser is given; tests pass a fake runner, so no browser starts. */
+/** What browser is given; tests pass a fake runner and Chromium, so no browser starts or installs. */
 export type BrowserOptions = {
 	readonly workspaceDir: string;
 	readonly run?: RunBrowser;
+	readonly chromium?: Chromium;
 };
 
 const MANIFEST: ModuleManifest = {
@@ -60,6 +65,7 @@ export const createBrowserModule = (opts: BrowserOptions): MeteModule => ({
 			workspaceDir: await realTarget(opts.workspaceDir),
 			policy: policyOf(ctx.capabilities),
 			run: opts.run ?? forkRunner,
+			chromium: opts.chromium ?? playwrightChromium(),
 		};
 		provide(ctx, "browser.screenshot@1", {
 			run: (input, c) => screenshotTool(deps, input, c),

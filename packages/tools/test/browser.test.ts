@@ -8,6 +8,7 @@ import type {
 } from "@mete/contracts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createBrowserModule } from "../src/browser-module.js";
+import type { Chromium } from "../src/infrastructure/chromium.js";
 import type {
 	RunBrowser,
 	RunnerRequest,
@@ -46,9 +47,15 @@ let dir = "";
 type Audit = ToolAdapter<unknown, SeoAuditOutput>;
 const asked: RunnerRequest[] = [];
 
+const ready: Chromium = {
+	installed: () => true,
+	install: async () => ({ ok: true, value: undefined }),
+};
+
 const start = async (
 	verdict: PolicyVerdict["verdict"],
 	answer: (r: RunnerRequest) => Promise<string | null>,
+	chromium = ready,
 ) => {
 	const run: RunBrowser = async (req) => {
 		asked.push(req);
@@ -58,7 +65,7 @@ const start = async (
 		return { ok: true, value: undefined };
 	};
 	const { ctx, registry } = toolContext(verdict);
-	await createBrowserModule({ workspaceDir: dir, run }).activate(ctx);
+	await createBrowserModule({ workspaceDir: dir, run, chromium }).activate(ctx);
 	const tool = (ref: "browser.screenshot@1" | "seo.audit@1") => {
 		const r = registry.resolve<ToolAdapter<unknown, unknown>>(ref);
 		return r.ok ? r.value[0].impl : undefined;
@@ -151,6 +158,52 @@ describe("seo.audit@1", () => {
 		expect(b?.ok === false && b.error).toEqual({
 			code: "io",
 			message: "Chromium is not installed",
+		});
+	});
+});
+
+describe("Chromium on first use", () => {
+	it("installs a missing Chromium once before the call, and reports a failed install", async () => {
+		const steps: string[] = [];
+		let present = false;
+		const chromium: Chromium = {
+			installed: () => present,
+			install: async () => {
+				steps.push("install");
+				present = true;
+				return { ok: true, value: undefined };
+			},
+		};
+		const tool = await start(
+			"allow",
+			async () => {
+				steps.push("run");
+				return "";
+			},
+			chromium,
+		);
+		await tool("browser.screenshot@1")?.run(
+			{ url: "https://a.example/" },
+			{ signal },
+		);
+		await tool("browser.screenshot@1")?.run(
+			{ url: "https://a.example/" },
+			{ signal },
+		);
+		expect(steps).toEqual(["install", "run", "run"]);
+		const failing: Chromium = {
+			installed: () => false,
+			install: async () => ({ ok: false, error: "no disk space" }),
+		};
+		const broken = await start("allow", async () => "", failing);
+		expect(
+			await broken("browser.screenshot@1")?.run(
+				{ url: "https://a.example/" },
+				{ signal },
+			),
+		).toEqual({
+			ok: false,
+			error: { code: "io", message: "no disk space" },
 		});
 	});
 });
