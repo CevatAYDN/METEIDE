@@ -17,7 +17,12 @@ import {
 	type TeamState,
 	withArtifact,
 } from "../domain/team.js";
-import { guardrailOf, taskConversation, verifyOf } from "../domain/team-run.js";
+import {
+	guardrailOf,
+	isWriter,
+	taskConversation,
+	verifyOf,
+} from "../domain/team-run.js";
 import { commandsOf, hasCapabilityGate } from "../domain/verify.js";
 import { announce, saveArtifact } from "./artifacts.js";
 import {
@@ -28,6 +33,7 @@ import {
 	platformOf,
 	toolContext,
 } from "./run-state.js";
+import { startWorktree } from "./steps.js";
 import { verifyGates } from "./verify.js";
 
 // A team run between attempts (docs/08, Task execution sequence): start the next ready task,
@@ -215,9 +221,31 @@ export const verdict = (s: EngineState, l: Live, reply: string) => {
 	changed(s, l, taskId, r.change);
 };
 
-const start = (s: EngineState, l: Live, team: TeamState, id: string) => {
+// A writing task works in a worktree of its own (docs/08, Parallel work and merging), started the
+// first time and kept through revisions and blocks.
+const worktreeOf = async (
+	s: EngineState,
+	l: Live,
+	team: TeamState,
+	id: string,
+) => {
+	const entry = team.tasks[id];
+	if (!entry || !isWriter(team, id)) return undefined;
+	const ids = { runId: l.meta.id, taskId: entry.id };
+	return entry.context.worktree ?? startWorktree(s.deps, ids, l.all.signal);
+};
+
+const start = async (s: EngineState, l: Live, team: TeamState, id: string) => {
 	const agentId = team.tasks[id]?.context.agentId ?? s.deps.newId();
-	const r = applyTask(team, id, { type: "START", agentId });
+	const worktree = await worktreeOf(s, l, team, id);
+	// Paused or cancelled while git worked: the next start finds the worktree it made.
+	if (l.snapshot.value !== "running") return;
+	const event = {
+		type: "START",
+		agentId,
+		...(worktree ? { worktree } : {}),
+	} as const;
+	const r = applyTask(team, id, event);
 	if (!r.change) return stuck(s, l);
 	if (!open(s, l, r.team, id)) return;
 	const taskId = team.tasks[id]?.id;

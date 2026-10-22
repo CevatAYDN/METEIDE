@@ -2,7 +2,7 @@ import type { ChatMessage } from "@mete/contracts";
 import type { Platform } from "./prompt.js";
 import type { RunContext } from "./run-machine.js";
 import type { TeamState } from "./team.js";
-import { type Seat, SINGLE_AGENT } from "./tools.js";
+import { type Seat, SINGLE_AGENT, writes } from "./tools.js";
 
 // What a team task's agent receives (docs/08, Agent context assembly): its role, the goal, the
 // task and the reports of its context tasks. Pure.
@@ -18,6 +18,10 @@ const roleOf = (team: TeamState, id: string) =>
 /** A task's guardrail, if it has one. */
 export const guardrailOf = (team: TeamState, id: string) =>
 	taskOf(team, id)?.guardrail;
+
+/** Whether the task's role has a tool that changes the working tree (docs/08, Parallel work and merging). */
+export const isWriter = (team: TeamState, id: string) =>
+	writes(roleOf(team, id)?.capabilities ?? []);
 
 /** A task's verify gates, in template order. */
 export const verifyOf = (team: TeamState, id: string) =>

@@ -32,8 +32,23 @@ const exists = (dir: string) =>
 		() => false,
 	);
 
-/** Starts a worktree on a new branch at HEAD; the working tree's uncommitted changes are not in it. */
+/**
+ * Starts a worktree on a new branch at HEAD; the working tree's uncommitted changes are not in it.
+ * For a run and task that have one it returns that one, so a run paused between creating the
+ * worktree and recording it starts again without an error.
+ */
 export const createWorktree = async (deps: Where, git: Git, t: Task): Out => {
+	const there = place(deps, t);
+	if (await exists(there.dir)) {
+		const tip = await head(gitAt(there.dir));
+		if (tip)
+			return ok({
+				op: "worktree.create",
+				path: there.dir,
+				branch: there.branch,
+				sha: tip,
+			});
+	}
 	const base = await head(git);
 	if (!base)
 		return err({

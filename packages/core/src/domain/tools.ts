@@ -33,3 +33,9 @@ const covers = (granted: string, ref: string) => {
 /** Whether a seat may use a capability. */
 export const allowed = (seat: Seat, ref: string) =>
 	seat.capabilities?.some((c) => covers(c, ref)) ?? true;
+
+const WRITERS = ["fs.write@1", "fs.edit@1", "shell.exec@1", "vcs.git@2"];
+
+/** Whether a role's capabilities include a tool that changes the working tree; such a task gets a worktree. */
+export const writes = (capabilities: readonly string[]) =>
+	WRITERS.some((ref) => capabilities.some((c) => covers(c, ref)));

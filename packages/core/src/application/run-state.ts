@@ -74,12 +74,15 @@ const MAX_DELAY_MS = 2_147_483_647;
 
 export const iso = (ms: number) => new Date(ms).toISOString();
 
-/** What a tool call of the run's active agent carries: the run, its agent, the taint and the stop signal. */
+/** What a tool call of the run's active agent carries: the run, its agent, the taint, its task's worktree and the stop signal. */
 export const toolContext = (l: Live): ToolContext => {
 	const agent = l.snapshot.context.agent;
 	const ids = agent ? { agentId: agent.id } : {};
 	const taint = l.snapshot.context.tainted ? { tainted: true } : {};
-	return { runId: l.meta.id, ...ids, ...taint, signal: l.all.signal };
+	const { task, team } = l.snapshot.context;
+	const tree = task ? team?.tasks[task]?.context.worktree : undefined;
+	const cwd = tree ? { cwd: tree } : {};
+	return { runId: l.meta.id, ...ids, ...taint, ...cwd, signal: l.all.signal };
 };
 
 /** The operating system and the shell shell.exec@1 runs, as the prompts name them (docs/08). */

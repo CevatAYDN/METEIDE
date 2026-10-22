@@ -306,20 +306,48 @@ export const callTool = async (
 	return finished(deps, call, out, entry.external === true);
 };
 
-/** Records the working tree before a writing step; no vcs.git@2 means no checkpoint (Phase 4). */
+/**
+ * Records the working tree before a writing step; no vcs.git@2 means no checkpoint (Phase 4). The call
+ * runs in the context it is given: a task in a worktree has that worktree recorded, and a caller that
+ * wants the workspace recorded leaves `cwd` out.
+ */
 export const createCheckpoint = async (
 	deps: StepDeps,
-	runId: string,
-	signal: AbortSignal,
+	ctx: ToolContext & { readonly runId: string },
 ): Promise<Result<string | undefined, string>> => {
 	const chain = deps.registry.resolve<VcsGitAdapter>("vcs.git@2");
 	if (!chain.ok) return ok(undefined);
 	const r = await chain.value[0].impl.run(
-		{ op: "checkpoint.create", runId },
-		{ runId, signal },
+		{ op: "checkpoint.create", runId: ctx.runId },
+		ctx,
 	);
 	if (!r.ok) return err(r.error.message);
 	return r.value.op === "checkpoint.create"
 		? ok(r.value.ref)
 		: err(`unexpected ${r.value.op} result`);
+};
+
+/**
+ * Starts the worktree of a task through vcs.git@2 and returns its folder. Without vcs.git@2, or when
+ * git cannot start one (a repository without a commit), the task works in the workspace and the
+ * reason is logged.
+ */
+export const startWorktree = async (
+	deps: StepDeps,
+	ids: { readonly runId: string; readonly taskId: string },
+	signal: AbortSignal,
+): Promise<string | undefined> => {
+	const chain = deps.registry.resolve<VcsGitAdapter>("vcs.git@2");
+	if (!chain.ok) return undefined;
+	const r = await chain.value[0].impl.run(
+		{ op: "worktree.create", ...ids },
+		{ runId: ids.runId, signal },
+	);
+	if (r.ok && r.value.op === "worktree.create") return r.value.path;
+	const reason = r.ok ? `unexpected ${r.value.op} result` : r.error.message;
+	deps.logger.warn(
+		{ ...ids, reason },
+		"worktree not created; the task works in the workspace",
+	);
+	return undefined;
 };

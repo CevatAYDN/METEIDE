@@ -80,7 +80,10 @@ const checkpoint = async (
 	token: object,
 	t: ToolStep,
 ) => {
-	const cp = await createCheckpoint(s.deps, l.meta.id, l.all.signal);
+	const cp = await createCheckpoint(s.deps, {
+		...toolContext(l),
+		runId: l.meta.id,
+	});
 	if (!cp.ok) {
 		const at = s.deps.now();
 		const fail = { code: "checkpoint_failed", message: cp.error };

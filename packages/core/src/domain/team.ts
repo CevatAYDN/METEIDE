@@ -21,6 +21,7 @@ const TaskContextSchema = z.strictObject({
 	revisionLimit: z.number().int().nonnegative(),
 	revisions: z.number().int().nonnegative(),
 	agentId: z.string().optional(),
+	worktree: z.string().optional(),
 	report: z.string().optional(),
 	feedback: z.string().optional(),
 	blocked: z

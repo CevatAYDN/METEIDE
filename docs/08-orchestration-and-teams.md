@@ -158,7 +158,7 @@ Each model call receives only: role goal and backstory, the task, its acceptance
 - Tasks whose dependencies are approved run in parallel, limited by the quota scheduler. Until that comes, the core runs them one at a time in template order \[D\].
 - Every writing agent works in its own git worktree under the global `worktrees/` folder \[C\].
 - The PM's task list assigns file ownership; two parallel tasks MUST NOT own the same file \[C\].
-- After approval, the core merges the worktree branch. A conflict creates a "resolve merge conflict" task for the owning role; if that fails, the human decides \[D\]. The worktree and merge operations of `vcs.git@2` exist (tab 10); the engine does not use them yet.
+- After approval, the core merges the worktree branch. A conflict creates a "resolve merge conflict" task for the owning role; if that fails, the human decides \[D\]. A task whose role lists `fs.write@1`, `fs.edit@1`, `shell.exec@1` or `vcs.git@2` (`fs.*@1` counts) gets its worktree when it first starts, through `vcs.git@2` `worktree.create` with the task's id. The worktree is kept through revisions and blocks, and every tool call, checkpoint, verify gate and review of the task runs in it (`ToolContext.cwd`, tab 06). Without `vcs.git@2`, or when git cannot start one (a repository without a commit yet), the task works in the workspace and a warning is logged. Nothing merges a worktree back yet \[D\].
 - Non-git workspaces run writing tasks one at a time and use file snapshots \[D\].
 
 ## Memory

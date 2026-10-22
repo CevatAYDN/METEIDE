@@ -1,7 +1,12 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { type CapabilityRef, ok, type RunView } from "@mete/contracts";
+import {
+	type CapabilityRef,
+	ok,
+	type Result,
+	type RunView,
+} from "@mete/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createArtifactStore } from "../../src/infrastructure/artifact-store.js";
 import type { TemplateDirs } from "../../src/infrastructure/template-store.js";
@@ -527,5 +532,114 @@ describe("verify gates", () => {
 			.at(-1);
 		expect(last?.payload).toEqual({ from: "in_progress", to: "blocked" });
 		expect(h.requests).toHaveLength(1);
+	});
+});
+
+// A developer who writes files and a writer who does not: only the developer's task gets a worktree.
+const BUILDER = `apiVersion: mete/v1
+kind: TeamTemplate
+metadata: { id: duo, name: Duo, version: 1.0.0 }
+pattern: pipeline
+roles:
+  - { id: dev, name: Dev, goal: Build, tier: coder, capabilities: [fs.write@1] }
+  - { id: writer, name: Writer, goal: Write, tier: fast, capabilities: [] }
+tasks:
+  - { id: build, role: dev, title: Build }
+  - { id: report, role: writer, title: Report, context: [build] }
+`;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+// A fake vcs.git@2 that records what it was asked and in which working folder.
+const fakeVcs = (
+	create: () => Result<unknown, { code: string; message: string }>,
+) => {
+	const calls: {
+		input: { op: string; runId?: string; taskId?: string };
+		cwd?: string;
+	}[] = [];
+	const run: Tool = async (input, ctx) => {
+		const i = input as { op: string };
+		calls.push({ input: i, ...(ctx.cwd ? { cwd: ctx.cwd } : {}) });
+		if (i.op === "worktree.create") return create();
+		return ok({
+			op: "checkpoint.create",
+			ref: "refs/mete/checkpoints/r/1",
+			sha: "s",
+		});
+	};
+	return { calls, run };
+};
+
+const WRITE = reply("", [
+	{ name: "fs_write", args: { path: "a.txt", content: "x\n" } },
+]);
+
+describe("worktrees of writing tasks", () => {
+	it("starts one for a task whose role writes and runs its tools, checkpoints and gates there", async () => {
+		await writeFile(join(templates.builtIn, "duo.yaml"), BUILDER);
+		const vcs = fakeVcs(() =>
+			ok({ op: "worktree.create", path: "/wt", branch: "mete/r/t", sha: "s" }),
+		);
+		const writes: (string | undefined)[] = [];
+		const write: Tool = async (_input, ctx) => {
+			writes.push(ctx.cwd);
+			return ok({ bytes: 2 });
+		};
+		const h = engineHarness({
+			scripts: [WRITE, reply("built"), reply("the report")],
+			tools: [
+				["fs.write@1", write],
+				["vcs.git@2", vcs.run],
+			],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "completed");
+		const creates = vcs.calls.filter((c) => c.input.op === "worktree.create");
+		expect(creates).toHaveLength(1);
+		expect(creates[0]?.input).toMatchObject({ op: "worktree.create", runId });
+		expect(creates[0]?.input.taskId).toMatch(UUID);
+		expect(creates[0]).not.toHaveProperty("cwd");
+		expect(writes).toEqual(["/wt"]);
+		const checkpoints = vcs.calls.filter(
+			(c) => c.input.op === "checkpoint.create",
+		);
+		expect(checkpoints.map((c) => c.cwd)).toEqual(["/wt"]);
+	});
+
+	it("starts none without vcs.git@2 or when git cannot make one, and logs why", async () => {
+		await writeFile(join(templates.builtIn, "duo.yaml"), BUILDER);
+		const bare = engineHarness({
+			scripts: [WRITE, reply("built"), reply("the report")],
+			tools: [["fs.write@1", async () => ok({ bytes: 2 })]],
+			templates,
+		});
+		await settled(bare, await start(bare), "completed");
+
+		const cwds: (string | undefined)[] = [];
+		const refused = fakeVcs(() => ({
+			ok: false,
+			error: { code: "io", message: "the repository has no commit yet" },
+		}));
+		const h = engineHarness({
+			scripts: [WRITE, reply("built"), reply("the report")],
+			tools: [
+				[
+					"fs.write@1",
+					async (_i, ctx) => {
+						cwds.push(ctx.cwd);
+						return ok({ bytes: 2 });
+					},
+				],
+				["vcs.git@2", refused.run],
+			],
+			templates,
+		});
+		await settled(h, await start(h), "completed");
+		expect(cwds).toEqual([undefined]);
+		expect(h.logged.some((l) => l.msg.includes("worktree not created"))).toBe(
+			true,
+		);
 	});
 });

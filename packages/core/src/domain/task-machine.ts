@@ -16,6 +16,8 @@ export type TaskContext = {
 	readonly revisionLimit: number;
 	readonly revisions: number;
 	readonly agentId?: string | undefined;
+	/** The task's worktree folder, kept through revisions and blocks (docs/08, Parallel work and merging). */
+	readonly worktree?: string | undefined;
 	/** The last submission's report. */
 	readonly report?: string | undefined;
 	/** The approver's feedback or the human's instruction for the next attempt. */
@@ -25,7 +27,7 @@ export type TaskContext = {
 
 /** What happens to a task. */
 export type TaskEvent =
-	| { type: "START"; agentId: string }
+	| { type: "START"; agentId: string; worktree?: string }
 	| { type: "SUBMIT"; report: string }
 	| { type: "BLOCK"; reason: Exclude<BlockReason, "revision_limit"> }
 	| { type: "APPROVE" }
@@ -55,7 +57,10 @@ export const taskMachine = setup({
 			on: {
 				START: {
 					target: "in_progress",
-					actions: assign({ agentId: ({ event }) => event.agentId }),
+					actions: assign(({ context, event }) => ({
+						agentId: event.agentId,
+						worktree: event.worktree ?? context.worktree,
+					})),
 				},
 			},
 		},
@@ -97,7 +102,10 @@ export const taskMachine = setup({
 			on: {
 				START: {
 					target: "in_progress",
-					actions: assign({ agentId: ({ event }) => event.agentId }),
+					actions: assign(({ context, event }) => ({
+						agentId: event.agentId,
+						worktree: event.worktree ?? context.worktree,
+					})),
 				},
 			},
 		},

@@ -186,6 +186,17 @@ export const vcsGitContract = (name: string, open: VcsGitHarness) =>
 			});
 		});
 
+		it("returns the worktree a run and task already have instead of failing", async () => {
+			const r = await repo();
+			await r.put("a.txt", "a\n");
+			await r.run({ op: "commit", message: "base" });
+			const first = await worktree(r);
+			await r.putAt(`${first.path}/b.txt`, "b\n");
+			const again = await worktree(r);
+			expect(again).toMatchObject({ path: first.path, branch: first.branch });
+			expect(await r.exists(`${first.path}/b.txt`)).toBe(true);
+		});
+
 		it("refuses a worktree before the first commit", async () => {
 			const r = await repo();
 			const made = await r.run({
