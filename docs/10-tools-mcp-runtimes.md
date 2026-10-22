@@ -144,4 +144,15 @@ When a new MCP server is added, an agent MAY draft a level 2 mapping from its to
 
 ## METE as an MCP server
 
-`mete mcp` serves stdio; the desktop can also serve Streamable HTTP on 127.0.0.1 \[D\]. Exposed tools: `mete_run_team`, `mete_task_status`, `mete_knowledge_search` \[D\]. Other tools (Claude Code, Cursor, Cline) can then use METE teams and knowledge.
+`mete mcp` serves stdio; the desktop can also serve Streamable HTTP on 127.0.0.1 \[D\]. Exposed tools: `mete_run_team`, `mete_task_status`, `mete_approve`, `mete_knowledge_search` \[D\]. Other tools (Claude Code, Cursor, Cline) can then use METE teams and knowledge.
+
+The mcp-server module (`@mete/mcp`) serves these tools over the transport its host gives it \[D\]:
+
+| Tool | Input | Result |
+|---|---|---|
+| `mete_run_team` | `{goal, templateId?}` | `{runId}` at once; the run goes on in the background |
+| `mete_task_status` | `{runId}` | `{status, reason?, tasks: [{id, title, status}], output?, artifacts: [path]}`; `reason` is the pause reason or the failure, `output` the summary of a completed run, tasks and artifacts come from the run's events |
+| `mete_approve` | `{runId, taskId?, decision: approve\|revise, feedback?}` | `{runId}`; a revision needs feedback (`team.engine@2` approve) |
+| `mete_knowledge_search` | `{query}` | always an error until the knowledge base exists (Phase 4) |
+
+Every refusal of `team.engine@2` is a tool result with `isError` and the text `<code>: <message>`; a router that is unsure lists the templates to choose from.

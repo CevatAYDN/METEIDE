@@ -1,5 +1,5 @@
-// MeteModule entry (docs/06-kernel-and-modules.md). Modules in this package: mcp-client (here);
-// mcp-server and registry follow in later Phase 3 slices.
+// MeteModule entry (docs/06-kernel-and-modules.md). Modules in this package: mcp-client (here),
+// mcp-server (server-module.ts); registry follows in a later Phase 3 slice.
 import {
 	err,
 	McpConfigSchema,
