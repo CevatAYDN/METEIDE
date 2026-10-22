@@ -22,6 +22,7 @@ import { type PrivacyRules, resolveChain } from "../domain/resolve.js";
 import { afterFailure, estimateTokens } from "../domain/retry.js";
 import { costOf } from "../domain/spend.js";
 import type { ModelCall } from "../infrastructure/model-calls.js";
+import { type Memory, newMemory, refuse, report } from "./model-memory.js";
 import { maskMessages, type Offered } from "./prepare.js";
 
 // The llm.chat@1 request pipeline (docs/09, Gateway): privacy filter → secret masking →
@@ -230,8 +231,8 @@ type WalkState = {
 	remaining: readonly Offered[];
 	/** Models that failed for a reason other than a refused key (CHAIN_LENGTH). */
 	tried: number;
-	/** Models that refused the key, left out for the gateway's lifetime. */
-	readonly refused: Set<string>;
+	/** What the gateway remembers about models that did not answer. */
+	readonly memory: Memory;
 	shown: Offered | undefined;
 	moved: boolean;
 	last: ProviderError;
@@ -279,19 +280,7 @@ const nameModel = (st: WalkState, o: Offered, first: Offered | undefined) => {
 
 const keyOf = (o: Offered) => `${o.model.providerId}/${o.model.id}`;
 
-// shortcut: a refused model stays out until the gateway restarts, so a new key needs a new process.
-const refuse = (
-	deps: ChatDeps,
-	st: WalkState,
-	o: Offered,
-	e: ProviderError,
-) => {
-	st.refused.add(keyOf(o));
-	deps.warn(
-		{ ...refOf(o), code: e.code, status: e.status, reason: e.message },
-		"model refused the key; left out until the gateway restarts",
-	);
-};
+const whoOf = (o: Offered) => ({ key: keyOf(o), fields: refOf(o) });
 
 // Leaves the model; ends the call once CHAIN_LENGTH models failed for another reason.
 const moveOn = (
@@ -303,8 +292,11 @@ const moveOn = (
 	st.remaining = st.remaining.filter((x) => x !== o);
 	st.last = e;
 	st.moved = true;
-	if (e.code === "unauthorized") refuse(deps, st, o, e);
-	else st.tried++;
+	if (e.code === "unauthorized") refuse(deps.warn, st.memory, whoOf(o), e);
+	else {
+		st.tried++;
+		if (e.code === "bad_request") report(deps.warn, st.memory, whoOf(o), e);
+	}
 	return st.tried >= CHAIN_LENGTH ? e : undefined;
 };
 
@@ -328,13 +320,13 @@ const onFailure = async (
 async function* walk(
 	deps: ChatDeps,
 	w: Walk,
-	refused: Set<string>,
+	memory: Memory,
 	signal: AbortSignal,
 ): AsyncGenerator<LlmChunk> {
 	const st: WalkState = {
 		remaining: w.chain,
 		tried: 0,
-		refused,
+		memory,
 		shown: undefined,
 		moved: false,
 		last: ABORTED,
@@ -357,7 +349,7 @@ async function* walk(
 
 async function* chat(
 	deps: ChatDeps,
-	refused: Set<string>,
+	memory: Memory,
 	req: LlmChatRequest,
 	signal: AbortSignal,
 ): AsyncGenerator<LlmChunk> {
@@ -365,7 +357,7 @@ async function* chat(
 	const found = await deps.discover(signal);
 	// A listing cut short by the abort is empty; that is not no_model.
 	if (signal.aborted) return yield fail(ABORTED);
-	const offered = found.filter((o) => !refused.has(keyOf(o)));
+	const offered = found.filter((o) => !memory.refused.has(keyOf(o)));
 	const models = resolveChain(offered, req.target, deps.rules(), req);
 	const chain = models.flatMap((m) => offered.filter((o) => o.model === m));
 	if (chain.length === 0)
@@ -382,11 +374,11 @@ async function* chat(
 		...(call.tools ? { tools: call.tools } : {}),
 	});
 	const tokens = { prompt, completion: call.maxTokens ?? 0 };
-	yield* walk(deps, { req, call, chain, estimate, tokens }, refused, signal);
+	yield* walk(deps, { req, call, chain, estimate, tokens }, memory, signal);
 }
 
 /** The gateway's routed chat; it remembers the models that refused their key. */
 export const createLlmChat = (deps: ChatDeps): LlmChatAdapter => {
-	const refused = new Set<string>();
-	return { chat: (req, signal) => chat(deps, refused, req, signal) };
+	const memory = newMemory();
+	return { chat: (req, signal) => chat(deps, memory, req, signal) };
 };

@@ -236,6 +236,30 @@ describe("llm.chat@1 pipeline", () => {
 		]);
 	});
 
+	it("logs why a model rejected the request once, and still tries it again on the next call", async () => {
+		const a = fakeProvider("a", [[status(400)]]);
+		const b = fakeProvider("b", [[text("b"), done]]);
+		const { deps: d, warned } = deps({
+			discover: async () => [
+				offer(a.adapter, "m", 100_000),
+				offer(b.adapter, "n"),
+			],
+			quota: fakeQuota().quota,
+		});
+		const chat = createLlmChat(d);
+		await collect(chat.chat(req, signal()));
+		await collect(chat.chat(req, signal()));
+		expect(a.seen).toHaveLength(2);
+		expect(warned).toEqual([
+			expect.objectContaining({
+				providerId: "a",
+				modelId: "m",
+				code: "bad_request",
+				status: 400,
+			}),
+		]);
+	});
+
 	it("does not count refused models against the four tried per call", async () => {
 		const refusing = ["r1", "r2", "r3", "r4", "r5"].map((id) =>
 			fakeProvider(id, [[status(403)]]),
