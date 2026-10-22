@@ -115,8 +115,7 @@ const platform = (s: EngineState, l: Live) => {
 const open = (s: EngineState, l: Live, team: TeamState, id: string) => {
 	const where = platform(s, l);
 	if (!where) return false;
-	const goal = l.snapshot.context.goal;
-	const messages = taskConversation(team, id, goal, where);
+	const messages = taskConversation(team, id, l.snapshot.context, where);
 	return apply(s, l, { type: "SWITCH", task: id, team, messages });
 };
 

@@ -12,6 +12,7 @@ import {
 import type { ConfigInvalid } from "@mete/kernel";
 import { initialTransition, transition } from "xstate";
 import { z } from "zod";
+import { offerLine, startBrief } from "../domain/brief.js";
 import type { Budget } from "../domain/next-step.js";
 import { openingMessages } from "../domain/prompt.js";
 import { runMachine } from "../domain/run-machine.js";
@@ -95,6 +96,14 @@ const find = (s: EngineState, runId: string): Result<Live, EngineError> => {
 		: err({ code: "not_found", message: `no run ${runId}` });
 };
 
+// The start brief of a new run: for now only the offer of the newest open handoff (docs/08).
+// shortcut: journal and decision notes join it with the knowledge layer (Phase 4).
+const briefFor = (s: EngineState) => {
+	const open = s.deps.handoffs?.newestOpen(s.deps.workspaceId);
+	const offer = open ? offerLine(open, s.deps.now()) : undefined;
+	return startBrief({ entries: [], offer });
+};
+
 const begin = (
 	s: EngineState,
 	goal: string,
@@ -105,9 +114,11 @@ const begin = (
 	if (!p.ok) return p;
 	const where = platformOf(s);
 	if (!where.ok) return err(fromConfig(where.error));
+	const brief = briefFor(s);
 	// A team task opens its own conversation when it starts (team-driver).
-	const messages = team ? [] : openingMessages(goal, where.value);
-	const [fresh] = initialTransition(runMachine, { goal, priority, messages });
+	const messages = team ? [] : openingMessages(goal, where.value, brief);
+	const input = { goal, priority, messages, brief };
+	const [fresh] = initialTransition(runMachine, input);
 	const snapshot = team
 		? transition(runMachine, fresh, { type: "TEAM", team })[0]
 		: fresh;

@@ -66,7 +66,7 @@ describe("team run helpers", () => {
 		const [system, user] = taskConversation(
 			team,
 			"write",
-			"Free models",
+			{ goal: "Free models" },
 			where,
 		);
 		expect(text(system)).toContain("You are Writer");
@@ -86,7 +86,7 @@ describe("team run helpers", () => {
 			type: "REVISE",
 			feedback: "cite more",
 		}).team;
-		expect(taskConversation(team, "find", "g", where)).toEqual([
+		expect(taskConversation(team, "find", { goal: "g" }, where)).toEqual([
 			...kept,
 			{ role: "user", content: "Feedback on your last submission: cite more" },
 		]);

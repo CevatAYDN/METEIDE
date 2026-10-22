@@ -230,6 +230,19 @@ describe("single-agent engine", () => {
 		expect(rows[0]?.body).not.toMatch(/MARKER/);
 	});
 
+	it("offers the next run the open handoff in one line, never its body", async () => {
+		const h = engineHarness({ scripts: [reply("done")] });
+		await settled(h, await begin(h, "first goal"), "completed");
+		await settled(h, await begin(h, "second goal"), "completed");
+		const user = String(h.requests[1]?.messages[1]?.content);
+		expect(user).toMatch(/^<start-brief> /);
+		expect(user).toMatch(
+			/left handoff \S+ \(just now\) for the goal "first goal"/,
+		);
+		expect(user).not.toContain("Stopped:");
+		expect(user.endsWith("second goal")).toBe(true);
+	});
+
 	it("pauses for approval and repeats the same tool call on resume", async () => {
 		const shell = vi
 			.fn()

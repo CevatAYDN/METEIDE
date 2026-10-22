@@ -62,12 +62,7 @@ const goOn = (
 			code: "bad_input",
 			message: `${where.error.file}: ${where.error.reason}`,
 		});
-	const messages = taskConversation(
-		team,
-		id,
-		l.snapshot.context.goal,
-		where.value,
-	);
+	const messages = taskConversation(team, id, l.snapshot.context, where.value);
 	apply(s, l, { type: "SWITCH", task: id, team, messages });
 	return ok(undefined);
 };

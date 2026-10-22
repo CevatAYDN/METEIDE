@@ -55,6 +55,8 @@ export type RunContext = {
 	readonly task?: string | undefined;
 	/** The approver role reviewing `task` in this conversation (docs/08, step 7). */
 	readonly review?: string | undefined;
+	/** The start brief every conversation of the run opens with (docs/08, Run memory). */
+	readonly brief?: string | undefined;
 	/** External content joined this attempt, so its tool calls are tainted (SECURITY.md). */
 	readonly tainted?: boolean | undefined;
 };
@@ -115,6 +117,7 @@ export const runMachine = setup({
 			goal: string;
 			priority: 0 | 1 | 2;
 			messages: readonly ChatMessage[];
+			brief?: string | undefined;
 		},
 	},
 }).createMachine({
@@ -124,6 +127,7 @@ export const runMachine = setup({
 		goal: input.goal,
 		priority: input.priority,
 		messages: input.messages,
+		...(input.brief ? { brief: input.brief } : {}),
 		turns: 0,
 		requests: 0,
 		activeMs: 0,

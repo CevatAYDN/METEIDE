@@ -5,3 +5,6 @@ export const MAX_TURNS = 25;
 
 /** Repairs asked of a reviewer whose verdict is not valid (08 Orchestration and teams, Task execution sequence). */
 export const REVIEW_REPAIRS = 2;
+
+/** Characters the start brief may take, its label included (08 Orchestration and teams, Run memory). */
+export const BRIEF_MAX_CHARS = 4000;
