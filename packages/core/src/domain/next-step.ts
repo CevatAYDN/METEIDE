@@ -1,7 +1,6 @@
-import type { ChatMessage, ToolCall } from "@mete/contracts";
+import { type ChatMessage, isWrite, type ToolCall } from "@mete/contracts";
 import { MAX_TURNS } from "../defaults.js";
 import { activeTime, type RunContext } from "./run-machine.js";
-import { isWrite } from "./tools.js";
 
 // What a running single-agent run does next (docs/08, Single agent), read from its context alone,
 // so a resumed run picks up exactly where it stopped.

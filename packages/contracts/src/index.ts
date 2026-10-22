@@ -132,6 +132,16 @@ export {
 	type TemplateParseError,
 } from "./domain/template.js";
 export {
+	capabilityOf,
+	isWrite,
+	TOOL_CATALOG,
+	type ToolCatalogEntry,
+	toolEntry,
+	toolName,
+	toolSpec,
+	VcsForModelSchema,
+} from "./domain/tool-catalog.js";
+export {
 	type FsEditInput,
 	FsEditInputSchema,
 	type FsEditOutput,

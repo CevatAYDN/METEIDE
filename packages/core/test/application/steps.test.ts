@@ -84,6 +84,24 @@ describe("steps for a seat", () => {
 		expect(JSON.parse(json ?? "")).toEqual({ ok: true, value: {} });
 	});
 
+	it("tells the model a capability is missing when its optional module is not there", async () => {
+		const { deps } = setup([]);
+		const call = { id: "c", name: "shell_exec", args: { command: "ls" } };
+		const out = await callTool(
+			deps,
+			{ call, seat: SINGLE_AGENT },
+			{ signal },
+			() => {},
+		);
+		expect(out.kind === "result" && JSON.parse(out.message.content)).toEqual({
+			ok: false,
+			error: {
+				code: "capability_missing",
+				message: "shell.exec@1 is not active",
+			},
+		});
+	});
+
 	it("refuses a tool call outside the seat without running it", async () => {
 		const { deps, ran } = setup(["shell.exec@1"]);
 		const call = { id: "c", name: "shell_exec", args: { command: "ls" } };

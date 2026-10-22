@@ -8,21 +8,17 @@ import {
 	ok,
 	type Result,
 	type SecretsMaskAdapter,
+	TOOL_CATALOG,
 	type ToolCall,
 	type ToolContext,
+	toolName,
+	toolSpec,
 	type VcsGitAdapter,
 } from "@mete/contracts";
 import type { CapabilityRegistry } from "@mete/kernel";
 import { z } from "zod";
 import type { EventBody } from "../domain/run-events.js";
-import {
-	allowed,
-	EXTERNAL_LABEL,
-	type Seat,
-	toolName,
-	toolSpec,
-	WORKSPACE_TOOLS,
-} from "../domain/tools.js";
+import { allowed, EXTERNAL_LABEL, type Seat } from "../domain/tools.js";
 
 // One model call, one tool call and one checkpoint of a single-agent run (docs/08, Single agent).
 
@@ -50,7 +46,7 @@ export type ModelOutcome =
 	| { readonly kind: "error"; readonly error: LlmError }
 	| { readonly kind: "missing" };
 
-const SPECS = WORKSPACE_TOOLS.map((t) => ({ ref: t.ref, spec: toolSpec(t) }));
+const SPECS = TOOL_CATALOG.map((t) => ({ ref: t.ref, spec: toolSpec(t) }));
 
 /** Text the run keeps, with secrets masked (docs/07); kept as is while no secrets.mask@1 is active. */
 const masked = async (deps: StepDeps, text: string) => {
@@ -192,7 +188,7 @@ export const callTool = async (
 	ctx: ToolContext,
 	emit: Emit,
 ): Promise<ToolOutcome> => {
-	const entry = WORKSPACE_TOOLS.find(
+	const entry = TOOL_CATALOG.find(
 		(t) => toolName(t.ref) === call.name && allowed(seat, t.ref),
 	);
 	if (!entry)
