@@ -31,13 +31,18 @@ const inspect = (ws, args) => {
 		[pnpm, "--silent", `--package=${INSPECTOR}`, "dlx", "mcp-inspector"].concat(
 			["--cli", process.execPath, BIN, "mcp", ws, ...args],
 		),
-		{ encoding: "utf8" },
+		// The first run downloads the Inspector; a hung server must not hang the check.
+		{ encoding: "utf8", timeout: 300_000 },
 	);
+	let json;
 	try {
-		return { code: r.status, json: JSON.parse(r.stdout) };
+		json = JSON.parse(r.stdout);
 	} catch {
-		return fail(`${args.join(" ")} printed no JSON\n${r.stderr}`);
+		fail(`${args.join(" ")} printed no JSON\n${r.stderr}`);
 	}
+	// The Inspector's own error, such as the server exiting because core-engine is not active.
+	if (json.error) fail(`${json.error.message}\n${r.stderr}`);
+	return { code: r.status, json };
 };
 
 const expect = (ok, why) => {
