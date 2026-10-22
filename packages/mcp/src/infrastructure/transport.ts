@@ -3,6 +3,7 @@ import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { STDERR_TAIL_CHARS } from "../defaults.js";
 
 // Transports of docs/10 (MCP client): stdio, Streamable HTTP and legacy SSE.
 
@@ -15,8 +16,6 @@ export type Opened = {
 /** Opens one configured server; tests swap it for an in-memory pair. */
 export type OpenTransport = (server: McpServer) => Opened;
 
-const STDERR_TAIL = 2000;
-
 const stdio = (server: Extract<McpServer, { transport: "stdio" }>): Opened => {
 	// shortcut: `runtime` is not resolved, the command runs as configured; upgrade with the runtime manager (docs/10, Managed runtimes).
 	const transport = new StdioClientTransport({
@@ -27,7 +26,7 @@ const stdio = (server: Extract<McpServer, { transport: "stdio" }>): Opened => {
 	});
 	let tail = "";
 	transport.stderr?.on("data", (chunk: Buffer) => {
-		tail = (tail + chunk.toString()).slice(-STDERR_TAIL);
+		tail = (tail + chunk.toString()).slice(-STDERR_TAIL_CHARS);
 	});
 	return { transport, stderr: () => tail.trim() };
 };
