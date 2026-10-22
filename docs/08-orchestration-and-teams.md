@@ -178,7 +178,7 @@ Each model call receives only: role goal and backstory, the task, its acceptance
 
 `templates/research.yaml` runs two researcher tasks (tier `reasoning` with tool calling, `web.search@1` and `web.fetch@1`), then a synthesizer task (tier `reasoning`) that writes the `research-report@1` JSON under a guardrail with 2 repairs, approved by the lead (tier `reasoning`); the roles' goals spell out the report's JSON shape because a template has no task description [D].
 
-`templates/seo-audit.yaml` runs three tasks on the page the goal names: the technical auditor (`seo.audit@1`, `browser.screenshot@1`, `web.fetch@1`), the content analyst (`web.fetch@1`) and the competitor scout (`web.search@1`, `web.fetch@1`), all tier `reasoning` with tool calling. The SEO lead (tier `reasoning`) then writes the `seo-audit@1` JSON from their notes under a guardrail with 2 repairs. With four roles the lead writes the report itself, so the schema guardrail is its check and no role approves it \[D\].
+`templates/seo-audit.yaml` runs three tasks on the page the goal names: the technical auditor (`seo.audit@2`, `browser.screenshot@2`, `web.fetch@1`), the content analyst (`web.fetch@1`) and the competitor scout (`web.search@1`, `web.fetch@1`), all tier `reasoning` with tool calling. The SEO lead (tier `reasoning`) then writes the `seo-audit@1` JSON from their notes under a guardrail with 2 repairs. With four roles the lead writes the report itself, so the schema guardrail is its check and no role approves it \[D\].
 
 Artifact types defined in `@mete/contracts`: `gdd@1`, `task-list@1`, `research-report@1`, `seo-audit@1`, `code-change@1`, `test-report@1`, `asset-spec@1`, `asset@1`, `lesson@1`.
 

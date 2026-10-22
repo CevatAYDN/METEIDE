@@ -1,12 +1,12 @@
 import { err, ok, type Result, type SeoAuditOutput } from "@mete/contracts";
 import { z } from "zod";
 
-// A Lighthouse report (LHR) as seo.audit@1 output (docs/10, Built-in tools): scores 0-1 become
+// A Lighthouse report (LHR) as seo.audit@2 output (docs/10, Built-in tools): scores 0-1 become
 // 0-100, an unscored audit keeps null, and an unscored category fails the call [D]. Pure.
 
 const score = z.number().min(0).max(1).nullable();
 
-/** The part of a Lighthouse report seo.audit@1 reads; the runner's answer is parsed with it. */
+/** The part of a Lighthouse report seo.audit@2 reads; the runner's answer is parsed with it. */
 export const LhrSchema = z.object({
 	categories: z.object({
 		performance: z.object({ score }),

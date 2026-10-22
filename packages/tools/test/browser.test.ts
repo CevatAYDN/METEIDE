@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type {
@@ -44,6 +44,7 @@ const lhr = (seo: number | null) => ({
 
 const signal = new AbortController().signal;
 let dir = "";
+let globalDir = "";
 type Audit = ToolAdapter<unknown, SeoAuditOutput>;
 const asked: RunnerRequest[] = [];
 
@@ -65,8 +66,13 @@ const start = async (
 		return { ok: true, value: undefined };
 	};
 	const { ctx, registry } = toolContext(verdict);
-	await createBrowserModule({ workspaceDir: dir, run, chromium }).activate(ctx);
-	const tool = (ref: "browser.screenshot@1" | "seo.audit@1") => {
+	await createBrowserModule({
+		workspaceDir: dir,
+		globalDir,
+		run,
+		chromium,
+	}).activate(ctx);
+	const tool = (ref: "browser.screenshot@2" | "seo.audit@2") => {
 		const r = registry.resolve<ToolAdapter<unknown, unknown>>(ref);
 		return r.ok ? r.value[0].impl : undefined;
 	};
@@ -74,14 +80,21 @@ const start = async (
 };
 
 beforeAll(async () => {
-	dir = await mkdtemp(join(tmpdir(), "mete-browser-"));
+	dir = await realpath(await mkdtemp(join(tmpdir(), "mete-browser-")));
+	globalDir = await realpath(
+		await mkdtemp(join(tmpdir(), "mete-browser-global-")),
+	);
+	await mkdir(join(globalDir, "worktrees"), { recursive: true });
 });
-afterAll(() => rm(dir, { recursive: true, force: true }));
+afterAll(async () => {
+	await rm(dir, { recursive: true, force: true });
+	await rm(globalDir, { recursive: true, force: true });
+});
 
-describe("browser.screenshot@1", () => {
+describe("browser.screenshot@2", () => {
 	it("saves the PNG in .mete/assets and reads its size", async () => {
 		const tool = await start("allow", async () => "");
-		const r = await tool("browser.screenshot@1")?.run(
+		const r = await tool("browser.screenshot@2")?.run(
 			{ url: "https://a.example/" },
 			{ signal },
 		);
@@ -98,13 +111,13 @@ describe("browser.screenshot@1", () => {
 	it("refuses a private address before the browser starts, and passes the policy's ask", async () => {
 		asked.length = 0;
 		const tool = await start("allow", async () => "");
-		const local = await tool("browser.screenshot@1")?.run(
+		const local = await tool("browser.screenshot@2")?.run(
 			{ url: "http://127.0.0.1/" },
 			{ signal },
 		);
 		expect(local?.ok === false && local.error.code).toBe("bad_input");
 		const ask = await start("ask", async () => "");
-		const r = await ask("browser.screenshot@1")?.run(
+		const r = await ask("browser.screenshot@2")?.run(
 			{ url: "https://a.example/" },
 			{ signal },
 		);
@@ -113,10 +126,10 @@ describe("browser.screenshot@1", () => {
 	});
 });
 
-describe("seo.audit@1", () => {
+describe("seo.audit@2", () => {
 	it("maps Lighthouse scores to 0-100 and keeps an unscored audit as null", async () => {
 		const tool = await start("allow", async () => JSON.stringify(lhr(0.81)));
-		const r = await (tool("seo.audit@1") as Audit | undefined)?.run(
+		const r = await (tool("seo.audit@2") as Audit | undefined)?.run(
 			{ url: "https://a.example/" },
 			{ signal },
 		);
@@ -142,7 +155,7 @@ describe("seo.audit@1", () => {
 		const unscored = await start("allow", async () =>
 			JSON.stringify(lhr(null)),
 		);
-		const a = await unscored("seo.audit@1")?.run(
+		const a = await unscored("seo.audit@2")?.run(
 			{ url: "https://a.example/" },
 			{ signal },
 		);
@@ -151,7 +164,7 @@ describe("seo.audit@1", () => {
 			message: "Lighthouse did not score the seo category",
 		});
 		const broken = await start("allow", async () => null);
-		const b = await broken("seo.audit@1")?.run(
+		const b = await broken("seo.audit@2")?.run(
 			{ url: "https://a.example/" },
 			{ signal },
 		);
@@ -182,11 +195,11 @@ describe("Chromium on first use", () => {
 			},
 			chromium,
 		);
-		await tool("browser.screenshot@1")?.run(
+		await tool("browser.screenshot@2")?.run(
 			{ url: "https://a.example/" },
 			{ signal },
 		);
-		await tool("browser.screenshot@1")?.run(
+		await tool("browser.screenshot@2")?.run(
 			{ url: "https://a.example/" },
 			{ signal },
 		);
@@ -197,7 +210,7 @@ describe("Chromium on first use", () => {
 		};
 		const broken = await start("allow", async () => "", failing);
 		expect(
-			await broken("browser.screenshot@1")?.run(
+			await broken("browser.screenshot@2")?.run(
 				{ url: "https://a.example/" },
 				{ signal },
 			),
@@ -205,5 +218,67 @@ describe("Chromium on first use", () => {
 			ok: false,
 			error: { code: "io", message: "no disk space" },
 		});
+	});
+});
+
+// A built site (docs/10, Built-in tools): the tool serves the folder itself, so the caller gives no address.
+describe("a built folder", () => {
+	const site = async (root: string, name: string, index = true) => {
+		await mkdir(join(root, name), { recursive: true });
+		if (index) await writeFile(join(root, name, "index.html"), "<h1>hi</h1>");
+		return join(root, name);
+	};
+	const open =
+		(ref: "browser.screenshot@2" | "seo.audit@2") =>
+		async (input: unknown, cwd?: string) => {
+			asked.length = 0;
+			const tool = await start("ask", async () => JSON.stringify(lhr(0.9)));
+			return tool(ref)?.run(input, { signal, ...(cwd ? { cwd } : {}) });
+		};
+
+	it("hands the runner the real folder and asks no net.fetch question", async () => {
+		const real = await site(dir, "dist");
+		const shot = await open("browser.screenshot@2")({ folder: "dist" });
+		expect(shot?.ok).toBe(true);
+		const audit = await open("seo.audit@2")({ folder: "dist" });
+		expect(audit?.ok).toBe(true);
+		expect(asked.map((r) => [r.kind, r.target])).toEqual([
+			["audit", { folder: real }],
+		]);
+	});
+
+	it("refuses a folder outside the workspace, one that is a file, one without index.html and an ignored one", async () => {
+		await site(dir, "empty", false);
+		await writeFile(join(dir, "page.html"), "x");
+		await site(dir, "secrets/site");
+		const outside = await mkdtemp(join(tmpdir(), "mete-elsewhere-"));
+		await writeFile(join(outside, "index.html"), "x");
+		try {
+			const audit = open("seo.audit@2");
+			const code = async (folder: string) => {
+				const r = await audit({ folder });
+				return r?.ok === false ? r.error.code : "ok";
+			};
+			expect(await code(outside)).toBe("outside_workspace");
+			expect(await code("../elsewhere")).toBe("outside_workspace");
+			expect(await code("page.html")).toBe("bad_input");
+			expect(await code("empty")).toBe("bad_input");
+			expect(await code("secrets/site")).toBe("ignored");
+			expect(await code("missing")).toBe("bad_input");
+			expect(asked).toEqual([]);
+		} finally {
+			await rm(outside, { recursive: true, force: true });
+		}
+	});
+
+	it("reads a relative folder from the task's worktree and keeps the call inside it", async () => {
+		const tree = join(globalDir, "worktrees", "r1", "t1");
+		const real = await site(tree, "out");
+		await site(dir, "out");
+		const audit = open("seo.audit@2");
+		expect((await audit({ folder: "out" }, tree))?.ok).toBe(true);
+		expect(asked.map((r) => r.target)).toEqual([{ folder: real }]);
+		const climb = await audit({ folder: join(dir, "out") }, tree);
+		expect(climb?.ok === false && climb.error.code).toBe("outside_workspace");
 	});
 });

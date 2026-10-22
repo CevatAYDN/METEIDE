@@ -148,7 +148,7 @@ const modulesFor = (
 		createToolsShellModule(dirs),
 		createVcsGitModule(dirs),
 		createToolsWebModule(opts.fetch ? { fetch: opts.fetch } : {}),
-		createBrowserModule({ workspaceDir: opts.workspaceDir, ...opts.browser }),
+		createBrowserModule({ ...dirs, ...opts.browser }),
 		createRegistryModule({
 			globalDir: opts.globalDir,
 			...(opts.fetch ? { fetch: opts.fetch } : {}),

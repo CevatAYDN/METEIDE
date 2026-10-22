@@ -19,7 +19,7 @@ roles:
     backstory: You report what the audit measured and never guess a score.
     tier: reasoning
     needs: [tool_calling]
-    capabilities: [seo.audit@1, browser.screenshot@1, web.fetch@1]
+    capabilities: [seo.audit@2, browser.screenshot@2, web.fetch@1]
   - id: content_analyst
     name: Content analyst
     goal: >-

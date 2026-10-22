@@ -165,11 +165,12 @@ export type WebFetchInput = { url: string };                            // http 
 export type WebFetchOutput = { markdown: string; title: string; finalUrl: string };   // finalUrl: where redirects ended
 export type WebSearchInput = { query: string; maxResults?: number };    // maxResults defaults to 8
 export type WebSearchOutput = { results: { title: string; url: string; snippet: string }[] };
-// browser.screenshot@1 and seo.audit@1, defined in @mete/contracts; rules in tab 10 (Built-in tools). Paths are workspace-relative in .mete/assets/.
-export type BrowserScreenshotInput = { url: string; fullPage?: boolean };    // fullPage defaults to false
+// browser.screenshot@2 and seo.audit@2, defined in @mete/contracts; rules in tab 10 (Built-in tools). Paths are workspace-relative in .mete/assets/.
+export type BrowserScreenshotInput = ({ url: string } | { folder: string }) & { fullPage?: boolean };    // fullPage defaults to false;
+  // folder: a built site (with an index.html) in the workspace or the task's worktree, which the tool serves itself
 export type BrowserScreenshotOutput = { path: string; width: number; height: number };
 export type SeoScores = { performance: number; accessibility: number; bestPractices: number; seo: number };   // 0-100
-export type SeoAuditInput = { url: string };
+export type SeoAuditInput = { url: string } | { folder: string };
 export type SeoAuditOutput = { scores: SeoScores; audits: { id: string; title: string; score: number | null; details?: string }[];
   reportPath: string };                                             // score null: Lighthouse does not score that audit
 // mcp.tools@1, defined in @mete/contracts with McpConfigSchema for .mete/mcp.yaml (tab 10, MCP client); policy action mcp.call.
@@ -332,7 +333,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | knowledge-search | `@mete/knowledge` | optional | `knowledge.search@1`, `knowledge.index@1` | `fs.grep@1` | `llm.embed@1`, `llm.rerank@1`, `code.graph@1`, `vault.read@1` | worker |
 | core-engine | `@mete/core` | essential | `team.engine@2` (native), runs, router, artifacts, checkpoints | `llm.chat@1`, `fs.*`, `policy.check@1`, `secrets.mask@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@2`, `web.fetch@1`, `web.search@1`, `mcp.tools@1`, `knowledge.search@1`, `vault.*` | in-process |
 | autonomy | `@mete/core` | optional | triggers, schedules | `team.engine@2` | `issues.source@1` | in-process |
-| browser | `@mete/tools` | optional | `browser.screenshot@1`, `seo.audit@1` | `policy.check@1` | none | in-process; each call in a child process; Chromium comes from Playwright's own installer, not `runtime.ensure@1` (tab 10) \[D\] |
+| browser | `@mete/tools` | optional | `browser.screenshot@2`, `seo.audit@2` | `policy.check@1` | none | in-process; each call in a child process; Chromium comes from Playwright's own installer, not `runtime.ensure@1` (tab 10) \[D\] |
 | engine-crewai, engine-metagpt, engine-chatdev | `@mete/engines` | optional | `team.engine@2` | `runtime.ensure@1`, `llm.chat@1` | none | process |
 | ui-board, ui-flow, ui-studio, ui-replay | `@mete/ui-*` | optional | UI views (subscribe to events) | none | none | renderer |
 
@@ -364,7 +365,7 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 | `media.3d.fromText@1`, `media.3d.fromImage@1` | 3D assets | MCP mapping adapters (for example TRELLIS) | Artist writes specs and placeholders |
 | `3d.cleanup@1`, `3d.export@1` | Mesh cleanup and export | MCP or CLI adapters (Blender, 3ds Max, others) | Raw generated file is kept |
 | `gameengine.build@1`, `gameengine.test@1`, `gameengine.importAsset@1` | Engine actions | MCP or CLI adapters (Unity, Unreal, Godot, others) | Tester verifies by code review only and marks the gap |
-| `browser.screenshot@1`, `seo.audit@1` | Visual checks and audits | Playwright, Lighthouse | Steps needing them are blocked with a notice |
+| `browser.screenshot@2`, `seo.audit@2` | Visual checks and audits | Playwright, Lighthouse | Steps needing them are blocked with a notice |
 | `registry.search@1` | Find plugins, MCP servers, skills, templates | Official MCP registry → METE registry repository → local folder | Manual install only |
 | `issues.source@1` | Issues that trigger runs | GitHub | Issue triggers off |
 | `release.publish@1` | Publish builds | GitHub Releases | Manual upload |

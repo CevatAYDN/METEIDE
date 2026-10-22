@@ -1,16 +1,20 @@
 import { z } from "zod";
 
-// browser.screenshot@1 and seo.audit@1 from docs/10 (Built-in tools); adapters return ToolError
-// (tools.ts) and, like web.fetch@1, ask policy.check@1 with action net.fetch for a public address.
+// browser.screenshot@2 and seo.audit@2 from docs/10 (Built-in tools); adapters return ToolError
+// (tools.ts). A public address asks policy.check@1 with action net.fetch, like web.fetch@1; a
+// folder is served to the browser by the tool itself, so no address comes from the caller.
 
 const webUrl = z.url({ protocol: /^https?$/ });
 const score = z.number().int().min(0).max(100);
+// A built site: a folder with an index.html, relative to the workspace or the task's worktree.
+const folder = z.string().min(1);
+const fullPage = z.boolean().default(false);
 
-/** Input of browser.screenshot@1: one http or https page; fullPage defaults to the viewport only. */
-export const BrowserScreenshotInputSchema = z.strictObject({
-	url: webUrl,
-	fullPage: z.boolean().default(false),
-});
+/** Input of browser.screenshot@2: a public page or a built folder; fullPage defaults to the viewport only. */
+export const BrowserScreenshotInputSchema = z.union([
+	z.strictObject({ url: webUrl, fullPage }),
+	z.strictObject({ folder, fullPage }),
+]);
 export type BrowserScreenshotInput = z.input<
 	typeof BrowserScreenshotInputSchema
 >;
@@ -30,8 +34,11 @@ export const SeoScoresSchema = z.strictObject({
 });
 export type SeoScores = z.output<typeof SeoScoresSchema>;
 
-/** Input of seo.audit@1: one http or https page. */
-export const SeoAuditInputSchema = z.strictObject({ url: webUrl });
+/** Input of seo.audit@2: a public page or a built folder. */
+export const SeoAuditInputSchema = z.union([
+	z.strictObject({ url: webUrl }),
+	z.strictObject({ folder }),
+]);
 export type SeoAuditInput = z.input<typeof SeoAuditInputSchema>;
 /**
  * The audit: category scores, each audit with a 0-100 score or null when Lighthouse does not

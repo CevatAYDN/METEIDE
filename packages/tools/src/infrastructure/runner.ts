@@ -7,15 +7,18 @@ import { BROWSER_TIMEOUT_MS, RUNNER_STDERR_CHARS } from "../defaults.js";
 // The main process side of the browser runner: one child per call, killed on timeout or abort,
 // its stderr tail in the error so a failure says what went wrong (docs/10, Built-in tools).
 
+/** What to open: a public page, or a folder of a built site that the runner serves to the browser itself. */
+export type Target = { readonly url: string } | { readonly folder: string };
+
 /** One job for the runner; `out` is the absolute path of the file it writes. */
 export type RunnerRequest =
 	| {
 			readonly kind: "screenshot";
-			readonly url: string;
+			readonly target: Target;
 			readonly fullPage: boolean;
 			readonly out: string;
 	  }
-	| { readonly kind: "audit"; readonly url: string; readonly out: string };
+	| { readonly kind: "audit"; readonly target: Target; readonly out: string };
 
 const ReplySchema = z.union([
 	z.object({ ok: z.literal(true) }),

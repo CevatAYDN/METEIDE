@@ -6,7 +6,8 @@ import { createServer } from "node:net";
 import lighthouse from "lighthouse";
 import { chromium } from "playwright-core";
 import { isPublicHost } from "../domain/addresses.js";
-import type { RunnerReply, RunnerRequest } from "./runner.js";
+import type { RunnerReply, RunnerRequest, Target } from "./runner.js";
+import { serveFolder } from "./static-server.js";
 
 const CATEGORIES = ["performance", "accessibility", "best-practices", "seo"];
 
@@ -21,20 +22,36 @@ const freePort = () =>
 		});
 	});
 
+// Opens the target: a public page as it is, a built folder through a file server that lives while the job runs.
+const opened = async <T>(target: Target, work: (url: string) => Promise<T>) => {
+	if ("url" in target) return work(target.url);
+	const site = await serveFolder(target.folder);
+	try {
+		return await work(`${site.origin}/`);
+	} finally {
+		await site.close();
+	}
+};
+
 const screenshot = async (
 	req: Extract<RunnerRequest, { kind: "screenshot" }>,
 ) => {
 	const browser = await chromium.launch();
 	try {
-		const page = await browser.newPage();
-		// Every request the page makes must go to a public address, like web.fetch@1's hops.
-		await page.route("**/*", (route) =>
-			isPublicHost(new URL(route.request().url()).hostname)
-				? route.continue()
-				: route.abort("blockedbyclient"),
-		);
-		await page.goto(req.url, { waitUntil: "load" });
-		await page.screenshot({ path: req.out, fullPage: req.fullPage });
+		await opened(req.target, async (url) => {
+			const page = await browser.newPage();
+			// Every request the page makes must go to a public address, like web.fetch@1's hops, or to
+			// the file server of the folder being shown, which serves that folder and nothing else.
+			const own = "folder" in req.target ? new URL(url).origin : undefined;
+			await page.route("**/*", (route) => {
+				const { hostname, origin } = new URL(route.request().url());
+				return isPublicHost(hostname) || origin === own
+					? route.continue()
+					: route.abort("blockedbyclient");
+			});
+			await page.goto(url, { waitUntil: "load" });
+			await page.screenshot({ path: req.out, fullPage: req.fullPage });
+		});
 	} finally {
 		await browser.close();
 	}
@@ -48,12 +65,14 @@ const audit = async (req: Extract<RunnerRequest, { kind: "audit" }>) => {
 	try {
 		// shortcut: only the page's own address is checked; Lighthouse loads its subresources itself.
 		// No telemetry: Lighthouse starts its error reporting only from its own CLI, never through this API.
-		const result = await lighthouse(req.url, {
-			port,
-			output: "json",
-			logLevel: "error",
-			onlyCategories: CATEGORIES,
-		});
+		const result = await opened(req.target, (url) =>
+			lighthouse(url, {
+				port,
+				output: "json",
+				logLevel: "error",
+				onlyCategories: CATEGORIES,
+			}),
+		);
 		if (!result) throw new Error("Lighthouse returned no result");
 		const report = result.report;
 		await writeFile(

@@ -104,16 +104,16 @@ export const TOOL_CATALOG: readonly ToolCatalogEntry[] = [
 		external: true,
 	},
 	{
-		ref: "browser.screenshot@1",
+		ref: "browser.screenshot@2",
 		schema: BrowserScreenshotInputSchema,
 		description:
-			"Take a screenshot of a public web page; returns the image path and size.",
+			"Take a screenshot of a public web page or of a built site folder; returns the image path and size.",
 	},
 	{
-		ref: "seo.audit@1",
+		ref: "seo.audit@2",
 		schema: SeoAuditInputSchema,
 		description:
-			"Run a Lighthouse audit of a public web page; returns category scores 0-100 and every audit.",
+			"Run a Lighthouse audit of a public web page or of a built site folder (one with an index.html); returns category scores 0-100 and every audit.",
 		external: true,
 	},
 ];

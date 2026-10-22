@@ -171,8 +171,8 @@ describe("the seo-audit template", () => {
 		).toBe(true);
 		expect(t.out).toEqual(
 			expect.arrayContaining([
-				"tool  seo.audit@1",
-				"tool  browser.screenshot@1",
+				"tool  seo.audit@2",
+				"tool  browser.screenshot@2",
 				"tool  web.fetch@1",
 				`completed\n${REPORT}`,
 			]),

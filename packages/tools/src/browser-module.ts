@@ -1,5 +1,6 @@
-// MeteModule entry of browser (docs/06-kernel-and-modules.md): browser.screenshot@1 and
-// seo.audit@1. The module runs in process; every call drives Chromium in a child process.
+// MeteModule entry of browser (docs/06-kernel-and-modules.md): browser.screenshot@2 and
+// seo.audit@2. The module runs in process; every call drives Chromium in a child process.
+import { join } from "node:path";
 import {
 	type CapabilityRef,
 	type ModuleManifest,
@@ -23,6 +24,7 @@ import { policyOf } from "./module.js";
 /** What browser is given; tests pass a fake runner and Chromium, so no browser starts or installs. */
 export type BrowserOptions = {
 	readonly workspaceDir: string;
+	readonly globalDir: string;
 	readonly run?: RunBrowser;
 	readonly chromium?: Chromium;
 };
@@ -33,7 +35,7 @@ const MANIFEST: ModuleManifest = {
 	displayName: "Browser",
 	class: "optional",
 	trust: "core",
-	provides: ["browser.screenshot@1", "seo.audit@1"],
+	provides: ["browser.screenshot@2", "seo.audit@2"],
 	requires: ["policy.check@1"],
 	optional: [],
 	activation: ["onStartup"],
@@ -62,14 +64,15 @@ export const createBrowserModule = (opts: BrowserOptions): MeteModule => ({
 		const deps: BrowserDeps = {
 			adapterId: MANIFEST.id,
 			workspaceDir: await realTarget(opts.workspaceDir),
+			worktreesDir: await realTarget(join(opts.globalDir, "worktrees")),
 			policy: policyOf(ctx.capabilities),
 			run: opts.run ?? forkRunner,
 			chromium: opts.chromium ?? playwrightChromium(),
 		};
-		provide(ctx, "browser.screenshot@1", {
+		provide(ctx, "browser.screenshot@2", {
 			run: (input, c) => screenshotTool(deps, input, c),
 		});
-		provide(ctx, "seo.audit@1", {
+		provide(ctx, "seo.audit@2", {
 			run: (input, c) => auditTool(deps, input, c),
 		});
 		return ok(undefined);

@@ -33,6 +33,24 @@ describe("browser and seo contracts", () => {
 		).toBe(false);
 	});
 
+	it("takes a page or a built folder, never both and never neither", () => {
+		const page = { url: "https://a.example/" };
+		expect(SeoAuditInputSchema.safeParse(page).success).toBe(true);
+		expect(SeoAuditInputSchema.safeParse({ folder: "dist" }).success).toBe(
+			true,
+		);
+		expect(
+			BrowserScreenshotInputSchema.parse({ folder: "dist", fullPage: true }),
+		).toEqual({ folder: "dist", fullPage: true });
+		for (const bad of [{ ...page, folder: "dist" }, {}, { folder: "" }]) {
+			expect(
+				SeoAuditInputSchema.safeParse(bad).success,
+				JSON.stringify(bad),
+			).toBe(false);
+			expect(BrowserScreenshotInputSchema.safeParse(bad).success).toBe(false);
+		}
+	});
+
 	it("checks seo-audit@1: scores 0-100, fixes ranked and backed by an audit", () => {
 		const schema = artifactSchema("seo-audit@1");
 		const report = {
