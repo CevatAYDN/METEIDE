@@ -199,6 +199,7 @@ const circleFrom = (
 };
 
 // A task waits for the tasks of its context, so tasks that wait for each other never start.
+// shortcut: only the first circle is named; the next parse finds the next one.
 const checkCircle = (r: Refs, tasks: Base["tasks"]) => {
 	const deps: Deps = new Map(tasks.map((x) => [x.id, x.context ?? []]));
 	const done = new Set<string>();
