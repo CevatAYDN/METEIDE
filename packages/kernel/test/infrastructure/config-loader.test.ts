@@ -59,6 +59,20 @@ describe("loadConfig", () => {
 		expect(r.value.bindings("fs.read@1")).toEqual([]);
 	});
 
+	it("uses a built-in binding until the user binds that capability", async () => {
+		const d = await dirs({
+			"repo/.mete/workspace.yaml": `id: ${ID}\n`,
+			"repo/.mete/bindings.yaml": "web.fetch@1: [mine]\n",
+		});
+		const r = await loadConfig(d, {
+			"web.search@1": ["exa-mcp", "tavily"],
+			"web.fetch@1": ["built-in"],
+		});
+		if (!r.ok) throw new Error(JSON.stringify(r.error));
+		expect(r.value.bindings("web.search@1")).toEqual(["exa-mcp", "tavily"]);
+		expect(r.value.bindings("web.fetch@1")).toEqual(["mine"]);
+	});
+
 	it("treats an empty file as no settings", async () => {
 		const d = await dirs({
 			"repo/.mete/workspace.yaml": `id: ${ID}\n`,

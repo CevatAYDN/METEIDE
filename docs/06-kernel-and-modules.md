@@ -281,7 +281,7 @@ A crash is an exception thrown by `activate` or `deactivate`, or a `crash(module
 ## Capability resolution
 
 1. Collect active adapters for the same capability id and major version.
-2. Order them by the workspace binding list; adapters not in the binding follow, core before first-party before third-party, then in registration order. One adapter id provides a capability at most once; a second `provide` is a bug and throws.
+2. Order them by the binding list: the user's list for that capability (`bindings.yaml` or the `bindings:` settings section), otherwise the built-in list the composition root passes to `loadConfig` \[D\]; adapters not in the binding follow, core before first-party before third-party, then in registration order. One adapter id provides a capability at most once; a second `provide` is a bug and throws.
 3. Remove adapters whose circuit is open or that lack a required feature.
 4. Return the chain. The caller tries the first adapter; on `AdapterUnavailable` it moves to the next.
 5. An empty chain returns `CapabilityMissing`. Callers MUST handle it: degrade, skip with a notice, or pause the run. They MUST NOT crash.

@@ -125,9 +125,13 @@ const readGlobal = async (globalDir: string, errors: ConfigInvalid[]) => {
 
 const WorkspaceSchema = z.looseObject({ id: IdSchema });
 
-/** Loads global settings and `.mete/*.yaml`, creating `workspace.yaml` and `.gitignore` when missing. */
+/**
+ * Loads global settings and `.mete/*.yaml`, creating `workspace.yaml` and `.gitignore` when missing.
+ * `builtIn` are the composition root's default bindings; a capability the user binds replaces its default (docs/06).
+ */
 export const loadConfig = async (
 	dirs: ConfigDirs,
+	builtIn: z.output<typeof BindingsSchema> = {},
 ): Promise<Result<LoadedConfig, ReadonlyArray<ConfigInvalid>>> => {
 	const metaDir = join(dirs.workspaceDir, ".mete");
 	const setup = await ensureWorkspaceFiles(metaDir);
@@ -148,6 +152,6 @@ export const loadConfig = async (
 	return ok({
 		workspaceId: workspace.value.id,
 		reader,
-		bindings: (ref) => map[ref] ?? [],
+		bindings: (ref) => map[ref] ?? builtIn[ref] ?? [],
 	});
 };
