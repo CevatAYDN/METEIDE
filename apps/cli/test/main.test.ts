@@ -77,7 +77,7 @@ describe("mete main", () => {
 		]) {
 			const t = recordingIo();
 			expect(await main(argv, t.io, env)).toBe(1);
-			expect(t.err[0]).toContain(`another mete run (pid ${process.pid})`);
+			expect(t.err[0]).toContain(`another mete command (pid ${process.pid}:`);
 		}
 		await lock.value();
 	});

@@ -40,7 +40,7 @@ const create = (file: string) =>
 
 /** The refusal shown when a live `mete run` holds the workspace. */
 export const heldMessage = (pid: number, file: string) =>
-	`another mete run (pid ${pid}) drives this workspace; press Ctrl+C there, or delete ${file} if that process is not mete`;
+	`another mete command (pid ${pid}: run, mcp or daemon) drives this workspace; press Ctrl+C there, or delete ${file} if that process is not mete`;
 
 /** Takes the lock, replacing a stale one; refuses while a live process holds it. */
 export const takeRunLock = async (
