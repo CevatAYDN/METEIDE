@@ -10,7 +10,13 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createArtifactStore } from "../../src/infrastructure/artifact-store.js";
 import type { TemplateDirs } from "../../src/infrastructure/template-store.js";
-import { engineHarness, reply, type Tool, typesOf } from "../helpers/engine.js";
+import {
+	engineHarness,
+	reply,
+	type Script,
+	type Tool,
+	typesOf,
+} from "../helpers/engine.js";
 
 // A pipeline of two tasks: the second reads the first one's report.
 const PIPELINE = `apiVersion: mete/v1
@@ -560,20 +566,23 @@ const fakeVcs = (
 		input: { op: string; runId?: string; taskId?: string };
 		cwd?: string;
 	}[] = [];
+	const hooks = { onRemove: () => {} };
 	const run: Tool = async (input, ctx) => {
 		const i = input as { op: string };
 		calls.push({ input: i, ...(ctx.cwd ? { cwd: ctx.cwd } : {}) });
 		if (i.op === "worktree.create") return create();
 		if (i.op === "merge") return merge();
-		if (i.op === "worktree.remove")
+		if (i.op === "worktree.remove") {
+			hooks.onRemove();
 			return ok({ op: "worktree.remove", removed: true });
+		}
 		return ok({
 			op: "checkpoint.create",
 			ref: "refs/mete/checkpoints/r/1",
 			sha: "s",
 		});
 	};
-	return { calls, run };
+	return { calls, run, hooks };
 };
 
 const WRITE = reply("", [
@@ -719,23 +728,40 @@ describe("merging an approved task's worktree", () => {
 		expect(h.requests).toHaveLength(3);
 	});
 
-	it("starts the next task from the merged result: the merge comes before it", async () => {
+	it("merges before the next task starts and records the merge before it removes the worktree", async () => {
 		await writeFile(join(templates.builtIn, "duo.yaml"), BUILDER);
-		const vcs = fakeVcs(made);
+		const order: string[] = [];
+		const vcs = fakeVcs(made, () => {
+			order.push("merge");
+			return ok({ op: "merge", sha: "m" });
+		});
+		const second: Script = async function* () {
+			order.push("next task");
+			yield* reply("the report");
+		};
+		let held: () => string = () => "";
+		vcs.hooks.onRemove = () => {
+			order.push("remove");
+			order.push(held().includes('"worktree"') ? "still recorded" : "recorded");
+		};
 		const h = engineHarness({
-			scripts: [WRITE, reply("built"), reply("the report")],
+			scripts: [WRITE, reply("built"), second],
 			tools: [
 				["fs.write@1", async () => ok({ bytes: 2 })],
 				["vcs.git@2", vcs.run],
 			],
 			templates,
 		});
+		held = () =>
+			String(
+				(
+					h.db.prepare("SELECT snapshot FROM runs").get() as {
+						snapshot: string;
+					}
+				).snapshot,
+			);
 		await settled(h, await start(h), "completed");
-		const assigned = h.events.filter((e) => e.type === "task.assigned");
-		expect(assigned).toHaveLength(2);
-		const mergeAt = vcs.calls.findIndex((c) => c.input.op === "merge");
-		expect(mergeAt).toBeGreaterThan(-1);
-		// The writer's request (the third model call) comes after the merge call was made.
-		expect(h.requests).toHaveLength(3);
+		// The record that the worktree is merged is saved before the cleanup that deletes it.
+		expect(order).toEqual(["merge", "remove", "recorded", "next task"]);
 	});
 });

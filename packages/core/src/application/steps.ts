@@ -363,8 +363,9 @@ export type Landed =
 	  };
 
 /**
- * Merges the task's branch into the workspace through vcs.git@2 and, once that worked, removes its
- * worktree. A merge that did not happen leaves the worktree and branch as they are.
+ * Merges the task's branch into the workspace through vcs.git@2. A merge that did not happen leaves
+ * the worktree and branch as they are; merging a branch that was merged already merges nothing, so
+ * landing the same task again is safe.
  */
 export const landWorktree = async (
 	deps: StepDeps,
@@ -382,24 +383,35 @@ export const landWorktree = async (
 			code: "capability_missing",
 			message: "vcs.git@2 is not active",
 		};
-	const vcs = chain.value[0].impl;
-	const ctx = { runId: ids.runId, signal };
-	const merged = await vcs.run({ op: "merge", ...ids }, ctx);
-	if (!merged.ok) {
-		const { code, message } = merged.error;
-		const paths = "paths" in merged.error ? { paths: merged.error.paths } : {};
-		return { kind: "failed", code, message, ...paths };
-	}
-	const gone = {
-		op: "worktree.remove",
+	const merged = await chain.value[0].impl.run(
+		{ op: "merge", ...ids },
+		{ runId: ids.runId, signal },
+	);
+	if (merged.ok) return { kind: "landed" };
+	const { code, message } = merged.error;
+	const paths = "paths" in merged.error ? { paths: merged.error.paths } : {};
+	return { kind: "failed", code, message, ...paths };
+};
+
+/**
+ * Removes the worktree of a task whose merge is recorded. It comes after the record, so a failure or
+ * a crash here leaves a folder behind, never a run that merges again into a deleted branch.
+ */
+export const dropWorktree = async (
+	deps: StepDeps,
+	ids: { readonly runId: string; readonly taskId: string },
+	signal: AbortSignal,
+): Promise<void> => {
+	const chain = deps.registry.resolve<VcsGitAdapter>("vcs.git@2");
+	if (!chain.ok) return;
+	const gone = { op: "worktree.remove", ...ids } as const;
+	const removed = await chain.value[0].impl.run(gone, {
 		runId: ids.runId,
-		taskId: ids.taskId,
-	} as const;
-	const removed = await vcs.run(gone, ctx);
+		signal,
+	});
 	if (!removed.ok)
 		deps.logger.warn(
-			{ runId: ids.runId, taskId: ids.taskId, reason: removed.error.message },
+			{ ...ids, reason: removed.error.message },
 			"worktree not removed after its merge",
 		);
-	return { kind: "landed" };
 };

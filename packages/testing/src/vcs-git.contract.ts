@@ -207,6 +207,26 @@ export const vcsGitContract = (name: string, open: VcsGitHarness) =>
 			expect(made.ok ? undefined : made.error.code).toBe("io");
 		});
 
+		it("refuses a merge that would overwrite an uncommitted edit and leaves the edit alone", async () => {
+			const r = await repo();
+			await r.put("a.txt", "base\n");
+			await r.run({ op: "commit", message: "base" });
+			const made = await worktree(r);
+			await r.putAt(`${made.path}/a.txt`, "task\n");
+			await r.put("a.txt", "mine, not committed\n");
+			const merged = await r.run({
+				op: "merge",
+				runId: RUN,
+				taskId: TASK,
+				message: "task",
+			});
+			expect(merged.ok ? undefined : merged.error.code).toBe("io");
+			expect(await r.read("a.txt")).toBe("mine, not committed\n");
+			expect(value(await r.run({ op: "status" }))).toMatchObject({
+				files: [{ path: "a.txt" }],
+			});
+		});
+
 		it("names the files of a merge conflict and leaves the workspace as it was", async () => {
 			const r = await repo();
 			await r.put("a.txt", "base\n");

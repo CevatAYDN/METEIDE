@@ -35,7 +35,12 @@ import {
 	platformOf,
 	toolContext,
 } from "./run-state.js";
-import { createCheckpoint, landWorktree, startWorktree } from "./steps.js";
+import {
+	createCheckpoint,
+	dropWorktree,
+	landWorktree,
+	startWorktree,
+} from "./steps.js";
 import { verifyGates } from "./verify.js";
 
 // A team run between attempts (docs/08, Task execution sequence): start the next ready task,
@@ -281,8 +286,11 @@ const merge = async (s: EngineState, l: Live, team: TeamState, id: string) => {
 	const ids = { runId, taskId: entry.id, message: titleOf(team, id) };
 	const landed = await landWorktree(s.deps, ids, l.all.signal);
 	if (l.snapshot.value !== "running") return;
-	if (landed.kind === "landed")
-		return apply(s, l, { type: "TEAM", team: withoutWorktree(team, id) });
+	if (landed.kind === "landed") {
+		// The record first, the cleanup after.
+		apply(s, l, { type: "TEAM", team: withoutWorktree(team, id) });
+		return dropWorktree(s.deps, { runId, taskId: entry.id }, l.all.signal);
+	}
 	const { code, message, paths } = landed;
 	const branch = `mete/${runId}/${entry.id}`;
 	const payload = { code, message, branch, ...(paths ? { paths } : {}) };
