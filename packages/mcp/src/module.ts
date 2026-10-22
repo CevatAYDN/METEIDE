@@ -153,6 +153,7 @@ export const createMcpClientModule = (opts: McpClientOptions): MeteModule => {
 				moduleId: MANIFEST.id,
 				version: MANIFEST.version,
 				servers,
+				workspaceDir: opts.workspaceDir,
 				open: opts.open ?? openTransport,
 				...(opts.fetch ? { fetch: opts.fetch } : {}),
 				logger: ctx.logger,

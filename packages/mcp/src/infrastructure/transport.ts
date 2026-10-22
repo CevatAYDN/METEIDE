@@ -13,18 +13,22 @@ export type Opened = {
 	readonly stderr: () => string;
 };
 
-/** Opens one configured server; tests swap it, or pass a fake fetch for the remote ones. */
+/** Opens one configured server; tests swap it, or pass a fake fetch for the remote ones. A stdio server starts in `cwd`. */
 export type OpenTransport = (
 	server: McpServer,
 	fetchFn?: typeof fetch,
+	cwd?: string,
 ) => Opened;
 
-const stdio = (server: Extract<McpServer, { transport: "stdio" }>): Opened => {
-	// shortcut: `runtime` is not resolved, the command runs as configured; upgrade with the runtime manager (docs/10, Managed runtimes).
+const stdio = (
+	server: Extract<McpServer, { transport: "stdio" }>,
+	cwd?: string,
+): Opened => {
 	const transport = new StdioClientTransport({
 		command: server.command,
 		args: [...server.args],
 		...(server.env ? { env: server.env } : {}),
+		...(cwd ? { cwd } : {}),
 		stderr: "pipe",
 	});
 	let tail = "";
@@ -35,8 +39,8 @@ const stdio = (server: Extract<McpServer, { transport: "stdio" }>): Opened => {
 };
 
 /** The SDK transport for a server's `transport` setting. */
-export const openTransport: OpenTransport = (server, fetchFn) => {
-	if (server.transport === "stdio") return stdio(server);
+export const openTransport: OpenTransport = (server, fetchFn, cwd) => {
+	if (server.transport === "stdio") return stdio(server, cwd);
 	const url = new URL(server.url);
 	const opts = fetchFn ? { fetch: fetchFn } : {};
 	// docs/10 keeps legacy SSE for older servers although the SDK deprecates it.

@@ -1,4 +1,5 @@
 import { delimiter } from "node:path";
+import { pathToFileURL } from "node:url";
 import {
 	err,
 	type McpServer,
@@ -9,7 +10,10 @@ import {
 } from "@mete/contracts";
 import type { Logger } from "@mete/kernel";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import type { Tool } from "@modelcontextprotocol/sdk/types.js";
+import {
+	ListRootsRequestSchema,
+	type Tool,
+} from "@modelcontextprotocol/sdk/types.js";
 import type { OpenTransport } from "../infrastructure/transport.js";
 
 // One connection per configured server, opened on first use so a run pays only for the
@@ -25,6 +29,8 @@ export type SessionDeps = {
 	readonly moduleId: string;
 	readonly version: string;
 	readonly servers: readonly McpServer[];
+	/** The workspace root: where a stdio server starts and the one root every server is told (docs/10, Roots). */
+	readonly workspaceDir: string;
 	readonly open: OpenTransport;
 	readonly fetch?: typeof fetch;
 	readonly logger: Logger;
@@ -78,8 +84,21 @@ const connect = async (
 	if (refused) return err(refused);
 	const ready = await withRuntime(deps, server, signal);
 	if (!ready.ok) return ready;
-	const { transport, stderr } = deps.open(ready.value, deps.fetch);
-	const client = new Client({ name: "mete", version: deps.version });
+	const { transport, stderr } = deps.open(
+		ready.value,
+		deps.fetch,
+		deps.workspaceDir,
+	);
+	const client = new Client(
+		{ name: "mete", version: deps.version },
+		{ capabilities: { roots: {} } },
+	);
+	// shortcut: the workspace is the only root; upgrade with the vault roots in Phase 4 (docs/10, Roots).
+	const root = {
+		uri: pathToFileURL(deps.workspaceDir).href,
+		name: "workspace",
+	};
+	client.setRequestHandler(ListRootsRequestSchema, () => ({ roots: [root] }));
 	try {
 		await client.connect(transport, { signal });
 		// shortcut: the list is read once per connection; upgrade with list-change notifications (docs/10).

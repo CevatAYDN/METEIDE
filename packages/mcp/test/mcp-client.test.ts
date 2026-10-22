@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import type {
 	McpServer,
 	McpToolsAdapter,
@@ -56,7 +56,21 @@ describe("mcp-client over stdio", () => {
 			"fixture/echo",
 			"fixture/fail",
 			"fixture/pixel",
+			"fixture/where",
 			"fixture/web_search_advanced_exa",
+		]);
+	});
+
+	it("starts the server in the workspace folder and lists it as its only root", async () => {
+		const r = await s.tools?.call(
+			{ server: "fixture", tool: "where" },
+			{ signal },
+		);
+		const block = r?.ok ? r.value.content[0] : undefined;
+		const seen = JSON.parse(block?.type === "text" ? block.text : "{}");
+		expect(realpathSync(seen.cwd)).toBe(realpathSync(dir));
+		expect(seen.roots).toEqual([
+			{ uri: pathToFileURL(dir).href, name: "workspace" },
 		]);
 	});
 
