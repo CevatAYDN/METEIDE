@@ -57,6 +57,18 @@ export {
 	parseManifest,
 } from "./domain/manifest.js";
 export {
+	type McpCallInput,
+	McpCallInputSchema,
+	type McpCallOutput,
+	type McpConfig,
+	McpConfigSchema,
+	type McpContent,
+	type McpServer,
+	McpServerSchema,
+	type McpToolInfo,
+	type McpToolsAdapter,
+} from "./domain/mcp.js";
+export {
 	type AuditFailed,
 	type MaskResult,
 	type Policy,

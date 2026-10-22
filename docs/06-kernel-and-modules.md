@@ -72,7 +72,7 @@ export interface StorageSqlAdapter { scopeFor(moduleId: string): ScopedStorage }
 
 // policy.check@1 and secrets.mask@1, defined in @mete/contracts; decision order in SECURITY.md (Policy file).
 export type PolicyAction = "fs.write" | "fs.delete" | "fs.write.outside" | "shell.exec" | "git.commit" | "git.push" | "git.merge"
-  | "net.fetch" | "plugin.install" | "mcp.install" | "mcp.sampling" | "runtime.install" | "release.publish" | "vault.write.personal";
+  | "net.fetch" | "plugin.install" | "mcp.install" | "mcp.call" | "mcp.sampling" | "runtime.install" | "release.publish" | "vault.write.personal";
 export type PolicyCheckInput = { action: PolicyAction; capability: CapabilityRef; adapterId: string; args: unknown;   // args are hashed into the audit log
   runId?: string; agentId?: string; path?: string; command?: string; tainted?: boolean };
 export type PolicyVerdict = { verdict: "allow" | "ask" | "deny"; rule: string };   // rule names the step that fired
@@ -162,6 +162,20 @@ export type WebFetchInput = { url: string };                            // http 
 export type WebFetchOutput = { markdown: string; title: string; finalUrl: string };   // finalUrl: where redirects ended
 export type WebSearchInput = { query: string; maxResults?: number };    // maxResults defaults to 8
 export type WebSearchOutput = { results: { title: string; url: string; snippet: string }[] };
+// mcp.tools@1, defined in @mete/contracts with McpConfigSchema for .mete/mcp.yaml (tab 10, MCP client); policy action mcp.call.
+export type McpServer =
+  | { id: string; transport: "stdio"; runtime: "node" | "python" | "binary" | "container"; command: string; args?: string[];
+      env?: Record<string, string>; permissions?: Permission[] }
+  | { id: string; transport: "streamable-http" | "sse"; url: string; auth?: "oauth" | "none"; permissions?: Permission[] };
+export type McpToolInfo = { server: string; name: string; description: string; inputSchema: unknown };
+export type McpContent = { type: "text"; text: string } | { type: "image"; mediaType: string; path: string }   // image in .mete/assets/
+  | { type: "resource"; uri: string; mimeType?: string };
+export type McpCallInput = { server: string; tool: string; args?: Record<string, unknown> };
+export type McpCallOutput = { content: McpContent[]; isError: boolean };   // isError is the server's own flag
+export interface McpToolsAdapter {
+  list(signal: AbortSignal): Promise<Result<McpToolInfo[], ToolError>>;
+  call(input: McpCallInput, ctx: ToolContext): Promise<Result<McpCallOutput, ToolError>>;
+}
 
 // vcs.git@1, defined in @mete/contracts; rules in tab 10 (Built-in tools). Worktree and merge operations come with the
 // team engine (Phase 2). Checkpoint refs are refs/mete/checkpoints/<runId>/<n>, n counting from 1 per run.

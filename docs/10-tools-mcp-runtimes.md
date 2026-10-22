@@ -68,6 +68,8 @@ servers:
 
 Configuration files and bindings MAY name servers and tools. Team templates MUST NOT \[C\].
 
+`McpConfigSchema` in `@mete/contracts` checks the file: server ids are kebab-case and unique, a stdio server names its `runtime` and `command` (`args` default to none), a remote server has an `http` or `https` `url` and `auth` `none` unless set, and `permissions` default to none; unknown keys are refused \[D\].
+
 ## Integration levels
 
 | Level | Effort | What it gives |

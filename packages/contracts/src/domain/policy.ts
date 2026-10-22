@@ -17,6 +17,8 @@ export const PolicyActionSchema = z.enum([
 	"net.fetch",
 	"plugin.install",
 	"mcp.install",
+	// A raw MCP tool call (docs/10, level 1): asked at level 2, allowed at 3 (SECURITY.md).
+	"mcp.call",
 	"mcp.sampling",
 	"runtime.install",
 	"release.publish",
