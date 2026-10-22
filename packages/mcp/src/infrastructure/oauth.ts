@@ -46,24 +46,57 @@ export const codeFromAddress = (
 const entry = (origin: string, what: "tokens" | "client") =>
 	`mcp/${origin}/${what}`;
 
+// The Windows keychain keeps at most 1280 characters in one entry (measured), and a JWT pair is
+// longer, so a value is cut into numbered entries `<name>/0`, `<name>/1` ... and `<name>` holds how many.
+// shortcut: pieces of an older, longer value are left behind; upgrade if the keychain fills up.
+const PIECE_CHARS = 1000;
+const MAX_PIECES = 64;
+
+const put = async (secrets: SecretStore, name: string, value: string) => {
+	const saved = await secrets.set(name, value);
+	if (!saved.ok) throw new Error(`keychain: ${saved.error.message}`);
+};
+
+const write = async (secrets: SecretStore, name: string, value: unknown) => {
+	const text = JSON.stringify(value);
+	const count = Math.ceil(text.length / PIECE_CHARS);
+	for (let i = 0; i < count; i++)
+		await put(
+			secrets,
+			`${name}/${i}`,
+			text.slice(i * PIECE_CHARS, (i + 1) * PIECE_CHARS),
+		);
+	await put(secrets, name, String(count));
+};
+
+// The pieces joined, or undefined when any is missing; the count goes last when written, so a half write is not read.
+const readText = async (secrets: SecretStore, name: string) => {
+	const stored = await secrets.get(name);
+	const count = stored.ok ? Number(stored.value) : 0;
+	if (!Number.isInteger(count) || count < 1 || count > MAX_PIECES)
+		return undefined;
+	let text = "";
+	for (let i = 0; i < count; i++) {
+		const piece = await secrets.get(`${name}/${i}`);
+		if (!piece.ok || piece.value === undefined) return undefined;
+		text += piece.value;
+	}
+	return text;
+};
+
 const read = async <T>(
 	secrets: SecretStore,
 	name: string,
 	schema: z.ZodType<T>,
 ): Promise<T | undefined> => {
-	const stored = await secrets.get(name);
-	if (!stored.ok || !stored.value) return undefined;
+	const text = await readText(secrets, name);
+	if (text === undefined) return undefined;
 	try {
-		const parsed = schema.safeParse(JSON.parse(stored.value));
+		const parsed = schema.safeParse(JSON.parse(text));
 		return parsed.success ? parsed.data : undefined;
 	} catch {
 		return undefined;
 	}
-};
-
-const write = async (secrets: SecretStore, name: string, value: unknown) => {
-	const saved = await secrets.set(name, JSON.stringify(value));
-	if (!saved.ok) throw new Error(`keychain: ${saved.error.message}`);
 };
 
 /**

@@ -1,5 +1,10 @@
 import { tmpdir } from "node:os";
-import { type McpToolsAdapter, ok, type SecretStore } from "@mete/contracts";
+import {
+	err,
+	type McpToolsAdapter,
+	ok,
+	type SecretStore,
+} from "@mete/contracts";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { describe, expect, it } from "vitest";
@@ -8,6 +13,9 @@ import { createMcpClientModule, type McpClientOptions } from "../src/module.js";
 import { moduleContext } from "./helpers/context.js";
 
 const BASE = "https://mcp.example";
+// A JWT pair can be longer than the Windows keychain keeps in one entry (1280 characters, measured).
+const TOKEN = "t".repeat(3000);
+const KEYCHAIN_LIMIT = 1280;
 const signal = new AbortController().signal;
 const remote = {
 	id: "remote",
@@ -70,12 +78,12 @@ const remoteServer = async () => {
 		seen.tokens += 1;
 		const form = new URLSearchParams(await req.text());
 		return form.get("code") === "good-code"
-			? json({ access_token: "tok-1", token_type: "Bearer" })
+			? json({ access_token: TOKEN, token_type: "Bearer" })
 			: json({ error: "invalid_grant" }, 400);
 	};
 	const mcpEndpoint = async (req: Request, pathname: string) => {
 		if (pathname !== "/mcp") return new Response("", { status: 404 });
-		if (req.headers.get("authorization") === "Bearer tok-1")
+		if (req.headers.get("authorization") === `Bearer ${TOKEN}`)
 			return (await session(req)).handleRequest(req);
 		const resource = `${BASE}/.well-known/oauth-protected-resource`;
 		return new Response("", {
@@ -100,7 +108,10 @@ const memorySecrets = (): SecretStore & { names: () => string[] } => {
 	const m = new Map<string, string>();
 	return {
 		get: async (n) => ok(m.get(n)),
-		set: async (n, v) => ok(void m.set(n, v)),
+		set: async (n, v) =>
+			v.length > KEYCHAIN_LIMIT
+				? err({ code: "secret_failed", message: `${n}: value is too long` })
+				: ok(void m.set(n, v)),
 		delete: async (n) => ok(m.delete(n)),
 		names: () => [...m.keys()],
 	};
@@ -159,10 +170,13 @@ describe("mcp-client OAuth", () => {
 		expect(sent.get("client_id")).toBe("client-1");
 		expect(sent.get("code_challenge_method")).toBe("S256");
 		expect(sent.get("redirect_uri")).toBe("http://127.0.0.1/callback");
-		expect(secrets.names().sort()).toEqual([
-			`mcp/${BASE}/client`,
-			`mcp/${BASE}/tokens`,
-		]);
+		// The token is longer than one keychain entry, so it is stored in numbered pieces.
+		const names = secrets.names();
+		expect(names).toContain(`mcp/${BASE}/client`);
+		expect(names).toContain(`mcp/${BASE}/tokens`);
+		expect(
+			names.filter((n) => n.startsWith(`mcp/${BASE}/tokens/`)).length,
+		).toBeGreaterThan(2);
 		await first.module.deactivate();
 		// Another process, another module: no host to ask, the keychain has the tokens.
 		const second = await start(server, secrets);
