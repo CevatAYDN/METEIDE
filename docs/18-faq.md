@@ -41,6 +41,7 @@ Each answer is binding and names the tab that holds the full rule. A question no
 | What if two agents edit the same file? | The task list assigns file ownership, each writer has a worktree, and conflicts become a merge task | 08 |
 | Does a simple request start a whole team? | No. The router sends simple requests to a single agent | 08 |
 | Do the team's budgets and the policy budget conflict? | The run uses the smaller of the two | 12 |
+| Is a new optional field on `ToolContext` a capability change? | No. `ToolContext` is the caller's envelope, not a capability's input or output: a field is optional and additive, an adapter that does not read it ignores it, and no version changes. A change to a capability's input or output schema is one and bumps the version | 06 |
 
 ## Tools, MCP and plugins
 
