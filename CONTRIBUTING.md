@@ -32,7 +32,7 @@ Imports point inward only: infrastructure → application → domain. dependency
 
 ## TypeScript
 
-- `tsconfig`: `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, ESM only.
+- `tsconfig`: `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, ESM only; `apps/desktop` is the one CommonJS package, because Theia's generated application is (ADR-002).
 - `any` is forbidden. Data from outside (files, network, models, MCP) enters as `unknown` and is parsed with Zod at the boundary.
 - Named exports only; no default exports. No `enum`; use string literal unions with `as const`.
 - Data is immutable by default: `readonly` fields and `ReadonlyArray`.

@@ -68,7 +68,8 @@ module.exports = {
 	],
 	options: {
 		doNotFollow: { path: "node_modules" },
-		exclude: { path: "(^|/)dist/" },
+		// The Theia application's generated folders are bundles, not source (apps/desktop).
+		exclude: { path: "(^|/)dist/|^apps/desktop/(lib|src-gen)/" },
 		tsPreCompilationDeps: true,
 		// Maps @mete/<name> onto its source so package-name imports are checked too.
 		tsConfig: { fileName: "tsconfig.depcruise.json" },

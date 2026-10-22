@@ -6,3 +6,9 @@ coverage/
 .mete/mete.db*
 .mete/cache/
 .mete/worktrees/
+# The Theia application's generated folders (apps/desktop, `pnpm --filter @mete/desktop bundle`).
+apps/desktop/lib/
+apps/desktop/src-gen/
+apps/desktop/esbuild.mjs
+apps/desktop/gen-esbuild*.mjs
+apps/desktop/plugins/

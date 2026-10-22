@@ -1,5 +1,11 @@
 {
 	"extends": "../../tsconfig.base.json",
-	"compilerOptions": { "rootDir": "src", "outDir": "dist" },
+	// Theia's generated application is CommonJS (ADR-002): this package has no "type": "module", so
+	// NodeNext emits CommonJS, and verbatimModuleSyntax would refuse an `export` in it.
+	"compilerOptions": {
+		"rootDir": "src",
+		"outDir": "dist",
+		"verbatimModuleSyntax": false
+	},
 	"include": ["src"]
 }

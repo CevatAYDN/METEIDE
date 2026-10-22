@@ -2,8 +2,8 @@
 	"name": "@mete/desktop",
 	"version": "0.0.0",
 	"private": true,
-	"type": "module",
 	"license": "Apache-2.0",
+	"main": "lib/backend/electron-main.js",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -12,6 +12,39 @@
 	},
 	"scripts": {
 		"build": "tsc -b",
-		"test": "vitest run --passWithNoTests"
+		"test": "vitest run --passWithNoTests",
+		"bundle": "theia build --mode development",
+		"start": "theia start"
+	},
+	"theia": {
+		"target": "electron",
+		"frontend": {
+			"config": {
+				"applicationName": "METE IDE"
+			}
+		}
+	},
+	"dependencies": {
+		"@theia/core": "1.76.0",
+		"@theia/editor": "1.76.0",
+		"@theia/electron": "1.76.0",
+		"@theia/filesystem": "1.76.0",
+		"@theia/messages": "1.76.0",
+		"@theia/monaco": "1.76.0",
+		"@theia/navigator": "1.76.0",
+		"@theia/preferences": "1.76.0",
+		"@theia/workspace": "1.76.0",
+		"react": "19.3.0",
+		"react-dom": "19.3.0"
+	},
+	"devDependencies": {
+		"@theia/bundle-plugin": "1.76.0",
+		"@theia/cli": "1.76.0",
+		"electron": "42.8.1",
+		"esbuild": "0.28.2",
+		"esbuild-plugin-copy": "2.1.1",
+		"esbuild-plugins-node-modules-polyfill": "1.8.3",
+		"resolve-package-path": "4.0.3",
+		"yargs": "17.7.3"
 	}
 }
