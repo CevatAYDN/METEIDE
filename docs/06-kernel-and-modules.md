@@ -307,6 +307,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | provider-openrouter | `@mete/providers` | optional | `provider.chat@2` | none | none | in-process |
 | provider-opencode-zen | `@mete/providers` | optional | `provider.chat@2` | none | none | in-process |
 | provider-groq | `@mete/providers` | optional | `provider.chat@2` | none | none | in-process |
+| provider-google | `@mete/providers` | optional | `provider.chat@2` | none | none | in-process |
 | provider-custom | `@mete/providers` | optional | `provider.chat@2`, `provider.embed@1` when the format supports it | none | none | in-process |
 | tools-fs | `@mete/tools` | essential | `fs.read@1`, `fs.write@1`, `fs.edit@1`, `fs.list@1`, `fs.glob@1`, `fs.grep@1` | `policy.check@1` | none | in-process |
 | tools-shell | `@mete/tools` | essential | `shell.exec@1` | `policy.check@1` | none | in-process |

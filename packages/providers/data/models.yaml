@@ -162,7 +162,8 @@ opencode-zen:
     source: models.dev, opencode.ai/docs/zen
     checked: "2026-10-21"
 
-# Free ids from console.groq.com/docs/rate-limits; privacy from console.groq.com/docs/your-data
+# Ids from console.groq.com/docs/rate-limits (its table does not say which plan the free plan gets,
+# so a model the free plan refuses is left out at request time); privacy from console.groq.com/docs/your-data
 # (no retention by default, logs kept up to 30 days for troubleshooting) and Groq's services
 # agreement (no training on inputs or outputs); the rest of each row from models.dev.
 groq:
@@ -185,4 +186,81 @@ groq:
     family: gpt-oss
     privacy: { trains: false, logs: true, publishes: false }
     source: models.dev, console.groq.com/docs/your-data
+    checked: "2026-10-22"
+
+# Ids from the "Free of charge" Free Tier column of ai.google.dev/gemini-api/docs/pricing; context and
+# tool calling from each model page (1,048,576 in, function calling supported). The free tier uses
+# prompts and outputs to improve Google's products and human reviewers may read them
+# (ai.google.dev/gemini-api/terms, Unpaid Services), so trains is true: these run only when the user
+# allows training. Image input is not checked here, so vision stays false.
+google:
+  gemini-3.8-flash:
+    capability: chat
+    contextWindow: 1048576
+    toolCalling: true
+    vision: false
+    free: true
+    family: gemini
+    privacy: { trains: true, logs: true, publishes: false }
+    source: ai.google.dev/gemini-api/docs/pricing, ai.google.dev/gemini-api/terms
+    checked: "2026-10-22"
+  gemini-3.6-flash:
+    capability: chat
+    contextWindow: 1048576
+    toolCalling: true
+    vision: false
+    free: true
+    family: gemini
+    privacy: { trains: true, logs: true, publishes: false }
+    source: ai.google.dev/gemini-api/docs/pricing, ai.google.dev/gemini-api/terms
+    checked: "2026-10-22"
+  gemini-3.5-flash-lite:
+    capability: chat
+    contextWindow: 1048576
+    toolCalling: true
+    vision: false
+    free: true
+    family: gemini
+    privacy: { trains: true, logs: true, publishes: false }
+    source: ai.google.dev/gemini-api/docs/pricing, ai.google.dev/gemini-api/terms
+    checked: "2026-10-22"
+  gemini-3.1-flash-lite:
+    capability: chat
+    contextWindow: 1048576
+    toolCalling: true
+    vision: false
+    free: true
+    family: gemini
+    privacy: { trains: true, logs: true, publishes: false }
+    source: ai.google.dev/gemini-api/docs/pricing, ai.google.dev/gemini-api/terms
+    checked: "2026-10-22"
+  gemini-2.5-pro:
+    capability: chat
+    contextWindow: 1048576
+    toolCalling: true
+    vision: false
+    free: true
+    family: gemini
+    privacy: { trains: true, logs: true, publishes: false }
+    source: ai.google.dev/gemini-api/docs/pricing, ai.google.dev/gemini-api/terms
+    checked: "2026-10-22"
+  gemini-2.5-flash:
+    capability: chat
+    contextWindow: 1048576
+    toolCalling: true
+    vision: false
+    free: true
+    family: gemini
+    privacy: { trains: true, logs: true, publishes: false }
+    source: ai.google.dev/gemini-api/docs/pricing, ai.google.dev/gemini-api/terms
+    checked: "2026-10-22"
+  gemini-2.5-flash-lite:
+    capability: chat
+    contextWindow: 1048576
+    toolCalling: true
+    vision: false
+    free: true
+    family: gemini
+    privacy: { trains: true, logs: true, publishes: false }
+    source: ai.google.dev/gemini-api/docs/pricing, ai.google.dev/gemini-api/terms
     checked: "2026-10-22"

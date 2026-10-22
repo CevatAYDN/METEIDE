@@ -16,7 +16,12 @@ export type KeyedProvider = {
 	readonly displayName: string;
 	readonly baseURL: string;
 	readonly modelsURL: string;
+	/** Removed from the front of every listed id, for a list that names models `models/<id>` while chat takes `<id>`. */
+	readonly idPrefix?: string;
 };
+
+const withoutPrefix = (id: string, prefix = "") =>
+	id.startsWith(prefix) ? id.slice(prefix.length) : id;
 
 const build =
 	(spec: KeyedProvider) =>
@@ -36,7 +41,13 @@ const build =
 					fetch: env.fetch,
 				});
 				return ids.ok
-					? ok(chatModels(spec.providerId, ids.value, env.models))
+					? ok(
+							chatModels(
+								spec.providerId,
+								ids.value.map((id) => withoutPrefix(id, spec.idPrefix)),
+								env.models,
+							),
+						)
 					: ids;
 			},
 			chat,

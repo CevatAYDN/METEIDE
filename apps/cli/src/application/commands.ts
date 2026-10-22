@@ -336,8 +336,15 @@ const stopOne = async (engine: TeamEngineAdapter, io: Io, run: RunView) => {
 };
 
 const PROVIDER =
-	/^(nvidia|openrouter|opencode-zen|groq|tavily|custom:[a-z0-9]+(-[a-z0-9]+)*)$/;
-const BUILT_IN = ["nvidia", "openrouter", "opencode-zen", "groq", "tavily"];
+	/^(nvidia|openrouter|opencode-zen|groq|google|tavily|custom:[a-z0-9]+(-[a-z0-9]+)*)$/;
+const BUILT_IN = [
+	"nvidia",
+	"openrouter",
+	"opencode-zen",
+	"groq",
+	"google",
+	"tavily",
+];
 const SEARCH = new Set(["tavily"]);
 
 // Model providers keep providers/<id>/apiKey, search providers search/<id>/apiKey (docs/09, docs/10).
@@ -368,7 +375,7 @@ export const keyCommand = async (
 	if (valid && action === "set") return setKey(secrets, io, provider);
 	if (valid && action === "delete") return deleteKey(secrets, io, provider);
 	io.err(
-		"usage: mete key set|delete <nvidia|openrouter|opencode-zen|groq|tavily|custom:<slug>>, mete key list",
+		"usage: mete key set|delete <nvidia|openrouter|opencode-zen|groq|google|tavily|custom:<slug>>, mete key list",
 	);
 	return 1;
 };

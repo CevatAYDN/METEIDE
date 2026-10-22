@@ -56,6 +56,22 @@ describe("shipped models.yaml", () => {
 	});
 });
 
+describe("Google AI Studio's shipped rows", () => {
+	it("name its free chat models with the privacy of its unpaid terms", async () => {
+		const google = (await loadShippedModels()).google ?? {};
+		expect(Object.keys(google).length).toBeGreaterThan(0);
+		for (const [id, r] of Object.entries(google)) {
+			expect(id.startsWith("models/")).toBe(false);
+			expect(r).toMatchObject({
+				capability: "chat",
+				free: true,
+				toolCalling: true,
+				privacy: { trains: true, logs: true, publishes: false },
+			});
+		}
+	});
+});
+
 describe("Groq's shipped rows", () => {
 	it("name its free chat models with tool calling and the privacy of its data page", async () => {
 		const groq = (await loadShippedModels()).groq ?? {};
