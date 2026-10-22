@@ -25,7 +25,7 @@ const start = async (
 	servers: unknown[],
 	workspaceDir: string,
 ) => {
-	const module = createMcpClientModule({ workspaceDir });
+	const module = createMcpClientModule({ workspaceDir, builtInServers: [] });
 	const { ctx, registry } = moduleContext(verdict, { mcp: { servers } });
 	const activated = await module.activate(ctx);
 	const r = registry.resolve<McpToolsAdapter>("mcp.tools@1");
@@ -50,7 +50,7 @@ describe("mcp-client over stdio", () => {
 			"fixture/echo",
 			"fixture/fail",
 			"fixture/pixel",
-			"fixture/search",
+			"fixture/web_search_advanced_exa",
 		]);
 	});
 

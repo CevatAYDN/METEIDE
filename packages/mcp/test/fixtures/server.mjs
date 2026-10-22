@@ -1,4 +1,4 @@
-// A small MCP server over stdio for the client tests: echo, fail, pixel and search.
+// A small MCP server over stdio for the client tests: echo, fail, pixel and an Exa-like search.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -22,7 +22,7 @@ server.registerTool("pixel", { description: "One image" }, async () => ({
 }));
 // Answers like Exa's web_search_advanced_exa: the results as JSON text, the query as each title.
 server.registerTool(
-	"search",
+	"web_search_advanced_exa",
 	{
 		description: "JSON results",
 		inputSchema: { query: z.string(), numResults: z.number() },

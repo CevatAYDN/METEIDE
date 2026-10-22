@@ -13,8 +13,11 @@ export type Opened = {
 	readonly stderr: () => string;
 };
 
-/** Opens one configured server; tests swap it for an in-memory pair. */
-export type OpenTransport = (server: McpServer) => Opened;
+/** Opens one configured server; tests swap it, or pass a fake fetch for the remote ones. */
+export type OpenTransport = (
+	server: McpServer,
+	fetchFn?: typeof fetch,
+) => Opened;
 
 const stdio = (server: Extract<McpServer, { transport: "stdio" }>): Opened => {
 	// shortcut: `runtime` is not resolved, the command runs as configured; upgrade with the runtime manager (docs/10, Managed runtimes).
@@ -32,14 +35,15 @@ const stdio = (server: Extract<McpServer, { transport: "stdio" }>): Opened => {
 };
 
 /** The SDK transport for a server's `transport` setting. */
-export const openTransport: OpenTransport = (server) => {
+export const openTransport: OpenTransport = (server, fetchFn) => {
 	if (server.transport === "stdio") return stdio(server);
 	const url = new URL(server.url);
+	const opts = fetchFn ? { fetch: fetchFn } : {};
 	// docs/10 keeps legacy SSE for older servers although the SDK deprecates it.
 	const transport =
 		server.transport === "sse"
-			? new SSEClientTransport(url)
-			: new StreamableHTTPClientTransport(url);
+			? new SSEClientTransport(url, opts)
+			: new StreamableHTTPClientTransport(url, opts);
 	// The SDK types `sessionId?: string` without exactOptionalPropertyTypes; the value is the same.
 	return { transport: transport as Transport, stderr: () => "" };
 };

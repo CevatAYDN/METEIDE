@@ -1,0 +1,23 @@
+# Exa's hosted MCP server without a key (docs/10): web_search_advanced_exa answers with the
+# results as JSON text. Highlights become the snippet; a result without them gets an empty one.
+apiVersion: mete/v1
+kind: AdapterMapping
+metadata: { id: exa-mcp, version: 1.0.0 }
+type: mcp
+server: exa
+implements:
+  web.search@1:
+    tool: web_search_advanced_exa
+    action: net.fetch
+    args:
+      query: "{{input.query}}"
+      numResults: "{{input.maxResults}}"
+      enableHighlights: true
+      textMaxCharacters: 1
+    output:
+      results:
+        each: "{{result.results}}"
+        as:
+          title: "{{item.title}}"
+          url: "{{item.url}}"
+          snippet: "{{item.highlights | join(' ')}}"

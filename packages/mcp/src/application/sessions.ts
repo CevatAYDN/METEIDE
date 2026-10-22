@@ -24,6 +24,7 @@ export type SessionDeps = {
 	readonly version: string;
 	readonly servers: readonly McpServer[];
 	readonly open: OpenTransport;
+	readonly fetch?: typeof fetch;
 	readonly logger: Logger;
 };
 
@@ -51,7 +52,7 @@ const connect = async (
 ): Promise<Result<Session, ToolError>> => {
 	const refused = unsupported(server);
 	if (refused) return err(refused);
-	const { transport, stderr } = deps.open(server);
+	const { transport, stderr } = deps.open(server, deps.fetch);
 	const client = new Client({ name: "mete", version: deps.version });
 	try {
 		await client.connect(transport, { signal });

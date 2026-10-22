@@ -26,7 +26,7 @@ type: mcp
 server: fixture
 implements:
   web.search@1:
-    tool: search
+    tool: web_search_advanced_exa
     action: net.fetch
     args: { query: "{{input.query}}", numResults: "{{input.maxResults}}" }
     output:
@@ -95,5 +95,35 @@ describe("level 2 MCP mappings", () => {
 			expect.stringMatching(/kind|apiVersion|Flow|YAML|expected/i),
 			"type cli is not supported yet",
 		]);
+	});
+});
+
+describe("the shipped Exa mapping", () => {
+	it("maps web.search@1 onto an exa server; mcp.yaml's exa replaces the built-in one", async () => {
+		const adaptersDir = fileURLToPath(
+			new URL("../../../adapters/", import.meta.url),
+		);
+		const module = createMcpClientModule({
+			workspaceDir: tmpdir(),
+			adaptersDir,
+		});
+		const c = moduleContext("allow", {
+			mcp: { servers: [{ ...server, id: "exa" }] },
+		});
+		expect((await module.activate(c.ctx)).ok).toBe(true);
+		const r = c.registry.resolve<ToolAdapter<unknown, unknown>>("web.search@1");
+		const exa = r.ok
+			? r.value.find((a) => a.id === "exa-mcp")?.impl
+			: undefined;
+		const out = await exa?.run({ query: "mete" }, { signal });
+		expect(out?.ok && out.value).toEqual({
+			results: [0, 1].map((i) => ({
+				title: "mete",
+				url: `https://r${i}.example/`,
+				snippet: "one two",
+			})),
+		});
+		expect(c.warnings).toEqual([]);
+		await module.deactivate();
 	});
 });

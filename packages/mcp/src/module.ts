@@ -16,6 +16,7 @@ import type {
 import { mcpTools } from "./application/mcp-tools.js";
 import { provideMappings } from "./application/provide-mappings.js";
 import { createSessions, type Sessions } from "./application/sessions.js";
+import { BUILT_IN_SERVERS } from "./defaults.js";
 import {
 	type OpenTransport,
 	openTransport,
@@ -27,7 +28,20 @@ export type McpClientOptions = {
 	/** The built-in adapters/ folder of level 2 mapping files (docs/10). */
 	readonly adaptersDir?: string;
 	readonly open?: OpenTransport;
+	/** The fetch remote servers use; tests pass a fake, so nothing reaches the network. */
+	readonly fetch?: typeof fetch;
+	/** Servers added to mcp.yaml's by id; tests pass none. */
+	readonly builtInServers?: readonly McpServer[];
 };
+
+// mcp.yaml's servers first; a built-in server fills in only when no entry has its id (docs/10).
+const withBuiltIns = (
+	servers: readonly McpServer[],
+	builtIn: readonly McpServer[],
+) => [
+	...servers,
+	...builtIn.filter((b) => !servers.some((s) => s.id === b.id)),
+];
 
 const MANIFEST: ModuleManifest = {
 	id: "mcp-client",
@@ -99,14 +113,19 @@ export const createMcpClientModule = (opts: McpClientOptions): MeteModule => {
 					message: `${file} ${path}: ${reason}`,
 				});
 			}
+			const servers = withBuiltIns(
+				config.value.servers,
+				opts.builtInServers ?? BUILT_IN_SERVERS,
+			);
 			sessions = createSessions({
 				moduleId: MANIFEST.id,
 				version: MANIFEST.version,
-				servers: config.value.servers,
+				servers,
 				open: opts.open ?? openTransport,
+				...(opts.fetch ? { fetch: opts.fetch } : {}),
 				logger: ctx.logger,
 			});
-			await provideAll(ctx, opts, config.value.servers, sessions);
+			await provideAll(ctx, opts, servers, sessions);
 			return ok(undefined);
 		},
 		async deactivate() {
