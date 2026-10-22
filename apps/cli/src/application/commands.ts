@@ -185,14 +185,21 @@ const refused = (io: Io, e: EngineError) => {
 	return 2;
 };
 
-// SECURITY.md (Autonomy levels): level 3 asks for checkpoints and verify gates, and the gates do not run yet.
+// SECURITY.md (Autonomy levels): level 3 asks for worktrees and verify gates. A single-agent run has neither,
+// and a team run has worktrees only while vcs.git@2 is active, so only those runs say so.
 const LEVEL_THREE_NOTE =
 	"autonomy 3: verify gates and worktrees are not available yet (SECURITY.md); the run goes on with checkpoints only";
 
-const noteLevelThree = (io: Io, engine: TeamEngineAdapter, runId?: string) => {
+const noteLevelThree = (
+	io: Io,
+	registry: App["registry"],
+	engine: TeamEngineAdapter,
+	runId?: string,
+) => {
 	const view = runId ? engine.status(runId) : undefined;
-	if (view?.ok === true && view.value[0]?.autonomyLevel === 3)
-		io.err(LEVEL_THREE_NOTE);
+	const run = view?.ok === true ? view.value[0] : undefined;
+	const inWorktree = run?.templateId != null && registry.has("vcs.git@2");
+	if (run?.autonomyLevel === 3 && !inWorktree) io.err(LEVEL_THREE_NOTE);
 };
 
 /** `mete run` (a goal, --template, --resume), `mete approve` and `mete revise`. */
@@ -204,7 +211,7 @@ export const runCommand = (app: App, io: Io, what: RunWhat) =>
 		const run = follow(app.events, io, target, titles);
 		const r = await begin(engine, what);
 		if (!r.ok) return refused(io, r.error);
-		noteLevelThree(io, engine, run.runId());
+		noteLevelThree(io, app.registry, engine, run.runId());
 		const stopWatching = cancelOnInterrupt(io, engine, run.runId);
 		const status = await run.ended;
 		stopWatching();

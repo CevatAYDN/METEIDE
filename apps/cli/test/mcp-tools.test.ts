@@ -103,10 +103,8 @@ describe("raw MCP tools through a team role", () => {
 	it("offers one model tool per server tool and hands the result over as external content", async () => {
 		const r = await start(3);
 		expect(r.code).toBe(0);
-		// Level 3 runs without verify gates and worktrees, and the run says so once.
-		expect(r.err.filter((l) => l.startsWith("autonomy 3:"))).toEqual([
-			"autonomy 3: verify gates and worktrees are not available yet (SECURITY.md); the run goes on with checkpoints only",
-		]);
+		// A team run in a git repository has worktrees for its writing roles, so it says nothing.
+		expect(r.err.some((l) => l.startsWith("autonomy 3:"))).toBe(false);
 		const offered = r.seen[0]?.tools?.map((t) => t.name) ?? [];
 		expect(offered).toContain("mcp_fixture_echo");
 		const called = r.events.flatMap((e) =>
