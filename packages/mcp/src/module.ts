@@ -24,6 +24,7 @@ import {
 	type Elicit,
 	type Sessions,
 } from "./application/sessions.js";
+import type { Authorize } from "./application/sign-in.js";
 import { BUILT_IN_SERVERS } from "./defaults.js";
 import {
 	type RuntimeSystem,
@@ -52,6 +53,8 @@ export type McpClientOptions = {
 	readonly elicit?: Elicit;
 	/** How the host asks the user a yes or no question; without it sampling is not offered. */
 	readonly confirm?: Confirm;
+	/** How the host sends the user to sign in to an OAuth server once; without it only saved tokens work. */
+	readonly authorize?: Authorize;
 };
 
 // mcp.yaml's servers first; a built-in server fills in only when no entry has its id (docs/10).
@@ -74,7 +77,7 @@ const MANIFEST: ModuleManifest = {
 	optional: ["registry.search@1", "llm.chat@1"],
 	activation: ["onStartup"],
 	isolation: "in-process",
-	permissions: ["shell", "net", "fs.write"],
+	permissions: ["shell", "net", "fs.write", "secrets"],
 };
 
 const chatOf =
@@ -183,6 +186,8 @@ const openSessions = (
 		...(opts.elicit ? { elicit: opts.elicit } : {}),
 		calls,
 		...(sample ? { sample } : {}),
+		...(ctx.secrets ? { secrets: ctx.secrets } : {}),
+		...(opts.authorize ? { authorize: opts.authorize } : {}),
 	});
 };
 

@@ -3,6 +3,7 @@ import {
 	ok,
 	type PolicyCheckAdapter,
 	type PolicyVerdict,
+	type SecretStore,
 } from "@mete/contracts";
 import {
 	createCapabilityRegistry,
@@ -16,12 +17,13 @@ type Verdict = PolicyVerdict["verdict"];
 /**
  * A module context with the given settings sections, a policy that answers `verdict` (or what the
  * function says for an action), the reasons of every warning and every info line. `chat` is the
- * llm.chat@1 adapter the registry offers, when given.
+ * llm.chat@1 adapter the registry offers and `secrets` the keychain the module sees, when given.
  */
 export const moduleContext = (
 	verdict: Verdict | ((action: string) => Verdict),
 	sections: Readonly<Record<string, unknown>> = {},
 	chat?: LlmChatAdapter,
+	secrets?: SecretStore,
 ) => {
 	const registry = createCapabilityRegistry(() => []);
 	const policy: PolicyCheckAdapter = {
@@ -66,6 +68,7 @@ export const moduleContext = (
 			debug: log,
 		},
 		disposables: { add: () => {}, dispose: () => {} },
+		...(secrets ? { secrets } : {}),
 	} satisfies ModuleContext;
 	return { ctx, registry, warnings, infos };
 };

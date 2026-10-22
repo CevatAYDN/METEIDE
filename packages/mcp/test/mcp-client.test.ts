@@ -311,9 +311,9 @@ describe("mcp-client runtimes", () => {
 				version: async () => "v22.0.0",
 				extract: async () => ({ ok: false, error: "unused" }),
 			},
-			open: (server, fetchFn) => {
+			open: (server, opts) => {
 				opened.push(server);
-				return openTransport(server, fetchFn);
+				return openTransport(server, opts);
 			},
 		});
 		const docker = { ...fixture, id: "boxed", runtime: "container" };
@@ -352,9 +352,9 @@ describe("mcp-client runtimes", () => {
 			builtInServers: [],
 			globalDir,
 			fetch: async () => new Response(bytes),
-			open: (server, fetchFn) => {
+			open: (server, opts) => {
 				opened.push(server);
-				return openTransport(server, fetchFn);
+				return openTransport(server, opts);
 			},
 		});
 		const url = "https://a.example/tool";

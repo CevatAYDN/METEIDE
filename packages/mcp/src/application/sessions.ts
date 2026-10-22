@@ -6,9 +6,11 @@ import {
 	ok,
 	type Result,
 	type RuntimeEnsureAdapter,
+	type SecretStore,
 	type ToolError,
 } from "@mete/contracts";
 import type { Logger } from "@mete/kernel";
+import { UnauthorizedError } from "@modelcontextprotocol/sdk/client/auth.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import {
 	CreateMessageRequestSchema,
@@ -20,9 +22,11 @@ import {
 	type Progress,
 	type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import type { OpenTransport } from "../infrastructure/transport.js";
+import { oauthSignIn, type SignInFlow } from "../infrastructure/oauth.js";
+import type { Opened, OpenTransport } from "../infrastructure/transport.js";
 import type { Calls } from "./calls.js";
 import type { Sample } from "./sampling.js";
+import { type Authorize, signIn } from "./sign-in.js";
 
 // One connection per configured server, opened on first use so a run pays only for the
 // servers it calls; a closed connection is dropped and the next call reconnects (docs/10).
@@ -57,6 +61,10 @@ export type SessionDeps = {
 	readonly calls: Calls;
 	/** Answers sampling requests; without it the client does not offer sampling. */
 	readonly sample?: Sample;
+	/** The keychain tokens of OAuth servers live in; without it a server with `auth: oauth` cannot connect. */
+	readonly secrets?: SecretStore;
+	/** How the host sends the user to sign in; without it only saved tokens work. */
+	readonly authorize?: Authorize;
 };
 
 const why = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -65,15 +73,6 @@ const io = (server: string, e: unknown, stderr: string): ToolError => ({
 	code: "io",
 	message: `MCP server ${server}: ${why(e)}${stderr ? `; stderr: ${stderr}` : ""}`,
 });
-
-const unsupported = (server: McpServer): ToolError | undefined =>
-	server.transport !== "stdio" && server.auth === "oauth"
-		? {
-				code: "io",
-				// shortcut: OAuth is not wired yet; upgrade with the OAuth slice (docs/10, Authentication).
-				message: `MCP server ${server.id}: OAuth sign-in is not supported yet`,
-			}
-		: undefined;
 
 // The runtime's folder goes first on PATH, so npx, uvx or docker runs as configured (docs/10).
 const withRuntime = async (
@@ -156,37 +155,86 @@ const newClient = (
 	return client;
 };
 
-const connect = async (
+/** The server to connect to, how to stop waiting for it, and what to do when its connection closes. */
+type Target = {
+	readonly server: McpServer;
+	readonly signal: AbortSignal;
+	readonly closed: (stderr: string) => void;
+};
+
+// A remote server with `auth: oauth` signs in through the keychain (docs/10, Authentication).
+const oauthFlow = (
 	deps: SessionDeps,
 	server: McpServer,
-	signal: AbortSignal,
-	closed: (stderr: string) => void,
-): Promise<Result<Session, ToolError>> => {
-	const refused = unsupported(server);
-	if (refused) return err(refused);
+): Result<SignInFlow | undefined, ToolError> => {
+	if (server.transport === "stdio" || server.auth !== "oauth")
+		return ok(undefined);
+	if (!deps.secrets)
+		return err({
+			code: "io",
+			message: `MCP server ${server.id}: OAuth sign-in needs the keychain, which this module was not given`,
+		});
+	return ok(oauthSignIn(deps.secrets, new URL(server.url)));
+};
+
+type Tried = {
+	readonly result: Result<Session, ToolError>;
+	readonly refused?: Opened;
+};
+
+// One try at a connection. A server that answers 401 while a sign-in flow is ready hands back its transport.
+const attempt = async (
+	deps: SessionDeps,
+	{ server, signal, closed }: Target,
+	flow: SignInFlow | undefined,
+): Promise<Tried> => {
 	const ready = await withRuntime(deps, server, signal);
-	if (!ready.ok) return ready;
-	const { transport, stderr } = deps.open(
-		ready.value,
-		deps.fetch,
-		deps.workspaceDir,
-	);
+	if (!ready.ok) return { result: ready };
+	const opened = deps.open(ready.value, {
+		cwd: deps.workspaceDir,
+		...(deps.fetch ? { fetch: deps.fetch } : {}),
+		...(flow ? { auth: flow.provider } : {}),
+	});
 	const state: { tools: readonly Tool[] } = { tools: [] };
 	const client = newClient(deps, server, state);
 	try {
-		await client.connect(transport, { signal });
+		await client.connect(opened.transport, { signal });
 		state.tools = (await client.listTools(undefined, { signal })).tools;
-		client.onclose = () => closed(stderr());
-		return ok({
-			client,
-			get tools() {
-				return state.tools;
-			},
-		});
+		client.onclose = () => closed(opened.stderr());
+		const tools = () => state.tools;
+		return {
+			result: ok({
+				client,
+				get tools() {
+					return tools();
+				},
+			}),
+		};
 	} catch (e) {
 		await client.close().catch(() => {});
-		return err(io(server.id, e, stderr()));
+		const result = err(io(server.id, e, opened.stderr()));
+		return flow && e instanceof UnauthorizedError
+			? { result, refused: opened }
+			: { result };
 	}
+};
+
+// A server that wants a sign-in gets one, then one more try with the tokens it earned.
+const connect = async (
+	deps: SessionDeps,
+	at: Target,
+): Promise<Result<Session, ToolError>> => {
+	const flow = oauthFlow(deps, at.server);
+	if (!flow.ok) return flow;
+	const first = await attempt(deps, at, flow.value);
+	if (!first.refused || !flow.value) return first.result;
+	const refused = {
+		server: at.server,
+		flow: flow.value,
+		opened: first.refused,
+	};
+	const done = await signIn(deps.authorize, refused, at.signal);
+	return done.ok ? (await attempt(deps, at, flow.value)).result : done;
 };
 
 const notConfigured = (id: string) =>
@@ -224,14 +272,15 @@ export const createSessions = (deps: SessionDeps) => {
 		const forget = () => {
 			if (live.get(id) === opening) live.delete(id);
 		};
-		const opening = connect(deps, server, signal, (stderr) => {
+		const closed = (stderr: string) => {
 			if (closing) return;
 			forget();
 			deps.logger.warn(
 				{ moduleId: deps.moduleId, server: id, stderr },
 				"MCP server connection closed",
 			);
-		}).then((r) => {
+		};
+		const opening = connect(deps, { server, signal, closed }).then((r) => {
 			if (!r.ok) forget();
 			return r;
 		});
