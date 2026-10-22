@@ -11,6 +11,10 @@ import {
 import type { Logger } from "@mete/kernel";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import {
+	type ElicitRequestFormParams,
+	ElicitRequestSchema,
+	type ElicitResult,
+	type ListChangedCallback,
 	ListRootsRequestSchema,
 	type Progress,
 	type Tool,
@@ -26,6 +30,13 @@ export type Session = {
 	readonly tools: readonly Tool[];
 };
 
+/** Asks the user for a server: the answer is accept (with the filled form), decline or cancel (docs/10, Elicitation). */
+export type Elicit = (
+	server: string,
+	params: ElicitRequestFormParams,
+	signal: AbortSignal,
+) => Promise<ElicitResult>;
+
 export type SessionDeps = {
 	readonly moduleId: string;
 	readonly version: string;
@@ -37,6 +48,8 @@ export type SessionDeps = {
 	readonly logger: Logger;
 	/** runtime.ensure@1; without it a stdio command runs as configured. */
 	readonly ensure?: RuntimeEnsureAdapter;
+	/** How the host asks the user; without it the client does not offer elicitation and a server's request fails. */
+	readonly elicit?: Elicit;
 };
 
 const why = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -75,32 +88,44 @@ const withRuntime = async (
 	return ok({ ...server, env: { ...server.env, PATH } });
 };
 
-// The client lists the workspace as its one root and follows the server's tool list (docs/10, MCP client).
+const onToolsChanged =
+	(
+		deps: SessionDeps,
+		server: McpServer,
+		state: { tools: readonly Tool[] },
+	): ListChangedCallback<Tool> =>
+	(error, tools) => {
+		const at = { moduleId: deps.moduleId, server: server.id };
+		if (!tools)
+			return deps.logger.warn(
+				{ ...at, reason: error?.message ?? "" },
+				"MCP server tool list could not be refreshed",
+			);
+		state.tools = tools;
+		deps.logger.info(
+			{ ...at, tools: tools.length },
+			"MCP server tool list changed",
+		);
+	};
+
+// The client lists the workspace as its one root, follows the server's tool list and, when the host
+// can ask the user, answers form requests (docs/10, MCP client).
 const newClient = (
 	deps: SessionDeps,
 	server: McpServer,
 	state: { tools: readonly Tool[] },
 ) => {
+	const { elicit } = deps;
 	const client = new Client(
 		{ name: "mete", version: deps.version },
 		{
-			capabilities: { roots: {} },
+			capabilities: {
+				roots: {},
+				// Form requests only: a URL request would open a browser, which METE does not do.
+				...(elicit ? { elicitation: { form: {} } } : {}),
+			},
 			listChanged: {
-				tools: {
-					onChanged: (error, tools) => {
-						const at = { moduleId: deps.moduleId, server: server.id };
-						if (!tools)
-							return deps.logger.warn(
-								{ ...at, reason: error?.message ?? "" },
-								"MCP server tool list could not be refreshed",
-							);
-						state.tools = tools;
-						deps.logger.info(
-							{ ...at, tools: tools.length },
-							"MCP server tool list changed",
-						);
-					},
-				},
+				tools: { onChanged: onToolsChanged(deps, server, state) },
 			},
 		},
 	);
@@ -110,6 +135,12 @@ const newClient = (
 		name: "workspace",
 	};
 	client.setRequestHandler(ListRootsRequestSchema, () => ({ roots: [root] }));
+	if (elicit)
+		client.setRequestHandler(ElicitRequestSchema, ({ params }, extra) =>
+			params.mode === "url"
+				? { action: "decline" }
+				: elicit(server.id, params, extra.signal),
+		);
 	return client;
 };
 

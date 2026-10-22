@@ -16,7 +16,11 @@ import type {
 import { mcpTools } from "./application/mcp-tools.js";
 import { provideMappings } from "./application/provide-mappings.js";
 import { createRuntimeEnsure } from "./application/runtime-ensure.js";
-import { createSessions, type Sessions } from "./application/sessions.js";
+import {
+	createSessions,
+	type Elicit,
+	type Sessions,
+} from "./application/sessions.js";
 import { BUILT_IN_SERVERS } from "./defaults.js";
 import {
 	type RuntimeSystem,
@@ -41,6 +45,8 @@ export type McpClientOptions = {
 	readonly globalDir?: string;
 	/** What the runtime manager asks of the machine; tests pass a fake. */
 	readonly runtimeSystem?: RuntimeSystem;
+	/** How the host asks the user when a server requests input; without it elicitation is not offered. */
+	readonly elicit?: Elicit;
 };
 
 // mcp.yaml's servers first; a built-in server fills in only when no entry has its id (docs/10).
@@ -158,6 +164,7 @@ export const createMcpClientModule = (opts: McpClientOptions): MeteModule => {
 				...(opts.fetch ? { fetch: opts.fetch } : {}),
 				logger: ctx.logger,
 				...(ensure ? { ensure } : {}),
+				...(opts.elicit ? { elicit: opts.elicit } : {}),
 			});
 			await provideAll(ctx, opts, servers, sessions);
 			return ok(undefined);

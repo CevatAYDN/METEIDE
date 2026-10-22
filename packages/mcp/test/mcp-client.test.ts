@@ -11,7 +11,7 @@ import type {
 } from "@mete/contracts";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { openTransport } from "../src/infrastructure/transport.js";
-import { createMcpClientModule } from "../src/module.js";
+import { createMcpClientModule, type McpClientOptions } from "../src/module.js";
 import { moduleContext } from "./helpers/context.js";
 
 const FIXTURE = fileURLToPath(
@@ -30,8 +30,13 @@ const start = async (
 	verdict: PolicyVerdict["verdict"],
 	servers: unknown[],
 	workspaceDir: string,
+	more: Partial<McpClientOptions> = {},
 ) => {
-	const module = createMcpClientModule({ workspaceDir, builtInServers: [] });
+	const module = createMcpClientModule({
+		workspaceDir,
+		builtInServers: [],
+		...more,
+	});
 	const { ctx, registry, infos } = moduleContext(verdict, { mcp: { servers } });
 	const activated = await module.activate(ctx);
 	const r = registry.resolve<McpToolsAdapter>("mcp.tools@1");
@@ -65,6 +70,7 @@ describe("mcp-client over stdio", () => {
 			"fixture/slow",
 			"fixture/cancelled",
 			"fixture/grow",
+			"fixture/ask",
 			"fixture/steps",
 			"fixture/web_search_advanced_exa",
 		]);
@@ -206,6 +212,41 @@ describe("mcp-client notifications", () => {
 		expect(s.infos.some((i) => i.msg === "MCP server tool list changed")).toBe(
 			true,
 		);
+	});
+});
+
+describe("mcp-client elicitation", () => {
+	const ask = (s: Awaited<ReturnType<typeof start>>) =>
+		s.tools?.call({ server: "fixture", tool: "ask" }, { signal });
+	const textOf = (r: Awaited<ReturnType<typeof ask>>) => {
+		const block = r?.ok ? r.value.content[0] : undefined;
+		return block?.type === "text" ? block.text : "";
+	};
+
+	it("hands a server's form request to the host and returns what the user answered", async () => {
+		const asked: { server: string; message: string }[] = [];
+		const s = await start("allow", [fixture], tmpdir(), {
+			elicit: async (server, params) => {
+				asked.push({ server, message: params.message });
+				return { action: "accept", content: { name: "Ada" } };
+			},
+		});
+		expect(textOf(await ask(s))).toBe("Ada");
+		expect(asked).toEqual([{ server: "fixture", message: "Who are you?" }]);
+		await s.module.deactivate();
+	});
+
+	it("passes a decline on, and without a host the server's request fails", async () => {
+		const declining = await start("allow", [fixture], tmpdir(), {
+			elicit: async () => ({ action: "decline" }),
+		});
+		expect(textOf(await ask(declining))).toBe("decline");
+		await declining.module.deactivate();
+		const none = await start("allow", [fixture], tmpdir());
+		const r = await ask(none);
+		expect(r?.ok && r.value.isError).toBe(true);
+		expect(textOf(r)).toMatch(/elicitation/i);
+		await none.module.deactivate();
 	});
 });
 

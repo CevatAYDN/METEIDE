@@ -49,6 +49,19 @@ server.registerTool("grow", { description: "Adds a tool" }, async () => {
 	}));
 	return { content: [{ type: "text", text: "ok" }] };
 });
+// Asks the user a name through the client (elicitation) and answers with it, or with what they did instead.
+server.registerTool("ask", { description: "Asks a name" }, async () => {
+	const r = await server.server.elicitInput({
+		message: "Who are you?",
+		requestedSchema: {
+			type: "object",
+			properties: { name: { type: "string" } },
+			required: ["name"],
+		},
+	});
+	const text = r.action === "accept" ? String(r.content?.name) : r.action;
+	return { content: [{ type: "text", text }] };
+});
 // Reports two progress steps when the client asked for progress.
 server.registerTool("steps", { description: "Two steps" }, async (extra) => {
 	const progressToken = extra._meta?.progressToken;
