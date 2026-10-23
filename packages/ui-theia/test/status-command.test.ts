@@ -37,6 +37,9 @@ vi.mock("../src/infrastructure/board-contribution.js", () => ({
 vi.mock("../src/infrastructure/audit-contribution.js", () => ({
 	bindAudit: () => {},
 }));
+vi.mock("../src/infrastructure/quota-contribution.js", () => ({
+	bindQuota: () => {},
+}));
 // Opening an artifact goes through Theia's browser openers; test/artifact.test.ts covers the choice.
 vi.mock("../src/infrastructure/artifact-command.js", () => ({
 	MeteArtifactContribution: class MeteArtifactContribution {

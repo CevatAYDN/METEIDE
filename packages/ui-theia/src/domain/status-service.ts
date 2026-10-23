@@ -4,6 +4,7 @@ import type {
 	DaemonStatusResultSchema,
 	MeteEvent,
 	ProviderState,
+	QuotaUnitUsage,
 	Result,
 	RunStart,
 } from "@mete/contracts";
@@ -94,10 +95,14 @@ export interface MeteDaemonService {
 	): Promise<
 		Result<{ readonly entries: readonly AuditEntry[] }, DaemonFailure>
 	>;
-	/** Whether each provider can carry a run on now (ADR-050). */
-	quota(
-		workspaceDir: string,
-	): Promise<
-		Result<{ readonly providers: readonly ProviderState[] }, DaemonFailure>
+	/** Whether each provider can carry a run on now (ADR-050), and the pool's units (ADR-054). */
+	quota(workspaceDir: string): Promise<
+		Result<
+			{
+				readonly providers: readonly ProviderState[];
+				readonly units: readonly QuotaUnitUsage[];
+			},
+			DaemonFailure
+		>
 	>;
 }

@@ -70,14 +70,27 @@
 			"which": "Hangi sağlayıcının anahtarı?"
 		},
 		"quota": {
+			"anyProvider": "Tüm ücretli modeller",
+			"caption": "METE: her sağlayıcının kota birimleri",
 			"exhausted": "{0}: ücretsiz kotası {1} tarihine kadar bitti",
 			"inactive": "{0}: etkin değil; nedenini günlük söylüyor",
 			"label": "Kota",
+			"limit": "Sınır",
+			"loading": "Kota okunuyor…",
+			"model": "Model",
 			"noKey": "{0}: anahtar yok (METE: Sağlayıcı anahtarı ayarla)",
+			"noLimit": "Henüz bilinmiyor",
 			"none": "METE'de sağlayıcı modülü yok.",
+			"noUnits": "Henüz kota birimi yok: bir sağlayıcının birimleri modelleri listelenince görünür.",
+			"open": "Kota panosunu aç",
+			"provider": "Sağlayıcı",
 			"ready": "{0}: hazır",
+			"resets": "Sıfırlanma",
 			"states": "Sağlayıcılar: {0}",
-			"unusable": "{0}: modellerinden hiçbiri burada kullanılamıyor (gizlilik kuralları onları dışarıda bırakabilir: privacy.yaml içindeki allowTraining; model modu bırakabilir: gateway.yaml içindeki models; ya da anahtarı reddedildi)"
+			"title": "Kota",
+			"unit": "Birim",
+			"unusable": "{0}: modellerinden hiçbiri burada kullanılamıyor (gizlilik kuralları onları dışarıda bırakabilir: privacy.yaml içindeki allowTraining; model modu bırakabilir: gateway.yaml içindeki models; ya da anahtarı reddedildi)",
+			"used": "Kullanılan"
 		},
 		"run": {
 			"noArtifact": "Bu çalıştırmanın henüz açılacak bir raporu yok.",

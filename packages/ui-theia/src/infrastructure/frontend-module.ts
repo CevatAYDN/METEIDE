@@ -14,6 +14,7 @@ import { MeteArtifactContribution } from "./artifact-command.js";
 import { bindAudit } from "./audit-contribution.js";
 import { bindBoard } from "./board-contribution.js";
 import { bindHome } from "./home-contribution.js";
+import { bindQuota } from "./quota-contribution.js";
 
 // Theia's generated frontend loads this file by the path in package.json and binds `module.default`.
 // biome-ignore lint/style/noDefaultExport: Theia reads `default` from an extension module
@@ -37,4 +38,5 @@ export default new ContainerModule((bind) => {
 	bindHome(bind);
 	bindBoard(bind);
 	bindAudit(bind);
+	bindQuota(bind);
 });
