@@ -19,8 +19,8 @@ export type StatusRuns = ReturnType<typeof DaemonStatusResultSchema.parse>;
 /**
  * Why a status call has no runs: the daemon is not ready (`detail` is what core-engine waits for,
  * ADR-046), it stopped (`detail` is its exit code and last stderr lines), the restart limit is
- * reached, the router wants a template chosen, the daemon refused the request, or its answer did
- * not parse.
+ * reached, the router wants a template chosen, the daemon refused the request, its answer did
+ * not parse, or a `mete` command the backend ran ended badly.
  */
 export type DaemonFailure = {
 	readonly code:
