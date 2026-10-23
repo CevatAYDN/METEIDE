@@ -151,6 +151,14 @@ describe("the daemon host", () => {
 		});
 	});
 
+	it("sends Stop all and returns the runs the daemon cancelled (ADR-065)", async () => {
+		const { host } = await setup();
+		expect(await host.stopAll("/w")).toEqual({
+			ok: true,
+			value: { cancelled: ["6f1c3d52-9b7e-4a52-8d5f-0a1b2c3d4e5f"] },
+		});
+	});
+
 	it("asks each provider's state and refuses one that does not parse", async () => {
 		const { fake, host } = await setup();
 		expect(await host.quota("/w")).toEqual({

@@ -76,6 +76,10 @@ export class MeteDaemonBackend
 		return this.host.resume(workspaceDir, runId);
 	}
 
+	stopAll(workspaceDir: string) {
+		return this.host.stopAll(workspaceDir);
+	}
+
 	events(workspaceDir: string, runId: string) {
 		return this.host.events(workspaceDir, runId);
 	}

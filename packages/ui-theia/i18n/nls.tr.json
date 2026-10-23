@@ -147,6 +147,12 @@
 			"refused": "METE daemon'u isteği reddetti: {0}",
 			"runs": "Bu klasörde {0} çalıştırma: {1}",
 			"stopped": "METE daemon'u durdu: {0}"
+		},
+		"stopAll": {
+			"cancelled": "Tümünü durdur: {0} çalıştırma iptal edildi.",
+			"label": "Tümünü durdur",
+			"none": "Süren bir çalıştırma yoktu; hiçbiri iptal edilmedi.",
+			"tooltip": "Bu klasördeki her çalıştırmayı şimdi iptal et (Ctrl+Shift+.)"
 		}
 	}
 }

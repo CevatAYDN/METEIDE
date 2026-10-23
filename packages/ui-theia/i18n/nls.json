@@ -129,6 +129,12 @@
 			"runs": "{0} run(s) in this folder: {1}",
 			"stopped": "The METE daemon stopped: {0}"
 		},
+		"stopAll": {
+			"cancelled": "Stop all cancelled {0} run(s).",
+			"label": "Stop all",
+			"none": "No run was going on; Stop all cancelled none.",
+			"tooltip": "Cancel every run of this folder now (Ctrl+Shift+.)"
+		},
 		"studio": {
 			"approved": "{0} is approved and moves to Done.",
 			"asksRole": "{0} asks {1} for approval.",

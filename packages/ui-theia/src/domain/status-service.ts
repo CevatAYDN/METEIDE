@@ -78,6 +78,10 @@ export interface MeteDaemonService {
 		workspaceDir: string,
 		runId: string,
 	): Promise<Result<null, DaemonFailure>>;
+	/** The kill switch (ADR-065): cancels every run of the folder that has not ended. */
+	stopAll(
+		workspaceDir: string,
+	): Promise<Result<{ readonly cancelled: readonly string[] }, DaemonFailure>>;
 	/** A run's persisted events in order, and how many rows no longer parse (ADR-051). */
 	events(
 		workspaceDir: string,
