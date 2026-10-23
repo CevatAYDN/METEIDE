@@ -1,4 +1,8 @@
-import type { ProviderState } from "@mete/contracts";
+import type {
+	ProviderState,
+	QuotaReserveAdapter,
+	QuotaUnitUsage,
+} from "@mete/contracts";
 import type { EventBus } from "@mete/kernel";
 import { apiKeyName } from "@mete/providers";
 import type { App } from "../infrastructure/app.js";
@@ -65,6 +69,13 @@ export const providerStates = async (
 		else states.push({ id, state: usable.has(id) ? "ready" : "unusable" });
 	}
 	return states;
+};
+
+/** The quota pool's units without their history (ADR-054); none when the quota module is not active. */
+export const quotaUnits = (app: App): QuotaUnitUsage[] => {
+	const quota = app.registry.resolve<QuotaReserveAdapter>("quota.reserve@3");
+	if (!quota.ok) return [];
+	return quota.value[0].impl.usage().map(({ history: _, ...unit }) => unit);
 };
 
 /** The line a terminal prints for a provider that cannot help now; none for a ready one. */

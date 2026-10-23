@@ -36,6 +36,8 @@ export {
 	DaemonStatusResultSchema,
 	type ProviderState,
 	ProviderStateSchema,
+	type QuotaUnitUsage,
+	QuotaUnitUsageSchema,
 	RunViewSchema,
 } from "./domain/daemon.js";
 export {

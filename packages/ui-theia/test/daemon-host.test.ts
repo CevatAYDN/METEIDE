@@ -156,6 +156,15 @@ describe("the daemon host", () => {
 					},
 					{ id: "nvidia", state: "no_key" },
 				],
+				units: [
+					{
+						providerId: "groq",
+						unit: "requests_per_minute",
+						scope: null,
+						used: 3,
+						limit: 30,
+					},
+				],
 			},
 		});
 		fake.state.mode = "badquota";

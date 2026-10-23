@@ -84,15 +84,24 @@ describe("mete daemon quota", () => {
 			},
 		);
 		c.listen();
-		const quota = async () =>
-			DaemonQuotaResultSchema.parse(await c.sendRequest(DAEMON_METHODS.quota))
-				.providers;
+		const ask = async () =>
+			DaemonQuotaResultSchema.parse(await c.sendRequest(DAEMON_METHODS.quota));
+		const quota = async () => (await ask()).providers;
+		// The pool's day unit of the fake provider (ADR-054), defined by the states' model listing.
+		const fakeDay = async () =>
+			(await ask()).units.find((u) => u.providerId === "fake");
 
 		expect(await quota()).toEqual([
 			{ id: "fake", state: "ready" },
 			{ id: "shy", state: "unusable" },
 			{ id: "nvidia", state: "no_key" },
 		]);
+		expect(await fakeDay()).toMatchObject({
+			unit: "requests_per_day",
+			scope: null,
+			used: 0,
+			limit: 1,
+		});
 		DaemonRunStartResultSchema.parse(
 			await c.sendRequest(DAEMON_METHODS.runStart, {
 				goal: "g",
@@ -106,6 +115,7 @@ describe("mete daemon quota", () => {
 			{ id: "shy", state: "unusable" },
 			{ id: "nvidia", state: "no_key" },
 		]);
+		expect(await fakeDay()).toMatchObject({ used: 1, limit: 1 });
 
 		toDaemon.end();
 		expect(await serving).toBe(0);

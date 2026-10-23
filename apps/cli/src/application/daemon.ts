@@ -24,7 +24,11 @@ import { type App, engineOf, notReadyLines } from "../infrastructure/app.js";
 import { runHistory } from "../infrastructure/history.js";
 import { auditEntries } from "./audit.js";
 import type { Io } from "./commands.js";
-import { providerStates, trackExhausted } from "./provider-states.js";
+import {
+	providerStates,
+	quotaUnits,
+	trackExhausted,
+} from "./provider-states.js";
 
 // `mete daemon`: protocol version 7 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-053).
 
@@ -137,8 +141,10 @@ const serveQuota = (
 	app: App,
 	until: (id: string) => string | undefined,
 ) =>
+	// The states come first: their model listing defines each provider's units in the pool.
 	conn.onRequest(DAEMON_METHODS.quota, async () => ({
 		providers: await providerStates(app, until),
+		units: quotaUnits(app),
 	}));
 
 // The bus has no catch-all pattern, so each event domain gets its own subscription; one event

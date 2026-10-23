@@ -250,6 +250,7 @@ describe("daemon protocol version 7", () => {
 				},
 				{ id: "shy", state: "unusable" },
 			],
+			units: [],
 		};
 		expect(DaemonQuotaResultSchema.parse(quota)).toEqual(quota);
 		for (const bad of [
@@ -262,6 +263,30 @@ describe("daemon protocol version 7", () => {
 			{ providers: [{ id: "", state: "ready" }] },
 			{ providers: [{ id: "x", state: "tired" }] },
 		])
-			expect(DaemonQuotaResultSchema.safeParse(bad).success).toBe(false);
+			expect(
+				DaemonQuotaResultSchema.safeParse({ ...bad, units: [] }).success,
+			).toBe(false);
+	});
+
+	it("answers mete/quota with the pool's units, without their history (ADR-054)", () => {
+		const unit = {
+			providerId: "openrouter",
+			unit: "requests_per_day",
+			scope: null,
+			used: 3,
+			limit: 50,
+			resetsAt: "2026-10-24T00:00:00.000Z",
+		};
+		const open = { ...unit, scope: "m", limit: null };
+		const quota = { providers: [], units: [unit, open] };
+		expect(DaemonQuotaResultSchema.parse(quota)).toEqual(quota);
+		const withHistory = { ...unit, history: [] };
+		expect(
+			DaemonQuotaResultSchema.safeParse({ providers: [], units: [withHistory] })
+				.success,
+		).toBe(false);
+		expect(DaemonQuotaResultSchema.safeParse({ providers: [] }).success).toBe(
+			false,
+		);
 	});
 });
