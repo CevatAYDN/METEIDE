@@ -67,6 +67,8 @@ const Choice = ({
 		{label}
 		<select
 			className="theia-select"
+			// A run is named by its goal, which can be long: the box stays a box, the text is cut.
+			style={{ maxWidth: "24em" }}
 			value={value ?? ""}
 			onChange={(e) => onChange(e.target.value || undefined)}
 		>
