@@ -28,6 +28,16 @@
 			"set": "Set provider key",
 			"which": "Which provider's key?"
 		},
+		"quota": {
+			"exhausted": "{0}: its free quota is used up until {1}",
+			"inactive": "{0}: not active; the log says why",
+			"label": "Quota",
+			"noKey": "{0}: no key (METE: Set provider key)",
+			"none": "METE has no provider modules.",
+			"ready": "{0}: ready",
+			"states": "Providers: {0}",
+			"unusable": "{0}: none of its models can be used here (the privacy rules may leave them out: allowTraining in privacy.yaml; the model mode may: models in gateway.yaml; or its key was refused)"
+		},
 		"run": {
 			"approve": "Approve run",
 			"approved": "Approved; the run goes on.",

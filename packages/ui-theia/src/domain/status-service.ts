@@ -2,6 +2,7 @@ import type {
 	ApprovalInput,
 	DaemonStatusResultSchema,
 	MeteEvent,
+	ProviderState,
 	Result,
 	RunStart,
 } from "@mete/contracts";
@@ -68,4 +69,10 @@ export interface MeteDaemonService {
 		workspaceDir: string,
 		runId: string,
 	): Promise<Result<null, DaemonFailure>>;
+	/** Whether each provider can carry a run on now (ADR-050). */
+	quota(
+		workspaceDir: string,
+	): Promise<
+		Result<{ readonly providers: readonly ProviderState[] }, DaemonFailure>
+	>;
 }

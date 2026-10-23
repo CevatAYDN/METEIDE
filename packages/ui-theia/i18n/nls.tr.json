@@ -28,6 +28,16 @@
 			"set": "Sağlayıcı anahtarı ayarla",
 			"which": "Hangi sağlayıcının anahtarı?"
 		},
+		"quota": {
+			"exhausted": "{0}: ücretsiz kotası {1} tarihine kadar bitti",
+			"inactive": "{0}: etkin değil; nedenini günlük söylüyor",
+			"label": "Kota",
+			"noKey": "{0}: anahtar yok (METE: Sağlayıcı anahtarı ayarla)",
+			"none": "METE'de sağlayıcı modülü yok.",
+			"ready": "{0}: hazır",
+			"states": "Sağlayıcılar: {0}",
+			"unusable": "{0}: modellerinden hiçbiri burada kullanılamıyor (gizlilik kuralları onları dışarıda bırakabilir: privacy.yaml içindeki allowTraining; model modu bırakabilir: gateway.yaml içindeki models; ya da anahtarı reddedildi)"
+		},
 		"run": {
 			"approve": "Çalıştırmayı onayla",
 			"approved": "Onaylandı; çalıştırma devam ediyor.",

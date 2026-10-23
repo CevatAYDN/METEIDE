@@ -75,6 +75,10 @@ export class MeteDaemonBackend
 		return this.host.resume(workspaceDir, runId);
 	}
 
+	quota(workspaceDir: string) {
+		return this.host.quota(workspaceDir);
+	}
+
 	onStop() {
 		this.host.stop();
 	}

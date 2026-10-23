@@ -4,6 +4,7 @@ import {
 	DAEMON_METHODS,
 	DaemonDoneResultSchema,
 	DaemonErrorDataSchema,
+	DaemonQuotaResultSchema,
 	DaemonRunStartResultSchema,
 	DaemonStatusResultSchema,
 	err,
@@ -220,6 +221,11 @@ export const createDaemonHost = (deps: HostDeps) => {
 			send(dir, DAEMON_METHODS.runApprove, { runId, input }, done),
 		resume: (dir: string, runId: string) =>
 			send(dir, DAEMON_METHODS.runResume, { runId }, done),
+		/** Each provider's state (ADR-050). */
+		quota: (dir: string) =>
+			send(dir, DAEMON_METHODS.quota, {}, (raw) =>
+				DaemonQuotaResultSchema.safeParse(raw),
+			),
 		stop: () => void askToStop(slot.live),
 		/** Stops the daemon and waits until it has ended; the next call starts it again, uncounted (ADR-049). */
 		restart: async () => {

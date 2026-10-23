@@ -42,6 +42,11 @@ conn.onRequest("mete/run.approve", (p) => {
 	return null;
 });
 conn.onRequest("mete/run.resume", (p) => (p.runId === "late" ? "odd" : null));
+conn.onRequest("mete/quota", () =>
+	mode === "badquota"
+		? { providers: [{ id: "groq", state: "exhausted" }] }
+		: { providers: [{ id: "groq", state: "exhausted", resetsAt: "2026-10-24T00:00:00.000Z" }, { id: "nvidia", state: "no_key" }] },
+);
 conn.onClose(() => process.exit(0));
 conn.listen();
 `;

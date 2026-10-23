@@ -116,6 +116,26 @@ describe("the daemon host", () => {
 		expect(!odd.ok && odd.error.code).toBe("protocol");
 	});
 
+	it("asks each provider's state and refuses one that does not parse", async () => {
+		const { fake, host } = await setup();
+		expect(await host.quota("/w")).toEqual({
+			ok: true,
+			value: {
+				providers: [
+					{
+						id: "groq",
+						state: "exhausted",
+						resetsAt: "2026-10-24T00:00:00.000Z",
+					},
+					{ id: "nvidia", state: "no_key" },
+				],
+			},
+		});
+		fake.state.mode = "badquota";
+		const odd = await host.quota("/v");
+		expect(!odd.ok && odd.error.code).toBe("protocol");
+	});
+
 	it("restarts the daemon on request and waits for it, without counting it as a restart", async () => {
 		const { fake, host } = await setup(0);
 		expect((await host.status("/w")).ok).toBe(true);

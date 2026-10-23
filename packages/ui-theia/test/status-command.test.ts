@@ -10,6 +10,7 @@ import { QuickInputService } from "@theia/core/lib/common/quick-pick-service";
 import { Container } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import { describe, expect, it, vi } from "vitest";
+import { QUOTA_COMMAND } from "../src/application/status-command.js";
 import {
 	type DaemonFailure,
 	MeteDaemonService,
@@ -72,6 +73,20 @@ const setup = (folders: string[], reply: Reply) => {
 			asked.push(dir);
 			return reply;
 		},
+		quota: async (dir: string) => {
+			asked.push(dir);
+			return reply.ok
+				? {
+						ok: true,
+						value: {
+							providers: [
+								{ id: "groq", state: "ready" },
+								{ id: "my_llm", state: "inactive" },
+							],
+						},
+					}
+				: reply;
+		},
 	});
 	const handlers = new Map<string, CommandHandler>();
 	const registry = {
@@ -85,9 +100,40 @@ const setup = (folders: string[], reply: Reply) => {
 		info,
 		warn,
 		asked,
-		execute: () => handlers.get("mete.status")?.execute(),
+		execute: (id = "mete.status") => handlers.get(id)?.execute(),
 	};
 };
+
+describe("METE: Quota", () => {
+	it("says each provider's state for the first folder, with ids escaped for Markdown", async () => {
+		expect(QUOTA_COMMAND).toMatchObject({
+			id: "mete.quota",
+			category: "METE",
+			label: "Quota",
+		});
+		const t = setup(["/w"], { ok: true, value: [] });
+		await t.execute("mete.quota");
+		expect(t.asked).toEqual(["/w"]);
+		expect(t.info).toEqual([
+			String.raw`Providers: groq: ready; my\_llm: not active; the log says why`,
+		]);
+	});
+
+	it("asks for a folder first, and names why the daemon gave no states", async () => {
+		const none = setup([], { ok: true, value: [] });
+		await none.execute("mete.quota");
+		expect(none.asked).toEqual([]);
+		expect(none.info).toEqual([
+			"Open a folder first: METE works on one folder at a time.",
+		]);
+		const failed = setup(["/w"], {
+			ok: false,
+			error: { code: "not_ready", detail: "no key" },
+		});
+		await failed.execute("mete.quota");
+		expect(failed.warn).toEqual(["METE is not ready yet: no key"]);
+	});
+});
 
 describe("METE: Status", () => {
 	it("is the palette entry METE: Status, bound by the frontend module", () => {

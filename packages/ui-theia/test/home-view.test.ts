@@ -133,6 +133,38 @@ describe("the Home view", () => {
 		expect(inbox).toContain("unless .mete/policy.yaml allows it");
 	});
 
+	it("says under a run paused for quota why each provider cannot carry it on, and only there", () => {
+		const out = html(
+			homeModel(
+				{
+					ok: true,
+					value: [
+						run("paused", "quota goal", null, "quota"),
+						run("completed", "done goal", null),
+					],
+				},
+				AT,
+				[
+					{ id: "groq", state: "ready" },
+					{
+						id: "openrouter",
+						state: "exhausted",
+						resetsAt: "2026-10-24T00:00:00.000Z",
+					},
+					{ id: "nvidia", state: "no_key" },
+				],
+			),
+		);
+		const quotaRow = out.slice(
+			out.indexOf("quota goal"),
+			out.indexOf("done goal"),
+		);
+		expect(quotaRow).toContain("openrouter: its free quota is used up until ");
+		expect(quotaRow).toContain("nvidia: no key (METE: Set provider key)");
+		expect(out).not.toContain("groq");
+		expect(out.slice(out.indexOf("done goal"))).not.toContain("<li>");
+	});
+
 	it("shows no inbox when nothing waits", () => {
 		const out = html(
 			homeModel({ ok: true, value: [run("completed", "done", null)] }, AT),

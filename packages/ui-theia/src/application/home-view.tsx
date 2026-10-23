@@ -1,6 +1,8 @@
+import type { ProviderState } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties } from "react";
 import type { HomeModel, HomeRow } from "../domain/home-model.js";
+import { stateText } from "./quota-text.js";
 import { failureText, noFolderText, runsText } from "./status-text.js";
 
 // The Home panel (docs/13, Home): the approvals inbox of ADR-048 ("Waiting for you") above the
@@ -39,7 +41,26 @@ const Goal = ({ row }: { readonly row: HomeRow }) => (
 	</>
 );
 
-const Runs = ({ rows }: { readonly rows: readonly HomeRow[] }) =>
+// Under a run paused for quota: why each provider cannot carry it on now (ADR-050).
+const Blocked = ({
+	providers,
+}: {
+	readonly providers: readonly ProviderState[];
+}) => (
+	<ul style={{ ...MUTED, margin: "4px 0 0", paddingLeft: "16px" }}>
+		{providers.map((p) => (
+			<li key={p.id}>{stateText(p)}</li>
+		))}
+	</ul>
+);
+
+const Runs = ({
+	rows,
+	blocked,
+}: {
+	readonly rows: readonly HomeRow[];
+	readonly blocked: readonly ProviderState[];
+}) =>
 	rows.length === 0 ? (
 		<p>{runsText([])}</p>
 	) : (
@@ -63,6 +84,9 @@ const Runs = ({ rows }: { readonly rows: readonly HomeRow[] }) =>
 						<td style={CELL}>{r.status}</td>
 						<td style={CELL}>
 							<Goal row={r} />
+							{r.quotaPaused && blocked.length > 0 ? (
+								<Blocked providers={blocked} />
+							) : null}
 						</td>
 						<td style={CELL}>{when(r.createdAt)}</td>
 					</tr>
@@ -185,7 +209,7 @@ const Body = ({
 	if (model.kind === "no_folder") return <p>{noFolderText()}</p>;
 	if (model.kind === "failed")
 		return <Failed model={model} onSetKey={onSetKey} />;
-	return <Runs rows={model.rows} />;
+	return <Runs rows={model.rows} blocked={model.blocked} />;
 };
 
 /**

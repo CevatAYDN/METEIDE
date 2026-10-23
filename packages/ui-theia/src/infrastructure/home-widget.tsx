@@ -16,7 +16,11 @@ import {
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { type HomeAction, HomeView } from "../application/home-view.js";
 import { SET_KEY_COMMAND } from "../application/key-command.js";
-import { type HomeModel, homeModel } from "../domain/home-model.js";
+import {
+	type HomeModel,
+	homeModel,
+	waitsForQuota,
+} from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 
 // The Home panel (docs/13, Home): recent runs of the first open folder, asked of its daemon.
@@ -67,7 +71,18 @@ export class MeteHomeWidget extends ReactWidget {
 		this.dir = root.resource.path.fsPath();
 		if (this.model.kind !== "runs") this.setModel({ kind: "loading" });
 		const reply = await this.daemon.status(this.dir);
-		this.setModel(homeModel(reply, new Date().toISOString()));
+		const providers =
+			reply.ok && reply.value.some(waitsForQuota)
+				? await this.providers(this.dir)
+				: [];
+		this.setModel(homeModel(reply, new Date().toISOString(), providers));
+	}
+
+	// The lines under a quota pause add to the run, which shows as paused without them; a failed
+	// ask leaves them out, and METE: Quota says why it failed.
+	protected async providers(dir: string) {
+		const r = await this.daemon.quota(dir);
+		return r.ok ? r.value.providers : [];
 	}
 
 	// The inbox's buttons run the palette commands, so the keyboard and the mouse share one path.
