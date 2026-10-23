@@ -4,7 +4,9 @@ import {
 	DaemonErrorDataSchema,
 	DaemonStatusResultSchema,
 	err,
+	type MeteEvent,
 	ok,
+	parseEvent,
 	type Result,
 } from "@mete/contracts";
 import {
@@ -33,6 +35,10 @@ export type HostDeps = {
 	readonly spawn: SpawnDaemon;
 	readonly policy: RestartPolicy;
 	readonly now: () => number;
+	/** A `mete/event` of the folder's daemon, checked against the event catalog. */
+	readonly onEvent: (workspaceDir: string, event: MeteEvent) => void;
+	/** A notification that is not a catalog event: a protocol fault the backend logs. */
+	readonly onBadEvent: (workspaceDir: string, why: string) => void;
 };
 
 type Live = {
@@ -52,8 +58,8 @@ const keepTail = (tail: string[], chunk: Buffer | string) => {
 	tail.splice(0, Math.max(0, tail.length - STDERR_TAIL_LINES));
 };
 
-const launch = (spawn: SpawnDaemon, dir: string): Live => {
-	const child = spawn(dir);
+const launch = (deps: HostDeps, dir: string): Live => {
+	const child = deps.spawn(dir);
 	const conn = createMessageConnection(
 		new StreamMessageReader(child.stdout),
 		new StreamMessageWriter(child.stdin),
@@ -82,6 +88,11 @@ const launch = (spawn: SpawnDaemon, dir: string): Live => {
 	child.on("close", (code) => {
 		live.exitCode = code;
 		end();
+	});
+	conn.onNotification(DAEMON_METHODS.event, (raw: unknown) => {
+		const e = parseEvent(raw);
+		if (e.ok) deps.onEvent(dir, e.value);
+		else deps.onBadEvent(dir, e.error.issues.join("; "));
 	});
 	conn.listen();
 	return live;
@@ -141,7 +152,7 @@ export const createDaemonHost = (deps: HostDeps) => {
 		const crashed = before?.dir === dir && before.ended && !before.stopping;
 		if (before && crashed && !deps.policy.allow(deps.now()))
 			return err({ code: "blocked", detail: detailOf(before) });
-		live = launch(deps.spawn, dir);
+		live = launch(deps, dir);
 		return ok(live);
 	};
 	return {

@@ -7,13 +7,13 @@ import {
 	postConstruct,
 } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
+import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { HomeView } from "../application/home-view.js";
 import { type HomeModel, homeModel } from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 
 // The Home panel (docs/13, Home): recent runs of the first open folder, asked of its daemon.
-// shortcut: a snapshot taken when the panel opens or is refreshed; it follows the runs live once
-// the daemon's mete/event notifications reach the frontend.
+// It asks again when the panel opens, on Refresh and on every run.* event of its folder.
 
 /** The METE Home view in Theia's side bar. */
 @injectable()
@@ -22,8 +22,11 @@ export class MeteHomeWidget extends ReactWidget {
 
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;
 	@inject(WorkspaceService) protected readonly workspace!: WorkspaceService;
+	@inject(MeteDaemonEvents) protected readonly events!: MeteDaemonEvents;
 
 	protected model: HomeModel = { kind: "loading" };
+	/** The folder the shown runs belong to. */
+	protected dir: string | undefined;
 
 	@postConstruct()
 	protected init(): void {
@@ -32,6 +35,13 @@ export class MeteHomeWidget extends ReactWidget {
 		this.title.caption = nls.localize("mete/home/caption", "METE: recent runs");
 		this.title.iconClass = codicon("home");
 		this.title.closable = true;
+		// A run of the shown folder changed: ask again; run events are few, so no debounce.
+		this.toDispose.push(
+			this.events.onDidReceive(({ workspaceDir, event }) => {
+				if (workspaceDir === this.dir && event.type.startsWith("run."))
+					void this.refresh();
+			}),
+		);
 		void this.refresh();
 	}
 
@@ -40,8 +50,9 @@ export class MeteHomeWidget extends ReactWidget {
 		// The roots promise waits for the workspace to load; tryGetRoots is empty until then.
 		const [root] = await this.workspace.roots;
 		if (!root) return this.setModel({ kind: "no_folder" });
-		this.setModel({ kind: "loading" });
-		const reply = await this.daemon.status(root.resource.path.fsPath());
+		this.dir = root.resource.path.fsPath();
+		if (this.model.kind !== "runs") this.setModel({ kind: "loading" });
+		const reply = await this.daemon.status(this.dir);
 		this.setModel(homeModel(reply, new Date().toISOString()));
 	}
 

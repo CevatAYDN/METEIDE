@@ -1,4 +1,8 @@
-import type { DaemonStatusResultSchema, Result } from "@mete/contracts";
+import type {
+	DaemonStatusResultSchema,
+	MeteEvent,
+	Result,
+} from "@mete/contracts";
 
 // What the Theia frontend asks its backend, which owns the daemon process (ARCHITECTURE.md, Daemon protocol).
 
@@ -17,6 +21,11 @@ export type DaemonFailure = {
 	readonly code: "not_ready" | "stopped" | "blocked" | "refused" | "protocol";
 	readonly detail: string;
 };
+
+/** What the backend calls on each frontend: an event the daemon of a folder published. */
+export interface MeteDaemonClient {
+	onEvent(workspaceDir: string, event: MeteEvent): void;
+}
 
 /** The backend side of the METE panels; the first call for a folder starts its daemon. */
 export const MeteDaemonService = Symbol("MeteDaemonService");

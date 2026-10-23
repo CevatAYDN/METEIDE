@@ -13,16 +13,20 @@ afterEach(async () => {
 const setup = async (max = 3) => {
 	const fake = await fakeDaemon();
 	let clock = 0;
+	const events: string[] = [];
+	const bad: string[] = [];
 	const host = createDaemonHost({
 		spawn: fake.spawn,
 		policy: createRestartPolicy(max, 1000),
 		now: () => clock,
+		onEvent: (dir, e) => void events.push(`${dir} ${e.type}`),
+		onBadEvent: (dir) => void bad.push(dir),
 	});
 	cleanup.push(host.stop, fake.close);
 	const tick = (ms: number) => {
 		clock += ms;
 	};
-	return { fake, host, tick };
+	return { fake, host, tick, events, bad };
 };
 
 describe("the daemon host", () => {
@@ -65,6 +69,14 @@ describe("the daemon host", () => {
 		const { host } = await setup();
 		const odd = await host.status("/w", "baddata");
 		expect(!odd.ok && odd.error).toEqual({ code: "protocol", detail: "odd" });
+	});
+
+	it("forwards the daemon's events in order with their folder and reports one that is not in the catalog", async () => {
+		const { fake, host, events, bad } = await setup();
+		fake.state.mode = "events";
+		expect((await host.status("/w")).ok).toBe(true);
+		expect(events).toEqual(["/w run.created", "/w run.started"]);
+		expect(bad).toEqual(["/w"]);
 	});
 
 	it("replaces the daemon when another folder is asked about", async () => {

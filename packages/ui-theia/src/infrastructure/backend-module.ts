@@ -3,6 +3,7 @@ import { BackendApplicationContribution } from "@theia/core/lib/node";
 import { ContainerModule } from "@theia/core/shared/inversify";
 import {
 	METE_DAEMON_PATH,
+	type MeteDaemonClient,
 	MeteDaemonService,
 } from "../domain/status-service.js";
 import { MeteDaemonBackend } from "./daemon-service.js";
@@ -16,8 +17,15 @@ export default new ContainerModule((bind) => {
 	bind(ConnectionHandler)
 		.toDynamicValue(
 			(ctx) =>
-				new RpcConnectionHandler<MeteDaemonService>(METE_DAEMON_PATH, () =>
-					ctx.container.get<MeteDaemonService>(MeteDaemonService),
+				// Each frontend connection brings its client; it receives events until it closes.
+				new RpcConnectionHandler<MeteDaemonClient>(
+					METE_DAEMON_PATH,
+					(client) => {
+						const backend = ctx.container.get(MeteDaemonBackend);
+						backend.addClient(client);
+						client.onDidCloseConnection(() => backend.removeClient(client));
+						return backend;
+					},
 				),
 		)
 		.inSingletonScope();

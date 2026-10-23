@@ -20,6 +20,13 @@ const run = { id: "6f1c3d52-9b7e-4a52-8d5f-0a1b2c3d4e5f", workspaceId: "0b6f0a43
 const conn = createMessageConnection(new StreamMessageReader(process.stdin), new StreamMessageWriter(process.stdout));
 conn.onRequest("mete/status", (p) => {
 	if (mode === "notready") throw new ResponseError(-32000, "core-engine is not active", { code: "not_ready", reasons: ["core-engine is not active.", "Add a provider key with: mete key set openrouter"] });
+	if (mode === "events") {
+		const at = new Date().toISOString();
+		const base = { schema: 1, workspaceId: run.workspaceId, runId: run.id, source: "core-engine", ts: at };
+		conn.sendNotification("mete/event", { ...base, id: "7c1d3e52-9b7e-4a52-8d5f-0a1b2c3d4e51", type: "run.created", payload: { templateId: null, goal: "g" } });
+		conn.sendNotification("mete/event", { ...base, id: "7c1d3e52-9b7e-4a52-8d5f-0a1b2c3d4e52", type: "run.started", payload: {} });
+		conn.sendNotification("mete/event", { ...base, id: "x", type: "run.started", payload: {} });
+	}
 	if (p && p.runId === "baddata") throw new ResponseError(-32000, "odd", { oops: 1 });
 	if (p && p.runId === "die") process.exit(1);
 	if (p && p.runId === "refuse") throw new ResponseError(-32000, "run not found", { code: "not_found" });
