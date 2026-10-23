@@ -16,17 +16,26 @@ const sources = (dir: string): string[] =>
 		return /\.tsx?$/.test(name) ? [path] : [];
 	});
 
-// nls.localize("key", ...) and Command.toLocalizedCommand({...}, "label key", "category key").
-const LOCALIZE = /nls\.localize\(\s*"([^"]+)"/g;
-const COMMAND = /toLocalizedCommand\(\s*\{[^}]*\},\s*"([^"]+)",\s*"([^"]+)"/g;
+// nls.localize("key", "English text", ...) and
+// Command.toLocalizedCommand({ id, category: "METE", label: "Status" }, "label key", "category key").
+const LOCALIZE = /nls\.localize\(\s*"([^"]+)",\s*"([^"]*)"/g;
+const COMMAND =
+	/toLocalizedCommand\(\s*\{[^}]*?category:\s*"([^"]+)",\s*label:\s*"([^"]+)"\s*\},\s*"([^"]+)",\s*"([^"]+)"/g;
 
-const keysOf = (text: string) =>
-	[...text.matchAll(LOCALIZE), ...text.matchAll(COMMAND)].flatMap((m) =>
-		m.slice(1).filter((k): k is string => Boolean(k)),
+// Each key with the English text the code gives it.
+const pairsOf = (text: string): [string, string][] =>
+	[
+		...[...text.matchAll(LOCALIZE)].map((m) => [m[1], m[2]]),
+		...[...text.matchAll(COMMAND)].flatMap((m) => [
+			[m[3], m[2]],
+			[m[4], m[1]],
+		]),
+	].filter(
+		(p): p is [string, string] => p[0] !== undefined && p[1] !== undefined,
 	);
 
-const keysInCode = () =>
-	new Set(sources(SRC).flatMap((file) => keysOf(readFileSync(file, "utf8"))));
+const textsInCode = () =>
+	new Map(sources(SRC).flatMap((file) => pairsOf(readFileSync(file, "utf8"))));
 
 // The nested JSON Theia flattens with "/" (LocalizationRegistry.flattenTranslations).
 const flatten = (value: unknown, prefix = ""): [string, string][] =>
@@ -50,10 +59,15 @@ describe("the resource files", () => {
 	const turkish = load("nls.tr.json");
 
 	it("hold every key the code localizes, and no other", () => {
-		const code = [...keysInCode()].sort();
+		const code = [...textsInCode().keys()].sort();
 		expect(code.length).toBeGreaterThan(40);
 		expect([...english.keys()].sort()).toEqual(code);
 		expect([...turkish.keys()].sort()).toEqual(code);
+	});
+
+	it("keep the English text the code gives each key, so a changed default is extracted again", () => {
+		for (const [key, text] of textsInCode())
+			expect(english.get(key), key).toBe(text);
 	});
 
 	it("keep each placeholder of the English text in the Turkish one", () => {
