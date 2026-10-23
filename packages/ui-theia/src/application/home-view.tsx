@@ -243,6 +243,22 @@ const Body = ({
 	return <Runs rows={model.rows} blocked={model.blocked} act={act} />;
 };
 
+// The quota summary of docs/13's Home: each provider's state, in the words of METE: Quota.
+const Quota = ({
+	providers,
+}: {
+	readonly providers: readonly ProviderState[];
+}) => (
+	<section aria-label={nls.localize("mete/home/quota", "Quota")}>
+		<h2 style={TITLE}>{nls.localize("mete/home/quota", "Quota")}</h2>
+		<ul style={{ margin: "6px 0 0", paddingLeft: "16px" }}>
+			{providers.map((p) => (
+				<li key={p.id}>{stateText(p)}</li>
+			))}
+		</ul>
+	</section>
+);
+
 /**
  * What the panel draws for a model; `onRefresh` asks the daemon again, `onAct` answers a run and
  * `onSetKey` sets a provider key.
@@ -262,6 +278,9 @@ export const HomeView = ({
 		{model.kind === "runs" ? <Inbox rows={model.rows} act={onAct} /> : null}
 		<h2 style={TITLE}>{nls.localize("mete/home/recentRuns", "Recent runs")}</h2>
 		<Body model={model} onSetKey={onSetKey} act={onAct} />
+		{model.kind === "runs" && model.providers.length > 0 ? (
+			<Quota providers={model.providers} />
+		) : null}
 		<div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
 			<Button
 				label={nls.localize("mete/home/refresh", "Refresh")}

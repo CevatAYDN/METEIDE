@@ -25,7 +25,9 @@ export type HomeModel =
 	| {
 			readonly kind: "runs";
 			readonly rows: readonly HomeRow[];
-			/** The providers that cannot carry a run on now; asked only while a run waits for quota. */
+			/** Every provider's state, the quota summary of docs/13 (ADR-050); empty when the ask failed. */
+			readonly providers: readonly ProviderState[];
+			/** The providers that cannot carry a run on now, listed under a run that waits for quota. */
 			readonly blocked: readonly ProviderState[];
 			readonly at: string;
 	  }
@@ -64,6 +66,7 @@ export const homeModel = (
 					waiting: waitsForYou(r),
 					quotaPaused: waitsForQuota(r),
 				})),
+				providers,
 				blocked: providers.filter((p) => p.state !== "ready"),
 				at,
 			}

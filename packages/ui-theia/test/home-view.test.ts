@@ -161,8 +161,10 @@ describe("the Home view", () => {
 		);
 		expect(quotaRow).toContain("openrouter: its free quota is used up until ");
 		expect(quotaRow).toContain("nvidia: no key (METE: Set provider key)");
-		expect(out).not.toContain("groq");
-		expect(out.slice(out.indexOf("done goal"))).not.toContain("<li>");
+		// The quota summary below the table names every provider; the table names only those that block.
+		const table = out.slice(0, out.indexOf("</table>"));
+		expect(table).not.toContain("groq");
+		expect(table.slice(table.indexOf("done goal"))).not.toContain("<li>");
 	});
 
 	it("lets each run's goal open the run in the team panel", () => {
@@ -178,6 +180,21 @@ describe("the Home view", () => {
 		expect(out).toContain('title="Open in the team panel"');
 		expect(out).toMatch(
 			/<button type="button"[^>]*title="Open in the team panel">notes<\/button>/,
+		);
+	});
+
+	it("sums up every provider's quota state under the runs, and leaves it out when unknown", () => {
+		const out = html(
+			homeModel({ ok: true, value: [] }, AT, [
+				{ id: "groq", state: "ready" },
+				{ id: "nvidia", state: "no_key" },
+			]),
+		);
+		const quota = out.slice(out.indexOf('aria-label="Quota"'));
+		expect(quota).toContain("groq: ready");
+		expect(quota).toContain("nvidia: no key (METE: Set provider key)");
+		expect(html(homeModel({ ok: true, value: [] }, AT))).not.toContain(
+			'aria-label="Quota"',
 		);
 	});
 

@@ -16,11 +16,7 @@ import {
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { type HomeAction, HomeView } from "../application/home-view.js";
 import { SET_KEY_COMMAND } from "../application/key-command.js";
-import {
-	type HomeModel,
-	homeModel,
-	waitsForQuota,
-} from "../domain/home-model.js";
+import { type HomeModel, homeModel } from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { OPEN_BOARD_COMMAND } from "./board-contribution.js";
 
@@ -72,15 +68,12 @@ export class MeteHomeWidget extends ReactWidget {
 		this.dir = root.resource.path.fsPath();
 		if (this.model.kind !== "runs") this.setModel({ kind: "loading" });
 		const reply = await this.daemon.status(this.dir);
-		const providers =
-			reply.ok && reply.value.some(waitsForQuota)
-				? await this.providers(this.dir)
-				: [];
+		const providers = reply.ok ? await this.providers(this.dir) : [];
 		this.setModel(homeModel(reply, new Date().toISOString(), providers));
 	}
 
-	// The lines under a quota pause add to the run, which shows as paused without them; a failed
-	// ask leaves them out, and METE: Quota says why it failed.
+	// The quota summary and the lines under a quota pause add to the runs, which show without them;
+	// a failed ask leaves them out, and METE: Quota says why it failed.
 	protected async providers(dir: string) {
 		const r = await this.daemon.quota(dir);
 		return r.ok ? r.value.providers : [];
