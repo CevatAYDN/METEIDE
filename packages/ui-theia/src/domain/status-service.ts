@@ -69,6 +69,16 @@ export interface MeteDaemonService {
 		workspaceDir: string,
 		runId: string,
 	): Promise<Result<null, DaemonFailure>>;
+	/** A run's persisted events in order, and how many rows no longer parse (ADR-051). */
+	events(
+		workspaceDir: string,
+		runId: string,
+	): Promise<
+		Result<
+			{ readonly events: readonly MeteEvent[]; readonly unreadable: number },
+			DaemonFailure
+		>
+	>;
 	/** Whether each provider can carry a run on now (ADR-050). */
 	quota(
 		workspaceDir: string,

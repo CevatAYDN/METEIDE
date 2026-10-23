@@ -4,6 +4,7 @@ import {
 	DAEMON_METHODS,
 	DaemonDoneResultSchema,
 	DaemonErrorDataSchema,
+	DaemonEventsResultSchema,
 	DaemonQuotaResultSchema,
 	DaemonRunStartResultSchema,
 	DaemonStatusResultSchema,
@@ -189,28 +190,45 @@ const ensure = (
 	return ok(slot.live);
 };
 
+type Send = <T>(
+	dir: string,
+	method: string,
+	params: object,
+	parse: (raw: unknown) => Parsed<T>,
+) => Promise<Result<T, DaemonFailure>>;
+
+// The requests that only read: the runs, one run's events (ADR-051) and the providers' states (ADR-050).
+const reads = (send: Send) => ({
+	status: (dir: string, runId?: string) =>
+		send(
+			dir,
+			DAEMON_METHODS.status,
+			runId === undefined ? {} : { runId },
+			(raw) => DaemonStatusResultSchema.safeParse(raw),
+		),
+	/** A run's persisted events and how many rows no longer parse (ADR-051). */
+	events: (dir: string, runId: string) =>
+		send(dir, DAEMON_METHODS.events, { runId }, (raw) =>
+			DaemonEventsResultSchema.safeParse(raw),
+		),
+	/** Each provider's state (ADR-050). */
+	quota: (dir: string) =>
+		send(dir, DAEMON_METHODS.quota, {}, (raw) =>
+			DaemonQuotaResultSchema.safeParse(raw),
+		),
+});
+
 /** Serves the daemon's requests for one folder at a time; another folder replaces the daemon. */
 export const createDaemonHost = (deps: HostDeps) => {
 	const slot: Slot = {};
 	// One request to the folder's daemon, started first when it is not running.
-	const send = async <T>(
-		dir: string,
-		method: string,
-		params: object,
-		parse: (raw: unknown) => Parsed<T>,
-	): Promise<Result<T, DaemonFailure>> => {
+	const send: Send = async (dir, method, params, parse) => {
 		const daemon = ensure(deps, slot, dir);
 		return daemon.ok ? call(daemon.value, method, params, parse) : daemon;
 	};
 	const done = (raw: unknown) => DaemonDoneResultSchema.safeParse(raw);
 	return {
-		status: (dir: string, runId?: string) =>
-			send(
-				dir,
-				DAEMON_METHODS.status,
-				runId === undefined ? {} : { runId },
-				(raw) => DaemonStatusResultSchema.safeParse(raw),
-			),
+		...reads(send),
 		/** Starts a run in the folder (ADR-047); its events arrive through onEvent. */
 		startRun: (dir: string, req: RunStart) =>
 			send(dir, DAEMON_METHODS.runStart, req, (raw) =>
@@ -221,11 +239,6 @@ export const createDaemonHost = (deps: HostDeps) => {
 			send(dir, DAEMON_METHODS.runApprove, { runId, input }, done),
 		resume: (dir: string, runId: string) =>
 			send(dir, DAEMON_METHODS.runResume, { runId }, done),
-		/** Each provider's state (ADR-050). */
-		quota: (dir: string) =>
-			send(dir, DAEMON_METHODS.quota, {}, (raw) =>
-				DaemonQuotaResultSchema.safeParse(raw),
-			),
 		stop: () => void askToStop(slot.live),
 		/** Stops the daemon and waits until it has ended; the next call starts it again, uncounted (ADR-049). */
 		restart: async () => {

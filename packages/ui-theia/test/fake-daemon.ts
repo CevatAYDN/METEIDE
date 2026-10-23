@@ -42,6 +42,12 @@ conn.onRequest("mete/run.approve", (p) => {
 	return null;
 });
 conn.onRequest("mete/run.resume", (p) => (p.runId === "late" ? "odd" : null));
+conn.onRequest("mete/events", (p) => {
+	if (mode === "badevents") return { events: [], unreadable: -1 };
+	if (p.runId !== run.id) throw new ResponseError(-32000, "run not found", { code: "not_found" });
+	const base = { schema: 1, workspaceId: run.workspaceId, runId: run.id, source: "core-engine", ts: run.createdAt };
+	return { events: [{ ...base, id: "7c1d3e52-9b7e-4a52-8d5f-0a1b2c3d4e61", type: "run.started", payload: {} }], unreadable: 1 };
+});
 conn.onRequest("mete/quota", () =>
 	mode === "badquota"
 		? { providers: [{ id: "groq", state: "exhausted" }] }

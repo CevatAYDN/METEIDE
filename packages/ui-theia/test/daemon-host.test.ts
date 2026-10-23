@@ -116,6 +116,21 @@ describe("the daemon host", () => {
 		expect(!odd.ok && odd.error.code).toBe("protocol");
 	});
 
+	it("asks a run's events with the count of unreadable rows, and refuses a bad answer", async () => {
+		const { fake, host } = await setup();
+		const runId = "6f1c3d52-9b7e-4a52-8d5f-0a1b2c3d4e5f";
+		const r = await host.events("/w", runId);
+		expect(r.ok && r.value.unreadable).toBe(1);
+		expect(r.ok && r.value.events.map((e) => e.type)).toEqual(["run.started"]);
+		expect(await host.events("/w", "other")).toEqual({
+			ok: false,
+			error: { code: "refused", detail: "run not found" },
+		});
+		fake.state.mode = "badevents";
+		const odd = await host.events("/v", runId);
+		expect(!odd.ok && odd.error.code).toBe("protocol");
+	});
+
 	it("asks each provider's state and refuses one that does not parse", async () => {
 		const { fake, host } = await setup();
 		expect(await host.quota("/w")).toEqual({
