@@ -1,4 +1,5 @@
 // Public API of this package: types, contracts and the module (CONTRIBUTING.md).
+export { type EstimateEntry, estimateRequests } from "./domain/estimate.js";
 export {
 	listTemplates,
 	type TemplateDirs,

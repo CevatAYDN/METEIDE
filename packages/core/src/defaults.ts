@@ -1,5 +1,11 @@
 // Named defaults for this package; each names the document tab that defines it (CONTRIBUTING.md).
 
+/** Requests a task is estimated to need before there is history (09 Models, providers and quota, Scheduler, step 6). */
+export const ESTIMATE_PER_TASK = 12;
+
+/** Requests an approval by a role is estimated to need before there is history (09 Models, providers and quota, Scheduler, step 6). */
+export const ESTIMATE_PER_APPROVAL = 3;
+
 /** Model turns a single-agent run may take (docs/08, Task execution sequence and Single agent). */
 export const MAX_TURNS = 25;
 
