@@ -21,6 +21,7 @@ import { type DaemonStreams, daemonCommand } from "./application/daemon.js";
 import { terminalElicit } from "./application/elicit.js";
 import { keyCommand } from "./application/keys.js";
 import { registryAddCommand, registryCommand } from "./application/registry.js";
+import { templateValidate } from "./application/templates.js";
 import { type App, type AppOptions, createApp } from "./infrastructure/app.js";
 import { fileLogger } from "./infrastructure/log.js";
 import {
@@ -44,6 +45,7 @@ const USAGE = [
 	"  mete status [<run id>] [--json]   list the runs of this folder",
 	"  mete events <run id> [--json]   show a run's history: time, event, module, task, agent",
 	"  mete audit [<run id>] [--json]   show the audit log, newest first: action, verdict, policy rule",
+	"  mete template validate [<id>]   check the team templates a run may use, and name each issue",
 	"  mete stop <run id> | --all   cancel paused runs",
 	"  mete mcp [<folder>]          serve this folder's teams to an MCP host (Claude Code, Cursor, Cline)",
 	"  mete daemon [<folder>]       serve this folder to the METE desktop over stdio (JSON-RPC)",
@@ -206,6 +208,24 @@ const registry = (reader: AppOptions, io: Io, [sub, ...words]: string[]) => {
 	return withApp(reader, io, (a) => registryAddCommand(a, io, target));
 };
 
+// The commands that only read the folder, like mete status: no run lock, no recovery.
+const read = (
+	reader: AppOptions,
+	io: Io,
+	[command, arg, more]: string[],
+	json: boolean,
+) => {
+	if (command === "events" && arg)
+		return withApp(reader, io, async (a) => eventsCommand(a, io, arg, json));
+	if (command === "status")
+		return withApp(reader, io, (a) => statusCommand(a, io, arg, json));
+	if (command === "audit")
+		return withApp(reader, io, async (a) => auditCommand(a, io, arg, json));
+	if (command === "template" && arg === "validate")
+		return withApp(reader, io, (a) => templateValidate(a.templates, io, more));
+	return usage(io);
+};
+
 const dispatch = (
 	p: Parsed,
 	opts: AppOptions,
@@ -222,19 +242,10 @@ const dispatch = (
 		case "revise":
 			return answer(opts, io, rest, command);
 		case "events":
-			return rest[0]
-				? withApp(reader, io, async (a) =>
-						eventsCommand(a, io, rest[0] ?? "", p.values.json === true),
-					)
-				: usage(io);
 		case "status":
-			return withApp(reader, io, (a) =>
-				statusCommand(a, io, rest[0], p.values.json === true),
-			);
+		case "template":
 		case "audit":
-			return withApp(reader, io, async (a) =>
-				auditCommand(a, io, rest[0], p.values.json === true),
-			);
+			return read(reader, io, p.positionals, p.values.json === true);
 		case "stop":
 			return stop(reader, io, p.values.all ? "all" : rest[0]);
 		case "mcp":
