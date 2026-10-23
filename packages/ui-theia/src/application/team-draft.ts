@@ -5,7 +5,7 @@ import {
 	type Result,
 	TeamTemplateSchema,
 } from "@mete/contracts";
-import { type Document, parseDocument } from "yaml";
+import { type Document, isNode, parseDocument } from "yaml";
 import { z } from "zod";
 
 // The team editor's draft (docs/13, Settings, Templates; ADR-075): the template's YAML document,
@@ -179,6 +179,56 @@ export const removeRole = (doc: Draft, index: number): Draft => {
 				kept,
 			);
 	});
+	return next;
+};
+
+// Where a task or a spawn default names a role (docs/08, Team template schema).
+const ROLE_REFS = [
+	["role"],
+	["approval"],
+	["before_start", "clarify_with"],
+	["review", "pair_with"],
+] as const;
+
+// The draft with every reference to the role `from` pointing at `to`, but its id and its spawn defaults' key.
+const pointed = (doc: Draft, from: string, to: string): Draft => {
+	const team = teamOf(doc);
+	const bases: Path[] = [
+		...team.tasks.map((_, i) => ["tasks", i]),
+		...Object.keys(team.spawn_defaults).map((r) => ["spawn_defaults", r]),
+	];
+	let next = doc;
+	for (const base of bases)
+		for (const ref of ROLE_REFS)
+			if (next.getIn([...base, ...ref]) === from)
+				next = edited(next, [...base, ...ref], to);
+	team.roles.forEach((r, i) => {
+		if (r.prefer_different_family_than.includes(from))
+			next = edited(
+				next,
+				["roles", i, "prefer_different_family_than"],
+				r.prefer_different_family_than.map((x) => (x === from ? to : x)),
+			);
+	});
+	return next;
+};
+
+/**
+ * The draft with the member at `index` under a new id, and its tasks, spawn defaults, approvals and the
+ * others' family preferences following it; the draft as it is when another member has the id.
+ */
+export const renameRole = (doc: Draft, index: number, id: string): Draft => {
+	const roles = teamOf(doc).roles;
+	const from = roles[index]?.id;
+	if (from === undefined || roles.some((r) => r.id === id)) return doc;
+	let next = pointed(edited(doc, ["roles", index, "id"], id), from, id);
+	const defaults = next.getIn(["spawn_defaults", from], true);
+	if (isNode(defaults))
+		next = edited(
+			removed(next, ["spawn_defaults", from]),
+			["spawn_defaults", id],
+			defaults.clone(),
+		);
 	return next;
 };
 

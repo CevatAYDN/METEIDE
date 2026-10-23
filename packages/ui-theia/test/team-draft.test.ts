@@ -13,6 +13,7 @@ import {
 	issuesOf,
 	removeRole,
 	removeTask,
+	renameRole,
 	runsOf,
 	teamOf,
 	withCheckpoint,
@@ -231,5 +232,34 @@ describe("a section the file does not have yet", () => {
 		expect(team.spawn_defaults.qa?.approval).toBe("lead");
 		expect(team.policies.human_checkpoints).toEqual(["build"]);
 		expect(issuesOf(doc)).toEqual([]);
+	});
+});
+
+describe("renameRole", () => {
+	it("moves the member's tasks, spawn defaults, approvals and family preferences to its new id", () => {
+		let doc = addRole(draft(GAME));
+		const index = teamOf(doc).roles.length - 1;
+		doc = addTask(doc, "member");
+		doc = edited(doc, ["spawn_defaults", "member", "approval"], "lead");
+		doc = edited(doc, ["tasks", 0, "approval"], "member");
+		doc = edited(doc, ["roles", 0, "prefer_different_family_than"], ["member"]);
+		doc = edited(doc, ["roles", index, "name"], "Writer");
+		doc = edited(doc, ["roles", index, "goal"], "Write");
+		doc = edited(doc, ["tasks", 2, "title"], "Write it");
+		const renamed = renameRole(doc, index, "writer");
+		const team = teamOf(renamed);
+		expect(team.roles[index]?.id).toBe("writer");
+		expect(team.tasks.map((t) => t.role)).toContain("writer");
+		expect(team.tasks[0]?.approval).toBe("writer");
+		expect(team.spawn_defaults.writer?.approval).toBe("lead");
+		expect(team.spawn_defaults.member).toBeUndefined();
+		expect(team.roles[0]?.prefer_different_family_than).toEqual(["writer"]);
+		expect(issuesOf(renamed)).toEqual([]);
+	});
+
+	it("leaves the draft as it is for an id another member has", () => {
+		const doc = addRole(draft(GAME));
+		const index = teamOf(doc).roles.length - 1;
+		expect(renameRole(doc, index, "lead")).toBe(doc);
 	});
 });

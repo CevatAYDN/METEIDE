@@ -126,3 +126,49 @@ export const Count = (props: {
 		/>
 	</label>
 );
+
+/** A set of ticks, one per option. */
+export const Ticks = (props: {
+	readonly label: string;
+	readonly options: readonly string[];
+	readonly values: readonly string[];
+	readonly onChange: (values: readonly string[]) => void;
+}) => (
+	<fieldset style={{ border: "none", padding: 0, margin: 0 }}>
+		<legend>{props.label}</legend>
+		<div style={ROW}>
+			{props.options.map((o) => (
+				<label key={o} style={ROW}>
+					<input
+						type="checkbox"
+						checked={props.values.includes(o)}
+						onChange={(e) =>
+							props.onChange(
+								e.target.checked
+									? [...props.values, o]
+									: props.values.filter((v) => v !== o),
+							)
+						}
+					/>
+					{o}
+				</label>
+			))}
+		</div>
+	</fieldset>
+);
+
+/** One tick. */
+export const Tick = (props: {
+	readonly label: string;
+	readonly checked: boolean;
+	readonly onChange: (checked: boolean) => void;
+}) => (
+	<label style={ROW}>
+		<input
+			type="checkbox"
+			checked={props.checked}
+			onChange={(e) => props.onChange(e.target.checked)}
+		/>
+		{props.label}
+	</label>
+);

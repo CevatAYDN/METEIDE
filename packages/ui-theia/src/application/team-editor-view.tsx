@@ -37,6 +37,7 @@ export type TeamEditorActions = {
 	readonly onEdit: OnEdit;
 	readonly onAddMember: () => void;
 	readonly onRemoveMember: (index: number) => void;
+	readonly onRenameMember: (index: number, id: string) => void;
 	readonly onAddTask: (roleId: string) => void;
 	readonly onRemoveTask: (index: number) => void;
 	readonly onSave: () => void;
@@ -178,6 +179,7 @@ const Members = ({
 					outputs={outputs}
 					onEdit={actions.onEdit}
 					onRemove={() => actions.onRemoveMember(i)}
+					onRename={(id) => actions.onRenameMember(i, id)}
 					onAddTask={() => actions.onAddTask(r.id)}
 					onRemoveTask={actions.onRemoveTask}
 				/>

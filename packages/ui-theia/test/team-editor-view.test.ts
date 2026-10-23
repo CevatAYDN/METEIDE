@@ -33,6 +33,7 @@ const ACTIONS: TeamEditorActions = {
 	onEdit: nothing,
 	onAddMember: nothing,
 	onRemoveMember: nothing,
+	onRenameMember: nothing,
 	onAddTask: nothing,
 	onRemoveTask: nothing,
 	onSave: nothing,

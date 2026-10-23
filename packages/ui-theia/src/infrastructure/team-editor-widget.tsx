@@ -27,6 +27,7 @@ import {
 	issuesOf,
 	removeRole,
 	removeTask,
+	renameRole,
 	teamOf,
 } from "../application/team-draft.js";
 import {
@@ -208,6 +209,7 @@ export class MeteTeamEditorWidget
 			onEdit: (path, value) => this.change((d) => edited(d, path, value)),
 			onAddMember: () => this.change(addRole),
 			onRemoveMember: (i) => this.change((d) => removeRole(d, i)),
+			onRenameMember: (i, id) => this.change((d) => renameRole(d, i, id)),
 			onAddTask: (roleId) => this.change((d) => addTask(d, roleId)),
 			onRemoveTask: (i) => this.change((d) => removeTask(d, i)),
 			onSave: () => void (this.doc && this.save(this.doc)),

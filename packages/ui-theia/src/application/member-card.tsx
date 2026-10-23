@@ -1,6 +1,16 @@
 import { NeedSchema, TierSchema } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
-import { Chips, FIELD, type OnEdit, orEmpty, orNone, Text } from "./fields.js";
+import { useState } from "react";
+import {
+	Chips,
+	FIELD,
+	type OnEdit,
+	orEmpty,
+	orNone,
+	Text,
+	Tick,
+	Ticks,
+} from "./fields.js";
 import { MUTED, ROW } from "./look.js";
 import { type MemberView, type TeamView, toggled } from "./team-draft.js";
 import { Work } from "./work-fields.js";
@@ -8,35 +18,6 @@ import { Work } from "./work-fields.js";
 // One member of the team editor (ADR-075): its fields, the tasks that name it and the buttons that
 // add or remove them. Every change goes out as a path in the template and a value; a blank optional
 // field goes out as undefined, so the key leaves the file.
-
-const Ticks = (props: {
-	readonly label: string;
-	readonly options: readonly string[];
-	readonly values: readonly string[];
-	readonly onChange: (values: readonly string[]) => void;
-}) => (
-	<fieldset style={{ border: "none", padding: 0, margin: 0 }}>
-		<legend>{props.label}</legend>
-		<div style={ROW}>
-			{props.options.map((o) => (
-				<label key={o} style={ROW}>
-					<input
-						type="checkbox"
-						checked={props.values.includes(o)}
-						onChange={(e) =>
-							props.onChange(
-								e.target.checked
-									? [...props.values, o]
-									: props.values.filter((v) => v !== o),
-							)
-						}
-					/>
-					{o}
-				</label>
-			))}
-		</div>
-	</fieldset>
-);
 
 const Tier = (props: {
 	readonly value: string;
@@ -71,21 +52,6 @@ type TaskProps = {
 	readonly onEdit: OnEdit;
 	readonly onRemove: () => void;
 };
-
-const Tick = (props: {
-	readonly label: string;
-	readonly checked: boolean;
-	readonly onChange: (checked: boolean) => void;
-}) => (
-	<label style={ROW}>
-		<input
-			type="checkbox"
-			checked={props.checked}
-			onChange={(e) => props.onChange(e.target.checked)}
-		/>
-		{props.label}
-	</label>
-);
 
 // The human after the approver role (policies.human_checkpoints); an approver "You" or none says
 // the rest, so the tick shows only for a role, or when the file already has it.
@@ -192,6 +158,7 @@ type MemberProps = {
 	/** Whether the member came with the file: its id is then fixed, as tasks may name it. */
 	readonly fixed: boolean;
 	readonly hints: readonly string[];
+	readonly onRename: (id: string) => void;
 	/** Artifact types with a schema, offered as guardrails. */
 	readonly outputs: readonly string[];
 	readonly onEdit: OnEdit;
@@ -200,24 +167,55 @@ type MemberProps = {
 	readonly onRemoveTask: (index: number) => void;
 };
 
+// The id is renamed when the field is left or Enter is pressed, so a half-typed id never takes over
+// another member's tasks; an id another member has is refused and the field shows the old one again.
+const IdField = (props: {
+	readonly id: string;
+	readonly fixed: boolean;
+	readonly onRename: (id: string) => void;
+}) => {
+	const [draft, setDraft] = useState(props.id);
+	const commit = () => {
+		if (draft !== props.id) props.onRename(draft);
+		setDraft(props.id);
+	};
+	return (
+		<label style={FIELD}>
+			{nls.localize("mete/team/memberId", "Id")}
+			<input
+				className="mete-field"
+				value={draft}
+				disabled={props.fixed}
+				onChange={(e) => setDraft(e.target.value)}
+				onKeyDown={(e) => {
+					if (e.key === "Enter") commit();
+				}}
+				onBlur={commit}
+			/>
+		</label>
+	);
+};
+
 const Fields = ({
 	member,
 	at,
 	onEdit,
 	fixed,
+	onRename,
 }: {
 	readonly member: MemberView;
 	readonly at: (key: string) => readonly (string | number)[];
 	readonly onEdit: OnEdit;
 	readonly fixed: boolean;
+	readonly onRename: (id: string) => void;
 }) => (
 	<>
 		<div style={{ ...ROW, alignItems: "flex-end" }}>
-			<Text
-				label={nls.localize("mete/team/memberId", "Id")}
-				value={member.id}
-				disabled={fixed}
-				onChange={(v) => onEdit(at("id"), v)}
+			<IdField
+				key={member.id}
+				id={member.id}
+				fixed={fixed}
+				onRename={onRename}
 			/>
 			<Text
 				label={nls.localize("mete/team/memberName", "Name")}
@@ -301,6 +299,22 @@ const IdleNote = () => (
 	</p>
 );
 
+const Head = (props: {
+	readonly name: string;
+	readonly onRemove: () => void;
+}) => (
+	<div style={ROW}>
+		<strong>{props.name}</strong>
+		<button
+			type="button"
+			className="mete-button quiet"
+			onClick={props.onRemove}
+		>
+			{nls.localize("mete/team/removeMember", "Remove member")}
+		</button>
+	</div>
+);
+
 /** A member's card: its fields, then its tasks, with the note when no task names it. */
 export const MemberCard = (props: MemberProps) => {
 	const { team, index, onEdit } = props;
@@ -311,17 +325,14 @@ export const MemberCard = (props: MemberProps) => {
 	const tasks = team.tasks.flatMap((t, i) => (t.role === member.id ? [i] : []));
 	return (
 		<section className="mete-card" style={{ ...FIELD, gap: "10px" }}>
-			<div style={ROW}>
-				<strong>{member.name || member.id}</strong>
-				<button
-					type="button"
-					className="mete-button quiet"
-					onClick={props.onRemove}
-				>
-					{nls.localize("mete/team/removeMember", "Remove member")}
-				</button>
-			</div>
-			<Fields member={member} at={at} onEdit={onEdit} fixed={props.fixed} />
+			<Head name={member.name || member.id} onRemove={props.onRemove} />
+			<Fields
+				member={member}
+				at={at}
+				onEdit={onEdit}
+				fixed={props.fixed}
+				onRename={props.onRename}
+			/>
 			<Reach
 				member={member}
 				others={others}
