@@ -95,6 +95,10 @@ describe("TeamEditorView", () => {
 		expect(openYaml("workspace")).not.toContain('disabled=""');
 	});
 
+	it("says how to pick a team when it shows none, as after a restart that had no team open", () => {
+		expect(html({ kind: "none" })).toContain("METE: Edit team");
+	});
+
 	it("saves an unchanged built-in team as the folder's copy, and an unchanged copy not again", () => {
 		const save = (source: "workspace" | "builtIn") =>
 			html(ready(DOC, { source, changed: false })).match(

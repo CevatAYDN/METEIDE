@@ -11,6 +11,7 @@ import { capabilityHints, type TeamView } from "./team-draft.js";
 
 /** What the screen is showing. */
 export type TeamEditorModel =
+	| { readonly kind: "none" }
 	| { readonly kind: "loading" }
 	| { readonly kind: "no_folder" }
 	| { readonly kind: "failed"; readonly text: string }
@@ -196,6 +197,15 @@ export const TeamEditorView = ({
 }) => {
 	if (model.kind === "no_folder") return <Message>{noFolderText()}</Message>;
 	if (model.kind === "failed") return <Message>{model.text}</Message>;
+	if (model.kind === "none")
+		return (
+			<Message>
+				{nls.localize(
+					"mete/team/none",
+					"Choose a team to edit with METE: Edit team, or Edit beside a team in Start a run.",
+				)}
+			</Message>
+		);
 	if (model.kind === "loading")
 		return (
 			<Message>

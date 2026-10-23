@@ -18,7 +18,11 @@ import {
 import { nls } from "@theia/core/lib/common/nls";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MUTED, ROW } from "../application/look.js";
-import { type CardPlace, StudioCard } from "../application/studio-card.js";
+import {
+	CARD_MAX_HEIGHT,
+	type CardPlace,
+	StudioCard,
+} from "../application/studio-card.js";
 
 // The Studio view of the Team panel (docs/13; ADR-052, ADR-070): the room of @mete/ui-studio on a
 // canvas, in the demo's own colours. The canvas follows its box's width (Theia's panels resize
@@ -140,10 +144,11 @@ const useCard = (box: React.RefObject<HTMLDivElement | null>) => {
 	return { selected, opened, show, toggle };
 };
 
-// The card over the head, in the panel's pixels, kept inside the room as the demo keeps it.
+// The card over the head, in the panel's pixels, kept inside the room as the demo keeps it; it opens
+// under the head when its full height would not fit above.
 const placeOf = (head: { x: number; y: number }, width: number): CardPlace => {
 	const k = width / ROOM_W;
-	const under = head.y < 250;
+	const under = (head.y - 30) * k < CARD_MAX_HEIGHT + 12;
 	return {
 		x: Math.min(Math.max(head.x, 130), ROOM_W - 130) * k,
 		y: (under ? head.y + 30 : head.y - 30) * k,

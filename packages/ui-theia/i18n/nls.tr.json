@@ -205,6 +205,7 @@
 			"name": "Takım adı",
 			"needs": "İhtiyaçlar",
 			"noApproval": "Onay yok",
+			"none": "Düzenlenecek takımı METE: Edit team ile ya da Start a run ekranında bir takımın yanındaki Edit ile seç.",
 			"notSaved": "METE takımı kaydedemedi: {0}",
 			"openYaml": "YAML'ı aç",
 			"otherFamily": "Şundan farklı bir model ailesi tercih et",

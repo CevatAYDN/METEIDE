@@ -8,6 +8,9 @@ import { MUTED } from "./look.js";
 // shortcut: docs/13's tier and request count are left out: agent.created carries no tier and no
 // event names the agent of a request (quota.consumed); both need a contract change.
 
+/** The card's tallest, in pixels: a group of many agents scrolls inside it. */
+export const CARD_MAX_HEIGHT = 280;
+
 /** Where the card points: the head in the panel's pixels, and whether it opens under the head. */
 export type CardPlace = {
 	readonly x: number;
@@ -95,6 +98,8 @@ export const StudioCard = ({
 			left: place.x,
 			top: place.y,
 			width: "236px",
+			maxHeight: `${CARD_MAX_HEIGHT}px`,
+			overflowY: "auto",
 			boxSizing: "border-box",
 			transform: place.under
 				? "translate(-50%, 16px)"

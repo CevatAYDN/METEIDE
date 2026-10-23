@@ -1,5 +1,6 @@
 import { MessageService } from "@theia/core";
 import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
+import type { StatefulWidget } from "@theia/core/lib/browser/shell/shell-layout-restorer";
 import { ThemeService } from "@theia/core/lib/browser/theming";
 import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
@@ -41,7 +42,10 @@ import { MeteDaemonService } from "../domain/status-service.js";
 
 /** The METE team editor in Theia's main area. */
 @injectable()
-export class MeteTeamEditorWidget extends ReactWidget {
+export class MeteTeamEditorWidget
+	extends ReactWidget
+	implements StatefulWidget
+{
 	static readonly ID = "mete.team-editor";
 
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;
@@ -51,7 +55,7 @@ export class MeteTeamEditorWidget extends ReactWidget {
 	@inject(OpenerService) protected readonly openers!: OpenerService;
 	@inject(MessageService) protected readonly messages!: MessageService;
 
-	protected model: TeamEditorModel = { kind: "loading" };
+	protected model: TeamEditorModel = { kind: "none" };
 	protected doc: Draft | undefined;
 	protected root: URI | undefined;
 
@@ -63,6 +67,18 @@ export class MeteTeamEditorWidget extends ReactWidget {
 		this.title.iconClass = codicon("organization");
 		this.title.closable = true;
 		this.toDispose.push(this.themes.onDidColorThemeChange(() => this.update()));
+		this.update();
+	}
+
+	// Theia restores the tab after a restart: it reopens the team it showed; unsaved edits are not kept.
+	storeState(): object | undefined {
+		return this.model.kind === "ready"
+			? { id: this.model.team.metadata.id }
+			: undefined;
+	}
+
+	restoreState(state: object): void {
+		if ("id" in state && typeof state.id === "string") void this.load(state.id);
 	}
 
 	/** Reads the template with this id through the daemon of the first open folder. */

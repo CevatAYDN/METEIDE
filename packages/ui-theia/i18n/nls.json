@@ -205,6 +205,7 @@
 			"name": "Team name",
 			"needs": "Needs",
 			"noApproval": "No approval",
+			"none": "Choose a team to edit with METE: Edit team, or Edit beside a team in Start a run.",
 			"notSaved": "METE could not save the team: {0}",
 			"openYaml": "Open YAML",
 			"otherFamily": "Prefer a different model family than",
