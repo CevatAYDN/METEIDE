@@ -1,7 +1,7 @@
 import { ANY_PROVIDER, type QuotaUsage } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
-import type { CSSProperties } from "react";
 import type { DaemonFailure } from "../domain/status-service.js";
+import { CELL, PANEL } from "./look.js";
 import { failureText, noFolderText } from "./status-text.js";
 
 // The Quota dashboard (docs/13; ADR-054): the quota pool's units of the folder's daemon, one row
@@ -16,19 +16,6 @@ export type QuotaModel =
 	| { readonly kind: "failed"; readonly failure: DaemonFailure }
 	| { readonly kind: "units"; readonly units: readonly QuotaUsage[] };
 
-const PANEL: CSSProperties = {
-	padding: "12px",
-	color: "var(--theia-foreground)",
-	display: "flex",
-	flexDirection: "column",
-	gap: "10px",
-};
-const CELL: CSSProperties = {
-	textAlign: "left",
-	padding: "4px 6px",
-	borderBottom: "1px solid var(--theia-panel-border)",
-	verticalAlign: "top",
-};
 const DASH = "—";
 
 const providerText = (id: string) =>
@@ -129,7 +116,7 @@ export const QuotaView = ({
 	<section style={PANEL} aria-live="polite">
 		<Body model={model} />
 		<div>
-			<button type="button" className="theia-button" onClick={onRefresh}>
+			<button type="button" className="mete-button" onClick={onRefresh}>
 				{nls.localize("mete/home/refresh", "Refresh")}
 			</button>
 		</div>

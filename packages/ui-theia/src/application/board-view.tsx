@@ -8,6 +8,7 @@ import {
 import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties, ReactNode } from "react";
 import type { DaemonFailure } from "../domain/status-service.js";
+import { LIST, MUTED, PANEL, TITLE } from "./look.js";
 import { failureText } from "./status-text.js";
 import { studioText } from "./studio-text.js";
 
@@ -31,37 +32,22 @@ export type BoardModel =
 			readonly pulse?: { readonly event: MeteEvent; readonly before: TeamView };
 	  };
 
-const PANEL: CSSProperties = {
-	padding: "12px",
+// The Board fills the panel; its columns share the width.
+const BOARD: CSSProperties = {
+	...PANEL,
 	height: "100%",
 	boxSizing: "border-box",
-	color: "var(--theia-foreground)",
-	display: "flex",
-	flexDirection: "column",
-	gap: "10px",
 };
 const COLUMNS: CSSProperties = {
 	display: "grid",
 	gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-	gap: "10px",
+	gap: "12px",
 };
 const CARD: CSSProperties = {
-	border: "1px solid var(--theia-panel-border)",
-	borderRadius: "6px",
-	padding: "6px 8px",
 	display: "flex",
 	flexDirection: "column",
 	gap: "2px",
-};
-const MUTED: CSSProperties = { color: "var(--theia-descriptionForeground)" };
-const TITLE: CSSProperties = { margin: 0, fontSize: "1.1em" };
-const LIST: CSSProperties = {
-	listStyle: "none",
-	padding: 0,
-	margin: "6px 0 0",
-	display: "flex",
-	flexDirection: "column",
-	gap: "6px",
+	padding: "8px 12px",
 };
 
 const columnName = (column: Place["column"]) =>
@@ -81,7 +67,7 @@ const markerText = (marker: NonNullable<Place["marker"]>) =>
 const Card = ({ task }: { readonly task: TaskCard }) => {
 	const { marker } = placeOf(task.status);
 	return (
-		<li style={CARD}>
+		<li className="mete-card" style={CARD}>
 			<span>{task.title}</span>
 			<span style={MUTED}>
 				{task.roleId}
@@ -143,9 +129,7 @@ const ModeSwitch = ({ controls }: { readonly controls: TeamControls }) => (
 			<button
 				key={mode}
 				type="button"
-				className={
-					mode === controls.mode ? "theia-button" : "theia-button secondary"
-				}
+				className={mode === controls.mode ? "mete-button" : "mete-button quiet"}
 				aria-pressed={mode === controls.mode}
 				onClick={() => controls.onMode(mode)}
 			>
@@ -260,7 +244,7 @@ export const BoardView = ({
 	readonly model: BoardModel;
 	readonly controls: TeamControls;
 }) => (
-	<section style={PANEL} aria-live="polite">
+	<section style={BOARD} aria-live="polite">
 		{model.kind === "no_run" ? (
 			<p>
 				{nls.localize(

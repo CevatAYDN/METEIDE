@@ -1,7 +1,7 @@
 import { type AuditEntry, PolicyActionSchema } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
-import type { CSSProperties } from "react";
 import type { AuditFilter, DaemonFailure } from "../domain/status-service.js";
+import { CELL, PANEL, ROW } from "./look.js";
 import { failureText, noFolderText } from "./status-text.js";
 
 // The Audit log view (docs/13; SECURITY.md, Audit log; ADR-053): the workspace's policy decisions,
@@ -28,25 +28,6 @@ export type AuditControls = {
 export const auditJson = (entries: readonly AuditEntry[]) =>
 	`${JSON.stringify(entries, null, 2)}\n`;
 
-const PANEL: CSSProperties = {
-	padding: "12px",
-	color: "var(--theia-foreground)",
-	display: "flex",
-	flexDirection: "column",
-	gap: "10px",
-};
-const ROW: CSSProperties = {
-	display: "flex",
-	gap: "8px",
-	flexWrap: "wrap",
-	alignItems: "center",
-};
-const CELL: CSSProperties = {
-	textAlign: "left",
-	padding: "4px 6px",
-	borderBottom: "1px solid var(--theia-panel-border)",
-	verticalAlign: "top",
-};
 const VERDICTS: readonly AuditEntry["verdict"][] = ["allow", "ask", "deny"];
 
 const Choice = ({
@@ -188,14 +169,14 @@ export const AuditView = ({
 		<div style={ROW}>
 			<button
 				type="button"
-				className="theia-button"
+				className="mete-button"
 				onClick={controls.onRefresh}
 			>
 				{nls.localize("mete/home/refresh", "Refresh")}
 			</button>
 			<button
 				type="button"
-				className="theia-button secondary"
+				className="mete-button quiet"
 				disabled={model.kind !== "rows" || model.entries.length === 0}
 				onClick={controls.onExport}
 			>

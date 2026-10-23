@@ -13,10 +13,11 @@ import { type FlowNodeData, flowGraph } from "../application/flow-graph.js";
 
 type TaskData = Extract<FlowNodeData, { kind: "task" }>;
 
+// The METE tokens of the panel root, with Theia's colours in a high-contrast theme (ADR-069).
 const BORDER: Record<TaskData["column"], string> = {
-	todo: "var(--theia-descriptionForeground)",
-	in_progress: "var(--theia-focusBorder)",
-	done: "var(--theia-button-background)",
+	todo: "var(--muted, var(--theia-descriptionForeground))",
+	in_progress: "var(--accent, var(--theia-focusBorder))",
+	done: "var(--good, var(--theia-contrastBorder))",
 };
 
 const markerText = (data: TaskData) =>
@@ -55,9 +56,9 @@ const labelOf = (data: FlowNodeData) =>
 
 const nodeStyle = (data: FlowNodeData): CSSProperties => ({
 	border: borderOf(data),
-	background: "var(--theia-editor-background)",
-	color: "var(--theia-foreground)",
-	borderRadius: "8px",
+	background: "var(--panel, var(--theia-editor-background))",
+	color: "var(--ink, var(--theia-foreground))",
+	borderRadius: "10px",
 	width: 200,
 });
 
@@ -93,8 +94,8 @@ export const FlowView = ({ view }: { readonly view: TeamView }) => {
 				nodesDraggable={false}
 				nodesConnectable={false}
 				fitView
-				// The canvas follows Theia's theme, not the system's.
-				style={{ background: "var(--theia-editor-background)" }}
+				// The canvas follows the panel's tokens, or Theia's theme in high contrast.
+				style={{ background: "var(--bg, var(--theia-editor-background))" }}
 			/>
 		</div>
 	);

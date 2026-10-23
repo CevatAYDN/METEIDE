@@ -50,7 +50,7 @@ describe("the Home view", () => {
 		);
 		expect(none).not.toContain("As of");
 		expect(none).toContain(
-			'<button type="button" class="theia-button">Refresh</button>',
+			'<button type="button" class="mete-button">Refresh</button>',
 		);
 	});
 

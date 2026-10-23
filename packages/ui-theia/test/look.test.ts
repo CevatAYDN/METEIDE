@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SHAPE, TOKEN_NAMES } from "@mete/ui-kit";
 import { describe, expect, it } from "vitest";
@@ -27,8 +27,33 @@ describe("the panels' look", () => {
 		for (const v of used) expect(v.fallback).toContain("var(--theia-");
 	});
 
-	it("bundles Baloo 2 and uses the docs/13 shape", () => {
+	it("leaves no Theia colour in a view except as a METE token's fallback", () => {
+		const dirs = [
+			join(__dirname, "..", "src", "application"),
+			join(__dirname, "..", "src", "infrastructure"),
+		];
+		const views = dirs.flatMap((dir) =>
+			readdirSync(dir)
+				.filter((f) => f.endsWith("-view.tsx"))
+				.map((f) => join(dir, f)),
+		);
+		expect(views.length).toBeGreaterThan(4);
+		const tokens = TOKEN_NAMES.join("|");
+		const fallback = new RegExp(
+			`var\\(--(${tokens}), var\\(--theia-[a-zA-Z-]+\\)\\)`,
+			"g",
+		);
+		for (const file of views) {
+			const bare = readFileSync(file, "utf8")
+				.replace(fallback, "")
+				.match(/var\(--theia-[a-zA-Z-]+\)/g);
+			expect({ file, bare }).toEqual({ file, bare: null });
+		}
+	});
+
+	it("bundles Baloo 2 at the docs/13 weights and uses the docs/13 shape", () => {
 		expect(CSS).toContain('font-family: "Baloo 2"');
+		expect(CSS).toContain("font-weight: 500");
 		expect(CSS).toContain("url(../fonts/Baloo2-latin.woff)");
 		expect(CSS).not.toMatch(/url\(["']?https?:/);
 		for (const value of Object.values(SHAPE)) expect(CSS).toContain(value);

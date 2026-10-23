@@ -138,7 +138,8 @@ export const StudioView = (props: Props) => {
 		<div ref={box} style={{ width: "100%" }}>
 			<canvas
 				ref={canvas}
-				style={{ display: "block", borderRadius: "20px" }}
+				className="mete-stage"
+				style={{ display: "block" }}
 				onClick={(e) => {
 					if (onCoffee(e)) props.onCoffee?.();
 				}}

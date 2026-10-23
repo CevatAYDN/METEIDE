@@ -1,45 +1,17 @@
 import type { ProviderState } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
-import type { CSSProperties } from "react";
 import type { HomeModel, HomeRow } from "../domain/home-model.js";
+import { CELL, LINK, MUTED, PANEL, ROW, TABLE, TITLE } from "./look.js";
 import { stateText } from "./quota-text.js";
 import { failureText, noFolderText, runsText } from "./status-text.js";
 
 // The Home panel (docs/13, Home): the approvals inbox of ADR-048 ("Waiting for you") above the
 // recent runs. The panel holds no state of its own: the widget passes the model and the actions.
 // Text is shown as it is: React escapes it, Markdown is not involved.
-// The panel root sets the METE tokens and Baloo 2 (ADR-069); these inline styles still name Theia's
-// colours until they move to application/look.ts.
+// The panel root sets the METE tokens and Baloo 2 (ADR-069); the styles come from look.ts.
 
 /** What a button of the inbox asks for. */
 export type HomeAction = "approve" | "revise" | "resume" | "open" | "artifact";
-
-const PANEL: CSSProperties = {
-	padding: "12px",
-	color: "var(--theia-foreground)",
-	display: "flex",
-	flexDirection: "column",
-	gap: "10px",
-};
-const TABLE: CSSProperties = { borderCollapse: "collapse", width: "100%" };
-const CELL: CSSProperties = {
-	textAlign: "left",
-	padding: "4px 6px",
-	borderBottom: "1px solid var(--theia-panel-border)",
-	verticalAlign: "top",
-};
-const MUTED: CSSProperties = { color: "var(--theia-descriptionForeground)" };
-const ROW: CSSProperties = { display: "flex", gap: "6px", flexWrap: "wrap" };
-const TITLE: CSSProperties = { margin: 0, fontSize: "1.1em" };
-const LINK: CSSProperties = {
-	background: "none",
-	border: "none",
-	padding: 0,
-	color: "var(--theia-textLink-foreground)",
-	cursor: "pointer",
-	font: "inherit",
-	textAlign: "left",
-};
 
 const when = (iso: string) => new Date(iso).toLocaleString();
 
@@ -145,7 +117,7 @@ const Button = ({
 	readonly label: string;
 	readonly onClick: () => void;
 }) => (
-	<button type="button" className="theia-button" onClick={onClick}>
+	<button type="button" className="mete-button" onClick={onClick}>
 		{label}
 	</button>
 );
