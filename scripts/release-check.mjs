@@ -45,12 +45,24 @@ const ELECTRON = JSON.parse(
 	readFileSync(join(ROOT, "apps", "desktop", "package.json"), "utf8"),
 ).devDependencies.electron;
 
-// Electronegativity exits 0 whatever it finds, and docs/15 sets no threshold for it, so the step
-// says how many findings there are, by severity, and a maintainer decides what fails the gate.
+// Electronegativity exits 0 whatever it finds; a HIGH finding fails the step, like a high audit
+// finding (docs/15), unless docs/15 names it as an exception with its reason.
+const EXCEPTIONS = new Set([
+	// Theia 1.76 blocks will-navigate and limits window.open with setWindowOpenHandler for every
+	// web contents (electron-main.js); the 2023 check looks for the removed new-window event only.
+	"LIMIT_NAVIGATION_GLOBAL_CHECK",
+]);
+
 const findings = (csv) => {
 	const rows = csv.trim().split("\n").slice(1);
-	const high = rows.filter((r) => r.includes('"HIGH"')).length;
-	return `${rows.length} finding(s), ${high} high; no threshold in docs/15`;
+	const high = rows
+		.filter((r) => r.split(",")[1] === '"HIGH"')
+		.map((r) => r.split(",")[0])
+		.filter((id) => !EXCEPTIONS.has(id));
+	const summary = `${rows.length} finding(s), ${high.length} high outside the docs/15 exceptions`;
+	return high.length === 0
+		? { status: "pass", reason: summary }
+		: { status: "fail", reason: `${summary}: ${high.join(", ")}` };
 };
 
 const electronegativity = () => {
@@ -72,9 +84,7 @@ const electronegativity = () => {
 			],
 			15,
 		);
-		return r.status === "pass"
-			? { ...r, reason: findings(readFileSync(report, "utf8")) }
-			: r;
+		return r.status === "pass" ? findings(readFileSync(report, "utf8")) : r;
 	} finally {
 		rmSync(out, { recursive: true, force: true });
 	}
