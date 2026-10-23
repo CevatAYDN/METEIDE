@@ -52,11 +52,27 @@ export const setup = async (policy: unknown = {}) => {
 	if (!sql.ok) throw new Error("storage.sql@1 missing");
 	const scoped = sql.value[0].impl.scopeFor("security");
 	const ctx: ModuleContext = { ...base, storage: scoped };
-	const security = createSecurityModule({ ...dirs, home, now: () => 0 });
+	const workspaceId = crypto.randomUUID();
+	const security = createSecurityModule({
+		...dirs,
+		home,
+		workspaceId,
+		now: () => 0,
+	});
 	const impl = <C>(ref: "policy.check@1" | "secrets.mask@1") => {
 		const r = registry.resolve<C>(ref);
 		if (!r.ok) throw new Error(`${ref} missing`);
 		return r.value[0].impl;
 	};
-	return { dirs, home, registry, scoped, ctx, security, storage, impl };
+	return {
+		dirs,
+		home,
+		workspaceId,
+		registry,
+		scoped,
+		ctx,
+		security,
+		storage,
+		impl,
+	};
 };

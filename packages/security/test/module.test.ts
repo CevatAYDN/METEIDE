@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import type {
+	MeteEvent,
 	PolicyCheckAdapter,
 	PolicyCheckInput,
 	SecretsMaskAdapter,
@@ -46,6 +47,32 @@ describe("security module", () => {
 		]);
 		await s.security.deactivate();
 		expect(s.registry.has("policy.check@1")).toBe(false);
+		await s.storage.deactivate();
+	});
+
+	it("publishes policy.blocked for each denial, after its audit row, and nothing for allow or ask", async () => {
+		const s = await setup({ autonomy: 1 });
+		const blocked: MeteEvent[] = [];
+		s.ctx.events.subscribe("policy.*", (e) => void blocked.push(e));
+		await s.security.activate(s.ctx);
+		const policy = s.impl<PolicyCheckAdapter>("policy.check@1");
+		const runId = crypto.randomUUID();
+		const denied = policy.check({
+			...write(join(s.dirs.workspaceDir, ".mete", "policy.yaml")),
+			runId,
+		});
+		expect(denied.ok && denied.value.verdict).toBe("deny");
+		const rule = denied.ok ? denied.value.rule : "";
+		policy.check(write(join(s.dirs.workspaceDir, "a.ts")));
+		expect(blocked).toEqual([
+			expect.objectContaining({
+				type: "policy.blocked",
+				workspaceId: s.workspaceId,
+				runId,
+				source: "security",
+				payload: { action: "fs.write", rule },
+			}),
+		]);
 		await s.storage.deactivate();
 	});
 

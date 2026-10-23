@@ -148,7 +148,7 @@ const modulesFor = (
 	const dirs = { workspaceDir: opts.workspaceDir, globalDir: opts.globalDir };
 	return [
 		createStorageModule(dirs),
-		createSecurityModule(dirs),
+		createSecurityModule({ ...dirs, workspaceId }),
 		createQuotaModule({ workspaceId }),
 		...(opts.providers ?? [
 			createNvidiaModule(),
