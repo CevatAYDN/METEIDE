@@ -31,44 +31,61 @@ type Props = ComposerInput & {
 	readonly onGoal: (goal: string) => void;
 	readonly onSelect: (key: string) => void;
 	readonly onStart: () => void;
+	/** Opens a team in the team editor (ADR-075). */
+	readonly onEdit: (templateId: string) => void;
 };
 
+// A team's option carries an Edit button beside it, which opens the team editor (ADR-075).
 const Option = ({
 	option,
 	checked,
 	onSelect,
+	onEdit,
 }: {
 	readonly option: ComposerOption;
 	readonly checked: boolean;
 	readonly onSelect: (key: string) => void;
+	readonly onEdit: (templateId: string) => void;
 }) => (
-	<label className="mete-card mete-option">
-		<input
-			type="radio"
-			name="mete-team"
-			checked={checked}
-			onChange={() => onSelect(option.key)}
-		/>
-		<span>
-			<strong>{option.label}</strong>
-			{option.description ? (
-				<span style={MUTED}> · {option.description}</span>
-			) : null}
-			{option.estimate ? (
-				<>
-					<br />
-					<span style={MUTED}>{option.estimate}</span>
-				</>
-			) : null}
-		</span>
-	</label>
+	<div style={{ ...ROW, flexWrap: "nowrap", alignItems: "stretch" }}>
+		<label className="mete-card mete-option" style={{ flex: 1 }}>
+			<input
+				type="radio"
+				name="mete-team"
+				checked={checked}
+				onChange={() => onSelect(option.key)}
+			/>
+			<span>
+				<strong>{option.label}</strong>
+				{option.description ? (
+					<span style={MUTED}> · {option.description}</span>
+				) : null}
+				{option.estimate ? (
+					<>
+						<br />
+						<span style={MUTED}>{option.estimate}</span>
+					</>
+				) : null}
+			</span>
+		</label>
+		{typeof option.templateId === "string" ? (
+			<button
+				type="button"
+				className="mete-button quiet"
+				onClick={() => onEdit(String(option.templateId))}
+			>
+				{nls.localize("mete/team/editShort", "Edit")}
+			</button>
+		) : null}
+	</div>
 );
 
 const Teams = ({
 	model,
 	selected,
 	onSelect,
-}: Pick<Props, "selected" | "onSelect"> & {
+	onEdit,
+}: Pick<Props, "selected" | "onSelect" | "onEdit"> & {
 	readonly model: Extract<ComposerModel, { kind: "ready" }>;
 }) => (
 	<fieldset style={{ border: "none", padding: 0, margin: 0 }}>
@@ -90,6 +107,7 @@ const Teams = ({
 					option={o}
 					checked={o.key === selected}
 					onSelect={onSelect}
+					onEdit={onEdit}
 				/>
 			))}
 		</div>
@@ -134,7 +152,12 @@ export const ComposerView = (props: Props) => {
 					}}
 				/>
 			</label>
-			<Teams model={model} selected={selected} onSelect={props.onSelect} />
+			<Teams
+				model={model}
+				selected={selected}
+				onSelect={props.onSelect}
+				onEdit={props.onEdit}
+			/>
 			<div style={ROW}>
 				<button
 					type="button"

@@ -48,6 +48,10 @@ vi.mock("../src/infrastructure/composer-contribution.js", () => ({
 vi.mock("../src/infrastructure/stop-all-contribution.js", () => ({
 	bindStopAll: () => {},
 }));
+// The team editor's screen loads lumino too; test/team-editor-view.test.ts covers the screen.
+vi.mock("../src/infrastructure/team-editor-contribution.js", () => ({
+	bindTeamEditor: () => {},
+}));
 // Opening an artifact goes through Theia's browser openers; test/artifact.test.ts covers the choice.
 vi.mock("../src/infrastructure/artifact-command.js", () => ({
 	MeteArtifactContribution: class MeteArtifactContribution {

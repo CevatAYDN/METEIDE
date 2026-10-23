@@ -26,6 +26,7 @@ import { panelRoot } from "../application/panel-root.js";
 import { failureText } from "../application/status-text.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { OPEN_BOARD_COMMAND } from "./board-contribution.js";
+import { EDIT_TEAM_COMMAND } from "./team-editor-contribution.js";
 
 // The run composer (docs/13, Run composer; ADR-071) of the first open folder: it asks the daemon for
 // the templates and each one's estimate every time it opens, so a new `.mete/teams/` file shows.
@@ -152,6 +153,9 @@ export class MeteComposerWidget extends ReactWidget {
 						this.update();
 					}}
 					onStart={() => void this.start()}
+					onEdit={(id) =>
+						void this.commands.executeCommand(EDIT_TEAM_COMMAND.id, id)
+					}
 				/>
 			</div>
 		);

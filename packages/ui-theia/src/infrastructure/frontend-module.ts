@@ -16,6 +16,7 @@ import { bindComposer } from "./composer-contribution.js";
 import { bindHome } from "./home-contribution.js";
 import { bindQuota } from "./quota-contribution.js";
 import { bindStopAll } from "./stop-all-contribution.js";
+import { bindTeamEditor } from "./team-editor-contribution.js";
 
 // Theia's generated frontend loads this file by the path in package.json and binds `module.default`.
 // biome-ignore lint/style/noDefaultExport: Theia reads `default` from an extension module
@@ -41,4 +42,5 @@ export default new ContainerModule((bind) => {
 	bindAudit(bind);
 	bindQuota(bind);
 	bindStopAll(bind);
+	bindTeamEditor(bind);
 });

@@ -35,6 +35,7 @@ const html = (model: ComposerModel, input: Partial<ComposerInput> = {}) =>
 			onGoal: () => {},
 			onSelect: () => {},
 			onStart: () => {},
+			onEdit: () => {},
 		}),
 	);
 

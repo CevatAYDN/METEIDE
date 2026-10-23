@@ -77,7 +77,7 @@ describe("editing", () => {
 	});
 
 	it("sets a field and removes an optional one given undefined, keeping the file's comments", () => {
-		const text = "# my team\n" + WEB_DEV;
+		const text = `# my team\n${WEB_DEV}`;
 		const doc = edited(draft(text), ["metadata", "name"], "My web team");
 		expect(teamOf(doc).metadata.name).toBe("My web team");
 		expect(doc.toString()).toContain("# my team");
