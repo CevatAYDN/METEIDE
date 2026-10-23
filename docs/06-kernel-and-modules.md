@@ -107,7 +107,8 @@ export type RerankResponse = { scores: number[] };     // one score per document
 
 // llm.chat@2, defined in @mete/contracts: the gateway's routed chat (tab 09, Gateway). The caller names a tier
 // or one exact model; the gateway resolves the chain, reserves quota and moves down the chain on failures.
-// @2 (ADR-056) adds too_large: no model of the chain can take a request this large; the run pauses with no_model.
+// @2 (ADR-056) adds too_large: no model of the chain can take a request this large; the run folds its older turns
+// once and asks again, then pauses with no_model (tab 08).
 export type Tier = "reasoning" | "coder" | "fast" | "long-context" | "vision";
 export type ModelRef = { providerId: string; modelId: string };
 export type LlmChatRequest = Omit<ChatRequest, "model"> & {
@@ -117,7 +118,7 @@ export type LlmChatRequest = Omit<ChatRequest, "model"> & {
   avoidFamilies?: string[] };                               // families of the roles in prefer_different_family_than
 export type LlmError = ProviderError | { code: "no_model"; message: string }
   | { code: "quota_exhausted"; message: string; resumesAt: string }    // run pause reasons no_model and quota
-  | { code: "too_large"; message: string };   // @2: the run pauses with reason no_model; the message names the estimate
+  | { code: "too_large"; message: string };   // @2: folded once, then the run pauses with reason no_model (tab 08); the message names the estimate
 export type LlmChunk =
   | Exclude<ChatChunk, { type: "error" }>
   | { type: "model"; providerId: string; modelId: string; reason: "first" | "quota" | "failed" }
