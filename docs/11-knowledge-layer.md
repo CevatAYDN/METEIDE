@@ -8,7 +8,7 @@ Agents find knowledge in this order: code graph, then grep, then reading files; 
 
 - Structural pass: web-tree-sitter grammars. First languages: TypeScript, JavaScript, C#, GDScript, Python, HTML, CSS, JSON, Markdown \[D\]. It runs on every file change, costs no quota and marks edges `EXTRACTED` \[C\].
 - Node kinds: file, module, class, interface, type, function, method, exported variable, concept. Edge kinds: contains, defines, imports, calls, extends, implements, references.
-- Semantic pass (optional, uses `llm.chat@1`): only for files that agents touched in a run or that the user opened; adds concept nodes and `INFERRED` edges with a score from 0 to 1; runs at quota priority P2 \[C\].
+- Semantic pass (optional, uses `llm.chat@2`): only for files that agents touched in a run or that the user opened; adds concept nodes and `INFERRED` edges with a score from 0 to 1; runs at quota priority P2 \[C\].
 - Incremental: `@parcel/watcher` plus a per-file SHA-256 cache; only changed files are parsed again \[C\].
 - Storage: tables `graph_nodes` and `graph_edges` in the workspace `mete.db`; graphology in memory for traversal.
 - Freshness: a node whose file hash changed since extraction is returned with `stale: true` \[C\].

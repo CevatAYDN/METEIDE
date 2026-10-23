@@ -73,7 +73,7 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 | `mete/run.start` | request | the `RunStart` of team.engine@2: `{ goal?, templateId?, priority?, continue? }` | `{ runId }`; errors as for `mete/status`, and `choose_template` carries the router's `data.suggestions` |
 | `mete/run.approve` | request | `{ runId, input }`, `input` the `ApprovalInput` of team.engine@2 | `null`; errors as for `mete/status` |
 | `mete/run.resume` | request | `{ runId }` | `null`; errors as for `mete/status` |
-| `mete/quota` | request | none | `{ providers: [{ id, state, resetsAt? }], units: [{ providerId, unit, scope, used, limit, resetsAt?, history }] }`, `state` one of `ready`, `no_key`, `inactive`, `exhausted` (with `resetsAt`), `unusable`; `units` are the rows of `quota.reserve@3` `usage()` (ADR-054), `history` included since version 9 (ADR-055), read after the states; answered while core-engine is not active too |
+| `mete/quota` | request | none | `{ providers: [{ id, state, resetsAt? }], units: [{ providerId, unit, scope, used, limit, resetsAt?, history }] }`, `state` one of `ready`, `no_key`, `inactive`, `exhausted` (with `resetsAt`), `unusable`; `units` are the rows of `quota.reserve@4` `usage()` (ADR-054), `history` included since version 9 (ADR-055), read after the states; answered while core-engine is not active too |
 | `mete/events` | request | `{ runId }` | `{ events, unreadable }`: the run's persisted events in order, as `mete events` reads them, and the count of rows that no longer parse; errors as for `mete/status` |
 | `mete/audit` | request | `{ runId?, verdict?, action?, limit? }` | `{ entries }`: the workspace audit log (SECURITY.md), newest first, each row with `seq`, `ts`, `runId`, `agentId`, `action`, `capability`, `adapterId`, `argsSha256`, `verdict`, `rule` and `tainted`; answered while core-engine is not active too |
 | `mete/event` | notification, daemon to client | one `MeteEvent` (docs/07) | none; every catalog event the bus publishes, in publish order |
@@ -101,7 +101,7 @@ A client that starts the daemon from Electron sets `ELECTRON_RUN_AS_NODE=1`. The
 ## Main flows
 
 1. Start a run: user or trigger → router (single agent or team template) → team engine creates the run and its tasks → `run.started`.
-2. Model call: agent → `llm.chat@1` → quota scheduler reserves capacity → privacy filter and secret masking → gateway → provider adapter → response → quota recorded → `quota.consumed`.
+2. Model call: agent → `llm.chat@2` → quota scheduler reserves capacity → privacy filter and secret masking → gateway → provider adapter → response → quota recorded → `quota.consumed`.
 3. Tool call: agent → capability resolved through the workspace binding → policy check → adapter (in process, MCP, CLI or HTTP) → result → `agent.tool.completed`.
 4. Knowledge query: `knowledge.search@1` → workspace vault and code graph first, personal vault second → fused ranking.
 5. Module removal: `deactivate()` disposes its resources → registry drops its providers → callers resolve the next adapter.

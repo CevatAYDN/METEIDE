@@ -105,8 +105,9 @@ export type EmbedResponse = { vectors: number[][] };   // one vector per input, 
 export type RerankRequest = { model: string; query: string; documents: string[] };
 export type RerankResponse = { scores: number[] };     // one score per document, in order
 
-// llm.chat@1, defined in @mete/contracts: the gateway's routed chat (tab 09, Gateway). The caller names a tier
+// llm.chat@2, defined in @mete/contracts: the gateway's routed chat (tab 09, Gateway). The caller names a tier
 // or one exact model; the gateway resolves the chain, reserves quota and moves down the chain on failures.
+// @2 (ADR-056) adds too_large: no model of the chain can take a request this large; the run pauses with no_model.
 export type Tier = "reasoning" | "coder" | "fast" | "long-context" | "vision";
 export type ModelRef = { providerId: string; modelId: string };
 export type LlmChatRequest = Omit<ChatRequest, "model"> & {
@@ -115,7 +116,8 @@ export type LlmChatRequest = Omit<ChatRequest, "model"> & {
   needs?: ("tool_calling" | "vision" | "long_context")[];   // the role's needs (tab 08)
   avoidFamilies?: string[] };                               // families of the roles in prefer_different_family_than
 export type LlmError = ProviderError | { code: "no_model"; message: string }
-  | { code: "quota_exhausted"; message: string; resumesAt: string };   // run pause reasons no_model and quota
+  | { code: "quota_exhausted"; message: string; resumesAt: string }    // run pause reasons no_model and quota
+  | { code: "too_large"; message: string };   // @2: the run pauses with reason no_model; the message names the estimate
 export type LlmChunk =
   | Exclude<ChatChunk, { type: "error" }>
   | { type: "model"; providerId: string; modelId: string; reason: "first" | "quota" | "failed" }
@@ -222,8 +224,9 @@ export type VcsError = ToolError | { code: "nothing_to_commit"; message: string 
   | { code: "merge_conflict"; message: string; paths: string[] };   // the merge was undone
 export interface VcsGitAdapter { run(input: VcsGitInput, ctx: ToolContext): Promise<Result<VcsGitOutput, VcsError>> }
 
-// quota.reserve@3, defined in @mete/contracts; QuotaUnit and QuotaUnitSpec are in tab 09, pool rules in tab 09 (Quota pool).
+// quota.reserve@4, defined in @mete/contracts; QuotaUnit and QuotaUnitSpec are in tab 09, pool rules in tab 09 (Quota pool).
 // @3 (ADR-054) adds usage(): the pool read of the quota dashboard (tab 13).
+// @4 (ADR-056) adds too_large: every chain entry has a unit whose limit is below the request's amount.
 export type QuotaAmounts = Partial<Record<QuotaUnit, number>>;
 export type QuotaObservation = { unit: QuotaUnit; limit?: number; remaining?: number; resetsAt?: string; exhausted: boolean };
                                  // a provider's observe() reads response headers and 429s into these
@@ -231,7 +234,8 @@ export type QuotaRequest = { runId: string; priority: 0 | 1 | 2;   // P0 interac
   chain: readonly { providerId: string; modelId: string; estimate?: QuotaAmounts }[];   // @2: an entry's own amounts
   estimate: QuotaAmounts };      // requests default to 1; tokens are prompt tokens plus max_tokens
 export type Reservation = { id: string; providerId: string; modelId: string };
-export type ReserveFailed = { code: "quota_exhausted"; resumesAt: string } | { code: "aborted" };   // ISO 8601 times
+export type ReserveFailed = { code: "quota_exhausted"; resumesAt: string } | { code: "aborted" }   // ISO 8601 times
+  | { code: "too_large" };       // @4: no entry could ever fit, so waiting would not help
 export type UnknownReservation = { code: "unknown_reservation"; id: string };
 export type QuotaUsage = { providerId: string; unit: QuotaUnit;
   scope: string | null;          // the model id of a "model" unit; null for "account" or a model unit nothing counted yet
@@ -320,8 +324,8 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | --- | --- | --- | --- | --- | --- | --- |
 | storage | `@mete/storage` | essential | `storage.sql@1` | none | none | in-process |
 | security | `@mete/security` | essential | `policy.check@1`, `secrets.mask@1` | `storage.sql@1` | none | in-process |
-| quota | `@mete/quota` | essential | `quota.reserve@3` | `storage.sql@1` | none | in-process |
-| gateway | `@mete/gateway` | essential | `llm.chat@1` (routed), `llm.embed@1` (routed), `llm.rerank@1` (routed) | `storage.sql@1`, `quota.reserve@3`, `secrets.mask@1`, at least one `provider.chat@2` | `provider.embed@1`, `provider.rerank@1` | in-process |
+| quota | `@mete/quota` | essential | `quota.reserve@4` | `storage.sql@1` | none | in-process |
+| gateway | `@mete/gateway` | essential | `llm.chat@2` (routed), `llm.embed@1` (routed), `llm.rerank@1` (routed) | `storage.sql@1`, `quota.reserve@4`, `secrets.mask@1`, at least one `provider.chat@2` | `provider.embed@1`, `provider.rerank@1` | in-process |
 | provider-nvidia | `@mete/providers` | optional | `provider.chat@2`, `provider.embed@1`, `provider.rerank@1` | none | none | in-process |
 | provider-openrouter | `@mete/providers` | optional | `provider.chat@2` | none | none | in-process |
 | provider-opencode-zen | `@mete/providers` | optional | `provider.chat@2` | none | none | in-process |
@@ -332,21 +336,21 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | tools-shell | `@mete/tools` | essential | `shell.exec@1` | `policy.check@1` | none | in-process |
 | tools-web | `@mete/tools` | optional | `web.fetch@1`, `web.search@1` (HTTP adapters) | `policy.check@1` | `mcp.tools@1` | in-process |
 | vcs-git | `@mete/tools` | optional | `vcs.git@2` | `policy.check@1` | none | in-process |
-| mcp-client | `@mete/mcp` | optional | `mcp.tools@1`, `runtime.ensure@1`, mapping adapters for any capability | `policy.check@1` | `registry.search@1`, `llm.chat@1` | in-process; servers in child processes |
+| mcp-client | `@mete/mcp` | optional | `mcp.tools@1`, `runtime.ensure@1`, mapping adapters for any capability | `policy.check@1` | `registry.search@1`, `llm.chat@2` | in-process; servers in child processes |
 | mcp-server | `@mete/mcp` | optional | METE as an MCP server | `team.engine@2` | `knowledge.search@1` | in-process |
 | registry | `@mete/mcp` | optional | `registry.search@1` | `policy.check@1` | none | in-process |
-| knowledge-graph | `@mete/knowledge` | optional | `code.graph@1` | `fs.read@1` | `llm.chat@1` | worker |
+| knowledge-graph | `@mete/knowledge` | optional | `code.graph@1` | `fs.read@1` | `llm.chat@2` | worker |
 | vault | `@mete/knowledge` | optional | `vault.read@1`, `vault.write@1` | `fs.read@1`, `fs.write@1` | none | in-process |
 | knowledge-search | `@mete/knowledge` | optional | `knowledge.search@1`, `knowledge.index@1` | `fs.grep@1` | `llm.embed@1`, `llm.rerank@1`, `code.graph@1`, `vault.read@1` | worker |
-| core-engine | `@mete/core` | essential | `team.engine@2` (native), runs, router, artifacts, checkpoints | `llm.chat@1`, `fs.*`, `policy.check@1`, `secrets.mask@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@2`, `web.fetch@1`, `web.search@1`, `mcp.tools@1`, `knowledge.search@1`, `vault.*` | in-process |
+| core-engine | `@mete/core` | essential | `team.engine@2` (native), runs, router, artifacts, checkpoints | `llm.chat@2`, `fs.*`, `policy.check@1`, `secrets.mask@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@2`, `web.fetch@1`, `web.search@1`, `mcp.tools@1`, `knowledge.search@1`, `vault.*` | in-process |
 | autonomy | `@mete/core` | optional | triggers, schedules | `team.engine@2` | `issues.source@1` | in-process |
 | browser | `@mete/tools` | optional | `browser.screenshot@2`, `seo.audit@2` | `policy.check@1` | none | in-process; each call in a child process; Chromium comes from Playwright's own installer, not `runtime.ensure@1` (tab 10) \[D\] |
-| engine-crewai, engine-metagpt, engine-chatdev | `@mete/engines` | optional | `team.engine@2` | `runtime.ensure@1`, `llm.chat@1` | none | process |
+| engine-crewai, engine-metagpt, engine-chatdev | `@mete/engines` | optional | `team.engine@2` | `runtime.ensure@1`, `llm.chat@2` | none | process |
 | ui-board, ui-flow, ui-studio, ui-replay | `@mete/ui-*` | optional | UI views (subscribe to events) | none | none | renderer |
 
 Until a second view needs it as a module, the run view model these views share is a library in `@mete/ui-studio` (a fold over a run's events, depending only on `@mete/contracts`), and the Board is a widget of `@mete/ui-theia` (ADR-051). The Studio stage lives in `@mete/ui-studio` and loads `pixi.js` lazily, so the fold never loads it (ADR-052) \[D\].
 
-Until the knowledge layer, the gateway provides only `llm.chat@1`: no provider adapter lists its embedding or rerank models (`listModels` returns chat models), so `llm.embed@1`, `llm.rerank@1` and their gateway endpoints come with the knowledge layer, and their chains are empty until then \[D\].
+Until the knowledge layer, the gateway provides only `llm.chat@2`: no provider adapter lists its embedding or rerank models (`listModels` returns chat models), so `llm.embed@1`, `llm.rerank@1` and their gateway endpoints come with the knowledge layer, and their chains are empty until then \[D\].
 
 The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools-shell, core-engine, plus at least one active `provider.chat@2` adapter. The UI MUST NOT allow uninstalling essential modules; it MAY show them as "built in".
 
@@ -357,8 +361,8 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 | `storage.sql@1` | The workspace and global SQLite databases, with per-module migrations | Native (storage module) | Never empty (essential) |
 | `policy.check@1` | Allow, ask or deny a side-effect action, and write its audit row | Native (security module) | Never empty (essential) |
 | `secrets.mask@1` | Replace secrets in outbound text | Native (security module, secretlint) | Never empty (essential) |
-| `quota.reserve@3` | Reserve and settle provider quota for a model call, and read the pool | Native (quota module) | Never empty (essential) |
-| `llm.chat@1` | Chat with tools and streaming | Gateway → tier chain of discovered models the model mode allows (free by default, ADR-042) | Run pauses with reason `quota` or `no_model` |
+| `quota.reserve@4` | Reserve and settle provider quota for a model call, and read the pool | Native (quota module) | Never empty (essential) |
+| `llm.chat@2` | Chat with tools and streaming | Gateway → tier chain of discovered models the model mode allows (free by default, ADR-042) | Run pauses with reason `quota` or `no_model` |
 | `llm.embed@1` | Embeddings | NVIDIA embedding model | Vector search off; hybrid search continues |
 | `llm.rerank@1` | Reranking | NVIDIA rerank model | Rerank skipped |
 | `fs.*@1` | Files: read, write, edit, list, glob, grep | Native | Never empty (essential) |
