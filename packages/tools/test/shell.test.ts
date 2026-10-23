@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import type { ShellConfig, ShellExecOutput, ToolError } from "@mete/contracts";
 import { ok, type Result } from "@mete/contracts";
@@ -120,6 +121,35 @@ describe("shellTool", () => {
 			message: "cancelled",
 		});
 	}, 15_000);
+
+	it.runIf(WINDOWS)(
+		"ends a cancelled call whose shell left a child holding its output, and kills the child",
+		async () => {
+			const { deps } = await setup();
+			// The shell starts a child that inherits the output pipe and exits at once: taskkill
+			// /T cannot reach the orphan through the dead shell, which is the snapshot race of a
+			// child started during the kill, made certain.
+			const mark = `orphan${Date.now()}`;
+			const command = `Start-Process -NoNewWindow -FilePath node -ArgumentList '-e','/*${mark}*/setInterval(()=>{},1000)'`;
+			const c = new AbortController();
+			const started = run(deps, command, c.signal);
+			setTimeout(() => c.abort(), 2000);
+			const r = await started;
+			expect(r.ok ? undefined : r.error).toMatchObject({
+				code: "io",
+				message: "cancelled",
+			});
+			const left = execFileSync("powershell.exe", [
+				"-NoProfile",
+				"-Command",
+				`@(Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -like '*${mark}*' }).Count`,
+			])
+				.toString()
+				.trim();
+			expect(left).toBe("0");
+		},
+		20_000,
+	);
 
 	it.runIf(WINDOWS)(
 		"fails with io when the chosen Git Bash is missing",

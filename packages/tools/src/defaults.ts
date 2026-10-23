@@ -6,6 +6,9 @@ export const GREP_MAX_RESULTS = 200;
 /** Tab 10, Built-in tools: shell.exec@1 timeoutSec. */
 export const SHELL_TIMEOUT_SEC = 120;
 
+/** Tab 10, Built-in tools: how long a killed shell's output may stay open before stragglers are swept. */
+export const KILL_GRACE_MS = 1000;
+
 /** Tab 10, Built-in tools: characters kept per shell output stream. */
 export const STREAM_MAX_CHARS = 30_000;
 
