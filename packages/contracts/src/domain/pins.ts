@@ -2,8 +2,8 @@ import { z } from "zod";
 import type { ModelRef } from "./llm.js";
 import { LOCAL_ID, TEMPLATE_ID } from "./template.js";
 
-// A member's pinned model (ADR-077; docs/09, Tier resolution): the folder's .mete/pins.yaml, or the
-// pins: section of settings.yaml, maps a template id and a role id to "<providerId>/<modelId>".
+// A member's pinned model (ADR-077; docs/09, Tier resolution): the folder's .mete/pins.yaml maps a
+// template id and a role id to "<providerId>/<modelId>".
 
 const PIN = /^[^/]+\/.+$/;
 
