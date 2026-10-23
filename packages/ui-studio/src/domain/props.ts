@@ -1,12 +1,12 @@
 import { CLOCK, PLANT, SHELF, WINDOW } from "./palette.js";
-import { type Primitive, rect } from "./primitive.js";
+import { type Moment, type Primitive, rect, type Shape } from "./primitive.js";
 import { mix, type Rgb, rgb, type Sky, skyOf } from "./sky.js";
 
 // The wall's props of the demo (docs/prototypes/studio-view.html; ADR-070) as primitives: the window
 // with the user's time of day, the clock, the Vault shelf and the plants, at the demo's coordinates.
-// shortcut: a still picture drawn at the moment of rendering. The twinkle of the stars, the drift of
-// the clouds, the sway of the leaves and the clock's moving hands come with the idle-motion slice,
-// and the sun's and the moon's glow is left out (the stage has no radial gradient).
+// The window, the clock's hands and the plants' leaves move (`wallMoving`, redrawn every frame); the
+// shelf and the pots stand still (`wallStill`). The sun's and the moon's glow is left out (the stage has
+// no radial gradient), and the clouds sway back and forth inside the pane, since nothing clips them.
 
 const PANE = { x: 564, y: 34, w: 212, h: 112 } as const;
 const BANDS = 8;
@@ -29,7 +29,7 @@ const skyColours = (sky: Sky): [Rgb, Rgb] => [
 ];
 
 // The stage draws flat fills, so the sky is bands from its top colour to its bottom colour.
-const bandsOf = (top: Rgb, bottom: Rgb): Primitive[] =>
+const bandsOf = (top: Rgb, bottom: Rgb): Shape[] =>
 	Array.from({ length: BANDS }, (_, i) =>
 		rect(
 			[PANE.x, PANE.y + (i * PANE.h) / BANDS, PANE.w, PANE.h / BANDS],
@@ -38,7 +38,7 @@ const bandsOf = (top: Rgb, bottom: Rgb): Primitive[] =>
 		),
 	);
 
-const starsOf = (n: number): Primitive[] =>
+const starsOf = (n: number, t: number): Shape[] =>
 	n <= 0.05
 		? []
 		: Array.from({ length: 24 }, (_, i) =>
@@ -50,14 +50,14 @@ const starsOf = (n: number): Primitive[] =>
 						1.7,
 					],
 					0,
-					rgb(WINDOW.star, n * (0.5 + 0.5 * Math.sin(i * 1.7)) * 0.9),
+					rgb(WINDOW.star, n * (0.5 + 0.5 * Math.sin(t * 2 + i * 1.7)) * 0.9),
 				),
 			);
 
 // The sun crosses the pane from the day's start to its 56%; the moon from 52% to the end. Their
 // centres stay a radius inside the pane, since nothing clips what the stage draws.
-const sunAndMoon = (sky: Sky, [top, bottom]: [Rgb, Rgb]): Primitive[] => {
-	const out: Primitive[] = [];
+const sunAndMoon = (sky: Sky, [top, bottom]: [Rgb, Rgb]): Shape[] => {
+	const out: Shape[] = [];
 	const dp = sky.p / 0.56;
 	if (dp <= 1.05 && sky.n < 0.98)
 		out.push({
@@ -89,9 +89,14 @@ const sunAndMoon = (sky: Sky, [top, bottom]: [Rgb, Rgb]): Primitive[] => {
 	return out;
 };
 
-const cloudsOf = (sky: Sky): Primitive[] =>
+const CLOUD_SPEEDS = [0.12, 0.17, 0.09];
+
+// Each cloud sways between the pane's sides at its own pace, its three puffs reaching 19 px left and
+// 22 px right of its centre, so it stays inside.
+const cloudsOf = (sky: Sky, t: number): Shape[] =>
 	[0, 1, 2].flatMap((i) => {
-		const x = PANE.x + 30 + i * 70;
+		const sway = 0.5 * (1 + Math.sin(t * (CLOUD_SPEEDS[i] ?? 0.1) + i * 2.1));
+		const x = PANE.x + 20 + (PANE.w - 43) * sway;
 		const y = PANE.y + 18 + i * 15;
 		const fill = rgb(
 			mix(WINDOW.cloud, WINDOW.cloudWarm, sky.warm),
@@ -123,8 +128,8 @@ const litWindows = (
 	[left, width, height]: readonly [number, number, number],
 	i: number,
 	night: number,
-): Primitive[] => {
-	const out: Primitive[] = [];
+): Shape[] => {
+	const out: Shape[] = [];
 	const bottom = PANE.y + PANE.h;
 	for (let wy = bottom - height + 5; wy < bottom - 4; wy += 7)
 		for (let wx = PANE.x + left + 3; wx < PANE.x + left + width - 3; wx += 6)
@@ -139,7 +144,7 @@ const litWindows = (
 	return out;
 };
 
-const skyline = (night: number): Primitive[] => {
+const skyline = (night: number): Shape[] => {
 	const fill = rgb(mix(WINDOW.buildingDay, WINDOW.buildingNight, night));
 	return BUILDINGS.flatMap((b, i) => [
 		rect([PANE.x + b[0], PANE.y + PANE.h - b[2], b[1], b[2]], 0, fill),
@@ -148,7 +153,7 @@ const skyline = (night: number): Primitive[] => {
 };
 
 /** The window: the sky of the user's local time with its sun or moon, stars, clouds and skyline, in its frame on a sill. */
-export const windowOf = (sky: Sky): Primitive[] => {
+export const windowOf = (sky: Sky, t: number): Shape[] => {
 	const colours = skyColours(sky);
 	const x = 556;
 	const y = 26;
@@ -157,9 +162,9 @@ export const windowOf = (sky: Sky): Primitive[] => {
 	return [
 		rect([x - 6, y - 6, w + 12, h + 12], 10, WINDOW.frame),
 		...bandsOf(...colours),
-		...starsOf(sky.n),
+		...starsOf(sky.n, t),
 		...sunAndMoon(sky, colours),
-		...cloudsOf(sky),
+		...cloudsOf(sky, t),
 		...skyline(sky.n),
 		rect([x + w / 2 - 3, y, 6, h], 0, WINDOW.frame),
 		rect([x, y + h / 2 - 3, w, 6], 0, WINDOW.frame),
@@ -177,11 +182,11 @@ export const windowOf = (sky: Sky): Primitive[] => {
 };
 
 /** The wall clock at 505, 74 showing the user's local time. */
-export const clockOf = (now: Date): Primitive[] => {
+export const clockOf = (now: Date): Shape[] => {
 	const x = 505;
 	const y = 74;
 	const hours = now.getHours() + now.getMinutes() / 60;
-	const hand = (angle: number, length: number, width: number): Primitive => ({
+	const hand = (angle: number, length: number, width: number): Shape => ({
 		kind: "line",
 		x1: x,
 		y1: y,
@@ -253,7 +258,7 @@ const leaf = (o: {
 	readonly length: number;
 	readonly width: number;
 	readonly fill: string;
-}): Primitive => {
+}): Shape => {
 	const turn = o.angle + Math.PI / 2;
 	const points: number[] = [];
 	for (let k = 0; k < 16; k++) {
@@ -268,47 +273,58 @@ const leaf = (o: {
 	return { kind: "poly", points, fill: o.fill };
 };
 
-/** A potted plant standing on `base`, at `scale`: its pot, rim and seven leaves fanned out. */
-export const plantOf = (o: {
+type Plant = {
 	readonly x: number;
 	readonly base: number;
 	readonly scale: number;
-}): Primitive[] => {
-	const { x, base, scale: s } = o;
-	return [
-		{
-			kind: "poly",
-			points: [
-				x - 16 * s,
-				base - 26 * s,
-				x + 16 * s,
-				base - 26 * s,
-				x + 12 * s,
-				base,
-				x - 12 * s,
-				base,
-			],
-			fill: PLANT.pot,
-		},
-		rect([x - 18 * s, base - 31 * s, 36 * s, 7 * s], 3, PLANT.rim),
-		...Array.from({ length: 7 }, (_, i) =>
-			leaf({
-				x,
-				y: base - 30 * s,
-				angle: -Math.PI / 2 + (i - 3) * 0.38,
-				length: (38 + (i % 3) * 13) * s,
-				width: 7 * s,
-				fill: i % 2 ? PLANT.leafLight : PLANT.leafDark,
-			}),
-		),
-	];
 };
 
-/** The window, clock, shelf and both plants for a local time. */
-export const propsAt = (now: Date, vault: string): Primitive[] => [
-	...windowOf(skyOf(now)),
-	...clockOf(now),
+/** A plant's pot and its rim, standing on `base`, at `scale`. */
+export const plantPot = ({ x, base, scale: s }: Plant): Shape[] => [
+	{
+		kind: "poly",
+		points: [
+			x - 16 * s,
+			base - 26 * s,
+			x + 16 * s,
+			base - 26 * s,
+			x + 12 * s,
+			base,
+			x - 12 * s,
+			base,
+		],
+		fill: PLANT.pot,
+	},
+	rect([x - 18 * s, base - 31 * s, 36 * s, 7 * s], 3, PLANT.rim),
+];
+
+/** A plant's seven leaves, fanned out from its pot and swaying a little with `t` seconds. */
+export const plantLeaves = ({ x, base, scale: s }: Plant, t: number): Shape[] =>
+	Array.from({ length: 7 }, (_, i) =>
+		leaf({
+			x,
+			y: base - 30 * s,
+			angle: -Math.PI / 2 + (i - 3) * 0.38 + Math.sin(t * 1.2 + i) * 0.05,
+			length: (38 + (i % 3) * 13) * s,
+			width: 7 * s,
+			fill: i % 2 ? PLANT.leafLight : PLANT.leafDark,
+		}),
+	);
+
+const PLANTS: readonly Plant[] = [
+	{ x: 476, base: 206, scale: 1 },
+	{ x: 1078, base: 206, scale: 0.9 },
+];
+
+/** What stands still on the wall: the Vault shelf and the plants' pots. */
+export const wallStill = (vault: string): Primitive[] => [
 	...shelfOf(vault),
-	...plantOf({ x: 476, base: 206, scale: 1 }),
-	...plantOf({ x: 1078, base: 206, scale: 0.9 }),
+	...PLANTS.flatMap(plantPot),
+];
+
+/** What moves on the wall: the window with the user's sky, the clock's hands and the plants' leaves. */
+export const wallMoving = (at: Moment): Shape[] => [
+	...windowOf(skyOf(at.now), at.t),
+	...clockOf(at.now),
+	...PLANTS.flatMap((p) => plantLeaves(p, at.t)),
 ];

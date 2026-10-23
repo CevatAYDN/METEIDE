@@ -1,10 +1,10 @@
-import { characterOf } from "./character.js";
+import { characterMotion, characterOf } from "./character.js";
 import type { EffectColour } from "./effects.js";
 import { type Layout, layoutOf } from "./layout.js";
-import { marksOf } from "./marks.js";
+import { marksMotion, marksOf } from "./marks.js";
 import { EFFECT } from "./palette.js";
-import type { Primitive } from "./primitive.js";
-import { propsAt } from "./props.js";
+import type { Moment, Painted, Primitive, Shape } from "./primitive.js";
+import { wallMoving, wallStill } from "./props.js";
 import {
 	board,
 	chair,
@@ -14,7 +14,8 @@ import {
 	roomShell,
 } from "./room.js";
 import type { Scene } from "./scene.js";
-import { screenOf } from "./screen.js";
+import { screenOf, sleepDot } from "./screen.js";
+import { seedOf } from "./seed.js";
 
 // The studio room as primitives the stage draws, in the room's own space and the demo's colours
 // (ADR-070). The list is in drawing order: the room, then each desk's chair, character and desk, so
@@ -57,27 +58,49 @@ const overlay = (scene: Scene, l: Layout, labels: StageLabels): Primitive[] =>
 /** The colour of each effect, the demo's. */
 export const EFFECT_COLOURS: Readonly<Record<EffectColour, string>> = EFFECT;
 
+// What moves, above everything still (ADR-070): the wall's window, clock and leaves, the dot on each
+// dark monitor, then each character's eyes and typing hands and the dots and spinner of its marks.
+const moving = (scene: Scene, l: Layout, at: Moment): Shape[] => [
+	...wallMoving(at),
+	...l.desks.flatMap((d) => {
+		const working = scene.rows
+			.flat()
+			.some((c) => c.id === d.id && c.state === "working");
+		const seed = (seedOf(d.id) % 100) / 10;
+		const box = { x: d.x + d.w / 2 - 62, y: d.y + 30 - 77 };
+		return working ? [] : [sleepDot(box, seed, at.t)];
+	}),
+	...scene.rows.flat().flatMap((ch) => {
+		const head = l.heads[ch.id];
+		if (!head) return [];
+		return [
+			...characterMotion(ch, head, ch.state !== "waiting", at.t),
+			...marksMotion(ch, head, at.t),
+		];
+	}),
+];
+
 /**
- * The primitives of the room, in drawing order; the first is the floor, as wide and tall as the room.
- * `now` is the user's local time, which the window and the clock show (ADR-070).
+ * The room as two layers (ADR-070): `still` in drawing order, whose first primitive is the floor, as wide
+ * and tall as the room, and `moving`, the shapes of a moment, which the stage draws again every frame
+ * above the still ones. The window and the clock show the moment's local time.
  */
-export const paintScene = (
-	scene: Scene,
-	labels: StageLabels,
-	now: Date,
-): Primitive[] => {
+export const paintScene = (scene: Scene, labels: StageLabels): Painted => {
 	const l = layoutOf(scene);
 	const waiting = scene.rows.flat().filter((ch) => ch.state === "waiting");
-	return [
-		...roomShell(l),
-		...board(scene, l, labels),
-		...coffee(labels),
-		...propsAt(now, labels.vault),
-		...seated(scene, l),
-		...waiting.flatMap((ch) => {
-			const head = l.heads[ch.id];
-			return head ? characterOf(ch, head, false) : [];
-		}),
-		...overlay(scene, l, labels),
-	];
+	return {
+		still: [
+			...roomShell(l),
+			...board(scene, l, labels),
+			...coffee(labels),
+			...wallStill(labels.vault),
+			...seated(scene, l),
+			...waiting.flatMap((ch) => {
+				const head = l.heads[ch.id];
+				return head ? characterOf(ch, head, false) : [];
+			}),
+			...overlay(scene, l, labels),
+		],
+		moving: (at) => moving(scene, l, at),
+	};
 };

@@ -189,4 +189,5 @@ export const SCREEN = {
 	paintShine: "rgba(255,255,255,.35)",
 	testPending: "#565c74",
 	testText: "#4a5068",
+	sleepDot: "rgba(150,170,255,.6)",
 } as const;

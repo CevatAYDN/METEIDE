@@ -1,6 +1,6 @@
 import type { Point } from "./layout.js";
 import { PEOPLE } from "./palette.js";
-import { type Primitive, rect } from "./primitive.js";
+import { type Primitive, rect, type Shape } from "./primitive.js";
 import type { Character } from "./scene.js";
 import { seedOf } from "./seed.js";
 import { shade } from "./sky.js";
@@ -135,15 +135,8 @@ const mouth = (head: Point, waiting: boolean): Primitive =>
 				[PEOPLE.mouth, 1.8],
 			);
 
+// The eyes are in characterMotion, since they blink.
 const face = (head: Point, waiting: boolean): Primitive[] => {
-	const eye = (dx: number): Primitive => ({
-		kind: "ellipse",
-		x: head.x + dx + FACING,
-		y: head.y + 3,
-		rx: 2.2,
-		ry: 2.8,
-		fill: PEOPLE.eye,
-	});
 	const cheek = (dx: number): Primitive => ({
 		kind: "circle",
 		x: head.x + dx + FACING * 0.5,
@@ -151,7 +144,7 @@ const face = (head: Point, waiting: boolean): Primitive[] => {
 		r: 2.6,
 		fill: PEOPLE.cheek,
 	});
-	return [eye(-5), eye(5), cheek(-9), cheek(9), mouth(head, waiting)];
+	return [cheek(-9), cheek(9), mouth(head, waiting)];
 };
 
 // What a role wears on its head or holds beside it; a hood sits behind the body and a clipboard is
@@ -241,9 +234,8 @@ const torso = (
 				]),
 		rect([x - 14, bt, 28, 27], 11, look.body),
 		rect([x - 4, bt + 2, 8, 6], 3, PEOPLE.collar),
-		...(typing
-			? [hand(-15, 12, 4.5), hand(7, 12, 4.5)]
-			: [hand(-16.5, 23, 4), hand(16.5, 23, 4)]),
+		// A typing character's hands are in characterMotion, since they move.
+		...(typing ? [] : [hand(-16.5, 23, 4), hand(16.5, 23, 4)]),
 	];
 };
 
@@ -276,5 +268,45 @@ export const characterOf = (
 		hair(head, look.hair),
 		...face(head, ch.state === "waiting"),
 		...accessoryOf(look.accessory, head, !seated),
+	];
+};
+
+// A phase from a character's id, 0 to 10 seconds, so characters do not blink or type in step.
+const phaseOf = (id: string) => (seedOf(id) % 1000) / 100;
+
+/**
+ * What a character does at `t` seconds: its eyes, which close for a moment every 4.2 seconds, and the
+ * hands of one that types at its desk, which move up and down against each other.
+ */
+export const characterMotion = (
+	ch: Character,
+	head: Point,
+	seated: boolean,
+	t: number,
+): Shape[] => {
+	const phase = phaseOf(ch.id);
+	const blink = (t + phase * 3) % 4.2 < 0.13 ? 0.15 : 1;
+	const eye = (dx: number): Shape => ({
+		kind: "ellipse",
+		x: head.x + dx + FACING,
+		y: head.y + 3,
+		rx: 2.2,
+		ry: 2.8 * blink,
+		fill: PEOPLE.eye,
+	});
+	const bob = Math.sin(t * 16 + phase) * 2;
+	const hand = (dx: number, dy: number): Shape => ({
+		kind: "circle",
+		x: head.x + dx,
+		y: head.y + 14 + 12 + dy,
+		r: 4.5,
+		fill: lookOf(ch.roleId).skin,
+	});
+	return [
+		eye(-5),
+		eye(5),
+		...(seated && ch.state === "working"
+			? [hand(-15, bob), hand(7, -bob)]
+			: []),
 	];
 };

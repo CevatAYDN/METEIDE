@@ -20,7 +20,7 @@ export {
 	paintScene,
 	type StageLabels,
 } from "./domain/paint.js";
-export type { Primitive } from "./domain/primitive.js";
+export type { Moment, Painted, Primitive, Shape } from "./domain/primitive.js";
 export {
 	type Character,
 	type CharacterState,

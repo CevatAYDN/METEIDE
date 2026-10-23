@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { SHELF, WINDOW } from "../../src/domain/palette.js";
 import type { Primitive } from "../../src/domain/primitive.js";
-import { clockOf, plantOf, shelfOf, windowOf } from "../../src/domain/props.js";
+import {
+	clockOf,
+	plantLeaves,
+	plantPot,
+	shelfOf,
+	wallMoving,
+	wallStill,
+	windowOf,
+} from "../../src/domain/props.js";
 import { skyOf } from "../../src/domain/sky.js";
 
 // The wall's props: the window with the user's time of day, the clock, the Vault shelf and the plants
@@ -16,6 +24,14 @@ const lines = (p: Primitive[]) =>
 // The window's pane is 212 wide, 112 high, from (564, 34).
 const PANE = { x: 564, y: 34, w: 212, h: 112 };
 const inPane = (p: Primitive) => {
+	// A cloud's puffs: white ellipses with an alpha, 7 high at most (the sprout is green and bigger).
+	if (p.kind === "ellipse" && p.fill.startsWith("rgba(255,") && p.ry <= 7)
+		return (
+			p.x - p.rx >= PANE.x &&
+			p.x + p.rx <= PANE.x + PANE.w &&
+			p.y - p.ry >= PANE.y &&
+			p.y + p.ry <= PANE.y + PANE.h
+		);
 	if (p.kind === "circle")
 		return (
 			p.x - p.r >= PANE.x &&
@@ -29,8 +45,8 @@ const circles = (p: Primitive[], fill: RegExp) =>
 	p.flatMap((x) => (x.kind === "circle" && fill.test(x.fill) ? [x] : []));
 
 describe("windowOf", () => {
-	const day = windowOf(skyOf(at(14)));
-	const night = windowOf(skyOf(at(23)));
+	const day = windowOf(skyOf(at(14)), 0);
+	const night = windowOf(skyOf(at(23)), 0);
 
 	it("shows the sun, clouds and no stars, moon or lit windows by day", () => {
 		expect(circles(day, /^rgba\(255,238,178/).length).toBe(1);
@@ -63,8 +79,9 @@ describe("windowOf", () => {
 
 	it("keeps the sun and the moon inside the pane at every hour", () => {
 		for (let h = 0; h < 24; h++)
-			for (const p of windowOf(skyOf(at(h, 30))))
-				expect(inPane(p), `${h}:30`).toBe(true);
+			for (const t of [0, 3, 41, 1000])
+				for (const p of windowOf(skyOf(at(h, 30)), t))
+					expect(inPane(p), `${h}:30 at ${t}`).toBe(true);
 	});
 
 	it("draws the frame, the mullions and the sill with its plant over the sky", () => {
@@ -120,19 +137,52 @@ describe("shelfOf", () => {
 	});
 });
 
-describe("plantOf", () => {
+describe("plants", () => {
+	const plant = { x: 100, base: 200, scale: 1 };
+
 	it("draws a pot and seven leaves that fan out above it, bigger with the scale", () => {
-		const small = plantOf({ x: 100, base: 200, scale: 1 });
-		const big = plantOf({ x: 100, base: 200, scale: 2 });
-		for (const p of [small, big])
-			expect(p.filter((x) => x.kind === "poly")).toHaveLength(8);
-		const top = (p: Primitive[]) =>
+		const leavesOf = (scale: number) => plantLeaves({ ...plant, scale }, 0);
+		const potOf = (scale: number) => plantPot({ ...plant, scale });
+		expect(potOf(1).filter((x) => x.kind === "poly")).toHaveLength(1);
+		expect(leavesOf(1)).toHaveLength(7);
+		const top = (p: readonly Primitive[]) =>
 			Math.min(
 				...p.flatMap((x) =>
 					x.kind === "poly" ? x.points.filter((_, i) => i % 2) : [],
 				),
 			);
-		expect(top(small)).toBeLessThan(200 - 30);
-		expect(top(big)).toBeLessThan(top(small));
+		expect(top(leavesOf(1))).toBeLessThan(200 - 30);
+		expect(top(leavesOf(2))).toBeLessThan(top(leavesOf(1)));
+	});
+
+	it("sways the leaves with time and leaves the pot where it is", () => {
+		expect(plantLeaves(plant, 0)).not.toEqual(plantLeaves(plant, 1.3));
+		expect(plantPot(plant)).toEqual(plantPot(plant));
+	});
+});
+
+describe("the wall's two layers", () => {
+	const t = (s: number) => ({ now: at(23), t: s });
+
+	it("moves the window, the clock's hands and the leaves, and keeps the shelf and the pots still", () => {
+		expect(wallMoving(t(0))).not.toEqual(wallMoving(t(2)));
+		expect(wallMoving({ now: at(14), t: 0 })).not.toEqual(wallMoving(t(0)));
+		expect(wallStill("Vault")).toEqual(wallStill("Vault"));
+		expect(words(wallStill("Vault"))).toEqual(["Vault"]);
+		expect(words(wallMoving(t(0)))).toEqual([]);
+	});
+
+	it("twinkles the stars at night: their alpha changes with time", () => {
+		const alphas = (s: number) =>
+			windowOf(skyOf(at(23)), s).flatMap((x) =>
+				x.kind === "rect" && x.w === 1.7 ? [x.fill] : [],
+			);
+		expect(alphas(0)).not.toEqual(alphas(1));
+		expect(alphas(0)).toHaveLength(alphas(1).length);
+	});
+
+	it("moves the clock's minute hand with the minutes of the moment", () => {
+		const minute = (m: number) => lines(clockOf(at(10, m))).slice(-1)[0];
+		expect(minute(0)).not.toEqual(minute(15));
 	});
 });

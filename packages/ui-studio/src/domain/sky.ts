@@ -53,6 +53,9 @@ export const shade = (hex: string, amount: number) => {
 	return rgb([by(r), by(g), by(b)]);
 };
 
-/** A colour as a CSS string the stage understands, with an alpha (1 when left out). */
+/**
+ * A colour as a CSS string the stage understands, with an alpha (1 when left out). The alpha is rounded to
+ * three decimals: a tiny one prints as 1.6e-9, which Pixi cannot read, and a frame that throws ends its ticker.
+ */
 export const rgb = (c: Rgb, alpha = 1) =>
-	`rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${alpha})`;
+	`rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${Math.round(alpha * 1000) / 1000})`;

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { characterOf, lookOf } from "../../src/domain/character.js";
+import {
+	characterMotion,
+	characterOf,
+	lookOf,
+} from "../../src/domain/character.js";
 import { PEOPLE } from "../../src/domain/palette.js";
 import type { Primitive } from "../../src/domain/primitive.js";
 import type { Character } from "../../src/domain/scene.js";
@@ -80,12 +84,11 @@ describe("characterOf", () => {
 		});
 	});
 
-	it("puts a typing character's hands forward and takes its sleeves off", () => {
+	it("takes a typing character's sleeves off and leaves its hands to the motion layer", () => {
 		const p = characterOf(ch("dev", "working"), HEAD, true);
 		expect(rects(p, 7, 17)).toEqual([]);
-		const hands = circles(p, 4.5);
-		expect(hands).toHaveLength(2);
-		for (const h of hands) expect(h).toMatchObject({ y: HEAD.y + 14 + 12 });
+		expect(circles(p, 4.5)).toEqual([]);
+		expect(circles(p, 4)).toEqual([]);
 	});
 
 	it("stands a waiting character on legs with a flat mouth", () => {
@@ -150,5 +153,59 @@ describe("characterOf", () => {
 		);
 		for (const p of cases.flat())
 			for (const x of xsOf(p)) expect(Math.abs(x - HEAD.x)).toBeLessThan(40);
+	});
+});
+
+describe("characterMotion", () => {
+	const motion = (state: Character["state"], t: number, seated = true) =>
+		characterMotion(ch("dev", state), HEAD, seated, t);
+	const eyes = (t: number) =>
+		motion("idle", t).filter((x) => x.kind === "ellipse");
+
+	it("opens two eyes at the face and closes them for a moment every 4.2 seconds", () => {
+		expect(eyes(1.5)).toHaveLength(2);
+		for (const e of eyes(1.5))
+			expect(e).toMatchObject({
+				rx: 2.2,
+				ry: 2.8,
+				fill: PEOPLE.eye,
+				y: HEAD.y + 3,
+			});
+		// Each character has its own phase, so look for a moment all of 4.2 seconds holds a blink.
+		const closed = Array.from({ length: 420 }, (_, i) => i / 100).filter((t) =>
+			eyes(t).some((e) => e.kind === "ellipse" && e.ry < 1),
+		);
+		expect(closed.length).toBeGreaterThan(5);
+		expect(closed.length).toBeLessThan(25);
+	});
+
+	it("types with two hands forward that move against each other, only while seated and working", () => {
+		const hands = (t: number) =>
+			motion("working", t).filter((x) => x.kind === "circle");
+		expect(hands(0)).toHaveLength(2);
+		for (const h of hands(0))
+			expect(h).toMatchObject({ r: 4.5, fill: lookOf("dev").skin });
+		const ys = (t: number) =>
+			hands(t).map((h) => (h.kind === "circle" ? h.y : 0));
+		expect(ys(0)).not.toEqual(ys(0.05));
+		const [l, r] = ys(0.1);
+		expect((l ?? 0) - (HEAD.y + 26)).toBeCloseTo(
+			-((r ?? 0) - (HEAD.y + 26)),
+			6,
+		);
+		expect(motion("idle", 0).filter((x) => x.kind === "circle")).toEqual([]);
+		expect(
+			motion("working", 0, false).filter((x) => x.kind === "circle"),
+		).toEqual([]);
+	});
+
+	it("gives two characters different phases, so they do not blink in step", () => {
+		const closedAt = (id: string) =>
+			Array.from({ length: 420 }, (_, i) => i / 100).find((t) =>
+				characterMotion({ ...ch("dev"), id }, HEAD, true, t).some(
+					(x) => x.kind === "ellipse" && x.ry < 1,
+				),
+			);
+		expect(closedAt("agent-a")).not.toBe(closedAt("agent-b"));
 	});
 });

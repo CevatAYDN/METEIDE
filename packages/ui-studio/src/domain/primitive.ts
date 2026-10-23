@@ -75,9 +75,24 @@ export type Primitive =
 			readonly maxWidth?: number;
 	  };
 
+/** A shape: anything but text, which the stage lays out and cannot redraw every frame. */
+export type Shape = Exclude<Primitive, { kind: "text" | "label" }>;
+
+/** A moment of the room's life: the user's clock and seconds since the stage started. */
+export type Moment = { readonly now: Date; readonly t: number };
+
+/**
+ * The room as the stage draws it: `still` once per change, `moving` again every frame (the window, the
+ * clock, leaves, eyes, dots), as shapes only, above everything still (ADR-070).
+ */
+export type Painted = {
+	readonly still: readonly Primitive[];
+	readonly moving: (at: Moment) => readonly Shape[];
+};
+
 /** A rectangle from its box, corner radius and fill. */
 export const rect = (
 	[x, y, w, h]: readonly [number, number, number, number],
 	r: number,
 	fill: string,
-): Primitive => ({ kind: "rect", x, y, w, h, r, fill });
+): Shape => ({ kind: "rect", x, y, w, h, r, fill });

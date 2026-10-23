@@ -51,4 +51,10 @@ describe("colour helpers", () => {
 		expect(rgb([1.4, 2.6, 3], 0.5)).toBe("rgba(1,3,3,0.5)");
 		expect(rgb([255, 0, 0])).toBe("rgba(255,0,0,1)");
 	});
+
+	it("never writes an alpha in exponent notation, which Pixi cannot read", () => {
+		expect(rgb([1, 2, 3], 1.6e-9)).toBe("rgba(1,2,3,0)");
+		expect(rgb([1, 2, 3], 0.00049)).toBe("rgba(1,2,3,0)");
+		expect(rgb([1, 2, 3], 0.123456)).toBe("rgba(1,2,3,0.123)");
+	});
 });

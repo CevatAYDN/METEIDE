@@ -2,18 +2,21 @@ import type { TextStyleFontWeight } from "pixi.js";
 import { ROOM_W } from "../defaults.js";
 import type { Effect, EffectColour } from "../domain/effects.js";
 import { type Motion, motionsOf } from "../domain/motion.js";
-import type { Primitive } from "../domain/primitive.js";
+import type { Painted, Primitive, Shape } from "../domain/primitive.js";
 
 // The Studio's stage (ADR-052, ADR-070): PixiJS draws the room's primitives on a canvas, scaled
 // from the room's own space to the panel's width, and tween.js plays the effects of live events
-// over it. Both load here, lazily, so the fold and its Node tests never load them. The ticker runs only while effects play, at most 60 frames a second, and stops when
-// the last one ends or the panel hides, so an idle or hidden room draws nothing (docs/13, Performance
-// and access). Reduced motion plays no particles, moves or jumps; marks still show, without motion.
+// over it. Both load here, lazily, so the fold and its Node tests never load them. The still part of
+// the room is drawn once per change; its moving part (the window, the clock, leaves, eyes, dots) is
+// one Graphics cleared and drawn again every frame. The ticker runs while the panel shows, at 30
+// frames a second, and at 60 while effects play; a hidden panel draws nothing (docs/13, Performance
+// and access). Reduced motion draws the moving part once and plays no idle animation, no particles,
+// moves or jumps; marks still show, without motion.
 // shortcut: a moving note or character is a ghost travelling to where the room already draws it.
 
 /** A canvas the room is drawn on and its effects are played over. */
 export type Stage = {
-	readonly draw: (primitives: readonly Primitive[]) => void;
+	readonly draw: (painted: Painted) => void;
 	/** The canvas's width in pixels and the room's height in the room's own space. */
 	readonly resize: (width: number, height: number) => void;
 	readonly play: (
@@ -31,7 +34,7 @@ type Tweens = typeof import("@tweenjs/tween.js");
 type Shapes = InstanceType<Pixi["Graphics"]>;
 type Words = Extract<Primitive, { kind: "text" | "label" }>;
 
-const shape = (g: Shapes, p: Exclude<Primitive, Words>) => {
+const shape = (g: Shapes, p: Shape) => {
 	if (p.kind === "rect")
 		(p.r
 			? g.roundRect(p.x, p.y, p.w, p.h, p.r)
@@ -154,12 +157,31 @@ const animate = (p: Player, m: Motion) => {
 
 type App = InstanceType<Pixi["Application"]>;
 
-// The effects player of a stage: its tweens drive the ticker, which stops when none is left.
+// A throw inside a Pixi tick ends the ticker for good, so a failing frame is reported once, apart from
+// the tick, and the next frame tries again.
+const guarded = (draw: () => void) => {
+	let failed = false;
+	return () => {
+		try {
+			draw();
+		} catch (e) {
+			if (failed) return;
+			failed = true;
+			queueMicrotask(() => {
+				throw e;
+			});
+		}
+	};
+};
+
+// The effects player of a stage and its ticker: each frame the tweens advance and the moving part of
+// the room is drawn again, at 30 frames a second, 60 while a tween plays. With reduced motion the
+// ticker runs only while tweens do.
 const playerOf = (
 	pixi: Pixi,
 	tw: Tweens,
 	app: App,
-	canvas: HTMLCanvasElement,
+	live: { readonly canvas: HTMLCanvasElement; readonly draw: () => void },
 ) => {
 	const fx = new pixi.Container();
 	const group = new tw.Group();
@@ -171,24 +193,37 @@ const playerOf = (
 		fx,
 		particles: 0,
 		reduced: matchMedia("(prefers-reduced-motion: reduce)").matches,
-		font: getComputedStyle(canvas).fontFamily,
+		font: getComputedStyle(live.canvas).fontFamily,
 		start: () => {
 			if (!state.paused) app.ticker.start();
 		},
 	};
+	const drawLive = guarded(live.draw);
 	app.ticker.add(() => {
 		group.update(performance.now());
-		if (group.getAll().length === 0) app.ticker.stop();
+		const animating = group.getAll().length > 0;
+		if (!player.reduced) {
+			drawLive();
+			app.ticker.maxFPS = animating ? 60 : 30;
+		} else if (!animating) app.ticker.stop();
 	});
 	const pause = () => {
 		state.paused = true;
 		app.ticker.stop();
 	};
+	// The idle ticker runs whenever the panel shows, unless motion is reduced.
+	const run = () => {
+		if (!state.paused && !player.reduced) app.ticker.start();
+	};
 	const resume = () => {
 		state.paused = false;
-		if (group.getAll().length > 0) app.ticker.start();
+		if (!player.reduced || group.getAll().length > 0) app.ticker.start();
+		else {
+			live.draw();
+			app.render();
+		}
 	};
-	return { player, pause, resume };
+	return { player, pause, resume, run };
 };
 
 const appOn = async (
@@ -212,6 +247,26 @@ const appOn = async (
 	return app;
 };
 
+// Plays the effects of live events over the room: the dimming layer first, then each tween.
+const playOn =
+	(app: App, player: Player, dim: Shapes): Stage["play"] =>
+	(effects, colours) => {
+		const shade = effects.findLast((e) => e.kind === "dim");
+		if (shade?.kind === "dim")
+			dim
+				.clear()
+				.rect(0, 0, app.screen.width, app.screen.height)
+				.fill({ color: "#000000", alpha: shade.on ? 0.3 : 0 });
+		for (const m of motionsOf(
+			effects,
+			colours,
+			player.reduced,
+			player.particles,
+		))
+			animate(player, m);
+		app.render();
+	};
+
 /** Starts PixiJS on the canvas; the room's text takes the canvas's own font family. */
 export const createStage = async (
 	canvas: HTMLCanvasElement,
@@ -224,39 +279,39 @@ export const createStage = async (
 	]);
 	const app = await appOn(pixi, canvas, width, height);
 	const room = new pixi.Container();
+	const moving = new pixi.Graphics();
 	const dim = new pixi.Graphics();
-	const { player, pause, resume } = playerOf(pixi, tw, app, canvas);
-	app.stage.addChild(room, dim, player.fx);
+	let motion: Painted["moving"] = () => [];
+	// The moving shapes of this moment, drawn again over the still room.
+	const drawMoving = () => {
+		moving.clear();
+		for (const p of motion({ now: new Date(), t: performance.now() / 1000 }))
+			shape(moving, p);
+	};
+	const { player, pause, resume, run } = playerOf(pixi, tw, app, {
+		canvas,
+		draw: drawMoving,
+	});
+	app.stage.addChild(room, moving, dim, player.fx);
 	return {
-		draw: (primitives) => {
+		draw: (painted) => {
 			for (const old of room.removeChildren()) old.destroy();
-			room.addChild(...paint(pixi, primitives, player.font));
+			room.addChild(...paint(pixi, painted.still, player.font));
+			motion = painted.moving;
+			drawMoving();
+			run();
 			app.render();
 		},
 		// `h` is the room's height in its own space; the canvas takes the width's scale.
 		resize: (w, h) => {
 			const scale = w / ROOM_W;
 			room.scale.set(scale);
+			moving.scale.set(scale);
 			player.fx.scale.set(scale);
 			app.renderer.resize(w, Math.ceil(h * scale));
 			app.render();
 		},
-		play: (effects, colours) => {
-			const shade = effects.findLast((e) => e.kind === "dim");
-			if (shade?.kind === "dim")
-				dim
-					.clear()
-					.rect(0, 0, app.screen.width, app.screen.height)
-					.fill({ color: "#000000", alpha: shade.on ? 0.3 : 0 });
-			for (const m of motionsOf(
-				effects,
-				colours,
-				player.reduced,
-				player.particles,
-			))
-				animate(player, m);
-			app.render();
-		},
+		play: playOn(app, player, dim),
 		pause,
 		resume,
 		destroy: () => app.destroy(),

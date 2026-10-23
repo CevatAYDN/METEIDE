@@ -1,5 +1,5 @@
 import { SCREEN } from "./palette.js";
-import { type Primitive, rect } from "./primitive.js";
+import { type Primitive, rect, type Shape } from "./primitive.js";
 
 // What a monitor shows while its character works (docs/13, the `agent.tool.called` row): code lines for
 // `fs.*`, a results page for `web.*`, a painting for `media.*`, test rows for verify gates and
@@ -81,6 +81,15 @@ const test = ({ x, y }: ScreenBox): Primitive[] => [
 		rect([x + 15, y + 8 + i * 10, 30 - i * 4, 2], 0, SCREEN.testText),
 	]),
 ];
+
+/** The dot that drifts across a dark monitor at `t` seconds, as a screensaver; `seed` offsets each monitor's path. */
+export const sleepDot = (box: ScreenBox, seed: number, t: number): Shape => ({
+	kind: "circle",
+	x: box.x + W / 2 + Math.sin(t * 0.8 + seed) * (W / 2 - 6),
+	y: box.y + H / 2 + Math.cos(t * 1.1 + seed) * (H / 2 - 6),
+	r: 2.2,
+	fill: SCREEN.sleepDot,
+});
 
 const PICTURES: Record<ScreenKind, (box: ScreenBox) => Primitive[]> = {
 	code,

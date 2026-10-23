@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SCREEN } from "../../src/domain/palette.js";
 import type { Primitive } from "../../src/domain/primitive.js";
-import { screenKindOf, screenOf } from "../../src/domain/screen.js";
+import { screenKindOf, screenOf, sleepDot } from "../../src/domain/screen.js";
 
 // What a monitor shows for the tool its character works with (docs/13, the agent.tool.called row).
 
@@ -70,5 +70,19 @@ describe("screenOf", () => {
 			"gameengine.test@1",
 		])
 			for (const p of screenOf(tool, BOX)) expect(inside(p), tool).toBe(true);
+	});
+});
+
+describe("sleepDot", () => {
+	it("drifts across a dark monitor and stays on it", () => {
+		const at = (t: number) => sleepDot(BOX, 1.5, t);
+		expect(at(0)).not.toEqual(at(2));
+		for (let t = 0; t < 60; t += 0.7) {
+			const d = at(t);
+			expect(d.kind === "circle" && d.x - d.r).toBeGreaterThanOrEqual(BOX.x);
+			expect(d.kind === "circle" && d.x + d.r).toBeLessThanOrEqual(BOX.x + 54);
+			expect(d.kind === "circle" && d.y - d.r).toBeGreaterThanOrEqual(BOX.y);
+			expect(d.kind === "circle" && d.y + d.r).toBeLessThanOrEqual(BOX.y + 36);
+		}
 	});
 });
