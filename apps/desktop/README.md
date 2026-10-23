@@ -1,6 +1,6 @@
 # @mete/desktop
 
-Theia + Electron application. Composition root. Theia is pinned to 1.76.0 (newest release at least 14 days old on 2026-10-21, published 2026-09-24) and Electron to 42.8.1, the version that Theia release requires (docs/05).
+Theia + Electron application. Composition root. Theia is pinned to 1.76.0 (newest release at least 14 days old on 2026-10-21, published 2026-09-24) and Electron to 42.11.12 (published 2026-10-07): Theia 1.76 names 42.8.1, and the newer patch release of the same major closes its sandbox, protocol-handler and code-cache advisories (the audit of 2026-10-23; the overrides in pnpm-workspace.yaml say which fixes still wait for their 14 days, docs/05).
 
 Modules: none (not a MeteModule)
 
