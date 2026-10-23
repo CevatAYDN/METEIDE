@@ -1,4 +1,4 @@
-import type { TaskCard, TeamView } from "@mete/ui-studio";
+import { NO_SIGNALS, type TaskCard, type TeamView } from "@mete/ui-studio";
 import { describe, expect, it } from "vitest";
 import { flowGraph } from "../src/application/flow-graph.js";
 
@@ -19,6 +19,7 @@ const view = (tasks: TaskCard[]): TeamView => ({
 	seen: new Set(),
 	tasks,
 	agents: [],
+	signals: NO_SIGNALS,
 });
 
 describe("the Flow graph", () => {
