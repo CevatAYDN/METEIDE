@@ -129,6 +129,28 @@ describe("the Board view", () => {
 		).not.toContain("Latest events");
 	});
 
+	it("offers the Studio for a single-agent run, which has no board", () => {
+		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			{
+				...task("x").created,
+				taskId: undefined,
+				type: "agent.created",
+				agentId: crypto.randomUUID(),
+				payload: { roleId: "agent", providerId: "groq", modelId: "m" },
+			} as MeteEvent,
+		]);
+		const model: BoardModel = {
+			kind: "board",
+			goal: "g",
+			view,
+			unreadable: 0,
+			recent: [],
+		};
+		expect(html(model)).toContain("a single agent works without a board");
+		expect(html(model)).toContain(">Studio<");
+		expect(html(model, "studio")).toContain("studio of 0 task(s)");
+	});
+
 	it("says how many events could not be read, and that a single agent has no board", () => {
 		const out = html({
 			kind: "board",

@@ -149,10 +149,13 @@ const ModeSwitch = ({ controls }: { readonly controls: TeamControls }) => (
 	</div>
 );
 
-// What an event of the studio table is about: its task's title, else its agent's role.
+// What an event of the studio table is about: its task's title, else, for an agent's own event,
+// the agent's role (a run's events carry the last active agent, who did not do them).
 const subjectOf = (view: TeamView, e: MeteEvent) =>
 	view.tasks.find((t) => t.id === e.taskId)?.title ??
-	view.agents.find((a) => a.id === e.agentId)?.roleId ??
+	(e.type.startsWith("agent.")
+		? view.agents.find((a) => a.id === e.agentId)?.roleId
+		: undefined) ??
 	"";
 
 // The Studio's accessible list (docs/13: every visual event is also written to a list).
@@ -177,6 +180,16 @@ const Recent = ({
 	</ul>
 );
 
+// A single-agent run has no tasks: no board, but the Studio still seats its agent.
+const NoTasks = () => (
+	<p>
+		{nls.localize(
+			"mete/board/noTasks",
+			"This run has no tasks: a single agent works without a board.",
+		)}
+	</p>
+);
+
 const Shown = ({
 	model,
 	controls,
@@ -185,7 +198,12 @@ const Shown = ({
 	readonly controls: TeamControls;
 }) => {
 	if (controls.mode === "flow") return <>{controls.flow(model.view)}</>;
-	if (controls.mode === "board") return <Columns view={model.view} />;
+	if (controls.mode === "board")
+		return model.view.tasks.length === 0 ? (
+			<NoTasks />
+		) : (
+			<Columns view={model.view} />
+		);
 	return (
 		<>
 			{controls.studio(model.view)}
@@ -224,13 +242,8 @@ const Board = ({
 				)}
 			</p>
 		) : null}
-		{model.view.tasks.length === 0 ? (
-			<p>
-				{nls.localize(
-					"mete/board/noTasks",
-					"This run has no tasks: a single agent works without a board.",
-				)}
-			</p>
+		{model.view.tasks.length === 0 && model.view.agents.length === 0 ? (
+			<NoTasks />
 		) : (
 			<>
 				<ModeSwitch controls={controls} />
