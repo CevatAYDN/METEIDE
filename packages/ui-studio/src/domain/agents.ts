@@ -2,9 +2,9 @@ import type { MeteEvent } from "@mete/contracts";
 
 // The agents of a run as the Team panel's views draw them (ADR-051, docs/13): the core puts the
 // active agent's id on the envelope of every event it publishes, and agent.created comes at the
-// agent's first model call, with the task it works on. shortcut: quota.exhausted and
-// quota.consumed come from the quota module with no agent (and quota.exhausted with no run), so
-// the coffee-corner wait and the request count of docs/13 wait for an event that names the agent.
+// agent's first model call, with the task it works on. The coffee-corner wait comes from the run's
+// signals (ADR-052). shortcut: quota.consumed names no agent, so docs/13's request count waits for
+// an event that does.
 
 /** One agent as the views show it. */
 export type AgentCard = {
