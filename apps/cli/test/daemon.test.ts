@@ -9,6 +9,7 @@ import {
 	DaemonRunStartResultSchema,
 	DaemonStatusResultSchema,
 	DaemonStopAllResultSchema,
+	DaemonTemplateReadResultSchema,
 	DaemonTemplatesResultSchema,
 	type MeteEvent,
 	MeteEventSchema,
@@ -331,6 +332,20 @@ describe("mete daemon", () => {
 		);
 		expect(estimate.providers).toEqual([]);
 		expect(estimate.unassigned).toBeGreaterThan(0);
+		// mete/template.read reads files only (ADR-075): a built-in template's text, and the codes of a miss.
+		const read = DaemonTemplateReadResultSchema.parse(
+			await c.sendRequest(DAEMON_METHODS.templateRead, { id: "web-dev" }),
+		);
+		expect(read.source).toBe("builtIn");
+		expect(read.yaml).toContain("id: web-dev");
+		for (const [id, code] of [
+			["nope", "not_found"],
+			["../x", "bad_input"],
+		])
+			expect(
+				(await failure(c.sendRequest(DAEMON_METHODS.templateRead, { id })))
+					.data,
+			).toEqual({ code });
 
 		toDaemon.end();
 		expect(await done).toBe(0);

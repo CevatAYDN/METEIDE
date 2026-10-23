@@ -8,11 +8,12 @@ import {
 	DaemonRunApproveParamsSchema,
 	DaemonRunIdParamsSchema,
 	DaemonStatusParamsSchema,
+	DaemonTemplateReadParamsSchema,
 	type EngineError,
 	EVENT_TYPES,
 	RunStartSchema,
 } from "@mete/contracts";
-import { listTemplates } from "@mete/core";
+import { listTemplates, readTemplate } from "@mete/core";
 import type { EventBus } from "@mete/kernel";
 import {
 	createMessageConnection,
@@ -33,7 +34,7 @@ import {
 	trackExhausted,
 } from "./provider-states.js";
 
-// `mete daemon`: protocol version 12 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-068).
+// `mete daemon`: protocol version 13 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-075).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
@@ -168,6 +169,24 @@ const serveTemplates = (conn: MessageConnection, app: App) =>
 		};
 	});
 
+// A template file's text for the team editor (ADR-075): files only, so no engine is needed; a miss keeps
+// its not_found or bad_input code, and a file that cannot be read is an internal error.
+const serveTemplateRead = (conn: MessageConnection, app: App) =>
+	conn.onRequest(DAEMON_METHODS.templateRead, async (params: unknown) => {
+		const { id } = parsed(DaemonTemplateReadParamsSchema.safeParse(params));
+		const read = await readTemplate(app.templates, id);
+		if (read.ok)
+			return { id, source: read.value.source, yaml: read.value.text };
+		const e = read.error;
+		if (e.code !== "not_found" && e.code !== "bad_input")
+			throw new ResponseError(
+				ErrorCodes.InternalError,
+				`template ${id} cannot be read`,
+			);
+		const data: DaemonErrorData = { code: e.code };
+		throw new ResponseError(DAEMON_ERROR_CODE, `no template ${id}`, data);
+	});
+
 // The composer's request estimate per provider (ADR-068): files and the gateway's listing only, so no
 // engine is needed; a template that does not load is not_found.
 const serveEstimate = (
@@ -242,6 +261,7 @@ export const daemonCommand = async (
 	serveEvents(conn, app);
 	serveAudit(conn, app);
 	serveTemplates(conn, app);
+	serveTemplateRead(conn, app);
 	const spent = trackExhausted(app.events);
 	serveQuota(conn, app, spent.until);
 	serveEstimate(conn, app, spent.until);
