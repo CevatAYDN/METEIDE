@@ -1,4 +1,5 @@
 // Public API of this package: the run view model the Team panel's views share (ADR-051).
+export { type AgentCard, agentsAfter } from "./domain/agents.js";
 export {
 	applyAll,
 	applyEvent,

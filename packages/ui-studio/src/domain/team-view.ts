@@ -1,12 +1,13 @@
 import type { MeteEvent } from "@mete/contracts";
+import { type AgentCard, agentsAfter } from "./agents.js";
 
 // The view model the Team panel's views share (ADR-051, docs/13): a pure fold over one run's
 // events. The panel feeds it the run's history (mete/events) and then the live stream; a live event
 // can also be in the history (storage records an event as the bus publishes it, before the daemon
 // forwards it), so each event id is applied once. A card's place comes from its status alone, the
 // task state machine of docs/07; task.assigned only names the agent (the core publishes it just
-// before the change to in_progress). shortcut: tasks only; agents, messages and quota waits come
-// with the Studio view.
+// before the change to in_progress). Agents follow their own events (agents.ts). shortcut: messages
+// and quota waits come with the Studio view.
 
 /** A task state of docs/07, as task.status.changed carries it. */
 export type TaskStatus = Extract<
@@ -29,10 +30,15 @@ export type TaskCard = {
 export type TeamView = {
 	readonly seen: ReadonlySet<string>;
 	readonly tasks: readonly TaskCard[];
+	readonly agents: readonly AgentCard[];
 };
 
 /** The view before the first event. */
-export const EMPTY_TEAM_VIEW: TeamView = { seen: new Set(), tasks: [] };
+export const EMPTY_TEAM_VIEW: TeamView = {
+	seen: new Set(),
+	tasks: [],
+	agents: [],
+};
 
 /** A Board column, and the marker a card in it carries (ADR-051). */
 export type Place = {
@@ -91,7 +97,11 @@ export const applyEvent = (
 ): TeamView => {
 	if (e.runId !== runId || view.seen.has(e.id)) return view;
 	const seen = new Set(view.seen).add(e.id);
-	return { seen, tasks: tasksAfter(view.tasks, e) };
+	return {
+		seen,
+		tasks: tasksAfter(view.tasks, e),
+		agents: agentsAfter(view.agents, e),
+	};
 };
 
 /** The view after the events, in order. */

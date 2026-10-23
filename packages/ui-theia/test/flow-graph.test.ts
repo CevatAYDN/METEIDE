@@ -15,7 +15,11 @@ const card = (
 	dependsOn,
 	status,
 });
-const view = (tasks: TaskCard[]): TeamView => ({ seen: new Set(), tasks });
+const view = (tasks: TaskCard[]): TeamView => ({
+	seen: new Set(),
+	tasks,
+	agents: [],
+});
 
 describe("the Flow graph", () => {
 	it("puts each task one level after the tasks it waits for, with an edge from each", () => {
