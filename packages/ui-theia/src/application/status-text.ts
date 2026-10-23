@@ -6,14 +6,27 @@ import type { DaemonFailure, StatusRuns } from "../domain/status-service.js";
 // shortcut: the longest run list one message shows; a panel lists them all (Phase 5, team panel).
 const SHOWN_RUNS = 5;
 
-// Theia renders a message as Markdown, so text from outside (daemon output, a goal) is escaped:
-// without it a Windows path loses its backslashes.
-const plain = (text: string) =>
+// Theia renders a message as Markdown, so a message escapes text from outside (daemon output, a
+// goal): without it a Windows path loses its backslashes. A React panel shows text as it is.
+/** Escapes Markdown in text that came from outside, for a Theia message. */
+export const plain = (text: string) =>
 	text.replace(/[\\`*_{}[\]()<>#+\-.!|~]/g, "\\$&");
 
-/** Says why the daemon gave no runs, with what it reported. */
-export const failureText = ({ code, detail: raw }: DaemonFailure) => {
-	const detail = plain(raw);
+const asIs = (text: string) => text;
+
+/** Says that METE works on one open folder. */
+export const noFolderText = () =>
+	nls.localize(
+		"mete/status/noFolder",
+		"Open a folder first: METE works on one folder at a time.",
+	);
+
+/** Says why the daemon gave no runs, with what it reported; `prepare` readies outside text. */
+export const failureText = (
+	{ code, detail: raw }: DaemonFailure,
+	prepare = asIs,
+) => {
+	const detail = prepare(raw);
 	if (code === "not_ready")
 		return nls.localize(
 			"mete/status/notReady",
@@ -46,7 +59,7 @@ export const failureText = ({ code, detail: raw }: DaemonFailure) => {
 };
 
 /** Counts the runs of the folder and names the newest ones by status and goal. */
-export const runsText = (runs: StatusRuns) =>
+export const runsText = (runs: StatusRuns, prepare = asIs) =>
 	runs.length === 0
 		? nls.localize("mete/status/none", "No runs in this folder yet.")
 		: nls.localize(
@@ -55,6 +68,6 @@ export const runsText = (runs: StatusRuns) =>
 				runs.length,
 				runs
 					.slice(0, SHOWN_RUNS)
-					.map((r) => `${r.status} "${plain(r.goal)}"`)
+					.map((r) => `${r.status} "${prepare(r.goal)}"`)
 					.join("; "),
 			);

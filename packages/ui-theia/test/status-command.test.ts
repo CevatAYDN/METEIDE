@@ -23,6 +23,10 @@ import frontendModule from "../src/infrastructure/frontend-module.js";
 vi.mock("@theia/workspace/lib/browser/workspace-service", () => ({
 	WorkspaceService: class WorkspaceService {},
 }));
+// The Home view's bindings load lumino widgets; test/home-view.test.ts covers the view itself.
+vi.mock("../src/infrastructure/home-contribution.js", () => ({
+	bindHome: () => {},
+}));
 vi.mock(
 	"@theia/core/lib/browser/messaging/service-connection-provider",
 	() => ({

@@ -4,11 +4,10 @@ import {
 	type CommandRegistry,
 	MessageService,
 } from "@theia/core";
-import { nls } from "@theia/core/lib/common/nls";
 import { inject, injectable } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import { MeteDaemonService } from "../domain/status-service.js";
-import { failureText, runsText } from "./status-text.js";
+import { failureText, noFolderText, plain, runsText } from "./status-text.js";
 
 // "METE: Status" in the command palette (docs/13, Design system: every METE action is a command).
 
@@ -34,16 +33,11 @@ export class MeteCommandContribution implements CommandContribution {
 	protected async status(): Promise<void> {
 		const root = this.workspace.tryGetRoots()[0];
 		if (!root) {
-			void this.messages.info(
-				nls.localize(
-					"mete/status/noFolder",
-					"Open a folder first: METE works on one folder at a time.",
-				),
-			);
+			void this.messages.info(noFolderText());
 			return;
 		}
 		const r = await this.daemon.status(root.resource.path.fsPath());
-		if (r.ok) void this.messages.info(runsText(r.value));
-		else void this.messages.warn(failureText(r.error));
+		if (r.ok) void this.messages.info(runsText(r.value, plain));
+		else void this.messages.warn(failureText(r.error, plain));
 	}
 }

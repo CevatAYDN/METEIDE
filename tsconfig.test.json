@@ -8,6 +8,8 @@
 		// this one project type-checks its tests with the others; tsc no longer enforces `import type` there (Biome only warns).
 		"experimentalDecorators": true,
 		"verbatimModuleSyntax": false,
+		// ui-theia tests import its TSX panels.
+		"jsx": "react-jsx",
 		"types": ["node"]
 	},
 	"include": ["packages/*/test", "apps/*/test", "packages/*/vitest.config.ts"]
