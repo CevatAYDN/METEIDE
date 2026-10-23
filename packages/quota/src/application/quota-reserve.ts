@@ -9,13 +9,15 @@ import {
 	QuotaRequestSchema,
 	type QuotaReserveAdapter,
 	QuotaUnitSpecSchema,
+	type QuotaUsage,
 } from "@mete/contracts";
 import type { Logger } from "@mete/kernel";
 import type { Pool } from "../domain/pool.js";
+import type { UnitUsage } from "../domain/pool-usage.js";
 import type { QuotaStore } from "../infrastructure/quota-store.js";
 import type { Granted, Scheduler, SchedulerOptions } from "./scheduler.js";
 
-// quota.reserve@2 from docs/09 (Quota pool): reservations, settling, quota.* events
+// quota.reserve@3 from docs/09 (Quota pool): reservations, settling, quota.* events
 // and saving day and month usage.
 
 type QuotaEvent = Extract<MeteEvent, { type: `quota.${string}` }>;
@@ -48,6 +50,13 @@ type ReserveState = {
 };
 
 const iso = (ms: number) => new Date(ms).toISOString();
+
+// The pool counts in epoch milliseconds; the contract speaks ISO 8601.
+const toUsage = ({ resetsAt, history, ...row }: UnitUsage): QuotaUsage => ({
+	...row,
+	...(resetsAt === undefined ? {} : { resetsAt: iso(resetsAt) }),
+	history: history.map((e) => ({ at: iso(e.at), amount: e.amount })),
+});
 
 // Publishes closing and opening units, saves changes and waits for the next opening.
 const afterChange = (st: ReserveState) => {
@@ -99,7 +108,7 @@ const settle = (
 	return ok(undefined);
 };
 
-/** Creates the quota.reserve@2 adapter; `dispose` stops its timers and waiters. */
+/** Creates the quota.reserve@3 adapter; `dispose` stops its timers and waiters. */
 export const createQuotaReserve = (deps: ReserveDeps) => {
 	const st: ReserveState = {
 		deps,
@@ -123,6 +132,7 @@ export const createQuotaReserve = (deps: ReserveDeps) => {
 			return ok({ id, providerId, modelId });
 		},
 		settle: (id, actual, observations) => settle(st, id, actual, observations),
+		usage: () => deps.pool.usage(deps.now()).map(toUsage),
 	};
 	return {
 		adapter,

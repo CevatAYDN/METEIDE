@@ -164,6 +164,8 @@ export {
 	type QuotaReserveAdapter,
 	type QuotaUnitSpec,
 	QuotaUnitSpecSchema,
+	type QuotaUsage,
+	QuotaUsageSchema,
 	type Reservation,
 	type ReserveFailed,
 	type UnknownReservation,

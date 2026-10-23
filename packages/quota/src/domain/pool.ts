@@ -18,6 +18,7 @@ import {
 	UNLIMITED,
 	type Unit,
 } from "./pool-state.js";
+import { type UnitUsage, usageOf } from "./pool-usage.js";
 import { type Entry, opensAt, prune, setUsage, usage } from "./windows.js";
 
 export type { PoolOptions } from "./pool-state.js";
@@ -329,6 +330,8 @@ export type Pool = {
 	) => void;
 	/** Units that closed or opened since the last sweep, and the next opening. */
 	readonly sweep: (now: number) => Sweep;
+	/** Every defined unit as it stands at `now`, one row per scope (ADR-054). */
+	readonly usage: (now: number) => UnitUsage[];
 	/** Usage and learned limits changed since the last call. */
 	readonly takeDirty: () => { usage: UsageRow[]; limits: LimitRow[] };
 	/** Restores saved usage and learned limits without marking them changed. */
@@ -361,6 +364,7 @@ export const createPool = (opts: PoolOptions = {}): Pool => {
 		observe: (providerId, modelId, observations, now) =>
 			observe(ps, providerId, observations, { modelId, now }),
 		sweep: (now) => sweep(ps, now),
+		usage: (now) => usageOf(ps, now),
 		takeDirty: () => takeDirty(ps),
 		load: (saved) => load(ps, saved),
 	};

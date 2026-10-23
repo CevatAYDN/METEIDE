@@ -3,7 +3,7 @@ import { IdSchema, TimestampSchema } from "./ids.js";
 import type { Result } from "./result.js";
 import { QuotaUnitSchema } from "./states.js";
 
-// quota.reserve@2 from docs/06 (Kernel API) and docs/09 (Quota pool, Scheduler).
+// quota.reserve@3 from docs/06 (Kernel API) and docs/09 (Quota pool, Scheduler).
 
 const text = z.string().min(1);
 
@@ -61,7 +61,7 @@ export const QuotaRequestSchema = z.strictObject({
 	estimate: QuotaAmountsSchema,
 });
 
-/** What a caller asks quota.reserve@2. */
+/** What a caller asks quota.reserve@3. */
 export type QuotaRequest = z.infer<typeof QuotaRequestSchema>;
 
 /** The `quota` configuration (docs/09, effective limit); one entry per provider unit. */
@@ -114,7 +114,25 @@ export type UnknownReservation = {
 	readonly id: string;
 };
 
-/** The quota.reserve@2 adapter; the gateway settles every reservation it gets. */
+/** One unit and scope of the pool as it stands (ADR-054): `scope` is the model id of a model unit. */
+export const QuotaUsageSchema = z.strictObject({
+	providerId: text,
+	unit: QuotaUnitSchema,
+	scope: text.nullable(),
+	used: z.number().nonnegative(),
+	/** Null while no limit is known: "discover" before the first exhausted observation. */
+	limit: z.number().positive().nullable(),
+	resetsAt: TimestampSchema.optional(),
+	/** The amounts still in the window, oldest first. */
+	history: z.array(
+		z.strictObject({ at: TimestampSchema, amount: z.number().nonnegative() }),
+	),
+});
+
+/** What `usage()` answers for one unit and scope. */
+export type QuotaUsage = z.infer<typeof QuotaUsageSchema>;
+
+/** The quota.reserve@3 adapter; the gateway settles every reservation it gets. */
 export interface QuotaReserveAdapter {
 	define(specs: readonly QuotaUnitSpec[]): void;
 	reserve(
@@ -127,4 +145,6 @@ export interface QuotaReserveAdapter {
 		actual: QuotaAmounts | null,
 		observations: readonly QuotaObservation[],
 	): Result<void, UnknownReservation>;
+	/** @3 (ADR-054): every defined unit, one row per scope; reading changes nothing. */
+	usage(): readonly QuotaUsage[];
 }

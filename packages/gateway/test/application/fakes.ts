@@ -114,6 +114,7 @@ export const fakeQuota = (closed: Set<string> = new Set()) => {
 			settled.push({ id, actual, observations });
 			return ok(undefined);
 		},
+		usage: () => [],
 	};
 	return {
 		quota,

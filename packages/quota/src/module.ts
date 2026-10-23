@@ -35,7 +35,7 @@ const MANIFEST: ModuleManifest = {
 	displayName: "Quota",
 	class: "essential",
 	trust: "core",
-	provides: ["quota.reserve@2"],
+	provides: ["quota.reserve@3"],
 	requires: ["storage.sql@1"],
 	optional: [],
 	activation: ["onStartup"],
@@ -95,7 +95,7 @@ const openPool = (ctx: ModuleContext, now: () => number) => {
 	return ok({ pool, store });
 };
 
-/** Creates the quota module, which provides quota.reserve@2. */
+/** Creates the quota module, which provides quota.reserve@3. */
 export const createQuotaModule = (opts: QuotaOptions): MeteModule => {
 	const now = opts.now ?? Date.now;
 	let created: { dispose: () => void }[] = [];
@@ -117,7 +117,7 @@ export const createQuotaModule = (opts: QuotaOptions): MeteModule => {
 				setTimer,
 			});
 			const core = { id: MANIFEST.id, trust: "core", features: [] } as const;
-			const provided: Disposable = ctx.capabilities.provide("quota.reserve@2", {
+			const provided: Disposable = ctx.capabilities.provide("quota.reserve@3", {
 				...core,
 				impl: reserve.adapter,
 			});

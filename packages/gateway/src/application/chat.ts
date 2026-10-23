@@ -39,7 +39,8 @@ import { maskMessages, type Offered } from "./prepare.js";
 
 export type ChatDeps = {
 	readonly discover: (signal: AbortSignal) => Promise<Offered[]>;
-	readonly quota: QuotaReserveAdapter;
+	/** The gateway reserves and settles; it never reads the pool. */
+	readonly quota: Omit<QuotaReserveAdapter, "usage">;
 	readonly mask: SecretsMaskAdapter;
 	readonly rules: () => PrivacyRules;
 	readonly sleep: (ms: number, signal: AbortSignal) => Promise<void>;

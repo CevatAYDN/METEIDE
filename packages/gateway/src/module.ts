@@ -45,7 +45,7 @@ const MANIFEST: ModuleManifest = {
 	provides: ["llm.chat@1"],
 	requires: [
 		"storage.sql@1",
-		"quota.reserve@2",
+		"quota.reserve@3",
 		"secrets.mask@1",
 		"provider.chat@2",
 	],
@@ -115,7 +115,7 @@ const discovery = (ctx: ModuleContext, dailySpendUsd: number) => {
 	return (signal: AbortSignal) => {
 		const quota = first<QuotaReserveAdapter>(
 			ctx.capabilities,
-			"quota.reserve@2",
+			"quota.reserve@3",
 		);
 		if (kept?.quota !== quota) {
 			// The spending cap is METE's own unit over every provider (ADR-042).
@@ -147,7 +147,7 @@ const buildChat = (
 	write: (c: ModelCall) => void,
 ): LlmChatAdapter => {
 	const quota = () =>
-		first<QuotaReserveAdapter>(ctx.capabilities, "quota.reserve@2");
+		first<QuotaReserveAdapter>(ctx.capabilities, "quota.reserve@3");
 	return createLlmChat({
 		discover: live.discover,
 		quota: {

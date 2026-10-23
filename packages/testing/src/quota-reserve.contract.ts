@@ -1,11 +1,12 @@
-import type {
-	QuotaRequest,
-	QuotaReserveAdapter,
-	QuotaUnitSpec,
+import {
+	type QuotaRequest,
+	type QuotaReserveAdapter,
+	type QuotaUnitSpec,
+	QuotaUsageSchema,
 } from "@mete/contracts";
 import { afterEach, describe, expect, it } from "vitest";
 
-// Contract kit for quota.reserve@2 (docs/09, Quota pool).
+// Contract kit for quota.reserve@3 (docs/09, Quota pool).
 
 /** The fixed time every kit adapter's clock MUST return. */
 export const QUOTA_KIT_NOW = Date.parse("2026-10-21T12:00:00Z");
@@ -35,9 +36,9 @@ const ask = (...providers: string[]): QuotaRequest => ({
 
 const signal = () => new AbortController().signal;
 
-/** Every quota.reserve@2 adapter MUST pass these tests. */
+/** Every quota.reserve@3 adapter MUST pass these tests. */
 export const quotaReserveContract = (name: string, open: QuotaReserveHarness) =>
-	describe(`quota.reserve@2 contract: ${name}`, () => {
+	describe(`quota.reserve@3 contract: ${name}`, () => {
 		let close: (() => Promise<void>) | undefined;
 		afterEach(async () => {
 			await close?.();
@@ -99,5 +100,32 @@ export const quotaReserveContract = (name: string, open: QuotaReserveHarness) =>
 				error: { code: "aborted" },
 			});
 			await expect(a.reserve(ask("x"), signal())).rejects.toThrow();
+		});
+
+		it("reads each defined unit with what it counted, and the read reserves nothing (@3)", async () => {
+			const a = await fresh();
+			a.define([daily("a")]);
+			const idle = a.usage();
+			expect(idle).toEqual([
+				{
+					providerId: "a",
+					unit: "requests_per_day",
+					scope: null,
+					used: 0,
+					limit: 1,
+					resetsAt: "2026-10-22T00:00:00.000Z",
+					history: [],
+				},
+			]);
+			expect(idle.every((u) => QuotaUsageSchema.safeParse(u).success)).toBe(
+				true,
+			);
+			const r = await a.reserve(ask("a"), signal());
+			if (r.ok) a.settle(r.value.id, {}, []);
+			const [row] = a.usage();
+			expect(row?.used).toBe(1);
+			expect(row?.history).toEqual([
+				{ at: new Date(QUOTA_KIT_NOW).toISOString(), amount: 1 },
+			]);
 		});
 	});

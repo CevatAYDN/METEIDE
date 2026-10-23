@@ -116,7 +116,7 @@ const setup = async (workspace: Sections = {}) => {
 		define: (s: readonly QuotaUnitSpec[]) => void defined.push([...s]),
 	};
 	const core = { trust: "core", features: [] } as const;
-	const quotaHandle = registry.provide("quota.reserve@2", {
+	const quotaHandle = registry.provide("quota.reserve@3", {
 		id: "quota",
 		...core,
 		impl: quota,
@@ -272,7 +272,7 @@ describe("gateway module", () => {
 		s.quotaHandle.dispose();
 		const again: QuotaUnitSpec[][] = [];
 		const q = fakeQuota();
-		s.registry.provide("quota.reserve@2", {
+		s.registry.provide("quota.reserve@3", {
 			id: "quota",
 			trust: "core",
 			features: [],
