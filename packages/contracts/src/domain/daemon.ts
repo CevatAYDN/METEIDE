@@ -1,18 +1,20 @@
 import { z } from "zod";
 import { ApprovalInputSchema } from "./engine.js";
+import { MeteEventSchema } from "./events.js";
 import { IdSchema, TimestampSchema } from "./ids.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 5 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-050).
+// Daemon protocol version 6 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-051).
 // The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The messages of version 5; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 6; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
 	runApprove: "mete/run.approve",
 	runResume: "mete/run.resume",
 	quota: "mete/quota",
+	events: "mete/events",
 	event: "mete/event",
 } as const;
 
@@ -87,6 +89,15 @@ export type ProviderState = z.infer<typeof ProviderStateSchema>;
 /** Result of `mete/quota`: one entry per provider module. */
 export const DaemonQuotaResultSchema = z.strictObject({
 	providers: z.array(ProviderStateSchema),
+});
+
+/**
+ * Result of `mete/events` (params: DaemonRunIdParamsSchema): the run's persisted events in order,
+ * and how many rows no longer parse, which are counted and never dropped silently (ADR-051).
+ */
+export const DaemonEventsResultSchema = z.strictObject({
+	events: z.array(MeteEventSchema),
+	unreadable: z.number().int().nonnegative(),
 });
 
 /** Result of `mete/run.approve` and `mete/run.resume`: a request that returns nothing sends null. */

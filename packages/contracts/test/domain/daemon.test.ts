@@ -4,6 +4,7 @@ import {
 	DaemonDoneResultSchema,
 	type DaemonErrorData,
 	DaemonErrorDataSchema,
+	DaemonEventsResultSchema,
 	DaemonQuotaResultSchema,
 	DaemonRunApproveParamsSchema,
 	DaemonRunIdParamsSchema,
@@ -29,14 +30,47 @@ const run: RunView = {
 	endedAt: "2026-10-23T11:00:00.000Z",
 };
 
-describe("daemon protocol version 5", () => {
-	it("names the two messages of ARCHITECTURE.md", () => {
+describe("daemon protocol version 6", () => {
+	it("answers mete/events with the run's events in order and the count of unreadable rows", () => {
+		const event = {
+			id: crypto.randomUUID(),
+			ts: "2026-10-23T10:00:00.000Z",
+			schema: 1,
+			workspaceId: run.workspaceId,
+			runId: run.id,
+			source: "core-engine",
+			type: "run.started",
+			payload: {},
+		};
+		const answer = {
+			events: [event, { ...event, id: crypto.randomUUID() }],
+			unreadable: 2,
+		};
+		expect(DaemonEventsResultSchema.parse(answer)).toEqual(answer);
+		expect(
+			DaemonEventsResultSchema.parse({ events: [], unreadable: 0 }),
+		).toEqual({
+			events: [],
+			unreadable: 0,
+		});
+		for (const bad of [
+			{ events: [{ ...event, type: "run.dreamed" }], unreadable: 0 },
+			{ events: [], unreadable: -1 },
+			{ events: [], unreadable: 0.5 },
+			{ events: [] },
+			{ events: [], unreadable: 0, extra: true },
+		])
+			expect(DaemonEventsResultSchema.safeParse(bad).success).toBe(false);
+	});
+
+	it("names the messages of ARCHITECTURE.md", () => {
 		expect(DAEMON_METHODS).toEqual({
 			status: "mete/status",
 			runStart: "mete/run.start",
 			runApprove: "mete/run.approve",
 			runResume: "mete/run.resume",
 			quota: "mete/quota",
+			events: "mete/events",
 			event: "mete/event",
 		});
 	});
