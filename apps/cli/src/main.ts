@@ -5,6 +5,7 @@ import type { SecretStore } from "@mete/contracts";
 import { globalDataDir, type Logger } from "@mete/kernel";
 import { serveStdio, type Transport } from "@mete/mcp";
 import { createKeychainStore } from "@mete/security";
+import { auditCommand } from "./application/audit.js";
 import { terminalAuthorize } from "./application/authorize.js";
 import {
 	eventsCommand,
@@ -42,6 +43,7 @@ const USAGE = [
 	'  mete revise <run id> <task id> "<feedback>"   send it back with feedback',
 	"  mete status [<run id>]       list the runs of this folder",
 	"  mete events <run id>         show a run's history: time, event, module, task, agent",
+	"  mete audit [<run id>] [--json]   show the audit log, newest first: action, verdict, policy rule",
 	"  mete stop <run id> | --all   cancel paused runs",
 	"  mete mcp [<folder>]          serve this folder's teams to an MCP host (Claude Code, Cursor, Cline)",
 	"  mete daemon [<folder>]       serve this folder to the METE desktop over stdio (JSON-RPC)",
@@ -56,6 +58,7 @@ const OPTIONS = {
 	continue: { type: "boolean" },
 	single: { type: "boolean" },
 	all: { type: "boolean" },
+	json: { type: "boolean" },
 	help: { type: "boolean", short: "h" },
 } as const;
 
@@ -224,6 +227,10 @@ const dispatch = (
 				: usage(io);
 		case "status":
 			return withApp(reader, io, (a) => statusCommand(a, io, rest[0]));
+		case "audit":
+			return withApp(reader, io, async (a) =>
+				auditCommand(a, io, rest[0], p.values.json === true),
+			);
 		case "stop":
 			return stop(reader, io, p.values.all ? "all" : rest[0]);
 		case "mcp":

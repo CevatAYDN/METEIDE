@@ -2,6 +2,7 @@ import type { Readable, Writable } from "node:stream";
 import {
 	DAEMON_ERROR_CODE,
 	DAEMON_METHODS,
+	DaemonAuditParamsSchema,
 	type DaemonErrorData,
 	DaemonRunApproveParamsSchema,
 	DaemonRunIdParamsSchema,
@@ -21,10 +22,11 @@ import {
 } from "vscode-jsonrpc/node";
 import { type App, engineOf, notReadyLines } from "../infrastructure/app.js";
 import { runHistory } from "../infrastructure/history.js";
+import { auditEntries } from "./audit.js";
 import type { Io } from "./commands.js";
 import { providerStates, trackExhausted } from "./provider-states.js";
 
-// `mete daemon`: protocol version 6 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-051).
+// `mete daemon`: protocol version 7 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-053).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
@@ -114,6 +116,20 @@ const serveEvents = (conn: MessageConnection, app: App) =>
 		return { events: history.events, unreadable: history.broken.length };
 	});
 
+// The workspace audit log (ADR-053); it needs storage only, so it answers while core-engine is not
+// active too, as mete/quota does.
+const serveAudit = (conn: MessageConnection, app: App) =>
+	conn.onRequest(DAEMON_METHODS.audit, (params: unknown) => {
+		const p = parsed(DaemonAuditParamsSchema.safeParse(params ?? {}));
+		const entries = auditEntries(app, p);
+		if (!entries)
+			throw new ResponseError(
+				ErrorCodes.InternalError,
+				"storage is not active",
+			);
+		return { entries };
+	});
+
 // Each provider's state for the quota dashboard (ADR-050); the daemon tracks spent quotas for its
 // whole life, so a pause seen before the client asked still counts.
 const serveQuota = (
@@ -164,6 +180,7 @@ export const daemonCommand = async (
 	serveRunStart(conn, app);
 	serveApproveAndResume(conn, app);
 	serveEvents(conn, app);
+	serveAudit(conn, app);
 	const spent = trackExhausted(app.events);
 	serveQuota(conn, app, spent.until);
 	const unsubscribe = forwardEvents(app.events, conn, io);

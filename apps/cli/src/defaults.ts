@@ -8,3 +8,6 @@ export const BUILT_IN_BINDINGS = {
 
 /** Tab 10, MCP client (Elicitation): how many times the terminal asks one field before it declines the request. */
 export const ELICIT_TRIES = 2;
+
+/** Audit rows `mete audit` and mete/audit show at most, newest first (04 Decisions, ADR-053). */
+export const AUDIT_LIMIT = 200;

@@ -231,6 +231,10 @@ describe("mete daemon", () => {
 		expect(quota.providers.map((p) => p.state)).toEqual(
 			quota.providers.map(() => "no_key"),
 		);
+		// mete/audit needs no engine either (ADR-053); a new folder has no rows.
+		expect(await c.sendRequest(DAEMON_METHODS.audit, {})).toEqual({
+			entries: [],
+		});
 
 		toDaemon.end();
 		expect(await done).toBe(0);
