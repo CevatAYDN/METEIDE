@@ -113,16 +113,18 @@ export const StudioView = (props: Props) => {
 	const canvas = useRef<HTMLCanvasElement>(null);
 	const width = useWidth(box);
 	const stage = useStage(canvas);
-	const primitives = useMemo(
-		() => (width > 0 ? paintScene(sceneOf(view), labels(), new Date()) : []),
+	// The still room is drawn once per change; its moving part (the window, the clock, eyes) is drawn
+	// by the stage every frame, from the user's clock.
+	const painted = useMemo(
+		() => (width > 0 ? paintScene(sceneOf(view), labels()) : undefined),
 		[view, width],
 	);
 	useEffect(() => {
-		const room = primitives[0];
-		if (!stage || room?.kind !== "rect") return;
+		const room = painted?.still[0];
+		if (!stage || !painted || room?.kind !== "rect") return;
 		stage.resize(width, room.h);
-		stage.draw(primitives);
-	}, [stage, primitives, width]);
+		stage.draw(painted);
+	}, [stage, painted, width]);
 	useEffects(stage, props, width);
 	// A click's offset, scaled back to the room's own space, is a point of the layout.
 	// shortcut: notes and characters take no click yet (no task view, and the character card needs
