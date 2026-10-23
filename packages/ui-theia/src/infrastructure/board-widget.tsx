@@ -1,3 +1,4 @@
+import { CommandService } from "@theia/core";
 import { ThemeService } from "@theia/core/lib/browser/theming";
 import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
@@ -20,6 +21,7 @@ import { BoardView, type TeamMode } from "../application/board-view.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { FlowView } from "./flow-view.js";
+import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
 import { StudioView } from "./studio-view.js";
 
 // The Team panel (docs/13; ADR-051): one chosen run on the Board or as the Flow graph. The order of
@@ -34,6 +36,7 @@ export class MeteBoardWidget extends ReactWidget {
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;
 	@inject(MeteDaemonEvents) protected readonly events!: MeteDaemonEvents;
 	@inject(ThemeService) protected readonly themes!: ThemeService;
+	@inject(CommandService) protected readonly commands!: CommandService;
 
 	protected session: BoardSession = IDLE_BOARD;
 	/** False while the panel is hidden, so the Studio's stage stops (docs/13, Performance and access). */
@@ -102,6 +105,9 @@ export class MeteBoardWidget extends ReactWidget {
 							view={view}
 							mode={getThemeMode(this.themes.getCurrentTheme().type)}
 							active={this.shown}
+							onCoffee={() =>
+								void this.commands.executeCommand(OPEN_QUOTA_COMMAND.id)
+							}
 							{...(pulse ? { pulse } : {})}
 						/>
 					),

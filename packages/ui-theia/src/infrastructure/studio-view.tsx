@@ -3,6 +3,7 @@ import {
 	createStage,
 	effectColours,
 	effectsOf,
+	inside,
 	layoutOf,
 	paintScene,
 	type Stage,
@@ -102,6 +103,8 @@ type Props = {
 	readonly pulse?: Pulse;
 	/** False while the panel is hidden: the stage stops. */
 	readonly active: boolean;
+	/** A click on the coffee corner (docs/13, Interaction: it opens the quota dashboard). */
+	readonly onCoffee?: () => void;
 };
 
 /** The run's studio room, in the colours of the editor's theme mode, with its live effects. */
@@ -122,9 +125,28 @@ export const StudioView = (props: Props) => {
 		stage.draw(primitives);
 	}, [stage, primitives, width]);
 	useEffects(stage, props, width);
+	// The canvas is as wide as the room, so a click's offset is a point of the layout.
+	// shortcut: notes and characters take no click yet (no task view, and the character card needs
+	// tier and request count the fold does not carry); the palette opens the dashboard by keyboard.
+	const coffee = useMemo(
+		() => layoutOf(sceneOf(view), width).coffee,
+		[view, width],
+	);
+	const onCoffee = (e: React.MouseEvent) =>
+		inside(coffee, { x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY });
 	return (
 		<div ref={box} style={{ width: "100%" }}>
-			<canvas ref={canvas} style={{ display: "block", borderRadius: "20px" }} />
+			<canvas
+				ref={canvas}
+				style={{ display: "block", borderRadius: "20px" }}
+				onClick={(e) => {
+					if (onCoffee(e)) props.onCoffee?.();
+				}}
+				onMouseMove={(e) => {
+					e.currentTarget.style.cursor =
+						props.onCoffee && onCoffee(e) ? "pointer" : "";
+				}}
+			/>
 		</div>
 	);
 };

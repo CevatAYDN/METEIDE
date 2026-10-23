@@ -77,6 +77,10 @@ const seatsOf = (scene: Scene, coffee: Box) => {
 	return { heads, desks };
 };
 
+/** Whether a point on the canvas falls in a box, edges included: a click on the coffee corner. */
+export const inside = (box: Box, p: Point) =>
+	p.x >= box.x && p.x <= box.x + box.w && p.y >= box.y && p.y <= box.y + box.h;
+
 /** The anchors of the room for a canvas of `width` pixels. */
 export const layoutOf = (scene: Scene, width: number): Layout => {
 	const coffee = { x: width - COFFEE_W - PAD, y: PAD, w: COFFEE_W, h: BOARD_H };

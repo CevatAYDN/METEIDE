@@ -8,6 +8,7 @@ export {
 } from "./domain/effects.js";
 export {
 	type Box,
+	inside,
 	type Layout,
 	layoutOf,
 	type Point,
