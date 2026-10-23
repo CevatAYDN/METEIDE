@@ -4,7 +4,9 @@ import type { EngineDeps } from "./run-state.js";
 
 // Checkpoints are kept 14 days after the run ends (SECURITY.md, Checkpoints and rollback): at
 // start, the process that drives runs removes the checkpoint refs of runs that ended earlier.
-// Without vcs.git@2 there is nothing to remove. A run already swept has no refs left, and pruning
+// vcs-git activates before core-engine (it registers first and needs no more than core does), so
+// the sweep finds it; apps/cli's retention test proves it end to end. Without vcs.git@2 there is
+// nothing to remove. A run already swept has no refs left, and pruning
 // it again removes none, so sweeping at every start needs no record of what was swept.
 // shortcut: git checkpoints only; file snapshots and their folder come with snapshots (Phase 5).
 
