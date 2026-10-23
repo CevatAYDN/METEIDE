@@ -94,7 +94,7 @@ Third-party code still runs with the user's operating-system rights; METE enforc
 
 ## Kill switch
 
-"Stop all" (toolbar button and `Ctrl+Shift+.`) cancels every run, aborts in-flight model calls, rejects pending MCP sampling and pauses triggers \[D\].
+"Stop all" (a button in the status bar and `Ctrl+Shift+.`) cancels every run, aborts in-flight model calls, rejects pending MCP sampling and pauses triggers \[D\]. It asks nothing first, then says how many runs it cancelled; a cancelled run cannot be resumed (ADR-065). Triggers come with Phase 6, so there are none to pause yet.
 
 ## Audit log
 

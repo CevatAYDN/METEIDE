@@ -25,6 +25,8 @@ The run composer asks for the goal, then offers "Let METE choose" (the router de
 
 A run paused for quota shows under its row why each provider cannot carry it on, and a "Resume now" button; "METE: Resume run" offers it too (ADR-059), so a key or privacy change takes effect before the pause's reset. A run paused by the user, which a desktop quit does to a running run, shows a "Resume" button and is offered by "METE: Resume run" too (ADR-061).
 
+"METE: Stop all" (`Ctrl+Shift+.`, and a "Stop all" button at the left of the status bar) is the kill switch of SECURITY.md: it sends `mete/stop.all` to the daemon of the open folder at once, without asking, and shows how many runs it cancelled, or that there were none (ADR-065). Runs of other folders are not driven by this desktop and stay as they are.
+
 The Quota dashboard is its own view, "METE: Open quota dashboard": a table of the `units` of `mete/quota` (ADR-054), one row per provider, unit and model scope with used, limit and reset time and, on request under each row, its history: each amount in the window with its time (ADR-055); it asks again on every `quota.*` event.
 
 ## Studio view
