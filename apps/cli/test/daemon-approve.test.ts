@@ -162,6 +162,16 @@ describe("mete daemon approvals", () => {
 		expect(reached).toEqual(
 			expect.arrayContaining(["in_progress", "approved"]),
 		);
+		// The fold's rule (ui-studio agents.ts): each agent is created inside its first model turn,
+		// whose thinking.started carries no agent id yet.
+		for (const e of history.events.filter((x) => x.type === "agent.created")) {
+			const turn = history.events.filter((x) => x.taskId === e.taskId);
+			const at = turn.indexOf(e);
+			const start = turn.findIndex((x) => x.type === "agent.thinking.started");
+			const end = turn.findIndex((x) => x.type === "agent.thinking.ended");
+			expect(turn[start]?.agentId).toBeUndefined();
+			expect(start < at && at < end).toBe(true);
+		}
 		const unknown = await failure(
 			c.sendRequest(DAEMON_METHODS.events, { runId: crypto.randomUUID() }),
 		);
