@@ -1,5 +1,20 @@
 {
 	"mete": {
+		"board": {
+			"blocked": "Blocked",
+			"caption": "METE: a run's tasks",
+			"changesAsked": "Changes asked",
+			"done": "Done",
+			"inProgress": "In progress",
+			"inReview": "In review",
+			"loading": "Reading the run's events…",
+			"noRun": "Choose a run with METE: Open board.",
+			"noTasks": "This run has no tasks: a single agent works without a board.",
+			"open": "Open board",
+			"title": "Board",
+			"todo": "To do",
+			"unreadable": "{0} event(s) of this run could not be read; mete events names them."
+		},
 		"category": "METE",
 		"home": {
 			"approve": "Approve",

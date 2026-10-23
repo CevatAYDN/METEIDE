@@ -29,6 +29,10 @@ vi.mock("@theia/workspace/lib/browser/workspace-service", () => ({
 vi.mock("../src/infrastructure/home-contribution.js", () => ({
 	bindHome: () => {},
 }));
+// The Board view's bindings load lumino too; test/board-view.test.ts covers the view.
+vi.mock("../src/infrastructure/board-contribution.js", () => ({
+	bindBoard: () => {},
+}));
 vi.mock(
 	"@theia/core/lib/browser/messaging/service-connection-provider",
 	() => ({

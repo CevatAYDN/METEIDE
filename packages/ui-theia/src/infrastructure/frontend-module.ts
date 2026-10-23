@@ -10,6 +10,7 @@ import {
 	METE_DAEMON_PATH,
 	MeteDaemonService,
 } from "../domain/status-service.js";
+import { bindBoard } from "./board-contribution.js";
 import { bindHome } from "./home-contribution.js";
 
 // Theia's generated frontend loads this file by the path in package.json and binds `module.default`.
@@ -31,4 +32,5 @@ export default new ContainerModule((bind) => {
 	bind(CommandContribution).to(MeteApprovalContribution).inSingletonScope();
 	bind(CommandContribution).to(MeteKeyContribution).inSingletonScope();
 	bindHome(bind);
+	bindBoard(bind);
 });

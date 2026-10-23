@@ -1,5 +1,20 @@
 {
 	"mete": {
+		"board": {
+			"blocked": "Engellendi",
+			"caption": "METE: bir çalıştırmanın görevleri",
+			"changesAsked": "Değişiklik istendi",
+			"done": "Bitti",
+			"inProgress": "Sürüyor",
+			"inReview": "İncelemede",
+			"loading": "Çalıştırmanın olayları okunuyor…",
+			"noRun": "METE: Panoyu aç ile bir çalıştırma seç.",
+			"noTasks": "Bu çalıştırmanın görevi yok: tek bir ajan panosuz çalışır.",
+			"open": "Panoyu aç",
+			"title": "Pano",
+			"todo": "Yapılacak",
+			"unreadable": "Bu çalıştırmanın {0} olayı okunamadı; mete events onları gösterir."
+		},
 		"category": "METE",
 		"home": {
 			"approve": "Onayla",
