@@ -9,7 +9,8 @@ import type {
 	MeteDaemonService,
 } from "../domain/status-service.js";
 import { createDaemonHost } from "./daemon-host.js";
-import { spawnCli } from "./spawn-cli.js";
+import { createKeyService } from "./key-service.js";
+import { runCli, spawnCli } from "./spawn-cli.js";
 
 /**
  * The backend's side of the METE panels: owns the daemon, forwards its events to every connected
@@ -35,6 +36,19 @@ export class MeteDaemonBackend
 				`mete daemon of ${dir} sent an event METE does not know: ${why}`,
 			),
 	});
+
+	protected readonly keyService = createKeyService({
+		run: runCli,
+		restart: () => this.host.restart(),
+	});
+
+	keys() {
+		return this.keyService.keys();
+	}
+
+	setKey(providerId: string, key: string) {
+		return this.keyService.setKey(providerId, key);
+	}
 
 	/** A frontend connected; it receives the events of every folder's daemon until it leaves. */
 	addClient(client: MeteDaemonClient): void {

@@ -116,6 +116,14 @@ describe("the daemon host", () => {
 		expect(!odd.ok && odd.error.code).toBe("protocol");
 	});
 
+	it("restarts the daemon on request and waits for it, without counting it as a restart", async () => {
+		const { fake, host } = await setup(0);
+		expect((await host.status("/w")).ok).toBe(true);
+		await host.restart();
+		expect((await host.status("/w")).ok).toBe(true);
+		expect(fake.state.starts).toEqual(["/w", "/w"]);
+	});
+
 	it("replaces the daemon when another folder is asked about", async () => {
 		const { fake, host } = await setup();
 		await host.status("/work/a");

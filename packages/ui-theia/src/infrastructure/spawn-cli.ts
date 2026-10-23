@@ -13,13 +13,54 @@ const cliBin = () => {
 	return join(dirname(manifest), bin.mete);
 };
 
-/**
- * Starts `mete daemon <folder>` on the Node of this process; inside Electron that is Electron's
- * own Node, which ELECTRON_RUN_AS_NODE asks for (ARCHITECTURE.md, Daemon protocol).
- */
-export const spawnCli = (workspaceDir: string) =>
-	spawn(process.execPath, [cliBin(), "daemon", workspaceDir], {
+// A script on the Node of this process; inside Electron that is Electron's own Node, which
+// ELECTRON_RUN_AS_NODE asks for (ARCHITECTURE.md, Daemon protocol). Arguments stay an array.
+const spawnNode = (script: string, args: readonly string[]) =>
+	spawn(process.execPath, [script, ...args], {
 		env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
 		stdio: ["pipe", "pipe", "pipe"],
 		windowsHide: true,
 	});
+
+/** Starts `mete daemon <folder>`. */
+export const spawnCli = (workspaceDir: string) =>
+	spawnNode(cliBin(), ["daemon", workspaceDir]);
+
+/** What a short `mete` command printed and how it ended. */
+export type CliResult = {
+	readonly code: number | null;
+	readonly stdout: string;
+	readonly stderr: string;
+};
+
+/** Runs a short command: `input` goes to its standard input, which then closes. */
+export type RunCli = (
+	args: readonly string[],
+	input?: string,
+) => Promise<CliResult>;
+
+/** Runs a Node script to its end; the tests run a fake one, the backend `mete` itself. */
+export const runScript = (
+	script: string,
+	args: readonly string[],
+	input = "",
+): Promise<CliResult> =>
+	new Promise((resolve) => {
+		const child = spawnNode(script, args);
+		let stdout = "";
+		let stderr = "";
+		child.stdout.on("data", (d: Buffer | string) => {
+			stdout += String(d);
+		});
+		child.stderr.on("data", (d: Buffer | string) => {
+			stderr += String(d);
+		});
+		child.on("error", (e) =>
+			resolve({ code: null, stdout, stderr: e.message }),
+		);
+		child.on("close", (code) => resolve({ code, stdout, stderr }));
+		child.stdin.end(input);
+	});
+
+/** Runs `mete <args>`, for example `key list`. */
+export const runCli: RunCli = (args, input) => runScript(cliBin(), args, input);

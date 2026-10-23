@@ -6,6 +6,8 @@ import type {
 	RunStart,
 } from "@mete/contracts";
 
+import type { ProviderKey } from "./provider-keys.js";
+
 // What the Theia frontend asks its backend, which owns the daemon process (ARCHITECTURE.md, Daemon protocol).
 
 /** Where the backend serves the daemon service on Theia's connection. */
@@ -56,6 +58,10 @@ export interface MeteDaemonService {
 		runId: string,
 		input: ApprovalInput,
 	): Promise<Result<null, DaemonFailure>>;
+	/** The providers `mete key list` names, with whether each has a key (ADR-049). */
+	keys(): Promise<Result<ProviderKey[], DaemonFailure>>;
+	/** Saves a provider key through `mete key set` and restarts the daemon, which then reads it. */
+	setKey(providerId: string, key: string): Promise<Result<null, DaemonFailure>>;
 	/** Goes on with a paused run. */
 	resume(
 		workspaceDir: string,

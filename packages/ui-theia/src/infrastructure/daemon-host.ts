@@ -54,6 +54,8 @@ type Live = {
 	exitCode?: number | null;
 	ended: boolean;
 	stopping: boolean;
+	/** Settles once the process has ended. */
+	closed: Promise<void>;
 };
 
 const keepTail = (tail: string[], chunk: Buffer | string) => {
@@ -68,6 +70,7 @@ const launch = (deps: HostDeps, dir: string): Live => {
 		new StreamMessageReader(child.stdout),
 		new StreamMessageWriter(child.stdin),
 	);
+	let settle = () => {};
 	const live: Live = {
 		dir,
 		child,
@@ -75,12 +78,16 @@ const launch = (deps: HostDeps, dir: string): Live => {
 		tail: [],
 		ended: false,
 		stopping: false,
+		closed: new Promise<void>((resolve) => {
+			settle = resolve;
+		}),
 	};
 	// Disposing the connection rejects the requests that wait for an answer.
 	const end = () => {
 		if (live.ended) return;
 		live.ended = true;
 		conn.dispose();
+		settle();
 	};
 	child.stderr.on("data", (chunk: Buffer | string) =>
 		keepTail(live.tail, chunk),
@@ -149,6 +156,15 @@ const call = async <T>(
 	}
 };
 
+// Closing its input is how a daemon is asked to stop; it releases the run lock itself, and a
+// start after a stop that was asked for is not a restart the policy counts.
+const askToStop = (live: Live | undefined) => {
+	if (!live || live.ended) return live;
+	live.stopping = true;
+	live.child.stdin.end();
+	return live;
+};
+
 /** The one daemon the host keeps. */
 type Slot = { live?: Live };
 
@@ -204,12 +220,10 @@ export const createDaemonHost = (deps: HostDeps) => {
 			send(dir, DAEMON_METHODS.runApprove, { runId, input }, done),
 		resume: (dir: string, runId: string) =>
 			send(dir, DAEMON_METHODS.runResume, { runId }, done),
-		/** Closing its input is how a daemon is asked to stop; it releases the run lock itself. */
-		stop: () => {
-			const live = slot.live;
-			if (!live || live.ended) return;
-			live.stopping = true;
-			live.child.stdin.end();
+		stop: () => void askToStop(slot.live),
+		/** Stops the daemon and waits until it has ended; the next call starts it again, uncounted (ADR-049). */
+		restart: async () => {
+			await askToStop(slot.live)?.closed;
 		},
 	};
 };
