@@ -16,6 +16,8 @@ import {
 // by one and in seeded random sets, the app still starts and finishes the single-agent fixture
 // task, the typo fix of run.test.ts. The fixture's scripted provider always stays: the task needs a
 // model, and in this test it stands in for every provider module. CHAOS_SEED repeats a failing set.
+// The app is createApp, the composition `mete daemon` shares (ADR-045), so this covers the desktop's
+// process too.
 
 const SEED = Number(process.env.CHAOS_SEED ?? 20261023);
 const RANDOM_SETS = 5;
