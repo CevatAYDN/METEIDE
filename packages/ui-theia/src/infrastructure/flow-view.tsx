@@ -1,0 +1,76 @@
+import "@xyflow/react/dist/style.css";
+import type { TeamView } from "@mete/ui-studio";
+import { nls } from "@theia/core/lib/common/nls";
+import { type Edge, type Node, ReactFlow } from "@xyflow/react";
+import { type CSSProperties, useMemo } from "react";
+import { type FlowNodeData, flowGraph } from "../application/flow-graph.js";
+
+// The Flow view of the Team panel (docs/13; ADR-051): the run's tasks as a graph in React Flow
+// (docs/05), read only. The stylesheet import keeps this file frontend-only.
+// shortcut: the graph is fitted when its node count changes (a remount); a moved node does not refit.
+
+const BORDER: Record<FlowNodeData["column"], string> = {
+	todo: "var(--theia-descriptionForeground)",
+	in_progress: "var(--theia-focusBorder)",
+	done: "var(--theia-button-background)",
+};
+
+const markerText = (data: FlowNodeData) =>
+	data.marker === "in_review"
+		? nls.localize("mete/board/inReview", "In review")
+		: data.marker === "changes_asked"
+			? nls.localize("mete/board/changesAsked", "Changes asked")
+			: data.marker === "blocked"
+				? nls.localize("mete/board/blocked", "Blocked")
+				: "";
+
+const nodeStyle = (data: FlowNodeData): CSSProperties => ({
+	border: `2px solid ${BORDER[data.column]}`,
+	background: "var(--theia-editor-background)",
+	color: "var(--theia-foreground)",
+	borderRadius: "8px",
+	width: 200,
+});
+
+const FRAME: CSSProperties = { height: "100%", minHeight: "360px" };
+
+/** The run's tasks as a graph: a node per task, an edge per dependsOn. */
+export const FlowView = ({ view }: { readonly view: TeamView }) => {
+	const { nodes, edges } = useMemo(() => {
+		const g = flowGraph(view);
+		return {
+			nodes: g.nodes.map(
+				(n): Node => ({
+					id: n.id,
+					position: { ...n.position },
+					data: {
+						label: (
+							<>
+								<div>{n.data.title}</div>
+								<div style={{ opacity: 0.7 }}>
+									{n.data.roleId}
+									{n.data.marker ? ` · ${markerText(n.data)}` : ""}
+								</div>
+							</>
+						),
+					},
+					style: nodeStyle(n.data),
+				}),
+			),
+			edges: g.edges.map((e): Edge => ({ ...e })),
+		};
+	}, [view]);
+	return (
+		<div style={FRAME}>
+			<ReactFlow
+				key={nodes.length}
+				nodes={nodes}
+				edges={edges}
+				nodesDraggable={false}
+				nodesConnectable={false}
+				fitView
+				colorMode="system"
+			/>
+		</div>
+	);
+};

@@ -23,12 +23,12 @@ import {
 import { MeteDaemonService } from "../domain/status-service.js";
 import { MeteBoardWidget } from "./board-widget.js";
 
-// The Board's place in Theia: "METE: Open board" picks one of the folder's runs and shows it in the
+// The Team panel's place in Theia: "METE: Open team panel" picks one of the folder's runs and shows it in the
 // main area (docs/13, Team panel; ADR-051).
 
-/** The palette entry "METE: Open board". */
+/** The palette entry "METE: Open team panel" (its id is from when the Board was its only view). */
 export const OPEN_BOARD_COMMAND: Command = Command.toLocalizedCommand(
-	{ id: "mete.board.open", category: "METE", label: "Open board" },
+	{ id: "mete.board.open", category: "METE", label: "Open team panel" },
 	"mete/board/open",
 	"mete/category",
 );
@@ -48,7 +48,7 @@ export class MeteBoardContribution extends AbstractViewContribution<MeteBoardWid
 	constructor() {
 		super({
 			widgetId: MeteBoardWidget.ID,
-			widgetName: nls.localize("mete/board/title", "Board"),
+			widgetName: nls.localize("mete/board/title", "Team panel"),
 			defaultWidgetOptions: { area: "main" },
 		});
 	}

@@ -2,16 +2,18 @@
 	"mete": {
 		"board": {
 			"blocked": "Engellendi",
+			"boardMode": "Pano",
 			"caption": "METE: bir çalıştırmanın görevleri",
 			"changesAsked": "Değişiklik istendi",
 			"done": "Bitti",
+			"flowMode": "Akış",
 			"inProgress": "Sürüyor",
 			"inReview": "İncelemede",
 			"loading": "Çalıştırmanın olayları okunuyor…",
-			"noRun": "METE: Panoyu aç ile bir çalıştırma seç.",
+			"noRun": "METE: Ekip panelini aç ile bir çalıştırma seç.",
 			"noTasks": "Bu çalıştırmanın görevi yok: tek bir ajan panosuz çalışır.",
-			"open": "Panoyu aç",
-			"title": "Pano",
+			"open": "Ekip panelini aç",
+			"title": "Ekip paneli",
 			"todo": "Yapılacak",
 			"unreadable": "Bu çalıştırmanın {0} olayı okunamadı; mete events onları gösterir."
 		},

@@ -3,13 +3,26 @@ import { applyAll, EMPTY_TEAM_VIEW } from "@mete/ui-studio";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { type BoardModel, BoardView } from "../src/application/board-view.js";
+import {
+	type BoardModel,
+	BoardView,
+	type TeamMode,
+} from "../src/application/board-view.js";
 
 // The Board rendered to HTML on Node from a view the real fold built.
 
 const RUN = crypto.randomUUID();
-const html = (model: BoardModel) =>
-	renderToStaticMarkup(createElement(BoardView, { model }));
+const html = (model: BoardModel, mode: TeamMode = "board") =>
+	renderToStaticMarkup(
+		createElement(BoardView, {
+			model,
+			controls: {
+				mode,
+				onMode: () => {},
+				flow: (v) => `flow of ${v.tasks.length} task(s)`,
+			},
+		}),
+	);
 
 const event = (type: string, payload: object, taskId: string): MeteEvent =>
 	({
@@ -69,6 +82,18 @@ describe("the Board view", () => {
 		expect(out).not.toContain("could not be read");
 	});
 
+	it("switches between the Board and the Flow graph of the same view", () => {
+		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [task("Notes").created]);
+		const model: BoardModel = { kind: "board", goal: "g", view, unreadable: 0 };
+		const board = html(model);
+		expect(board).toContain('aria-pressed="true">Board<');
+		expect(board).toContain('aria-label="To do"');
+		const flow = html(model, "flow");
+		expect(flow).toContain('aria-pressed="true">Flow<');
+		expect(flow).toContain("flow of 1 task(s)");
+		expect(flow).not.toContain('aria-label="To do"');
+	});
+
 	it("says how many events could not be read, and that a single agent has no board", () => {
 		const out = html({
 			kind: "board",
@@ -82,7 +107,7 @@ describe("the Board view", () => {
 	});
 
 	it("asks for a run, says it is reading, or shows why it failed", () => {
-		expect(html({ kind: "no_run" })).toContain("METE: Open board");
+		expect(html({ kind: "no_run" })).toContain("METE: Open team panel");
 		expect(html({ kind: "loading" })).toContain("Reading the run");
 		const failed = html({
 			kind: "failed",

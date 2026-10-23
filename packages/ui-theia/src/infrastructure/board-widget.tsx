@@ -13,14 +13,16 @@ import {
 	receiveBoard,
 	startBoard,
 } from "../application/board-session.js";
-import { BoardView } from "../application/board-view.js";
+import { BoardView, type TeamMode } from "../application/board-view.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { MeteDaemonService } from "../domain/status-service.js";
+import { FlowView } from "./flow-view.js";
 
-// The Board panel (docs/13, Team panel; ADR-051): one chosen run. The order of history and live
-// events is the session's (application/board-session.ts); the widget listens, asks and draws.
+// The Team panel (docs/13; ADR-051): one chosen run on the Board or as the Flow graph. The order of
+// history and live events is the session's (application/board-session.ts); the widget listens, asks
+// and draws. Its id stays mete.board from when the Board was its only view (ids are not shown).
 
-/** The METE Board view in Theia's main area. */
+/** The METE Team panel in Theia's main area. */
 @injectable()
 export class MeteBoardWidget extends ReactWidget {
 	static readonly ID = "mete.board";
@@ -29,11 +31,12 @@ export class MeteBoardWidget extends ReactWidget {
 	@inject(MeteDaemonEvents) protected readonly events!: MeteDaemonEvents;
 
 	protected session: BoardSession = IDLE_BOARD;
+	protected mode: TeamMode = "board";
 
 	@postConstruct()
 	protected init(): void {
 		this.id = MeteBoardWidget.ID;
-		this.title.label = nls.localize("mete/board/title", "Board");
+		this.title.label = nls.localize("mete/board/title", "Team panel");
 		this.title.caption = nls.localize(
 			"mete/board/caption",
 			"METE: a run's tasks",
@@ -63,6 +66,18 @@ export class MeteBoardWidget extends ReactWidget {
 	}
 
 	protected override render() {
-		return <BoardView model={this.session.model} />;
+		return (
+			<BoardView
+				model={this.session.model}
+				controls={{
+					mode: this.mode,
+					onMode: (mode) => {
+						this.mode = mode;
+						this.update();
+					},
+					flow: (view) => <FlowView view={view} />,
+				}}
+			/>
+		);
 	}
 }
