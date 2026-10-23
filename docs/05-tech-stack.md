@@ -88,7 +88,7 @@ This is the only valid technology list. Anything not listed here needs an ADR be
 | --- | --- | --- |
 | NVIDIA Build | `https://integrate.api.nvidia.com/v1` (OpenAI-compatible) | Chat, embeddings, rerank |
 | OpenRouter | `https://openrouter.ai/api/v1`, models with `:free` | Chat |
-| OpenCode Zen | `https://opencode.ai/zen/v1/chat/completions` | Chat (free models change over time) |
+| OpenCode Zen | `https://opencode.ai/inference/openai/v1` (OpenAI-compatible; tab 09) | Chat (free models change over time) |
 | Hugging Face Spaces | MCP (Gradio MCP servers) | Media and specialist models |
 | Exa | Exa MCP without key (default); Exa API with key | Web search |
 | Tavily, You.com, Firecrawl | HTTP APIs with free keys | Web search fallbacks |
