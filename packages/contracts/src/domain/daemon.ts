@@ -2,10 +2,10 @@ import { z } from "zod";
 import { IdSchema, TimestampSchema } from "./ids.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 1 from ARCHITECTURE.md (Daemon protocol, ADR-045). The notification
+// Daemon protocol version 2 from ARCHITECTURE.md (Daemon protocol, ADR-045 and ADR-046). The notification
 // `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The two messages of version 1. */
+/** The two messages of versions 1 and 2. */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	event: "mete/event",
@@ -45,13 +45,25 @@ export const RunViewSchema = z.strictObject({
 /** Result of `mete/status`. */
 export const DaemonStatusResultSchema = z.array(RunViewSchema);
 
-/** `data` of an error answer: the `EngineError` code of the refused call. */
-export const DaemonErrorDataSchema = z.strictObject({
-	code: z.enum([
-		"bad_input",
-		"not_found",
-		"not_supported",
-		"invalid_state",
-		"choose_template",
-	]),
-});
+/**
+ * `data` of an error answer: the `EngineError` code of the refused call, or `not_ready` with the
+ * lines `mete status` prints while core-engine is not active (ADR-046).
+ */
+export const DaemonErrorDataSchema = z.discriminatedUnion("code", [
+	z.strictObject({
+		code: z.enum([
+			"bad_input",
+			"not_found",
+			"not_supported",
+			"invalid_state",
+			"choose_template",
+		]),
+	}),
+	z.strictObject({
+		code: z.literal("not_ready"),
+		reasons: z.array(z.string()).min(1),
+	}),
+]);
+
+/** What `DaemonErrorDataSchema` parses. */
+export type DaemonErrorData = z.infer<typeof DaemonErrorDataSchema>;

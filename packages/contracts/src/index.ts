@@ -20,6 +20,7 @@ export {
 export {
 	DAEMON_ERROR_CODE,
 	DAEMON_METHODS,
+	type DaemonErrorData,
 	DaemonErrorDataSchema,
 	DaemonStatusParamsSchema,
 	DaemonStatusResultSchema,

@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import {
 	DAEMON_METHODS,
+	type DaemonErrorData,
 	DaemonErrorDataSchema,
 	DaemonStatusParamsSchema,
 	DaemonStatusResultSchema,
@@ -23,7 +24,7 @@ const run: RunView = {
 	endedAt: "2026-10-23T11:00:00.000Z",
 };
 
-describe("daemon protocol version 1", () => {
+describe("daemon protocol version 2", () => {
 	it("names the two messages of ARCHITECTURE.md", () => {
 		expect(DAEMON_METHODS).toEqual({
 			status: "mete/status",
@@ -81,8 +82,27 @@ describe("daemon protocol version 1", () => {
 		expect(DaemonErrorDataSchema.safeParse({ code: "oops" }).success).toBe(
 			false,
 		);
-		expectTypeOf<
-			ReturnType<typeof DaemonErrorDataSchema.parse>["code"]
-		>().toEqualTypeOf<EngineError["code"]>();
+		expectTypeOf<Exclude<DaemonErrorData["code"], "not_ready">>().toEqualTypeOf<
+			EngineError["code"]
+		>();
+	});
+
+	it("carries not_ready with the reasons mete status would print", () => {
+		const data = {
+			code: "not_ready",
+			reasons: [
+				"core-engine is not active.",
+				"Add a provider key with: mete key set openrouter",
+			],
+		};
+		expect(DaemonErrorDataSchema.parse(data)).toEqual(data);
+		for (const bad of [
+			{ code: "not_ready" },
+			{ code: "not_ready", reasons: [] },
+			{ code: "not_ready", reasons: [1] },
+			{ code: "not_found", reasons: ["x"] },
+			{ code: "not_ready", reasons: ["x"], extra: true },
+		])
+			expect(DaemonErrorDataSchema.safeParse(bad).success).toBe(false);
 	});
 });
