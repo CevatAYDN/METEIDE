@@ -90,17 +90,25 @@ const electronegativity = () => {
 	}
 };
 
-// The licenses docs/05 allows in what ships (Tooling rules); EPL-2.0 is Theia's, CC0 and OFL-1.1 are
-// for assets and fonts, which a package list cannot tell from code.
+// The licenses docs/05 allows in what ships (ADR-066); EPL-2.0 and LGPL-2.1+ are for Theia and its
+// dependencies, CC0, CC-BY-4.0 and OFL-1.1 for assets and fonts, which a package list cannot tell
+// from code.
 const ALLOWED = new Set([
 	"MIT",
 	"Apache-2.0",
 	"BSD-2-Clause",
 	"BSD-3-Clause",
+	"0BSD",
 	"ISC",
 	"MPL-2.0",
+	"Unlicense",
+	"BlueOak-1.0.0",
+	"Python-2.0",
 	"EPL-2.0",
+	"LGPL-2.1+",
+	"LGPL-2.1-or-later",
 	"CC0-1.0",
+	"CC-BY-4.0",
 	"OFL-1.1",
 ]);
 
@@ -122,7 +130,7 @@ assert.equal(
 );
 assert.equal(allowed("(OFL-1.1 AND MIT)"), true);
 assert.equal(allowed("(MIT AND GPL-3.0)"), false);
-assert.equal(allowed("LGPL-2.1+"), false);
+assert.equal(allowed("LGPL-3.0-only"), false);
 
 // Each license outside the list, with the packages under it.
 const licenses = () => {
