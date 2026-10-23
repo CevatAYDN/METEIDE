@@ -17,6 +17,8 @@ export type AgentCard = {
 	readonly thinking: boolean;
 	/** The capability of the tool call the agent waits on. */
 	readonly tool?: string;
+	/** The last progress step that call reported (ADR-067). */
+	readonly progress?: { readonly progress: number; readonly total?: number };
 };
 
 const change = (
@@ -63,7 +65,15 @@ export const agentsAfter = (
 			...a,
 			tool: e.payload.capability,
 		}));
+	if (e.type === "agent.tool.progress")
+		return change(agents, e.agentId, (a) => ({
+			...a,
+			progress: {
+				progress: e.payload.progress,
+				...(e.payload.total === undefined ? {} : { total: e.payload.total }),
+			},
+		}));
 	if (e.type === "agent.tool.completed")
-		return change(agents, e.agentId, ({ tool: _, ...a }) => a);
+		return change(agents, e.agentId, ({ tool: _, progress: __, ...a }) => a);
 	return agents;
 };

@@ -79,6 +79,34 @@ describe("the agents of the team view", () => {
 		]);
 	});
 
+	it("keeps a tool's last progress step on the agent until the call completes (ADR-067)", () => {
+		const step = (progress: number) =>
+			event("agent.tool.progress", {
+				capability: "mcp.tools@1",
+				progress,
+				total: 4,
+			});
+		const during = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			created,
+			event("agent.tool.called", {
+				capability: "mcp.tools@1",
+				adapterId: "mcp-client",
+			}),
+			step(1),
+			step(3),
+		]);
+		expect(during.agents[0]?.progress).toEqual({ progress: 3, total: 4 });
+		const after = applyAll(RUN, during, [
+			event("agent.tool.completed", {
+				capability: "mcp.tools@1",
+				ok: true,
+				durationMs: 9,
+			}),
+		]);
+		expect(after.agents[0]).not.toHaveProperty("progress");
+		expect(after.agents[0]).not.toHaveProperty("tool");
+	});
+
 	it("keeps a single agent without a task, and ignores events of no agent or an unknown one", () => {
 		const solo = event(
 			"agent.created",
