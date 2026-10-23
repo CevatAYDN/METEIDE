@@ -353,7 +353,8 @@ async function* chat(
 			message: "no discovered model fits this call",
 		});
 	const messages = await maskMessages(deps.mask, req.messages);
-	const { target, runId, priority, needs, avoidFamilies, ...rest } = req;
+	const { target, runId, priority, needs, avoidFamilies, prefer, ...rest } =
+		req;
 	const call = { ...rest, messages };
 	const estimate = { tokens_per_minute: estimateTokens(call) };
 	const prompt = estimateTokens({

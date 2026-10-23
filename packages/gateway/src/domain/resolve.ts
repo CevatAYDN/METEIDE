@@ -19,7 +19,7 @@ export type PrivacyRules = {
 };
 
 type Need = NonNullable<LlmChatRequest["needs"]>[number];
-type Role = Pick<LlmChatRequest, "needs" | "avoidFamilies">;
+type Role = Pick<LlmChatRequest, "needs" | "avoidFamilies" | "prefer">;
 
 // "unknown" counts as true; only a normal workspace honours allowTraining.
 const passesPrivacy = (p: Privacy, rules: PrivacyRules) =>
@@ -91,9 +91,19 @@ export const resolveChain = (
 			meetsTier(m, target.tier) &&
 			(role.needs ?? []).every((n) => meetsNeed(m, n)),
 	);
-	const sorted = avoid(fit, role.avoidFamilies ?? []).sort(
-		(a, b) => b.contextWindow - a.contextWindow,
-	);
+	// A pinned candidate leads, past avoidFamilies and the paid split: the user chose it (ADR-077).
+	const p = role.prefer;
+	const pinned = p
+		? fit.find((m) => m.providerId === p.providerId && m.id === p.modelId)
+		: undefined;
+	const sorted = avoid(
+		fit.filter((m) => m !== pinned),
+		role.avoidFamilies ?? [],
+	).sort((a, b) => b.contextWindow - a.contextWindow);
 	// both: the free candidates first, then the paid ones, each in the usual order (ADR-042).
-	return [...sorted.filter((m) => m.free), ...sorted.filter((m) => !m.free)];
+	return [
+		...(pinned ? [pinned] : []),
+		...sorted.filter((m) => m.free),
+		...sorted.filter((m) => !m.free),
+	];
 };

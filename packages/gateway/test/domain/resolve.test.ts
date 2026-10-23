@@ -115,6 +115,68 @@ describe("resolveChain for a tier", () => {
 	});
 });
 
+describe("resolveChain with a pinned model (ADR-077)", () => {
+	const tier = { tier: "reasoning" } as const;
+	const found = [
+		model("big", { contextWindow: 200_000 }),
+		model("small", { contextWindow: 32_000, family: "qwen" }),
+		model("paid", { free: false, price: { input: 1, output: 2 } }),
+	];
+	const pin = (modelId: string) => ({ providerId: "p", modelId });
+
+	it("puts the pinned candidate first and keeps the rest in their order", () => {
+		expect(
+			ids(resolveChain(found, tier, DEFAULT, { prefer: pin("small") })),
+		).toEqual(["small", "big"]);
+	});
+
+	it("leads with the pin even when its family is avoided", () => {
+		expect(
+			ids(
+				resolveChain(found, tier, DEFAULT, {
+					prefer: pin("small"),
+					avoidFamilies: ["qwen"],
+				}),
+			),
+		).toEqual(["small", "big"]);
+	});
+
+	it("ignores a pin that is no candidate: unknown, paid in free mode, or short of the needs", () => {
+		const plain = ids(resolveChain(found, tier, DEFAULT));
+		for (const prefer of [
+			pin("gone"),
+			pin("paid"),
+			{ providerId: "q", modelId: "big" },
+		])
+			expect(ids(resolveChain(found, tier, DEFAULT, { prefer }))).toEqual(
+				plain,
+			);
+		const noTools = [model("a"), model("b", { toolCalling: false })];
+		expect(
+			ids(
+				resolveChain(noTools, tier, DEFAULT, {
+					prefer: pin("b"),
+					needs: ["tool_calling"],
+				}),
+			),
+		).toEqual(["a"]);
+	});
+
+	it("leads with a paid pin when the mode admits paid models", () => {
+		const both = { ...DEFAULT, mode: "both" } as const;
+		expect(
+			ids(resolveChain(found, tier, both, { prefer: pin("paid") }))[0],
+		).toBe("paid");
+	});
+
+	it("is ignored for an exact model target", () => {
+		const exact = { providerId: "p", modelId: "big" };
+		expect(
+			ids(resolveChain(found, exact, DEFAULT, { prefer: pin("small") })),
+		).toEqual(["big"]);
+	});
+});
+
 describe("resolveChain privacy filter", () => {
 	const found = [
 		model("safe"),
