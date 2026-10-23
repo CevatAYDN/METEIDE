@@ -131,6 +131,18 @@ describe("the daemon host", () => {
 		expect(!odd.ok && odd.error.code).toBe("protocol");
 	});
 
+	it("asks the audit log with its filters", async () => {
+		const { host } = await setup();
+		const all = await host.audit("/w", {});
+		expect(all.ok && all.value.entries.map((e) => e.capability)).toEqual([
+			"fs.edit@1",
+		]);
+		expect(await host.audit("/w", { verdict: "deny" })).toEqual({
+			ok: true,
+			value: { entries: [] },
+		});
+	});
+
 	it("asks each provider's state and refuses one that does not parse", async () => {
 		const { fake, host } = await setup();
 		expect(await host.quota("/w")).toEqual({

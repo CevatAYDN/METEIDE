@@ -1,5 +1,6 @@
 import type {
 	ApprovalInput,
+	AuditEntry,
 	DaemonStatusResultSchema,
 	MeteEvent,
 	ProviderState,
@@ -35,6 +36,13 @@ export type DaemonFailure = {
 	readonly detail: string;
 	/** With choose_template: the templates the router suggests for the goal (ADR-047). */
 	readonly suggestions?: readonly string[];
+};
+
+/** The filters of mete/audit (ADR-053); each one is optional. */
+export type AuditFilter = {
+	readonly runId?: string;
+	readonly verdict?: AuditEntry["verdict"];
+	readonly action?: AuditEntry["action"];
 };
 
 /** What the backend calls on each frontend: an event the daemon of a folder published. */
@@ -78,6 +86,13 @@ export interface MeteDaemonService {
 			{ readonly events: readonly MeteEvent[]; readonly unreadable: number },
 			DaemonFailure
 		>
+	>;
+	/** The workspace audit log, newest first, filtered by run, verdict and action (ADR-053). */
+	audit(
+		workspaceDir: string,
+		filter: AuditFilter,
+	): Promise<
+		Result<{ readonly entries: readonly AuditEntry[] }, DaemonFailure>
 	>;
 	/** Whether each provider can carry a run on now (ADR-050). */
 	quota(

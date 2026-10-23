@@ -5,6 +5,7 @@ import { inject, injectable } from "@theia/core/shared/inversify";
 import { DAEMON_MAX_RESTARTS, DAEMON_RESTART_WINDOW_MS } from "../defaults.js";
 import { createRestartPolicy } from "../domain/restart-policy.js";
 import type {
+	AuditFilter,
 	MeteDaemonClient,
 	MeteDaemonService,
 } from "../domain/status-service.js";
@@ -77,6 +78,10 @@ export class MeteDaemonBackend
 
 	events(workspaceDir: string, runId: string) {
 		return this.host.events(workspaceDir, runId);
+	}
+
+	audit(workspaceDir: string, filter: AuditFilter) {
+		return this.host.audit(workspaceDir, filter);
 	}
 
 	quota(workspaceDir: string) {

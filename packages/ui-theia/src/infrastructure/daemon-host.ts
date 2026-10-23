@@ -2,6 +2,7 @@ import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import {
 	type ApprovalInput,
 	DAEMON_METHODS,
+	DaemonAuditResultSchema,
 	DaemonDoneResultSchema,
 	DaemonErrorDataSchema,
 	DaemonEventsResultSchema,
@@ -197,7 +198,8 @@ type Send = <T>(
 	parse: (raw: unknown) => Parsed<T>,
 ) => Promise<Result<T, DaemonFailure>>;
 
-// The requests that only read: the runs, one run's events (ADR-051) and the providers' states (ADR-050).
+// The requests that only read: the runs, one run's events (ADR-051), the providers' states (ADR-050)
+// and the audit log (ADR-053).
 const reads = (send: Send) => ({
 	status: (dir: string, runId?: string) =>
 		send(
@@ -210,6 +212,11 @@ const reads = (send: Send) => ({
 	events: (dir: string, runId: string) =>
 		send(dir, DAEMON_METHODS.events, { runId }, (raw) =>
 			DaemonEventsResultSchema.safeParse(raw),
+		),
+	/** The workspace audit log, filtered (ADR-053). */
+	audit: (dir: string, filter: object) =>
+		send(dir, DAEMON_METHODS.audit, filter, (raw) =>
+			DaemonAuditResultSchema.safeParse(raw),
 		),
 	/** Each provider's state (ADR-050). */
 	quota: (dir: string) =>

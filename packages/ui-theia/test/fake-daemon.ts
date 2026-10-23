@@ -48,6 +48,10 @@ conn.onRequest("mete/events", (p) => {
 	const base = { schema: 1, workspaceId: run.workspaceId, runId: run.id, source: "core-engine", ts: run.createdAt };
 	return { events: [{ ...base, id: "7c1d3e52-9b7e-4a52-8d5f-0a1b2c3d4e61", type: "run.started", payload: {} }], unreadable: 1 };
 });
+conn.onRequest("mete/audit", (p) => {
+	const entry = { seq: 1, ts: run.createdAt, runId: run.id, agentId: null, action: "fs.write", capability: "fs.edit@1", adapterId: "tools-fs", argsSha256: "a".repeat(64), verdict: "allow", rule: "autonomy:2:inside", tainted: false };
+	return { entries: p.verdict === "deny" ? [] : [entry] };
+});
 conn.onRequest("mete/quota", () =>
 	mode === "badquota"
 		? { providers: [{ id: "groq", state: "exhausted" }] }
