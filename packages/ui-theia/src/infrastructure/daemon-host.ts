@@ -30,9 +30,8 @@ import type { RestartPolicy } from "../domain/restart-policy.js";
 import type { DaemonFailure } from "../domain/status-service.js";
 
 // Owns the `mete daemon` child of one folder: starts it on the first call, talks the daemon protocol
-// to it and starts it again after a crash, within the restart policy (ARCHITECTURE.md, Failure handling).
-// shortcut: a crashed daemon starts again on the next call, not at once; eager restarts come with
-// the first panel that streams events.
+// to it and starts it again at once after a crash, within the restart policy (ARCHITECTURE.md, Failure
+// handling), so the runs it held resume from their snapshots without waiting for a call.
 
 /** Starts `mete daemon` for a folder. */
 export type SpawnDaemon = (
@@ -69,7 +68,11 @@ const keepTail = (tail: string[], chunk: Buffer | string) => {
 	tail.splice(0, Math.max(0, tail.length - STDERR_TAIL_LINES));
 };
 
-const launch = (deps: HostDeps, dir: string): Live => {
+const launch = (
+	deps: HostDeps,
+	dir: string,
+	onCrash: (live: Live) => void,
+): Live => {
 	const child = deps.spawn(dir);
 	const conn = createMessageConnection(
 		new StreamMessageReader(child.stdout),
@@ -93,6 +96,7 @@ const launch = (deps: HostDeps, dir: string): Live => {
 		live.ended = true;
 		conn.dispose();
 		settle();
+		if (!live.stopping) onCrash(live);
 	};
 	child.stderr.on("data", (chunk: Buffer | string) =>
 		keepTail(live.tail, chunk),
@@ -189,7 +193,9 @@ const ensure = (
 	const crashed = before?.dir === dir && before.ended && !before.stopping;
 	if (before && crashed && !deps.policy.allow(deps.now()))
 		return err({ code: "blocked", detail: detailOf(before) });
-	slot.live = launch(deps, dir);
+	slot.live = launch(deps, dir, (live) => {
+		if (slot.live === live) ensure(deps, slot, dir);
+	});
 	return ok(slot.live);
 };
 

@@ -205,13 +205,21 @@ describe("the daemon host", () => {
 		expect(fake.state.starts).toEqual(["/work/a", "/work/b", "/work/a"]);
 	});
 
-	it("starts a crashed daemon again on the next call", async () => {
+	it("starts a crashed daemon again at once, before the next call", async () => {
 		const { fake, host } = await setup();
 		const lost = await host.status("/w", "die");
 		expect(!lost.ok && lost.error).toMatchObject({ code: "stopped" });
+		expect(fake.state.starts).toEqual(["/w", "/w"]);
 		const again = await host.status("/w");
 		expect(again.ok).toBe(true);
 		expect(fake.state.starts).toEqual(["/w", "/w"]);
+	});
+
+	it("does not start a daemon again that was asked to stop", async () => {
+		const { fake, host } = await setup();
+		expect((await host.status("/w")).ok).toBe(true);
+		await host.restart();
+		expect(fake.state.starts).toEqual(["/w"]);
 	});
 
 	it("says why a daemon that exits at once stopped, then stops starting it at the limit", async () => {
