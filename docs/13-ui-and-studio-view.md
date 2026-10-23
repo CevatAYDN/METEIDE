@@ -18,7 +18,7 @@ The desktop UI is Theia plus METE panels; its signature is the studio view, wher
 | Quota dashboard | Capacity | Per provider and unit: used, limit, reset time, history |
 | Knowledge | Memory | Code graph view (Sigma.js), vault browser, hybrid search |
 | Assets | Generated media | Images and GLB previews (`<model-viewer>`), license manifest per file \[C\] |
-| Settings | Control | Providers and custom endpoints (form, Test), Bindings (ordered adapters per capability), Policy and autonomy, MCP servers and plugins (registry search, install with permissions), Skills, Templates (YAML editor plus visual editor; the visual editor is the team editor screen, ADR-075), Appearance, Language |
+| Settings | Control | Providers and custom endpoints (form, Test), Bindings (ordered adapters per capability), Policy and autonomy, MCP servers and plugins (registry search, install with permissions), Skills, Templates (YAML editor plus visual editor; the visual editor is the team editor screen, ADR-075 and ADR-076), Appearance, Language |
 | Audit log | Accountability | Filterable list, JSON export |
 
 The run composer asks for the goal, then offers "Let METE choose" (the router decides, and asks with its suggestions when it is unsure), each template of `mete/templates` by name with its description, and "Single agent" (ADR-058).
