@@ -307,7 +307,8 @@ describe("mcp-client runtimes", () => {
 			builtInServers: [],
 			globalDir: tmpdir(),
 			runtimeSystem: {
-				which: (command) => (command === "node" ? "/rt" : undefined),
+				which: (command) =>
+					command === "node" || command === "npx" ? "/rt" : undefined,
 				version: async () => "v22.0.0",
 				extract: async () => ({ ok: false, error: "unused" }),
 			},

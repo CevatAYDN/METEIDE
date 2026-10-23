@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
@@ -68,15 +68,26 @@ const download = async (
 };
 
 // The partial folder becomes `dir` in one rename, so a crash never leaves a runtime that looks ready.
+// Each call has its own partial folder, so two METE processes installing the same runtime never
+// touch each other's files, and the one that renames second keeps the first one's runtime.
+// shortcut: a crash leaves its partial folder beside `dir`; nothing sweeps it yet.
+const placed = async (partial: string, dir: string) => {
+	try {
+		if (!existsSync(dir)) await withLockRetry(() => rename(partial, dir));
+	} catch (e) {
+		if (!existsSync(dir)) throw e;
+	}
+	await rm(partial, { recursive: true, force: true });
+};
+
 const unpack = async (
 	deps: EnsureDeps,
 	file: Download,
 	bytes: Buffer,
 	{ dir, signal }: { dir: string; signal: AbortSignal },
 ): Promise<Result<void, ToolError>> => {
-	const partial = `${dir}.partial`;
+	const partial = `${dir}.partial-${randomUUID()}`;
 	const name = basename(new URL(file.url).pathname);
-	await rm(partial, { recursive: true, force: true });
 	await mkdir(partial, { recursive: true });
 	if (!ARCHIVE.test(name))
 		await writeFile(join(partial, name), bytes, { mode: 0o755 });
@@ -90,7 +101,7 @@ const unpack = async (
 			return io(`${file.url}: ${x.error}`);
 		}
 	}
-	await withLockRetry(() => rename(partial, dir));
+	await placed(partial, dir);
 	return ok(undefined);
 };
 
@@ -117,7 +128,6 @@ const approved = async (
 			});
 };
 
-// shortcut: one process at a time; two METE processes installing the same runtime race on the rename, upgrade with a lock file.
 const install = async (
 	deps: EnsureDeps,
 	file: Download,
@@ -170,10 +180,9 @@ const managed = async (
 
 const MAJOR = /^v(\d+)\./;
 
-// A system Node.js new enough is used as it is; otherwise the pinned one (docs/10).
-// shortcut: only `node` is checked, so a system Node.js without npm fails on npx; upgrade by also checking npx.
+// A system Node.js new enough, with npx on the PATH too, is used as it is; otherwise the pinned one (docs/10).
 const node = async (deps: EnsureDeps, ctx: ToolContext): Out => {
-	const found = deps.system.which("node");
+	const found = deps.system.which("npx") && deps.system.which("node");
 	const v =
 		found && (await deps.system.version(join(found, "node"), ctx.signal));
 	const major = Number(MAJOR.exec(v ?? "")?.[1] ?? 0);

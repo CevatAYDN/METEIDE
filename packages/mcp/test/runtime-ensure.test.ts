@@ -30,6 +30,8 @@ const setup = (
 		on?: Record<string, string>;
 		nodeVersion?: string;
 		answer?: boolean;
+		/** Runs inside the extract, as another process that finishes first would. */
+		meanwhile?: () => Promise<void>;
 	} = {},
 ) => {
 	const fetched: string[] = [];
@@ -47,6 +49,7 @@ const setup = (
 		version: async () => opts.nodeVersion,
 		extract: async (_archive, into) => {
 			await writeFile(join(into, "tool.exe"), "bin");
+			await opts.meanwhile?.();
 			return ok(undefined);
 		},
 	};
@@ -75,13 +78,39 @@ const setup = (
 describe("runtime.ensure@1", () => {
 	it("uses a system Node.js of version 20 or newer without downloading", async () => {
 		const { ensure, fetched } = setup({
-			on: { node: "/sys" },
+			on: { node: "/sys", npx: "/sys" },
 			nodeVersion: "v22.1.0",
 		});
 		expect(await ensure.run({ runtime: "node" }, ctx)).toEqual(
 			ok({ binDir: "/sys" }),
 		);
 		expect(fetched).toEqual([]);
+	});
+
+	it("downloads the pinned Node.js when the system one has no npx", async () => {
+		const { ensure, fetched } = setup({
+			on: { node: "/sys" },
+			nodeVersion: "v22.1.0",
+		});
+		await ensure.run({ runtime: "node" }, ctx);
+		expect(fetched).toHaveLength(1);
+	});
+
+	it("takes a runtime another process put in place first as installed, and leaves no partial folder", async () => {
+		const bin = join(dir, "runtimes", "bin", sha256);
+		const { ensure } = setup({
+			meanwhile: async () => {
+				await mkdir(bin, { recursive: true });
+				await writeFile(join(bin, "tool.exe"), "theirs");
+			},
+		});
+		const zip = {
+			runtime: "binary",
+			url: "https://a.example/t.zip",
+			sha256,
+		} as const;
+		expect(await ensure.run(zip, ctx)).toEqual(ok({ binDir: bin }));
+		expect(readdirSync(join(dir, "runtimes", "bin"))).toEqual([sha256]);
 	});
 
 	it("downloads the pinned Node.js for an older one, and refuses an archive whose hash differs", async () => {
