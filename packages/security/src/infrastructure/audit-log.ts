@@ -1,5 +1,6 @@
 import type { Migration } from "@mete/contracts";
 import type BetterSqlite3 from "better-sqlite3";
+import { and, desc, eq, type SQL } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
@@ -49,4 +50,27 @@ export const createAuditWriter = (db: BetterSqlite3.Database) => {
 	return (row: AuditRow) => {
 		orm.insert(auditLog).values(row).run();
 	};
+};
+
+/** Which rows `readAuditLog` returns (ADR-053); every field is optional. */
+export type AuditFilter = {
+	readonly runId?: string;
+	readonly verdict?: string;
+	readonly action?: string;
+	readonly limit: number;
+};
+
+/** The audit rows that match, newest first, at most `limit` of them (ADR-053). */
+export const readAuditLog = (db: BetterSqlite3.Database, f: AuditFilter) => {
+	const where: SQL[] = [];
+	if (f.runId) where.push(eq(auditLog.runId, f.runId));
+	if (f.verdict) where.push(eq(auditLog.verdict, f.verdict));
+	if (f.action) where.push(eq(auditLog.action, f.action));
+	return drizzle(db)
+		.select()
+		.from(auditLog)
+		.where(and(...where))
+		.orderBy(desc(auditLog.seq))
+		.limit(f.limit)
+		.all();
 };
