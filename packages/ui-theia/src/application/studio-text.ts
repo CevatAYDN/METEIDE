@@ -17,6 +17,22 @@ const roleOf = (view: TeamView, e: MeteEvent) =>
 		: view.agents.find((a) => a.taskId === e.taskId)
 	)?.roleId ?? "";
 
+type Status = Extract<
+	MeteEvent,
+	{ type: "task.status.changed" }
+>["payload"]["to"];
+
+// The Board's words for a status: its column, or the marker it carries there.
+const statusWord = (status: Status) =>
+	({
+		todo: nls.localize("mete/board/todo", "To do"),
+		in_progress: nls.localize("mete/board/inProgress", "In progress"),
+		submitted: nls.localize("mete/board/inReview", "In review"),
+		changes_requested: nls.localize("mete/board/changesAsked", "Changes asked"),
+		blocked: nls.localize("mete/board/blocked", "Blocked"),
+		approved: nls.localize("mete/board/done", "Done"),
+	})[status];
+
 const statusText = (
 	e: Extract<MeteEvent, { type: "task.status.changed" }>,
 	task: string,
@@ -39,7 +55,7 @@ const statusText = (
 		"mete/studio/moved",
 		"{0} is now {1}.",
 		task,
-		e.payload.to,
+		statusWord(e.payload.to),
 	);
 };
 

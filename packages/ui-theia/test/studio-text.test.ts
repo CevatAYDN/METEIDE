@@ -54,7 +54,7 @@ describe("the Studio's sentences", () => {
 		).toBe("Build is approved and moves to Done.");
 		expect(
 			said("task.status.changed", { from: "todo", to: "in_progress" }),
-		).toBe("Build is now in_progress.");
+		).toBe("Build is now In progress.");
 		expect(
 			said("agent.tool.called", {
 				capability: "fs.read@1",

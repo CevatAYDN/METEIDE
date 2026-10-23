@@ -75,7 +75,8 @@ type Pulse = { readonly event: MeteEvent; readonly before: TeamView };
 
 // Plays the effects of each new live event over the room, once; a hidden panel pauses the stage.
 const useEffects = (stage: Stage | undefined, props: Props, width: number) => {
-	const played = useRef<Pulse | undefined>(undefined);
+	// The pulse present at mount is past: only one that arrives afterwards plays (live events only).
+	const played = useRef<Pulse | undefined>(props.pulse);
 	const { pulse, view, mode, active } = props;
 	useEffect(() => {
 		if (!stage || !pulse || width === 0 || played.current === pulse) return;
