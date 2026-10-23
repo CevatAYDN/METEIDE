@@ -2,7 +2,7 @@
 // table, run in turn and reported once. A step that fails, cannot run or is not built yet fails the
 // check; nothing is skipped silently. Run it with `pnpm release:check`; it downloads tools.
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39,10 +39,24 @@ const run = (command, args, minutes) => {
 const viaPnpm = (args, minutes) =>
 	run(process.execPath, [PNPM, ...args], minutes);
 
+// The Electron the desktop ships, so Electronegativity judges its defaults, not v0.1.0's.
+const ELECTRON = JSON.parse(
+	readFileSync(join(ROOT, "apps", "desktop", "package.json"), "utf8"),
+).devDependencies.electron;
+
+// Electronegativity exits 0 whatever it finds, and docs/15 sets no threshold for it, so the step
+// says how many findings there are, by severity, and a maintainer decides what fails the gate.
+const findings = (csv) => {
+	const rows = csv.trim().split("\n").slice(1);
+	const high = rows.filter((r) => r.includes('"HIGH"')).length;
+	return `${rows.length} finding(s), ${high} high; no threshold in docs/15`;
+};
+
 const electronegativity = () => {
 	const out = mkdtempSync(join(tmpdir(), "mete-electronegativity-"));
+	const report = join(out, "report.csv");
 	try {
-		return viaPnpm(
+		const r = viaPnpm(
 			[
 				"--silent",
 				`--package=${ELECTRONEGATIVITY}`,
@@ -50,16 +64,23 @@ const electronegativity = () => {
 				"electronegativity",
 				"-i",
 				join(ROOT, "apps", "desktop", "lib", "backend"),
+				"-e",
+				ELECTRON,
 				"-o",
-				join(out, "report.csv"),
+				report,
 			],
 			15,
 		);
+		return r.status === "pass"
+			? { ...r, reason: findings(readFileSync(report, "utf8")) }
+			: r;
 	} finally {
 		rmSync(out, { recursive: true, force: true });
 	}
 };
 
+// shortcut: the scan arguments follow osv-scanner's documentation and were not run here, because it
+// was not installed; check them the first time it is.
 const osvScanner = () => {
 	const r = run(
 		"osv-scanner",
