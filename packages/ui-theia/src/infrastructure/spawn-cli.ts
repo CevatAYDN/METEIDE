@@ -15,16 +15,25 @@ const cliBin = () => {
 
 // A script on the Node of this process; inside Electron that is Electron's own Node, which
 // ELECTRON_RUN_AS_NODE asks for (ARCHITECTURE.md, Daemon protocol). Arguments stay an array.
-const spawnNode = (script: string, args: readonly string[]) =>
+const spawnNode = (script: string, args: readonly string[], detached = false) =>
 	spawn(process.execPath, [script, ...args], {
 		env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
 		stdio: ["pipe", "pipe", "pipe"],
 		windowsHide: true,
+		detached,
 	});
+
+/**
+ * The daemon is started detached. On Windows a child that is not sits in its parent's job object,
+ * which kills it the moment the desktop quits or crashes, before it can stop and free the run lock
+ * (checked on Windows 11 under Node and Electron). Detached, it outlives the desktop, sees its input
+ * close, which is its stop signal, and stops itself. It is never unref'd: the pipe is the leash.
+ */
+export const DAEMON_DETACHED = true;
 
 /** Starts `mete daemon <folder>`. */
 export const spawnCli = (workspaceDir: string) =>
-	spawnNode(cliBin(), ["daemon", workspaceDir]);
+	spawnNode(cliBin(), ["daemon", workspaceDir], DAEMON_DETACHED);
 
 /** What a short `mete` command printed and how it ended. */
 export type CliResult = {
