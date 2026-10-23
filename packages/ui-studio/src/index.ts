@@ -22,3 +22,4 @@ export {
 	type TaskStatus,
 	type TeamView,
 } from "./domain/team-view.js";
+export { createStage, type Stage } from "./infrastructure/stage.js";
