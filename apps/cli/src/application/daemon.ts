@@ -31,7 +31,7 @@ import {
 	trackExhausted,
 } from "./provider-states.js";
 
-// `mete daemon`: protocol version 7 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-053).
+// `mete daemon`: protocol version 11 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-065).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
@@ -104,6 +104,24 @@ const serveApproveAndResume = (conn: MessageConnection, app: App) => {
 		return null;
 	});
 };
+
+const UNENDED = new Set(["queued", "running", "paused"]);
+
+// The kill switch (ADR-065): every run that has not ended is cancelled, which aborts what it has in
+// flight; one the engine refuses is skipped with a line on stderr, so the others still stop.
+const serveStopAll = (conn: MessageConnection, app: App, io: Io) =>
+	conn.onRequest(DAEMON_METHODS.stopAll, async () => {
+		const engine = readyEngine(app);
+		const listed = engine.status();
+		if (!listed.ok) throw refused(listed.error);
+		const cancelled: string[] = [];
+		for (const run of listed.value.filter((r) => UNENDED.has(r.status))) {
+			const r = await engine.cancel(run.id);
+			if (r.ok) cancelled.push(run.id);
+			else io.err(`could not cancel ${run.id}: ${r.error.message}`);
+		}
+		return { cancelled };
+	});
 
 // A run's persisted events for the team panel (ADR-051): the engine answers not_found for a run it
 // does not know, as for mete/status; rows that no longer parse are counted, never dropped silently.
@@ -199,6 +217,7 @@ export const daemonCommand = async (
 	serveStatus(conn, app);
 	serveRunStart(conn, app);
 	serveApproveAndResume(conn, app);
+	serveStopAll(conn, app, io);
 	serveEvents(conn, app);
 	serveAudit(conn, app);
 	serveTemplates(conn, app);

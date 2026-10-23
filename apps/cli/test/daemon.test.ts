@@ -7,11 +7,12 @@ import {
 	DaemonQuotaResultSchema,
 	DaemonRunStartResultSchema,
 	DaemonStatusResultSchema,
+	DaemonStopAllResultSchema,
 	DaemonTemplatesResultSchema,
 	type MeteEvent,
 	MeteEventSchema,
 } from "@mete/contracts";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	createMessageConnection,
 	ErrorCodes,
@@ -203,6 +204,62 @@ describe("mete daemon", () => {
 		c.dispose();
 	});
 
+	it("cancels every run that has not ended with mete/stop.all, a running one too (ADR-065)", async () => {
+		const repo = await tempRepo({ "a.txt": "a\n" });
+		const app = await createApp({
+			workspaceDir: repo.workspaceDir,
+			globalDir: repo.globalDir,
+			templatesDir: join(repo.globalDir, "no-templates"),
+			logger: silent,
+			secrets: memorySecrets(),
+			providers: [scriptedProvider({ hang: true })],
+		});
+		if (!app.ok) throw new Error(JSON.stringify(app.error));
+		close = async () => {
+			await app.value.stop();
+			await repo.close();
+		};
+		const [toDaemon, toClient] = [new PassThrough(), new PassThrough()];
+		const serving = daemonCommand(
+			app.value,
+			recordingIo().io,
+			repo.workspaceDir,
+			{
+				input: toDaemon,
+				output: toClient,
+			},
+		);
+		const { c, got } = clientOf(toClient, toDaemon);
+		const { runId } = DaemonRunStartResultSchema.parse(
+			await c.sendRequest(DAEMON_METHODS.runStart, {
+				goal: "wait",
+				templateId: null,
+			}),
+		);
+		await vi.waitFor(() =>
+			expect(got).toContainEqual(
+				expect.objectContaining({ type: "agent.created" }),
+			),
+		);
+
+		const stopped = DaemonStopAllResultSchema.parse(
+			await c.sendRequest(DAEMON_METHODS.stopAll),
+		);
+		expect(stopped).toEqual({ cancelled: [runId] });
+		const [run] = DaemonStatusResultSchema.parse(
+			await c.sendRequest(DAEMON_METHODS.status, { runId }),
+		);
+		expect(run?.status).toBe("cancelled");
+		// An ended run is left alone, so a second press cancels nothing.
+		expect(await c.sendRequest(DAEMON_METHODS.stopAll)).toEqual({
+			cancelled: [],
+		});
+
+		toDaemon.end();
+		expect(await serving).toBe(0);
+		c.dispose();
+	});
+
 	it("serves without an engine and answers mete/status with not_ready and the reasons", async () => {
 		const repo = await tempRepo({ "a.txt": "a\n" });
 		close = repo.close;
@@ -218,6 +275,8 @@ describe("mete daemon", () => {
 		const { c } = clientOf(toClient, toDaemon);
 		const refused = await failure(c.sendRequest(DAEMON_METHODS.status, {}));
 		expect(refused.code).toBe(DAEMON_ERROR_CODE);
+		const unstopped = await failure(c.sendRequest(DAEMON_METHODS.stopAll));
+		expect(unstopped.data).toEqual(refused.data);
 		const data = DaemonErrorDataSchema.parse(refused.data);
 		const reasons = data.code === "not_ready" ? data.reasons : [];
 		expect(reasons[0]).toBe("core-engine is not active.");
