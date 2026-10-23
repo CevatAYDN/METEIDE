@@ -71,7 +71,7 @@ Protected paths: agents MUST NOT write `.mete/policy.yaml`, `.mete/bindings.yaml
 
 | Threat | Mitigation |
 | --- | --- |
-| Prompt injection in web pages, files or MCP results | External content is wrapped and labeled as data. A step that read external content is tainted; at level 2 its `always_ask` actions and all non-allow-listed commands need approval even if they were pre-approved \[C\] |
+| Prompt injection in web pages, files or MCP results | External content is wrapped and labeled as data. A step that read external content is tainted; at level 2 its `always_ask` actions and all non-allow-listed commands need approval even if they were pre-approved \[C\]. Until the core remembers approvals there is no pre-approval: those actions already ask at level 2, and the flag is recorded in the audit log only \[D\] |
 | An agent fetches a local service or a cloud metadata address through `web.fetch@1` | Only public `http` and `https` addresses are fetched, checked on every redirect hop; local names and loopback, private, link-local, shared and unspecified addresses are refused. A public name that resolves to a private address is not caught yet; that check comes with any setting that allows local hosts [D] |
 | Malicious or hijacked plugin or MCP server | Only the user installs; pinned versions; SHA-256 checks; permissions shown at install; child process; circuit breaker \[C\]. Node-based third-party processes SHOULD start with the Node.js permission model (`--permission` with only the declared paths) \[D\] |
 | Secret exfiltration | secretlint masking, `.meteignore`, keychain storage, no secrets in logs \[C\] |
