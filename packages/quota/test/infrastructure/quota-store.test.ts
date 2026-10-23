@@ -68,6 +68,57 @@ describe("quota store", () => {
 		]);
 	});
 
+	// ADR-074: two processes on one database add their usage; each save writes only its growth.
+	describe("two processes on one database", () => {
+		const row = (amount: number) => ({
+			providerId: "p",
+			unit: "requests_per_day" as const,
+			scopeKey: "",
+			entries: amount > 0 ? [{ at: T0, amount }] : [],
+		});
+		const saved = (db: ReturnType<typeof open>["db"]) =>
+			db.prepare("SELECT used FROM quota_usage ORDER BY window_start").all();
+
+		it("keeps both processes' calls in the same bucket, and adds only each one's growth later", () => {
+			const { db, store: a } = open();
+			const b = createQuotaStore(db, () => T0);
+			a.load();
+			b.load();
+			a.save({ usage: [row(5)], limits: [] });
+			b.save({ usage: [row(3)], limits: [] });
+			expect(saved(db)).toEqual([{ used: 8 }]);
+			a.save({ usage: [row(7)], limits: [] });
+			expect(saved(db)).toEqual([{ used: 10 }]);
+			a.save({ usage: [row(7)], limits: [] });
+			expect(saved(db)).toEqual([{ used: 10 }]);
+		});
+
+		it("starts a new process from the sum", () => {
+			const { db, store: a } = open();
+			a.load();
+			a.save({ usage: [row(5)], limits: [] });
+			const b = createQuotaStore(db, () => T0);
+			expect(b.load().usage[0]?.entries).toEqual([
+				{ at: Math.floor(T0 / MIN) * MIN + MIN - 1, amount: 5 },
+			]);
+			b.save({ usage: [row(6)], limits: [] });
+			expect(saved(db)).toEqual([{ used: 6 }]);
+		});
+
+		it("deletes a bucket a process dropped for everyone, and does not write one another process deleted back", () => {
+			const { db, store: a } = open();
+			const b = createQuotaStore(db, () => T0);
+			a.load();
+			b.load();
+			a.save({ usage: [row(5)], limits: [] });
+			b.load();
+			a.save({ usage: [row(0)], limits: [] });
+			expect(saved(db)).toEqual([]);
+			b.save({ usage: [row(5)], limits: [] });
+			expect(saved(db)).toEqual([]);
+		});
+	});
+
 	it("upserts learned limits", () => {
 		const { store } = open();
 		const limit = {

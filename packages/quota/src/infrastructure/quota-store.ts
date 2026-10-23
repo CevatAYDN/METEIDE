@@ -1,6 +1,6 @@
 import { type Migration, QuotaUnitSchema } from "@mete/contracts";
 import type BetterSqlite3 from "better-sqlite3";
-import { and, eq, lt } from "drizzle-orm";
+import { and, eq, lt, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import {
 	integer,
@@ -103,19 +103,55 @@ const groupUsage = (
 type Orm = ReturnType<typeof drizzle>;
 type Saved = { usage: UsageRow[]; limits: LimitRow[] };
 
-const saveUsage = (orm: Orm, row: UsageRow) => {
-	const key = and(
-		eq(quotaUsage.providerId, row.providerId),
-		eq(quotaUsage.unit, row.unit),
-		eq(quotaUsage.scopeKey, row.scopeKey),
-	);
-	orm.delete(quotaUsage).where(key).run();
+// What this process loaded or last wrote per usage row and bucket (ADR-074): a save adds only the
+// growth since then, so another process's calls in the same buckets stay.
+type Baseline = Map<string, Map<number, number>>;
+
+const baselineKey = (row: {
+	readonly providerId: string;
+	readonly unit: string;
+	readonly scopeKey: string;
+}) => `${row.providerId}\u0000${row.unit}\u0000${row.scopeKey}`;
+
+const saveUsage = (orm: Orm, row: UsageRow, baseline: Baseline) => {
 	const { providerId, unit, scopeKey } = row;
-	for (const [windowStart, used] of toBuckets(row.entries))
-		orm
-			.insert(quotaUsage)
-			.values({ providerId, unit, scopeKey, windowStart, used })
-			.run();
+	const at = (windowStart: number) =>
+		and(
+			eq(quotaUsage.providerId, providerId),
+			eq(quotaUsage.unit, unit),
+			eq(quotaUsage.scopeKey, scopeKey),
+			eq(quotaUsage.windowStart, windowStart),
+		);
+	const mine = toBuckets(row.entries);
+	const known = baseline.get(baselineKey(row)) ?? new Map<number, number>();
+	// A bucket this process held and no longer does ended by a reset or by age: it ends for everyone.
+	for (const windowStart of known.keys())
+		if (!mine.has(windowStart))
+			orm.delete(quotaUsage).where(at(windowStart)).run();
+	for (const [windowStart, used] of mine) {
+		const growth = used - (known.get(windowStart) ?? 0);
+		if (growth > 0)
+			orm
+				.insert(quotaUsage)
+				.values({ providerId, unit, scopeKey, windowStart, used: growth })
+				.onConflictDoUpdate({
+					target: [
+						quotaUsage.providerId,
+						quotaUsage.unit,
+						quotaUsage.scopeKey,
+						quotaUsage.windowStart,
+					],
+					set: { used: sql`${quotaUsage.used} + ${growth}` },
+				})
+				.run();
+		else if (growth < 0)
+			orm
+				.update(quotaUsage)
+				.set({ used: sql`max(0, ${quotaUsage.used} + ${growth})` })
+				.where(at(windowStart))
+				.run();
+	}
+	return mine;
 };
 
 const saveLimit = (orm: Orm, row: LimitRow, updatedAt: string) => {
@@ -130,10 +166,18 @@ const saveLimit = (orm: Orm, row: LimitRow, updatedAt: string) => {
 };
 
 /** Saved usage newer than the longest window, and learned limits. */
-const load = (orm: Orm, now: number): Saved => {
+const load = (orm: Orm, now: number, baseline: Baseline): Saved => {
 	const oldest = now - (SLIDING_MONTH_DAYS + 1) * DAY;
 	orm.delete(quotaUsage).where(lt(quotaUsage.windowStart, oldest)).run();
-	const usage = groupUsage(orm.select().from(quotaUsage).all());
+	const rows = orm.select().from(quotaUsage).all();
+	baseline.clear();
+	for (const r of rows) {
+		const key = baselineKey(r);
+		const buckets = baseline.get(key) ?? new Map<number, number>();
+		buckets.set(r.windowStart, r.used);
+		baseline.set(key, buckets);
+	}
+	const usage = groupUsage(rows);
 	const limits = orm
 		.select()
 		.from(quotaLimits)
@@ -153,15 +197,22 @@ export const createQuotaStore = (
 	now: () => number,
 ) => {
 	const orm = drizzle(db);
+	const baseline: Baseline = new Map();
 	return {
-		load: () => load(orm, now()),
-		/** Writes changed day and month usage and learned limits in one transaction. */
+		load: () => load(orm, now(), baseline),
+		/**
+		 * Adds this process's growth in day and month usage, and writes learned limits, in one
+		 * transaction (ADR-074).
+		 */
 		save(dirty: { usage: readonly UsageRow[]; limits: readonly LimitRow[] }) {
 			const updatedAt = new Date(now()).toISOString();
+			const written = new Map<string, Map<number, number>>();
 			db.transaction(() => {
-				for (const row of dirty.usage.filter(persisted)) saveUsage(orm, row);
+				for (const row of dirty.usage.filter(persisted))
+					written.set(baselineKey(row), saveUsage(orm, row, baseline));
 				for (const row of dirty.limits) saveLimit(orm, row, updatedAt);
 			})();
+			for (const [key, buckets] of written) baseline.set(key, buckets);
 		},
 	};
 };
