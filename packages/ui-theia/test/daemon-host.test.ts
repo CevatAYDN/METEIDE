@@ -3,7 +3,7 @@ import { createRestartPolicy } from "../src/domain/restart-policy.js";
 import { createDaemonHost } from "../src/infrastructure/daemon-host.js";
 import { fakeDaemon } from "./fake-daemon.js";
 
-// The host over real pipes: a fake daemon is a Node child that speaks protocol version 2.
+// The host over real pipes: a fake daemon is a Node child that speaks the daemon protocol.
 
 const cleanup: (() => Promise<void> | void)[] = [];
 afterEach(async () => {

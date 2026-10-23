@@ -22,7 +22,7 @@ import { STDERR_TAIL_LINES } from "../defaults.js";
 import type { RestartPolicy } from "../domain/restart-policy.js";
 import type { DaemonFailure } from "../domain/status-service.js";
 
-// Owns the `mete daemon` child of one folder: starts it on the first call, talks protocol version 3
+// Owns the `mete daemon` child of one folder: starts it on the first call, talks the daemon protocol
 // to it and starts it again after a crash, within the restart policy (ARCHITECTURE.md, Failure handling).
 // shortcut: a crashed daemon starts again on the next call, not at once; eager restarts come with
 // the first panel that streams events.
