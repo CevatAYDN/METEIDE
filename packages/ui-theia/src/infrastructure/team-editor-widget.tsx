@@ -67,6 +67,7 @@ export class MeteTeamEditorWidget extends ReactWidget {
 
 	/** Reads the template with this id through the daemon of the first open folder. */
 	async load(id: string): Promise<void> {
+		if (!(await this.mayLeave(id))) return;
 		const [root] = await this.workspace.roots;
 		this.root = root?.resource;
 		if (!this.root) return this.setModel({ kind: "no_folder" });
@@ -78,6 +79,26 @@ export class MeteTeamEditorWidget extends ReactWidget {
 		if (!doc.ok) return this.setModel({ kind: "failed", text: doc.error });
 		this.doc = doc.value;
 		this.setModel(this.readyOf(r.value.source, false));
+	}
+
+	// Opening another team over unsaved changes asks first, since the draft would be lost.
+	// shortcut: closing the tab still drops unsaved changes; make the widget a Theia Saveable for that.
+	protected async mayLeave(id: string): Promise<boolean> {
+		const m = this.model;
+		if (m.kind !== "ready" || !m.changed) return true;
+		// The same team is already open with its changes: keep them.
+		if (m.team.metadata.id === id) return false;
+		const discard = nls.localize("mete/team/discard", "Discard changes");
+		const answer = await this.messages.warn(
+			nls.localize(
+				"mete/team/unsaved",
+				"The team {0} has unsaved changes.",
+				m.team.metadata.id,
+			),
+			discard,
+			nls.localize("mete/team/keep", "Keep editing"),
+		);
+		return answer === discard;
 	}
 
 	protected readyOf(
