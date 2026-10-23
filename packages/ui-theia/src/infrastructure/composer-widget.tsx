@@ -50,6 +50,7 @@ export class MeteComposerWidget extends ReactWidget {
 	protected selected = "choose";
 	protected busy = false;
 	protected error: string | undefined;
+	protected pending: Promise<void> | undefined;
 
 	@postConstruct()
 	protected init(): void {
@@ -66,14 +67,25 @@ export class MeteComposerWidget extends ReactWidget {
 		void this.refresh();
 	}
 
-	// Opening the screen puts the cursor in the goal field (docs/13: keyboard-first).
+	// Opening the screen puts the cursor in the goal field (docs/13: keyboard-first), and coming back
+	// to it asks for the teams again (ADR-071), so a team saved meanwhile shows; the first open's
+	// refresh is still loading then, so it is not asked twice.
 	protected override onActivateRequest(msg: Message): void {
 		super.onActivateRequest(msg);
 		this.node.querySelector("textarea")?.focus();
+		if (this.model.kind === "ready" && !this.busy) void this.refresh();
 	}
 
 	/** Asks the daemon of the first open folder for its templates and their estimates. */
-	async refresh(): Promise<void> {
+	refresh(): Promise<void> {
+		// The command and the tab's activation may both ask at once: they share one round of requests.
+		this.pending ??= this.load().finally(() => {
+			this.pending = undefined;
+		});
+		return this.pending;
+	}
+
+	protected async load(): Promise<void> {
 		const [root] = await this.workspace.roots;
 		if (!root) return this.setModel({ kind: "no_folder" });
 		this.dir = root.resource.path.fsPath();
