@@ -12,10 +12,11 @@ import {
 } from "@theia/core/lib/common/quick-pick-service";
 import { inject, injectable } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
-import { waitsForYou } from "../domain/home-model.js";
+import { waitsForQuota, waitsForYou } from "../domain/home-model.js";
 import {
 	type DaemonFailure,
 	MeteDaemonService,
+	type StatusRuns,
 } from "../domain/status-service.js";
 import { failureText, noFolderText, plain } from "./status-text.js";
 
@@ -65,7 +66,7 @@ export class MeteApprovalContribution implements CommandContribution {
 	}
 
 	protected async decide(decision: "approve" | "revise", given: unknown) {
-		const t = await this.target(given);
+		const t = await this.target(given, waitsForYou);
 		if (!t) return;
 		const input = decision === "approve" ? { decision } : await this.feedback();
 		if (!input) return;
@@ -79,7 +80,11 @@ export class MeteApprovalContribution implements CommandContribution {
 	}
 
 	protected async resume(given: unknown) {
-		const t = await this.target(given);
+		// A quota pause may be resumed before its reset, after a key or privacy change (ADR-059).
+		const t = await this.target(
+			given,
+			(r) => waitsForYou(r) || waitsForQuota(r),
+		);
 		if (!t) return;
 		const r = await this.daemon.resume(t.dir, t.runId);
 		this.report(r, nls.localize("mete/run/resumed", "Resumed."));
@@ -96,15 +101,18 @@ export class MeteApprovalContribution implements CommandContribution {
 		return text ? { decision: "revise", feedback: text } : undefined;
 	}
 
-	// The run the command was given, or one picked among those that wait for the human.
-	protected async target(given: unknown): Promise<Target | undefined> {
+	// The run the command was given, or one picked among those `offered`.
+	protected async target(
+		given: unknown,
+		offered: (r: StatusRuns[number]) => boolean,
+	): Promise<Target | undefined> {
 		const root = this.workspace.tryGetRoots()[0];
 		if (!root) return void this.messages.info(noFolderText());
 		const dir = root.resource.path.fsPath();
 		if (typeof given === "string" && given) return { dir, runId: given };
 		const runs = await this.daemon.status(dir);
 		if (!runs.ok) return this.warned(runs.error);
-		const picks: RunPick[] = runs.value.filter(waitsForYou).map((r) => ({
+		const picks: RunPick[] = runs.value.filter(offered).map((r) => ({
 			label: r.goal,
 			description:
 				r.templateId ?? nls.localize("mete/run/single", "Single agent"),

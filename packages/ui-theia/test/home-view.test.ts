@@ -187,6 +187,9 @@ describe("the Home view", () => {
 		const table = out.slice(0, out.indexOf("</table>"));
 		expect(table).not.toContain("groq");
 		expect(table.slice(table.indexOf("done goal"))).not.toContain("<li>");
+		// A quota pause can be resumed before its reset (ADR-059), only there.
+		expect(quotaRow).toContain(">Resume now</button>");
+		expect(out.slice(out.indexOf("done goal"))).not.toContain("Resume now");
 	});
 
 	it("lets each run's goal open the run in the team panel", () => {

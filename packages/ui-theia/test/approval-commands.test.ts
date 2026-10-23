@@ -122,9 +122,23 @@ describe("the approvals inbox commands", () => {
 		expect(t.calls[0]?.runId).toBe("c");
 	});
 
+	it("offers runs paused for quota to Resume only (ADR-059)", async () => {
+		const t = setup({
+			runs: [
+				run("a", "first", "approval"),
+				run("b", "spent", "quota"),
+				run("u", "mine", "user"),
+			],
+			pick: 1,
+		});
+		await t.exec("mete.run.resume");
+		expect(t.picked).toEqual([["first", "spent"]]);
+		expect(t.calls).toEqual([{ kind: "resume", runId: "b" }]);
+	});
+
 	it("says when nothing waits, and gives up without feedback or a pick", async () => {
 		const none = setup({ runs: [run("b", "quota", "quota")] });
-		await none.exec("mete.run.resume");
+		await none.exec("mete.run.approve");
 		expect(none.info).toEqual(["No run waits for you."]);
 		const noFeedback = setup({ feedback: "  " });
 		await noFeedback.exec("mete.run.revise", "r1");

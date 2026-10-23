@@ -53,6 +53,7 @@
 			"refreshCommand": "Refresh home",
 			"resume": "Resume",
 			"resumeHint": "Resume repeats the tool call the policy asked about, so the run stops again unless .mete/policy.yaml allows it.",
+			"resumeNow": "Resume now",
 			"revise": "Revise…",
 			"setKey": "Set provider key…",
 			"status": "Status",

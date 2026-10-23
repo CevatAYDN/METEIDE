@@ -116,6 +116,12 @@ const Runs = ({
 							{r.quotaPaused && blocked.length > 0 ? (
 								<Blocked providers={blocked} />
 							) : null}
+							{r.quotaPaused ? (
+								<Button
+									label={nls.localize("mete/home/resumeNow", "Resume now")}
+									onClick={() => act("resume", r.id)}
+								/>
+							) : null}
 						</td>
 						<td style={CELL}>{when(r.createdAt)}</td>
 					</tr>
