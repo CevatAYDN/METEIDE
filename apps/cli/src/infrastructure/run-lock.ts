@@ -1,8 +1,10 @@
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { err, ok, type Result } from "@mete/contracts";
 
-// One `mete run` drives a workspace at a time (ARCHITECTURE.md, CLI): a file holding its pid.
+// One `mete run` drives a workspace at a time (ARCHITECTURE.md, CLI): a file holding its pid and program.
 
 /** Frees the lock. */
 export type Release = () => Promise<void>;
@@ -21,16 +23,49 @@ const alive = (pid: number) => {
 	}
 };
 
+/** The program a live pid runs, as the lock file names it; undefined when it cannot be read. */
+export type ProgramOf = (pid: number) => string | undefined;
+
+// This process's program, written beside its pid so a pid the system gave to another program after
+// a crash is not taken for the holder.
+const PROGRAM = basename(process.execPath).toLowerCase();
+
+// tasklist's CSV starts with the image name; Linux keeps the first 15 characters in comm.
+const programOf: ProgramOf = (pid) => {
+	try {
+		if (process.platform === "win32") {
+			const out = execFileSync(
+				"tasklist",
+				["/FI", `PID eq ${pid}`, "/FO", "CSV", "/NH"],
+				{ encoding: "utf8", windowsHide: true },
+			);
+			return /^"([^"]+)"/.exec(out.trim())?.[1]?.toLowerCase();
+		}
+		if (process.platform === "linux")
+			return readFileSync(`/proc/${pid}/comm`, "utf8").trim().toLowerCase();
+		return undefined;
+	} catch {
+		return undefined;
+	}
+};
+
 /** The pid of the live process holding the lock, or undefined when it is free or stale. */
-// shortcut: a pid reused after a crash reads as alive; the refusal names the file to delete.
-export const lockHolder = async (file: string) => {
-	const text = await readFile(file, "utf8").catch(() => "");
-	const pid = Number.parseInt(text, 10);
-	return pid > 0 && alive(pid) ? pid : undefined;
+// A program that cannot be read, or a lock that names none, counts as the holder: refusing is safe.
+export const lockHolder = async (file: string, program = programOf) => {
+	const [first = "", name] = (await readFile(file, "utf8").catch(() => ""))
+		.split("\n")
+		.map((l) => l.trim());
+	const pid = Number.parseInt(first, 10);
+	if (!(pid > 0 && alive(pid))) return undefined;
+	const now = name ? program(pid) : undefined;
+	if (now === undefined || !name) return pid;
+	return now === name || (now.length === 15 && name.startsWith(now))
+		? pid
+		: undefined;
 };
 
 const create = (file: string) =>
-	writeFile(file, `${process.pid}\n`, { flag: "wx" }).then(
+	writeFile(file, `${process.pid}\n${PROGRAM}\n`, { flag: "wx" }).then(
 		() => true,
 		(e: NodeJS.ErrnoException) => {
 			if (e.code === "EEXIST") return false;

@@ -18,7 +18,9 @@ describe("run lock", () => {
 		const file = await lockIn();
 		const r = await takeRunLock(file);
 		if (!r.ok) throw new Error(r.error);
-		expect((await readFile(file, "utf8")).trim()).toBe(String(process.pid));
+		expect((await readFile(file, "utf8")).split("\n")[0]).toBe(
+			String(process.pid),
+		);
 		expect(await lockHolder(file)).toBe(process.pid);
 		await r.value();
 		expect(await lockHolder(file)).toBeUndefined();
@@ -42,5 +44,17 @@ describe("run lock", () => {
 		const r = await takeRunLock(file);
 		expect(r.ok).toBe(true);
 		if (r.ok) await r.value();
+	});
+
+	it("takes over a lock whose pid now runs another program, and keeps one whose program it cannot read", async () => {
+		const file = await lockIn();
+		const first = await takeRunLock(file);
+		if (first.ok) await first.value();
+		await writeFile(file, `${process.pid}\nnot-mete-at-all.exe\n`);
+		expect(await lockHolder(file)).toBeUndefined();
+		expect(await lockHolder(file, () => undefined)).toBe(process.pid);
+		// A lock written before the program name was kept holds the pid alone.
+		await writeFile(file, `${process.pid}\n`);
+		expect(await lockHolder(file)).toBe(process.pid);
 	});
 });
