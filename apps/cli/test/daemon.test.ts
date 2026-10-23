@@ -4,8 +4,10 @@ import {
 	DAEMON_ERROR_CODE,
 	DAEMON_METHODS,
 	DaemonErrorDataSchema,
+	DaemonRunStartResultSchema,
 	DaemonStatusResultSchema,
 	type MeteEvent,
+	MeteEventSchema,
 } from "@mete/contracts";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -123,6 +125,79 @@ describe("mete daemon", () => {
 		expect(t.err).toEqual([
 			`serving METE to a desktop client for ${repo.workspaceDir}`,
 		]);
+		c.dispose();
+	});
+
+	it("starts a run with mete/run.start and forwards its events up to run.completed", async () => {
+		const repo = await tempRepo({ "a.txt": "a\n" });
+		const app = await createApp({
+			workspaceDir: repo.workspaceDir,
+			globalDir: repo.globalDir,
+			templatesDir: join(repo.globalDir, "no-templates"),
+			logger: silent,
+			secrets: memorySecrets(),
+			providers: [
+				scriptedProvider({
+					script: [
+						[
+							{ type: "text", text: "done" },
+							{
+								type: "finish",
+								reason: "stop",
+								usage: { prompt: 3, completion: 1 },
+							},
+						],
+					],
+				}),
+			],
+		});
+		if (!app.ok) throw new Error(JSON.stringify(app.error));
+		close = async () => {
+			await app.value.stop();
+			await repo.close();
+		};
+		const [toDaemon, toClient] = [new PassThrough(), new PassThrough()];
+		const t = recordingIo();
+		const serving = daemonCommand(app.value, t.io, repo.workspaceDir, {
+			input: toDaemon,
+			output: toClient,
+		});
+		const { c, got } = clientOf(toClient, toDaemon);
+		const completed = new Promise<void>((resolve) =>
+			c.onNotification(DAEMON_METHODS.event, (e: { type: string }) => {
+				// One handler per method: this one replaces clientOf's, so it collects too.
+				got.push(e);
+				if (e.type === "run.completed") resolve();
+			}),
+		);
+
+		const started = DaemonRunStartResultSchema.parse(
+			await c.sendRequest(DAEMON_METHODS.runStart, {
+				goal: "Reply with the single word done",
+				templateId: null,
+			}),
+		);
+		await completed;
+		const events = got.map((e) => MeteEventSchema.parse(e));
+		const types = events.map((e) => e.type);
+		expect(types[0]).toBe("run.created");
+		expect(types.at(-1)).toBe("run.completed");
+		expect(types.indexOf("run.started")).toBeGreaterThan(0);
+		expect(new Set(events.flatMap((e) => (e.runId ? [e.runId] : [])))).toEqual(
+			new Set([started.runId]),
+		);
+
+		const bad = await failure(c.sendRequest(DAEMON_METHODS.runStart, {}));
+		expect(bad.code).toBe(ErrorCodes.InvalidParams);
+		const missing = await failure(
+			c.sendRequest(DAEMON_METHODS.runStart, { goal: "g", templateId: "nope" }),
+		);
+		expect(missing.code).toBe(DAEMON_ERROR_CODE);
+		expect(DaemonErrorDataSchema.parse(missing.data).code).toBe("not_found");
+
+		toDaemon.end();
+		expect(await serving).toBe(0);
+		expect(t.out).toEqual([]);
 		c.dispose();
 	});
 
