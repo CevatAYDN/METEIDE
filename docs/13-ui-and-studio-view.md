@@ -47,7 +47,7 @@ Characters: one per agent, colored by role. Accessories by role kind: pencil for
 | `task.assigned` | An envelope flies from the assigner to the agent; the note moves to In progress |
 | `task.status.changed` to `approved` | The note moves to Done with a sparkle; small confetti at the approver |
 | `task.status.changed` to `changes_requested` | An envelope flies back to the agent with a short "!" |
-| `task.status.changed` to `blocked` | A red pin on the note; a red "!" above the agent |
+| `task.status.changed` to `blocked` | A large red pin with a "!" on the note, while the task stays blocked (every note has a small red pin); a red "!" above the agent |
 | `agent.thinking.started` / `ended` | Thought bubble with moving dots above the head |
 | `agent.tool.called` | The monitor shows the work: code lines for `fs.*`, a results page for `web.*`, a painting for `media.*`, test rows for verify gates and `gameengine.test@1`, a stamped document for reviews, bars for planning |
 | `agent.message.sent` (handoff) | An envelope flies between the two agents; the speech bubble shows `summary` |
