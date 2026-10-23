@@ -36,14 +36,15 @@ const hashArgs = (args: unknown) => {
 
 /** Creates the adapter; an audit write that fails returns `audit_failed`, which callers treat as deny. */
 export const createPolicyCheck = (
-	env: CheckerEnv,
+	/** The environment of each check: the policy in it may change between two calls (ADR-073). */
+	env: () => CheckerEnv,
 	writeAudit: AuditWriter,
 	now: () => number = Date.now,
 ): PolicyCheckAdapter => ({
 	check(raw) {
 		// Typed in-process callers cannot normally fail this, so a failure is a bug (ADR-034).
 		const input = PolicyCheckInputSchema.parse(raw);
-		const v = decide(input, env);
+		const v = decide(input, env());
 		try {
 			writeAudit({
 				ts: new Date(now()).toISOString(),

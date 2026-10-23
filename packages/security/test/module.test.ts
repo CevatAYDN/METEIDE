@@ -1,3 +1,4 @@
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type {
 	MeteEvent,
@@ -83,6 +84,27 @@ describe("security module", () => {
 			.impl<PolicyCheckAdapter>("policy.check@1")
 			.check(write(join(s.dirs.workspaceDir, "a.ts")));
 		expect(r.ok && r.value).toEqual({ verdict: "ask", rule: "autonomy:1" });
+		await s.storage.deactivate();
+	});
+
+	// ADR-073 (ADR-048): a user who edits .mete/policy.yaml after a run paused on an ask changes
+	// the decision of the next check without restarting anything.
+	it("decides by the policy file as the user edited it after activation", async () => {
+		const s = await setup();
+		await s.security.activate(s.ctx);
+		const policy = s.impl<PolicyCheckAdapter>("policy.check@1");
+		const call = write(join(s.dirs.workspaceDir, "a.ts"));
+		const verdict = () => {
+			const r = policy.check(call);
+			return r.ok ? r.value : r.error;
+		};
+		expect(verdict()).toEqual({ verdict: "allow", rule: "autonomy:2:inside" });
+		await mkdir(join(s.dirs.workspaceDir, ".mete"), { recursive: true });
+		await writeFile(
+			join(s.dirs.workspaceDir, ".mete", "policy.yaml"),
+			"autonomy: 1\n",
+		);
+		expect(verdict()).toEqual({ verdict: "ask", rule: "autonomy:1" });
 		await s.storage.deactivate();
 	});
 

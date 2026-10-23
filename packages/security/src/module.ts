@@ -23,6 +23,7 @@ import {
 	createAuditWriter,
 } from "./infrastructure/audit-log.js";
 import { maskSecrets } from "./infrastructure/masker.js";
+import { policySource, policyStamp } from "./infrastructure/policy-source.js";
 
 /** Folders and OS facts the policy needs; the composition root knows them. */
 export type SecurityOptions = {
@@ -82,20 +83,39 @@ const failed = (message: string): ModuleError => ({
 
 const masker: SecretsMaskAdapter = { mask: maskSecrets };
 
-// policy.check@1 over the read policy, writing to the workspace audit log.
+// The policy as it is at each check (ADR-073). `since` is the files' stamp from before the policy was
+// read, so an edit during activation is not missed.
+const currentPolicy = (
+	opts: SecurityOptions,
+	ctx: ModuleContext,
+	first: Policy,
+	since: string,
+) =>
+	policySource(
+		opts,
+		first,
+		(reason) =>
+			ctx.logger.warn(
+				{ reason },
+				"the policy files changed but do not validate; the last valid policy stays in force",
+			),
+		since,
+	);
+
+// policy.check@1 over the current policy, writing to the workspace audit log.
 const checkerOf = (
 	opts: SecurityOptions,
 	ctx: ModuleContext,
-	policy: Policy,
+	current: () => Policy,
 	db: Parameters<typeof createAuditWriter>[0],
 ) => {
-	const env = {
-		policy,
+	const env = () => ({
+		policy: current(),
 		workspaceDir: opts.workspaceDir,
 		globalDir: opts.globalDir,
 		home: opts.home ?? homedir(),
 		platform: opts.platform ?? process.platform,
-	};
+	});
 	const now = opts.now ?? Date.now;
 	const write = announcingDenials(
 		createAuditWriter(db),
@@ -106,7 +126,6 @@ const checkerOf = (
 	return createPolicyCheck(env, write, now);
 };
 
-// shortcut: the policy is read once at activation; reload it on a file watch when the desktop adds one.
 /** Creates the security module, which provides policy.check@1 and secrets.mask@1. */
 export const createSecurityModule = (opts: SecurityOptions): MeteModule => {
 	let created: Disposable[] = [];
@@ -116,12 +135,14 @@ export const createSecurityModule = (opts: SecurityOptions): MeteModule => {
 			if (!ctx.storage) return err(failed("storage.sql@1 was not provided"));
 			const migrated = ctx.storage.migrate("workspace", AUDIT_MIGRATIONS);
 			if (!migrated.ok) return err(failed(migrated.error.message));
+			const since = policyStamp(opts);
 			const policy = ctx.config.get("policy", PolicySchema);
 			if (!policy.ok) {
 				const { file, path, reason } = policy.error;
 				return err(failed(`${file} ${path}: ${reason}`));
 			}
-			const check = checkerOf(opts, ctx, policy.value, ctx.storage.workspace);
+			const current = currentPolicy(opts, ctx, policy.value, since);
+			const check = checkerOf(opts, ctx, current, ctx.storage.workspace);
 			const core = { id: MANIFEST.id, trust: "core", features: [] } as const;
 			created = [
 				ctx.capabilities.provide("policy.check@1", { ...core, impl: check }),
