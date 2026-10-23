@@ -16,13 +16,12 @@ import { type Git, zList } from "../infrastructure/git.js";
 
 const PREFIX = "refs/mete/checkpoints";
 const ZERO = "0".repeat(40);
-// Agents never write these, not even by restoring an older state (AGENTS.md, Never).
-const PROTECTED = [
-	".mete/policy.yaml",
-	".mete/bindings.yaml",
-	".mete/mcp.yaml",
-	".meteignore",
-];
+// Agents never write these, not even by restoring an older state (AGENTS.md, Never): the same set as
+// the security package's PROTECTED_PATHS (SECURITY.md, Protected paths; ADR-072), as git paths.
+const isProtected = (p: string) =>
+	p === ".meteignore" ||
+	/^\.mete\/[^/]+\.yaml$/.test(p) ||
+	p.startsWith(".mete/teams/");
 // Exact bytes both ways: no line-ending conversion into the checkpoint or out of it.
 const RAW = ["-c", "core.autocrlf=false"];
 export const IDENTITY = {
@@ -89,7 +88,10 @@ export const createCheckpoint = async (
 	return stored.ok ? ok({ op: "checkpoint.create", ref, sha }) : stored;
 };
 
-/** Files present now (tracked or untracked, not ignored) that the checkpoint lacks. */
+/**
+ * Files present now (tracked or untracked, not ignored) that the checkpoint lacks, and the protected
+ * files the checkpoint holds, which are left as they are now.
+ */
 // -t lists the checkpoint's folders too: a file now where it had a folder is not removed
 // after checkout-index has put the folder back.
 // shortcut: a folder now where the checkpoint had a file goes with everything in it,
@@ -97,13 +99,19 @@ export const createCheckpoint = async (
 const added = async (
 	git: Git,
 	ref: string,
-): Promise<Result<string[], VcsError>> => {
+): Promise<Result<{ extra: string[]; held: string[] }, VcsError>> => {
 	const then = await git(["ls-tree", "-r", "-t", "-z", "--name-only", ref]);
 	if (!then.ok) return then;
 	const now = await git(["ls-files", "-z", "-co", "--exclude-standard"]);
 	if (!now.ok) return now;
-	const kept = new Set([...zList(then.value), ...PROTECTED]);
-	return ok([...new Set(zList(now.value))].filter((p) => !kept.has(p)));
+	const names = zList(then.value);
+	const kept = new Set(names);
+	return ok({
+		extra: [...new Set(zList(now.value))].filter(
+			(p) => !kept.has(p) && !isProtected(p),
+		),
+		held: names.filter(isProtected),
+	});
 };
 
 export const restoreCheckpoint = async (
@@ -120,12 +128,16 @@ export const restoreCheckpoint = async (
 	]);
 	if (!found.ok || found.value.trim() === "")
 		return err({ code: "not_found", message: `no checkpoint ${ref}` });
-	const extra = await added(git, ref);
-	if (!extra.ok) return extra;
+	const listed = await added(git, ref);
+	if (!listed.ok) return listed;
+	const { extra, held } = listed.value;
 	const env = { GIT_INDEX_FILE: index };
 	const steps = [
 		["read-tree", ref],
-		["rm", "--cached", "--quiet", "--ignore-unmatch", "--", ...PROTECTED],
+		// Literal paths: a file name is never a pathspec pattern. Without a held file there is nothing to drop.
+		...(held.length > 0
+			? [["--literal-pathspecs", "rm", "--cached", "--quiet", "--", ...held]]
+			: []),
 		[...RAW, "checkout-index", "--all", "--force"],
 	];
 	for (const args of steps) {
@@ -133,7 +145,7 @@ export const restoreCheckpoint = async (
 		if (!r.ok) return r;
 	}
 	try {
-		for (const p of extra.value)
+		for (const p of extra)
 			await withLockRetry(() => rm(join(root, p), { force: true }));
 	} catch (e) {
 		return err({ code: "io", message: `removing added files: ${String(e)}` });
