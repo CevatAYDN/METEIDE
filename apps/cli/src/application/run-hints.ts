@@ -37,8 +37,9 @@ const NETWORK_HINT =
 const QUOTA_HINT =
 	"The run waits for the quota reset. To go on with paid models when the free ones run out, set models: both in .mete/gateway.yaml (spending is capped by dailySpendUsd, 1 US dollar a day by default).";
 
-// The pause message of a quota pause (ADR-044): one line per provider that cannot carry the run on
-// now, and why, from the same states the daemon's mete/quota answers (provider-states.ts).
+// The pause message of a quota or no_model pause (ADR-044): one line per provider that cannot carry
+// the run on now, and why (a missing key, the privacy rules), from the same states the daemon's
+// mete/quota answers (provider-states.ts).
 
 /** One line per provider that cannot carry the run on now, and why. */
 export const providerLines = async (
@@ -50,21 +51,30 @@ export const providerLines = async (
 		return line ? [line] : [];
 	});
 
-/** Watches the run: after its quota pause, prints why each provider cannot help. */
-export const watchQuotaPause = (
+const PROVIDER_PAUSES = new Set(["quota", "no_model"]);
+
+/**
+ * Watches the run: after its quota or no_model pause, prints why each provider cannot help.
+ * `printed` settles once those lines are out; a no_model pause ends the command, which awaits it.
+ */
+export const watchPauses = (
 	app: App,
 	io: Err,
 	runId: () => string | undefined,
 ) => {
 	const spent = trackExhausted(app.events);
+	let printed = Promise.resolve();
 	const paused = app.events.subscribe("run.paused", (e) => {
-		if (e.payload.reason !== "quota" || e.runId !== runId()) return;
-		void providerLines(app, spent.until).then((lines) => {
+		if (!PROVIDER_PAUSES.has(e.payload.reason) || e.runId !== runId()) return;
+		printed = providerLines(app, spent.until).then((lines) => {
 			for (const line of lines) io.err(`  ${line}`);
 		});
 	});
-	return () => {
-		paused.dispose();
-		spent.dispose();
+	return {
+		printed: () => printed,
+		stop: () => {
+			paused.dispose();
+			spent.dispose();
+		},
 	};
 };

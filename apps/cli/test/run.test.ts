@@ -253,9 +253,13 @@ describe("mete stop and mete key", () => {
 		const t = recordingIo();
 		expect(await runCommand(app, t.io, { goal: "g" })).toBe(2);
 		expect(t.out.at(-1)).toBe("paused: no_model");
-		expect(t.err[0]).toMatch(
-			/^Resume it with: mete run --resume [0-9a-f-]{36}$/,
-		);
+		// The pause names why each provider cannot help (ADR-044), before the command returns.
+		expect(t.err).toEqual([
+			expect.stringMatching(/^ {2}fake: none of its models can be used here /),
+			expect.stringMatching(
+				/^Resume it with: mete run --resume [0-9a-f-]{36}$/,
+			),
+		]);
 		const s = recordingIo();
 		expect(await stopCommand(app, s.io, "all")).toBe(0);
 		expect(s.out[0]).toMatch(/ cancelled$/);

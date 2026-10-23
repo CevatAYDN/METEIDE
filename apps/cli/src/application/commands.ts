@@ -16,7 +16,7 @@ import {
 } from "../domain/format.js";
 import { type App, engineOf, notReadyLines } from "../infrastructure/app.js";
 import { runHistory } from "../infrastructure/history.js";
-import { hintAt, noteStart, watchQuotaPause } from "./run-hints.js";
+import { hintAt, noteStart, watchPauses } from "./run-hints.js";
 
 // The mete commands (ARCHITECTURE.md, CLI). Each returns the process exit code.
 
@@ -195,12 +195,13 @@ export const runCommand = (app: App, io: Io, what: RunWhat) =>
 		if ("goal" in what) noteStart(app, io);
 		const r = await begin(engine, what);
 		if (!r.ok) return refused(io, r.error);
-		const stopHints = watchQuotaPause(app, io, run.runId);
+		const hints = watchPauses(app, io, run.runId);
 		noteLevelThree(io, app.registry, engine, run.runId());
 		const stopWatching = cancelOnInterrupt(io, engine, run.runId);
 		const status = await run.ended;
 		stopWatching();
-		stopHints();
+		await hints.printed();
+		hints.stop();
 		const runId = run.runId();
 		const view = runId ? engine.status(runId) : undefined;
 		const team = view?.ok === true && view.value[0]?.templateId != null;
