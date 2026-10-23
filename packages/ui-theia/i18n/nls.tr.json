@@ -26,6 +26,7 @@
 			"goal": "Hedef",
 			"loading": "METE daemon'una soruluyor…",
 			"open": "Ana sayfayı aç",
+			"openRun": "Ekip panelinde aç",
 			"recentRuns": "Son çalıştırmalar",
 			"refresh": "Yenile",
 			"refreshCommand": "Ana sayfayı yenile",

@@ -165,6 +165,22 @@ describe("the Home view", () => {
 		expect(out.slice(out.indexOf("done goal"))).not.toContain("<li>");
 	});
 
+	it("lets each run's goal open the run in the team panel", () => {
+		const r = run("completed", "notes", null);
+		const out = renderToStaticMarkup(
+			createElement(HomeView, {
+				model: homeModel({ ok: true, value: [r] }, AT),
+				onRefresh: () => {},
+				onAct: () => {},
+				onSetKey: () => {},
+			}),
+		);
+		expect(out).toContain('title="Open in the team panel"');
+		expect(out).toMatch(
+			/<button type="button"[^>]*title="Open in the team panel">notes<\/button>/,
+		);
+	});
+
 	it("shows no inbox when nothing waits", () => {
 		const out = html(
 			homeModel({ ok: true, value: [run("completed", "done", null)] }, AT),

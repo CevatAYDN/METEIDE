@@ -55,16 +55,18 @@ export class MeteBoardContribution extends AbstractViewContribution<MeteBoardWid
 
 	override registerCommands(commands: CommandRegistry): void {
 		commands.registerCommand(OPEN_BOARD_COMMAND, {
-			execute: () => this.pick(),
+			execute: (runId?: unknown) => this.pick(runId),
 		});
 	}
 
-	// The runs come newest first from mete/status; the one picked opens in the Board.
-	protected async pick(): Promise<void> {
+	// The run the command was given (a Home row), or one picked among the folder's runs, which come
+	// newest first from mete/status.
+	protected async pick(given: unknown): Promise<void> {
 		const root = this.workspace.tryGetRoots()[0];
 		if (!root) return void this.messages.info(noFolderText());
 		const dir = root.resource.path.fsPath();
-		const runs = await this.daemon.status(dir);
+		const runId = typeof given === "string" && given ? given : undefined;
+		const runs = await this.daemon.status(dir, runId);
 		if (!runs.ok)
 			return void this.messages.warn(failureText(runs.error, plain));
 		const picks: RunPick[] = runs.value.map((r) => ({
@@ -77,12 +79,16 @@ export class MeteBoardContribution extends AbstractViewContribution<MeteBoardWid
 			return void this.messages.info(
 				nls.localize("mete/status/none", "No runs in this folder yet."),
 			);
-		const pick = await this.quick.pick(picks, {
-			placeHolder: nls.localize("mete/run/which", "Which run?"),
-		});
+		const pick = runId ? picks[0] : await this.choose(picks);
 		if (!pick) return;
 		const widget = await this.openView({ activate: true, reveal: true });
 		await widget.showRun(dir, pick.runId, pick.goal);
+	}
+
+	protected choose(picks: RunPick[]) {
+		return this.quick.pick(picks, {
+			placeHolder: nls.localize("mete/run/which", "Which run?"),
+		});
 	}
 }
 

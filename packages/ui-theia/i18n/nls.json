@@ -26,6 +26,7 @@
 			"goal": "Goal",
 			"loading": "Asking the METE daemon…",
 			"open": "Open home",
+			"openRun": "Open in the team panel",
 			"recentRuns": "Recent runs",
 			"refresh": "Refresh",
 			"refreshCommand": "Refresh home",

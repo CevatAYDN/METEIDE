@@ -22,6 +22,7 @@ import {
 	waitsForQuota,
 } from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
+import { OPEN_BOARD_COMMAND } from "./board-contribution.js";
 
 // The Home panel (docs/13, Home): recent runs of the first open folder, asked of its daemon.
 // It asks again when the panel opens, on Refresh and on every run.* event of its folder.
@@ -85,12 +86,14 @@ export class MeteHomeWidget extends ReactWidget {
 		return r.ok ? r.value.providers : [];
 	}
 
-	// The inbox's buttons run the palette commands, so the keyboard and the mouse share one path.
+	// The inbox's buttons and a run's goal run the palette commands, so the keyboard and the mouse
+	// share one path.
 	protected act(action: HomeAction, runId: string) {
 		const id = {
 			approve: APPROVE_RUN_COMMAND.id,
 			revise: REVISE_RUN_COMMAND.id,
 			resume: RESUME_RUN_COMMAND.id,
+			open: OPEN_BOARD_COMMAND.id,
 		}[action];
 		return this.commands.executeCommand(id, runId);
 	}

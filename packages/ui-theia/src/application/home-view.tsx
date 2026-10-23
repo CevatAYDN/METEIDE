@@ -12,7 +12,7 @@ import { failureText, noFolderText, runsText } from "./status-text.js";
 // (Design system) come with packages/ui-kit, which is still empty.
 
 /** What a button of the inbox asks for. */
-export type HomeAction = "approve" | "revise" | "resume";
+export type HomeAction = "approve" | "revise" | "resume" | "open";
 
 const PANEL: CSSProperties = {
 	padding: "12px",
@@ -31,6 +31,15 @@ const CELL: CSSProperties = {
 const MUTED: CSSProperties = { color: "var(--theia-descriptionForeground)" };
 const ROW: CSSProperties = { display: "flex", gap: "6px", flexWrap: "wrap" };
 const TITLE: CSSProperties = { margin: 0, fontSize: "1.1em" };
+const LINK: CSSProperties = {
+	background: "none",
+	border: "none",
+	padding: 0,
+	color: "var(--theia-textLink-foreground)",
+	cursor: "pointer",
+	font: "inherit",
+	textAlign: "left",
+};
 
 const when = (iso: string) => new Date(iso).toLocaleString();
 
@@ -54,12 +63,32 @@ const Blocked = ({
 	</ul>
 );
 
+// A run's goal opens it in the Team panel (ADR-051); a button styled as a link keeps the keyboard.
+const OpenGoal = ({
+	row,
+	act,
+}: {
+	readonly row: HomeRow;
+	readonly act: Act;
+}) => (
+	<button
+		type="button"
+		style={LINK}
+		title={nls.localize("mete/home/openRun", "Open in the team panel")}
+		onClick={() => act("open", row.id)}
+	>
+		<Goal row={row} />
+	</button>
+);
+
 const Runs = ({
 	rows,
 	blocked,
+	act,
 }: {
 	readonly rows: readonly HomeRow[];
 	readonly blocked: readonly ProviderState[];
+	readonly act: Act;
 }) =>
 	rows.length === 0 ? (
 		<p>{runsText([])}</p>
@@ -83,7 +112,7 @@ const Runs = ({
 					<tr key={r.id}>
 						<td style={CELL}>{r.status}</td>
 						<td style={CELL}>
-							<Goal row={r} />
+							<OpenGoal row={r} act={act} />
 							{r.quotaPaused && blocked.length > 0 ? (
 								<Blocked providers={blocked} />
 							) : null}
@@ -198,9 +227,11 @@ const Failed = ({
 const Body = ({
 	model,
 	onSetKey,
+	act,
 }: {
 	readonly model: HomeModel;
 	readonly onSetKey: () => void;
+	readonly act: Act;
 }) => {
 	if (model.kind === "loading")
 		return (
@@ -209,7 +240,7 @@ const Body = ({
 	if (model.kind === "no_folder") return <p>{noFolderText()}</p>;
 	if (model.kind === "failed")
 		return <Failed model={model} onSetKey={onSetKey} />;
-	return <Runs rows={model.rows} blocked={model.blocked} />;
+	return <Runs rows={model.rows} blocked={model.blocked} act={act} />;
 };
 
 /**
@@ -230,7 +261,7 @@ export const HomeView = ({
 	<section style={PANEL} aria-live="polite">
 		{model.kind === "runs" ? <Inbox rows={model.rows} act={onAct} /> : null}
 		<h2 style={TITLE}>{nls.localize("mete/home/recentRuns", "Recent runs")}</h2>
-		<Body model={model} onSetKey={onSetKey} />
+		<Body model={model} onSetKey={onSetKey} act={onAct} />
 		<div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
 			<Button
 				label={nls.localize("mete/home/refresh", "Refresh")}
