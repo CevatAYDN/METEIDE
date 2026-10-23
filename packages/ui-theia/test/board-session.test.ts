@@ -60,6 +60,18 @@ describe("the Board session", () => {
 		);
 	});
 
+	it("passes the workspace's quota events, which name no run, to the fold", () => {
+		const s = loadedBoard(startBoard(shown), shown, ok([created]));
+		const resetsAt = "2026-10-24T00:00:00.000Z";
+		const { runId: _, ...quota } = event("quota.exhausted", {
+			providerId: "groq",
+			unit: "requests_per_day",
+			resetsAt,
+		}) as MeteEvent & { runId?: string };
+		const next = receiveBoard(s, "/w", quota as MeteEvent);
+		expect(next.view.signals.exhausted).toEqual({ groq: resetsAt });
+	});
+
 	it("stays failed when live events come after a failed read", () => {
 		const s = loadedBoard(startBoard(shown), shown, {
 			ok: false,

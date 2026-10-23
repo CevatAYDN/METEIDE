@@ -48,14 +48,16 @@ const drawn = (s: BoardSession, shown: Shown, view: TeamView): BoardModel => ({
 	unreadable: s.unreadable,
 });
 
-/** A live event of a folder's daemon; one of another run, or already folded, changes nothing. */
+/** A live event of a folder's daemon; one the fold does not take, or already folded, changes nothing. */
 export const receiveBoard = (
 	s: BoardSession,
 	dir: string,
 	e: MeteEvent,
 ): BoardSession => {
 	const shown = s.shown;
-	if (!shown || dir !== shown.dir || e.runId !== shown.runId) return s;
+	// The fold decides which events are the run's: its own, and the workspace's quota events,
+	// which name no run (ADR-052).
+	if (!shown || dir !== shown.dir) return s;
 	if (s.buffer) return { ...s, buffer: [...s.buffer, e] };
 	const view = applyAll(shown.runId, s.view, [e]);
 	if (view === s.view) return s;
