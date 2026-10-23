@@ -34,6 +34,21 @@ const created = event("agent.created", {
 });
 
 describe("the agents of the team view", () => {
+	it("keeps the role tier agent.created carries, and none from an older event (ADR-077)", () => {
+		const tiered = event("agent.created", {
+			roleId: "writer",
+			providerId: "groq",
+			modelId: "m",
+			tier: "coder",
+		});
+		expect(applyAll(RUN, EMPTY_TEAM_VIEW, [tiered]).agents[0]?.tier).toBe(
+			"coder",
+		);
+		expect(
+			"tier" in (applyAll(RUN, EMPTY_TEAM_VIEW, [created]).agents[0] ?? {}),
+		).toBe(false);
+	});
+
 	it("creates an agent with its role, model and task, and follows its thinking and tools", () => {
 		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [
 			created,

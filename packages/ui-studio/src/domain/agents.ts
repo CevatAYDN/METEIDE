@@ -1,4 +1,4 @@
-import type { MeteEvent } from "@mete/contracts";
+import type { MeteEvent, Tier } from "@mete/contracts";
 
 // The agents of a run as the Team panel's views draw them (ADR-051, docs/13): the core puts the
 // active agent's id on the envelope of every event it publishes, and agent.created comes at the
@@ -12,6 +12,8 @@ export type AgentCard = {
 	readonly roleId: string;
 	readonly providerId: string;
 	readonly modelId: string;
+	/** Its role's tier, when agent.created carries it (ADR-077). */
+	readonly tier?: Tier;
 	/** The task the agent was created for; none for a single-agent run. */
 	readonly taskId?: string;
 	readonly thinking: boolean;
@@ -39,6 +41,7 @@ const created = (
 			roleId: e.payload.roleId,
 			providerId: e.payload.providerId,
 			modelId: e.payload.modelId,
+			...(e.payload.tier ? { tier: e.payload.tier } : {}),
 			...(e.taskId ? { taskId: e.taskId } : {}),
 			// The core creates the agent at its first model reply, inside the turn whose
 			// agent.thinking.started carried no agent id yet: the agent is thinking.
