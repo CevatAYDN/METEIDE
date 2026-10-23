@@ -20,3 +20,20 @@ export const observeMinute429 = (
 		},
 	];
 };
+
+/**
+ * A tokens-per-minute limit read from `header` of a failed response (docs/09, observe() rules;
+ * ADR-056): it teaches the limit and leaves the window open. A missing or odd value teaches nothing.
+ */
+export const observeTokenLimit = (
+	status: number,
+	headers: Headers,
+	header: string,
+): QuotaObservation[] => {
+	const value = headers.get(header);
+	if (status < 400 || value === null || !/^\d+$/.test(value)) return [];
+	const limit = Number(value);
+	return limit > 0
+		? [{ unit: "tokens_per_minute", limit, exhausted: false }]
+		: [];
+};

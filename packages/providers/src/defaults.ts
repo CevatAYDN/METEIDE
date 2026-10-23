@@ -66,6 +66,18 @@ export const NVIDIA_QUOTA: readonly QuotaUnitSpec[] = [
 	},
 ];
 
+/** The header of a refused Groq request that names its tokens-per-minute limit (09 observe() rules; ADR-056). */
+export const GROQ_TOKEN_LIMIT_HEADER = "x-ratelimit-limit-tokens";
+
+/** A tokens-per-minute limit per model, learned from a refused request (09 Quota pool, starting values; ADR-056). */
+export const tokenQuota = (providerId: string): QuotaUnitSpec => ({
+	providerId,
+	unit: "tokens_per_minute",
+	limit: "discover",
+	scope: "model",
+	reset: "sliding",
+});
+
 /** A custom endpoint's limit is learned from 429 responses, like OpenCode Zen's (09 API keys). */
 export const customQuota = (providerId: string): QuotaUnitSpec[] => [
 	{

@@ -92,6 +92,14 @@ describe("Groq", () => {
 				scope: "account",
 				reset: "sliding",
 			},
+			// Per model, learned from a refused request's header (docs/09, ADR-056).
+			{
+				providerId: "groq",
+				unit: "tokens_per_minute",
+				limit: "discover",
+				scope: "model",
+				reset: "sliding",
+			},
 		]);
 		expect(a.observe(429, new Headers({ "retry-after": "20" }))).toEqual([
 			{
@@ -101,6 +109,24 @@ describe("Groq", () => {
 			},
 		]);
 		expect(a.observe(200, new Headers())).toEqual([]);
+	});
+
+	it("learns its tokens-per-minute limit from a refused request, without closing the window (ADR-056)", () => {
+		const a = adapter();
+		const header = { "x-ratelimit-limit-tokens": "8000" };
+		expect(a.observe(413, new Headers(header))).toEqual([
+			{ unit: "tokens_per_minute", limit: 8000, exhausted: false },
+		]);
+		// A 429 also counts its minute request limit; a 413 without the header teaches nothing.
+		expect(a.observe(429, new Headers(header)).map((o) => o.unit)).toEqual([
+			"requests_per_minute",
+			"tokens_per_minute",
+		]);
+		expect(a.observe(413, new Headers())).toEqual([]);
+		for (const odd of ["0", "-5", "8k", "1.5"])
+			expect(
+				a.observe(413, new Headers({ "x-ratelimit-limit-tokens": odd })),
+			).toEqual([]);
 	});
 
 	it("takes privacy from the model row and is unknown without one", () => {

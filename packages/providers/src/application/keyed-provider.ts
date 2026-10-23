@@ -1,14 +1,15 @@
 import { ok, type ProviderAdapter } from "@mete/contracts";
-import { customQuota } from "../defaults.js";
+import { customQuota, tokenQuota } from "../defaults.js";
 import { chatModels, privacyFromRows } from "../domain/model-data.js";
-import { observeMinute429 } from "../domain/observe.js";
+import { observeMinute429, observeTokenLimit } from "../domain/observe.js";
 import { listModelIds } from "../infrastructure/model-list.js";
 import { createOpenAIChat } from "../infrastructure/openai-chat.js";
 import type { ProviderDefinition, ProviderEnv } from "./provider-module.js";
 
 // A provider that serves free models over the OpenAI chat format for an API key (docs/09, provider
 // facts): the model list gives ids only, the free ids and each model's privacy come from models.yaml,
-// and the minute limit is learned from 429 responses, as for OpenCode Zen and custom endpoints.
+// and the minute limit is learned from 429 responses, as for OpenCode Zen and custom endpoints; a
+// provider that names its tokens-per-minute limit on a refused request also learns that (ADR-056).
 
 /** Where one such provider answers. */
 export type KeyedProvider = {
@@ -18,6 +19,8 @@ export type KeyedProvider = {
 	readonly modelsURL: string;
 	/** Removed from the front of every listed id, for a list that names models `models/<id>` while chat takes `<id>`. */
 	readonly idPrefix?: string;
+	/** The header of a refused request that names the tokens-per-minute limit, for a provider that sends one (ADR-056). */
+	readonly tokenLimitHeader?: string;
 };
 
 const withoutPrefix = (id: string, prefix = "") =>
@@ -51,9 +54,16 @@ const build =
 					: ids;
 			},
 			chat,
-			quotaUnits: () => customQuota(spec.providerId),
-			observe: (status, headers) =>
-				observeMinute429(status, headers, env.now()),
+			quotaUnits: () => [
+				...customQuota(spec.providerId),
+				...(spec.tokenLimitHeader ? [tokenQuota(spec.providerId)] : []),
+			],
+			observe: (status, headers) => [
+				...observeMinute429(status, headers, env.now()),
+				...(spec.tokenLimitHeader
+					? observeTokenLimit(status, headers, spec.tokenLimitHeader)
+					: []),
+			],
 			privacy: privacyFromRows(env.models),
 		};
 	};
