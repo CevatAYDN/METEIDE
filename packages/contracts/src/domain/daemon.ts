@@ -1,14 +1,17 @@
 import { z } from "zod";
+import { ApprovalInputSchema } from "./engine.js";
 import { IdSchema, TimestampSchema } from "./ids.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 3 from ARCHITECTURE.md (Daemon protocol, ADR-045, ADR-046 and ADR-047).
+// Daemon protocol version 4 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-048).
 // The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The messages of version 3; its params for mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 4; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
+	runApprove: "mete/run.approve",
+	runResume: "mete/run.resume",
 	event: "mete/event",
 } as const;
 
@@ -48,6 +51,20 @@ export const DaemonStatusResultSchema = z.array(RunViewSchema);
 
 /** Result of `mete/run.start`: the run it started. */
 export const DaemonRunStartResultSchema = z.strictObject({ runId: IdSchema });
+
+/** Params of `mete/run.resume`: the run to go on with. */
+export const DaemonRunIdParamsSchema = z.strictObject({
+	runId: z.string().min(1),
+});
+
+/** Params of `mete/run.approve`: the run and the human's decision (ADR-048). */
+export const DaemonRunApproveParamsSchema = z.strictObject({
+	runId: z.string().min(1),
+	input: ApprovalInputSchema,
+});
+
+/** Result of `mete/run.approve` and `mete/run.resume`: a request that returns nothing sends null. */
+export const DaemonDoneResultSchema = z.null();
 
 /**
  * `data` of an error answer: the `EngineError` code of the refused call (`choose_template` with the

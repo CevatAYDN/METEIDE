@@ -1,8 +1,11 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import {
 	DAEMON_METHODS,
+	DaemonDoneResultSchema,
 	type DaemonErrorData,
 	DaemonErrorDataSchema,
+	DaemonRunApproveParamsSchema,
+	DaemonRunIdParamsSchema,
 	DaemonRunStartResultSchema,
 	DaemonStatusParamsSchema,
 	DaemonStatusResultSchema,
@@ -25,11 +28,13 @@ const run: RunView = {
 	endedAt: "2026-10-23T11:00:00.000Z",
 };
 
-describe("daemon protocol version 3", () => {
+describe("daemon protocol version 4", () => {
 	it("names the two messages of ARCHITECTURE.md", () => {
 		expect(DAEMON_METHODS).toEqual({
 			status: "mete/status",
 			runStart: "mete/run.start",
+			runApprove: "mete/run.approve",
+			runResume: "mete/run.resume",
 			event: "mete/event",
 		});
 	});
@@ -126,5 +131,27 @@ describe("daemon protocol version 3", () => {
 		expect(DaemonRunStartResultSchema.parse({ runId })).toEqual({ runId });
 		for (const bad of [{}, { runId: "r1" }, { runId, extra: true }])
 			expect(DaemonRunStartResultSchema.safeParse(bad).success).toBe(false);
+	});
+
+	it("takes a run and the human's decision for mete/run.approve, a run for mete/run.resume", () => {
+		const approve = {
+			runId: "r1",
+			input: { decision: "revise", feedback: "shorter" },
+		};
+		expect(DaemonRunApproveParamsSchema.parse(approve)).toEqual(approve);
+		for (const bad of [
+			{ runId: "r1" },
+			{ runId: "", input: { decision: "approve" } },
+			{ runId: "r1", input: { decision: "revise" } },
+			{ runId: "r1", input: { decision: "maybe" } },
+			{ runId: "r1", input: { decision: "approve" }, extra: 1 },
+		])
+			expect(DaemonRunApproveParamsSchema.safeParse(bad).success).toBe(false);
+		expect(DaemonRunIdParamsSchema.parse({ runId: "r1" })).toEqual({
+			runId: "r1",
+		});
+		expect(DaemonRunIdParamsSchema.safeParse({}).success).toBe(false);
+		expect(DaemonDoneResultSchema.parse(null)).toBeNull();
+		expect(DaemonDoneResultSchema.safeParse({}).success).toBe(false);
 	});
 });
