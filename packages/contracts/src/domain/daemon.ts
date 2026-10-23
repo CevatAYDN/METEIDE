@@ -6,10 +6,10 @@ import { PolicyActionSchema, PolicyVerdictSchema } from "./policy.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 12 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-068).
+// Daemon protocol version 13 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-075).
 // The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The messages of version 12; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 13; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
@@ -21,6 +21,7 @@ export const DAEMON_METHODS = {
 	templates: "mete/templates",
 	stopAll: "mete/stop.all",
 	estimate: "mete/estimate",
+	templateRead: "mete/template.read",
 	event: "mete/event",
 } as const;
 
@@ -170,6 +171,18 @@ export const DaemonEstimateResultSchema = z.strictObject({
 		}),
 	),
 	unassigned: z.number().int().nonnegative(),
+});
+
+/** Params of `mete/template.read`: a template by id, for the team editor (ADR-075). */
+export const DaemonTemplateReadParamsSchema = z.strictObject({
+	id: z.string().min(1),
+});
+
+/** Result of `mete/template.read`: the text of the file `mete/templates` would load, and its folder. */
+export const DaemonTemplateReadResultSchema = z.strictObject({
+	id: z.string().min(1),
+	source: z.enum(["workspace", "builtIn"]),
+	yaml: z.string(),
 });
 
 /** Result of `mete/run.approve` and `mete/run.resume`: a request that returns nothing sends null. */

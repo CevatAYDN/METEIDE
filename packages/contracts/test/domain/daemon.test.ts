@@ -17,6 +17,8 @@ import {
 	DaemonStatusParamsSchema,
 	DaemonStatusResultSchema,
 	DaemonStopAllResultSchema,
+	DaemonTemplateReadParamsSchema,
+	DaemonTemplateReadResultSchema,
 	DaemonTemplatesResultSchema,
 	RunViewSchema,
 } from "../../src/domain/daemon.js";
@@ -37,7 +39,7 @@ const run: RunView = {
 	endedAt: "2026-10-23T11:00:00.000Z",
 };
 
-describe("daemon protocol version 11", () => {
+describe("daemon protocol version 13", () => {
 	it("answers mete/events with the run's events in order and the count of unreadable rows", () => {
 		const event = {
 			id: crypto.randomUUID(),
@@ -124,6 +126,7 @@ describe("daemon protocol version 11", () => {
 			templates: "mete/templates",
 			stopAll: "mete/stop.all",
 			estimate: "mete/estimate",
+			templateRead: "mete/template.read",
 			event: "mete/event",
 		});
 	});
@@ -347,5 +350,22 @@ describe("daemon protocol version 11", () => {
 			{ providers: [{ providerId: "groq", requests: 1.5 }], unassigned: 0 },
 		])
 			expect(DaemonEstimateResultSchema.safeParse(bad).success).toBe(false);
+	});
+
+	it("asks mete/template.read for a template by id and answers its text and folder (ADR-075)", () => {
+		expect(DaemonTemplateReadParamsSchema.parse({ id: "web-dev" })).toEqual({
+			id: "web-dev",
+		});
+		for (const bad of [{}, { id: "" }])
+			expect(DaemonTemplateReadParamsSchema.safeParse(bad).success).toBe(false);
+		for (const source of ["workspace", "builtIn"] as const) {
+			const answer = { id: "web-dev", source, yaml: "kind: TeamTemplate\n" };
+			expect(DaemonTemplateReadResultSchema.parse(answer)).toEqual(answer);
+		}
+		for (const bad of [
+			{ id: "web-dev", source: "global", yaml: "" },
+			{ id: "web-dev", source: "workspace" },
+		])
+			expect(DaemonTemplateReadResultSchema.safeParse(bad).success).toBe(false);
 	});
 });
