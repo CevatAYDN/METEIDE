@@ -12,7 +12,7 @@
 	},
 	"scripts": {
 		"build": "tsc -b",
-		"test": "vitest run --passWithNoTests"
+		"test": "vitest run --coverage"
 	},
 	"dependencies": {
 		"@mete/contracts": "workspace:*",
