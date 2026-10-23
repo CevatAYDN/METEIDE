@@ -4,6 +4,7 @@ import {
 	DAEMON_ERROR_CODE,
 	DAEMON_METHODS,
 	DaemonErrorDataSchema,
+	DaemonQuotaResultSchema,
 	DaemonRunStartResultSchema,
 	DaemonStatusResultSchema,
 	type MeteEvent,
@@ -221,6 +222,14 @@ describe("mete daemon", () => {
 		expect(reasons[0]).toBe("core-engine is not active.");
 		expect(reasons.at(-1)).toBe(
 			"Add a provider key with: mete key set openrouter",
+		);
+		// mete/quota needs no engine: on a first run it names each provider without a key (ADR-050).
+		const quota = DaemonQuotaResultSchema.parse(
+			await c.sendRequest(DAEMON_METHODS.quota),
+		);
+		expect(quota.providers.length).toBeGreaterThan(0);
+		expect(quota.providers.map((p) => p.state)).toEqual(
+			quota.providers.map(() => "no_key"),
 		);
 
 		toDaemon.end();
