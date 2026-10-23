@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { err, ok, type Result } from "@mete/contracts";
-import { chromium } from "playwright-core";
+import type { chromium as PlaywrightChromium } from "playwright-core";
 import {
 	CHROMIUM_INSTALL_TIMEOUT_MS,
 	RUNNER_STDERR_CHARS,
@@ -18,12 +18,17 @@ export type Chromium = {
 	readonly install: (signal: AbortSignal) => Promise<Result<void, string>>;
 };
 
+const require = createRequire(import.meta.url);
 const CLI = join(
-	dirname(
-		createRequire(import.meta.url).resolve("playwright-core/package.json"),
-	),
+	dirname(require.resolve("playwright-core/package.json")),
 	"cli.js",
 );
+
+// Loaded on first use: playwright-core is large, and every CLI command would pay for it at start.
+const executablePath = () =>
+	(
+		require("playwright-core") as { chromium: typeof PlaywrightChromium }
+	).chromium.executablePath();
 
 const run = (signal: AbortSignal) =>
 	new Promise<Result<void, string>>((resolve) => {
@@ -56,7 +61,7 @@ const run = (signal: AbortSignal) =>
 export const playwrightChromium = (): Chromium => {
 	let pending: Promise<Result<void, string>> | undefined;
 	return {
-		installed: () => existsSync(chromium.executablePath()),
+		installed: () => existsSync(executablePath()),
 		install: (signal) => {
 			pending ??= run(signal).finally(() => {
 				pending = undefined;
