@@ -23,10 +23,13 @@ export type Character = {
 	readonly resetsAt?: string;
 };
 
+/** A task note on the wall board. */
+export type Note = { readonly id: string; readonly title: string };
+
 /** The room: desk rows top to bottom, and the board's notes by column. */
 export type Scene = {
 	readonly rows: readonly (readonly Character[])[];
-	readonly notes: Readonly<Record<Place["column"], readonly string[]>>;
+	readonly notes: Readonly<Record<Place["column"], readonly Note[]>>;
 };
 
 const characterOf = (view: TeamView, a: AgentCard, count = 1): Character => {
@@ -61,12 +64,13 @@ const chunk = <T>(items: readonly T[]): T[][] => {
 export const sceneOf = (view: TeamView): Scene => {
 	const characters = charactersOf(view);
 	const leads = new Set(view.signals.leadRoles);
-	const notes: Record<Place["column"], string[]> = {
+	const notes: Record<Place["column"], Note[]> = {
 		todo: [],
 		in_progress: [],
 		done: [],
 	};
-	for (const t of view.tasks) notes[placeOf(t.status).column].push(t.title);
+	for (const t of view.tasks)
+		notes[placeOf(t.status).column].push({ id: t.id, title: t.title });
 	return {
 		rows: [
 			...chunk(characters.filter((c) => leads.has(c.roleId))),

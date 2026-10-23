@@ -94,11 +94,10 @@ describe("the studio room", () => {
 				task("d", "blocked"),
 			]),
 		);
-		expect(s.notes).toEqual({
-			todo: ["a"],
-			in_progress: ["b", "d"],
-			done: ["c"],
-		});
+		const titles = (n: readonly { title: string }[]) => n.map((x) => x.title);
+		expect(titles(s.notes.todo)).toEqual(["a"]);
+		expect(titles(s.notes.in_progress)).toEqual(["b", "d"]);
+		expect(s.notes.done).toEqual([{ id: "c", title: "c" }]);
 		expect(s.rows).toEqual([]);
 	});
 });

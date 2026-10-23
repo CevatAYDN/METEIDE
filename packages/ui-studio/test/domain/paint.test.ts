@@ -25,11 +25,18 @@ const ch = (
 });
 const scene = (
 	rows: Character[][],
-	notes: Partial<Scene["notes"]> = {},
-): Scene => ({
-	rows,
-	notes: { todo: [], in_progress: [], done: [], ...notes },
-});
+	titles: Partial<Record<keyof Scene["notes"], string[]>> = {},
+): Scene => {
+	const notes = (ids: string[] = []) => ids.map((id) => ({ id, title: id }));
+	return {
+		rows,
+		notes: {
+			todo: notes(titles.todo),
+			in_progress: notes(titles.in_progress),
+			done: notes(titles.done),
+		},
+	};
+};
 const texts = (p: Primitive[]) =>
 	p.flatMap((x) => (x.kind === "text" ? [x.text] : []));
 const circles = (p: Primitive[]) => p.filter((x) => x.kind === "circle");

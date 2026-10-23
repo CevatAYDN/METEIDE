@@ -1,4 +1,5 @@
 import { TOKENS, type TokenMode } from "@mete/ui-kit";
+import { type Layout, layoutOf, type Point } from "./layout.js";
 import type { Character, CharacterState, Scene } from "./scene.js";
 
 // The studio room as primitives the stage draws (ADR-052: shapes before sprites, colours from the
@@ -43,14 +44,6 @@ export type StageLabels = {
 	readonly until: (resetsAt: string) => string;
 };
 
-const PAD = 16;
-const BOARD_H = 132;
-const COFFEE_W = 170;
-const DESK_W = 120;
-const DESK_H = 56;
-const ROW_H = 128;
-const NOTES_SHOWN = 5;
-
 type Colours = (typeof TOKENS)[TokenMode];
 
 const stateColour = (c: Colours): Record<CharacterState, string> => ({
@@ -60,72 +53,59 @@ const stateColour = (c: Colours): Record<CharacterState, string> => ({
 	waiting: c.warn,
 });
 
+const NOTE_COLOUR = (c: Colours) => ({
+	todo: c.chip,
+	in_progress: c.warn,
+	done: c.good,
+});
+
 const board = (
 	scene: Scene,
+	l: Layout,
 	c: Colours,
 	labels: StageLabels,
-	width: number,
 ): Primitive[] => {
-	const w = Math.max(240, width - COFFEE_W - 3 * PAD);
-	const col = w / 3;
-	const columns = [
-		[labels.todo, scene.notes.todo, c.chip],
-		[labels.inProgress, scene.notes.in_progress, c.warn],
-		[labels.done, scene.notes.done, c.good],
-	] as const;
+	const titles = {
+		todo: labels.todo,
+		in_progress: labels.inProgress,
+		done: labels.done,
+	};
 	const out: Primitive[] = [
-		{
-			kind: "rect",
-			x: PAD,
-			y: PAD,
-			w,
-			h: BOARD_H,
-			fill: c.panel,
-			stroke: c.line,
-		},
+		{ kind: "rect", ...l.board, fill: c.panel, stroke: c.line },
 	];
-	columns.forEach(([title, notes, fill], i) => {
-		const x = PAD + i * col + 8;
+	for (const column of ["todo", "in_progress", "done"] as const) {
+		const at = l.columns[column];
+		const notes = scene.notes[column];
 		out.push({
 			kind: "text",
-			x,
-			y: PAD + 8,
-			text: `${title} (${notes.length})`,
+			...at,
+			text: `${titles[column]} (${notes.length})`,
 			fill: c.ink,
 			size: 13,
 		});
-		notes.slice(0, NOTES_SHOWN).forEach((_, n) => {
-			out.push({
-				kind: "rect",
-				x: x + n * 22,
-				y: PAD + 34,
-				w: 18,
-				h: 18,
-				fill,
-			});
-		});
-	});
+		for (const note of notes) {
+			const p = l.notes[note.id];
+			if (p)
+				out.push({
+					kind: "rect",
+					...p,
+					w: 18,
+					h: 18,
+					fill: NOTE_COLOUR(c)[column],
+				});
+		}
+	}
 	return out;
 };
 
-const person = (
+// What a character's state adds above or below it: a count badge, thinking dots, its tool, its countdown.
+const marks = (
 	ch: Character,
-	x: number,
-	y: number,
+	{ x, y }: Point,
 	c: Colours,
+	until?: string,
 ): Primitive[] => {
-	const out: Primitive[] = [
-		{ kind: "circle", x, y, r: 16, fill: stateColour(c)[ch.state] },
-		{
-			kind: "text",
-			x: x - 40,
-			// Inside the desk below the character, clear of the desk's top edge.
-			y: y + 30,
-			text: ch.roleId,
-			fill: c.ink,
-			size: 12,
-		},
-	];
+	const out: Primitive[] = [];
 	if (ch.count > 1) {
 		out.push({ kind: "circle", x: x + 16, y: y - 14, r: 9, fill: c.accent });
 		out.push({
@@ -146,80 +126,62 @@ const person = (
 				r: 2.5,
 				fill: c.accent,
 			});
+	if (ch.state === "working" && ch.tool)
+		out.push({
+			kind: "text",
+			x: x - 52,
+			y: y + 44,
+			text: ch.tool,
+			fill: c.muted,
+			size: 11,
+		});
+	if (ch.state === "waiting" && until)
+		out.push({
+			kind: "text",
+			x: x - 22,
+			y: y + 52,
+			text: until,
+			fill: c.muted,
+			size: 10,
+		});
 	return out;
 };
 
-const coffee = (
+const person = (
+	ch: Character,
+	at: Point,
+	c: Colours,
+	until?: string,
+): Primitive[] => [
+	{ kind: "circle", x: at.x, y: at.y, r: 16, fill: stateColour(c)[ch.state] },
+	// Inside the desk below the character, clear of the desk's top edge.
+	{
+		kind: "text",
+		x: at.x - 40,
+		y: at.y + 30,
+		text: ch.roleId,
+		fill: c.ink,
+		size: 12,
+	},
+	...marks(ch, at, c, until),
+];
+
+const people = (
 	scene: Scene,
+	l: Layout,
 	c: Colours,
 	labels: StageLabels,
-	width: number,
-): Primitive[] => {
-	const x = width - COFFEE_W - PAD;
-	const out: Primitive[] = [
-		{
-			kind: "rect",
-			x,
-			y: PAD,
-			w: COFFEE_W,
-			h: BOARD_H,
-			fill: c.chip,
-			stroke: c.line,
-		},
-		{
-			kind: "text",
-			x: x + 8,
-			y: PAD + 8,
-			text: labels.coffee,
-			fill: c.ink,
-			size: 13,
-		},
-	];
-	const waiting = scene.rows.flat().filter((ch) => ch.state === "waiting");
-	waiting.slice(0, 3).forEach((ch, i) => {
-		const cx = x + 30 + i * 52;
-		out.push(...person(ch, cx, PAD + 62, c));
-		if (ch.resetsAt)
-			out.push({
-				kind: "text",
-				x: cx - 22,
-				y: PAD + 114,
-				text: labels.until(ch.resetsAt),
-				fill: c.muted,
-				size: 10,
-			});
+): Primitive[] =>
+	scene.rows.flat().flatMap((ch) => {
+		const head = l.heads[ch.id];
+		if (!head) return [];
+		return person(
+			ch,
+			head,
+			c,
+			ch.resetsAt ? labels.until(ch.resetsAt) : undefined,
+		);
 	});
-	return out;
-};
-
-const desks = (scene: Scene, c: Colours): Primitive[] =>
-	scene.rows.flatMap((row, r) =>
-		row.flatMap((ch, i) => {
-			const x = PAD + i * (DESK_W + PAD);
-			const y = PAD + BOARD_H + 48 + r * ROW_H;
-			const desk: Primitive = {
-				kind: "rect",
-				x,
-				y: y + 24,
-				w: DESK_W,
-				h: DESK_H,
-				fill: c.panel,
-				stroke: c.line,
-			};
-			if (ch.state === "waiting") return [desk];
-			const out = [desk, ...person(ch, x + DESK_W / 2, y, c)];
-			if (ch.tool)
-				out.push({
-					kind: "text",
-					x: x + 8,
-					y: y + 44,
-					text: ch.tool,
-					fill: c.muted,
-					size: 11,
-				});
-			return out;
-		}),
-	);
 
 /** The primitives of the room, for a canvas of `width` pixels in the colours of `mode`. */
 export const paintScene = (
@@ -229,11 +191,30 @@ export const paintScene = (
 	labels: StageLabels,
 ): Primitive[] => {
 	const c = TOKENS[mode];
-	const height = PAD + BOARD_H + 48 + scene.rows.length * ROW_H + PAD;
+	const l = layoutOf(scene, width);
 	return [
-		{ kind: "rect", x: 0, y: 0, w: width, h: height, fill: c.bg },
-		...board(scene, c, labels, width),
-		...coffee(scene, c, labels, width),
-		...desks(scene, c),
+		{ kind: "rect", x: 0, y: 0, w: width, h: l.height, fill: c.bg },
+		...board(scene, l, c, labels),
+		{ kind: "rect", ...l.coffee, fill: c.chip, stroke: c.line },
+		{
+			kind: "text",
+			x: l.coffee.x + 8,
+			y: l.coffee.y + 8,
+			text: labels.coffee,
+			fill: c.ink,
+			size: 13,
+		},
+		...l.desks.map(
+			(d): Primitive => ({
+				kind: "rect",
+				x: d.x,
+				y: d.y,
+				w: d.w,
+				h: d.h,
+				fill: c.panel,
+				stroke: c.line,
+			}),
+		),
+		...people(scene, l, c, labels),
 	];
 };
