@@ -18,8 +18,12 @@ export {
 	SeoScoresSchema,
 } from "./domain/browser.js";
 export {
+	type AuditEntry,
+	AuditEntrySchema,
 	DAEMON_ERROR_CODE,
 	DAEMON_METHODS,
+	DaemonAuditParamsSchema,
+	DaemonAuditResultSchema,
 	DaemonDoneResultSchema,
 	type DaemonErrorData,
 	DaemonErrorDataSchema,

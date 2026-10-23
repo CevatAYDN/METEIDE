@@ -1,13 +1,14 @@
 import { z } from "zod";
 import { ApprovalInputSchema } from "./engine.js";
 import { type MeteEvent, MeteEventSchema } from "./events.js";
-import { IdSchema, TimestampSchema } from "./ids.js";
+import { CapabilityRefSchema, IdSchema, TimestampSchema } from "./ids.js";
+import { PolicyActionSchema, PolicyVerdictSchema } from "./policy.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 6 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-051).
+// Daemon protocol version 7 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-053).
 // The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The messages of version 6; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 7; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
@@ -15,6 +16,7 @@ export const DAEMON_METHODS = {
 	runResume: "mete/run.resume",
 	quota: "mete/quota",
 	events: "mete/events",
+	audit: "mete/audit",
 	event: "mete/event",
 } as const;
 
@@ -99,6 +101,37 @@ export const DaemonEventsResultSchema = z.strictObject({
 	// As in parseEvent: the schema checks each event, MeteEvent restores the precise union.
 	events: z.array(MeteEventSchema).transform((es) => es as MeteEvent[]),
 	unreadable: z.number().int().nonnegative(),
+});
+
+/** Params of `mete/audit`: the filters of ADR-053, each optional; `limit` caps the rows. */
+export const DaemonAuditParamsSchema = z.strictObject({
+	runId: z.string().min(1).optional(),
+	verdict: PolicyVerdictSchema.shape.verdict.optional(),
+	action: PolicyActionSchema.optional(),
+	limit: z.number().int().positive().optional(),
+});
+
+/** One row of the workspace audit log (SECURITY.md, Audit log). */
+export const AuditEntrySchema = z.strictObject({
+	seq: z.number().int().positive(),
+	ts: TimestampSchema,
+	runId: IdSchema.nullable(),
+	agentId: IdSchema.nullable(),
+	action: PolicyActionSchema,
+	capability: CapabilityRefSchema,
+	adapterId: z.string().min(1),
+	argsSha256: z.string().regex(/^[0-9a-f]{64}$/),
+	verdict: PolicyVerdictSchema.shape.verdict,
+	rule: z.string().min(1),
+	tainted: z.boolean(),
+});
+
+/** What `AuditEntrySchema` parses. */
+export type AuditEntry = z.infer<typeof AuditEntrySchema>;
+
+/** Result of `mete/audit`: the rows, newest first. */
+export const DaemonAuditResultSchema = z.strictObject({
+	entries: z.array(AuditEntrySchema),
 });
 
 /** Result of `mete/run.approve` and `mete/run.resume`: a request that returns nothing sends null. */

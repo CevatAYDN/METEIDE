@@ -1,6 +1,9 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import {
+	AuditEntrySchema,
 	DAEMON_METHODS,
+	DaemonAuditParamsSchema,
+	DaemonAuditResultSchema,
 	DaemonDoneResultSchema,
 	type DaemonErrorData,
 	DaemonErrorDataSchema,
@@ -30,7 +33,7 @@ const run: RunView = {
 	endedAt: "2026-10-23T11:00:00.000Z",
 };
 
-describe("daemon protocol version 6", () => {
+describe("daemon protocol version 7", () => {
 	it("answers mete/events with the run's events in order and the count of unreadable rows", () => {
 		const event = {
 			id: crypto.randomUUID(),
@@ -63,6 +66,48 @@ describe("daemon protocol version 6", () => {
 			expect(DaemonEventsResultSchema.safeParse(bad).success).toBe(false);
 	});
 
+	it("filters mete/audit by run, verdict and action, and answers the audit rows", () => {
+		expect(DaemonAuditParamsSchema.parse({})).toEqual({});
+		const params = {
+			runId: "r1",
+			verdict: "deny",
+			action: "shell.exec",
+			limit: 50,
+		};
+		expect(DaemonAuditParamsSchema.parse(params)).toEqual(params);
+		for (const bad of [
+			{ verdict: "maybe" },
+			{ action: "fs.read" },
+			{ limit: 0 },
+			{ runId: "" },
+			{ extra: true },
+		])
+			expect(DaemonAuditParamsSchema.safeParse(bad).success).toBe(false);
+		const entry = {
+			seq: 1,
+			ts: "2026-10-23T10:00:00.000Z",
+			runId: run.id,
+			agentId: null,
+			action: "fs.write",
+			capability: "fs.edit@1",
+			adapterId: "tools-fs",
+			argsSha256: "a".repeat(64),
+			verdict: "allow",
+			rule: "autonomy:2:inside",
+			tainted: false,
+		};
+		expect(DaemonAuditResultSchema.parse({ entries: [entry] })).toEqual({
+			entries: [entry],
+		});
+		for (const bad of [
+			{ ...entry, argsSha256: "xyz" },
+			{ ...entry, verdict: "maybe" },
+			{ ...entry, capability: "fs" },
+			{ ...entry, seq: 0 },
+		])
+			expect(AuditEntrySchema.safeParse(bad).success).toBe(false);
+	});
+
 	it("names the messages of ARCHITECTURE.md", () => {
 		expect(DAEMON_METHODS).toEqual({
 			status: "mete/status",
@@ -71,6 +116,7 @@ describe("daemon protocol version 6", () => {
 			runResume: "mete/run.resume",
 			quota: "mete/quota",
 			events: "mete/events",
+			audit: "mete/audit",
 			event: "mete/event",
 		});
 	});
