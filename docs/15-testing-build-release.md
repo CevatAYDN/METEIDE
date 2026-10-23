@@ -21,7 +21,7 @@ All checks run on the developer's machine through lefthook and package scripts; 
 Rules:
 
 - Tests MUST NOT call real model providers. Cassettes are recorded only by `pnpm test:record` with the developer's own keys and committed with secrets masked \[C\]. `pnpm test:record` is not built yet; until it is, provider and gateway tests answer through hand-written fetch fakes and agent flows through scripted `provider.chat@2` adapters, and MSW stays the planned replay tool (tab 05).
-- Coverage targets: 90% of lines in `domain/` folders, 75% per package overall \[D\].
+- Coverage targets: 90% of lines in `domain/` folders, 75% per package overall; `ui-theia`'s Theia bindings (widgets, contributions, modules, its RPC service and the commands that need Theia's services) run only inside Theia, so they are outside the unit measure and the desktop end-to-end tests cover them \[D\].
 
 ## Performance budgets
 
