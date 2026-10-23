@@ -1,4 +1,4 @@
-import type { LlmChatRequest, Tier } from "@mete/contracts";
+import type { LlmChatRequest, ModelRef, Tier } from "@mete/contracts";
 
 // How core-engine seats a model at the tools of @mete/contracts TOOL_CATALOG (docs/08): which
 // tools a role may use and how external content is labeled. The catalog itself is contract data.
@@ -10,6 +10,8 @@ export const EXTERNAL_LABEL =
 /** Who calls the model: a role's tier, needs and capabilities (docs/08); no list means every tool. */
 export type Seat = {
 	readonly tier: Tier;
+	/** The role's pinned model, first in the tier's chain when it is a candidate (ADR-077). */
+	readonly prefer?: ModelRef;
 	readonly needs: NonNullable<LlmChatRequest["needs"]>;
 	readonly capabilities?: readonly string[];
 };

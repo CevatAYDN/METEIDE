@@ -1,4 +1,5 @@
 import {
+	type ModelRef,
 	ok,
 	type Result,
 	ShellConfigSchema,
@@ -60,6 +61,8 @@ export type Live = {
 	all: AbortController;
 	model?: AbortController | undefined;
 	cancelTimer?: (() => void) | undefined;
+	/** The pin read for the agent seated now, by task and role (ADR-077). */
+	pin?: { readonly key: string; readonly prefer: ModelRef | undefined };
 };
 
 /** The engine's state: its dependencies, the runs in memory and how a quota timer resumes. */

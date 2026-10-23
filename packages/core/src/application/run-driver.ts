@@ -3,6 +3,7 @@ import { foldable, toSummarize } from "../domain/compact.js";
 import { type NextStep, nextStep } from "../domain/next-step.js";
 import { afterModelError } from "../domain/run-events.js";
 import { activeRole, activeSeat } from "../domain/team-run.js";
+import { pinnedSeat } from "./pinned.js";
 import {
 	apply,
 	type EngineState,
@@ -37,7 +38,10 @@ const onModel = (s: EngineState, l: Live, c: ModelChunk) => {
 		return emit(
 			s,
 			l,
-			{ type: "agent.created", payload: { roleId, ...to } },
+			{
+				type: "agent.created",
+				payload: { roleId, ...to, tier: activeSeat(l.snapshot.context).tier },
+			},
 			taskId,
 		);
 	const from = { providerId: agent.providerId, modelId: agent.modelId };
@@ -46,11 +50,13 @@ const onModel = (s: EngineState, l: Live, c: ModelChunk) => {
 };
 
 const modelTurn = async (s: EngineState, l: Live, token: object) => {
+	// The pin is read before the call starts: a run paused while it is read never calls the model.
+	const seat = await pinnedSeat(s, l);
+	if (!owns(l, token)) return;
 	const model = new AbortController();
 	l.model = model;
 	const signal = AbortSignal.any([l.all.signal, model.signal]);
 	const { priority, messages } = l.snapshot.context;
-	const seat = activeSeat(l.snapshot.context);
 	const task = activeRole(l.snapshot.context).taskId;
 	const run = { runId: l.meta.id, priority, messages, seat };
 	emit(s, l, { type: "agent.thinking.started", payload: {} }, task);

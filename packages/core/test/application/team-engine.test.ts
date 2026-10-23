@@ -127,6 +127,48 @@ describe("team runs", () => {
 		).toEqual([{ role_id: "finder" }, { role_id: "writer" }]);
 	});
 
+	it("sends a role its pinned model from .mete/pins.yaml, and each agent its role tier (ADR-077)", async () => {
+		await mkdir(join(root, ".mete"));
+		await writeFile(
+			join(root, ".mete", "pins.yaml"),
+			"duo:\n  writer: groq/openai/gpt-oss-120b\n",
+		);
+		const h = engineHarness({
+			scripts: [reply("three facts"), reply("the write-up")],
+			tools: [["fs.read@1", async () => ({ ok: true, value: {} })]],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "completed");
+		const [find, write] = h.requests;
+		expect(find?.prefer).toBeUndefined();
+		expect(write?.prefer).toEqual({
+			providerId: "groq",
+			modelId: "openai/gpt-oss-120b",
+		});
+		const created = h.events.filter((e) => e.type === "agent.created");
+		expect(created.map((e) => e.payload)).toEqual([
+			{ roleId: "finder", providerId: "p", modelId: "m1", tier: "reasoning" },
+			{ roleId: "writer", providerId: "p", modelId: "m1", tier: "fast" },
+		]);
+	});
+
+	it("runs without pins when the pins file does not validate, and says which file", async () => {
+		await mkdir(join(root, ".mete"));
+		await writeFile(join(root, ".mete", "pins.yaml"), "duo:\n  writer: groq\n");
+		const h = engineHarness({
+			scripts: [reply("three facts"), reply("the write-up")],
+			tools: [["fs.read@1", async () => ({ ok: true, value: {} })]],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "completed");
+		expect(h.requests.map((r) => r.prefer)).toEqual([undefined, undefined]);
+		expect(
+			h.logged.some((l) => l.level === "warn" && l.msg.includes("pins.yaml")),
+		).toBe(true);
+	});
+
 	it("lets the lead approve the write-up in a review of its own and completes", async () => {
 		await useLead();
 		const h = engineHarness({

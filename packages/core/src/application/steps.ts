@@ -139,6 +139,7 @@ export const callModel = async (
 		{
 			target: { tier: run.seat.tier },
 			...(needs.length > 0 ? { needs: [...needs] } : {}),
+			...(run.seat.prefer ? { prefer: run.seat.prefer } : {}),
 			runId: run.runId,
 			priority: run.priority,
 			messages: [...run.messages],
