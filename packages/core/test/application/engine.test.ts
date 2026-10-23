@@ -171,6 +171,19 @@ describe("single-agent engine", () => {
 		expect(h.requests).toHaveLength(1);
 	});
 
+	it("cancels a running run and aborts its model call (the kill switch, ADR-065)", async () => {
+		const h = engineHarness({ scripts: [slow] });
+		const runId = await begin(h);
+		await vi.waitFor(() => expect(h.requests).toHaveLength(1));
+		expect((await h.engine.cancel(runId)).ok).toBe(true);
+		await settled(h, runId, "cancelled");
+		expect(view(h, runId)?.endedAt).toBeDefined();
+		await h.stop();
+		expect(view(h, runId)?.status).toBe("cancelled");
+		expect(typesOf(h.events)).toContain("run.cancelled");
+		expect(h.requests).toHaveLength(1);
+	});
+
 	it("never lets the model reach checkpoint operations through vcs_git", async () => {
 		const vcs = vi.fn(async () => ok({ op: "checkpoint.restore", ref: "x" }));
 		const h = engineHarness({
