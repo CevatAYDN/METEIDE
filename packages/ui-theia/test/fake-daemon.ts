@@ -33,6 +33,10 @@ conn.onRequest("mete/status", (p) => {
 	if (p && p.runId === "garbage") return [{ nope: 1 }];
 	return mode === "one" ? [run] : [];
 });
+conn.onRequest("mete/run.start", (p) => {
+	if (!p.templateId && p.goal === "unsure" && p.templateId !== null) throw new ResponseError(-32000, "the router is unsure", { code: "choose_template", suggestions: ["research", "web-dev"] });
+	return { runId: run.id };
+});
 conn.onClose(() => process.exit(0));
 conn.listen();
 `;

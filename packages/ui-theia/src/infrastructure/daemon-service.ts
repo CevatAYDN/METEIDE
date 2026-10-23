@@ -1,3 +1,4 @@
+import type { RunStart } from "@mete/contracts";
 import { ILogger } from "@theia/core/lib/common/logger";
 import type { BackendApplicationContribution } from "@theia/core/lib/node";
 import { inject, injectable } from "@theia/core/shared/inversify";
@@ -46,6 +47,10 @@ export class MeteDaemonBackend
 
 	status(workspaceDir: string, runId?: string) {
 		return this.host.status(workspaceDir, runId);
+	}
+
+	startRun(workspaceDir: string, req: RunStart) {
+		return this.host.startRun(workspaceDir, req);
 	}
 
 	onStop() {

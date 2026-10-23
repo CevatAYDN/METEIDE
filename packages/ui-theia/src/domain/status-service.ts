@@ -2,6 +2,7 @@ import type {
 	DaemonStatusResultSchema,
 	MeteEvent,
 	Result,
+	RunStart,
 } from "@mete/contracts";
 
 // What the Theia frontend asks its backend, which owns the daemon process (ARCHITECTURE.md, Daemon protocol).
@@ -15,11 +16,20 @@ export type StatusRuns = ReturnType<typeof DaemonStatusResultSchema.parse>;
 /**
  * Why a status call has no runs: the daemon is not ready (`detail` is what core-engine waits for,
  * ADR-046), it stopped (`detail` is its exit code and last stderr lines), the restart limit is
- * reached, the daemon refused the request, or its answer did not parse.
+ * reached, the router wants a template chosen, the daemon refused the request, or its answer did
+ * not parse.
  */
 export type DaemonFailure = {
-	readonly code: "not_ready" | "stopped" | "blocked" | "refused" | "protocol";
+	readonly code:
+		| "not_ready"
+		| "choose_template"
+		| "stopped"
+		| "blocked"
+		| "refused"
+		| "protocol";
 	readonly detail: string;
+	/** With choose_template: the templates the router suggests for the goal (ADR-047). */
+	readonly suggestions?: readonly string[];
 };
 
 /** What the backend calls on each frontend: an event the daemon of a folder published. */
@@ -34,4 +44,9 @@ export interface MeteDaemonService {
 		workspaceDir: string,
 		runId?: string,
 	): Promise<Result<StatusRuns, DaemonFailure>>;
+	/** Starts a run in the folder; its events reach the frontend through MeteDaemonClient. */
+	startRun(
+		workspaceDir: string,
+		req: RunStart,
+	): Promise<Result<{ readonly runId: string }, DaemonFailure>>;
 }

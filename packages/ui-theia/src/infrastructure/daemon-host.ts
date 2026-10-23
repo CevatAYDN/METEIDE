@@ -2,12 +2,14 @@ import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import {
 	DAEMON_METHODS,
 	DaemonErrorDataSchema,
+	DaemonRunStartResultSchema,
 	DaemonStatusResultSchema,
 	err,
 	type MeteEvent,
 	ok,
 	parseEvent,
 	type Result,
+	type RunStart,
 } from "@mete/contracts";
 import {
 	createMessageConnection,
@@ -18,9 +20,9 @@ import {
 } from "vscode-jsonrpc/node";
 import { STDERR_TAIL_LINES } from "../defaults.js";
 import type { RestartPolicy } from "../domain/restart-policy.js";
-import type { DaemonFailure, StatusRuns } from "../domain/status-service.js";
+import type { DaemonFailure } from "../domain/status-service.js";
 
-// Owns the `mete daemon` child of one folder: starts it on the first call, talks protocol version 2
+// Owns the `mete daemon` child of one folder: starts it on the first call, talks protocol version 3
 // to it and starts it again after a crash, within the restart policy (ARCHITECTURE.md, Failure handling).
 // shortcut: a crashed daemon starts again on the next call, not at once; eager restarts come with
 // the first panel that streams events.
@@ -110,25 +112,33 @@ const refusal = (e: ResponseError<unknown>): Result<never, DaemonFailure> => {
 	if (e.data === undefined) return err({ code: "refused", detail: e.message });
 	const data = DaemonErrorDataSchema.safeParse(e.data);
 	if (!data.success) return err({ code: "protocol", detail: e.message });
+	if (data.data.code === "choose_template")
+		return err({
+			code: "choose_template",
+			detail: e.message,
+			suggestions: data.data.suggestions,
+		});
 	if (data.data.code !== "not_ready")
 		return err({ code: "refused", detail: e.message });
 	const reasons = data.data.reasons.map((r) => r.replace(/\.$/, ""));
 	return err({ code: "not_ready", detail: reasons.join("; ") });
 };
 
-const ask = async (
+type Parsed<T> =
+	| { readonly success: true; readonly data: T }
+	| { readonly success: false; readonly error: { readonly message: string } };
+
+// One request to the daemon; its answer is parsed with the protocol schema (each side validates).
+const call = async <T>(
 	live: Live,
-	runId: string | undefined,
-): Promise<Result<StatusRuns, DaemonFailure>> => {
+	method: string,
+	params: object,
+	parse: (raw: unknown) => Parsed<T>,
+): Promise<Result<T, DaemonFailure>> => {
 	try {
-		const params = runId === undefined ? {} : { runId };
-		const raw: unknown = await live.conn.sendRequest(
-			DAEMON_METHODS.status,
-			params,
-		);
-		const runs = DaemonStatusResultSchema.safeParse(raw);
-		if (runs.success) return ok(runs.data);
-		return err({ code: "protocol", detail: runs.error.message });
+		const answer = parse(await live.conn.sendRequest(method, params));
+		if (answer.success) return ok(answer.data);
+		return err({ code: "protocol", detail: answer.error.message });
 	} catch (e) {
 		// Disposing the connection rejects a waiting request with a ResponseError too, so a daemon
 		// that ended counts first.
@@ -137,7 +147,7 @@ const ask = async (
 	}
 };
 
-/** Serves `mete/status` for one folder at a time; another folder replaces the daemon. */
+/** Serves the daemon's requests for one folder at a time; another folder replaces the daemon. */
 export const createDaemonHost = (deps: HostDeps) => {
 	let live: Live | undefined;
 	// A start after a daemon that ended on its own, in the same folder, is a restart; a first start
@@ -158,7 +168,19 @@ export const createDaemonHost = (deps: HostDeps) => {
 	return {
 		status: async (dir: string, runId?: string) => {
 			const daemon = ensure(dir);
-			return daemon.ok ? ask(daemon.value, runId) : daemon;
+			if (!daemon.ok) return daemon;
+			const params = runId === undefined ? {} : { runId };
+			return call(daemon.value, DAEMON_METHODS.status, params, (raw) =>
+				DaemonStatusResultSchema.safeParse(raw),
+			);
+		},
+		/** Starts a run in the folder (ADR-047); its events arrive through onEvent. */
+		startRun: async (dir: string, req: RunStart) => {
+			const daemon = ensure(dir);
+			if (!daemon.ok) return daemon;
+			return call(daemon.value, DAEMON_METHODS.runStart, req, (raw) =>
+				DaemonRunStartResultSchema.safeParse(raw),
+			);
 		},
 		/** Closing its input is how a daemon is asked to stop; it releases the run lock itself. */
 		stop: () => {

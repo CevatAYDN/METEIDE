@@ -2,6 +2,7 @@ import { CommandContribution } from "@theia/core";
 import { ServiceConnectionProvider } from "@theia/core/lib/browser/messaging/service-connection-provider";
 import { ContainerModule } from "@theia/core/shared/inversify";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
+import { MeteStartRunContribution } from "../application/start-run-command.js";
 import { MeteCommandContribution } from "../application/status-command.js";
 import {
 	METE_DAEMON_PATH,
@@ -24,5 +25,6 @@ export default new ContainerModule((bind) => {
 		)
 		.inSingletonScope();
 	bind(CommandContribution).to(MeteCommandContribution).inSingletonScope();
+	bind(CommandContribution).to(MeteStartRunContribution).inSingletonScope();
 	bindHome(bind);
 });

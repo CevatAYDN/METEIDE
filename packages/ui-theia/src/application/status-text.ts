@@ -33,6 +33,12 @@ export const failureText = (
 			"METE is not ready yet: {0}",
 			detail,
 		);
+	if (code === "choose_template")
+		return nls.localize(
+			"mete/status/chooseTemplate",
+			"Choose a team for this goal: {0}",
+			detail,
+		);
 	if (code === "blocked")
 		return nls.localize(
 			"mete/status/blocked",

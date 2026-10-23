@@ -79,6 +79,25 @@ describe("the daemon host", () => {
 		expect(bad).toEqual(["/w"]);
 	});
 
+	it("starts a run and carries the router's suggestions when it is unsure", async () => {
+		const { host } = await setup();
+		expect(await host.startRun("/w", { goal: "fix it" })).toEqual({
+			ok: true,
+			value: { runId: "6f1c3d52-9b7e-4a52-8d5f-0a1b2c3d4e5f" },
+		});
+		expect(await host.startRun("/w", { goal: "unsure" })).toEqual({
+			ok: false,
+			error: {
+				code: "choose_template",
+				detail: "the router is unsure",
+				suggestions: ["research", "web-dev"],
+			},
+		});
+		expect(
+			(await host.startRun("/w", { goal: "unsure", templateId: null })).ok,
+		).toBe(true);
+	});
+
 	it("replaces the daemon when another folder is asked about", async () => {
 		const { fake, host } = await setup();
 		await host.status("/work/a");

@@ -6,6 +6,7 @@ import {
 	type CommandRegistry,
 	MessageService,
 } from "@theia/core";
+import { QuickInputService } from "@theia/core/lib/common/quick-pick-service";
 import { Container } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import { describe, expect, it, vi } from "vitest";
@@ -59,6 +60,8 @@ const setup = (folders: string[], reply: Reply) => {
 		info: async (m: string) => void info.push(m),
 		warn: async (m: string) => void warn.push(m),
 	} as unknown as MessageService);
+	// The frontend module also binds METE: Start run, which asks through the quick input.
+	c.bind(QuickInputService).toConstantValue({} as unknown as QuickInputService);
 	c.bind(WorkspaceService).toConstantValue({
 		tryGetRoots: () =>
 			folders.map((f) => ({ resource: { path: { fsPath: () => f } } })),
@@ -147,6 +150,7 @@ describe("METE: Status", () => {
 	it("names each reason the daemon gave no runs, with what it reported", async () => {
 		const texts: Record<DaemonFailure["code"], string> = {
 			not_ready: "METE is not ready yet: no provider key",
+			choose_template: "Choose a team for this goal: no provider key",
 			stopped: "The METE daemon stopped: exit code 1: no provider key",
 			blocked:
 				"The METE daemon keeps stopping, so METE does not start it again for now: exit code 1: no provider key",
