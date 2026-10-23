@@ -289,8 +289,8 @@ const Quota = ({
 );
 
 /**
- * What the panel draws for a model; `onRefresh` asks the daemon again, `onAct` answers a run and
- * `onSetKey` sets a provider key.
+ * What the panel draws for a model; `onRefresh` asks the daemon again, `onAct` answers a run,
+ * `onSetKey` sets a provider key and `onStart` opens the run composer (ADR-071).
  */
 export const HomeView = ({
 	model,
@@ -299,6 +299,7 @@ export const HomeView = ({
 	onSetKey,
 	workspaces = [],
 	onOpenWorkspace = () => {},
+	onStart = () => {},
 }: {
 	readonly model: HomeModel;
 	readonly onRefresh: () => void;
@@ -306,8 +307,18 @@ export const HomeView = ({
 	readonly onSetKey: () => void;
 	readonly workspaces?: readonly Workspace[];
 	readonly onOpenWorkspace?: (uri: string) => void;
+	/** Opens the run composer. */
+	readonly onStart?: () => void;
 }) => (
 	<section style={PANEL} aria-live="polite">
+		{model.kind === "no_folder" ? null : (
+			<div style={ROW}>
+				<Button
+					label={nls.localize("mete/run/start", "Start run")}
+					onClick={onStart}
+				/>
+			</div>
+		)}
 		{model.kind === "runs" ? <Inbox rows={model.rows} act={onAct} /> : null}
 		{workspaces.length > 0 ? (
 			<Workspaces workspaces={workspaces} open={onOpenWorkspace} />

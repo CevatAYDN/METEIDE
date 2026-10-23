@@ -40,6 +40,10 @@ vi.mock("../src/infrastructure/audit-contribution.js", () => ({
 vi.mock("../src/infrastructure/quota-contribution.js", () => ({
 	bindQuota: () => {},
 }));
+// The run composer's screen loads lumino too; test/composer-view.test.ts covers the screen.
+vi.mock("../src/infrastructure/composer-contribution.js", () => ({
+	bindComposer: () => {},
+}));
 // Stop all's keybinding and status bar types load lumino too; test/stop-all-command.test.ts covers it.
 vi.mock("../src/infrastructure/stop-all-contribution.js", () => ({
 	bindStopAll: () => {},
@@ -82,7 +86,7 @@ const setup = (folders: string[], reply: Reply) => {
 		info: async (m: string) => void info.push(m),
 		warn: async (m: string) => void warn.push(m),
 	} as unknown as MessageService);
-	// The frontend module also binds METE: Start run, which asks through the quick input.
+	// The frontend module also binds the approval and key commands, which ask through the quick input.
 	c.bind(QuickInputService).toConstantValue({} as unknown as QuickInputService);
 	c.bind(WorkspaceService).toConstantValue({
 		tryGetRoots: () =>

@@ -33,6 +33,7 @@ import {
 import { MeteDaemonService } from "../domain/status-service.js";
 import { OPEN_ARTIFACT_COMMAND } from "./artifact-command.js";
 import { OPEN_BOARD_COMMAND } from "./board-contribution.js";
+import { START_RUN_COMMAND } from "./composer-contribution.js";
 import { MeteInboxBadge } from "./inbox-badge.js";
 
 // The Home panel (docs/13, Home): recent runs of the first open folder, asked of its daemon.
@@ -150,6 +151,9 @@ export class MeteHomeWidget extends ReactWidget {
 					onRefresh={() => void this.refresh()}
 					onAct={(action, runId) => void this.act(action, runId)}
 					onSetKey={() => void this.setKey()}
+					onStart={() =>
+						void this.commands.executeCommand(START_RUN_COMMAND.id)
+					}
 					workspaces={this.workspaces}
 					onOpenWorkspace={(uri) => this.workspace.open(new URI(uri))}
 				/>

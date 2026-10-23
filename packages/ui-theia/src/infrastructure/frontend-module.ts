@@ -4,7 +4,6 @@ import { ContainerModule } from "@theia/core/shared/inversify";
 import { MeteApprovalContribution } from "../application/approval-commands.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { MeteKeyContribution } from "../application/key-command.js";
-import { MeteStartRunContribution } from "../application/start-run-command.js";
 import { MeteCommandContribution } from "../application/status-command.js";
 import {
 	METE_DAEMON_PATH,
@@ -13,6 +12,7 @@ import {
 import { MeteArtifactContribution } from "./artifact-command.js";
 import { bindAudit } from "./audit-contribution.js";
 import { bindBoard } from "./board-contribution.js";
+import { bindComposer } from "./composer-contribution.js";
 import { bindHome } from "./home-contribution.js";
 import { bindQuota } from "./quota-contribution.js";
 import { bindStopAll } from "./stop-all-contribution.js";
@@ -32,12 +32,12 @@ export default new ContainerModule((bind) => {
 		)
 		.inSingletonScope();
 	bind(CommandContribution).to(MeteCommandContribution).inSingletonScope();
-	bind(CommandContribution).to(MeteStartRunContribution).inSingletonScope();
 	bind(CommandContribution).to(MeteApprovalContribution).inSingletonScope();
 	bind(CommandContribution).to(MeteKeyContribution).inSingletonScope();
 	bind(CommandContribution).to(MeteArtifactContribution).inSingletonScope();
 	bindHome(bind);
 	bindBoard(bind);
+	bindComposer(bind);
 	bindAudit(bind);
 	bindQuota(bind);
 	bindStopAll(bind);

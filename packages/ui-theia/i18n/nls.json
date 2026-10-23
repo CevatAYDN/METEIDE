@@ -37,6 +37,10 @@
 			"unreadable": "{0} event(s) of this run could not be read; mete events names them."
 		},
 		"category": "METE",
+		"composer": {
+			"title": "Start a run",
+			"caption": "METE: start a run"
+		},
 		"home": {
 			"approve": "Approve",
 			"asOf": "As of {0}",

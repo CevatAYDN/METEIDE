@@ -37,6 +37,10 @@
 			"unreadable": "Bu çalıştırmanın {0} olayı okunamadı; mete events onları gösterir."
 		},
 		"category": "METE",
+		"composer": {
+			"title": "Çalıştırma başlat",
+			"caption": "METE: çalıştırma başlat"
+		},
 		"home": {
 			"approve": "Onayla",
 			"asOf": "{0} itibarıyla",

@@ -97,3 +97,35 @@
 	border-radius: 20px;
 	overflow: hidden;
 }
+
+/* A text field: control radius, the panel colours, the accent ring on focus (the panel root sets it). */
+.mete-field {
+	font: inherit;
+	width: 100%;
+	box-sizing: border-box;
+	resize: vertical;
+	padding: 8px 10px;
+	color: var(--ink, var(--theia-input-foreground));
+	background: var(--panel, var(--theia-input-background));
+	border: 1.5px solid
+		var(
+			--line,
+			var(--theia-contrastBorder, var(--theia-input-border, transparent))
+		);
+	border-radius: 10px;
+}
+
+/* An option of a list the user picks one of: a card that shows which one is chosen. */
+.mete-option {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	cursor: pointer;
+}
+
+.mete-option:has(input:checked) {
+	border-color: var(
+		--accent,
+		var(--theia-contrastActiveBorder, var(--theia-focusBorder))
+	);
+}

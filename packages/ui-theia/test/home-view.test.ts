@@ -54,6 +54,13 @@ describe("the Home view", () => {
 		);
 	});
 
+	it("offers Start run, which opens the composer, once there is a folder to run in (ADR-071)", () => {
+		const start =
+			'<button type="button" class="mete-button">Start run</button>';
+		expect(html({ kind: "loading" })).toContain(start);
+		expect(html({ kind: "no_folder" })).not.toContain(start);
+	});
+
 	it("lists the runs by status, goal and template, with the time of the snapshot", () => {
 		const out = html(
 			homeModel(
