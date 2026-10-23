@@ -152,6 +152,16 @@ describe("mete daemon approvals", () => {
 			live.slice(0, history.events.length),
 		);
 		expect(history.events.map((e) => e.type)).toContain("run.completed");
+		// The Board places a card by its task.created taskId and its status changes (ADR-051).
+		const created = history.events.filter((e) => e.type === "task.created");
+		expect(created).toHaveLength(2);
+		expect(created.every((e) => e.taskId)).toBe(true);
+		const reached = history.events.flatMap((e) =>
+			e.type === "task.status.changed" ? [e.payload.to] : [],
+		);
+		expect(reached).toEqual(
+			expect.arrayContaining(["in_progress", "approved"]),
+		);
 		const unknown = await failure(
 			c.sendRequest(DAEMON_METHODS.events, { runId: crypto.randomUUID() }),
 		);
