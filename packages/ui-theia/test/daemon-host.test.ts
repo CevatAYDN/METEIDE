@@ -143,6 +143,19 @@ describe("the daemon host", () => {
 		});
 	});
 
+	it("asks a template's request estimate and refuses one that does not parse (ADR-068)", async () => {
+		const { host } = await setup();
+		expect(await host.estimate("/w", "web-dev")).toEqual({
+			ok: true,
+			value: {
+				providers: [{ providerId: "groq", requests: 15 }],
+				unassigned: 3,
+			},
+		});
+		const odd = await host.estimate("/w", "bad");
+		expect(!odd.ok && odd.error.code).toBe("protocol");
+	});
+
 	it("lists the folder's team templates (ADR-058)", async () => {
 		const { host } = await setup();
 		expect(await host.templates("/w")).toEqual({

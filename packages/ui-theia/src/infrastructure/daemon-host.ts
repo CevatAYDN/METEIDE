@@ -5,6 +5,7 @@ import {
 	DaemonAuditResultSchema,
 	DaemonDoneResultSchema,
 	DaemonErrorDataSchema,
+	DaemonEstimateResultSchema,
 	DaemonEventsResultSchema,
 	DaemonQuotaResultSchema,
 	DaemonRunStartResultSchema,
@@ -240,10 +241,18 @@ const reads = (send: Send) => ({
 		send(dir, DAEMON_METHODS.quota, {}, (raw) =>
 			DaemonQuotaResultSchema.safeParse(raw),
 		),
-	/** The team templates the composer offers (ADR-058). */
+});
+
+// What the run composer asks before Start: the team templates (ADR-058) and each one's request
+// estimate (ADR-068).
+const composing = (send: Send) => ({
 	templates: (dir: string) =>
 		send(dir, DAEMON_METHODS.templates, {}, (raw) =>
 			DaemonTemplatesResultSchema.safeParse(raw),
+		),
+	estimate: (dir: string, templateId: string | null) =>
+		send(dir, DAEMON_METHODS.estimate, { templateId }, (raw) =>
+			DaemonEstimateResultSchema.safeParse(raw),
 		),
 });
 
@@ -258,6 +267,7 @@ export const createDaemonHost = (deps: HostDeps) => {
 	const done = (raw: unknown) => DaemonDoneResultSchema.safeParse(raw);
 	return {
 		...reads(send),
+		...composing(send),
 		/** Starts a run in the folder (ADR-047); its events arrive through onEvent. */
 		startRun: (dir: string, req: RunStart) =>
 			send(dir, DAEMON_METHODS.runStart, req, (raw) =>

@@ -1,6 +1,7 @@
 import type {
 	ApprovalInput,
 	AuditEntry,
+	DaemonEstimateResultSchema,
 	DaemonStatusResultSchema,
 	MeteEvent,
 	ProviderState,
@@ -18,6 +19,9 @@ export const METE_DAEMON_PATH = "/services/mete-daemon";
 
 /** The runs `mete/status` answers, as the daemon protocol schema parses them. */
 export type StatusRuns = ReturnType<typeof DaemonStatusResultSchema.parse>;
+
+/** What `mete/estimate` answers (ADR-068), as the daemon protocol schema parses it. */
+export type Estimate = ReturnType<typeof DaemonEstimateResultSchema.parse>;
 
 /**
  * Why a status call has no runs: the daemon is not ready (`detail` is what core-engine waits for,
@@ -112,6 +116,11 @@ export interface MeteDaemonService {
 			DaemonFailure
 		>
 	>;
+	/** The requests a template, or a single agent for null, is estimated to need per ready provider (ADR-068). */
+	estimate(
+		workspaceDir: string,
+		templateId: string | null,
+	): Promise<Result<Estimate, DaemonFailure>>;
 	/** Whether each provider can carry a run on now (ADR-050), and the pool's units (ADR-054, ADR-055). */
 	quota(workspaceDir: string): Promise<
 		Result<

@@ -48,6 +48,10 @@ const TEMPLATES = {
 		],
 	},
 };
+const ESTIMATE = {
+	ok: true as const,
+	value: { providers: [{ providerId: "groq", requests: 15 }], unassigned: 0 },
+};
 const LISTED = [
 	"Let METE choose",
 	"Game studio",
@@ -62,11 +66,14 @@ const setup = (opts: {
 	/** Answers each pick in turn; a pick left without an answer takes the first item. */
 	picks?: ((labels: string[]) => number | undefined)[];
 	templates?: unknown;
+	/** What mete/estimate answers for a template id, or null for the single agent. */
+	estimate?: (id: string | null) => unknown;
 }) => {
 	const info: string[] = [];
 	const warn: string[] = [];
 	const asked: RunStart[] = [];
 	const picked: string[][] = [];
+	const details: (string | undefined)[][] = [];
 	const progress = { shown: 0, cancelled: 0 };
 	const c = new Container();
 	c.bind(MessageService).toConstantValue({
@@ -87,8 +94,9 @@ const setup = (opts: {
 	} as unknown as WorkspaceService);
 	c.bind(QuickInputService).toConstantValue({
 		input: async () => opts.goal,
-		pick: async (items: { label: string }[]) => {
+		pick: async (items: { label: string; detail?: string }[]) => {
 			picked.push(items.map((i) => i.label));
+			details.push(items.map((i) => i.detail));
 			const answer = opts.picks?.shift() ?? (() => 0);
 			const i = answer(items.map((x) => x.label));
 			return i === undefined ? undefined : items[i];
@@ -96,6 +104,8 @@ const setup = (opts: {
 	} as unknown as QuickInputService);
 	c.bind(MeteDaemonService).toConstantValue({
 		templates: async () => opts.templates ?? TEMPLATES,
+		estimate: async (_dir: string, id: string | null) =>
+			opts.estimate?.(id) ?? ESTIMATE,
 		startRun: async (_dir: string, req: RunStart) => {
 			asked.push(req);
 			return opts.replies.shift();
@@ -112,6 +122,7 @@ const setup = (opts: {
 		warn,
 		asked,
 		picked,
+		details,
 		progress,
 		run: () => handlers.get("mete.run.start")?.execute(),
 	};
@@ -129,6 +140,28 @@ describe("METE: Start run", () => {
 		expect(t.picked).toEqual([LISTED]);
 		expect(t.asked).toEqual([{ goal: "fix the bug" }]);
 		expect(t.info).toEqual(["Run started: r1"]);
+	});
+
+	it("shows each team's and the single agent's request estimate, and leaves out one that fails (ADR-068)", async () => {
+		const t = setup({
+			folders: ["/w"],
+			goal: "g",
+			replies: [STARTED],
+			estimate: (id) =>
+				id === "web-dev"
+					? { ok: false, error: { code: "stopped", detail: "x" } }
+					: ESTIMATE,
+		});
+		await t.run();
+		expect(t.details).toEqual([
+			[
+				undefined,
+				"15 requests: groq 15; tasks the team adds come on top",
+				undefined,
+				"15 requests: groq 15",
+			],
+		]);
+		expect(t.asked).toEqual([{ goal: "g" }]);
 	});
 
 	it("starts the template picked from the list, or a single agent, without asking the router", async () => {
@@ -176,8 +209,8 @@ describe("METE: Start run", () => {
 			{ goal: "g" },
 			{ goal: "g", templateId: null },
 		]);
-		// Each start shows that METE is busy while the router works, and clears it after.
-		expect(single.progress).toEqual({ shown: 2, cancelled: 2 });
+		// The estimates and each start show that METE is busy, and clear it after.
+		expect(single.progress).toEqual({ shown: 3, cancelled: 3 });
 		const team = setup({
 			folders: ["/w"],
 			goal: "g",

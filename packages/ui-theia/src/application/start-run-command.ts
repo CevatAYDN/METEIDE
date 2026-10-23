@@ -13,11 +13,12 @@ import {
 import { inject, injectable } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import { MeteDaemonService } from "../domain/status-service.js";
+import { estimateText } from "./estimate-text.js";
 import { failureText, noFolderText, plain } from "./status-text.js";
 
 // The run composer (ADR-047, ADR-058): a goal, then "Let METE choose", a template or a single agent;
 // the router asks for a team when it is unsure.
-// shortcut: the request estimate and the autonomy level of docs/13 come when the daemon offers them.
+// shortcut: the autonomy level of docs/13 waits for a per-run level that policy.check can take.
 
 /** The palette entry "METE: Start run". */
 export const START_RUN_COMMAND: Command = Command.toLocalizedCommand(
@@ -83,18 +84,25 @@ export class MeteStartRunContribution implements CommandContribution {
 	}
 
 	// "Let METE choose", the folder's templates, a single agent (ADR-058); without the list, the router.
+	// Each team and the single agent carries its request estimate (ADR-068); the router's choice has
+	// none, and an estimate that fails only leaves its line out.
 	protected async pickStart(dir: string) {
-		const listed = await this.daemon.templates(dir);
-		const templates = listed.ok ? listed.value.templates : [];
+		const { templates, estimates } = await this.listing(dir);
+		const detail = (i: number, team: boolean) => {
+			const e = estimates[i];
+			return e?.ok ? { detail: estimateText(e.value, team) } : {};
+		};
 		const picks: StartPick[] = [
 			{ label: nls.localize("mete/run/choose", "Let METE choose") },
-			...templates.map((t) => ({
+			...templates.map((t, i) => ({
 				label: t.name,
 				...(t.description ? { description: t.description } : {}),
+				...detail(i, true),
 				templateId: t.id,
 			})),
 			{
 				label: nls.localize("mete/run/single", "Single agent"),
+				...detail(templates.length, false),
 				templateId: null,
 			},
 		];
@@ -104,6 +112,28 @@ export class MeteStartRunContribution implements CommandContribution {
 				"Which team should work on it?",
 			),
 		});
+	}
+
+	// The templates, then each one's estimate and the single agent's at once; a cold daemon lists the
+	// providers' models first, so a progress message says it is busy.
+	protected async listing(dir: string) {
+		const progress = await this.messages.showProgress({
+			text: nls.localize(
+				"mete/run/estimating",
+				"METE is estimating the requests…",
+			),
+		});
+		try {
+			const listed = await this.daemon.templates(dir);
+			const templates = listed.ok ? listed.value.templates : [];
+			const ids = [...templates.map((t) => t.id), null];
+			const estimates = await Promise.all(
+				ids.map((id) => this.daemon.estimate(dir, id)),
+			);
+			return { templates, estimates };
+		} finally {
+			progress.cancel();
+		}
 	}
 
 	// The router picks a team before the run exists (docs/08), which can take a minute on free

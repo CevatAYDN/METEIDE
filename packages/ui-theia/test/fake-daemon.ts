@@ -54,6 +54,7 @@ conn.onRequest("mete/audit", (p) => {
 });
 conn.onRequest("mete/templates", () => ({ templates: [{ id: "game-studio", name: "Game studio" }] }));
 conn.onRequest("mete/stop.all", () => ({ cancelled: [run.id] }));
+conn.onRequest("mete/estimate", (p) => (p.templateId === "bad" ? { providers: "x" } : { providers: [{ providerId: "groq", requests: 15 }], unassigned: 3 }));
 conn.onRequest("mete/quota", () =>
 	mode === "badquota"
 		? { providers: [{ id: "groq", state: "exhausted" }], units: [] }

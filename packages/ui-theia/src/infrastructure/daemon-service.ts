@@ -96,6 +96,10 @@ export class MeteDaemonBackend
 		return this.host.templates(workspaceDir);
 	}
 
+	estimate(workspaceDir: string, templateId: string | null) {
+		return this.host.estimate(workspaceDir, templateId);
+	}
+
 	onStop() {
 		this.host.stop();
 	}

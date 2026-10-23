@@ -99,6 +99,10 @@
 			"approve": "Çalıştırmayı onayla",
 			"approved": "Onaylandı; çalıştırma devam ediyor.",
 			"choose": "METE seçsin",
+			"estimate": "{0} istek: {1}",
+			"estimateNone": "{0} istek, hazır sağlayıcı yok",
+			"estimateSpawned": "ekibin eklediği görevler bunun üstüne gelir",
+			"estimating": "METE istekleri tahmin ediyor…",
 			"feedback": "Neyin değişmesi gerekiyor?",
 			"goal": "METE bu klasörde ne yapsın?",
 			"noArtifact": "Bu çalıştırmanın henüz açılacak bir raporu yok.",
@@ -114,6 +118,7 @@
 			"start": "Çalıştırma başlat",
 			"started": "Çalıştırma başladı: {0}",
 			"starting": "METE çalıştırmayı başlatıyor…",
+			"unassigned": "{0} atanmamış",
 			"which": "Hangi çalıştırma?"
 		},
 		"studio": {

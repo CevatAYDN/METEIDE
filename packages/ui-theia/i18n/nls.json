@@ -99,6 +99,10 @@
 			"approve": "Approve run",
 			"approved": "Approved; the run goes on.",
 			"choose": "Let METE choose",
+			"estimate": "{0} requests: {1}",
+			"estimateNone": "{0} requests, no provider ready",
+			"estimateSpawned": "tasks the team adds come on top",
+			"estimating": "METE is estimating the requests…",
 			"feedback": "What should change?",
 			"goal": "What should METE do in this folder?",
 			"noArtifact": "This run has no report to open yet.",
@@ -114,6 +118,7 @@
 			"start": "Start run",
 			"started": "Run started: {0}",
 			"starting": "METE is starting the run…",
+			"unassigned": "{0} unassigned",
 			"which": "Which run?"
 		},
 		"status": {
