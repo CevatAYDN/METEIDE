@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { OnEdit } from "./fields.js";
 import { MUTED, PANEL, ROW, TITLE } from "./look.js";
 import { MemberCard } from "./member-card.js";
+import { chainKey } from "./pins-draft.js";
 import { noFolderText } from "./status-text.js";
 import {
 	capabilityHints,
@@ -30,6 +31,10 @@ export type TeamEditorModel =
 			readonly issues: readonly string[];
 			readonly busy: boolean;
 			readonly changed: boolean;
+			/** This team's pins in the folder, by member id (ADR-077). */
+			readonly pins: Readonly<Record<string, string>>;
+			/** `<providerId>/<modelId>` of each tier's chain, by chainKey. */
+			readonly chains: Readonly<Record<string, readonly string[]>>;
 	  };
 
 /** What the screen's buttons do. */
@@ -38,6 +43,8 @@ export type TeamEditorActions = {
 	readonly onAddMember: () => void;
 	readonly onRemoveMember: (index: number) => void;
 	readonly onRenameMember: (index: number, id: string) => void;
+	/** Pins a member's model in this folder, or clears it given undefined (ADR-077). */
+	readonly onPin: (roleId: string, value: string | undefined) => void;
 	readonly onAddTask: (roleId: string) => void;
 	readonly onRemoveTask: (index: number) => void;
 	readonly onSave: () => void;
@@ -180,6 +187,11 @@ const Members = ({
 					onEdit={actions.onEdit}
 					onRemove={() => actions.onRemoveMember(i)}
 					onRename={(id) => actions.onRenameMember(i, id)}
+					pin={{
+						...(model.pins[r.id] ? { value: model.pins[r.id] } : {}),
+						models: model.chains[chainKey(r.tier, r.needs)] ?? [],
+					}}
+					onPin={(v) => actions.onPin(r.id, v)}
 					onAddTask={() => actions.onAddTask(r.id)}
 					onRemoveTask={actions.onRemoveTask}
 				/>

@@ -1,3 +1,4 @@
+import { NeedSchema, TierSchema } from "@mete/contracts";
 import { MessageService } from "@theia/core";
 import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import type { StatefulWidget } from "@theia/core/lib/browser/shell/shell-layout-restorer";
@@ -16,6 +17,15 @@ import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service
 // The design system of docs/13 on every METE panel (ADR-069); the bundle inlines its font.
 import "../../style/mete.css";
 import { panelRoot } from "../application/panel-root.js";
+import {
+	chainKey,
+	isEmpty,
+	type PinsDraft,
+	pinsIssue,
+	pinsOf,
+	pinsOfTeam,
+	withPin,
+} from "../application/pins-draft.js";
 import { failureText } from "../application/status-text.js";
 import {
 	addRole,
@@ -39,7 +49,8 @@ import { MeteDaemonService } from "../domain/status-service.js";
 
 // The team editor (docs/13, Settings, Templates; ADR-075) of the first open folder: it reads a
 // template through the daemon and writes the workspace's .mete/teams/<id>.yaml with Theia's file
-// service. Only the user's Save runs the write (ADR-072).
+// service. Only the user's Save runs the write (ADR-072). A member's pin goes to the folder's
+// .mete/pins.yaml when the user leaves its field, apart from the team's Save (ADR-077).
 
 /** The METE team editor in Theia's main area. */
 @injectable()
@@ -59,6 +70,11 @@ export class MeteTeamEditorWidget
 	protected model: TeamEditorModel = { kind: "none" };
 	protected doc: Draft | undefined;
 	protected root: URI | undefined;
+	/** The folder's pins file; undefined while it does not parse, so it is never written over. */
+	protected pins: PinsDraft | undefined;
+	protected pinsError: string | undefined;
+	/** Each tier's chain for the pin's suggestions, fetched once per tier and needs. */
+	protected readonly chains = new Map<string, readonly string[]>();
 
 	@postConstruct()
 	protected init(): void {
@@ -95,7 +111,96 @@ export class MeteTeamEditorWidget
 		const doc = draftOf(r.value.yaml);
 		if (!doc.ok) return this.setModel({ kind: "failed", text: doc.error });
 		this.doc = doc.value;
+		await this.readPins();
 		this.setModel(this.readyOf(r.value.source, false));
+	}
+
+	protected pinsFile(): URI | undefined {
+		return this.root?.resolve(".mete/pins.yaml");
+	}
+
+	protected async readPins(): Promise<void> {
+		const file = this.pinsFile();
+		if (!file) return;
+		try {
+			const text = (await this.files.exists(file))
+				? (await this.files.read(file)).value
+				: undefined;
+			const r = pinsOf(text);
+			this.pins = r.ok ? r.value : undefined;
+			this.pinsError = r.ok ? undefined : r.error;
+		} catch (e) {
+			this.pins = undefined;
+			this.pinsError = String(e);
+		}
+	}
+
+	// The models each member's tier would try, asked once per tier and needs; a failed ask offers none.
+	protected async fetchChains(team: ReturnType<typeof teamOf>): Promise<void> {
+		const root = this.root?.path.fsPath();
+		if (!root) return;
+		let fetched = false;
+		for (const r of team.roles) {
+			const key = chainKey(r.tier, r.needs);
+			const tier = TierSchema.safeParse(r.tier);
+			if (this.chains.has(key) || !tier.success) continue;
+			this.chains.set(key, []);
+			const needs = NeedSchema.array().parse(
+				r.needs.filter((n) => NeedSchema.safeParse(n).success),
+			);
+			const got = await this.daemon.chain(root, tier.data, needs);
+			if (!got.ok) continue;
+			this.chains.set(
+				key,
+				got.value.models.map((m) => `${m.providerId}/${m.modelId}`),
+			);
+			fetched = true;
+		}
+		if (fetched && this.model.kind === "ready")
+			this.setModel({ ...this.model, chains: Object.fromEntries(this.chains) });
+	}
+
+	// A pin is the folder's own setting: it is written at once, never with the team's Save, and a file
+	// left with no pin is deleted.
+	protected async pin(
+		roleId: string,
+		value: string | undefined,
+	): Promise<void> {
+		const file = this.pinsFile();
+		if (this.model.kind !== "ready" || !file) return;
+		if (!this.pins)
+			return void this.messages.warn(
+				nls.localize(
+					"mete/team/pinsUnreadable",
+					"METE cannot read .mete/pins.yaml, so it does not change it: {0}",
+					this.pinsError ?? "",
+				),
+			);
+		const teamId = this.model.team.metadata.id;
+		const next = withPin(this.pins, teamId, roleId, value);
+		const issue = pinsIssue(next);
+		if (issue)
+			return void this.messages.warn(
+				nls.localize(
+					"mete/team/pinRefused",
+					"This pin is not saved: {0}",
+					issue,
+				),
+			);
+		try {
+			if (!isEmpty(next)) await this.files.write(file, next.toString());
+			else if (await this.files.exists(file)) await this.files.delete(file);
+		} catch (e) {
+			return void this.messages.error(
+				nls.localize(
+					"mete/team/pinNotSaved",
+					"METE could not save the pin: {0}",
+					String(e),
+				),
+			);
+		}
+		this.pins = next;
+		this.setModel({ ...this.model, pins: pinsOfTeam(next, teamId) });
 	}
 
 	// Opening another team over unsaved changes asks first, since the draft would be lost.
@@ -130,6 +235,7 @@ export class MeteTeamEditorWidget
 				? this.model.fixedIds
 				: team.roles.map((r) => r.id);
 		const issues = issuesOf(doc);
+		void this.fetchChains(team);
 		return {
 			kind: "ready",
 			team,
@@ -138,6 +244,8 @@ export class MeteTeamEditorWidget
 			issues,
 			busy: false,
 			changed,
+			pins: this.pins ? pinsOfTeam(this.pins, team.metadata.id) : {},
+			chains: Object.fromEntries(this.chains),
 		};
 	}
 
@@ -225,6 +333,7 @@ export class MeteTeamEditorWidget
 			onAddMember: () => this.change(addRole),
 			onRemoveMember: (i) => this.change((d) => removeRole(d, i)),
 			onRenameMember: (i, id) => this.rename(i, id),
+			onPin: (roleId, value) => void this.pin(roleId, value),
 			onAddTask: (roleId) => this.change((d) => addTask(d, roleId)),
 			onRemoveTask: (i) => this.change((d) => removeTask(d, i)),
 			onSave: () => void (this.doc && this.save(this.doc)),

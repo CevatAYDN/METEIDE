@@ -34,6 +34,7 @@ const ACTIONS: TeamEditorActions = {
 	onAddMember: nothing,
 	onRemoveMember: nothing,
 	onRenameMember: nothing,
+	onPin: nothing,
 	onAddTask: nothing,
 	onRemoveTask: nothing,
 	onSave: nothing,
@@ -51,6 +52,8 @@ const ready = (
 	issues: issuesOf(doc),
 	busy: false,
 	changed: true,
+	pins: {},
+	chains: {},
 	...more,
 });
 const html = (model: TeamEditorModel) =>
@@ -143,6 +146,27 @@ describe("the rules of the work", () => {
 		expect(html(ready(DOC))).not.toContain(
 			"Tasks a task list gives this member",
 		);
+	});
+});
+
+describe("a member's pinned model (ADR-077)", () => {
+	it("shows the pin and the tier's models for a member of the file, and asks a new member to wait for Save", () => {
+		const doc = addRole(DOC);
+		const out = html(
+			ready(doc, {
+				pins: { qa: "groq/fast-one" },
+				chains: { "coder|tool_calling": ["groq/fast-one", "nvidia/big"] },
+			}),
+		);
+		expect(out).toContain("Pinned model (optional)");
+		expect(out).toContain('value="groq/fast-one"');
+		expect(out).toContain('<option value="nvidia/big">');
+		expect(out).toContain("not the team file");
+		expect(out.match(/Save the team to pin this member/g)).toHaveLength(1);
+	});
+
+	it("says how to get a list when the tier offers no model", () => {
+		expect(html(ready(DOC))).toContain("add a provider key");
 	});
 });
 

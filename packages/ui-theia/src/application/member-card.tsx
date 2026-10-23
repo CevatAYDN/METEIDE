@@ -12,6 +12,7 @@ import {
 	Ticks,
 } from "./fields.js";
 import { MUTED, ROW } from "./look.js";
+import { PinField } from "./pin-field.js";
 import { type MemberView, type TeamView, toggled } from "./team-draft.js";
 import { Work } from "./work-fields.js";
 
@@ -159,6 +160,9 @@ type MemberProps = {
 	readonly fixed: boolean;
 	readonly hints: readonly string[];
 	readonly onRename: (id: string) => void;
+	/** The member's pinned model in this folder, and the models its tier offers (ADR-077). */
+	readonly pin: { readonly value?: string; readonly models: readonly string[] };
+	readonly onPin: (value: string | undefined) => void;
 	/** Artifact types with a schema, offered as guardrails. */
 	readonly outputs: readonly string[];
 	readonly onEdit: OnEdit;
@@ -333,6 +337,7 @@ export const MemberCard = (props: MemberProps) => {
 				fixed={props.fixed}
 				onRename={props.onRename}
 			/>
+			<PinField fixed={props.fixed} {...props.pin} onPin={props.onPin} />
 			<Reach
 				member={member}
 				others={others}
