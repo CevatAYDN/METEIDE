@@ -182,4 +182,4 @@ Pool rules \[D\]:
 3. No capacity anywhere: wait if a reset comes within 90 seconds; otherwise pause the run with reason `quota` and `resumesAt` set to the earliest reset \[D\].
 4. `media.*` calls are charged to their own provider units, separate from chat \[C\].
 5. When a run reaches `budget.cloud_requests` or `budget.max_hours`, it pauses with reason `budget` and asks the user \[C\].
-6. Before a run starts, the UI shows an estimate: the sum of historical average requests per role and task kind; without history, 12 requests per task, 4 per review and 3 per approval \[D\].
+6. Before a run starts, the UI shows an estimate: the sum of historical average requests per role and task kind; without history, 12 requests per task, 4 per review and 3 per approval \[D\]. The composer shows it per provider: a task's requests go to the first `ready` provider of the chain resolved for its role's tier and needs, an approval's to the approver role's (a human approver makes no request), the review term counts once pair review runs, and with no provider ready the requests are unassigned (ADR-068) \[D\].
