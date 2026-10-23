@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ApprovalInputSchema } from "./engine.js";
-import { MeteEventSchema } from "./events.js";
+import { type MeteEvent, MeteEventSchema } from "./events.js";
 import { IdSchema, TimestampSchema } from "./ids.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
@@ -96,7 +96,8 @@ export const DaemonQuotaResultSchema = z.strictObject({
  * and how many rows no longer parse, which are counted and never dropped silently (ADR-051).
  */
 export const DaemonEventsResultSchema = z.strictObject({
-	events: z.array(MeteEventSchema),
+	// As in parseEvent: the schema checks each event, MeteEvent restores the precise union.
+	events: z.array(MeteEventSchema).transform((es) => es as MeteEvent[]),
 	unreadable: z.number().int().nonnegative(),
 });
 
