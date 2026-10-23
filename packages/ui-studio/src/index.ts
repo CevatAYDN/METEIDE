@@ -1,5 +1,11 @@
 // Public API of this package: the run view model the Team panel's views share (ADR-051).
 export { type AgentCard, agentsAfter } from "./domain/agents.js";
+export {
+	type Character,
+	type CharacterState,
+	type Scene,
+	sceneOf,
+} from "./domain/scene.js";
 export { NO_SIGNALS, type RunSignals, signalsAfter } from "./domain/signals.js";
 export {
 	applyAll,
