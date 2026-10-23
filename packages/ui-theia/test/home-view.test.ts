@@ -11,7 +11,12 @@ const AT = "2026-10-23T10:00:00.000Z";
 
 const html = (model: HomeModel) =>
 	renderToStaticMarkup(
-		createElement(HomeView, { model, onRefresh: () => {}, onAct: () => {} }),
+		createElement(HomeView, {
+			model,
+			onRefresh: () => {},
+			onAct: () => {},
+			onSetKey: () => {},
+		}),
 	);
 
 const run = (
@@ -133,5 +138,22 @@ describe("the Home view", () => {
 			homeModel({ ok: true, value: [run("completed", "done", null)] }, AT),
 		);
 		expect(out).not.toContain("Waiting for you");
+	});
+
+	it("offers to set a provider key while METE is not ready, and only then", () => {
+		const notReady = html(
+			homeModel(
+				{ ok: false, error: { code: "not_ready", detail: "no key" } },
+				AT,
+			),
+		);
+		expect(notReady).toContain(">Set provider key…<");
+		const stopped = html(
+			homeModel(
+				{ ok: false, error: { code: "stopped", detail: "exit code 1" } },
+				AT,
+			),
+		);
+		expect(stopped).not.toContain("Set provider key");
 	});
 });

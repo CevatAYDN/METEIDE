@@ -150,31 +150,63 @@ const Inbox = ({
 	);
 };
 
-const Body = ({ model }: { readonly model: HomeModel }) => {
+// Not ready is mostly a missing provider key, so the panel offers the way to add one (ADR-049).
+const Failed = ({
+	model,
+	onSetKey,
+}: {
+	readonly model: Extract<HomeModel, { kind: "failed" }>;
+	readonly onSetKey: () => void;
+}) => (
+	<>
+		<p role="alert">{failureText(model.failure)}</p>
+		{model.failure.code === "not_ready" ? (
+			<div style={ROW}>
+				<Button
+					label={nls.localize("mete/home/setKey", "Set provider key…")}
+					onClick={onSetKey}
+				/>
+			</div>
+		) : null}
+	</>
+);
+
+const Body = ({
+	model,
+	onSetKey,
+}: {
+	readonly model: HomeModel;
+	readonly onSetKey: () => void;
+}) => {
 	if (model.kind === "loading")
 		return (
 			<p>{nls.localize("mete/home/loading", "Asking the METE daemon…")}</p>
 		);
 	if (model.kind === "no_folder") return <p>{noFolderText()}</p>;
 	if (model.kind === "failed")
-		return <p role="alert">{failureText(model.failure)}</p>;
+		return <Failed model={model} onSetKey={onSetKey} />;
 	return <Runs rows={model.rows} />;
 };
 
-/** What the panel draws for a model; `onRefresh` asks the daemon again, `onAct` answers a run. */
+/**
+ * What the panel draws for a model; `onRefresh` asks the daemon again, `onAct` answers a run and
+ * `onSetKey` sets a provider key.
+ */
 export const HomeView = ({
 	model,
 	onRefresh,
 	onAct,
+	onSetKey,
 }: {
 	readonly model: HomeModel;
 	readonly onRefresh: () => void;
 	readonly onAct: Act;
+	readonly onSetKey: () => void;
 }) => (
 	<section style={PANEL} aria-live="polite">
 		{model.kind === "runs" ? <Inbox rows={model.rows} act={onAct} /> : null}
 		<h2 style={TITLE}>{nls.localize("mete/home/recentRuns", "Recent runs")}</h2>
-		<Body model={model} />
+		<Body model={model} onSetKey={onSetKey} />
 		<div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
 			<Button
 				label={nls.localize("mete/home/refresh", "Refresh")}

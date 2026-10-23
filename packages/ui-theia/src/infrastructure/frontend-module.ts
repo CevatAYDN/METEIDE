@@ -3,6 +3,7 @@ import { ServiceConnectionProvider } from "@theia/core/lib/browser/messaging/ser
 import { ContainerModule } from "@theia/core/shared/inversify";
 import { MeteApprovalContribution } from "../application/approval-commands.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
+import { MeteKeyContribution } from "../application/key-command.js";
 import { MeteStartRunContribution } from "../application/start-run-command.js";
 import { MeteCommandContribution } from "../application/status-command.js";
 import {
@@ -28,5 +29,6 @@ export default new ContainerModule((bind) => {
 	bind(CommandContribution).to(MeteCommandContribution).inSingletonScope();
 	bind(CommandContribution).to(MeteStartRunContribution).inSingletonScope();
 	bind(CommandContribution).to(MeteApprovalContribution).inSingletonScope();
+	bind(CommandContribution).to(MeteKeyContribution).inSingletonScope();
 	bindHome(bind);
 });

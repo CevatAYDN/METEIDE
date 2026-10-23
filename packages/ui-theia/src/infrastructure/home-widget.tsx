@@ -15,6 +15,7 @@ import {
 } from "../application/approval-commands.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { type HomeAction, HomeView } from "../application/home-view.js";
+import { SET_KEY_COMMAND } from "../application/key-command.js";
 import { type HomeModel, homeModel } from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 
@@ -73,6 +74,12 @@ export class MeteHomeWidget extends ReactWidget {
 		return this.commands.executeCommand(id, runId);
 	}
 
+	// The daemon restarts with the new key, so the panel asks again once the command is done.
+	protected async setKey() {
+		await this.commands.executeCommand(SET_KEY_COMMAND.id);
+		await this.refresh();
+	}
+
 	protected setModel(model: HomeModel): void {
 		this.model = model;
 		this.update();
@@ -84,6 +91,7 @@ export class MeteHomeWidget extends ReactWidget {
 				model={this.model}
 				onRefresh={() => void this.refresh()}
 				onAct={(action, runId) => void this.act(action, runId)}
+				onSetKey={() => void this.setKey()}
 			/>
 		);
 	}
