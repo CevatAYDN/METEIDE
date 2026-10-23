@@ -7,6 +7,18 @@ export const KEYCHAIN_SERVICE = "mete";
 export const MASK_TAG_HEX = 8;
 
 /**
+ * SECURITY.md, Protected paths (ADR-072): an agent never writes, deletes or restores these, at any
+ * autonomy level. Path globs under the workspace folder; `*` stays in one folder, so the agents' own
+ * folders (`.mete/artifacts/`, `.mete/assets/`, `.mete/knowledge/`, `.mete/skills/`) stay writable.
+ * The tools' checkpoint restore keeps the same set (packages/tools, vcs-checkpoint).
+ */
+export const PROTECTED_PATHS: readonly string[] = [
+	".mete/*.yaml",
+	".mete/teams/**",
+	".meteignore",
+];
+
+/**
  * SECURITY.md, Policy file (decision order, step 9): at level 2 a write to one of these asks, because
  * the files change which program an allow-listed command runs (a package script, a hook, a loaded
  * config). Patterns are path globs under the workspace folder; a task's worktree is judged as the

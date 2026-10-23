@@ -4,7 +4,7 @@ import type {
 	PolicyCheckInput,
 	PolicyVerdict,
 } from "@mete/contracts";
-import { SCRIPT_MANIFESTS } from "../defaults.js";
+import { PROTECTED_PATHS, SCRIPT_MANIFESTS } from "../defaults.js";
 import {
 	commandMatches,
 	commandParts,
@@ -28,13 +28,6 @@ const WRITES: ReadonlySet<PolicyAction> = new Set([
 	"fs.delete",
 	"fs.write.outside",
 ]);
-// SECURITY.md, Protected paths: a re-include line in .meteignore would open what it hides.
-const PROTECTED = [
-	".mete/policy.yaml",
-	".mete/bindings.yaml",
-	".mete/mcp.yaml",
-	".meteignore",
-];
 const LEVEL2_ALLOWED: ReadonlySet<PolicyAction> = new Set([
 	"git.commit",
 	"net.fetch",
@@ -109,7 +102,7 @@ const neverAllowed = (s: Subject, env: CheckerEnv) =>
 	);
 
 const isProtected = (path: string, env: CheckerEnv) =>
-	PROTECTED.some((f) => normalizePath(f, env) === normalizePath(path, env));
+	PROTECTED_PATHS.some((p) => pathMatches(p, path, env));
 
 // Steps 2 and 3: rules that deny at every level.
 const hardDeny = (s: Subject, env: CheckerEnv): PolicyVerdict | undefined => {

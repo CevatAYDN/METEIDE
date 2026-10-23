@@ -105,9 +105,39 @@ describe("decide: input and hard rules", () => {
 		expect(decide(write("c:\\repo\\.METE\\Bindings.yaml"), win).rule).toBe(
 			"protected_path",
 		);
-		expect(decide(write("/repo/.mete/teams/x.yaml"), at(3)).verdict).toBe(
-			"allow",
-		);
+	});
+
+	// ADR-072: every settings section a workspace may carry, the team templates and .meteignore.
+	it("denies writes and deletes of every .mete yaml file and team template at every level", () => {
+		const files = [
+			".mete/privacy.yaml",
+			".mete/gateway.yaml",
+			".mete/quota.yaml",
+			".mete/workspace.yaml",
+			".mete/models.yaml",
+			".mete/teams/evil.yaml",
+			".mete/teams/sub/deeper.yaml",
+		];
+		for (const level of [1, 2, 3] as const)
+			for (const f of files)
+				for (const action of ["fs.write", "fs.delete"] as const)
+					expect(
+						decide(check(action, { path: `/repo/${f}` }), at(level)).rule,
+						`${action} ${f} at ${level}`,
+					).toBe("protected_path");
+	});
+
+	it("leaves the agents' own folders under .mete and other yaml files writable", () => {
+		for (const f of [
+			".mete/artifacts/plan.yaml",
+			".mete/assets/manifest.yaml",
+			".mete/knowledge/notes.md",
+			".mete/skills/x/SKILL.md",
+			".mete/runs/r1.yaml",
+			"config/privacy.yaml",
+			"privacy.yaml",
+		])
+			expect(decide(write(`/repo/${f}`), at(2)).verdict, f).toBe("allow");
 	});
 
 	it("denies writes and deletes of the workspace's .meteignore", () => {
@@ -303,7 +333,13 @@ describe("decide: a task's worktree is judged as the workspace it merges into", 
 
 	it("denies a worktree's copy of a protected file at every level", () => {
 		for (const level of [1, 2, 3] as const)
-			for (const f of [".mete/policy.yaml", ".mete/mcp.yaml", ".meteignore"])
+			for (const f of [
+				".mete/policy.yaml",
+				".mete/mcp.yaml",
+				".mete/privacy.yaml",
+				".mete/teams/x.yaml",
+				".meteignore",
+			])
 				expect(decide(write(`${wt}/${f}`), at(level)).rule, f).toBe(
 					"protected_path",
 				);
