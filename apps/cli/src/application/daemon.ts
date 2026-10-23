@@ -4,6 +4,7 @@ import {
 	DAEMON_METHODS,
 	type DaemonErrorData,
 	DaemonStatusParamsSchema,
+	type EngineError,
 	EVENT_TYPES,
 } from "@mete/contracts";
 import type { EventBus } from "@mete/kernel";
@@ -25,6 +26,12 @@ export type DaemonStreams = {
 	readonly input: Readable;
 	readonly output: Writable;
 };
+
+// The error data of a refused engine call (ADR-047: choose_template keeps the router's suggestions).
+const refusedData = (e: EngineError): DaemonErrorData =>
+	e.code === "choose_template"
+		? { code: e.code, suggestions: [...e.suggestions] }
+		: { code: e.code };
 
 // A refused call keeps the EngineError code in data, so the desktop can tell not_found from a bug.
 // The engine is looked up per request: while it is not active the answer is not_ready with the
@@ -48,8 +55,11 @@ const serveStatus = (conn: MessageConnection, app: App) =>
 		}
 		const r = engine.value.status(p.data.runId);
 		if (!r.ok) {
-			const data: DaemonErrorData = { code: r.error.code };
-			throw new ResponseError(DAEMON_ERROR_CODE, r.error.message, data);
+			throw new ResponseError(
+				DAEMON_ERROR_CODE,
+				r.error.message,
+				refusedData(r.error),
+			);
 		}
 		return r.value;
 	});

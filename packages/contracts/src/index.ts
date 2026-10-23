@@ -22,6 +22,7 @@ export {
 	DAEMON_METHODS,
 	type DaemonErrorData,
 	DaemonErrorDataSchema,
+	DaemonRunStartResultSchema,
 	DaemonStatusParamsSchema,
 	DaemonStatusResultSchema,
 	RunViewSchema,

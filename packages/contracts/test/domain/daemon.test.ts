@@ -3,6 +3,7 @@ import {
 	DAEMON_METHODS,
 	type DaemonErrorData,
 	DaemonErrorDataSchema,
+	DaemonRunStartResultSchema,
 	DaemonStatusParamsSchema,
 	DaemonStatusResultSchema,
 	RunViewSchema,
@@ -24,10 +25,11 @@ const run: RunView = {
 	endedAt: "2026-10-23T11:00:00.000Z",
 };
 
-describe("daemon protocol version 2", () => {
+describe("daemon protocol version 3", () => {
 	it("names the two messages of ARCHITECTURE.md", () => {
 		expect(DAEMON_METHODS).toEqual({
 			status: "mete/status",
+			runStart: "mete/run.start",
 			event: "mete/event",
 		});
 	});
@@ -76,7 +78,6 @@ describe("daemon protocol version 2", () => {
 			"not_found",
 			"not_supported",
 			"invalid_state",
-			"choose_template",
 		])
 			expect(DaemonErrorDataSchema.parse({ code })).toEqual({ code });
 		expect(DaemonErrorDataSchema.safeParse({ code: "oops" }).success).toBe(
@@ -104,5 +105,26 @@ describe("daemon protocol version 2", () => {
 			{ code: "not_ready", reasons: ["x"], extra: true },
 		])
 			expect(DaemonErrorDataSchema.safeParse(bad).success).toBe(false);
+	});
+
+	it("carries the router's suggestions with choose_template", () => {
+		const data = {
+			code: "choose_template",
+			suggestions: ["research", "web-dev"],
+		};
+		expect(DaemonErrorDataSchema.parse(data)).toEqual(data);
+		for (const bad of [
+			{ code: "choose_template" },
+			{ code: "choose_template", suggestions: [] },
+			{ code: "not_found", suggestions: ["x"] },
+		])
+			expect(DaemonErrorDataSchema.safeParse(bad).success).toBe(false);
+	});
+
+	it("answers mete/run.start with the id of the run it started", () => {
+		const runId = crypto.randomUUID();
+		expect(DaemonRunStartResultSchema.parse({ runId })).toEqual({ runId });
+		for (const bad of [{}, { runId: "r1" }, { runId, extra: true }])
+			expect(DaemonRunStartResultSchema.safeParse(bad).success).toBe(false);
 	});
 });

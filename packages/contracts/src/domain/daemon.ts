@@ -2,12 +2,13 @@ import { z } from "zod";
 import { IdSchema, TimestampSchema } from "./ids.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 2 from ARCHITECTURE.md (Daemon protocol, ADR-045 and ADR-046). The notification
-// `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
+// Daemon protocol version 3 from ARCHITECTURE.md (Daemon protocol, ADR-045, ADR-046 and ADR-047).
+// The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The two messages of versions 1 and 2. */
+/** The messages of version 3; its params for mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
+	runStart: "mete/run.start",
 	event: "mete/event",
 } as const;
 
@@ -45,19 +46,21 @@ export const RunViewSchema = z.strictObject({
 /** Result of `mete/status`. */
 export const DaemonStatusResultSchema = z.array(RunViewSchema);
 
+/** Result of `mete/run.start`: the run it started. */
+export const DaemonRunStartResultSchema = z.strictObject({ runId: IdSchema });
+
 /**
- * `data` of an error answer: the `EngineError` code of the refused call, or `not_ready` with the
- * lines `mete status` prints while core-engine is not active (ADR-046).
+ * `data` of an error answer: the `EngineError` code of the refused call (`choose_template` with the
+ * router's suggestions, ADR-047), or `not_ready` with the lines `mete status` prints while
+ * core-engine is not active (ADR-046).
  */
 export const DaemonErrorDataSchema = z.discriminatedUnion("code", [
 	z.strictObject({
-		code: z.enum([
-			"bad_input",
-			"not_found",
-			"not_supported",
-			"invalid_state",
-			"choose_template",
-		]),
+		code: z.enum(["bad_input", "not_found", "not_supported", "invalid_state"]),
+	}),
+	z.strictObject({
+		code: z.literal("choose_template"),
+		suggestions: z.array(z.string().min(1)).min(1),
 	}),
 	z.strictObject({
 		code: z.literal("not_ready"),
