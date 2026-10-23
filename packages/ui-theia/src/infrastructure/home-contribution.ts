@@ -6,9 +6,11 @@ import {
 	FrontendApplicationContribution as FrontendApplicationContributionId,
 	WidgetFactory,
 } from "@theia/core/lib/browser";
+import { TabBarDecorator } from "@theia/core/lib/browser/shell/tab-bar-decorator";
 import { nls } from "@theia/core/lib/common/nls";
 import { injectable, type interfaces } from "@theia/core/shared/inversify";
 import { MeteHomeWidget } from "./home-widget.js";
+import { MeteInboxBadge } from "./inbox-badge.js";
 
 // The Home view's place in Theia: its commands (docs/13, Design system: every METE action is a
 // command) and the side bar it opens in on the first start, Theia's left area for views.
@@ -60,6 +62,8 @@ export const bindHome = (bind: interfaces.Bind) => {
 	bindViewContribution(bind, MeteHomeContribution);
 	bind(FrontendApplicationContributionId).toService(MeteHomeContribution);
 	bind(MeteHomeWidget).toSelf();
+	bind(MeteInboxBadge).toSelf().inSingletonScope();
+	bind(TabBarDecorator).toService(MeteInboxBadge);
 	bind(WidgetFactory)
 		.toDynamicValue((ctx) => ({
 			id: MeteHomeWidget.ID,

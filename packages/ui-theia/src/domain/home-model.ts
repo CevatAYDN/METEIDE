@@ -41,6 +41,10 @@ export type HomeModel =
 export const waitsForYou = (r: StatusRuns[number]) =>
 	r.status === "paused" && r.pauseReason === "approval";
 
+/** How many runs wait for the human: the Approvals inbox badge (docs/13), none without runs. */
+export const waitingCount = (model: HomeModel) =>
+	model.kind === "runs" ? model.rows.filter((r) => r.waiting).length : 0;
+
 /** A run paused for quota goes on by itself once a provider can carry it. */
 export const waitsForQuota = (r: StatusRuns[number]) =>
 	r.status === "paused" && r.pauseReason === "quota";

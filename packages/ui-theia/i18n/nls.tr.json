@@ -58,6 +58,7 @@
 			"status": "Durum",
 			"title": "METE",
 			"waiting": "Seni bekleyenler",
+			"waitingBadge": "{0} çalıştırma seni bekliyor",
 			"workspaces": "Çalışma alanları"
 		},
 		"key": {

@@ -2,7 +2,11 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { HomeView } from "../src/application/home-view.js";
-import { type HomeModel, homeModel } from "../src/domain/home-model.js";
+import {
+	type HomeModel,
+	homeModel,
+	waitingCount,
+} from "../src/domain/home-model.js";
 import type { StatusRuns } from "../src/domain/status-service.js";
 
 // The Home view rendered to HTML on Node: no DOM and no Theia widget, only the view and its model.
@@ -69,6 +73,23 @@ describe("the Home view", () => {
 		expect(out).toContain(" · research");
 		expect(out).toContain(">completed</td>");
 		expect(out).toContain("As of ");
+	});
+
+	it("counts the runs that wait for you for the inbox badge, and none without runs", () => {
+		const model = homeModel(
+			{
+				ok: true,
+				value: [
+					run("paused", "a", "web-dev", "approval"),
+					run("paused", "b", "web-dev", "quota"),
+					run("paused", "c", "web-dev", "approval"),
+					run("running", "d", null),
+				],
+			},
+			AT,
+		);
+		expect(waitingCount(model)).toBe(2);
+		expect(waitingCount({ kind: "loading" })).toBe(0);
 	});
 
 	it("says there are no runs yet", () => {

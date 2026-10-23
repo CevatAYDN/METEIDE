@@ -21,10 +21,15 @@ import {
 	type Workspace,
 } from "../application/home-view.js";
 import { SET_KEY_COMMAND } from "../application/key-command.js";
-import { type HomeModel, homeModel } from "../domain/home-model.js";
+import {
+	type HomeModel,
+	homeModel,
+	waitingCount,
+} from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { OPEN_ARTIFACT_COMMAND } from "./artifact-command.js";
 import { OPEN_BOARD_COMMAND } from "./board-contribution.js";
+import { MeteInboxBadge } from "./inbox-badge.js";
 
 // The Home panel (docs/13, Home): recent runs of the first open folder, asked of its daemon.
 // It asks again when the panel opens, on Refresh and on every run.* event of its folder.
@@ -38,6 +43,7 @@ export class MeteHomeWidget extends ReactWidget {
 	@inject(WorkspaceService) protected readonly workspace!: WorkspaceService;
 	@inject(MeteDaemonEvents) protected readonly events!: MeteDaemonEvents;
 	@inject(CommandService) protected readonly commands!: CommandService;
+	@inject(MeteInboxBadge) protected readonly badge!: MeteInboxBadge;
 
 	protected model: HomeModel = { kind: "loading" };
 	protected workspaces: readonly Workspace[] = [];
@@ -125,6 +131,7 @@ export class MeteHomeWidget extends ReactWidget {
 
 	protected setModel(model: HomeModel): void {
 		this.model = model;
+		this.badge.set(waitingCount(model));
 		this.update();
 	}
 

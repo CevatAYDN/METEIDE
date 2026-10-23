@@ -58,6 +58,7 @@
 			"status": "Status",
 			"title": "METE",
 			"waiting": "Waiting for you",
+			"waitingBadge": "{0} run(s) wait for you",
 			"workspaces": "Workspaces"
 		},
 		"key": {
