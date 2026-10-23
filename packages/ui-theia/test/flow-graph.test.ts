@@ -1,4 +1,9 @@
-import { NO_SIGNALS, type TaskCard, type TeamView } from "@mete/ui-studio";
+import {
+	type AgentCard,
+	NO_SIGNALS,
+	type TaskCard,
+	type TeamView,
+} from "@mete/ui-studio";
 import { describe, expect, it } from "vitest";
 import { flowGraph } from "../src/application/flow-graph.js";
 
@@ -15,10 +20,10 @@ const card = (
 	dependsOn,
 	status,
 });
-const view = (tasks: TaskCard[]): TeamView => ({
+const view = (tasks: TaskCard[], agents: AgentCard[] = []): TeamView => ({
 	seen: new Set(),
 	tasks,
-	agents: [],
+	agents,
 	signals: NO_SIGNALS,
 });
 
@@ -45,6 +50,7 @@ describe("the Flow graph", () => {
 			"art>qa",
 		]);
 		expect(g.nodes.find((n) => n.id === "build")?.data).toEqual({
+			kind: "task",
 			title: "task build",
 			roleId: "writer",
 			column: "in_progress",
@@ -57,5 +63,43 @@ describe("the Flow graph", () => {
 		expect(g.nodes).toHaveLength(2);
 		expect(g.edges.map((e) => e.source).sort()).toEqual(["a", "b"]);
 		expect(flowGraph(view([]))).toEqual({ nodes: [], edges: [] });
+	});
+
+	it("puts the agents in a column before the tasks, each with an edge to the task it works on", () => {
+		const agent = (id: string, taskId?: string): AgentCard => ({
+			id,
+			roleId: "artist",
+			providerId: "groq",
+			modelId: "m1",
+			thinking: id === "a1",
+			...(taskId ? { taskId } : {}),
+		});
+		const g = flowGraph(
+			view(
+				[card("brief", []), card("art", ["brief"])],
+				[agent("a1", "art"), agent("a2", "ghost"), agent("a3")],
+			),
+		);
+		const agents = g.nodes.filter((n) => n.data.kind === "agent");
+		expect(agents.map((n) => n.id)).toEqual([
+			"agent:a1",
+			"agent:a2",
+			"agent:a3",
+		]);
+		const brief = g.nodes.find((n) => n.id === "brief");
+		expect(agents.every((n) => n.position.x < (brief?.position.x ?? 0))).toBe(
+			true,
+		);
+		expect(new Set(agents.map((n) => n.position.y)).size).toBe(3);
+		expect(agents[0]?.data).toEqual({
+			kind: "agent",
+			roleId: "artist",
+			modelId: "m1",
+			thinking: true,
+		});
+		expect(g.edges.map((e) => `${e.source}>${e.target}`)).toEqual([
+			"brief>art",
+			"agent:a1>art",
+		]);
 	});
 });

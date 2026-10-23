@@ -1,4 +1,5 @@
 import {
+	type AgentCard,
 	type Place,
 	placeOf,
 	type TaskCard,
@@ -7,17 +8,26 @@ import {
 
 // The Flow view's graph (docs/13, Team panel; ADR-051): the run's tasks as nodes and dependsOn as
 // edges, laid out in levels: a task sits one level after the deepest task it waits for, and the
-// tasks of a level stack in their order. React Flow does no layout, and a layout library is not in
-// docs/05, so this is small own code. shortcut: agents join as nodes when the fold carries them.
+// tasks of a level stack in their order. Agents stand in a column before the tasks, each with an
+// edge to the task it works on. React Flow does no layout, and a layout library is not in docs/05,
+// so this is small own code.
 
 const LEVEL_WIDTH = 260;
 const ROW_HEIGHT = 110;
 
-/** What a node shows: the task, its role and where the Board would place it. */
-export type FlowNodeData = {
-	readonly title: string;
-	readonly roleId: string;
-} & Place;
+/** What a node shows: a task with its role and where the Board would place it, or an agent. */
+export type FlowNodeData =
+	| ({
+			readonly kind: "task";
+			readonly title: string;
+			readonly roleId: string;
+	  } & Place)
+	| {
+			readonly kind: "agent";
+			readonly roleId: string;
+			readonly modelId: string;
+			readonly thinking: boolean;
+	  };
 
 /** A node in React Flow's shape. */
 export type FlowNode = {
@@ -26,7 +36,7 @@ export type FlowNode = {
 	readonly data: FlowNodeData;
 };
 
-/** An edge from a task to the one that waits for it. */
+/** An edge from a task to the one that waits for it, or from an agent to its task. */
 export type FlowEdge = {
 	readonly id: string;
 	readonly source: string;
@@ -52,7 +62,34 @@ const levelsOf = (tasks: readonly TaskCard[]) => {
 	return levels;
 };
 
-/** The nodes and edges of the run's tasks. */
+// Agent ids get a prefix, so an agent never takes the node of a task with the same id.
+const agentNodes = (agents: readonly AgentCard[], ids: Set<string>) => ({
+	nodes: agents.map(
+		(a, row): FlowNode => ({
+			id: `agent:${a.id}`,
+			position: { x: -LEVEL_WIDTH, y: row * ROW_HEIGHT },
+			data: {
+				kind: "agent",
+				roleId: a.roleId,
+				modelId: a.modelId,
+				thinking: a.thinking,
+			},
+		}),
+	),
+	edges: agents.flatMap((a): FlowEdge[] =>
+		a.taskId !== undefined && ids.has(a.taskId)
+			? [
+					{
+						id: `agent:${a.id}>${a.taskId}`,
+						source: `agent:${a.id}`,
+						target: a.taskId,
+					},
+				]
+			: [],
+	),
+});
+
+/** The nodes and edges of the run's tasks and agents. */
 export const flowGraph = (
 	view: TeamView,
 ): { readonly nodes: FlowNode[]; readonly edges: FlowEdge[] } => {
@@ -65,7 +102,12 @@ export const flowGraph = (
 		return {
 			id: t.id,
 			position: { x: level * LEVEL_WIDTH, y: row * ROW_HEIGHT },
-			data: { title: t.title, roleId: t.roleId, ...placeOf(t.status) },
+			data: {
+				kind: "task",
+				title: t.title,
+				roleId: t.roleId,
+				...placeOf(t.status),
+			},
 		};
 	});
 	const ids = new Set(view.tasks.map((t) => t.id));
@@ -74,5 +116,9 @@ export const flowGraph = (
 			.filter((d) => ids.has(d))
 			.map((d) => ({ id: `${d}>${t.id}`, source: d, target: t.id })),
 	);
-	return { nodes, edges };
+	const agents = agentNodes(view.agents, ids);
+	return {
+		nodes: [...nodes, ...agents.nodes],
+		edges: [...edges, ...agents.edges],
+	};
 };
