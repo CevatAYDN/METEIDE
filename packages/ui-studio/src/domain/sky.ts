@@ -40,6 +40,19 @@ export const mix = (a: Rgb, b: Rgb, t: number): Rgb => [
 	a[2] + (b[2] - a[2]) * t,
 ];
 
+/** A hex colour such as "#8a6fd6" as red, green and blue. */
+export const hexRgb = (hex: string): Rgb => {
+	const n = Number.parseInt(hex.slice(1), 16);
+	return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+
+/** A hex colour lighter (positive) or darker (negative) by `amount` of 255 on each channel, as the demo shades. */
+export const shade = (hex: string, amount: number) => {
+	const [r, g, b] = hexRgb(hex);
+	const by = (v: number) => clamp(v + amount, 0, 255);
+	return rgb([by(r), by(g), by(b)]);
+};
+
 /** A colour as a CSS string the stage understands, with an alpha (1 when left out). */
 export const rgb = (c: Rgb, alpha = 1) =>
 	`rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${alpha})`;

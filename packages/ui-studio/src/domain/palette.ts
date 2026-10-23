@@ -66,14 +66,46 @@ export const DESK = {
 	chairTop: "#5a6073",
 } as const;
 
-/** A character's state, until the characters of the theme are drawn. */
+/** A name pill: its fill and ink. */
 export const STATE = {
-	idle: "#6b6785",
-	thinking: "#5b4bd6",
-	working: "#2fa38a",
-	waiting: "#f0b75a",
 	ink: "#3a2e24",
 	label: "rgba(255,255,255,.86)",
+} as const;
+
+/**
+ * The people of the demo's six roles: body, hair and skin colours (hair and skin as the demo pairs
+ * them) and accessories, which a role's id picks from (ADR-070); and the parts all of them share.
+ */
+export const PEOPLE = {
+	bodies: ["#8a6fd6", "#e07a5f", "#3f5f8c", "#2f8f7b", "#e2a33b", "#6d8f3c"],
+	hairs: ["#3b2a20", "#6b3416", "#1f1b18", "#2a211b", "#b5452f", "#4a3626"],
+	skins: ["#f2c9a5", "#e8b48f", "#d9a27a", "#f0c39c", "#f5d0b0", "#c98e66"],
+	accessories: ["pencil", "clip", "glasses", "hood", "beret", "headset"],
+	legs: "#33323f",
+	shadow: "rgba(60,35,15,.2)",
+	collar: "rgba(255,255,255,.35)",
+	eye: "#2b2420",
+	cheek: "rgba(240,120,110,.35)",
+	mouth: "#5a3a2c",
+	glasses: "#22202a",
+	beret: "#c0392b",
+	headset: "#2c2c36",
+	pencil: "#f2c14e",
+	pencilTip: "#e8846b",
+	clipBoard: "#8b6343",
+	clipPaper: "#fbf8f1",
+} as const;
+
+/** The marks over a character: its state's icon and the count of a group. */
+export const MARK = {
+	badge: "#5b4bd6",
+	badgeInk: "#ffffff",
+	dots: "#6b6785",
+	bubble: "#ffffff",
+	bubbleEdge: "rgba(60,40,20,.2)",
+	clock: "#f0b75a",
+	clockHand: "#5a3d10",
+	spinner: "rgba(47,163,138,.95)",
 } as const;
 
 /** The colours effects are drawn in. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { paintScene } from "../../src/domain/paint.js";
-import { DESK, STATE } from "../../src/domain/palette.js";
+import { DESK, MARK } from "../../src/domain/palette.js";
 import type { Primitive } from "../../src/domain/primitive.js";
 import type { Character, Scene } from "../../src/domain/scene.js";
 
@@ -43,7 +43,8 @@ const scene = (
 };
 const words = (p: Primitive[]) =>
 	p.flatMap((x) => (x.kind === "text" || x.kind === "label" ? [x.text] : []));
-const bodies = (p: Primitive[]) =>
+// A character's head is the only circle of radius 16.
+const heads = (p: Primitive[]) =>
 	p.flatMap((x) => (x.kind === "circle" && x.r === 16 ? [x] : []));
 
 describe("the room's primitives", () => {
@@ -77,12 +78,12 @@ describe("the room's primitives", () => {
 		const p = paintScene(scene([[ch("dev", "idle")]]), labels, NOON);
 		const at = (fill: string) =>
 			p.findIndex((x) => "fill" in x && x.fill === fill);
-		const body = p.indexOf(bodies(p)[0] as Primitive);
-		expect(at(DESK.chair)).toBeLessThan(body);
-		expect(body).toBeLessThan(at(DESK.top));
+		const head = p.indexOf(heads(p)[0] as Primitive);
+		expect(at(DESK.chair)).toBeLessThan(head);
+		expect(head).toBeLessThan(at(DESK.top));
 	});
 
-	it("colours each character by its state, with its name, thinking dots, its tool and a count badge", () => {
+	it("draws each character with its state's mark, its name, its tool and a count badge", () => {
 		const s = scene([
 			[
 				ch("idle", "idle"),
@@ -92,13 +93,13 @@ describe("the room's primitives", () => {
 			[ch("crowd", "idle", { count: 4 })],
 		]);
 		const p = paintScene(s, labels, NOON);
-		expect(bodies(p).map((x) => x.kind === "circle" && x.fill)).toEqual([
-			STATE.idle,
-			STATE.thinking,
-			STATE.working,
-			STATE.idle,
-		]);
-		expect(p.filter((x) => x.kind === "circle" && x.r === 2.5)).toHaveLength(3);
+		expect(heads(p)).toHaveLength(4);
+		expect(
+			p.filter((x) => x.kind === "circle" && x.fill === MARK.dots),
+		).toHaveLength(3);
+		expect(
+			p.filter((x) => x.kind === "arc" && x.stroke === MARK.spinner),
+		).toHaveLength(1);
 		expect(words(p)).toEqual(
 			expect.arrayContaining(["idle", "fs.read@1", "4", "crowd"]),
 		);
@@ -109,9 +110,11 @@ describe("the room's primitives", () => {
 			[ch("artist", "waiting", { resetsAt: "2026-10-24T09:30:00.000Z" })],
 		]);
 		const p = paintScene(s, labels, NOON);
-		const [person] = bodies(p);
+		const [person] = heads(p);
 		expect(person?.kind === "circle" && person.x).toBeGreaterThan(800);
-		expect(person?.kind === "circle" && person.fill).toBe(STATE.waiting);
+		expect(p.some((x) => x.kind === "circle" && x.fill === MARK.clock)).toBe(
+			true,
+		);
 		// After the last desk: nothing at the desk hides it.
 		expect(p.indexOf(person as Primitive)).toBeGreaterThan(
 			p.findLastIndex((x) => "fill" in x && x.fill === DESK.top),

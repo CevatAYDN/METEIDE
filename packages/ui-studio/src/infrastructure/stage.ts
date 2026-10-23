@@ -40,9 +40,14 @@ const shape = (g: Shapes, p: Exclude<Primitive, Words>) => {
 	else if (p.kind === "circle") g.circle(p.x, p.y, p.r).fill(p.fill);
 	else if (p.kind === "ellipse") g.ellipse(p.x, p.y, p.rx, p.ry).fill(p.fill);
 	else if (p.kind === "poly") g.poly([...p.points]).fill(p.fill);
-	else
+	else if (p.kind === "line")
 		g.moveTo(p.x1, p.y1)
 			.lineTo(p.x2, p.y2)
+			.stroke({ width: p.width, color: p.stroke, cap: "round" });
+	// moveTo the arc's start, so no line joins it to the shape before it.
+	else
+		g.moveTo(p.x + Math.cos(p.start) * p.r, p.y + Math.sin(p.start) * p.r)
+			.arc(p.x, p.y, p.r, p.start, p.end)
 			.stroke({ width: p.width, color: p.stroke, cap: "round" });
 };
 

@@ -3,6 +3,7 @@ import type { Layout } from "./layout.js";
 import { BOARD, COFFEE, DESK, ROOM } from "./palette.js";
 import { type Primitive, rect } from "./primitive.js";
 import type { Scene } from "./scene.js";
+import { seedOf } from "./seed.js";
 
 // The cozy office of the approved demo as primitives (ADR-070): the wall and floor, the board with
 // its notes, the coffee corner, and each desk with its chair, monitor and lamp, at the demo's
@@ -89,11 +90,8 @@ export const roomShell = (l: Layout): Primitive[] => [
 ];
 
 // A note's colour from its task id, so a note keeps it as it moves between columns.
-const tint = (id: string) => {
-	let h = 0;
-	for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-	return BOARD.notes[h % BOARD.notes.length] ?? BOARD.notes[0];
-};
+const tint = (id: string) =>
+	BOARD.notes[seedOf(id) % BOARD.notes.length] ?? BOARD.notes[0];
 
 const notesOf = (scene: Scene, l: Layout): Primitive[] =>
 	Object.values(scene.notes)

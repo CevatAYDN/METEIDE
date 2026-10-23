@@ -42,6 +42,17 @@ export type Primitive =
 			readonly width: number;
 	  }
 	| {
+			/** A stroke only, round-capped: the part of a circle from `start` to `end` radians (0 is right, clockwise). */
+			readonly kind: "arc";
+			readonly x: number;
+			readonly y: number;
+			readonly r: number;
+			readonly start: number;
+			readonly end: number;
+			readonly stroke: string;
+			readonly width: number;
+	  }
+	| {
 			readonly kind: "text";
 			readonly x: number;
 			readonly y: number;
