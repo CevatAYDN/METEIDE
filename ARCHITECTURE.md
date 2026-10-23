@@ -65,7 +65,7 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 
 ## Daemon protocol
 
-`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 7 (ADR-053) has seven requests and one notification, and each side validates what it receives with the schemas in `@mete/contracts` (`daemon.ts`) \[D\]:
+`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 8 (ADR-054) has seven requests and one notification, and each side validates what it receives with the schemas in `@mete/contracts` (`daemon.ts`) \[D\]:
 
 | Message | Kind | Params | Result |
 | --- | --- | --- | --- |
@@ -73,7 +73,7 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 | `mete/run.start` | request | the `RunStart` of team.engine@2: `{ goal?, templateId?, priority?, continue? }` | `{ runId }`; errors as for `mete/status`, and `choose_template` carries the router's `data.suggestions` |
 | `mete/run.approve` | request | `{ runId, input }`, `input` the `ApprovalInput` of team.engine@2 | `null`; errors as for `mete/status` |
 | `mete/run.resume` | request | `{ runId }` | `null`; errors as for `mete/status` |
-| `mete/quota` | request | none | `{ providers: [{ id, state, resetsAt? }] }`, `state` one of `ready`, `no_key`, `inactive`, `exhausted` (with `resetsAt`), `unusable`; answered while core-engine is not active too |
+| `mete/quota` | request | none | `{ providers: [{ id, state, resetsAt? }], units: [{ providerId, unit, scope, used, limit, resetsAt? }] }`, `state` one of `ready`, `no_key`, `inactive`, `exhausted` (with `resetsAt`), `unusable`; `units` are the rows of `quota.reserve@3` `usage()` without `history` (ADR-054), read after the states; answered while core-engine is not active too |
 | `mete/events` | request | `{ runId }` | `{ events, unreadable }`: the run's persisted events in order, as `mete events` reads them, and the count of rows that no longer parse; errors as for `mete/status` |
 | `mete/audit` | request | `{ runId?, verdict?, action?, limit? }` | `{ entries }`: the workspace audit log (SECURITY.md), newest first, each row with `seq`, `ts`, `runId`, `agentId`, `action`, `capability`, `adapterId`, `argsSha256`, `verdict`, `rule` and `tainted`; answered while core-engine is not active too |
 | `mete/event` | notification, daemon to client | one `MeteEvent` (docs/07) | none; every catalog event the bus publishes, in publish order |

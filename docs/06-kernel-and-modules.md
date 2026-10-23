@@ -222,7 +222,8 @@ export type VcsError = ToolError | { code: "nothing_to_commit"; message: string 
   | { code: "merge_conflict"; message: string; paths: string[] };   // the merge was undone
 export interface VcsGitAdapter { run(input: VcsGitInput, ctx: ToolContext): Promise<Result<VcsGitOutput, VcsError>> }
 
-// quota.reserve@2, defined in @mete/contracts; QuotaUnit and QuotaUnitSpec are in tab 09, pool rules in tab 09 (Quota pool).
+// quota.reserve@3, defined in @mete/contracts; QuotaUnit and QuotaUnitSpec are in tab 09, pool rules in tab 09 (Quota pool).
+// @3 (ADR-054) adds usage(): the pool read of the quota dashboard (tab 13).
 export type QuotaAmounts = Partial<Record<QuotaUnit, number>>;
 export type QuotaObservation = { unit: QuotaUnit; limit?: number; remaining?: number; resetsAt?: string; exhausted: boolean };
                                  // a provider's observe() reads response headers and 429s into these
@@ -232,11 +233,17 @@ export type QuotaRequest = { runId: string; priority: 0 | 1 | 2;   // P0 interac
 export type Reservation = { id: string; providerId: string; modelId: string };
 export type ReserveFailed = { code: "quota_exhausted"; resumesAt: string } | { code: "aborted" };   // ISO 8601 times
 export type UnknownReservation = { code: "unknown_reservation"; id: string };
+export type QuotaUsage = { providerId: string; unit: QuotaUnit;
+  scope: string | null;          // the model id of a "model" unit; null for "account" or a model unit nothing counted yet
+  used: number; limit: number | null;   // null while no limit is known ("discover" before the first exhaustion)
+  resetsAt?: string;             // the next reset of a fixed window, or the reset a response gave
+  history: readonly { at: string; amount: number }[] };   // the amounts still in the window, oldest first
 export interface QuotaReserveAdapter {
   define(specs: readonly QuotaUnitSpec[]): void;
   reserve(req: QuotaRequest, signal: AbortSignal): Promise<Result<Reservation, ReserveFailed>>;
   settle(id: string, actual: QuotaAmounts | null,   // null: no call was sent, release the reservation
     observations: readonly QuotaObservation[]): Result<void, UnknownReservation>;
+  usage(): readonly QuotaUsage[];   // @3: one row per defined unit and scope, as they stand now
 }
 
 // team.engine@2, defined in @mete/contracts; run states and the runs table in tab 07, single-agent and team rules in tab 08.
@@ -313,8 +320,8 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | --- | --- | --- | --- | --- | --- | --- |
 | storage | `@mete/storage` | essential | `storage.sql@1` | none | none | in-process |
 | security | `@mete/security` | essential | `policy.check@1`, `secrets.mask@1` | `storage.sql@1` | none | in-process |
-| quota | `@mete/quota` | essential | `quota.reserve@2` | `storage.sql@1` | none | in-process |
-| gateway | `@mete/gateway` | essential | `llm.chat@1` (routed), `llm.embed@1` (routed), `llm.rerank@1` (routed) | `storage.sql@1`, `quota.reserve@2`, `secrets.mask@1`, at least one `provider.chat@2` | `provider.embed@1`, `provider.rerank@1` | in-process |
+| quota | `@mete/quota` | essential | `quota.reserve@3` | `storage.sql@1` | none | in-process |
+| gateway | `@mete/gateway` | essential | `llm.chat@1` (routed), `llm.embed@1` (routed), `llm.rerank@1` (routed) | `storage.sql@1`, `quota.reserve@3`, `secrets.mask@1`, at least one `provider.chat@2` | `provider.embed@1`, `provider.rerank@1` | in-process |
 | provider-nvidia | `@mete/providers` | optional | `provider.chat@2`, `provider.embed@1`, `provider.rerank@1` | none | none | in-process |
 | provider-openrouter | `@mete/providers` | optional | `provider.chat@2` | none | none | in-process |
 | provider-opencode-zen | `@mete/providers` | optional | `provider.chat@2` | none | none | in-process |
@@ -350,7 +357,7 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 | `storage.sql@1` | The workspace and global SQLite databases, with per-module migrations | Native (storage module) | Never empty (essential) |
 | `policy.check@1` | Allow, ask or deny a side-effect action, and write its audit row | Native (security module) | Never empty (essential) |
 | `secrets.mask@1` | Replace secrets in outbound text | Native (security module, secretlint) | Never empty (essential) |
-| `quota.reserve@2` | Reserve and settle provider quota for a model call | Native (quota module) | Never empty (essential) |
+| `quota.reserve@3` | Reserve and settle provider quota for a model call, and read the pool | Native (quota module) | Never empty (essential) |
 | `llm.chat@1` | Chat with tools and streaming | Gateway → tier chain of discovered models the model mode allows (free by default, ADR-042) | Run pauses with reason `quota` or `no_model` |
 | `llm.embed@1` | Embeddings | NVIDIA embedding model | Vector search off; hybrid search continues |
 | `llm.rerank@1` | Reranking | NVIDIA rerank model | Rerank skipped |

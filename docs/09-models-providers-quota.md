@@ -153,11 +153,12 @@ Provider adapters ship these starting values, checked on 2026-10-21. They are ed
 | Firecrawl | credits\_per\_month | 1,000 | About 500 searches |
 | Exa MCP without key | requests\_per\_minute | discover | Learned from errors |
 
-`quota.reserve@2` (types in tab 06) is the pool's only entry point; the gateway calls it around every provider call \[D\]:
+`quota.reserve@3` (types in tab 06) is the pool's only entry point; the gateway calls it around every provider call, and the daemon reads it for the quota dashboard \[D\]:
 
 - `define(specs)`: the gateway passes a provider adapter's `quotaUnits()` when it first resolves that provider; a later call for the same provider replaces its specs.
 - `reserve(req, signal)`: walks `req.chain` in order and reserves the first entry whose provider has capacity in every unit (Scheduler, step 2). The estimate is 1 request plus the caller's amounts for the other units; a unit without an amount only needs to be open. A unit has capacity when its usage, plus unsettled reservations, plus the amount fits its limit. An entry whose amount for some unit is above that unit's limit can never fit and is skipped. An empty chain, an entry whose provider was never defined, or a chain where every entry was skipped is a programmer error and throws. When no entry has capacity and a reset comes within 90 seconds the call waits; otherwise, or once it has waited 90 seconds, it returns `quota_exhausted` with `resumesAt` set to the earliest reset. An aborted signal returns `aborted`.
 - `settle(id, actual, observations)`: once per reservation, after the provider answered or failed. It replaces the reserved amounts with `actual`, where a request unit `actual` leaves out counts 1, as in `reserve`; `actual: null` means no call was sent and releases the reservation. It then applies the observations and publishes `quota.consumed` for each defined unit with an amount above 0; amounts for units the provider did not define are dropped. The gateway MUST settle every reservation; an unsettled one keeps its capacity. Settling an unknown or already settled id returns `unknown_reservation`.
+- `usage()` (`@3`, ADR-054): every defined unit as it stands, one row per scope: an `account` unit once with `scope: null`, a `model` unit once per model it counted, or once with `scope: null` before it counted any. `used` is the window's usage, counting only amounts after a response reset that has passed, without unsettled reservations; `limit` is the effective limit, null while none is known; `resetsAt` is the reset a response gave, else the next reset of a fixed window, and is left out for a sliding window without one; `history` lists the window's amounts with their times, oldest first. Reading changes nothing.
 
 Pool rules \[D\]:
 
