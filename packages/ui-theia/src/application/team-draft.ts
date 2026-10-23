@@ -215,12 +215,17 @@ const pointed = (doc: Draft, from: string, to: string): Draft => {
 
 /**
  * The draft with the member at `index` under a new id, and its tasks, spawn defaults, approvals and the
- * others' family preferences following it; the draft as it is when another member has the id.
+ * others' family preferences following it; refused when another member has the id.
  */
-export const renameRole = (doc: Draft, index: number, id: string): Draft => {
+export const renameRole = (
+	doc: Draft,
+	index: number,
+	id: string,
+): Result<Draft, { readonly taken: string }> => {
 	const roles = teamOf(doc).roles;
 	const from = roles[index]?.id;
-	if (from === undefined || roles.some((r) => r.id === id)) return doc;
+	if (from === undefined) return ok(doc);
+	if (roles.some((r) => r.id === id)) return err({ taken: id });
 	let next = pointed(edited(doc, ["roles", index, "id"], id), from, id);
 	const defaults = next.getIn(["spawn_defaults", from], true);
 	if (isNode(defaults))
@@ -229,7 +234,7 @@ export const renameRole = (doc: Draft, index: number, id: string): Draft => {
 			["spawn_defaults", id],
 			defaults.clone(),
 		);
-	return next;
+	return ok(next);
 };
 
 /** The draft with a new task for a member, with a free id and an empty title for the user to write. */

@@ -205,6 +205,7 @@
 			"loading": "METE is reading the team…",
 			"memberId": "Id",
 			"memberName": "Name",
+			"memberTaken": "Another member already has the id {0}, so this member keeps its id.",
 			"members": "Members",
 			"name": "Team name",
 			"needs": "Needs",

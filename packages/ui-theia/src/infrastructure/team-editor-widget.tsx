@@ -194,6 +194,21 @@ export class MeteTeamEditorWidget
 		await this.save(copyAs(this.doc, id, name));
 	}
 
+	// A refused id is said, as the field shows the member's own id again.
+	protected rename(index: number, id: string): void {
+		const r = this.doc && renameRole(this.doc, index, id);
+		if (!r) return;
+		if (r.ok) this.change(() => r.value);
+		else
+			void this.messages.warn(
+				nls.localize(
+					"mete/team/memberTaken",
+					"Another member already has the id {0}, so this member keeps its id.",
+					r.error.taken,
+				),
+			);
+	}
+
 	protected async openYaml(): Promise<void> {
 		const file = this.doc && this.fileOf(teamOf(this.doc).metadata.id);
 		if (file) await open(this.openers, file);
@@ -209,7 +224,7 @@ export class MeteTeamEditorWidget
 			onEdit: (path, value) => this.change((d) => edited(d, path, value)),
 			onAddMember: () => this.change(addRole),
 			onRemoveMember: (i) => this.change((d) => removeRole(d, i)),
-			onRenameMember: (i, id) => this.change((d) => renameRole(d, i, id)),
+			onRenameMember: (i, id) => this.rename(i, id),
 			onAddTask: (roleId) => this.change((d) => addTask(d, roleId)),
 			onRemoveTask: (i) => this.change((d) => removeTask(d, i)),
 			onSave: () => void (this.doc && this.save(this.doc)),

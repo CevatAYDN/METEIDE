@@ -246,7 +246,9 @@ describe("renameRole", () => {
 		doc = edited(doc, ["roles", index, "name"], "Writer");
 		doc = edited(doc, ["roles", index, "goal"], "Write");
 		doc = edited(doc, ["tasks", 2, "title"], "Write it");
-		const renamed = renameRole(doc, index, "writer");
+		const result = renameRole(doc, index, "writer");
+		if (!result.ok) throw new Error(result.error.taken);
+		const renamed = result.value;
 		const team = teamOf(renamed);
 		expect(team.roles[index]?.id).toBe("writer");
 		expect(team.tasks.map((t) => t.role)).toContain("writer");
@@ -257,9 +259,12 @@ describe("renameRole", () => {
 		expect(issuesOf(renamed)).toEqual([]);
 	});
 
-	it("leaves the draft as it is for an id another member has", () => {
+	it("refuses an id another member has, naming it", () => {
 		const doc = addRole(draft(GAME));
 		const index = teamOf(doc).roles.length - 1;
-		expect(renameRole(doc, index, "lead")).toBe(doc);
+		expect(renameRole(doc, index, "lead")).toEqual({
+			ok: false,
+			error: { taken: "lead" },
+		});
 	});
 });
