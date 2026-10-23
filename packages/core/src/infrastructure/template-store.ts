@@ -82,23 +82,38 @@ const fromText = (
 		: t;
 };
 
+/** A template file's text and the folder it came from. */
+export type TemplateText = {
+	readonly source: "workspace" | "builtIn";
+	readonly text: string;
+};
+
+/** Reads one template file by id, the workspace's copy first, without validating it (ADR-075). */
+export const readTemplate = async (
+	dirs: TemplateDirs,
+	id: string,
+): Promise<Result<TemplateText, TemplateError>> => {
+	if (!TEMPLATE_ID.test(id))
+		return err({ code: "bad_input", message: `${id} is not a template id` });
+	const files = [
+		["workspace", join(dirs.workspace, ".mete", "teams", `${id}.yaml`)],
+		["builtIn", join(dirs.builtIn, `${id}.yaml`)],
+	] as const;
+	for (const [source, file] of files) {
+		const text = await readText(file);
+		if (!text.ok) return text;
+		if (text.value !== undefined) return ok({ source, text: text.value });
+	}
+	return err({ code: "not_found", message: `no template ${id}` });
+};
+
 /** Loads one template by id, the workspace's copy first. */
 export const loadTemplate = async (
 	dirs: TemplateDirs,
 	id: string,
 ): Promise<Result<TeamTemplate, TemplateError>> => {
-	if (!TEMPLATE_ID.test(id))
-		return err({ code: "bad_input", message: `${id} is not a template id` });
-	const files = [
-		join(dirs.workspace, ".mete", "teams", `${id}.yaml`),
-		join(dirs.builtIn, `${id}.yaml`),
-	];
-	for (const file of files) {
-		const text = await readText(file);
-		if (!text.ok) return text;
-		if (text.value !== undefined) return fromText(id, text.value);
-	}
-	return err({ code: "not_found", message: `no template ${id}` });
+	const read = await readTemplate(dirs, id);
+	return read.ok ? fromText(id, read.value.text) : read;
 };
 
 const idsIn = async (dir: string) => {

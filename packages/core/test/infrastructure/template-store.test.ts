@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
 	loadTemplate,
+	readTemplate,
 	type TemplateDirs,
 } from "../../src/infrastructure/template-store.js";
 
@@ -79,5 +80,27 @@ describe("loadTemplate", () => {
 	it("reports broken YAML as invalid_template", async () => {
 		await put(teams(), "solo", "roles: [");
 		expect(code(await loadTemplate(dirs, "solo"))).toBe("invalid_template");
+	});
+});
+
+describe("readTemplate", () => {
+	it("reads the text loadTemplate would load, the workspace's first, and names its folder", async () => {
+		await put(dirs.builtIn, "solo", yaml("solo", "Built in"));
+		const built = await readTemplate(dirs, "solo");
+		expect(built.ok && built.value).toEqual({
+			source: "builtIn",
+			text: yaml("solo", "Built in"),
+		});
+		await put(teams(), "solo", "roles: [");
+		const mine = await readTemplate(dirs, "solo");
+		expect(mine.ok && mine.value).toEqual({
+			source: "workspace",
+			text: "roles: [",
+		});
+	});
+
+	it("answers not_found and bad_input as loadTemplate does", async () => {
+		expect(code(await readTemplate(dirs, "solo"))).toBe("not_found");
+		expect(code(await readTemplate(dirs, "../ws/x"))).toBe("bad_input");
 	});
 });
