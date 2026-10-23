@@ -11,7 +11,7 @@ The desktop UI is Theia plus METE panels; its signature is the studio view, wher
 | Onboarding wizard | First start | Language (English or Turkish); provider keys for NVIDIA, OpenRouter and OpenCode Zen (at least one required, with links to get keys); privacy choice (training providers off by default); personal vault folder; web search (Exa MCP default, optional Tavily and Exa keys) \[C\] |
 | Home | Entry point | Workspaces, recent runs, quota summary |
 | Workspace | Daily work | Theia editor, terminal, METE panels |
-| Run composer | Start work | Goal field, template picker with the router's suggestion, request estimate per provider (shown once a template or the single agent is picked, ADR-068), autonomy level, Start |
+| Run composer | Start work | Goal field, template picker with the router's suggestion, request estimate per provider (shown under each option, ADR-068), autonomy level (waits for a per-run level), Start; a screen in the main area (ADR-071) |
 | Team panel | Watch a run | Three views on the same events: Studio, Flow (React Flow), Board (kanban) \[C\] |
 | Approvals inbox | Human gates | Pending approvals and clarifications with artifact preview and diff; Approve, Revise with feedback |
 | Replay | Look back | Timeline scrubber over the event log; Studio, Flow and Board show the past state; speed 1x, 2x, 4x \[C\] |
