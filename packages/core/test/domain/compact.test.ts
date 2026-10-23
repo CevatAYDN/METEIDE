@@ -23,6 +23,17 @@ describe("context compaction", () => {
 		expect(toSummarize(small, "fast")).toBeUndefined();
 	});
 
+	it("gives the vision tier a window too, so its turns are not summarized every time (ADR-060)", () => {
+		// vision: 32,000 tokens; 70% is 22,400 tokens or 89,600 characters.
+		const work = [...opening, ...[1, 2, 3, 4, 5].flatMap((n) => turn(n, 4000))];
+		expect(toSummarize(work, "vision")).toBeUndefined();
+		const long = [
+			...opening,
+			...[1, 2, 3, 4, 5].flatMap((n) => turn(n, 20_000)),
+		];
+		expect(toSummarize(long, "vision")).toBeDefined();
+	});
+
 	it("counts the arguments of tool calls, so large writes trigger a summary too", () => {
 		const write = (n: number): ChatMessage[] => [
 			{

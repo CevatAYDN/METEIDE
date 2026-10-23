@@ -45,7 +45,7 @@ export const TIER_MIN_CONTEXT: Readonly<Record<Tier, number>> = {
 	coder: 32_000,
 	fast: 8_000,
 	"long-context": 128_000,
-	vision: 0,
+	vision: 32_000, // ADR-060: also the window compaction counts against
 };
 
 /** Tab 09, Gateway: the quota estimate counts this many prompt characters as one token. */

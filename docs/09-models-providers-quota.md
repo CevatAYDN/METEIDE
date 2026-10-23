@@ -68,7 +68,7 @@ Provider facts, checked on 2026-10-21 against each provider's documentation \[D\
 | `coder` | Code and file edits | Tool calling; context of 32k or more \[C\] |
 | `fast` | Routing, summaries, context compaction | Context of 8k or more \[D\] |
 | `long-context` | Large documents and repository analysis | Context of 128k or more \[D\] |
-| `vision` | Screenshots, image review, asset work | Image input \[C\] |
+| `vision` | Screenshots, image review, asset work | Image input \[C\]; context of 32k or more (ADR-060) \[D\] |
 
 Embedding and reranking are provider capabilities (`provider.embed@1`, `provider.rerank@1`), not tiers. Image and 3D generation are `media.*` capabilities served through MCP (ADR-030).
 

@@ -62,11 +62,14 @@ describe("resolveChain for a tier", () => {
 		const found = [
 			model("tools"),
 			model("maybe", { toolCalling: "unknown" }),
-			model("sees", { vision: true, contextWindow: 4_000 }),
+			model("sees", { vision: true }),
+			// ADR-060: vision also needs 32k of context.
+			model("squint", { vision: true, contextWindow: 4_000 }),
 			model("blurry", { vision: "unknown" }),
 		];
 		expect(ids(resolveChain(found, { tier: "coder" }, DEFAULT))).toEqual([
 			"tools",
+			"sees",
 			"blurry",
 		]);
 		expect(ids(resolveChain(found, { tier: "vision" }, DEFAULT))).toEqual([
