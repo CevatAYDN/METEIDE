@@ -423,6 +423,9 @@ importers:
       '@mete/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@mete/ui-kit':
+        specifier: workspace:*
+        version: link:../ui-kit
 
   packages/ui-theia:
     dependencies:
