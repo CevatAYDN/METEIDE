@@ -172,6 +172,17 @@ describe("mete daemon approvals", () => {
 			expect(turn[start]?.agentId).toBeUndefined();
 			expect(start < at && at < end).toBe(true);
 		}
+		// The views join a task to its agent: task.assigned names the id agent.created then carries.
+		for (const e of history.events)
+			if (e.type === "task.assigned")
+				expect(
+					history.events.some(
+						(x) =>
+							x.type === "agent.created" &&
+							x.agentId === e.payload.agentId &&
+							x.taskId === e.taskId,
+					),
+				).toBe(true);
 		const unknown = await failure(
 			c.sendRequest(DAEMON_METHODS.events, { runId: crypto.randomUUID() }),
 		);
