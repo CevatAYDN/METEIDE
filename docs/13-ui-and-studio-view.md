@@ -21,6 +21,8 @@ The desktop UI is Theia plus METE panels; its signature is the studio view, wher
 | Settings | Control | Providers and custom endpoints (form, Test), Bindings (ordered adapters per capability), Policy and autonomy, MCP servers and plugins (registry search, install with permissions), Skills, Templates (YAML editor plus visual editor), Appearance, Language |
 | Audit log | Accountability | Filterable list, JSON export |
 
+The run composer asks for the goal, then offers "Let METE choose" (the router decides, and asks with its suggestions when it is unsure), each template of `mete/templates` by name with its description, and "Single agent" (ADR-058).
+
 The Quota dashboard is its own view, "METE: Open quota dashboard": a table of the `units` of `mete/quota` (ADR-054), one row per provider, unit and model scope with used, limit and reset time and, on request under each row, its history: each amount in the window with its time (ADR-055); it asks again on every `quota.*` event.
 
 ## Studio view

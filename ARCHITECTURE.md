@@ -65,7 +65,7 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 
 ## Daemon protocol
 
-`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 9 (ADR-055) has seven requests and one notification, and each side validates what it receives with the schemas in `@mete/contracts` (`daemon.ts`) \[D\]:
+`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 10 (ADR-058) has eight requests and one notification, and each side validates what it receives with the schemas in `@mete/contracts` (`daemon.ts`) \[D\]:
 
 | Message | Kind | Params | Result |
 | --- | --- | --- | --- |
@@ -76,6 +76,7 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 | `mete/quota` | request | none | `{ providers: [{ id, state, resetsAt? }], units: [{ providerId, unit, scope, used, limit, resetsAt?, history }] }`, `state` one of `ready`, `no_key`, `inactive`, `exhausted` (with `resetsAt`), `unusable`; `units` are the rows of `quota.reserve@4` `usage()` (ADR-054), `history` included since version 9 (ADR-055), read after the states; answered while core-engine is not active too |
 | `mete/events` | request | `{ runId }` | `{ events, unreadable }`: the run's persisted events in order, as `mete events` reads them, and the count of rows that no longer parse; errors as for `mete/status` |
 | `mete/audit` | request | `{ runId?, verdict?, action?, limit? }` | `{ entries }`: the workspace audit log (SECURITY.md), newest first, each row with `seq`, `ts`, `runId`, `agentId`, `action`, `capability`, `adapterId`, `argsSha256`, `verdict`, `rule` and `tainted`; answered while core-engine is not active too |
+| `mete/templates` | request | none | `{ templates: [{ id, name, description? }] }`: the team templates the router may pick (the workspace's `.mete/teams/` over the built-in folder), by id, without those that do not load; answered while core-engine is not active too (ADR-058) |
 | `mete/event` | notification, daemon to client | one `MeteEvent` (docs/07) | none; every catalog event the bus publishes, in publish order |
 
 A client that starts the daemon from Electron sets `ELECTRON_RUN_AS_NODE=1`. The desktop backend starts the daemon when the first message for a folder is sent, keeps one daemon for one folder at a time, stops it by closing its input, and restarts it after the desktop sets a provider key (ADR-049). The desktop starts the daemon detached from its own process group, so a quit or crash of the desktop leaves the daemon to stop on its closed input and free the run lock \[D\]. A new message or a changed shape needs an ADR and a new protocol version \[D\].
