@@ -201,7 +201,7 @@ const Shown = ({
 		return model.view.tasks.length === 0 ? (
 			<NoTasks />
 		) : (
-			<>{controls.flow(model.view)}</>
+			controls.flow(model.view)
 		);
 	if (controls.mode === "board")
 		return model.view.tasks.length === 0 ? (
