@@ -140,7 +140,7 @@
 			"chooseTemplate": "Bu hedef için bir ekip seç: {0}",
 			"cli": "mete komutu başarısız oldu: {0}",
 			"label": "Durum",
-			"more": "ve {0} tane daha; Ana panel hepsini listeler",
+			"more": "ve {0} tane daha; Ana sayfa hepsini listeler",
 			"noFolder": "Önce bir klasör aç: METE aynı anda tek bir klasörde çalışır.",
 			"none": "Bu klasörde henüz çalıştırma yok.",
 			"notReady": "METE henüz hazır değil: {0}",
