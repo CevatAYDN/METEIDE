@@ -7,13 +7,18 @@ import { DAEMON_DETACHED, runScript } from "../src/infrastructure/spawn-cli.js";
 
 // What happens to the daemon when the desktop ends: a parent spawns a child the way the backend
 // spawns the daemon (pipes, windowsHide, the detached setting under test) and then exits. The child
-// stands in for the daemon: on the end of its input it writes a marker and exits 0.
+// stands in for the daemon: on the end of its input it takes half a second to stop, as the daemon
+// closes its database and frees the run lock, then writes a marker and exits 0. Without that time a
+// child that is not detached could, under load, write the marker in the instant between its input
+// closing and its job object killing it.
 
 const CHILD = `
 process.stdin.on("data", () => {});
 process.stdin.on("end", () => {
-	require("node:fs").writeFileSync(process.argv[2], "stopped");
-	process.exit(0);
+	setTimeout(() => {
+		require("node:fs").writeFileSync(process.argv[2], "stopped");
+		process.exit(0);
+	}, 500);
 });
 `;
 
