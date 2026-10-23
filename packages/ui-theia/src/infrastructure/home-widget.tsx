@@ -68,8 +68,11 @@ export class MeteHomeWidget extends ReactWidget {
 		this.dir = root.resource.path.fsPath();
 		if (this.model.kind !== "runs") this.setModel({ kind: "loading" });
 		const reply = await this.daemon.status(this.dir);
-		const providers = reply.ok ? await this.providers(this.dir) : [];
-		this.setModel(homeModel(reply, new Date().toISOString(), providers));
+		const at = new Date().toISOString();
+		// The runs draw at once; the quota states can wait on a first model listing, so they follow.
+		this.setModel(homeModel(reply, at));
+		if (!reply.ok) return;
+		this.setModel(homeModel(reply, at, await this.providers(this.dir)));
 	}
 
 	// The quota summary and the lines under a quota pause add to the runs, which show without them;
