@@ -418,7 +418,11 @@ importers:
 
   packages/ui-kit: {}
 
-  packages/ui-studio: {}
+  packages/ui-studio:
+    dependencies:
+      '@mete/contracts':
+        specifier: workspace:*
+        version: link:../contracts
 
   packages/ui-theia:
     dependencies:
