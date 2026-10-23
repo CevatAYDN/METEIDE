@@ -1,4 +1,4 @@
-import type { RunStart } from "@mete/contracts";
+import type { ApprovalInput, RunStart } from "@mete/contracts";
 import { ILogger } from "@theia/core/lib/common/logger";
 import type { BackendApplicationContribution } from "@theia/core/lib/node";
 import { inject, injectable } from "@theia/core/shared/inversify";
@@ -51,6 +51,14 @@ export class MeteDaemonBackend
 
 	startRun(workspaceDir: string, req: RunStart) {
 		return this.host.startRun(workspaceDir, req);
+	}
+
+	approve(workspaceDir: string, runId: string, input: ApprovalInput) {
+		return this.host.approve(workspaceDir, runId, input);
+	}
+
+	resume(workspaceDir: string, runId: string) {
+		return this.host.resume(workspaceDir, runId);
 	}
 
 	onStop() {

@@ -98,6 +98,24 @@ describe("the daemon host", () => {
 		).toBe(true);
 	});
 
+	it("approves and resumes, shows a refusal and refuses an answer that is not null", async () => {
+		const { host } = await setup();
+		expect(await host.approve("/w", "r1", { decision: "approve" })).toEqual({
+			ok: true,
+			value: null,
+		});
+		expect(await host.approve("/w", "late", { decision: "approve" })).toEqual({
+			ok: false,
+			error: {
+				code: "refused",
+				detail: "the run is completed, not paused for approval",
+			},
+		});
+		expect(await host.resume("/w", "r1")).toEqual({ ok: true, value: null });
+		const odd = await host.resume("/w", "late");
+		expect(!odd.ok && odd.error.code).toBe("protocol");
+	});
+
 	it("replaces the daemon when another folder is asked about", async () => {
 		const { fake, host } = await setup();
 		await host.status("/work/a");

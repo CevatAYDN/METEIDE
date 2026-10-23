@@ -1,6 +1,8 @@
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import {
+	type ApprovalInput,
 	DAEMON_METHODS,
+	DaemonDoneResultSchema,
 	DaemonErrorDataSchema,
 	DaemonRunStartResultSchema,
 	DaemonStatusResultSchema,
@@ -147,43 +149,64 @@ const call = async <T>(
 	}
 };
 
+/** The one daemon the host keeps. */
+type Slot = { live?: Live };
+
+// A start after a daemon that ended on its own, in the same folder, is a restart; a first start
+// and a start for another folder are free.
+const ensure = (
+	deps: HostDeps,
+	slot: Slot,
+	dir: string,
+): Result<Live, DaemonFailure> => {
+	const before = slot.live;
+	if (before && !before.ended && before.dir === dir) return ok(before);
+	if (before && !before.ended) {
+		before.stopping = true;
+		before.child.stdin.end();
+	}
+	const crashed = before?.dir === dir && before.ended && !before.stopping;
+	if (before && crashed && !deps.policy.allow(deps.now()))
+		return err({ code: "blocked", detail: detailOf(before) });
+	slot.live = launch(deps, dir);
+	return ok(slot.live);
+};
+
 /** Serves the daemon's requests for one folder at a time; another folder replaces the daemon. */
 export const createDaemonHost = (deps: HostDeps) => {
-	let live: Live | undefined;
-	// A start after a daemon that ended on its own, in the same folder, is a restart; a first start
-	// and a start for another folder are free.
-	const ensure = (dir: string): Result<Live, DaemonFailure> => {
-		if (live && !live.ended && live.dir === dir) return ok(live);
-		const before = live;
-		if (before && !before.ended) {
-			before.stopping = true;
-			before.child.stdin.end();
-		}
-		const crashed = before?.dir === dir && before.ended && !before.stopping;
-		if (before && crashed && !deps.policy.allow(deps.now()))
-			return err({ code: "blocked", detail: detailOf(before) });
-		live = launch(deps, dir);
-		return ok(live);
+	const slot: Slot = {};
+	// One request to the folder's daemon, started first when it is not running.
+	const send = async <T>(
+		dir: string,
+		method: string,
+		params: object,
+		parse: (raw: unknown) => Parsed<T>,
+	): Promise<Result<T, DaemonFailure>> => {
+		const daemon = ensure(deps, slot, dir);
+		return daemon.ok ? call(daemon.value, method, params, parse) : daemon;
 	};
+	const done = (raw: unknown) => DaemonDoneResultSchema.safeParse(raw);
 	return {
-		status: async (dir: string, runId?: string) => {
-			const daemon = ensure(dir);
-			if (!daemon.ok) return daemon;
-			const params = runId === undefined ? {} : { runId };
-			return call(daemon.value, DAEMON_METHODS.status, params, (raw) =>
-				DaemonStatusResultSchema.safeParse(raw),
-			);
-		},
+		status: (dir: string, runId?: string) =>
+			send(
+				dir,
+				DAEMON_METHODS.status,
+				runId === undefined ? {} : { runId },
+				(raw) => DaemonStatusResultSchema.safeParse(raw),
+			),
 		/** Starts a run in the folder (ADR-047); its events arrive through onEvent. */
-		startRun: async (dir: string, req: RunStart) => {
-			const daemon = ensure(dir);
-			if (!daemon.ok) return daemon;
-			return call(daemon.value, DAEMON_METHODS.runStart, req, (raw) =>
+		startRun: (dir: string, req: RunStart) =>
+			send(dir, DAEMON_METHODS.runStart, req, (raw) =>
 				DaemonRunStartResultSchema.safeParse(raw),
-			);
-		},
+			),
+		/** The human's decision on a paused run (ADR-048). */
+		approve: (dir: string, runId: string, input: ApprovalInput) =>
+			send(dir, DAEMON_METHODS.runApprove, { runId, input }, done),
+		resume: (dir: string, runId: string) =>
+			send(dir, DAEMON_METHODS.runResume, { runId }, done),
 		/** Closing its input is how a daemon is asked to stop; it releases the run lock itself. */
 		stop: () => {
+			const live = slot.live;
 			if (!live || live.ended) return;
 			live.stopping = true;
 			live.child.stdin.end();

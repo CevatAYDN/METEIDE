@@ -37,6 +37,11 @@ conn.onRequest("mete/run.start", (p) => {
 	if (!p.templateId && p.goal === "unsure" && p.templateId !== null) throw new ResponseError(-32000, "the router is unsure", { code: "choose_template", suggestions: ["research", "web-dev"] });
 	return { runId: run.id };
 });
+conn.onRequest("mete/run.approve", (p) => {
+	if (p.runId === "late") throw new ResponseError(-32000, "the run is completed, not paused for approval", { code: "invalid_state" });
+	return null;
+});
+conn.onRequest("mete/run.resume", (p) => (p.runId === "late" ? "odd" : null));
 conn.onClose(() => process.exit(0));
 conn.listen();
 `;

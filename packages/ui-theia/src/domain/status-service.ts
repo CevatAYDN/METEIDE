@@ -1,4 +1,5 @@
 import type {
+	ApprovalInput,
 	DaemonStatusResultSchema,
 	MeteEvent,
 	Result,
@@ -49,4 +50,15 @@ export interface MeteDaemonService {
 		workspaceDir: string,
 		req: RunStart,
 	): Promise<Result<{ readonly runId: string }, DaemonFailure>>;
+	/** The human's decision on a run paused for approval; the engine judges whether it applies. */
+	approve(
+		workspaceDir: string,
+		runId: string,
+		input: ApprovalInput,
+	): Promise<Result<null, DaemonFailure>>;
+	/** Goes on with a paused run. */
+	resume(
+		workspaceDir: string,
+		runId: string,
+	): Promise<Result<null, DaemonFailure>>;
 }
