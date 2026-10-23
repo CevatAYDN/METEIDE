@@ -100,6 +100,8 @@ export const quotaReserveContract = (name: string, open: QuotaReserveHarness) =>
 				error: { code: "aborted" },
 			});
 			await expect(a.reserve(ask("x"), signal())).rejects.toThrow();
+			// An empty chain stays a programmer error; only an all-skipped chain is too_large (@4).
+			await expect(a.reserve(ask(), signal())).rejects.toThrow();
 		});
 
 		it("answers too_large when no entry could ever fit, instead of waiting (@4)", async () => {
