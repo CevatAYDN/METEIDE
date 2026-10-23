@@ -1,5 +1,7 @@
 import type { MeteEvent } from "@mete/contracts";
 import {
+	type Character,
+	characterAt,
 	createStage,
 	EFFECT_COLOURS,
 	effectsOf,
@@ -7,6 +9,7 @@ import {
 	layoutOf,
 	paintScene,
 	ROOM_W,
+	type Scene,
 	type Stage,
 	type StageLabels,
 	sceneOf,
@@ -14,6 +17,8 @@ import {
 } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { MUTED, ROW } from "../application/look.js";
+import { type CardPlace, StudioCard } from "../application/studio-card.js";
 
 // The Studio view of the Team panel (docs/13; ADR-052, ADR-070): the room of @mete/ui-studio on a
 // canvas, in the demo's own colours. The canvas follows its box's width (Theia's panels resize
@@ -106,18 +111,84 @@ type Props = {
 	readonly onCoffee?: () => void;
 };
 
-/** The run's studio room, with its live effects. */
-export const StudioView = (props: Props) => {
-	const { view } = props;
-	const box = useRef<HTMLDivElement>(null);
-	const canvas = useRef<HTMLCanvasElement>(null);
-	const width = useWidth(box);
-	const stage = useStage(canvas);
-	// The still room is drawn once per change; its moving part (the window, the clock, eyes) is drawn
-	// by the stage every frame, from the user's clock.
+// The open character card: a click on a character or its button opens it, and Escape, a click
+// outside the Studio, a click elsewhere in the room or the same button closes it.
+const useCard = (box: React.RefObject<HTMLDivElement | null>) => {
+	const [selected, setSelected] = useState<string>();
+	const [opened, setOpened] = useState(false);
+	useEffect(() => {
+		if (!selected) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") setSelected(undefined);
+		};
+		const onDown = (e: MouseEvent) => {
+			if (!(e.target instanceof Node && box.current?.contains(e.target)))
+				setSelected(undefined);
+		};
+		document.addEventListener("keydown", onKey);
+		document.addEventListener("mousedown", onDown);
+		return () => {
+			document.removeEventListener("keydown", onKey);
+			document.removeEventListener("mousedown", onDown);
+		};
+	}, [selected, box]);
+	const show = (id: string | undefined) => {
+		setSelected(id);
+		if (id) setOpened(true);
+	};
+	const toggle = (id: string) => show(selected === id ? undefined : id);
+	return { selected, opened, show, toggle };
+};
+
+// The card over the head, in the panel's pixels, kept inside the room as the demo keeps it.
+const placeOf = (head: { x: number; y: number }, width: number): CardPlace => {
+	const k = width / ROOM_W;
+	const under = head.y < 250;
+	return {
+		x: Math.min(Math.max(head.x, 130), ROOM_W - 130) * k,
+		y: (under ? head.y + 30 : head.y - 30) * k,
+		under,
+	};
+};
+
+const charactersOf = (scene: Scene): Character[] => scene.rows.flat();
+
+// One button per character under the room, the keyboard's way to its card, and a hint until one opens.
+const TeamStrip = (props: {
+	readonly characters: readonly Character[];
+	readonly selected: string | undefined;
+	readonly hint: boolean;
+	readonly onToggle: (id: string) => void;
+}) => (
+	<div style={{ ...ROW, marginTop: "8px" }}>
+		{props.characters.map((c) => (
+			<button
+				key={c.id}
+				type="button"
+				className="mete-button quiet"
+				aria-pressed={props.selected === c.id}
+				onClick={() => props.onToggle(c.id)}
+			>
+				{c.count > 1 ? `${c.roleId} ×${c.count}` : c.roleId}
+			</button>
+		))}
+		{props.hint && props.characters.length > 0 ? (
+			<span style={MUTED}>
+				{nls.localize(
+					"mete/studio/cardHint",
+					"Click a character or its name to see what it is doing",
+				)}
+			</span>
+		) : null}
+	</div>
+);
+
+// The still room is drawn once per change; its moving part (the window, the clock, eyes) is drawn by
+// the stage every frame, from the user's clock.
+const useRoom = (stage: Stage | undefined, scene: Scene, width: number) => {
 	const painted = useMemo(
-		() => (width > 0 ? paintScene(sceneOf(view), labels()) : undefined),
-		[view, width],
+		() => (width > 0 ? paintScene(scene, labels()) : undefined),
+		[scene, width],
 	);
 	useEffect(() => {
 		const room = painted?.still[0];
@@ -125,31 +196,93 @@ export const StudioView = (props: Props) => {
 		stage.resize(width, room.h);
 		stage.draw(painted);
 	}, [stage, painted, width]);
-	useEffects(stage, props, width);
-	// A click's offset, scaled back to the room's own space, is a point of the layout.
-	// shortcut: notes and characters take no click yet (no task view, and the character card needs
-	// tier and request count the fold does not carry); the palette opens the dashboard by keyboard.
-	const coffee = useMemo(() => layoutOf(sceneOf(view)).coffee, [view]);
-	const onCoffee = (e: React.MouseEvent) => {
-		const scale = ROOM_W / width;
-		return inside(coffee, {
-			x: e.nativeEvent.offsetX * scale,
-			y: e.nativeEvent.offsetY * scale,
-		});
+};
+
+// The agents a character stands for: itself, or every agent of its role when it is a group.
+const agentsOf = (view: TeamView, c: Character) =>
+	view.agents.filter(
+		(a) => a.id === c.id || (c.count > 1 && a.roleId === c.id),
+	);
+
+// A click's offset, scaled back to the room's own space, is a point of the layout; a character wins
+// over the coffee corner, where a waiting one stands.
+// shortcut: notes and the bookshelf take no click yet (no task view, no vault view).
+const hitOf =
+	(layout: ReturnType<typeof layoutOf>, width: number) =>
+	(e: React.MouseEvent) => {
+		const k = ROOM_W / width;
+		const p = { x: e.nativeEvent.offsetX * k, y: e.nativeEvent.offsetY * k };
+		const id = characterAt(layout, p);
+		return { id, coffee: !id && inside(layout.coffee, p) };
 	};
+
+// The card of the selected character, while it is in the room.
+const OpenCard = (props: {
+	readonly view: TeamView;
+	readonly scene: Scene;
+	readonly layout: ReturnType<typeof layoutOf>;
+	readonly selected: string | undefined;
+	readonly width: number;
+	readonly onClose: () => void;
+}) => {
+	const open = charactersOf(props.scene).find((c) => c.id === props.selected);
+	const head = open && props.layout.heads[open.id];
+	return open && head ? (
+		<StudioCard
+			character={open}
+			agents={agentsOf(props.view, open)}
+			tasks={props.view.tasks}
+			place={placeOf(head, props.width)}
+			onClose={props.onClose}
+		/>
+	) : null;
+};
+
+/** The run's studio room, with its live effects and its characters' cards. */
+export const StudioView = (props: Props) => {
+	const { view } = props;
+	const box = useRef<HTMLDivElement>(null);
+	const canvas = useRef<HTMLCanvasElement>(null);
+	const width = useWidth(box);
+	const stage = useStage(canvas);
+	const scene = useMemo(() => sceneOf(view), [view]);
+	const layout = useMemo(() => layoutOf(scene), [scene]);
+	useRoom(stage, scene, width);
+	useEffects(stage, props, width);
+	const card = useCard(box);
+	const hit = hitOf(layout, width);
 	return (
 		<div ref={box} style={{ width: "100%" }}>
-			<canvas
-				ref={canvas}
-				className="mete-stage"
-				style={{ display: "block" }}
-				onClick={(e) => {
-					if (onCoffee(e)) props.onCoffee?.();
-				}}
-				onMouseMove={(e) => {
-					e.currentTarget.style.cursor =
-						props.onCoffee && onCoffee(e) ? "pointer" : "";
-				}}
+			<div style={{ position: "relative" }}>
+				<canvas
+					ref={canvas}
+					className="mete-stage"
+					style={{ display: "block" }}
+					onClick={(e) => {
+						const h = hit(e);
+						card.show(h.id);
+						if (h.coffee) props.onCoffee?.();
+					}}
+					onMouseMove={(e) => {
+						const h = hit(e);
+						e.currentTarget.style.cursor =
+							h.id || (props.onCoffee && h.coffee) ? "pointer" : "";
+					}}
+				/>
+				<OpenCard
+					view={view}
+					scene={scene}
+					layout={layout}
+					selected={card.selected}
+					width={width}
+					onClose={() => card.show(undefined)}
+				/>
+			</div>
+			<TeamStrip
+				characters={charactersOf(scene)}
+				selected={card.selected}
+				hint={!card.opened}
+				onToggle={card.toggle}
 			/>
 		</div>
 	);
