@@ -209,7 +209,11 @@ describe("mcp-client notifications", () => {
 
 	it("publishes the first progress step of a call in a run, without the server's message (ADR-067)", async () => {
 		const seen: MeteEvent[] = [];
-		const p = await start("allow", [fixture], dir, { workspaceId: WS });
+		// The clock stands still, so the second step falls inside the first one's second.
+		const p = await start("allow", [fixture], dir, {
+			workspaceId: WS,
+			now: () => 0,
+		});
 		p.ctx.events.subscribe("agent.*", (e) => void seen.push(e));
 		await p.tools?.call({ server: "fixture", tool: "steps" }, { signal });
 		expect(seen).toEqual([]);
@@ -218,7 +222,6 @@ describe("mcp-client notifications", () => {
 			{ signal, runId: RUN, agentId: AGENT },
 		);
 		await p.module.deactivate();
-		// Both steps come in the same second, so the second one stays in the log.
 		expect(seen).toMatchObject([
 			{
 				type: "agent.tool.progress",
@@ -230,6 +233,28 @@ describe("mcp-client notifications", () => {
 			},
 		]);
 		expect(seen[0]?.payload).not.toHaveProperty("message");
+	});
+
+	it("publishes a later step once a second has passed since the last one", async () => {
+		const seen: MeteEvent[] = [];
+		let t = 0;
+		const p = await start("allow", [fixture], dir, {
+			workspaceId: WS,
+			now: () => {
+				t += 1000;
+				return t;
+			},
+		});
+		p.ctx.events.subscribe("agent.*", (e) => void seen.push(e));
+		await p.tools?.call(
+			{ server: "fixture", tool: "steps" },
+			{ signal, runId: RUN, agentId: AGENT },
+		);
+		await p.module.deactivate();
+		expect(seen.map((e) => e.payload)).toMatchObject([
+			{ progress: 1 },
+			{ progress: 2 },
+		]);
 	});
 
 	it("lists a tool the server adds after it connected", async () => {

@@ -42,6 +42,8 @@ export type McpClientOptions = {
 	readonly workspaceDir: string;
 	/** The id progress events carry (ADR-067); without it progress reaches the log only. */
 	readonly workspaceId?: string;
+	/** The clock of the progress throttle (ADR-067); tests pass a fixed one. */
+	readonly now?: () => number;
 	/** The built-in adapters/ folder of level 2 mapping files (docs/10). */
 	readonly adaptersDir?: string;
 	readonly open?: OpenTransport;
@@ -196,6 +198,7 @@ const openSessions = (
 		...(opts.workspaceId === undefined
 			? {}
 			: { progress: publishProgress(ctx, opts.workspaceId) }),
+		...(opts.now ? { now: opts.now } : {}),
 	});
 };
 

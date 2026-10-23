@@ -70,6 +70,8 @@ export type SessionDeps = {
 	readonly authorize?: Authorize;
 	/** Publishes a progress step of a call made in a run (ADR-067); without it progress reaches the log only. */
 	readonly progress?: (ctx: ToolContext, step: ToolProgress) => void;
+	/** The clock the progress throttle reads; tests pass a fixed one. */
+	readonly now?: () => number;
 };
 
 /** What `agent.tool.progress` carries: never the server's message, which is tool output. */
@@ -257,9 +259,19 @@ const notConfigured = (id: string) =>
 		}),
 	);
 
+// True for a call's first step and then at most once a second, since storage keeps every event (ADR-067).
+const throttle = (now: () => number) => {
+	let last = Number.NEGATIVE_INFINITY;
+	return () => {
+		const at = now();
+		if (at - last < PROGRESS_EVERY_MS) return false;
+		last = at;
+		return true;
+	};
+};
+
 // A tool that reports progress is a long one; the SDK's request timeout would kill it otherwise.
-// Every step reaches the log; a call in a run publishes its first step at once and later ones at
-// most once a second, since storage keeps every event (ADR-067).
+// Every step reaches the log; a call in a run also publishes the steps the throttle lets through.
 const callOptions =
 	(deps: SessionDeps) =>
 	(
@@ -268,7 +280,7 @@ const callOptions =
 		ctx: ToolContext,
 		capability: CapabilityRef,
 	) => {
-		let last = Number.NEGATIVE_INFINITY;
+		const due = throttle(deps.now ?? Date.now);
 		return {
 			signal: ctx.signal,
 			resetTimeoutOnProgress: true,
@@ -277,10 +289,7 @@ const callOptions =
 					{ moduleId: deps.moduleId, server, tool, ...p },
 					"MCP tool progress",
 				);
-				const now = Date.now();
-				if (!deps.progress || ctx.runId === undefined) return;
-				if (now - last < PROGRESS_EVERY_MS) return;
-				last = now;
+				if (!deps.progress || ctx.runId === undefined || !due()) return;
 				deps.progress(ctx, {
 					capability,
 					progress: p.progress,
