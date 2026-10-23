@@ -82,7 +82,7 @@ Embedding and reranking are provider capabilities (`provider.embed@1`, `provider
 
 `tiers.yaml` maps model id patterns to tiers per provider. It is data, editable by the user and the community; templates never reference it.
 
-Pins are the user's per-member choice, kept outside the templates: the folder's `.mete/pins.yaml` (or the `pins:` section of `settings.yaml`) maps a template id and a role id to `<providerId>/<modelId>`, split at the first `/`, and the team editor writes it (ADR-077) \[D\].
+Pins are the user's per-member choice, kept outside the templates: the folder's `.mete/pins.yaml` maps a template id and a role id to `<providerId>/<modelId>`, split at the first `/`; the team editor writes it, and core reads it when a task's agent is seated, so a saved pin needs no restart (ADR-077) \[D\].
 
 A requirement or a role's need is met only by a known value: `toolCalling: true` for `tool_calling`, `vision: true` for `vision` and image input, a context of 128k or more for `long_context`; `"unknown"` meets none of them. `avoidFamilies` drops candidates of those families when others remain. Until the learning router exists (core-engine), the order is context window only, larger first; learned scores and `tiers.yaml` come with the router \[D\].
 
