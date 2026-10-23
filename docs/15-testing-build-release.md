@@ -67,7 +67,7 @@ Phase 3 exit gate, as of 2026-10-22: `apps/cli/test/seo-audit.test.ts` runs `tem
 ## Release process
 
 1. `pnpm changeset version` updates versions and changelogs.
-2. `pnpm release:check` passes.
+2. `pnpm release:check` passes. It runs every release-tier check and reports them once: `pnpm check`, all tests (the contract kits included), `pnpm test:chaos`, `pnpm check:mcp`, `pnpm audit --audit-level high`, `pnpm licenses list --prod` (the licenses of what ships), osv-scanner (it must be on `PATH`), Electronegativity on the desktop's main process and the desktop bundle; it fails while the Windows installer, the end-to-end and the accessibility tests are not built \[D\].
 3. Build Windows locally and Linux in WSL2.
 4. Generate SHA-256 checksums for every artifact.
 5. Publish through `release.publish@1`; the default adapter runs `gh release create` from the developer's machine \[C\].
