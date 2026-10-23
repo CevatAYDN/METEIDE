@@ -76,6 +76,10 @@ describe("the Studio's sentences", () => {
 		).toBe(
 			"groq's free quota is used up; its agents wait at the coffee corner.",
 		);
+		// The first thinking.started of an agent carries no agent id: its task's agent stands in.
+		expect(
+			studioText(view, event("agent.thinking.started", {}, { taskId: TASK })),
+		).toBe("dev is thinking.");
 		expect(
 			said("checkpoint.created", {
 				kind: "git",

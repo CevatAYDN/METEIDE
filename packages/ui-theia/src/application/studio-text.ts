@@ -9,8 +9,13 @@ import { nls } from "@theia/core/lib/common/nls";
 const taskOf = (view: TeamView, e: MeteEvent) =>
 	view.tasks.find((t) => t.id === e.taskId)?.title ?? "";
 
+// An agent's first thinking.started carries no agent id (the core creates the agent inside that
+// turn), so the agent of the event's task stands in; a single agent has no task on either side.
 const roleOf = (view: TeamView, e: MeteEvent) =>
-	view.agents.find((a) => a.id === e.agentId)?.roleId ?? "";
+	(e.agentId
+		? view.agents.find((a) => a.id === e.agentId)
+		: view.agents.find((a) => a.taskId === e.taskId)
+	)?.roleId ?? "";
 
 const statusText = (
 	e: Extract<MeteEvent, { type: "task.status.changed" }>,
