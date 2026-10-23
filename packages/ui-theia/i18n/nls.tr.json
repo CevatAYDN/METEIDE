@@ -140,6 +140,7 @@
 			"cardStatus": "Durum",
 			"cardTask": "Görev",
 			"cardThinking": "Düşünüyor",
+			"cardTier": "Katman",
 			"cardWaiting": "Kota bekliyor",
 			"cardWaitingUntil": "{0} saatine kadar kota bekliyor",
 			"cardWorking": "Çalışıyor",

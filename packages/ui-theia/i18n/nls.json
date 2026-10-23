@@ -160,6 +160,7 @@
 			"cardStatus": "Status",
 			"cardTask": "Task",
 			"cardThinking": "Thinking",
+			"cardTier": "Tier",
 			"cardWaiting": "Waiting for quota",
 			"cardWaitingUntil": "Waiting for quota until {0}",
 			"cardWorking": "Working",

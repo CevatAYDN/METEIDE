@@ -50,6 +50,11 @@ describe("StudioCard", () => {
 			expect(out).toContain(text);
 	});
 
+	it("shows an agent's tier when agent.created carried it, and no row without it (ADR-077)", () => {
+		expect(html(ch(), [{ ...agent("a1"), tier: "coder" }])).toContain(">Tier<");
+		expect(html(ch(), [agent("a1")])).not.toContain(">Tier<");
+	});
+
 	it("lists every agent of a group, with the group's size, and says None for an agent without a task", () => {
 		const out = html(ch({ id: "developer", count: 2 }), [
 			agent("a1", "build"),

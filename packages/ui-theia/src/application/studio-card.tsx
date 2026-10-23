@@ -4,9 +4,10 @@ import { MUTED } from "./look.js";
 
 // The card a click on a Studio character opens (docs/13, Interaction): its role, its state, and for
 // each agent it stands for the provider, the model and the task. The demo's card is the model
-// (docs/prototypes/studio-view.html): 236 wide, above the head, or under it near the room's top.
-// shortcut: docs/13's tier and request count are left out: agent.created carries no tier and no
-// event names the agent of a request (quota.consumed); both need a contract change.
+// (docs/prototypes/studio-view.html): 236 wide, above the head, or under it near the room's top. The
+// tier comes with agent.created (ADR-077); an agent of an older run has none, and shows none.
+// shortcut: docs/13's request count is left out: no event names the agent of a request
+// (quota.consumed), as ADR-077 says; it needs a decision on such an event.
 
 /** The card's tallest, in pixels: a group of many agents scrolls inside it. */
 export const CARD_MAX_HEIGHT = 280;
@@ -63,6 +64,12 @@ const AgentRows = ({
 	readonly tasks: readonly TaskCard[];
 }) => (
 	<>
+		{agent.tier ? (
+			<Row
+				term={nls.localize("mete/studio/cardTier", "Tier")}
+				value={agent.tier}
+			/>
+		) : null}
 		<Row
 			term={nls.localize("mete/studio/cardProvider", "Provider")}
 			value={agent.providerId}
