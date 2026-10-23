@@ -164,21 +164,29 @@ ${r.stderr}`) || `exit code ${r.status}`,
 			};
 };
 
-// shortcut: the scan arguments follow osv-scanner's documentation and were not run here, because it
-// was not installed; check them the first time it is.
+// osv-scanner 2 (checked with 2.7.0, `winget install Google.OSVScanner`) exits 1 when it finds a
+// vulnerability; its summary line counts them by severity.
 const osvScanner = () => {
-	const r = run(
+	const r = spawnSync(
 		"osv-scanner",
-		["scan", "--lockfile", join(ROOT, "pnpm-lock.yaml")],
-		10,
+		["scan", "source", "--lockfile", join(ROOT, "pnpm-lock.yaml")],
+		{
+			cwd: ROOT,
+			encoding: "utf8",
+			timeout: 10 * MINUTE,
+			maxBuffer: 64 * 1024 * 1024,
+		},
 	);
-	return r.reason === "not installed"
-		? {
-				status: "fail",
-				reason:
-					"osv-scanner is not on PATH; install it from https://google.github.io/osv-scanner/",
-			}
-		: r;
+	if (r.error?.code === "ENOENT")
+		return {
+			status: "fail",
+			reason:
+				"osv-scanner is not on PATH; install it from https://google.github.io/osv-scanner/",
+		};
+	if (r.status === 0) return { status: "pass", reason: "" };
+	const out = `${r.stdout}\n${r.stderr}`;
+	const total = out.split("\n").find((l) => l.startsWith("Total "));
+	return { status: "fail", reason: total?.trim() ?? tail(out) };
 };
 
 const notBuilt = (what) => () => ({
