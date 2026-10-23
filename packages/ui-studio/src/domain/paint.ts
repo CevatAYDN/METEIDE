@@ -2,6 +2,7 @@ import type { EffectColour } from "./effects.js";
 import { type Layout, layoutOf, type Point } from "./layout.js";
 import { EFFECT, STATE } from "./palette.js";
 import type { Primitive } from "./primitive.js";
+import { propsAt } from "./props.js";
 import {
 	board,
 	chair,
@@ -96,14 +97,22 @@ const overlay = (scene: Scene, l: Layout, labels: StageLabels): Primitive[] =>
 /** The colour of each effect, the demo's. */
 export const EFFECT_COLOURS: Readonly<Record<EffectColour, string>> = EFFECT;
 
-/** The primitives of the room, in drawing order; the first is the floor, as wide and tall as the room. */
-export const paintScene = (scene: Scene, labels: StageLabels): Primitive[] => {
+/**
+ * The primitives of the room, in drawing order; the first is the floor, as wide and tall as the room.
+ * `now` is the user's local time, which the window and the clock show (ADR-070).
+ */
+export const paintScene = (
+	scene: Scene,
+	labels: StageLabels,
+	now: Date,
+): Primitive[] => {
 	const l = layoutOf(scene);
 	const waiting = scene.rows.flat().filter((ch) => ch.state === "waiting");
 	return [
 		...roomShell(l),
 		...board(scene, l, labels),
 		...coffee(labels),
+		...propsAt(now, labels.vault),
 		...seated(scene, l),
 		...waiting.flatMap((ch) => {
 			const head = l.heads[ch.id];

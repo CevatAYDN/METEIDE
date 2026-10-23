@@ -1,12 +1,12 @@
 import { ROOM_W } from "../defaults.js";
 import type { Layout } from "./layout.js";
 import { BOARD, COFFEE, DESK, ROOM } from "./palette.js";
-import type { Primitive } from "./primitive.js";
+import { type Primitive, rect } from "./primitive.js";
 import type { Scene } from "./scene.js";
 
 // The cozy office of the approved demo as primitives (ADR-070): the wall and floor, the board with
 // its notes, the coffee corner, and each desk with its chair, monitor and lamp, at the demo's
-// coordinates. The window, clock, shelf and plants come next; the characters are drawn by paint.ts.
+// coordinates. The window, clock, shelf and plants are in props.ts; the characters are drawn by paint.ts.
 
 /** The words the room writes, in the user's language. */
 export type RoomLabels = {
@@ -14,13 +14,8 @@ export type RoomLabels = {
 	readonly inProgress: string;
 	readonly done: string;
 	readonly coffee: string;
+	readonly vault: string;
 };
-
-const rect = (
-	[x, y, w, h]: readonly [number, number, number, number],
-	r: number,
-	fill: string,
-): Primitive => ({ kind: "rect", x, y, w, h, r, fill });
 
 // A dashed line as its dashes: the stage draws solid strokes only.
 const dashes = (

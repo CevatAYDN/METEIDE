@@ -83,3 +83,62 @@ export const EFFECT = {
 	warn: "#e3a13a",
 	bad: "#d9544a",
 } as const;
+
+/** The window: its frame and sill, and the sky and skyline as colour triples that mix with the time of day. */
+export const WINDOW = {
+	frame: "#7b5a3d",
+	sill: "#8e6a48",
+	pot: "#c26a4a",
+	sprout: "#5d9a66",
+	// Top and bottom of the sky by day (d), at night (n) and at sunrise and sunset (w).
+	skyDayTop: [126, 190, 236],
+	skyDayBottom: [214, 238, 250],
+	skyNightTop: [16, 22, 56],
+	skyNightBottom: [44, 56, 104],
+	skyWarmTop: [236, 130, 92],
+	skyWarmBottom: [255, 206, 150],
+	buildingDay: [96, 124, 142],
+	buildingNight: [22, 28, 56],
+	cloud: [255, 255, 255],
+	cloudWarm: [255, 214, 190],
+	sun: [255, 238, 178],
+	moon: [246, 243, 226],
+	star: [255, 255, 240],
+	lit: [255, 214, 120],
+} as const;
+
+/** The wall clock. */
+export const CLOCK = {
+	rim: "#7b5a3d",
+	face: "#fbf8f1",
+	tick: "#b7a99a",
+	hand: "#3a2e24",
+	pin: "#d9544a",
+} as const;
+
+/** The Vault shelf and its books. */
+export const SHELF = {
+	frame: "#8b5e3c",
+	inner: "#6b4730",
+	sign: "#f3e7d3",
+	signInk: "#5a4030",
+	spine: "rgba(255,255,255,.35)",
+	books: [
+		"#c0504d",
+		"#4f81bd",
+		"#9bbb59",
+		"#8064a2",
+		"#f79646",
+		"#4bacc6",
+		"#d9a441",
+		"#6a8caf",
+	],
+} as const;
+
+/** A potted plant. */
+export const PLANT = {
+	pot: "#c26a4a",
+	rim: "#d77d5b",
+	leafLight: "#4f8f5b",
+	leafDark: "#3f7a4c",
+} as const;

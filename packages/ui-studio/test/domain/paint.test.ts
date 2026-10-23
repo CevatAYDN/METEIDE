@@ -6,11 +6,14 @@ import type { Character, Scene } from "../../src/domain/scene.js";
 
 // The room's primitives for scenes written by hand: what is drawn where, in which order and colour.
 
+// Local noon: the window shows a day sky, whatever the machine's zone.
+const NOON = new Date(2026, 9, 24, 12, 0);
 const labels = {
 	todo: "To do",
 	inProgress: "In progress",
 	done: "Done",
 	coffee: "Coffee",
+	vault: "Vault",
 	until: (at: string) => `until ${at.slice(11, 16)}`,
 };
 const ch = (
@@ -46,7 +49,7 @@ const bodies = (p: Primitive[]) =>
 describe("the room's primitives", () => {
 	it("starts with the floor, as wide and tall as the room, and writes the board's columns, a badge for hidden notes and the coffee sign", () => {
 		const s = scene([], { todo: ["a", "b", "c", "d"], done: ["e"] });
-		const p = paintScene(s, labels);
+		const p = paintScene(s, labels, NOON);
 		expect(p[0]).toMatchObject({ kind: "rect", x: 0, y: 0, w: 1280, h: 490 });
 		expect(words(p)).toEqual(
 			expect.arrayContaining(["To do", "In progress", "Done", "Coffee", "+1"]),
@@ -63,15 +66,15 @@ describe("the room's primitives", () => {
 					x.r === 3 &&
 					!x.fill.startsWith("rgba"),
 			);
-		const before = fill(paintScene(scene([], { todo: ["t1"] }), labels));
-		const after = fill(paintScene(scene([], { done: ["t1"] }), labels));
+		const before = fill(paintScene(scene([], { todo: ["t1"] }), labels, NOON));
+		const after = fill(paintScene(scene([], { done: ["t1"] }), labels, NOON));
 		expect(before?.kind === "rect" && before.fill).toBe(
 			after?.kind === "rect" && after.fill,
 		);
 	});
 
 	it("draws a seated character between its chair and its desk, so the desk hides its body", () => {
-		const p = paintScene(scene([[ch("dev", "idle")]]), labels);
+		const p = paintScene(scene([[ch("dev", "idle")]]), labels, NOON);
 		const at = (fill: string) =>
 			p.findIndex((x) => "fill" in x && x.fill === fill);
 		const body = p.indexOf(bodies(p)[0] as Primitive);
@@ -88,7 +91,7 @@ describe("the room's primitives", () => {
 			],
 			[ch("crowd", "idle", { count: 4 })],
 		]);
-		const p = paintScene(s, labels);
+		const p = paintScene(s, labels, NOON);
 		expect(bodies(p).map((x) => x.kind === "circle" && x.fill)).toEqual([
 			STATE.idle,
 			STATE.thinking,
@@ -105,7 +108,7 @@ describe("the room's primitives", () => {
 		const s = scene([
 			[ch("artist", "waiting", { resetsAt: "2026-10-24T09:30:00.000Z" })],
 		]);
-		const p = paintScene(s, labels);
+		const p = paintScene(s, labels, NOON);
 		const [person] = bodies(p);
 		expect(person?.kind === "circle" && person.x).toBeGreaterThan(800);
 		expect(person?.kind === "circle" && person.fill).toBe(STATE.waiting);

@@ -63,3 +63,10 @@ export type Primitive =
 			readonly size: number;
 			readonly maxWidth?: number;
 	  };
+
+/** A rectangle from its box, corner radius and fill. */
+export const rect = (
+	[x, y, w, h]: readonly [number, number, number, number],
+	r: number,
+	fill: string,
+): Primitive => ({ kind: "rect", x, y, w, h, r, fill });
