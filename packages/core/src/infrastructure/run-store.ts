@@ -6,7 +6,7 @@ import {
 	type RunView,
 } from "@mete/contracts";
 import type BetterSqlite3 from "better-sqlite3";
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { z } from "zod";
@@ -249,6 +249,15 @@ const list = (orm: Orm, id?: string): RunView[] =>
 		.map(viewOf);
 
 /** Runs an earlier process left queued or running. */
+// Runs that ended before `iso`; an ISO 8601 time sorts as text.
+const endedBefore = (orm: Orm, iso: string) =>
+	orm
+		.select({ id: runs.id })
+		.from(runs)
+		.where(and(isNotNull(runs.endedAt), lt(runs.endedAt, iso)))
+		.all()
+		.map((r) => r.id);
+
 const unfinished = (orm: Orm) =>
 	orm
 		.select({ id: runs.id })
@@ -266,6 +275,7 @@ export const createRunStore = (db: BetterSqlite3.Database) => {
 		markFailed: (id: string, endedAt: string) => markFailed(orm, id, endedAt),
 		list: (id?: string) => list(orm, id),
 		unfinished: () => unfinished(orm),
+		endedBefore: (iso: string) => endedBefore(orm, iso),
 	};
 };
 

@@ -23,3 +23,6 @@ export const MCP_TOOL_NAME_MAX = 64;
 
 /** How long a run paused for the network waits before it tries again (08 Orchestration and teams, Single agent, Pauses). */
 export const NETWORK_RETRY_MS = 30_000;
+
+/** Days a run's checkpoints are kept after it ended (12 Autonomy and security, SECURITY.md: Checkpoints and rollback). */
+export const CHECKPOINT_KEEP_DAYS = 14;

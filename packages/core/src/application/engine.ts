@@ -22,6 +22,7 @@ import {
 } from "../infrastructure/template-store.js";
 import { recordDecision } from "./approvals.js";
 import { type Opening, offerBrief, takeHandoff } from "./continue.js";
+import { pruneOldCheckpoints } from "./retention.js";
 import { routeFor } from "./route.js";
 import { drive } from "./run-driver.js";
 import {
@@ -324,7 +325,10 @@ const stop = async (s: EngineState) => {
 	await Promise.allSettled([...s.live.values()].map((l) => l.loop));
 };
 
-/** Creates team.engine@2; the module calls `recover` when it activates and `stop` when it deactivates. */
+/**
+ * Creates team.engine@2; the module calls `recover` when it activates in the process that drives runs
+ * (it also prunes old checkpoints), and `stop` when it deactivates.
+ */
 export const createEngine = (deps: EngineDeps) => {
 	const s: EngineState = {
 		deps,
@@ -339,7 +343,16 @@ export const createEngine = (deps: EngineDeps) => {
 		approve: (runId, input) => approveRun(s, runId, input),
 		status: (runId) => status(s, runId),
 	};
-	return { engine, recover: () => recover(s), stop: () => stop(s) };
+	return {
+		engine,
+		// Only the process that drives runs recovers them and prunes old checkpoints, so a command
+		// that only reads (mete status, mete events) never removes refs a live run may still use.
+		recover: () => {
+			recover(s);
+			void pruneOldCheckpoints(s.deps);
+		},
+		stop: () => stop(s),
+	};
 };
 
 export type { EngineDeps };

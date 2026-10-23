@@ -34,7 +34,7 @@ export type Script =
 export const T0 = Date.parse("2026-10-21T10:00:00.000Z");
 
 /** A logger that keeps what was logged. */
-const recordingLogger = () => {
+export const recordingLogger = () => {
 	const logged: { level: string; msg: string }[] = [];
 	const at =
 		(level: string) =>
