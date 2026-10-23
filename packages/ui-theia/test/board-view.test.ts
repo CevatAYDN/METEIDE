@@ -149,6 +149,10 @@ describe("the Board view", () => {
 		expect(html(model)).toContain("a single agent works without a board");
 		expect(html(model)).toContain(">Studio<");
 		expect(html(model, "studio")).toContain("studio of 0 task(s)");
+		expect(html(model, "flow")).toContain(
+			"a single agent works without a board",
+		);
+		expect(html(model, "flow")).not.toContain("flow of");
 	});
 
 	it("says how many events could not be read, and that a single agent has no board", () => {
