@@ -506,6 +506,18 @@ describe("verify gates", () => {
 		);
 		expect(String(feedback?.content)).toContain("error TS2304");
 		expect(h.events.at(-1)?.payload).toEqual({ summary: REPORT });
+		// Each gate that ran publishes verify.completed (docs/07), with what failed as details.
+		const gates = h.events.filter((e) => e.type === "verify.completed");
+		expect(gates.map((e) => e.payload)).toEqual([
+			{
+				gate: "pnpm build",
+				ok: false,
+				details: expect.stringContaining("error TS2304"),
+			},
+			{ gate: "pnpm build", ok: true, details: "" },
+			{ gate: "pnpm build", ok: true, details: "" },
+		]);
+		expect(gates.every((e) => e.taskId !== undefined)).toBe(true);
 	});
 
 	it("pause the run for approval when the policy asks about the command, and run it again on resume", async () => {
@@ -526,6 +538,12 @@ describe("verify gates", () => {
 		await settled(h, runId, "completed");
 		expect(n).toBe(2);
 		expect(h.requests).toHaveLength(1);
+		// The gate the policy asked about did not run, so only the run after resume is published.
+		expect(
+			h.events
+				.filter((e) => e.type === "verify.completed")
+				.map((e) => e.payload),
+		).toEqual([{ gate: "pnpm build", ok: true, details: "" }]);
 	});
 
 	it("block the task when no shell is active", async () => {

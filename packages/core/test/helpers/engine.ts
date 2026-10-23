@@ -117,6 +117,7 @@ export const engineHarness = (opts: {
 		"task.*",
 		"approval.*",
 		"artifact.*",
+		"verify.*",
 	] as const)
 		bus.subscribe(p, (e) => events.push(e));
 	const requests: LlmChatRequest[] = [];

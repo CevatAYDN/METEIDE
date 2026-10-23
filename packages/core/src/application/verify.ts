@@ -14,12 +14,12 @@ export type Gated =
 
 type Run = { commands: readonly string[]; ctx: ToolContext; emit: Emit };
 
-// One gate; undefined when it passed.
-const one = async (
+// What went wrong, or undefined when the gate passed; a gate that did not run yet is a Gated.
+const outcome = async (
 	deps: StepDeps,
 	command: string,
 	run: Run,
-): Promise<Gated | undefined> => {
+): Promise<Gated | string | undefined> => {
 	const input = { command };
 	const out = await runCapability(
 		deps,
@@ -30,15 +30,28 @@ const one = async (
 	if (!out.ok) {
 		if (out.error.code === "capability_missing") return { kind: "missing" };
 		if (out.error.code === "approval_required") return { kind: "approval" };
-		const content = gateRefused(command, out.error.message);
-		return { kind: "failed", content: await masked(deps, content) };
+		return gateRefused(command, out.error.message);
 	}
 	const shell = ShellRunSchema.safeParse(out.value);
-	const text = shell.success
+	return shell.success
 		? gateFailure(command, shell.data)
 		: gateRefused(command, "shell.exec@1 returned an unexpected result");
-	if (text === undefined) return undefined;
-	return { kind: "failed", content: await masked(deps, text) };
+};
+
+// One gate; undefined when it passed. A gate that ran publishes verify.completed (docs/07).
+const one = async (
+	deps: StepDeps,
+	command: string,
+	run: Run,
+): Promise<Gated | undefined> => {
+	const out = await outcome(deps, command, run);
+	if (typeof out === "object") return out;
+	const content = out === undefined ? "" : await masked(deps, out);
+	run.emit({
+		type: "verify.completed",
+		payload: { gate: command, ok: out === undefined, details: content },
+	});
+	return out === undefined ? undefined : { kind: "failed", content };
 };
 
 /** Runs the gates in order and stops at the first that does not pass. */
