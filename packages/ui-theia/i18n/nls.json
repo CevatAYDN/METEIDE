@@ -13,6 +13,8 @@
 			"noRun": "Choose a run with METE: Open team panel.",
 			"noTasks": "This run has no tasks: a single agent works without a board.",
 			"open": "Open team panel",
+			"recent": "Latest events",
+			"studioMode": "Studio",
 			"title": "Team panel",
 			"todo": "To do",
 			"unreadable": "{0} event(s) of this run could not be read; mete events names them."
@@ -86,6 +88,10 @@
 			"refused": "The METE daemon refused the request: {0}",
 			"runs": "{0} run(s) in this folder: {1}",
 			"stopped": "The METE daemon stopped: {0}"
+		},
+		"studio": {
+			"coffee": "Coffee corner",
+			"until": "until {0}"
 		}
 	}
 }

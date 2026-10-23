@@ -20,6 +20,7 @@ const html = (model: BoardModel, mode: TeamMode = "board") =>
 				mode,
 				onMode: () => {},
 				flow: (v) => `flow of ${v.tasks.length} task(s)`,
+				studio: (v) => `studio of ${v.tasks.length} task(s)`,
 			},
 		}),
 	);
@@ -71,7 +72,13 @@ describe("the Board view", () => {
 			fix.to("submitted", "changes_requested"),
 			done.to("submitted", "approved"),
 		]);
-		const out = html({ kind: "board", goal: "a goal", view, unreadable: 0 });
+		const out = html({
+			kind: "board",
+			goal: "a goal",
+			view,
+			unreadable: 0,
+			recent: [],
+		});
 		expect(section(out, "To do")).toContain("Take &lt;notes&gt;");
 		const doing = section(out, "In progress");
 		expect(doing).toContain("Draft");
@@ -84,7 +91,13 @@ describe("the Board view", () => {
 
 	it("switches between the Board and the Flow graph of the same view", () => {
 		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [task("Notes").created]);
-		const model: BoardModel = { kind: "board", goal: "g", view, unreadable: 0 };
+		const model: BoardModel = {
+			kind: "board",
+			goal: "g",
+			view,
+			unreadable: 0,
+			recent: [],
+		};
 		const board = html(model);
 		expect(board).toContain('aria-pressed="true">Board<');
 		expect(board).toContain('aria-label="To do"');
@@ -94,12 +107,35 @@ describe("the Board view", () => {
 		expect(flow).not.toContain('aria-label="To do"');
 	});
 
+	it("draws the Studio with a list of the latest events, each with its task", () => {
+		const notes = task("Notes");
+		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [notes.created]);
+		const out = html(
+			{
+				kind: "board",
+				goal: "g",
+				view,
+				unreadable: 0,
+				recent: [notes.created],
+			},
+			"studio",
+		);
+		expect(out).toContain('aria-pressed="true">Studio<');
+		expect(out).toContain("studio of 1 task(s)");
+		const list = out.slice(out.indexOf('aria-label="Latest events"'));
+		expect(list).toContain("task.created · Notes");
+		expect(
+			html({ kind: "board", goal: "g", view, unreadable: 0, recent: [] }),
+		).not.toContain("Latest events");
+	});
+
 	it("says how many events could not be read, and that a single agent has no board", () => {
 		const out = html({
 			kind: "board",
 			goal: "g",
 			view: EMPTY_TEAM_VIEW,
 			unreadable: 2,
+			recent: [],
 		});
 		expect(out).toContain("2 event(s) of this run could not be read");
 		expect(out).toContain("a single agent works without a board");

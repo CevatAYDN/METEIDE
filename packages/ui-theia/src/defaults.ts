@@ -14,3 +14,6 @@ export const DAEMON_RESTART_WINDOW_MS = 5 * 60 * 1000;
 // needs more.
 /** The last lines of the daemon's stderr kept to say why it stopped. */
 export const STDERR_TAIL_LINES = 5;
+
+/** Events the Studio's accessible list shows, newest last (19 Studio view prototype, Events panel). */
+export const STUDIO_RECENT_EVENTS = 7;

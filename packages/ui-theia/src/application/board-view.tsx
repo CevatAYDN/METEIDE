@@ -1,3 +1,4 @@
+import type { MeteEvent } from "@mete/contracts";
 import {
 	type Place,
 	placeOf,
@@ -23,6 +24,8 @@ export type BoardModel =
 			readonly goal: string;
 			readonly view: TeamView;
 			readonly unreadable: number;
+			/** The run's latest studio events, for the Studio's accessible list. */
+			readonly recent: readonly MeteEvent[];
 	  };
 
 const PANEL: CSSProperties = {
@@ -110,19 +113,27 @@ const COLUMN_ORDER: readonly Place["column"][] = [
 	"done",
 ];
 
-/** Which of the Team panel's views draws the run: the Board or the Flow graph. */
-export type TeamMode = "board" | "flow";
+/** Which of the Team panel's views draws the run: the Board, the Flow graph or the Studio. */
+export type TeamMode = "board" | "flow" | "studio";
 
-/** How the panel switches views and draws the Flow graph, which lives outside this file. */
+/** How the panel switches views and draws the Flow graph and the Studio, which live outside this file. */
 export type TeamControls = {
 	readonly mode: TeamMode;
 	readonly onMode: (mode: TeamMode) => void;
 	readonly flow: (view: TeamView) => ReactNode;
+	readonly studio: (view: TeamView) => ReactNode;
 };
+
+const modeName = (mode: TeamMode) =>
+	({
+		board: nls.localize("mete/board/boardMode", "Board"),
+		flow: nls.localize("mete/board/flowMode", "Flow"),
+		studio: nls.localize("mete/board/studioMode", "Studio"),
+	})[mode];
 
 const ModeSwitch = ({ controls }: { readonly controls: TeamControls }) => (
 	<div style={{ display: "flex", gap: "6px" }}>
-		{(["board", "flow"] as const).map((mode) => (
+		{(["board", "flow", "studio"] as const).map((mode) => (
 			<button
 				key={mode}
 				type="button"
@@ -132,13 +143,56 @@ const ModeSwitch = ({ controls }: { readonly controls: TeamControls }) => (
 				aria-pressed={mode === controls.mode}
 				onClick={() => controls.onMode(mode)}
 			>
-				{mode === "board"
-					? nls.localize("mete/board/boardMode", "Board")
-					: nls.localize("mete/board/flowMode", "Flow")}
+				{modeName(mode)}
 			</button>
 		))}
 	</div>
 );
+
+// What an event of the studio table is about: its task's title, else its agent's role.
+const subjectOf = (view: TeamView, e: MeteEvent) =>
+	view.tasks.find((t) => t.id === e.taskId)?.title ??
+	view.agents.find((a) => a.id === e.agentId)?.roleId ??
+	"";
+
+// The Studio's accessible list (docs/13: every visual event is also written to a list).
+// shortcut: one line per event, its type and subject; the sentences of tab 13's table come with
+// the animations they describe.
+const Recent = ({
+	view,
+	recent,
+}: {
+	readonly view: TeamView;
+	readonly recent: readonly MeteEvent[];
+}) => (
+	<ul
+		aria-live="polite"
+		aria-label={nls.localize("mete/board/recent", "Latest events")}
+		style={{ ...MUTED, margin: 0, paddingLeft: "16px" }}
+	>
+		{recent.map((e) => {
+			const subject = subjectOf(view, e);
+			return <li key={e.id}>{subject ? `${e.type} · ${subject}` : e.type}</li>;
+		})}
+	</ul>
+);
+
+const Shown = ({
+	model,
+	controls,
+}: {
+	readonly model: Extract<BoardModel, { kind: "board" }>;
+	readonly controls: TeamControls;
+}) => {
+	if (controls.mode === "flow") return <>{controls.flow(model.view)}</>;
+	if (controls.mode === "board") return <Columns view={model.view} />;
+	return (
+		<>
+			{controls.studio(model.view)}
+			<Recent view={model.view} recent={model.recent} />
+		</>
+	);
+};
 
 const Columns = ({ view }: { readonly view: TeamView }) => (
 	<div style={COLUMNS}>
@@ -180,11 +234,7 @@ const Board = ({
 		) : (
 			<>
 				<ModeSwitch controls={controls} />
-				{controls.mode === "flow" ? (
-					controls.flow(model.view)
-				) : (
-					<Columns view={model.view} />
-				)}
+				<Shown model={model} controls={controls} />
 			</>
 		)}
 	</>

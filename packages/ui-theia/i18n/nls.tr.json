@@ -13,6 +13,8 @@
 			"noRun": "METE: Ekip panelini aç ile bir çalıştırma seç.",
 			"noTasks": "Bu çalıştırmanın görevi yok: tek bir ajan panosuz çalışır.",
 			"open": "Ekip panelini aç",
+			"recent": "Son olaylar",
+			"studioMode": "Stüdyo",
 			"title": "Ekip paneli",
 			"todo": "Yapılacak",
 			"unreadable": "Bu çalıştırmanın {0} olayı okunamadı; mete events onları gösterir."
@@ -73,6 +75,10 @@
 			"started": "Çalıştırma başladı: {0}",
 			"starting": "METE çalıştırmayı başlatıyor…",
 			"which": "Hangi çalıştırma?"
+		},
+		"studio": {
+			"coffee": "Kahve köşesi",
+			"until": "{0} saatine kadar"
 		},
 		"status": {
 			"blocked": "METE daemon'u durup duruyor, bu yüzden METE onu şimdilik yeniden başlatmıyor: {0}",

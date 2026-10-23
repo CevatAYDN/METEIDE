@@ -1,5 +1,6 @@
 import type { MeteEvent, Result } from "@mete/contracts";
 import { applyAll, EMPTY_TEAM_VIEW, type TeamView } from "@mete/ui-studio";
+import { STUDIO_RECENT_EVENTS } from "../defaults.js";
 import type { DaemonFailure } from "../domain/status-service.js";
 import type { BoardModel } from "./board-view.js";
 
@@ -22,6 +23,8 @@ export type BoardSession = {
 	readonly view: TeamView;
 	readonly unreadable: number;
 	readonly buffer?: readonly MeteEvent[];
+	/** The run's latest events of tab 13's studio table, for the Studio's accessible list. */
+	readonly recent: readonly MeteEvent[];
 	readonly model: BoardModel;
 };
 
@@ -29,6 +32,7 @@ export type BoardSession = {
 export const IDLE_BOARD: BoardSession = {
 	view: EMPTY_TEAM_VIEW,
 	unreadable: 0,
+	recent: [],
 	model: { kind: "no_run" },
 };
 
@@ -38,14 +42,50 @@ export const startBoard = (shown: Shown): BoardSession => ({
 	view: EMPTY_TEAM_VIEW,
 	unreadable: 0,
 	buffer: [],
+	recent: [],
 	model: { kind: "loading" },
 });
+
+// The events docs/13's studio table draws; each gets a line in the Studio's accessible list.
+const STUDIO_EVENTS = new Set<string>([
+	"task.created",
+	"task.assigned",
+	"task.status.changed",
+	"agent.thinking.started",
+	"agent.tool.called",
+	"agent.message.sent",
+	"review.requested",
+	"quota.exhausted",
+	"quota.restored",
+	"run.paused",
+	"approval.requested",
+	"vault.note.saved",
+	"run.completed",
+]);
+
+// The latest events of the run (or of its workspace's quota) the studio table names, each once.
+const recentAfter = (
+	recent: readonly MeteEvent[],
+	runId: string,
+	events: readonly MeteEvent[],
+) => {
+	const added = events.filter(
+		(e) =>
+			(e.runId === runId || (!e.runId && e.type.startsWith("quota."))) &&
+			STUDIO_EVENTS.has(e.type) &&
+			!recent.some((x) => x.id === e.id),
+	);
+	return added.length === 0
+		? recent
+		: [...recent, ...added].slice(-STUDIO_RECENT_EVENTS);
+};
 
 const drawn = (s: BoardSession, shown: Shown, view: TeamView): BoardModel => ({
 	kind: "board",
 	goal: shown.goal,
 	view,
 	unreadable: s.unreadable,
+	recent: s.recent,
 });
 
 /** A live event of a folder's daemon; one the fold does not take, or already folded, changes nothing. */
@@ -60,9 +100,11 @@ export const receiveBoard = (
 	if (!shown || dir !== shown.dir) return s;
 	if (s.buffer) return { ...s, buffer: [...s.buffer, e] };
 	const view = applyAll(shown.runId, s.view, [e]);
-	if (view === s.view) return s;
-	const model = s.model.kind === "board" ? drawn(s, shown, view) : s.model;
-	return { ...s, view, model };
+	const recent = recentAfter(s.recent, shown.runId, [e]);
+	if (view === s.view && recent === s.recent) return s;
+	const next = { ...s, view, recent };
+	const model = s.model.kind === "board" ? drawn(next, shown, view) : s.model;
+	return { ...next, model };
 };
 
 /** The history of `shown` arrived; an answer for a run no longer shown changes nothing. */
@@ -79,6 +121,7 @@ export const loadedBoard = (
 	if (!r.ok) return { ...rest, model: { kind: "failed", failure: r.error } };
 	const history = applyAll(shown.runId, EMPTY_TEAM_VIEW, r.value.events);
 	const view = applyAll(shown.runId, history, live);
-	const next = { ...rest, view, unreadable: r.value.unreadable };
+	const recent = recentAfter([], shown.runId, [...r.value.events, ...live]);
+	const next = { ...rest, view, recent, unreadable: r.value.unreadable };
 	return { ...next, model: drawn(next, shown, view) };
 };

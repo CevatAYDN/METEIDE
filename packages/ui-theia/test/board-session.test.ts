@@ -72,6 +72,17 @@ describe("the Board session", () => {
 		expect(next.view.signals.exhausted).toEqual({ groq: resetsAt });
 	});
 
+	it("keeps the run's latest studio events, once each, history first", () => {
+		const s = loadedBoard(startBoard(shown), shown, ok([created]));
+		const next = receiveBoard(s, "/w", started);
+		expect(next.recent.map((e) => e.type)).toEqual([
+			"task.created",
+			"task.status.changed",
+		]);
+		expect(receiveBoard(next, "/w", started).recent).toBe(next.recent);
+		expect(next.model).toMatchObject({ recent: next.recent });
+	});
+
 	it("stays failed when live events come after a failed read", () => {
 		const s = loadedBoard(startBoard(shown), shown, {
 			ok: false,

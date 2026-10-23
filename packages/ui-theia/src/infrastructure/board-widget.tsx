@@ -1,6 +1,8 @@
+import { ThemeService } from "@theia/core/lib/browser/theming";
 import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { nls } from "@theia/core/lib/common/nls";
+import { getThemeMode } from "@theia/core/lib/common/theme";
 import {
 	inject,
 	injectable,
@@ -17,6 +19,7 @@ import { BoardView, type TeamMode } from "../application/board-view.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { FlowView } from "./flow-view.js";
+import { StudioView } from "./studio-view.js";
 
 // The Team panel (docs/13; ADR-051): one chosen run on the Board or as the Flow graph. The order of
 // history and live events is the session's (application/board-session.ts); the widget listens, asks
@@ -29,6 +32,7 @@ export class MeteBoardWidget extends ReactWidget {
 
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;
 	@inject(MeteDaemonEvents) protected readonly events!: MeteDaemonEvents;
+	@inject(ThemeService) protected readonly themes!: ThemeService;
 
 	protected session: BoardSession = IDLE_BOARD;
 	protected mode: TeamMode = "board";
@@ -43,6 +47,8 @@ export class MeteBoardWidget extends ReactWidget {
 		);
 		this.title.iconClass = codicon("project");
 		this.title.closable = true;
+		// The Studio's stage takes the tokens of Theia's theme mode (ADR-052): draw again on a change.
+		this.toDispose.push(this.themes.onDidColorThemeChange(() => this.update()));
 		this.toDispose.push(
 			this.events.onDidReceive(({ workspaceDir, event }) =>
 				this.setSession(receiveBoard(this.session, workspaceDir, event)),
@@ -76,6 +82,12 @@ export class MeteBoardWidget extends ReactWidget {
 						this.update();
 					},
 					flow: (view) => <FlowView view={view} />,
+					studio: (view) => (
+						<StudioView
+							view={view}
+							mode={getThemeMode(this.themes.getCurrentTheme().type)}
+						/>
+					),
 				}}
 			/>
 		);
