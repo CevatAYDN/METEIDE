@@ -255,8 +255,12 @@ const lamp = (x: number, y: number): Primitive[] => [
 	rect([x + 42, y - 27, 10, 11], 3, DESK.mug),
 ];
 
-/** A desk in front of its character, with its monitor (asleep) and lamp. */
-export const desk = (x: number, y: number): Primitive[] => [
+/** A desk in front of its character, with its monitor and lamp; `screen` is what the monitor shows, dark when empty. */
+export const desk = (
+	x: number,
+	y: number,
+	screen: readonly Primitive[] = [],
+): Primitive[] => [
 	{ kind: "ellipse", x, y: y + 38, rx: 88, ry: 9, fill: DESK.shadow },
 	rect([x - 78, y - 30, 156, 42], 9, DESK.top),
 	rect([x - 78, y - 30, 156, 9], 9, DESK.edge),
@@ -267,6 +271,7 @@ export const desk = (x: number, y: number): Primitive[] => [
 	rect([x - 52, y - 31, 32, 5], 2, DESK.stand),
 	rect([x - 67, y - 82, 64, 46], 7, DESK.bezel),
 	rect([x - 62, y - 77, 54, 36], 0, DESK.screen),
+	...screen,
 	{
 		kind: "poly",
 		points: [x - 62, y - 77, x - 42, y - 77, x - 58, y - 41, x - 62, y - 41],

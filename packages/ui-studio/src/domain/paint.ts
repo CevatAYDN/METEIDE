@@ -14,6 +14,7 @@ import {
 	roomShell,
 } from "./room.js";
 import type { Scene } from "./scene.js";
+import { screenOf } from "./screen.js";
 
 // The studio room as primitives the stage draws, in the room's own space and the demo's colours
 // (ADR-070). The list is in drawing order: the room, then each desk's chair, character and desk, so
@@ -34,7 +35,12 @@ const seated = (scene: Scene, l: Layout): Primitive[] =>
 		const head = l.heads[d.id];
 		const person =
 			ch && head && ch.state !== "waiting" ? characterOf(ch, head, true) : [];
-		return [...chair(x, y), ...person, ...desk(x, y)];
+		// The monitor wakes while its character works at the desk.
+		const screen =
+			ch?.state === "working"
+				? screenOf(ch.tool, { x: x - 62, y: y - 77 })
+				: [];
+		return [...chair(x, y), ...person, ...desk(x, y, screen)];
 	});
 
 const overlay = (scene: Scene, l: Layout, labels: StageLabels): Primitive[] =>

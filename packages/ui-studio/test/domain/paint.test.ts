@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { paintScene } from "../../src/domain/paint.js";
-import { DESK, MARK } from "../../src/domain/palette.js";
+import { DESK, MARK, SCREEN } from "../../src/domain/palette.js";
 import type { Primitive } from "../../src/domain/primitive.js";
 import type { Character, Scene } from "../../src/domain/scene.js";
 
@@ -103,6 +103,23 @@ describe("the room's primitives", () => {
 		expect(words(p)).toEqual(
 			expect.arrayContaining(["idle", "fs.read@1", "4", "crowd"]),
 		);
+	});
+
+	it("wakes a monitor only while its character works, with the picture of its tool", () => {
+		const lit = (p: Primitive[]) =>
+			p.some((x) => x.kind === "rect" && x.fill === SCREEN.codeBg);
+		const page = (p: Primitive[]) =>
+			p.some((x) => x.kind === "rect" && x.fill === SCREEN.pageBg);
+		const working = (tool: string) =>
+			paintScene(scene([[ch("dev", "working", { tool })]]), labels, NOON);
+		expect(lit(working("fs.read@1"))).toBe(true);
+		expect(page(working("web.search@1"))).toBe(true);
+		expect(lit(paintScene(scene([[ch("dev", "idle")]]), labels, NOON))).toBe(
+			false,
+		);
+		expect(
+			lit(paintScene(scene([[ch("dev", "thinking")]]), labels, NOON)),
+		).toBe(false);
 	});
 
 	it("sends a waiting character to the coffee corner, with its countdown, and leaves its desk empty", () => {

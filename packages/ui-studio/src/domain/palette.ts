@@ -174,3 +174,19 @@ export const PLANT = {
 	leafLight: "#4f8f5b",
 	leafDark: "#3f7a4c",
 } as const;
+
+/** What a monitor shows while its character works: code, a results page, a painting or test rows. */
+export const SCREEN = {
+	codeBg: "#1d2130",
+	codeLines: ["#7cc4ff", "#c792ea", "#ffcb6b", "#9ece6a", "#f78c6c"],
+	pageBg: "#ffffff",
+	pageBar: "#e8e4f2",
+	pageGlass: "#6b6785",
+	pageLink: "#5b7fd6",
+	pageText: "#b9b4c7",
+	paintBg: "#fbf7ef",
+	paintArt: "#6cc58a",
+	paintShine: "rgba(255,255,255,.35)",
+	testPending: "#565c74",
+	testText: "#4a5068",
+} as const;
