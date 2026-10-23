@@ -23,11 +23,14 @@ export {
 	DaemonDoneResultSchema,
 	type DaemonErrorData,
 	DaemonErrorDataSchema,
+	DaemonQuotaResultSchema,
 	DaemonRunApproveParamsSchema,
 	DaemonRunIdParamsSchema,
 	DaemonRunStartResultSchema,
 	DaemonStatusParamsSchema,
 	DaemonStatusResultSchema,
+	type ProviderState,
+	ProviderStateSchema,
 	RunViewSchema,
 } from "./domain/daemon.js";
 export {

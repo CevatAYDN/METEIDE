@@ -3,15 +3,16 @@ import { ApprovalInputSchema } from "./engine.js";
 import { IdSchema, TimestampSchema } from "./ids.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 4 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-048).
+// Daemon protocol version 5 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-050).
 // The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The messages of version 4; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 5; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
 	runApprove: "mete/run.approve",
 	runResume: "mete/run.resume",
+	quota: "mete/quota",
 	event: "mete/event",
 } as const;
 
@@ -61,6 +62,31 @@ export const DaemonRunIdParamsSchema = z.strictObject({
 export const DaemonRunApproveParamsSchema = z.strictObject({
 	runId: z.string().min(1),
 	input: ApprovalInputSchema,
+});
+
+/**
+ * Whether a provider can carry a run on now (ADR-050): ready, no key, not active for another
+ * reason, its quota spent until `resetsAt`, or no usable model (privacy rules, model mode, a
+ * refused key).
+ */
+export const ProviderStateSchema = z.discriminatedUnion("state", [
+	z.strictObject({
+		id: z.string().min(1),
+		state: z.enum(["ready", "no_key", "inactive", "unusable"]),
+	}),
+	z.strictObject({
+		id: z.string().min(1),
+		state: z.literal("exhausted"),
+		resetsAt: TimestampSchema,
+	}),
+]);
+
+/** What `ProviderStateSchema` parses. */
+export type ProviderState = z.infer<typeof ProviderStateSchema>;
+
+/** Result of `mete/quota`: one entry per provider module. */
+export const DaemonQuotaResultSchema = z.strictObject({
+	providers: z.array(ProviderStateSchema),
 });
 
 /** Result of `mete/run.approve` and `mete/run.resume`: a request that returns nothing sends null. */

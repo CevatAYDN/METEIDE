@@ -4,6 +4,7 @@ import {
 	DaemonDoneResultSchema,
 	type DaemonErrorData,
 	DaemonErrorDataSchema,
+	DaemonQuotaResultSchema,
 	DaemonRunApproveParamsSchema,
 	DaemonRunIdParamsSchema,
 	DaemonRunStartResultSchema,
@@ -28,13 +29,14 @@ const run: RunView = {
 	endedAt: "2026-10-23T11:00:00.000Z",
 };
 
-describe("daemon protocol version 4", () => {
+describe("daemon protocol version 5", () => {
 	it("names the two messages of ARCHITECTURE.md", () => {
 		expect(DAEMON_METHODS).toEqual({
 			status: "mete/status",
 			runStart: "mete/run.start",
 			runApprove: "mete/run.approve",
 			runResume: "mete/run.resume",
+			quota: "mete/quota",
 			event: "mete/event",
 		});
 	});
@@ -153,5 +155,33 @@ describe("daemon protocol version 4", () => {
 		expect(DaemonRunIdParamsSchema.safeParse({}).success).toBe(false);
 		expect(DaemonDoneResultSchema.parse(null)).toBeNull();
 		expect(DaemonDoneResultSchema.safeParse({}).success).toBe(false);
+	});
+
+	it("answers mete/quota with a state per provider, and a reset time only when exhausted", () => {
+		const quota = {
+			providers: [
+				{ id: "groq", state: "ready" },
+				{ id: "nvidia", state: "no_key" },
+				{ id: "google", state: "inactive" },
+				{
+					id: "openrouter",
+					state: "exhausted",
+					resetsAt: "2026-10-24T00:00:00.000Z",
+				},
+				{ id: "shy", state: "unusable" },
+			],
+		};
+		expect(DaemonQuotaResultSchema.parse(quota)).toEqual(quota);
+		for (const bad of [
+			{ providers: [{ id: "x", state: "exhausted" }] },
+			{
+				providers: [
+					{ id: "x", state: "ready", resetsAt: "2026-10-24T00:00:00.000Z" },
+				],
+			},
+			{ providers: [{ id: "", state: "ready" }] },
+			{ providers: [{ id: "x", state: "tired" }] },
+		])
+			expect(DaemonQuotaResultSchema.safeParse(bad).success).toBe(false);
 	});
 });
