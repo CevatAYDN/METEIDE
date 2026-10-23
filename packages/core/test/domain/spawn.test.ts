@@ -1,5 +1,7 @@
+import { readFile } from "node:fs/promises";
 import { parseTemplate, type TeamTemplate } from "@mete/contracts";
 import { describe, expect, it } from "vitest";
+import { parse } from "yaml";
 import {
 	acceptanceOf,
 	spawnGuardrail,
@@ -127,5 +129,44 @@ describe("spawned tasks (ADR-057)", () => {
 		const { team } = withSpawned(approved(LIST), "plan_tasks");
 		expect(acceptanceOf(team, "check")).toEqual(["check works"]);
 		expect(acceptanceOf(team, "plan_tasks")).toEqual([]);
+	});
+});
+
+describe("the built-in game-studio template (ADR-057)", () => {
+	it("keeps a run with spawned developer, artist and tester tasks loadable from its snapshot", async () => {
+		const file = new URL(
+			"../../../../templates/game-studio.yaml",
+			import.meta.url,
+		);
+		const r = parseTemplate(parse(await readFile(file, "utf8")));
+		if (!r.ok) throw new Error(r.error.issues.join("; "));
+		const list = JSON.stringify({
+			tasks: [
+				entry("build_game", "developer"),
+				entry("draw_dot", "artist"),
+				entry("check_game", "tester", ["build_game", "draw_dot"]),
+			],
+		});
+		let team = teamOf(r.value);
+		for (const id of ["write_gdd", "plan_tasks"]) {
+			const report = id === "plan_tasks" ? list : "{}";
+			team = applyTask(team, id, { type: "START", agentId: "a1" }).team;
+			team = applyTask(team, id, { type: "SUBMIT", report }).team;
+			team = approve(team, id, "lead").team;
+			team = approve(team, id, "human").team;
+		}
+		expect(spawnIssues(team, "plan_tasks", list)).toBeUndefined();
+		const spawned = withSpawned(team, "plan_tasks");
+		expect(spawned.created).toEqual(["build_game", "draw_dot", "check_game"]);
+		const loaded = TeamStateSchema.safeParse(
+			JSON.parse(JSON.stringify(spawned.team)),
+		);
+		expect(loaded.success).toBe(true);
+		expect(
+			spawned.team.template.tasks.find((t) => t.id === "draw_dot"),
+		).toMatchObject({
+			expected_output: "artifact:asset-spec@1",
+			approval: "lead",
+		});
 	});
 });
