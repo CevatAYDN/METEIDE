@@ -19,6 +19,7 @@ import {
 } from "../application/board-session.js";
 import { BoardView, type TeamMode } from "../application/board-view.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
+import { panelRoot } from "../application/panel-root.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { FlowView } from "./flow-view.js";
 import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
@@ -53,7 +54,7 @@ export class MeteBoardWidget extends ReactWidget {
 		);
 		this.title.iconClass = codicon("project");
 		this.title.closable = true;
-		// The Studio's stage takes the tokens of Theia's theme mode (ADR-052): draw again on a change.
+		// The panel and the Studio's stage take the tokens of Theia's theme (ADR-052, ADR-069): draw again on a change.
 		this.toDispose.push(this.themes.onDidColorThemeChange(() => this.update()));
 		this.toDispose.push(
 			this.events.onDidReceive(({ workspaceDir, event }) =>
@@ -91,28 +92,30 @@ export class MeteBoardWidget extends ReactWidget {
 
 	protected override render() {
 		return (
-			<BoardView
-				model={this.session.model}
-				controls={{
-					mode: this.mode,
-					onMode: (mode) => {
-						this.mode = mode;
-						this.update();
-					},
-					flow: (view) => <FlowView view={view} />,
-					studio: (view, pulse) => (
-						<StudioView
-							view={view}
-							mode={getThemeMode(this.themes.getCurrentTheme().type)}
-							active={this.shown}
-							onCoffee={() =>
-								void this.commands.executeCommand(OPEN_QUOTA_COMMAND.id)
-							}
-							{...(pulse ? { pulse } : {})}
-						/>
-					),
-				}}
-			/>
+			<div {...panelRoot(this.themes.getCurrentTheme().type)}>
+				<BoardView
+					model={this.session.model}
+					controls={{
+						mode: this.mode,
+						onMode: (mode) => {
+							this.mode = mode;
+							this.update();
+						},
+						flow: (view) => <FlowView view={view} />,
+						studio: (view, pulse) => (
+							<StudioView
+								view={view}
+								mode={getThemeMode(this.themes.getCurrentTheme().type)}
+								active={this.shown}
+								onCoffee={() =>
+									void this.commands.executeCommand(OPEN_QUOTA_COMMAND.id)
+								}
+								{...(pulse ? { pulse } : {})}
+							/>
+						),
+					}}
+				/>
+			</div>
 		);
 	}
 }

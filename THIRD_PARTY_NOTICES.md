@@ -32,3 +32,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Baloo 2
+
+- Project: Baloo 2 by Ek Type, https://github.com/EkType/Baloo2, taken from the Google Fonts repository (`ofl/baloo2/Baloo2[wght].ttf`) on 2026-10-23.
+- License: SIL Open Font License 1.1. Copyright 2019 The Baloo 2 Project Authors. The full license text is `packages/ui-theia/fonts/Baloo2-OFL.txt`, shipped beside the font.
+- Files: `packages/ui-theia/fonts/Baloo2-latin.woff`
+- Changes: subset to the Latin, Latin-1, Latin Extended A and B, general punctuation, currency, letterlike and arrow ranges (Turkish included) and saved as WOFF with fontTools; the variable weight axis (400 to 800) is kept. The font is not renamed and keeps no Reserved Font Name.

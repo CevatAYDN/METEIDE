@@ -441,6 +441,9 @@ importers:
       '@mete/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@mete/ui-kit':
+        specifier: workspace:*
+        version: link:../ui-kit
       '@mete/ui-studio':
         specifier: workspace:*
         version: link:../ui-studio

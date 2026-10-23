@@ -1,4 +1,5 @@
 import { MessageService } from "@theia/core";
+import { ThemeService } from "@theia/core/lib/browser/theming";
 import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { nls } from "@theia/core/lib/common/nls";
@@ -16,6 +17,7 @@ import {
 	auditJson,
 } from "../application/audit-view.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
+import { panelRoot } from "../application/panel-root.js";
 import {
 	type AuditFilter,
 	MeteDaemonService,
@@ -33,6 +35,7 @@ export class MeteAuditWidget extends ReactWidget {
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;
 	@inject(WorkspaceService) protected readonly workspace!: WorkspaceService;
 	@inject(MeteDaemonEvents) protected readonly events!: MeteDaemonEvents;
+	@inject(ThemeService) protected readonly themes!: ThemeService;
 	@inject(MessageService) protected readonly messages!: MessageService;
 	@inject(FileDialogService) protected readonly dialogs!: FileDialogService;
 	@inject(FileService) protected readonly files!: FileService;
@@ -53,6 +56,8 @@ export class MeteAuditWidget extends ReactWidget {
 		);
 		this.title.iconClass = codicon("shield");
 		this.title.closable = true;
+		// The panel takes the tokens of Theia's theme (ADR-069): draw again on a change.
+		this.toDispose.push(this.themes.onDidColorThemeChange(() => this.update()));
 		this.toDispose.push(
 			this.events.onDidReceive(({ workspaceDir, event }) => {
 				if (workspaceDir === this.dir && event.type.startsWith("run."))
@@ -109,20 +114,22 @@ export class MeteAuditWidget extends ReactWidget {
 
 	protected override render() {
 		return (
-			<AuditView
-				model={this.model}
-				controls={{
-					filter: this.filter,
-					runs: this.runs,
-					onFilter: (filter) => {
-						this.filter = filter;
-						this.update();
-						void this.refresh();
-					},
-					onExport: () => void this.export(),
-					onRefresh: () => void this.refresh(),
-				}}
-			/>
+			<div {...panelRoot(this.themes.getCurrentTheme().type)}>
+				<AuditView
+					model={this.model}
+					controls={{
+						filter: this.filter,
+						runs: this.runs,
+						onFilter: (filter) => {
+							this.filter = filter;
+							this.update();
+							void this.refresh();
+						},
+						onExport: () => void this.export(),
+						onRefresh: () => void this.refresh(),
+					}}
+				/>
+			</div>
 		);
 	}
 }

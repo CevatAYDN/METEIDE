@@ -1,0 +1,36 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { SHAPE, TOKEN_NAMES } from "@mete/ui-kit";
+import { describe, expect, it } from "vitest";
+import * as look from "../src/application/look.js";
+
+// The design system of docs/13 as the panels use it (ADR-069): every colour names a METE token with
+// a Theia colour as its fallback, so a high-contrast theme keeps Theia's look; the stylesheet carries
+// Baloo 2, bundled, and the shape.
+
+const CSS = readFileSync(join(__dirname, "..", "style", "mete.css"), "utf8");
+
+// Every var(--x ...) in a text, with what follows the name up to its closing parenthesis.
+const vars = (text: string) =>
+	[...text.matchAll(/var\(--([a-z-]+)(,[^()]*(\([^()]*\))?[^()]*)?\)/g)].map(
+		(m) => ({ name: m[1] ?? "", fallback: m[2] ?? "" }),
+	);
+
+describe("the panels' look", () => {
+	it("gives every METE token a Theia fallback, in the shared styles and the stylesheet", () => {
+		const styles = JSON.stringify(Object.values(look));
+		const tokens = new Set<string>(TOKEN_NAMES);
+		const used = [...vars(styles), ...vars(CSS)].filter((v) =>
+			tokens.has(v.name),
+		);
+		expect(used.length).toBeGreaterThan(0);
+		for (const v of used) expect(v.fallback).toContain("var(--theia-");
+	});
+
+	it("bundles Baloo 2 and uses the docs/13 shape", () => {
+		expect(CSS).toContain('font-family: "Baloo 2"');
+		expect(CSS).toContain("url(../fonts/Baloo2-latin.woff)");
+		expect(CSS).not.toMatch(/url\(["']?https?:/);
+		for (const value of Object.values(SHAPE)) expect(CSS).toContain(value);
+	});
+});

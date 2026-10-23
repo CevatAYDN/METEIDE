@@ -8,8 +8,8 @@ import { failureText, noFolderText, runsText } from "./status-text.js";
 // The Home panel (docs/13, Home): the approvals inbox of ADR-048 ("Waiting for you") above the
 // recent runs. The panel holds no state of its own: the widget passes the model and the actions.
 // Text is shown as it is: React escapes it, Markdown is not involved.
-// Inline styles on Theia's own CSS variables: the DOM panels keep Theia's colours, the METE tokens
-// colour the Studio stage (ADR-052). shortcut: Baloo 2 waits for a decision on its font files.
+// The panel root sets the METE tokens and Baloo 2 (ADR-069); these inline styles still name Theia's
+// colours until they move to application/look.ts.
 
 /** What a button of the inbox asks for. */
 export type HomeAction = "approve" | "revise" | "resume" | "open" | "artifact";

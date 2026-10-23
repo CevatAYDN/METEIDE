@@ -1,3 +1,4 @@
+import { ThemeService } from "@theia/core/lib/browser/theming";
 import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { nls } from "@theia/core/lib/common/nls";
@@ -8,6 +9,7 @@ import {
 } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
+import { panelRoot } from "../application/panel-root.js";
 import { type QuotaModel, QuotaView } from "../application/quota-view.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 
@@ -23,6 +25,7 @@ export class MeteQuotaWidget extends ReactWidget {
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;
 	@inject(WorkspaceService) protected readonly workspace!: WorkspaceService;
 	@inject(MeteDaemonEvents) protected readonly events!: MeteDaemonEvents;
+	@inject(ThemeService) protected readonly themes!: ThemeService;
 
 	protected model: QuotaModel = { kind: "loading" };
 	protected dir: string | undefined;
@@ -37,6 +40,8 @@ export class MeteQuotaWidget extends ReactWidget {
 		);
 		this.title.iconClass = codicon("dashboard");
 		this.title.closable = true;
+		// The panel takes the tokens of Theia's theme (ADR-069): draw again on a change.
+		this.toDispose.push(this.themes.onDidColorThemeChange(() => this.update()));
 		this.toDispose.push(
 			this.events.onDidReceive(({ workspaceDir, event }) => {
 				if (workspaceDir === this.dir && event.type.startsWith("quota."))
@@ -66,7 +71,9 @@ export class MeteQuotaWidget extends ReactWidget {
 
 	protected override render() {
 		return (
-			<QuotaView model={this.model} onRefresh={() => void this.refresh()} />
+			<div {...panelRoot(this.themes.getCurrentTheme().type)}>
+				<QuotaView model={this.model} onRefresh={() => void this.refresh()} />
+			</div>
 		);
 	}
 }

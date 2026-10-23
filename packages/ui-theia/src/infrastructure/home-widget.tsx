@@ -1,4 +1,5 @@
 import { CommandService } from "@theia/core";
+import { ThemeService } from "@theia/core/lib/browser/theming";
 import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { nls } from "@theia/core/lib/common/nls";
@@ -14,6 +15,8 @@ import {
 	RESUME_RUN_COMMAND,
 	REVISE_RUN_COMMAND,
 } from "../application/approval-commands.js";
+// The design system of docs/13 on every METE panel (ADR-069); the bundle inlines its font.
+import "../../style/mete.css";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import {
 	type HomeAction,
@@ -21,6 +24,7 @@ import {
 	type Workspace,
 } from "../application/home-view.js";
 import { SET_KEY_COMMAND } from "../application/key-command.js";
+import { panelRoot } from "../application/panel-root.js";
 import {
 	type HomeModel,
 	homeModel,
@@ -44,6 +48,7 @@ export class MeteHomeWidget extends ReactWidget {
 	@inject(MeteDaemonEvents) protected readonly events!: MeteDaemonEvents;
 	@inject(CommandService) protected readonly commands!: CommandService;
 	@inject(MeteInboxBadge) protected readonly badge!: MeteInboxBadge;
+	@inject(ThemeService) protected readonly themes!: ThemeService;
 
 	protected model: HomeModel = { kind: "loading" };
 	protected workspaces: readonly Workspace[] = [];
@@ -57,6 +62,8 @@ export class MeteHomeWidget extends ReactWidget {
 		this.title.caption = nls.localize("mete/home/caption", "METE: recent runs");
 		this.title.iconClass = codicon("home");
 		this.title.closable = true;
+		// The panel takes the tokens of Theia's theme (ADR-069): draw again on a change.
+		this.toDispose.push(this.themes.onDidColorThemeChange(() => this.update()));
 		// A run of the shown folder changed: ask again; run events are few, so no debounce.
 		this.toDispose.push(
 			this.events.onDidReceive(({ workspaceDir, event }) => {
@@ -137,14 +144,16 @@ export class MeteHomeWidget extends ReactWidget {
 
 	protected override render() {
 		return (
-			<HomeView
-				model={this.model}
-				onRefresh={() => void this.refresh()}
-				onAct={(action, runId) => void this.act(action, runId)}
-				onSetKey={() => void this.setKey()}
-				workspaces={this.workspaces}
-				onOpenWorkspace={(uri) => this.workspace.open(new URI(uri))}
-			/>
+			<div {...panelRoot(this.themes.getCurrentTheme().type)}>
+				<HomeView
+					model={this.model}
+					onRefresh={() => void this.refresh()}
+					onAct={(action, runId) => void this.act(action, runId)}
+					onSetKey={() => void this.setKey()}
+					workspaces={this.workspaces}
+					onOpenWorkspace={(uri) => this.workspace.open(new URI(uri))}
+				/>
+			</div>
 		);
 	}
 }

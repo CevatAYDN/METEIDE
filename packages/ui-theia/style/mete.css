@@ -1,0 +1,88 @@
+/* The design system of docs/13 on METE's panels (ADR-069). Each colour is a METE token with a Theia
+   colour as its fallback: a panel root in a high-contrast theme sets no tokens, so Theia's colours
+   apply there. Theia's chrome, editor and terminal are never styled here. */
+
+/* Baloo 2, bundled (THIRD_PARTY_NOTICES.md): one variable font covers weights 400 to 800. */
+@font-face {
+	font-family: "Baloo 2";
+	src: url(../fonts/Baloo2-latin.woff) format("woff");
+	font-weight: 400 800;
+	font-display: swap;
+}
+
+.mete-panel {
+	font-family: "Baloo 2", var(--theia-ui-font-family);
+	color: var(--ink, var(--theia-foreground));
+	background: var(--bg, var(--theia-editor-background));
+	min-height: 100%;
+	box-sizing: border-box;
+}
+
+.mete-panel :focus-visible {
+	outline: 2px solid var(--accent, var(--theia-focusBorder));
+	outline-offset: 2px;
+}
+
+/* A section or a card: 1.5 px border, panel radius. */
+.mete-card {
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+	border-radius: 14px;
+	padding: 12px 14px;
+}
+
+/* Controls: control radius. A primary button is accent, a quiet one is a chip. */
+.mete-button {
+	font: inherit;
+	font-weight: 600;
+	border: 1.5px solid transparent;
+	border-radius: 10px;
+	padding: 4px 14px;
+	cursor: pointer;
+	color: var(--panel, var(--theia-button-foreground));
+	background: var(--accent, var(--theia-button-background));
+}
+
+.mete-button.quiet {
+	color: var(--ink, var(--theia-foreground));
+	background: var(--chip, var(--theia-button-secondaryBackground));
+	border-color: var(--line, var(--theia-panel-border));
+}
+
+.mete-button[aria-pressed="true"] {
+	color: var(--panel, var(--theia-button-foreground));
+	background: var(--accent, var(--theia-button-background));
+}
+
+.mete-button:disabled {
+	opacity: 0.55;
+	cursor: default;
+}
+
+/* A state: ready, waiting or blocked, as words in a chip. */
+.mete-chip {
+	display: inline-block;
+	border-radius: 10px;
+	padding: 0 10px;
+	background: var(--chip, var(--theia-badge-background));
+	color: var(--ink, var(--theia-badge-foreground));
+	font-weight: 600;
+}
+
+.mete-chip.good {
+	color: var(--good, var(--theia-testing-iconPassed));
+}
+
+.mete-chip.warn {
+	color: var(--warn, var(--theia-editorWarning-foreground));
+}
+
+.mete-chip.bad {
+	color: var(--bad, var(--theia-errorForeground));
+}
+
+/* The studio stage keeps its own radius. */
+.mete-stage {
+	border-radius: 20px;
+	overflow: hidden;
+}
