@@ -4,6 +4,7 @@ import {
 	type CapabilityRef,
 	err,
 	type LlmChatAdapter,
+	type LlmChatRequest,
 	type ModelRef,
 	type ModuleManifest,
 	ok,
@@ -22,7 +23,11 @@ import { z } from "zod";
 import { createLlmChat } from "./application/chat.js";
 import { createDiscovery } from "./application/prepare.js";
 import { MODEL_CALL_RETENTION_DAYS } from "./defaults.js";
-import { type PrivacyRules, usableModels } from "./domain/resolve.js";
+import {
+	type PrivacyRules,
+	resolveChain,
+	usableModels,
+} from "./domain/resolve.js";
 import { GatewaySettingsSchema, spendSpec } from "./domain/spend.js";
 import {
 	createModelCallLog,
@@ -196,10 +201,30 @@ const usableRefs = async (
 	}));
 };
 
+// The chain a call for this target and role would try, best first, from the cached listing: no model
+// call and no quota reservation (ADR-068, the composer's estimate).
+const chainRefs = async (
+	live: Live | undefined,
+	[target, role, signal]: Parameters<GatewayModule["chain"]>,
+): Promise<ModelRef[]> => {
+	if (!live) return [];
+	const found = await live.discover(signal);
+	return resolveChain(found, target, live.rules, role).map((m) => ({
+		providerId: m.providerId,
+		modelId: m.id,
+	}));
+};
+
 /** The gateway module and the models it offers, for `/v1/models`. */
 export type GatewayModule = MeteModule & {
 	/** Usable discovered models; empty while the module is inactive. */
 	models(signal: AbortSignal): Promise<ModelRef[]>;
+	/** The chain a call for this target and role would try, best first; empty while inactive. */
+	chain(
+		target: LlmChatRequest["target"],
+		role: Parameters<typeof resolveChain>[3],
+		signal: AbortSignal,
+	): Promise<ModelRef[]>;
 };
 
 /** Creates the gateway module, which provides llm.chat@2. */
@@ -214,6 +239,7 @@ export const createGatewayModule = (
 	return {
 		manifest: MANIFEST,
 		models: (signal) => usableRefs(live, signal),
+		chain: (...args) => chainRefs(live, args),
 		async activate(ctx) {
 			if (!ctx.storage) return err(failed("storage.sql@1 was not provided"));
 			const migrated = ctx.storage.migrate("workspace", MODEL_CALL_MIGRATIONS);

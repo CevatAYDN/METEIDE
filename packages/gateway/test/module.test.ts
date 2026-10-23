@@ -307,6 +307,23 @@ describe("gateway module", () => {
 		await s.close();
 	});
 
+	it("lists a tier's chain for a role's needs without a model call, and none while inactive (ADR-068)", async () => {
+		const s = await setup();
+		const signal = new AbortController().signal;
+		const coder = { tier: "coder" } as const;
+		expect(await s.gateway.chain(coder, {}, signal)).toEqual([]);
+		await s.gateway.activate(s.ctx);
+		expect(await s.gateway.chain(coder, {}, signal)).toEqual([
+			{ providerId: "a", modelId: "m" },
+		]);
+		// The only model has no vision, so a vision role has no chain.
+		expect(await s.gateway.chain(coder, { needs: ["vision"] }, signal)).toEqual(
+			[],
+		);
+		await s.gateway.deactivate();
+		await s.close();
+	});
+
 	it("reports a failed log write and still finishes the call", async () => {
 		const s = await setup();
 		await s.gateway.activate(s.ctx);
