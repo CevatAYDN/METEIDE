@@ -1,5 +1,12 @@
 import { z } from "zod";
 import { SeoScoresSchema } from "./browser.js";
+import {
+	AssetSpecSchema,
+	CodeChangeSchema,
+	GddSchema,
+	TaskListSchema,
+	TestReportSchema,
+} from "./game-studio.js";
 
 // Artifact type schemas from docs/08 (Built-in templates); a guardrail validates output against them.
 
@@ -72,10 +79,16 @@ export const SeoAuditReportSchema = z.strictObject({
 /** A validated SEO audit report; the fixes are in rank order, the most important first. */
 export type SeoAuditReport = z.output<typeof SeoAuditReportSchema>;
 
-// shortcut: only research-report@1 and seo-audit@1 are defined; the other docs/08 types come with their templates.
+// shortcut: asset@1 and lesson@1 have no schema yet: an asset is a file with a manifest line, and
+// lessons come with the retrospectives of Phase 6.
 const SCHEMAS: Readonly<Record<string, z.ZodType>> = {
 	"research-report@1": ResearchReportSchema,
 	"seo-audit@1": SeoAuditReportSchema,
+	"gdd@1": GddSchema,
+	"task-list@1": TaskListSchema,
+	"asset-spec@1": AssetSpecSchema,
+	"test-report@1": TestReportSchema,
+	"code-change@1": CodeChangeSchema,
 };
 
 /** The schema of an artifact type such as `research-report@1`, when one is defined. */

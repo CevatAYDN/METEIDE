@@ -17,9 +17,11 @@ const TEMPLATE_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const FS_WILDCARD = /^fs\.\*@[1-9]\d*$/;
 const ARTIFACT = "artifact:";
 
-const localId = z
+/** A role or task id: lowercase with underscores (docs/08). */
+export const LocalIdSchema = z
 	.string()
 	.regex(LOCAL_ID, "expected a lowercase id like write_gdd");
+const localId = LocalIdSchema;
 const ids = z.array(localId).readonly();
 
 const RoleCapabilitySchema = z.custom<CapabilityRef>(

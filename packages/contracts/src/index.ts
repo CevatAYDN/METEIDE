@@ -56,6 +56,7 @@ export {
 	MeteEventSchema,
 	parseEvent,
 } from "./domain/events.js";
+export { type TaskList, TaskListSchema } from "./domain/game-studio.js";
 export {
 	ArtifactTypeRefSchema,
 	type CapabilityRef,
