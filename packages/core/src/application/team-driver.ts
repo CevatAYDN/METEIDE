@@ -42,7 +42,7 @@ import {
 	dropWorktree,
 	landWorktree,
 	startWorktree,
-} from "./steps.js";
+} from "./vcs-steps.js";
 import { verifyGates } from "./verify.js";
 
 // A team run between attempts (docs/08, Task execution sequence): start the next ready task,

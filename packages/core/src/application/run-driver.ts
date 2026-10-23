@@ -10,9 +10,10 @@ import {
 	type Live,
 	toolContext,
 } from "./run-state.js";
-import { callModel, callTool, createCheckpoint } from "./steps.js";
+import { callModel, callTool } from "./steps.js";
 import { summarizeTurn } from "./summarize.js";
 import { submit, teamTurn, verdict } from "./team-driver.js";
+import { createCheckpoint } from "./vcs-steps.js";
 
 // The loop that moves a running run step by step (docs/08, Single agent), as module-level
 // functions over the engine's state record; a team run moves between tasks in team-driver.
