@@ -337,6 +337,8 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | engine-crewai, engine-metagpt, engine-chatdev | `@mete/engines` | optional | `team.engine@2` | `runtime.ensure@1`, `llm.chat@1` | none | process |
 | ui-board, ui-flow, ui-studio, ui-replay | `@mete/ui-*` | optional | UI views (subscribe to events) | none | none | renderer |
 
+Until a second view needs it as a module, the run view model these views share is a library in `@mete/ui-studio` (a fold over a run's events, depending only on `@mete/contracts`), and the Board is a widget of `@mete/ui-theia` (ADR-051) \[D\].
+
 Until the knowledge layer, the gateway provides only `llm.chat@1`: no provider adapter lists its embedding or rerank models (`listModels` returns chat models), so `llm.embed@1`, `llm.rerank@1` and their gateway endpoints come with the knowledge layer, and their chains are empty until then \[D\].
 
 The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools-shell, core-engine, plus at least one active `provider.chat@2` adapter. The UI MUST NOT allow uninstalling essential modules; it MAY show them as "built in".

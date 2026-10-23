@@ -21,7 +21,7 @@ Dependency rules, enforced by dependency-cruiser in local CI \[C\]:
 - A package MUST import other packages only through their public `index.ts`.
 - A capability module MUST NOT import another capability module. It resolves the capability through the kernel registry.
 - `contracts` MUST NOT import any METE package. `kernel` MUST import only `contracts` (ADR-036).
-- `apps/desktop` and `ui-theia` MUST import no METE package below layer 6 other than `contracts`; they reach the core through the daemon (ADR-045), and they name `@mete/cli` only to find the daemon's `mete` entry file. Only they import `@theia/*` \[D\].
+- `apps/desktop` and `ui-theia` MUST import no METE package below layer 6 other than `contracts`; they reach the core through the daemon (ADR-045), and they name `@mete/cli` only to find the daemon's `mete` entry file. Of layer 6, `ui-theia` may import `ui-studio`, the library that folds a run's events into its view model (ADR-051). Only they import `@theia/*` \[D\].
 
 ## Process model
 
@@ -64,7 +64,7 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 
 ## Daemon protocol
 
-`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 5 (ADR-050) has five requests and one notification, and each side validates what it receives with the schemas in `@mete/contracts` (`daemon.ts`) \[D\]:
+`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 6 (ADR-051) has six requests and one notification, and each side validates what it receives with the schemas in `@mete/contracts` (`daemon.ts`) \[D\]:
 
 | Message | Kind | Params | Result |
 | --- | --- | --- | --- |
@@ -73,6 +73,7 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 | `mete/run.approve` | request | `{ runId, input }`, `input` the `ApprovalInput` of team.engine@2 | `null`; errors as for `mete/status` |
 | `mete/run.resume` | request | `{ runId }` | `null`; errors as for `mete/status` |
 | `mete/quota` | request | none | `{ providers: [{ id, state, resetsAt? }] }`, `state` one of `ready`, `no_key`, `inactive`, `exhausted` (with `resetsAt`), `unusable`; answered while core-engine is not active too |
+| `mete/events` | request | `{ runId }` | `{ events, unreadable }`: the run's persisted events in order, as `mete events` reads them, and the count of rows that no longer parse; errors as for `mete/status` |
 | `mete/event` | notification, daemon to client | one `MeteEvent` (docs/07) | none; every catalog event the bus publishes, in publish order |
 
 A client that starts the daemon from Electron sets `ELECTRON_RUN_AS_NODE=1`. The desktop backend starts the daemon when the first message for a folder is sent, keeps one daemon for one folder at a time, stops it by closing its input, and restarts it after the desktop sets a provider key (ADR-049). The desktop starts the daemon detached from its own process group, so a quit or crash of the desktop leaves the daemon to stop on its closed input and free the run lock \[D\]. A new message or a changed shape needs an ADR and a new protocol version \[D\].
@@ -130,7 +131,7 @@ mete/
     core/            native team engine (XState), router, artifacts, autonomy, triggers
     engines/         optional adapters: crewai, metagpt, chatdev (Python via uv)
     ui-kit/          design tokens and shared React components
-    ui-studio/       studio view (PixiJS)
+    ui-studio/       a run's view model (a fold over its events) and the studio view (PixiJS)
     ui-theia/        Theia extension: the daemon connection and the METE panels
     testing/         contract test kits, MSW fixtures, helpers
   templates/         research, seo-audit, web-dev, game-studio

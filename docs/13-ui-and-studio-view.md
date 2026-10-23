@@ -25,6 +25,8 @@ The desktop UI is Theia plus METE panels; its signature is the studio view, wher
 
 The studio view is the module `ui-studio`. It subscribes to events, keeps a derived view model and draws it with PixiJS. It MUST NOT call models or change domain state \[C\].
 
+The Team panel's views share one view model: a pure fold over the run's events, fed first by the run's history (`mete/events`) and then by the live stream, applied once per event id, so a panel opened mid-run, after a restart or in Replay shows the same state. The fold is a library in `ui-studio`; the Board is the first view, a widget of `ui-theia`. Board columns: To do holds `todo`; In progress holds `in_progress`, `submitted` (marked in review), `changes_requested` (marked changes asked) and `blocked` (marked blocked); Done holds `approved` (ADR-051) \[D\].
+
 Scene layout \[D\]: a top-down room generated from the team. Roles that plan or approve sit in the top row; other roles in the bottom row; at most 6 desks per row. Fixed props: the task board on the wall (columns To do, In progress, Done), a coffee corner (quota waits), a bookshelf (the vault), a window showing the user's local time of day (can be turned off), plants and a clock. More than 12 agents are grouped into one character per role with a count badge \[C\].
 
 Characters: one per agent, colored by role. Accessories by role kind: pencil for designer, glasses for lead, hood for developer, beret for artist, headset for tester, clipboard for PM; other roles get one from a seeded set \[D\]. Labels show the role name; a setting switches to friendly first names \[D\].
