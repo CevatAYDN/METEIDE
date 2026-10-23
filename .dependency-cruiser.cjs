@@ -73,13 +73,13 @@ module.exports = {
 		{
 			name: "desktop-talks-to-the-daemon",
 			comment:
-				"the desktop and its extension reach the core only through the daemon protocol: they import @mete/contracts and, for the run view model, @mete/ui-studio (ADR-024, ADR-045, ADR-051)",
+				"the desktop and its extension reach the core only through the daemon protocol: they import @mete/contracts, for the run view model @mete/ui-studio, and for the design tokens @mete/ui-kit (ADR-024, ADR-045, ADR-051, ADR-069)",
 			severity: "error",
 			from: { path: "^(packages/ui-theia|apps/desktop)/" },
 			to: {
 				path: "^(packages|apps)/[^/]+/src/",
 				pathNot:
-					"^(packages/contracts|packages/ui-studio|packages/ui-theia|apps/desktop)/",
+					"^(packages/contracts|packages/ui-kit|packages/ui-studio|packages/ui-theia|apps/desktop)/",
 			},
 		},
 		{

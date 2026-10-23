@@ -84,6 +84,7 @@ The tokens below come from the approved demo \[D\].
 | `--chip` | `#E4E0F3` | `#2D2A4D` |
 
 - Typeface: Baloo 2 (weights 500 to 800) for METE panels and the studio; the editor and terminal keep Theia's monospace font. Font files are bundled, never loaded from the internet \[D\].
+- METE's panels and the studio use these tokens and this shape in Theia's light and dark themes; in a high-contrast theme the panels keep Theia's colours, since no high-contrast tokens are defined, and Theia's own chrome, editor and terminal always keep Theia's look (ADR-069) \[D\].
 - Shape: 1.5 px borders; radius 10 px for controls, 14 to 16 px for panels, 20 px for the studio stage \[D\].
 - Keyboard-first: every METE action is a command in Theia's command palette (for example "METE: Start run", "METE: Stop all", "METE: Open approvals") and reachable by keyboard with a visible focus ring \[C\].
 - Copy: sentence case, plain verbs, errors say what happened and what to do next, no apologies \[D\].
