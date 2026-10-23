@@ -25,6 +25,15 @@ always_ask: [fs.delete, git.push, git.merge, plugin.install, mcp.install, mcp.sa
 never_allow:
   - { action: fs.write, path: "~/.ssh/**" }
   - { action: shell.exec, command: "rm -rf /*" }
+  # Ending programs the agent did not start (ADR-063): a model must never close the user's windows.
+  - { action: shell.exec, command: "*taskkill*" }
+  - { action: shell.exec, command: "*tskill*" }
+  - { action: shell.exec, command: "*Stop-Process*" }
+  - { action: shell.exec, command: "spps *" }
+  - { action: shell.exec, command: "kill *" }
+  - { action: shell.exec, command: "pkill *" }
+  - { action: shell.exec, command: "killall *" }
+  - { action: shell.exec, command: "*.Kill*" }
 shell:
   allow: ["pnpm *", "npm test", "npm run *", "git status", "git diff *"]
 budget: { cloud_requests_per_run: 150, max_hours: 6 }
@@ -36,7 +45,7 @@ The file above is also the built-in default: a key the workspace and global file
 Action ids used by the policy: `fs.write`, `fs.delete` (a `fs.write@1` call with `delete: true`), `fs.write.outside`, `shell.exec`, `git.commit`, `git.push`, `git.merge`, `net.fetch`, `plugin.install`, `mcp.install`, `mcp.call` (an agent calling an MCP tool by name, level 1 of tab 10; asked at level 2 like every action not listed there, and its result is tainted external content [D]), `mcp.sampling`, `runtime.install`, `release.publish`, `vault.write.personal` \[D\]. Patterns use glob syntax \[D\]:
 
 - Path patterns (`never_allow` paths, protected paths): `*` and `?` stay within one folder, `**` crosses folders, `dir/**` also matches `dir` itself, and names that start with a dot match like any other name. `~` is the home folder, and a relative pattern is relative to the workspace root. Paths are compared as absolute paths with `/` separators, without case on Windows.
-- Command patterns (`shell.allow`, `never_allow` commands): `*` matches any text, including `/`, and the whole command must match after trimming and collapsing spaces. Commands run in a shell (tab 10), so a command that contains `&`, `|`, `;`, a line break, a backtick, `(`, `)`, `>` or `<` never matches `shell.allow`, even inside quotes, and asks instead. A `never_allow` command rule matches the whole command and also each part of it, where parts are split at `&&`, `||`, `;`, `&`, `|`, line breaks, backticks and parentheses (so the inside of `$(…)` and `(…)` is a part too).
+- Command patterns (`shell.allow`, `never_allow` commands): `*` matches any text, including `/`, and the whole command must match after trimming and collapsing spaces. Commands run in a shell (tab 10), so a command that contains `&`, `|`, `;`, a line break, a backtick, `(`, `)`, `>` or `<` never matches `shell.allow`, even inside quotes, and asks instead. A `never_allow` command rule matches the whole command and also each part of it, where parts are split at `&&`, `||`, `;`, `&`, `|`, line breaks, backticks and parentheses (so the inside of `$(…)` and `(…)` is a part too). A `never_allow` command rule compares without case, since PowerShell and Windows programs ignore it (ADR-063); `shell.allow` keeps case. A `never_allow` list in a policy file replaces the built-in one, so a policy that writes its own keeps the process rules only by listing them.
 - A `never_allow` path rule for `fs.write` also covers `fs.delete` and `fs.write.outside`, and protected paths cover all three.
 - `policy.check@1` receives the real absolute path the adapter will touch; resolving symbolic links is the caller's job.
 

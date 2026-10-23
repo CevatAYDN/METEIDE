@@ -35,7 +35,7 @@ AI coding agents start with 17 AGENTS.md, then follow its reading list; humans s
 | 01 Vision | `docs/01-vision.md` | Why METE exists, goals, non-goals, principles |
 | 02 Glossary | `docs/02-glossary.md` | The one meaning of every term |
 | 03 Architecture | `ARCHITECTURE.md` | Layers, processes, data locations, repository layout |
-| 04 Decisions (ADR) | `docs/adr/` | 62 accepted decisions with reasons |
+| 04 Decisions (ADR) | `docs/adr/` | 63 accepted decisions with reasons |
 | 05 Tech stack | `docs/05-tech-stack.md` | Every allowed technology and license rule |
 | 06 Kernel and modules | `docs/06-kernel-and-modules.md` | Kernel API, module catalog, capability catalog |
 | 07 Domain model and events | `docs/07-domain-model-and-events.md` | Entities, state machines, event catalog |
