@@ -78,6 +78,17 @@ describe("parseEvent", () => {
 		).toBe(false);
 	});
 
+	it("takes a tool's progress with or without its total, and no message (ADR-067)", () => {
+		const step = { capability: "mcp.tools@1", progress: 3 };
+		for (const payload of [step, { ...step, total: 10 }])
+			expect(parseEvent(envelope("agent.tool.progress", payload)).ok).toBe(
+				true,
+			);
+		expect(
+			parseEvent(envelope("agent.tool.progress", { ...step, message: "m" })).ok,
+		).toBe(false);
+	});
+
 	it("caps message summaries at 80 characters", () => {
 		const payload = (summary: string) => ({
 			messageId: crypto.randomUUID(),
@@ -96,8 +107,8 @@ describe("parseEvent", () => {
 });
 
 describe("EVENT_TYPES", () => {
-	it("covers the 42 types of the catalog in tab 07, all well formed", () => {
-		expect(EVENT_TYPES).toHaveLength(42);
+	it("covers the 43 types of the catalog in tab 07, all well formed", () => {
+		expect(EVENT_TYPES).toHaveLength(43);
 		for (const t of EVENT_TYPES) expect(EventTypeSchema.parse(t)).toBe(t);
 	});
 });

@@ -101,6 +101,12 @@ const PAYLOADS = {
 		capability: CapabilityRefSchema,
 		adapterId: text,
 	}),
+	// An MCP server's progress step (ADR-067); its message is tool output and stays in the log.
+	"agent.tool.progress": z.strictObject({
+		capability: CapabilityRefSchema,
+		progress: z.number().nonnegative(),
+		total: z.number().positive().optional(),
+	}),
 	"agent.tool.completed": z.strictObject({
 		capability: CapabilityRefSchema,
 		ok: z.boolean(),
