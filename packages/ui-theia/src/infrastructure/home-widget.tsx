@@ -2,6 +2,7 @@ import { CommandService } from "@theia/core";
 import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { nls } from "@theia/core/lib/common/nls";
+import URI from "@theia/core/lib/common/uri";
 import {
 	inject,
 	injectable,
@@ -14,7 +15,11 @@ import {
 	REVISE_RUN_COMMAND,
 } from "../application/approval-commands.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
-import { type HomeAction, HomeView } from "../application/home-view.js";
+import {
+	type HomeAction,
+	HomeView,
+	type Workspace,
+} from "../application/home-view.js";
 import { SET_KEY_COMMAND } from "../application/key-command.js";
 import { type HomeModel, homeModel } from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
@@ -34,6 +39,7 @@ export class MeteHomeWidget extends ReactWidget {
 	@inject(CommandService) protected readonly commands!: CommandService;
 
 	protected model: HomeModel = { kind: "loading" };
+	protected workspaces: readonly Workspace[] = [];
 	/** The folder the shown runs belong to. */
 	protected dir: string | undefined;
 
@@ -60,10 +66,26 @@ export class MeteHomeWidget extends ReactWidget {
 		void this.refresh();
 	}
 
+	// The folders opened before, newest first, as Theia remembers them (docs/13, Home: Workspaces).
+	protected async loadWorkspaces(current: string | undefined) {
+		const recent = await this.workspace.recentWorkspaces();
+		this.workspaces = recent.map((uri) => {
+			const path = new URI(uri).path;
+			return {
+				uri,
+				name: path.base,
+				path: path.fsPath(),
+				current: uri === current,
+			};
+		});
+		this.update();
+	}
+
 	/** Asks the daemon of the first open folder again and draws the answer. */
 	async refresh(): Promise<void> {
 		// The roots promise waits for the workspace to load; tryGetRoots is empty until then.
 		const [root] = await this.workspace.roots;
+		void this.loadWorkspaces(root?.resource.toString());
 		if (!root) return this.setModel({ kind: "no_folder" });
 		this.dir = root.resource.path.fsPath();
 		if (this.model.kind !== "runs") this.setModel({ kind: "loading" });
@@ -111,6 +133,8 @@ export class MeteHomeWidget extends ReactWidget {
 				onRefresh={() => void this.refresh()}
 				onAct={(action, runId) => void this.act(action, runId)}
 				onSetKey={() => void this.setKey()}
+				workspaces={this.workspaces}
+				onOpenWorkspace={(uri) => this.workspace.open(new URI(uri))}
 			/>
 		);
 	}

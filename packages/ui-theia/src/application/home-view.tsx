@@ -243,6 +243,47 @@ const Body = ({
 	return <Runs rows={model.rows} blocked={model.blocked} act={act} />;
 };
 
+/** A folder METE was opened on, newest first; `current` is the one open now. */
+export type Workspace = {
+	readonly uri: string;
+	readonly name: string;
+	readonly path: string;
+	readonly current: boolean;
+};
+
+// The Workspaces of docs/13's Home: the folders opened before, newest first; another one opens on a
+// click (Theia opens it), the current one is marked.
+const Workspaces = ({
+	workspaces,
+	open,
+}: {
+	readonly workspaces: readonly Workspace[];
+	readonly open: (uri: string) => void;
+}) => (
+	<section aria-label={nls.localize("mete/home/workspaces", "Workspaces")}>
+		<h2 style={TITLE}>{nls.localize("mete/home/workspaces", "Workspaces")}</h2>
+		<ul style={{ listStyle: "none", padding: 0, margin: "6px 0 0" }}>
+			{workspaces.map((w) => (
+				<li key={w.uri} title={w.path}>
+					{w.current ? (
+						<span>
+							{w.name}{" "}
+							<span style={MUTED}>
+								{nls.localize("mete/home/currentWorkspace", "(open)")}
+							</span>
+						</span>
+					) : (
+						<button type="button" style={LINK} onClick={() => open(w.uri)}>
+							{w.name}
+						</button>
+					)}{" "}
+					<span style={MUTED}>{w.path}</span>
+				</li>
+			))}
+		</ul>
+	</section>
+);
+
 // The quota summary of docs/13's Home: each provider's state, in the words of METE: Quota.
 const Quota = ({
 	providers,
@@ -268,14 +309,21 @@ export const HomeView = ({
 	onRefresh,
 	onAct,
 	onSetKey,
+	workspaces = [],
+	onOpenWorkspace = () => {},
 }: {
 	readonly model: HomeModel;
 	readonly onRefresh: () => void;
 	readonly onAct: Act;
 	readonly onSetKey: () => void;
+	readonly workspaces?: readonly Workspace[];
+	readonly onOpenWorkspace?: (uri: string) => void;
 }) => (
 	<section style={PANEL} aria-live="polite">
 		{model.kind === "runs" ? <Inbox rows={model.rows} act={onAct} /> : null}
+		{workspaces.length > 0 ? (
+			<Workspaces workspaces={workspaces} open={onOpenWorkspace} />
+		) : null}
 		<h2 style={TITLE}>{nls.localize("mete/home/recentRuns", "Recent runs")}</h2>
 		<Body model={model} onSetKey={onSetKey} act={onAct} />
 		{model.kind === "runs" && model.providers.length > 0 ? (

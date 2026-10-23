@@ -198,6 +198,41 @@ describe("the Home view", () => {
 		);
 	});
 
+	it("lists the folders opened before, newest first, the open one marked and the others as links", () => {
+		const out = renderToStaticMarkup(
+			createElement(HomeView, {
+				model: homeModel({ ok: true, value: [] }, AT),
+				onRefresh: () => {},
+				onAct: () => {},
+				onSetKey: () => {},
+				workspaces: [
+					{
+						uri: "file:///w/site",
+						name: "site",
+						path: "/w/site",
+						current: true,
+					},
+					{
+						uri: "file:///w/game",
+						name: "game",
+						path: "/w/game",
+						current: false,
+					},
+				],
+			}),
+		);
+		const list = out.slice(
+			out.indexOf('aria-label="Workspaces"'),
+			out.indexOf("Recent runs"),
+		);
+		expect(list).toContain("site <span");
+		expect(list).toContain("(open)");
+		expect(list).toMatch(/<button type="button"[^>]*>game<\/button>/);
+		expect(html(homeModel({ ok: true, value: [] }, AT))).not.toContain(
+			'aria-label="Workspaces"',
+		);
+	});
+
 	it("shows no inbox when nothing waits", () => {
 		const out = html(
 			homeModel({ ok: true, value: [run("completed", "done", null)] }, AT),
