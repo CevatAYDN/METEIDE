@@ -24,6 +24,8 @@ export type TaskCard = {
 	/** The tasks this one waits for, by task id (the Flow view's edges). */
 	readonly dependsOn: readonly string[];
 	readonly agentId?: string;
+	/** The role that approves the task, once it asked (not the human). */
+	readonly approver?: string;
 	readonly status: TaskStatus;
 };
 
@@ -89,6 +91,11 @@ const tasksAfter = (
 		}));
 	if (e.type === "task.status.changed")
 		return update(tasks, e.taskId, (t) => ({ ...t, status: e.payload.to }));
+	if (e.type === "approval.requested" && e.payload.approver !== "human")
+		return update(tasks, e.taskId, (t) => ({
+			...t,
+			approver: e.payload.approver,
+		}));
 	return tasks;
 };
 

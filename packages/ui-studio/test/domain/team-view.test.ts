@@ -92,6 +92,15 @@ describe("the team view fold", () => {
 		expect(view.tasks).toEqual([]);
 	});
 
+	it("names the role that approves a task, but never the human", () => {
+		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			created(NOTES, "Take notes"),
+			event("approval.requested", { approver: "lead" }, NOTES),
+			event("approval.requested", { approver: "human" }, NOTES),
+		]);
+		expect(view.tasks[0]?.approver).toBe("lead");
+	});
+
 	it("keeps the view unchanged by events it does not draw", () => {
 		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [created(NOTES, "Take notes")]);
 		const next = applyEvent(RUN, view, event("agent.thinking.started", {}));
