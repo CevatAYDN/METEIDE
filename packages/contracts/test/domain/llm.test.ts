@@ -26,6 +26,15 @@ describe("LlmChatRequestSchema", () => {
 		expect(LlmChatRequestSchema.parse(exact)).toEqual(exact);
 	});
 
+	it("takes a pinned model to prefer, an exact model (ADR-077)", () => {
+		const pinned = { ...req, prefer: { providerId: "groq", modelId: "m/x" } };
+		expect(LlmChatRequestSchema.parse(pinned)).toEqual(pinned);
+		expect(
+			LlmChatRequestSchema.safeParse({ ...req, prefer: { providerId: "groq" } })
+				.success,
+		).toBe(false);
+	});
+
 	it("rejects a model field, an unknown tier, need or priority", () => {
 		for (const bad of [
 			{ ...req, model: "m" },

@@ -5,6 +5,7 @@ import {
 	ModuleIdSchema,
 	TimestampSchema,
 } from "./ids.js";
+import { TierSchema } from "./llm.js";
 import { err, ok, type Result } from "./result.js";
 import {
 	CheckpointKindSchema,
@@ -82,6 +83,8 @@ const PAYLOADS = {
 		roleId: text,
 		providerId: text,
 		modelId: text,
+		/** The role's tier, for the Studio card (ADR-077). */
+		tier: TierSchema.optional(),
 	}),
 	"agent.model.changed": z.strictObject({
 		from: model,

@@ -28,6 +28,8 @@ export {
 	DAEMON_METHODS,
 	DaemonAuditParamsSchema,
 	DaemonAuditResultSchema,
+	DaemonChainParamsSchema,
+	DaemonChainResultSchema,
 	DaemonDoneResultSchema,
 	type DaemonErrorData,
 	DaemonErrorDataSchema,
@@ -126,6 +128,7 @@ export {
 	type McpToolInfo,
 	type McpToolsAdapter,
 } from "./domain/mcp.js";
+export { type Pins, PinsSchema, pinOf } from "./domain/pins.js";
 export {
 	type AuditFailed,
 	type MaskResult,

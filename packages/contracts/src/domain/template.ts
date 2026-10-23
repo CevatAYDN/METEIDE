@@ -12,8 +12,10 @@ import { err, ok, type Result } from "./result.js";
 // Team template file from docs/08 (Team template schema, Task fields); keys as written in YAML.
 
 const text = z.string().min(1);
-const LOCAL_ID = /^[a-z][a-z0-9_]*$/;
-const TEMPLATE_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+/** A role or task id, such as write_gdd. */
+export const LOCAL_ID = /^[a-z][a-z0-9_]*$/;
+/** A template id, such as game-studio. */
+export const TEMPLATE_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const FS_WILDCARD = /^fs\.\*@[1-9]\d*$/;
 const ARTIFACT = "artifact:";
 

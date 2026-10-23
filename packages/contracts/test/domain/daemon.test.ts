@@ -4,6 +4,8 @@ import {
 	DAEMON_METHODS,
 	DaemonAuditParamsSchema,
 	DaemonAuditResultSchema,
+	DaemonChainParamsSchema,
+	DaemonChainResultSchema,
 	DaemonDoneResultSchema,
 	type DaemonErrorData,
 	DaemonErrorDataSchema,
@@ -39,7 +41,7 @@ const run: RunView = {
 	endedAt: "2026-10-23T11:00:00.000Z",
 };
 
-describe("daemon protocol version 13", () => {
+describe("daemon protocol version 14", () => {
 	it("answers mete/events with the run's events in order and the count of unreadable rows", () => {
 		const event = {
 			id: crypto.randomUUID(),
@@ -127,6 +129,7 @@ describe("daemon protocol version 13", () => {
 			stopAll: "mete/stop.all",
 			estimate: "mete/estimate",
 			templateRead: "mete/template.read",
+			chain: "mete/chain",
 			event: "mete/event",
 		});
 	});
@@ -350,6 +353,26 @@ describe("daemon protocol version 13", () => {
 			{ providers: [{ providerId: "groq", requests: 1.5 }], unassigned: 0 },
 		])
 			expect(DaemonEstimateResultSchema.safeParse(bad).success).toBe(false);
+	});
+
+	it("asks mete/chain for a tier's models with the needs, best first (ADR-077)", () => {
+		const ask = { tier: "coder", needs: ["tool_calling"] };
+		expect(DaemonChainParamsSchema.parse(ask)).toEqual(ask);
+		for (const bad of [
+			{ tier: "huge", needs: [] },
+			{ tier: "coder" },
+			{ tier: "coder", needs: ["speed"] },
+		])
+			expect(DaemonChainParamsSchema.safeParse(bad).success).toBe(false);
+		const answer = { models: [{ providerId: "groq", modelId: "m" }] };
+		expect(DaemonChainResultSchema.parse(answer)).toEqual(answer);
+		expect(DaemonChainResultSchema.parse({ models: [] })).toEqual({
+			models: [],
+		});
+		expect(
+			DaemonChainResultSchema.safeParse({ models: [{ providerId: "groq" }] })
+				.success,
+		).toBe(false);
 	});
 
 	it("asks mete/template.read for a template by id and answers its text and folder (ADR-075)", () => {

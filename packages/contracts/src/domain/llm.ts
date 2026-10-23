@@ -43,6 +43,8 @@ export const LlmChatRequestSchema = ChatRequestSchema.omit({
 	priority: z.union([z.literal(0), z.literal(1), z.literal(2)]),
 	needs: z.array(NeedSchema).optional(),
 	avoidFamilies: z.array(text).optional(),
+	/** The role's pinned model, first in a tier's chain when it is a candidate (ADR-077). */
+	prefer: ModelRefSchema.optional(),
 });
 
 /** What a caller asks llm.chat@2. */

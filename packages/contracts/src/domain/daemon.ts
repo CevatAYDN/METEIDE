@@ -2,14 +2,15 @@ import { z } from "zod";
 import { ApprovalInputSchema } from "./engine.js";
 import { type MeteEvent, MeteEventSchema } from "./events.js";
 import { CapabilityRefSchema, IdSchema, TimestampSchema } from "./ids.js";
+import { ModelRefSchema, NeedSchema, TierSchema } from "./llm.js";
 import { PolicyActionSchema, PolicyVerdictSchema } from "./policy.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 13 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-075).
+// Daemon protocol version 14 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-077).
 // The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The messages of version 13; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 14; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
@@ -22,6 +23,7 @@ export const DAEMON_METHODS = {
 	stopAll: "mete/stop.all",
 	estimate: "mete/estimate",
 	templateRead: "mete/template.read",
+	chain: "mete/chain",
 	event: "mete/event",
 } as const;
 
@@ -183,6 +185,17 @@ export const DaemonTemplateReadResultSchema = z.strictObject({
 	id: z.string().min(1),
 	source: z.enum(["workspace", "builtIn"]),
 	yaml: z.string(),
+});
+
+/** Params of `mete/chain`: a tier and the needs of a member, for the team editor's pinned model (ADR-077). */
+export const DaemonChainParamsSchema = z.strictObject({
+	tier: TierSchema,
+	needs: z.array(NeedSchema),
+});
+
+/** Result of `mete/chain`: the models the gateway would try for them, best first, without a pin. */
+export const DaemonChainResultSchema = z.strictObject({
+	models: z.array(ModelRefSchema),
 });
 
 /** Result of `mete/run.approve` and `mete/run.resume`: a request that returns nothing sends null. */

@@ -89,6 +89,17 @@ describe("parseEvent", () => {
 		).toBe(false);
 	});
 
+	it("takes an agent with or without its role tier, and only a known tier (ADR-077)", () => {
+		const agent = { roleId: "qa", providerId: "groq", modelId: "m" };
+		expect(parseEvent(envelope("agent.created", agent)).ok).toBe(true);
+		expect(
+			parseEvent(envelope("agent.created", { ...agent, tier: "coder" })).ok,
+		).toBe(true);
+		expect(
+			parseEvent(envelope("agent.created", { ...agent, tier: "huge" })).ok,
+		).toBe(false);
+	});
+
 	it("caps message summaries at 80 characters", () => {
 		const payload = (summary: string) => ({
 			messageId: crypto.randomUUID(),
