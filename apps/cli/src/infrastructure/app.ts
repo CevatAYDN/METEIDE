@@ -107,6 +107,8 @@ export type App = {
 	readonly secrets: SecretStore;
 	/** The models the gateway may use after the privacy rules, from its cached listing. */
 	readonly models: GatewayModule["models"];
+	/** The chain a call for a tier and role would try, from the same listing (ADR-068). */
+	readonly chain: GatewayModule["chain"];
 	/** The template folders core-engine reads, which mete/templates lists (ADR-058). */
 	readonly templates: TemplateDirs;
 	readonly stop: () => Promise<void>;
@@ -251,6 +253,7 @@ export const createApp = async (
 		inactive,
 		secrets,
 		models: gateway.models,
+		chain: gateway.chain,
 		templates: templatesOf(opts),
 		stop: lifecycle.stop,
 	});

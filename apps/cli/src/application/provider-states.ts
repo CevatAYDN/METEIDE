@@ -16,7 +16,7 @@ const PROVIDER = "provider.chat@2";
 // provider-custom is set up with endpoints in models.yaml, not with a key, so it has no state here.
 const CUSTOM = "provider-custom";
 // The gateway's listing is cached; this only bounds a first listing that hangs.
-const LISTING_TIMEOUT_MS = 10_000;
+export const LISTING_TIMEOUT_MS = 10_000;
 
 const providerModules = (app: App) =>
 	app.modules

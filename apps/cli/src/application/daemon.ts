@@ -4,6 +4,7 @@ import {
 	DAEMON_METHODS,
 	DaemonAuditParamsSchema,
 	type DaemonErrorData,
+	DaemonEstimateParamsSchema,
 	DaemonRunApproveParamsSchema,
 	DaemonRunIdParamsSchema,
 	DaemonStatusParamsSchema,
@@ -25,13 +26,14 @@ import { type App, engineOf, notReadyLines } from "../infrastructure/app.js";
 import { runHistory } from "../infrastructure/history.js";
 import { auditEntries } from "./audit.js";
 import type { Io } from "./commands.js";
+import { estimateFor } from "./estimate.js";
 import {
 	providerStates,
 	quotaUnits,
 	trackExhausted,
 } from "./provider-states.js";
 
-// `mete daemon`: protocol version 11 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-065).
+// `mete daemon`: protocol version 12 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-068).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
@@ -166,6 +168,25 @@ const serveTemplates = (conn: MessageConnection, app: App) =>
 		};
 	});
 
+// The composer's request estimate per provider (ADR-068): files and the gateway's listing only, so no
+// engine is needed; a template that does not load is not_found.
+const serveEstimate = (
+	conn: MessageConnection,
+	app: App,
+	until: (id: string) => string | undefined,
+) =>
+	conn.onRequest(DAEMON_METHODS.estimate, async (params: unknown) => {
+		const { templateId } = parsed(DaemonEstimateParamsSchema.safeParse(params));
+		const estimate = await estimateFor(app, templateId, until);
+		if (estimate) return estimate;
+		const data: DaemonErrorData = { code: "not_found" };
+		throw new ResponseError(
+			DAEMON_ERROR_CODE,
+			`no template ${templateId}`,
+			data,
+		);
+	});
+
 // Each provider's state for the quota dashboard (ADR-050); the daemon tracks spent quotas for its
 // whole life, so a pause seen before the client asked still counts.
 const serveQuota = (
@@ -223,6 +244,7 @@ export const daemonCommand = async (
 	serveTemplates(conn, app);
 	const spent = trackExhausted(app.events);
 	serveQuota(conn, app, spent.until);
+	serveEstimate(conn, app, spent.until);
 	const unsubscribe = forwardEvents(app.events, conn, io);
 	conn.listen();
 	let stop = () => {};

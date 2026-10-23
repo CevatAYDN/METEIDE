@@ -4,6 +4,7 @@ import {
 	DAEMON_ERROR_CODE,
 	DAEMON_METHODS,
 	DaemonErrorDataSchema,
+	DaemonEstimateResultSchema,
 	DaemonQuotaResultSchema,
 	DaemonRunStartResultSchema,
 	DaemonStatusResultSchema,
@@ -114,6 +115,18 @@ describe("mete daemon", () => {
 			c.sendRequest(DAEMON_METHODS.status, { runId: "" }),
 		);
 		expect(bad.code).toBe(ErrorCodes.InvalidParams);
+
+		// A single agent is one task on the coder tier, put on the first ready provider (ADR-068).
+		expect(
+			await c.sendRequest(DAEMON_METHODS.estimate, { templateId: null }),
+		).toEqual({
+			providers: [{ providerId: "fake", requests: 12 }],
+			unassigned: 0,
+		});
+		const unknown = await failure(
+			c.sendRequest(DAEMON_METHODS.estimate, { templateId: "nope" }),
+		);
+		expect(unknown.data).toEqual({ code: "not_found" });
 
 		const first = event("network.lost");
 		const second = event("run.resumed");
@@ -312,6 +325,12 @@ describe("mete daemon", () => {
 			name: "Game studio",
 			description: "Idea to playable prototype",
 		});
+		// mete/estimate needs no engine either (ADR-068); with no provider ready, nothing is assigned.
+		const estimate = DaemonEstimateResultSchema.parse(
+			await c.sendRequest(DAEMON_METHODS.estimate, { templateId: "web-dev" }),
+		);
+		expect(estimate.providers).toEqual([]);
+		expect(estimate.unassigned).toBeGreaterThan(0);
 
 		toDaemon.end();
 		expect(await done).toBe(0);
