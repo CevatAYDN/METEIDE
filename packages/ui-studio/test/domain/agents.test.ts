@@ -101,7 +101,7 @@ describe("the agents of the team view", () => {
 				roleId: "agent",
 				providerId: "groq",
 				modelId: "m",
-				thinking: false,
+				thinking: true,
 			},
 		]);
 	});

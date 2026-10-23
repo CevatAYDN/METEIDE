@@ -38,7 +38,9 @@ const created = (
 			providerId: e.payload.providerId,
 			modelId: e.payload.modelId,
 			...(e.taskId ? { taskId: e.taskId } : {}),
-			thinking: false,
+			// The core creates the agent at its first model reply, inside the turn whose
+			// agent.thinking.started carried no agent id yet: the agent is thinking.
+			thinking: true,
 		},
 	];
 };
