@@ -1,6 +1,5 @@
 import {
 	type ChatChunk,
-	type ChatRequest,
 	err,
 	type LlmChatAdapter,
 	type LlmChatRequest,
@@ -14,14 +13,27 @@ import {
 	type QuotaReserveAdapter,
 	type Result,
 	type SecretsMaskAdapter,
-	type ToolCall,
 } from "@mete/contracts";
 import { CHAIN_LENGTH, STALL_LIMITS } from "../defaults.js";
-import { ABORTED, reserveError } from "../domain/llm-errors.js";
+import {
+	ABORTED,
+	chainEnd,
+	passes,
+	reserveError,
+	unavailable,
+} from "../domain/llm-errors.js";
 import { type PrivacyRules, resolveChain } from "../domain/resolve.js";
 import { afterFailure, estimateTokens } from "../domain/retry.js";
 import { costOf } from "../domain/spend.js";
 import type { ModelCall } from "../infrastructure/model-calls.js";
+import type {
+	Attempted,
+	Ended,
+	Outcome,
+	Seen,
+	Try,
+	Walk,
+} from "./chat-types.js";
 import {
 	demoted,
 	forgive,
@@ -56,48 +68,7 @@ export type ChatDeps = {
 	) => void;
 };
 
-type Outcome =
-	| {
-			readonly kind: "finish";
-			readonly reason: Extract<ChatChunk, { type: "finish" }>["reason"];
-			readonly usage: { prompt: number; completion: number };
-	  }
-	| {
-			readonly kind: "error";
-			readonly error: ProviderError;
-			readonly streamed: boolean;
-	  };
-
-type Attempted = {
-	readonly outcome: Outcome;
-	readonly observations: readonly QuotaObservation[];
-};
-
-// What a model streamed, kept for the model_calls row.
-type Seen = { text: string; readonly toolCalls: ToolCall[] };
-
-// One reserved call on one model.
-type Try = {
-	readonly o: Offered;
-	readonly reservation: string;
-	readonly call: ChatRequest;
-	readonly req: LlmChatRequest;
-	readonly stall: StallLimits;
-};
-
-type Walk = {
-	readonly req: LlmChatRequest;
-	readonly call: Omit<ChatRequest, "model">;
-	readonly chain: readonly Offered[];
-	readonly estimate: QuotaAmounts;
-	/** Prompt tokens and the completion it may take, for a paid model's cost (ADR-042). */
-	readonly tokens: { readonly prompt: number; readonly completion: number };
-};
-
 const fail = (error: LlmError): LlmChunk => ({ type: "error", error });
-
-// How the call ended, set before the finish is yielded.
-type Ended = { outcome: Outcome | undefined };
 
 // Adds a chunk to the call's record; a finish chunk gives the outcome.
 const keep = (
@@ -238,6 +209,8 @@ type WalkState = {
 	moved: boolean;
 	last: ProviderError;
 	readonly failures: Map<Offered, number>;
+	/** A model failed for a reason that passes, so a run out chain ends with network (ADR-064). */
+	passed: boolean;
 };
 
 type Failed = {
@@ -297,13 +270,14 @@ const moveOn = (
 	st.remaining = st.remaining.filter((x) => x !== o);
 	st.last = e;
 	st.moved = true;
-	if (e.code === "unauthorized") refuse(deps.warn, st.memory, whoOf(o), e);
+	if (passes(e)) st.passed = true;
+	if (unavailable(e)) refuse(deps.warn, st.memory, whoOf(o), e);
 	else {
 		st.tried++;
 		if (e.code !== "rate_limited") strike(st.memory, keyOf(o));
 		if (e.code === "bad_request") report(deps.warn, st.memory, whoOf(o), e);
 	}
-	return st.tried >= CHAIN_LENGTH ? e : undefined;
+	return st.tried >= CHAIN_LENGTH ? chainEnd(e, st.passed) : undefined;
 };
 
 // The error that ends the call, or undefined to reserve again.
@@ -337,6 +311,7 @@ async function* walk(
 		moved: false,
 		last: ABORTED,
 		failures: new Map(),
+		passed: false,
 	};
 	while (st.remaining.length > 0) {
 		const g = await grant(deps, w, st.remaining, signal);
@@ -351,7 +326,7 @@ async function* walk(
 		const end = await onFailure(deps, st, { o, outcome, observations }, signal);
 		if (end) return yield fail(end);
 	}
-	yield fail(st.last);
+	yield fail(chainEnd(st.last, st.passed));
 }
 
 async function* chat(
