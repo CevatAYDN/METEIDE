@@ -3,6 +3,8 @@ import {
 	DAEMON_ERROR_CODE,
 	DAEMON_METHODS,
 	type DaemonErrorData,
+	DaemonRunApproveParamsSchema,
+	DaemonRunIdParamsSchema,
 	DaemonStatusParamsSchema,
 	type EngineError,
 	EVENT_TYPES,
@@ -20,7 +22,7 @@ import {
 import { type App, engineOf, notReadyLines } from "../infrastructure/app.js";
 import type { Io } from "./commands.js";
 
-// `mete daemon`: protocol version 3 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-047).
+// `mete daemon`: protocol version 4 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-048).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
@@ -78,6 +80,22 @@ const serveRunStart = (conn: MessageConnection, app: App) =>
 		return r.value;
 	});
 
+// The human's decision on a run paused for approval, and resume (ADR-048); both answer null.
+const serveApproveAndResume = (conn: MessageConnection, app: App) => {
+	conn.onRequest(DAEMON_METHODS.runApprove, async (params: unknown) => {
+		const p = parsed(DaemonRunApproveParamsSchema.safeParse(params ?? {}));
+		const r = await readyEngine(app).approve(p.runId, p.input);
+		if (!r.ok) throw refused(r.error);
+		return null;
+	});
+	conn.onRequest(DAEMON_METHODS.runResume, async (params: unknown) => {
+		const p = parsed(DaemonRunIdParamsSchema.safeParse(params ?? {}));
+		const r = await readyEngine(app).resume(p.runId);
+		if (!r.ok) throw refused(r.error);
+		return null;
+	});
+};
+
 // The bus has no catch-all pattern, so each event domain gets its own subscription; one event
 // matches one domain, so the notifications keep the publish order.
 const forwardEvents = (events: EventBus, conn: MessageConnection, io: Io) => {
@@ -115,6 +133,7 @@ export const daemonCommand = async (
 	);
 	serveStatus(conn, app);
 	serveRunStart(conn, app);
+	serveApproveAndResume(conn, app);
 	const unsubscribe = forwardEvents(app.events, conn, io);
 	conn.listen();
 	let stop = () => {};
