@@ -78,7 +78,7 @@ describe("provider keys through mete key", () => {
 		expect(await keys.setKey("bad", "k")).toEqual({
 			ok: false,
 			error: {
-				code: "refused",
+				code: "cli",
 				detail: "usage: mete key set|delete <provider id>",
 			},
 		});

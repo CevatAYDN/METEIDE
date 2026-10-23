@@ -42,11 +42,13 @@
 			"single": "Single agent",
 			"start": "Start run",
 			"started": "Run started: {0}",
+			"starting": "METE is starting the run…",
 			"which": "Which run?"
 		},
 		"status": {
 			"blocked": "The METE daemon keeps stopping, so METE does not start it again for now: {0}",
 			"chooseTemplate": "Choose a team for this goal: {0}",
+			"cli": "The mete command failed: {0}",
 			"label": "Status",
 			"noFolder": "Open a folder first: METE works on one folder at a time.",
 			"none": "No runs in this folder yet.",

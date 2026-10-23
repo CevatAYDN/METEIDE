@@ -29,7 +29,8 @@ export type DaemonFailure = {
 		| "stopped"
 		| "blocked"
 		| "refused"
-		| "protocol";
+		| "protocol"
+		| "cli";
 	readonly detail: string;
 	/** With choose_template: the templates the router suggests for the goal (ADR-047). */
 	readonly suggestions?: readonly string[];

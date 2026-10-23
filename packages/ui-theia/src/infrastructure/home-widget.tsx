@@ -50,6 +50,12 @@ export class MeteHomeWidget extends ReactWidget {
 					void this.refresh();
 			}),
 		);
+		// A key set from the palette or from the button restarts the daemon: ask again either way.
+		this.toDispose.push(
+			this.commands.onDidExecuteCommand(({ commandId }) => {
+				if (commandId === SET_KEY_COMMAND.id) void this.refresh();
+			}),
+		);
 		void this.refresh();
 	}
 
@@ -75,9 +81,8 @@ export class MeteHomeWidget extends ReactWidget {
 	}
 
 	// The daemon restarts with the new key, so the panel asks again once the command is done.
-	protected async setKey() {
-		await this.commands.executeCommand(SET_KEY_COMMAND.id);
-		await this.refresh();
+	protected setKey() {
+		return this.commands.executeCommand(SET_KEY_COMMAND.id);
 	}
 
 	protected setModel(model: HomeModel): void {

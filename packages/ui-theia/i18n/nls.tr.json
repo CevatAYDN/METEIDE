@@ -42,11 +42,13 @@
 			"single": "Tek ajan",
 			"start": "Çalıştırma başlat",
 			"started": "Çalıştırma başladı: {0}",
+			"starting": "METE çalıştırmayı başlatıyor…",
 			"which": "Hangi çalıştırma?"
 		},
 		"status": {
 			"blocked": "METE daemon'u durup duruyor, bu yüzden METE onu şimdilik yeniden başlatmıyor: {0}",
 			"chooseTemplate": "Bu hedef için bir ekip seç: {0}",
+			"cli": "mete komutu başarısız oldu: {0}",
 			"label": "Durum",
 			"noFolder": "Önce bir klasör aç: METE aynı anda tek bir klasörde çalışır.",
 			"none": "Bu klasörde henüz çalıştırma yok.",

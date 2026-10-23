@@ -12,9 +12,10 @@ export type KeyDeps = {
 	readonly restart: () => Promise<void>;
 };
 
+// It was `mete key` that ended badly, not the daemon, so the failure says so.
 const failed = (r: CliResult): Result<never, DaemonFailure> =>
 	err({
-		code: "refused",
+		code: "cli",
 		detail: (r.stderr || r.stdout).trim() || `exit code ${r.code}`,
 	});
 

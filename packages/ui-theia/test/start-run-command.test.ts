@@ -46,9 +46,18 @@ const setup = (opts: {
 	const warn: string[] = [];
 	const asked: RunStart[] = [];
 	const picked: string[][] = [];
+	const progress = { shown: 0, cancelled: 0 };
 	const c = new Container();
 	c.bind(MessageService).toConstantValue({
 		info: async (m: string) => void info.push(m),
+		showProgress: async () => {
+			progress.shown += 1;
+			return {
+				cancel: () => {
+					progress.cancelled += 1;
+				},
+			};
+		},
 		warn: async (m: string) => void warn.push(m),
 	} as unknown as MessageService);
 	c.bind(WorkspaceService).toConstantValue({
@@ -80,6 +89,7 @@ const setup = (opts: {
 		warn,
 		asked,
 		picked,
+		progress,
 		run: () => handlers.get("mete.run.start")?.execute(),
 	};
 };
@@ -109,6 +119,8 @@ describe("METE: Start run", () => {
 			{ goal: "g" },
 			{ goal: "g", templateId: null },
 		]);
+		// Each start shows that METE is busy while the router works, and clears it after.
+		expect(single.progress).toEqual({ shown: 2, cancelled: 2 });
 		const team = setup({
 			folders: ["/w"],
 			goal: "g",

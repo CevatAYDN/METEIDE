@@ -21,48 +21,43 @@ export const noFolderText = () =>
 		"Open a folder first: METE works on one folder at a time.",
 	);
 
-/** Says why the daemon gave no runs, with what it reported; `prepare` readies outside text. */
-export const failureText = (
-	{ code, detail: raw }: DaemonFailure,
-	prepare = asIs,
-) => {
-	const detail = prepare(raw);
-	if (code === "not_ready")
-		return nls.localize(
-			"mete/status/notReady",
-			"METE is not ready yet: {0}",
-			detail,
-		);
-	if (code === "choose_template")
-		return nls.localize(
+// One literal nls.localize call per reason, so Theia's nls-extract can read each text.
+const FAILURE: Record<DaemonFailure["code"], (detail: string) => string> = {
+	cli: (d) =>
+		nls.localize("mete/status/cli", "The mete command failed: {0}", d),
+	not_ready: (d) =>
+		nls.localize("mete/status/notReady", "METE is not ready yet: {0}", d),
+	choose_template: (d) =>
+		nls.localize(
 			"mete/status/chooseTemplate",
 			"Choose a team for this goal: {0}",
-			detail,
-		);
-	if (code === "blocked")
-		return nls.localize(
+			d,
+		),
+	blocked: (d) =>
+		nls.localize(
 			"mete/status/blocked",
 			"The METE daemon keeps stopping, so METE does not start it again for now: {0}",
-			detail,
-		);
-	if (code === "refused")
-		return nls.localize(
+			d,
+		),
+	refused: (d) =>
+		nls.localize(
 			"mete/status/refused",
 			"The METE daemon refused the request: {0}",
-			detail,
-		);
-	if (code === "protocol")
-		return nls.localize(
+			d,
+		),
+	protocol: (d) =>
+		nls.localize(
 			"mete/status/protocol",
 			"The METE daemon sent an answer METE does not understand: {0}",
-			detail,
-		);
-	return nls.localize(
-		"mete/status/stopped",
-		"The METE daemon stopped: {0}",
-		detail,
-	);
+			d,
+		),
+	stopped: (d) =>
+		nls.localize("mete/status/stopped", "The METE daemon stopped: {0}", d),
 };
+
+/** Says why the daemon gave no runs, with what it reported; `prepare` readies outside text. */
+export const failureText = ({ code, detail }: DaemonFailure, prepare = asIs) =>
+	FAILURE[code](prepare(detail));
 
 /** Counts the runs of the folder and names the newest ones by status and goal. */
 export const runsText = (runs: StatusRuns, prepare = asIs) =>

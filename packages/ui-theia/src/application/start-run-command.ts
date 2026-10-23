@@ -55,18 +55,31 @@ export class MeteStartRunContribution implements CommandContribution {
 		)?.trim();
 		if (!goal) return;
 		const dir = root.resource.path.fsPath();
-		let r = await this.daemon.startRun(dir, { goal });
+		let r = await this.starting(dir, { goal });
 		if (!r.ok && r.error.code === "choose_template") {
 			const team = await this.pickTeam(r.error.suggestions ?? []);
 			if (!team) return;
 			const req: RunStart = { goal, templateId: team.templateId };
-			r = await this.daemon.startRun(dir, req);
+			r = await this.starting(dir, req);
 		}
 		if (r.ok)
 			void this.messages.info(
 				nls.localize("mete/run/started", "Run started: {0}", r.value.runId),
 			);
 		else void this.messages.warn(failureText(r.error, plain));
+	}
+
+	// The router picks a team before the run exists (docs/08), which can take a minute on free
+	// models, and the daemon has nothing to send until then; a progress message says it is busy.
+	protected async starting(dir: string, req: RunStart) {
+		const progress = await this.messages.showProgress({
+			text: nls.localize("mete/run/starting", "METE is starting the run…"),
+		});
+		try {
+			return await this.daemon.startRun(dir, req);
+		} finally {
+			progress.cancel();
+		}
 	}
 
 	// The router's suggestions first, then a single agent (docs/08, Router).
