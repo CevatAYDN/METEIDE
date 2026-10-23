@@ -192,6 +192,15 @@ describe("METE: Status", () => {
 		expect(two.info).toEqual([
 			'2 run(s) in this folder: paused "fix the bug"; completed "write notes"',
 		]);
+
+		const seven = setup(["/w"], {
+			ok: true,
+			value: Array.from({ length: 7 }, (_, i) => run("completed", `g${i}`)),
+		});
+		await seven.execute();
+		expect(seven.info[0]).toMatch(
+			/"g4"; and 2 more; the Home panel lists them all$/,
+		);
 	});
 
 	it("escapes Markdown in what came from outside, because Theia renders messages as Markdown", async () => {

@@ -121,6 +121,7 @@
 			"chooseTemplate": "Choose a team for this goal: {0}",
 			"cli": "The mete command failed: {0}",
 			"label": "Status",
+			"more": "and {0} more; the Home panel lists them all",
 			"noFolder": "Open a folder first: METE works on one folder at a time.",
 			"none": "No runs in this folder yet.",
 			"notReady": "METE is not ready yet: {0}",

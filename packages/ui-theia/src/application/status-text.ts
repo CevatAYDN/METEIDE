@@ -3,8 +3,13 @@ import type { DaemonFailure, StatusRuns } from "../domain/status-service.js";
 
 // The words of "METE: Status"; every string goes through Theia's localization (docs/05).
 
-// shortcut: the longest run list one message shows; a panel lists them all (Phase 5, team panel).
+// The longest run list one message shows; the rest are counted, and the Home panel lists them all.
 const SHOWN_RUNS = 5;
+
+const moreText = (hidden: number) =>
+	hidden > 0
+		? `; ${nls.localize("mete/status/more", "and {0} more; the Home panel lists them all", hidden)}`
+		: "";
 
 // Theia renders a message as Markdown, so a message escapes text from outside (daemon output, a
 // goal): without it a Windows path loses its backslashes. A React panel shows text as it is.
@@ -70,5 +75,5 @@ export const runsText = (runs: StatusRuns, prepare = asIs) =>
 				runs
 					.slice(0, SHOWN_RUNS)
 					.map((r) => `${r.status} "${prepare(r.goal)}"`)
-					.join("; "),
+					.join("; ") + moreText(runs.length - SHOWN_RUNS),
 			);
