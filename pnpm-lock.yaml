@@ -426,6 +426,9 @@ importers:
       '@mete/ui-kit':
         specifier: workspace:*
         version: link:../ui-kit
+      '@tweenjs/tween.js':
+        specifier: 25.0.0
+        version: 25.0.0
       pixi.js:
         specifier: 8.22.0
         version: 8.22.0
@@ -1563,6 +1566,9 @@ packages:
     resolution: {integrity: sha512-88Xv2f7SLGVJ68lRRx8o375dKmnZYNdDtvlKcPA0kZpcF93eAQd8l96BKQ0/AMHG0bMJA0Z5QqoqtetxzNsC+g==}
     cpu: [arm64]
     os: [win32]
+
+  '@tweenjs/tween.js@25.0.0':
+    resolution: {integrity: sha512-XKLA6syeBUaPzx4j3qwMqzzq+V4uo72BnlbOjmuljLrRqdsd3qnzvZZoxvMHZ23ndsRS4aufU6JOZYpCbU6T1A==}
 
   '@types/bent@7.3.8':
     resolution: {integrity: sha512-yZ09JA1KsA5Fl6Oh/ahK00+H5bV0qCy2bYnyfiFY42wnaMK4n7IDC6HaFe3WW45Zhnak7iqJBKlWD0nVxzrGWg==}
@@ -7057,6 +7063,8 @@ snapshots:
 
   '@turbo/windows-arm64@2.11.7':
     optional: true
+
+  '@tweenjs/tween.js@25.0.0': {}
 
   '@types/bent@7.3.8':
     dependencies:

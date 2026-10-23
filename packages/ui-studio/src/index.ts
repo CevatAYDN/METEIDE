@@ -13,6 +13,7 @@ export {
 	type Point,
 } from "./domain/layout.js";
 export {
+	effectColours,
 	type Primitive,
 	paintScene,
 	type StageLabels,

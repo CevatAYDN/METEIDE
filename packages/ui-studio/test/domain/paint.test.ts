@@ -1,6 +1,10 @@
 import { TOKENS } from "@mete/ui-kit";
 import { describe, expect, it } from "vitest";
-import { type Primitive, paintScene } from "../../src/domain/paint.js";
+import {
+	effectColours,
+	type Primitive,
+	paintScene,
+} from "../../src/domain/paint.js";
 import type { Character, Scene } from "../../src/domain/scene.js";
 
 // The room's primitives for scenes written by hand: what is drawn where, and in which colours.
@@ -102,6 +106,15 @@ describe("the room's primitives", () => {
 			TOKENS.dark.warn,
 		);
 		expect(texts(p)).toContain("until 09:30");
+	});
+
+	it("gives each effect colour its token in the theme's mode", () => {
+		expect(effectColours("dark")).toEqual({
+			good: TOKENS.dark.good,
+			accent: TOKENS.dark.accent,
+			warn: TOKENS.dark.warn,
+			bad: TOKENS.dark.bad,
+		});
 	});
 
 	it("grows the room with its rows", () => {

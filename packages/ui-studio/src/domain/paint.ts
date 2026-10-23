@@ -1,4 +1,5 @@
 import { TOKENS, type TokenMode } from "@mete/ui-kit";
+import type { EffectColour } from "./effects.js";
 import { type Layout, layoutOf, type Point } from "./layout.js";
 import type { Character, CharacterState, Scene } from "./scene.js";
 
@@ -182,6 +183,14 @@ const people = (
 			ch.resetsAt ? labels.until(ch.resetsAt) : undefined,
 		);
 	});
+
+/** The token colour of each effect colour, in the colours of `mode`. */
+export const effectColours = (
+	mode: TokenMode,
+): Record<EffectColour, string> => {
+	const c = TOKENS[mode];
+	return { good: c.good, accent: c.accent, warn: c.warn, bad: c.bad };
+};
 
 /** The primitives of the room, for a canvas of `width` pixels in the colours of `mode`. */
 export const paintScene = (
