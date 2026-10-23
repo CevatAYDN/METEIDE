@@ -44,7 +44,10 @@ const labelOf = (data: FlowNodeData) =>
 	) : (
 		<>
 			<div>{data.roleId}</div>
-			<div style={{ opacity: 0.7 }}>{data.modelId}</div>
+			<div style={{ opacity: 0.7 }}>
+				{data.modelId}
+				{data.progress ? ` · ${data.progress}` : ""}
+			</div>
 		</>
 	);
 

@@ -73,6 +73,7 @@ describe("the Flow graph", () => {
 			modelId: "m1",
 			thinking: id === "a1",
 			...(taskId ? { taskId } : {}),
+			...(id === "a1" ? { progress: { progress: 3, total: 4 } } : {}),
 		});
 		const g = flowGraph(
 			view(
@@ -96,7 +97,9 @@ describe("the Flow graph", () => {
 			roleId: "artist",
 			modelId: "m1",
 			thinking: true,
+			progress: "3/4",
 		});
+		expect(agents[1]?.data).not.toHaveProperty("progress");
 		expect(g.edges.map((e) => `${e.source}>${e.target}`)).toEqual([
 			"brief>art",
 			"agent:a1>art",

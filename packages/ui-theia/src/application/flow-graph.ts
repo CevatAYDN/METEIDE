@@ -27,6 +27,8 @@ export type FlowNodeData =
 			readonly roleId: string;
 			readonly modelId: string;
 			readonly thinking: boolean;
+			/** The tool's last progress step, as `progress/total` or `progress` (ADR-067). */
+			readonly progress?: string;
 	  };
 
 /** A node in React Flow's shape. */
@@ -62,6 +64,9 @@ const levelsOf = (tasks: readonly TaskCard[]) => {
 	return levels;
 };
 
+const stepOf = ({ progress, total }: NonNullable<AgentCard["progress"]>) =>
+	total === undefined ? `${progress}` : `${progress}/${total}`;
+
 // Agent ids get a prefix, so an agent never takes the node of a task with the same id.
 const agentNodes = (agents: readonly AgentCard[], ids: Set<string>) => ({
 	nodes: agents.map(
@@ -73,6 +78,7 @@ const agentNodes = (agents: readonly AgentCard[], ids: Set<string>) => ({
 				roleId: a.roleId,
 				modelId: a.modelId,
 				thinking: a.thinking,
+				...(a.progress ? { progress: stepOf(a.progress) } : {}),
 			},
 		}),
 	),
