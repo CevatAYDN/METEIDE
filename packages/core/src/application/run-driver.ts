@@ -1,5 +1,5 @@
 import type { LlmChunk } from "@mete/contracts";
-import { toSummarize } from "../domain/compact.js";
+import { foldable, toSummarize } from "../domain/compact.js";
 import { type NextStep, nextStep } from "../domain/next-step.js";
 import { afterModelError } from "../domain/run-events.js";
 import { activeRole, activeSeat } from "../domain/team-run.js";
@@ -64,6 +64,13 @@ const modelTurn = async (s: EngineState, l: Live, token: object) => {
 	});
 	if (!owns(l, token)) return; // paused or cancelled meanwhile: the reply is dropped
 	const at = s.deps.now();
+	// A request too large for every model folds the older turns once and is asked again; with
+	// nothing left to fold it pauses like no model (ADR-056, docs/08).
+	const older =
+		out.kind === "error" && out.error.code === "too_large"
+			? foldable(messages)
+			: undefined;
+	if (older) return summarizeTurn(s, l, older, () => owns(l, token));
 	if (out.kind === "missing")
 		apply(s, l, { type: "PAUSE", at, reason: "no_model" });
 	else if (out.kind === "error") apply(s, l, afterModelError(out.error, at));

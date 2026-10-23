@@ -47,14 +47,20 @@ const split = (messages: readonly ChatMessage[]): Split => {
 	};
 };
 
+/**
+ * The turns one summary can fold, whatever their size. One message (a summary already) cannot
+ * shrink, so a summary is never summarized again and the newest turns always stay.
+ */
+export const foldable = (messages: readonly ChatMessage[]) => {
+	const s = split(messages);
+	return s.middle.length > 1 ? s : undefined;
+};
+
 /** The turns to summarize when the conversation reached SUMMARY_AT of the tier's window. */
 export const toSummarize = (messages: readonly ChatMessage[], tier: Tier) => {
 	const tokens = messages.reduce((n, m) => n + sizeOf(m), 0) / CHARS_PER_TOKEN;
 	if (tokens < SUMMARY_AT * TIER_MIN_CONTEXT[tier]) return undefined;
-	const s = split(messages);
-	// One message (a summary already) cannot shrink: when the newest turns alone fill the
-	// window, they stay and the model call goes on, so a summary is never summarized again.
-	return s.middle.length > 1 ? s : undefined;
+	return foldable(messages);
 };
 
 const line = (m: ChatMessage) => {

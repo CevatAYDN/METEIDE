@@ -320,6 +320,70 @@ describe("single-agent engine", () => {
 		expect(done?.payload).toEqual({ messages: 2, chars: 52 });
 	});
 
+	it("summarizes the older turns once and asks again when a request is too large for every model", async () => {
+		const read = vi.fn<Tool>(async () => ok({ content: "small" }));
+		const call = reply("", [{ name: "fs_read", args: { path: "a.txt" } }]);
+		const tooLarge: LlmChunk[] = [
+			{ type: "error", error: { code: "too_large", message: "8400 > 8000" } },
+		];
+		const h = engineHarness({
+			scripts: [
+				call,
+				call,
+				call,
+				call,
+				call,
+				tooLarge,
+				reply("summary"),
+				reply("done"),
+			],
+			tools: [["fs.read@1", read]],
+		});
+		const runId = await begin(h);
+		await settled(h, runId, "completed");
+		expect(h.events.filter((e) => e.type === "run.summarized")).toHaveLength(1);
+		expect(h.events.some((e) => e.type === "run.paused")).toBe(false);
+		expect(h.requests.at(-2)?.target).toEqual({ tier: "fast" });
+	});
+
+	it("pauses with no_model when the request is still too large after its one summary", async () => {
+		const read = vi.fn<Tool>(async () => ok({ content: "small" }));
+		const call = reply("", [{ name: "fs_read", args: { path: "a.txt" } }]);
+		const tooLarge: LlmChunk[] = [
+			{ type: "error", error: { code: "too_large", message: "m" } },
+		];
+		const h = engineHarness({
+			scripts: [
+				call,
+				call,
+				call,
+				call,
+				call,
+				tooLarge,
+				reply("summary"),
+				tooLarge,
+			],
+			tools: [["fs.read@1", read]],
+		});
+		const runId = await begin(h);
+		await settled(h, runId, "paused");
+		expect(view(h, runId)?.pauseReason).toBe("no_model");
+		expect(h.events.filter((e) => e.type === "run.summarized")).toHaveLength(1);
+	});
+
+	it("pauses with no_model when a too large request has no older turns to fold", async () => {
+		const h = engineHarness({
+			scripts: [
+				[{ type: "error", error: { code: "too_large", message: "m" } }],
+				reply("done"),
+			],
+		});
+		const runId = await begin(h);
+		await settled(h, runId, "paused");
+		expect(view(h, runId)?.pauseReason).toBe("no_model");
+		expect(h.events.some((e) => e.type === "run.summarized")).toBe(false);
+	});
+
 	it("summarizes once when the newest turns alone fill the window, never the summary again", async () => {
 		const read = vi.fn<Tool>(async () => ok({ content: "z".repeat(25_000) }));
 		const call = reply("", [{ name: "fs_read", args: { path: "big.log" } }]);
