@@ -1,102 +1,13 @@
 import { NeedSchema, TierSchema } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
-import { useId, useState } from "react";
+import { Chips, FIELD, type OnEdit, orEmpty, orNone, Text } from "./fields.js";
 import { MUTED, ROW } from "./look.js";
-import type { MemberView, TeamView } from "./team-draft.js";
+import { type MemberView, type TeamView, toggled } from "./team-draft.js";
+import { Work } from "./work-fields.js";
 
 // One member of the team editor (ADR-075): its fields, the tasks that name it and the buttons that
 // add or remove them. Every change goes out as a path in the template and a value; a blank optional
 // field goes out as undefined, so the key leaves the file.
-
-/** A change at a path of the template; undefined removes the key. */
-export type OnEdit = (
-	path: readonly (string | number)[],
-	value: unknown,
-) => void;
-
-const FIELD = { display: "flex", flexDirection: "column", gap: "4px" } as const;
-const orNone = (v: string) => (v.trim() ? v : undefined);
-const orEmpty = (v: readonly string[]) => (v.length > 0 ? v : undefined);
-
-/** A list of ids as removable chips, with a field that adds one, offering `hints`. */
-export const Chips = (props: {
-	readonly label: string;
-	readonly values: readonly string[];
-	readonly hints: readonly string[];
-	readonly onChange: (values: readonly string[]) => void;
-}) => {
-	const [draft, setDraft] = useState("");
-	const list = useId();
-	const add = () => {
-		const v = draft.trim();
-		if (v && !props.values.includes(v)) props.onChange([...props.values, v]);
-		setDraft("");
-	};
-	return (
-		<div style={FIELD}>
-			<span>{props.label}</span>
-			<div style={ROW}>
-				{props.values.map((v) => (
-					<button
-						key={v}
-						type="button"
-						className="mete-button quiet"
-						title={nls.localize("mete/team/removeChip", "Remove {0}", v)}
-						onClick={() => props.onChange(props.values.filter((x) => x !== v))}
-					>
-						{v} ×
-					</button>
-				))}
-				<input
-					className="mete-field"
-					style={{ width: "14em" }}
-					list={list}
-					value={draft}
-					aria-label={props.label}
-					onChange={(e) => setDraft(e.target.value)}
-					onKeyDown={(e) => {
-						if (e.key === "Enter") add();
-					}}
-					onBlur={add}
-				/>
-				<datalist id={list}>
-					{props.hints.map((h) => (
-						<option key={h} value={h} />
-					))}
-				</datalist>
-			</div>
-		</div>
-	);
-};
-
-const Text = (props: {
-	readonly label: string;
-	readonly value: string;
-	readonly rows?: number;
-	readonly disabled?: boolean;
-	readonly onChange: (value: string) => void;
-}) =>
-	props.rows ? (
-		<label style={FIELD}>
-			{props.label}
-			<textarea
-				className="mete-field"
-				rows={props.rows}
-				value={props.value}
-				onChange={(e) => props.onChange(e.target.value)}
-			/>
-		</label>
-	) : (
-		<label style={FIELD}>
-			{props.label}
-			<input
-				className="mete-field"
-				value={props.value}
-				disabled={props.disabled}
-				onChange={(e) => props.onChange(e.target.value)}
-			/>
-		</label>
-	);
 
 const Ticks = (props: {
 	readonly label: string;
@@ -156,12 +67,57 @@ const Tier = (props: {
 type TaskProps = {
 	readonly team: TeamView;
 	readonly index: number;
+	readonly hints: readonly string[];
 	readonly onEdit: OnEdit;
 	readonly onRemove: () => void;
 };
 
-/** One task that names the member: its title, expected output, approver and context. */
-const TaskRow = ({ team, index, onEdit, onRemove }: TaskProps) => {
+const Tick = (props: {
+	readonly label: string;
+	readonly checked: boolean;
+	readonly onChange: (checked: boolean) => void;
+}) => (
+	<label style={ROW}>
+		<input
+			type="checkbox"
+			checked={props.checked}
+			onChange={(e) => props.onChange(e.target.checked)}
+		/>
+		{props.label}
+	</label>
+);
+
+// The human after the approver role (policies.human_checkpoints); an approver "You" or none says
+// the rest, so the tick shows only for a role, or when the file already has it.
+const Checkpoint = ({
+	team,
+	index,
+	onEdit,
+}: Omit<TaskProps, "onRemove" | "hints">) => {
+	const task = team.tasks[index];
+	const list = team.policies.human_checkpoints;
+	const on = !!task && list.includes(task.id);
+	if (!task || !(on || (task.approval && task.approval !== "human")))
+		return null;
+	return (
+		<Tick
+			label={nls.localize(
+				"mete/team/checkpoint",
+				"You approve it too, after the approver",
+			)}
+			checked={on}
+			onChange={(c) =>
+				onEdit(
+					["policies", "human_checkpoints"],
+					orEmpty(toggled(list, task.id, c)),
+				)
+			}
+		/>
+	);
+};
+
+/** One task that names the member: its title, its work, what it waits for, and the human's part. */
+const TaskRow = ({ team, index, hints, onEdit, onRemove }: TaskProps) => {
 	const task = team.tasks[index];
 	if (!task) return null;
 	const at = (key: string) => ["tasks", index, key] as const;
@@ -179,43 +135,56 @@ const TaskRow = ({ team, index, onEdit, onRemove }: TaskProps) => {
 				value={task.title}
 				onChange={(v) => onEdit(at("title"), v)}
 			/>
-			<Text
-				label={nls.localize(
-					"mete/team/output",
-					"Expected output (artifact:<type>@<version>, optional)",
-				)}
-				value={task.expected_output ?? ""}
-				onChange={(v) => onEdit(at("expected_output"), orNone(v))}
+			<Work
+				team={team}
+				work={task}
+				base={["tasks", index]}
+				hints={hints}
+				onEdit={onEdit}
 			/>
-			<label style={FIELD}>
-				{nls.localize("mete/team/approval", "Approved by")}
-				<select
-					className="mete-field"
-					value={task.approval ?? ""}
-					onChange={(e) => onEdit(at("approval"), orNone(e.target.value))}
-				>
-					<option value="">
-						{nls.localize("mete/team/noApproval", "No approval")}
-					</option>
-					<option value="human">
-						{nls.localize("mete/team/human", "You")}
-					</option>
-					{team.roles.map((r) => (
-						<option key={r.id} value={r.id}>
-							{r.name || r.id}
-						</option>
-					))}
-				</select>
-			</label>
+			<Checkpoint team={team} index={index} onEdit={onEdit} />
 			<Chips
 				label={nls.localize("mete/team/context", "Waits for the tasks")}
 				values={task.context}
 				hints={others}
 				onChange={(v) => onEdit(at("context"), orEmpty(v))}
 			/>
+			<Tick
+				label={nls.localize(
+					"mete/team/spawns",
+					"Its approved task list (task-list@1) becomes tasks for the members it names",
+				)}
+				checked={task.spawns}
+				onChange={(c) => onEdit(at("spawns"), c || undefined)}
+			/>
 		</div>
 	);
 };
+
+// What a task list gives this member: the defaults of each task it becomes, shown once a task spawns.
+const SpawnDefaults = (props: {
+	readonly team: TeamView;
+	readonly id: string;
+	readonly hints: readonly string[];
+	readonly onEdit: OnEdit;
+}) =>
+	props.id && props.team.tasks.some((t) => t.spawns) ? (
+		<div className="mete-card" style={{ ...FIELD, gap: "8px" }}>
+			<strong>
+				{nls.localize(
+					"mete/team/spawnDefaults",
+					"Tasks a task list gives this member",
+				)}
+			</strong>
+			<Work
+				team={props.team}
+				work={props.team.spawn_defaults[props.id] ?? { verify: [] }}
+				base={["spawn_defaults", props.id]}
+				hints={props.hints}
+				onEdit={props.onEdit}
+			/>
+		</div>
+	) : null;
 
 type MemberProps = {
 	readonly team: TeamView;
@@ -223,6 +192,8 @@ type MemberProps = {
 	/** Whether the member came with the file: its id is then fixed, as tasks may name it. */
 	readonly fixed: boolean;
 	readonly hints: readonly string[];
+	/** Artifact types with a schema, offered as guardrails. */
+	readonly outputs: readonly string[];
 	readonly onEdit: OnEdit;
 	readonly onRemove: () => void;
 	readonly onAddTask: () => void;
@@ -321,6 +292,15 @@ const Reach = ({
 	</>
 );
 
+const IdleNote = () => (
+	<p style={MUTED} role="note">
+		{nls.localize(
+			"mete/team/idle",
+			"No task names this member yet, so it works only when a task list gives it one. Add a task to give it work.",
+		)}
+	</p>
+);
+
 /** A member's card: its fields, then its tasks, with the note when no task names it. */
 export const MemberCard = (props: MemberProps) => {
 	const { team, index, onEdit } = props;
@@ -349,23 +329,23 @@ export const MemberCard = (props: MemberProps) => {
 				at={at}
 				onEdit={onEdit}
 			/>
-			{tasks.length === 0 ? (
-				<p style={MUTED} role="note">
-					{nls.localize(
-						"mete/team/idle",
-						"No task names this member yet, so it works only when a task list gives it one. Add a task to give it work.",
-					)}
-				</p>
-			) : null}
+			{tasks.length === 0 ? <IdleNote /> : null}
 			{tasks.map((i) => (
 				<TaskRow
 					key={i}
 					team={team}
 					index={i}
+					hints={props.outputs}
 					onEdit={onEdit}
 					onRemove={() => props.onRemoveTask(i)}
 				/>
 			))}
+			<SpawnDefaults
+				team={team}
+				id={member.id}
+				hints={props.outputs}
+				onEdit={onEdit}
+			/>
 			<div style={ROW}>
 				<button
 					type="button"

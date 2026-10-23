@@ -109,6 +109,42 @@ describe("TeamEditorView", () => {
 	});
 });
 
+describe("the rules of the work", () => {
+	const GAME = draftOf(
+		readFileSync(
+			join(__dirname, "..", "..", "..", "templates", "game-studio.yaml"),
+			"utf8",
+		),
+	);
+	if (!GAME.ok) throw new Error(GAME.error);
+	const game = html(ready(GAME.value, { fixedIds: [] }));
+
+	it("shows a task's verify command, and the team's revision limit and budget", () => {
+		expect(html(ready(DOC))).toContain('title="Remove npm run build"');
+		for (const text of [
+			"Revisions per task",
+			"Cloud requests per run",
+			"Hours per run",
+			"never raises your limit",
+		])
+			expect(game).toContain(text);
+	});
+
+	it("shows a guardrail with its repairs, the human checkpoint after a role, and the task list that spawns tasks", () => {
+		expect(game).toContain('value="gdd@1"');
+		const ticked = '<input type="checkbox" checked=""/>';
+		expect(game).toContain(`${ticked}You approve it too, after the approver`);
+		expect(game).toContain(`${ticked}Its approved task list`);
+	});
+
+	it("shows what a task list gives each member once a task spawns, and not in a team where none does", () => {
+		expect(game.match(/Tasks a task list gives this member/g)).toHaveLength(6);
+		expect(html(ready(DOC))).not.toContain(
+			"Tasks a task list gives this member",
+		);
+	});
+});
+
 describe("the composer's Edit button", () => {
 	it("sits beside each team and not beside the router's choice or the single agent", () => {
 		const out = renderToStaticMarkup(

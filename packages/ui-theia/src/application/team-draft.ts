@@ -1,4 +1,10 @@
-import { err, ok, type Result, TeamTemplateSchema } from "@mete/contracts";
+import {
+	artifactSchema,
+	err,
+	ok,
+	type Result,
+	TeamTemplateSchema,
+} from "@mete/contracts";
 import { type Document, parseDocument } from "yaml";
 import { z } from "zod";
 
@@ -12,6 +18,7 @@ export type Draft = Document;
 const text = z.string().catch("");
 const optional = z.string().optional().catch(undefined);
 const list = z.array(z.string()).catch([]);
+const number = z.number().optional().catch(undefined);
 
 // A lenient reading for the screen: a half-edited team still shows; the schema says what is wrong.
 const MemberSchema = z.object({
@@ -25,13 +32,21 @@ const MemberSchema = z.object({
 	prefer_different_family_than: list,
 	watches: list,
 });
-const TaskSchema = z.object({
+// The fields a task shares with spawn_defaults that the screen edits; a gate stays as the file has it.
+const WorkSchema = z.object({
+	expected_output: optional,
+	approval: optional,
+	verify: z.array(z.record(z.string(), z.unknown())).catch([]),
+	guardrail: z
+		.object({ schema: text, max_retries: number })
+		.optional()
+		.catch(undefined),
+});
+const TaskSchema = WorkSchema.extend({
 	id: text,
 	role: text,
 	title: text,
-	expected_output: optional,
 	context: list,
-	approval: optional,
 	spawns: z.boolean().catch(false),
 });
 const TeamSchema = z.object({
@@ -40,12 +55,25 @@ const TeamSchema = z.object({
 		.catch({ id: "", name: "", description: undefined }),
 	roles: z.array(MemberSchema).catch([]),
 	tasks: z.array(TaskSchema).catch([]),
+	spawn_defaults: z.record(z.string(), WorkSchema).catch({}),
+	policies: z
+		.object({ revision_limit: number, human_checkpoints: list })
+		.catch({ revision_limit: undefined, human_checkpoints: [] }),
+	budget: z
+		.object({ cloud_requests: number, max_hours: number })
+		.catch({ cloud_requests: undefined, max_hours: undefined }),
 });
 
 /** A team as the screen shows it. */
 export type TeamView = z.output<typeof TeamSchema>;
 /** One member (role) as the screen shows it. */
 export type MemberView = TeamView["roles"][number];
+/** What a task or a member's spawn defaults ask of the work. */
+export type WorkView = z.output<typeof WorkSchema>;
+/** A verify gate as the file has it. */
+export type Gate = WorkView["verify"][number];
+
+const EMPTY: TeamView = TeamSchema.parse({});
 
 /** Reads a template's text, or the YAML error that stops it. */
 export const draftOf = (yaml: string): Result<Draft, string> => {
@@ -57,16 +85,31 @@ export const draftOf = (yaml: string): Result<Draft, string> => {
 /** The team in a draft, with empty values where the draft has none. */
 export const teamOf = (doc: Draft): TeamView => {
 	const r = TeamSchema.safeParse(doc.toJS());
-	return r.success
-		? r.data
-		: { metadata: { id: "", name: "" }, roles: [], tasks: [] };
+	return r.success ? r.data : EMPTY;
+};
+
+// A guardrail needs its artifact schema: core refuses such a team when it loads it (template-store),
+// and a spawn default's guardrail would fail every spawned task the same way.
+const unknownGuardrails = (team: TeamView): string[] => {
+	const at = (path: string, w: WorkView) => {
+		const schema = w.guardrail?.schema;
+		return schema && !artifactSchema(schema)
+			? [`${path}.guardrail.schema: ${schema} has no schema yet`]
+			: [];
+	};
+	return [
+		...team.tasks.flatMap((t, i) => at(`tasks.${i}`, t)),
+		...Object.entries(team.spawn_defaults).flatMap(([role, w]) =>
+			at(`spawn_defaults.${role}`, w),
+		),
+	];
 };
 
 /** What TeamTemplateSchema finds wrong with the draft, one `path: message` line per issue. */
 export const issuesOf = (doc: Draft): string[] => {
 	const r = TeamTemplateSchema.safeParse(doc.toJS());
 	return r.success
-		? []
+		? unknownGuardrails(teamOf(doc))
 		: r.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
 };
 
@@ -149,9 +192,43 @@ export const addTask = (doc: Draft, roleId: string): Draft => {
 	});
 };
 
-/** The draft without the task at `index`. */
-export const removeTask = (doc: Draft, index: number) =>
-	removed(doc, ["tasks", index]);
+/** The draft without the task at `index` and its human checkpoint, which only its row shows. */
+export const removeTask = (doc: Draft, index: number) => {
+	const id = teamOf(doc).tasks[index]?.id ?? "";
+	return withCheckpoint(removed(doc, ["tasks", index]), id, false);
+};
+
+/** The ids with `id` in or out, keeping the others' order. */
+export const toggled = (ids: readonly string[], id: string, on: boolean) => {
+	const kept = ids.filter((x) => x !== id);
+	return on ? [...kept, id] : kept;
+};
+
+/** The draft with the human approving the task after its approver, or no longer. */
+export const withCheckpoint = (doc: Draft, taskId: string, on: boolean) => {
+	const next = toggled(teamOf(doc).policies.human_checkpoints, taskId, on);
+	return edited(
+		doc,
+		["policies", "human_checkpoints"],
+		next.length > 0 ? next : undefined,
+	);
+};
+
+/** The shell commands among a task's verify gates. */
+export const runsOf = (verify: readonly Gate[]): string[] =>
+	verify.flatMap((g) => (typeof g.run === "string" ? [g.run] : []));
+
+/**
+ * The verify gates with these commands: the capability gates come first, as the file has them,
+ * since the screen shows no control for them; undefined when no gate is left.
+ */
+export const withRuns = (verify: readonly Gate[], runs: readonly string[]) => {
+	const next = [
+		...verify.filter((g) => typeof g.run !== "string"),
+		...runs.map((run) => ({ run })),
+	];
+	return next.length > 0 ? next : undefined;
+};
 
 /** The draft under a new template id and name, for "Save as new team". */
 export const copyAs = (doc: Draft, id: string, name: string) =>
@@ -166,3 +243,11 @@ export const idleMembers = (team: TeamView): string[] =>
 /** The capability ids the team's members use, once each and sorted, as suggestions. */
 export const capabilityHints = (team: TeamView): string[] =>
 	[...new Set(team.roles.flatMap((r) => r.capabilities))].sort();
+
+/** The artifact types the team's tasks produce that have a schema, as guardrail suggestions. */
+export const guardrailHints = (team: TeamView): string[] => {
+	const outputs = [...team.tasks, ...Object.values(team.spawn_defaults)].map(
+		(w) => w.expected_output?.replace(/^artifact:/, "") ?? "",
+	);
+	return [...new Set(outputs)].filter((t) => artifactSchema(t)).sort();
+};

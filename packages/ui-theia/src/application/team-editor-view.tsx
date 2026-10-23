@@ -1,9 +1,15 @@
 import { nls } from "@theia/core/lib/common/nls";
 import { useState } from "react";
+import type { OnEdit } from "./fields.js";
 import { MUTED, PANEL, ROW, TITLE } from "./look.js";
-import { MemberCard, type OnEdit } from "./member-card.js";
+import { MemberCard } from "./member-card.js";
 import { noFolderText } from "./status-text.js";
-import { capabilityHints, type TeamView } from "./team-draft.js";
+import {
+	capabilityHints,
+	guardrailHints,
+	type TeamView,
+} from "./team-draft.js";
+import { TeamRules } from "./work-fields.js";
 
 // The team editor's screen (docs/13, Settings, Templates; ADR-075): the team's name and description,
 // its members with their tasks, the schema's issues, and Save, Save as new team and Open YAML. The
@@ -157,6 +163,7 @@ const Members = ({
 	readonly actions: TeamEditorActions;
 }) => {
 	const hints = capabilityHints(model.team);
+	const outputs = guardrailHints(model.team);
 	return (
 		<>
 			<h3 style={TITLE}>{nls.localize("mete/team/members", "Members")}</h3>
@@ -168,6 +175,7 @@ const Members = ({
 					index={i}
 					fixed={model.fixedIds.includes(r.id)}
 					hints={hints}
+					outputs={outputs}
 					onEdit={actions.onEdit}
 					onRemove={() => actions.onRemoveMember(i)}
 					onAddTask={() => actions.onAddTask(r.id)}
@@ -216,6 +224,7 @@ export const TeamEditorView = ({
 	return (
 		<section style={PANEL}>
 			<Header model={model} onEdit={actions.onEdit} />
+			<TeamRules team={model.team} onEdit={actions.onEdit} />
 			<Members model={model} actions={actions} />
 			<Issues issues={model.issues} />
 			<div style={ROW}>

@@ -8,11 +8,15 @@ import {
 	copyAs,
 	draftOf,
 	edited,
+	guardrailHints,
 	idleMembers,
 	issuesOf,
 	removeRole,
 	removeTask,
+	runsOf,
 	teamOf,
+	withCheckpoint,
+	withRuns,
 } from "../src/application/team-draft.js";
 
 // The team editor's draft (ADR-075): a template's YAML document edited in place, read for the screen
@@ -145,5 +149,87 @@ describe("capabilityHints", () => {
 		const hints = capabilityHints(teamOf(draft()));
 		expect(hints).toEqual([...new Set(hints)].sort());
 		expect(hints.length).toBeGreaterThan(0);
+	});
+});
+
+const GAME = readFileSync(
+	join(__dirname, "..", "..", "..", "templates", "game-studio.yaml"),
+	"utf8",
+);
+
+describe("the rules of the work", () => {
+	it("reads gates, guardrails, spawn defaults, checkpoints and the budget", () => {
+		const team = teamOf(draft(GAME));
+		expect(team.tasks[0]?.guardrail).toEqual({
+			schema: "gdd@1",
+			max_retries: 2,
+		});
+		expect(runsOf(team.spawn_defaults.developer?.verify ?? [])).toEqual([]);
+		expect(team.policies).toMatchObject({
+			revision_limit: 3,
+			human_checkpoints: ["write_gdd"],
+		});
+		expect(team.budget).toEqual({ cloud_requests: 150, max_hours: 6 });
+		expect(runsOf(teamOf(draft()).tasks[1]?.verify ?? [])).toEqual([
+			"npm run build",
+		]);
+	});
+
+	it("changes a task's commands and keeps its capability gates, which the screen does not edit", () => {
+		const gates = [{ capability: "gameengine.build@1", args: { a: 1 } }];
+		expect(withRuns(gates, ["npm test"])).toEqual([
+			...gates,
+			{ run: "npm test" },
+		]);
+		expect(withRuns([{ run: "npm test" }], [])).toBeUndefined();
+	});
+
+	it("turns the human checkpoint of a task on and off, and drops it with the task", () => {
+		const doc = draft(GAME);
+		const on = withCheckpoint(doc, "plan_tasks", true);
+		expect(teamOf(on).policies.human_checkpoints).toEqual([
+			"write_gdd",
+			"plan_tasks",
+		]);
+		const off = withCheckpoint(on, "write_gdd", false);
+		expect(teamOf(off).policies.human_checkpoints).toEqual(["plan_tasks"]);
+		const gone = removeTask(off, 1);
+		expect(teamOf(gone).policies.human_checkpoints).toEqual([]);
+		expect(gone.hasIn(["policies", "human_checkpoints"])).toBe(false);
+		expect(issuesOf(gone)).toEqual([]);
+	});
+
+	it("refuses a guardrail whose artifact type has no schema, as core does when it loads the team", () => {
+		const doc = edited(
+			draft(GAME),
+			["tasks", 0, "guardrail", "schema"],
+			"asset@1",
+		);
+		expect(issuesOf(doc)).toContain(
+			"tasks.0.guardrail.schema: asset@1 has no schema yet",
+		);
+	});
+
+	it("offers as guardrails the team's output types that have a schema", () => {
+		expect(guardrailHints(teamOf(draft(GAME)))).toEqual([
+			"asset-spec@1",
+			"gdd@1",
+			"task-list@1",
+			"test-report@1",
+		]);
+	});
+});
+
+describe("a section the file does not have yet", () => {
+	it("is made by the first edit inside it", () => {
+		const doc = edited(
+			withCheckpoint(draft(), "build", true),
+			["spawn_defaults", "qa", "approval"],
+			"lead",
+		);
+		const team = teamOf(doc);
+		expect(team.spawn_defaults.qa?.approval).toBe("lead");
+		expect(team.policies.human_checkpoints).toEqual(["build"]);
+		expect(issuesOf(doc)).toEqual([]);
 	});
 });
