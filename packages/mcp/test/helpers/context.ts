@@ -17,7 +17,7 @@ type Verdict = PolicyVerdict["verdict"];
 /**
  * A module context with the given settings sections, a policy that answers `verdict` (or what the
  * function says for an action), the reasons of every warning and every info line. `chat` is the
- * llm.chat@1 adapter the registry offers and `secrets` the keychain the module sees, when given.
+ * llm.chat@2 adapter the registry offers and `secrets` the keychain the module sees, when given.
  */
 export const moduleContext = (
 	verdict: Verdict | ((action: string) => Verdict),
@@ -39,7 +39,7 @@ export const moduleContext = (
 		impl: policy,
 	});
 	if (chat)
-		registry.provide("llm.chat@1", {
+		registry.provide("llm.chat@2", {
 			id: "gateway",
 			trust: "core",
 			features: [],

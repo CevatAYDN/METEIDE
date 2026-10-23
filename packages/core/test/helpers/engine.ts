@@ -130,7 +130,7 @@ export const engineHarness = (opts: {
 		})();
 	};
 	if (opts.llm !== false)
-		registry.provide<LlmChatAdapter>("llm.chat@1", {
+		registry.provide<LlmChatAdapter>("llm.chat@2", {
 			id: "gateway",
 			trust: "core",
 			features: [],

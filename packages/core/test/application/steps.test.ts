@@ -25,7 +25,7 @@ const setup = (refs: CapabilityRef[]) => {
 	const ran: string[] = [];
 	const provide = (ref: CapabilityRef, impl: unknown) =>
 		registry.provide(ref, { id: ref, trust: "core", features: [], impl });
-	provide("llm.chat@1", llm);
+	provide("llm.chat@2", llm);
 	for (const ref of refs)
 		provide(ref, {
 			run: async () => {

@@ -515,7 +515,7 @@ describe("single-agent engine", () => {
 		});
 	});
 
-	it("pauses with no_model when llm.chat@1 is missing and on budget at its limit", async () => {
+	it("pauses with no_model when llm.chat@2 is missing and on budget at its limit", async () => {
 		const none = engineHarness({ scripts: [], llm: false });
 		const a = await begin(none);
 		await settled(none, a, "paused");

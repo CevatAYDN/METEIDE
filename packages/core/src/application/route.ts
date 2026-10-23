@@ -60,7 +60,7 @@ export const routeFor = async (
 		new AbortController().signal,
 	);
 	if (out.kind !== "replied")
-		return warn(out.kind === "error" ? out.error.code : "no llm.chat@1");
+		return warn(out.kind === "error" ? out.error.code : "no llm.chat@2");
 	const route = routeOf(out.message.content, templates);
 	if (route.kind === "fallback") return warn(route.why);
 	if (route.kind === "choose")

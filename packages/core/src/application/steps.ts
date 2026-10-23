@@ -40,7 +40,7 @@ export type StepDeps = {
 /** Publishes an event of the current run. */
 export type Emit = (body: EventBody) => void;
 
-/** How one model call ended; `missing` means no llm.chat@1 adapter is active. */
+/** How one model call ended; `missing` means no llm.chat@2 adapter is active. */
 export type ModelOutcome =
 	| {
 			readonly kind: "replied";
@@ -127,7 +127,7 @@ export const callModel = async (
 	onModel: (c: ModelChunk) => void,
 	signal: AbortSignal,
 ): Promise<ModelOutcome> => {
-	const chain = deps.registry.resolve<LlmChatAdapter>("llm.chat@1");
+	const chain = deps.registry.resolve<LlmChatAdapter>("llm.chat@2");
 	if (!chain.ok) return { kind: "missing" };
 	// A seat without MCP tools calls the model at once, with no wait in between.
 	const mcp = mcpSpecs(deps, run.seat, signal);

@@ -164,6 +164,7 @@ describe("errorResponse", () => {
 		const status = (e: Parameters<typeof errorResponse>[0]) =>
 			errorResponse(e, NOW).status;
 		expect(status({ code: "no_model", message: "x" })).toBe(503);
+		expect(status({ code: "too_large", message: "x" })).toBe(413);
 		expect(status({ code: "rate_limited", message: "x" })).toBe(429);
 		expect(status({ code: "bad_request", message: "x" })).toBe(400);
 		for (const code of ["unauthorized", "server", "network"] as const)

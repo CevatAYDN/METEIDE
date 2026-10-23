@@ -23,7 +23,7 @@ const req: LlmChatRequest = {
 };
 const signal = () => new AbortController().signal;
 
-describe("llm.chat@1 pipeline", () => {
+describe("llm.chat@2 pipeline", () => {
 	it("masks, reserves the chain, streams the first model and settles its usage", async () => {
 		const a = fakeProvider("a", [[text("hi"), done]]);
 		const q = fakeQuota();
@@ -494,7 +494,7 @@ describe("llm.chat@1 pipeline", () => {
 	});
 });
 
-describe("llm.chat@1 model_calls rows", () => {
+describe("llm.chat@2 model_calls rows", () => {
 	it("records every provider call, retries included, with the masked request", async () => {
 		const a = fakeProvider("a", [[status(429)], [text("o"), text("k"), done]]);
 		const q = fakeQuota();

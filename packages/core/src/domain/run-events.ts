@@ -62,7 +62,9 @@ export const afterModelError = (error: LlmError, at: number): Moves => {
 				reason: "network",
 				resumesAt: new Date(at + NETWORK_RETRY_MS).toISOString(),
 			};
+		// A request too large for every model pauses like no model at all (ADR-056).
 		case "no_model":
+		case "too_large":
 			return { type: "PAUSE", at, reason: "no_model" };
 		default:
 			return { type: "FAIL", at, code: error.code, message: error.message };

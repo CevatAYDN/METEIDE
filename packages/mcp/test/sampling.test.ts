@@ -94,7 +94,7 @@ const askedOnly = (action: string) =>
 	action === "mcp.sampling" ? "ask" : "allow";
 
 describe("mcp-client sampling", () => {
-	it("asks the user once per server, then answers through llm.chat@1 on the run's budget", async () => {
+	it("asks the user once per server, then answers through llm.chat@2 on the run's budget", async () => {
 		const gateway = scripted();
 		const user = askUser([true]);
 		const s = await start({ confirm: user.confirm }, gateway.chat, askedOnly);
@@ -149,7 +149,7 @@ describe("mcp-client sampling", () => {
 		expect(textOf(await s.summon({ signal: run.signal }))).toMatch(/run/);
 		await s.module.deactivate();
 		const noModel = await start({ confirm: user.confirm });
-		expect(textOf(await noModel.summon(run))).toMatch(/llm\.chat@1/);
+		expect(textOf(await noModel.summon(run))).toMatch(/llm.chat@2/);
 		await noModel.module.deactivate();
 		const noHost = await start({}, gateway.chat);
 		// The client does not offer sampling, so the server's request finds no method to call.

@@ -130,7 +130,7 @@ describe("mete run", () => {
 			expect.arrayContaining([
 				"core-engine is not active.",
 				"gateway waits for provider.chat@2",
-				"core-engine waits for llm.chat@1",
+				"core-engine waits for llm.chat@2",
 			]),
 		);
 	});

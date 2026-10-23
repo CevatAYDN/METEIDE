@@ -6,7 +6,7 @@ import type {
 } from "@modelcontextprotocol/sdk/types.js";
 import { SAMPLING_PRIORITY_HIGH } from "../defaults.js";
 
-// What a server's sampling request becomes for llm.chat@1 (docs/10, MCP client).
+// What a server's sampling request becomes for llm.chat@2 (docs/10, MCP client).
 
 const blocksOf = (content: SamplingMessage["content"]) =>
 	Array.isArray(content) ? content : [content];

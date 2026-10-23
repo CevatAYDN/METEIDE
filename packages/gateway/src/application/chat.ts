@@ -34,7 +34,7 @@ import {
 } from "./model-memory.js";
 import { maskMessages, type Offered } from "./prepare.js";
 
-// The llm.chat@1 request pipeline (docs/09, Gateway): privacy filter → secret masking →
+// The llm.chat@2 request pipeline (docs/09, Gateway): privacy filter → secret masking →
 // quota reservation → provider call → quota observation, moving down the chain on failures.
 
 export type ChatDeps = {

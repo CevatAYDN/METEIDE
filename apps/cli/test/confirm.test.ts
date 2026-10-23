@@ -66,7 +66,7 @@ describe("sampling through the app", () => {
 		await mkdir(join(repo.workspaceDir, ".mete"));
 		await writeFile(join(repo.workspaceDir, ".mete", "mcp.yaml"), mcp);
 		// A raw MCP call is allowed at autonomy 3, but the model call it asks for stays at level 2: ask.
-		const policy = "autonomy: 3\noverrides:\n  llm.chat@1: 2\n";
+		const policy = "autonomy: 3\noverrides:\n  llm.chat@2: 2\n";
 		await writeFile(join(repo.workspaceDir, ".mete", "policy.yaml"), policy);
 		const t = recordingIo("", ["y"]);
 		const app = await createApp({

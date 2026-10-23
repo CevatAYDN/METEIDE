@@ -21,7 +21,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { createCoreEngineModule } from "../src/module.js";
 import { reply, slow } from "./helpers/engine.js";
 
-// Real storage in a temp folder; the model behind llm.chat@1 is a fake.
+// Real storage in a temp folder; the model behind llm.chat@2 is a fake.
 
 const roots: string[] = [];
 afterAll(async () => {
@@ -80,7 +80,7 @@ const setup = async (scenario: EngineScenario | "none") => {
 	}>("storage.sql@1");
 	if (!sql.ok) throw new Error("storage.sql@1 missing");
 	if (scenario !== "none")
-		registry.provide<LlmChatAdapter>("llm.chat@1", {
+		registry.provide<LlmChatAdapter>("llm.chat@2", {
 			id: "gateway",
 			trust: "core",
 			features: [],

@@ -144,7 +144,7 @@ export const toTarget = (
 	return tier.success ? { tier: tier.data } : undefined;
 };
 
-/** A parsed body as an llm.chat@1 request; the error says what is wrong. */
+/** A parsed body as an llm.chat@2 request; the error says what is wrong. */
 export const toLlmRequest = (
 	body: WireRequest,
 	run: { readonly runId: string; readonly priority: 0 | 1 | 2 },
@@ -184,6 +184,8 @@ export const errorResponse = (e: LlmError, now: number) => {
 	switch (e.code) {
 		case "no_model":
 			return { status: 503, body, headers: {} };
+		case "too_large":
+			return { status: 413, body, headers: {} };
 		case "quota_exhausted": {
 			const seconds = Math.max(
 				0,

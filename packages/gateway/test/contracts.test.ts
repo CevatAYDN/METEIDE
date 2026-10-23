@@ -10,7 +10,7 @@ import {
 	text,
 } from "./application/fakes.js";
 
-// Runs the llm.chat@1 kit against the gateway pipeline over fake providers and a fake pool.
+// Runs the llm.chat@2 kit against the gateway pipeline over fake providers and a fake pool.
 
 llmChatContract("gateway", async (scenario) => {
 	const a = fakeProvider("a", [[text("hi"), done]]);

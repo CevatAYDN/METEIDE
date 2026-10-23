@@ -51,6 +51,12 @@ describe("run events", () => {
 			at,
 			reason: "no_model",
 		});
+		// llm.chat@2 (ADR-056): a request too large for every model pauses like no model.
+		expect(afterModelError({ code: "too_large", message: "m" }, at)).toEqual({
+			type: "PAUSE",
+			at,
+			reason: "no_model",
+		});
 		// A network pause tries again by itself after NETWORK_RETRY_MS (30 s).
 		expect(afterModelError({ code: "network", message: "m" }, at)).toEqual({
 			type: "PAUSE",

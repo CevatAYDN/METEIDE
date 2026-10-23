@@ -6,7 +6,7 @@ import {
 	type ProviderError,
 } from "./provider.js";
 
-// llm.chat@1 from docs/06 (Kernel API) and docs/09 (Gateway, Privacy).
+// llm.chat@2 from docs/06 (Kernel API) and docs/09 (Gateway, Privacy).
 
 const text = z.string().min(1);
 
@@ -34,7 +34,7 @@ export const ModelRefSchema = z.strictObject({
 /** One exact model of one provider. */
 export type ModelRef = z.infer<typeof ModelRefSchema>;
 
-/** Input of llm.chat@1: a tier or one exact model instead of `model`. */
+/** Input of llm.chat@2: a tier or one exact model instead of `model`. */
 export const LlmChatRequestSchema = ChatRequestSchema.omit({
 	model: true,
 }).extend({
@@ -45,13 +45,17 @@ export const LlmChatRequestSchema = ChatRequestSchema.omit({
 	avoidFamilies: z.array(text).optional(),
 });
 
-/** What a caller asks llm.chat@1. */
+/** What a caller asks llm.chat@2. */
 export type LlmChatRequest = z.infer<typeof LlmChatRequestSchema>;
 
-/** Why a routed call failed; `no_model` and `quota_exhausted` pause the run. */
+/**
+ * Why a routed call failed; `no_model`, `too_large` and `quota_exhausted` pause the run. @2 (ADR-056)
+ * adds `too_large`: no model of the chain can take a request this large; its message names the estimate.
+ */
 export type LlmError =
 	| ProviderError
 	| { readonly code: "no_model"; readonly message: string }
+	| { readonly code: "too_large"; readonly message: string }
 	| {
 			readonly code: "quota_exhausted";
 			readonly message: string;
@@ -69,7 +73,7 @@ export type LlmChunk =
 	  }
 	| { readonly type: "error"; readonly error: LlmError };
 
-/** The gateway's adapter behind llm.chat@1. */
+/** The gateway's adapter behind llm.chat@2. */
 export interface LlmChatAdapter {
 	chat(req: LlmChatRequest, signal: AbortSignal): AsyncIterable<LlmChunk>;
 }

@@ -74,7 +74,7 @@ const MANIFEST: ModuleManifest = {
 	trust: "core",
 	provides: ["mcp.tools@1", "runtime.ensure@1"],
 	requires: ["policy.check@1"],
-	optional: ["registry.search@1", "llm.chat@1"],
+	optional: ["registry.search@1", "llm.chat@2"],
 	activation: ["onStartup"],
 	isolation: "in-process",
 	permissions: ["shell", "net", "fs.write", "secrets"],
@@ -82,7 +82,7 @@ const MANIFEST: ModuleManifest = {
 
 const chatOf =
 	(registry: CapabilityRegistry) => (): LlmChatAdapter | undefined => {
-		const r = registry.resolve<LlmChatAdapter>("llm.chat@1");
+		const r = registry.resolve<LlmChatAdapter>("llm.chat@2");
 		return r.ok ? r.value[0].impl : undefined;
 	};
 

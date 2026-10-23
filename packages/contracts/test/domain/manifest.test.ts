@@ -7,12 +7,12 @@ const gateway = {
 	displayName: "Gateway",
 	class: "essential",
 	trust: "core",
-	provides: ["llm.chat@1", "llm.embed@1", "llm.rerank@1"],
+	provides: ["llm.chat@2", "llm.embed@1", "llm.rerank@1"],
 	requires: ["quota.reserve@3", "secrets.mask@1", "provider.chat@2"],
 	optional: ["provider.embed@1"],
 	activation: [
 		"onStartup",
-		"onCapability:llm.chat@1",
+		"onCapability:llm.chat@2",
 		"onCommand:gateway.restart",
 	],
 	isolation: "in-process",
@@ -23,7 +23,7 @@ describe("parseManifest", () => {
 	it("accepts the gateway manifest from the catalog", () => {
 		const r = parseManifest(gateway);
 		expect(r.ok).toBe(true);
-		if (r.ok) expect(r.value.provides).toContain("llm.chat@1");
+		if (r.ok) expect(r.value.provides).toContain("llm.chat@2");
 	});
 
 	it.each([

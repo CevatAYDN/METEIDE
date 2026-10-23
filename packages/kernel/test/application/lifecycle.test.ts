@@ -292,7 +292,7 @@ describe("createLifecycle", () => {
 	it("activates a chain registered in reverse order", async () => {
 		const { life } = await setup();
 		await life.register(
-			fakeModule(manifest("gateway", ["llm.chat@1"], ["quota.reserve@3"])).mod,
+			fakeModule(manifest("gateway", ["llm.chat@2"], ["quota.reserve@3"])).mod,
 		);
 		await life.register(
 			fakeModule(manifest("quota", ["quota.reserve@3"], ["storage.sql@1"])).mod,

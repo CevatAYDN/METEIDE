@@ -17,7 +17,7 @@ import { permit } from "./permit.js";
 
 // Sampling (docs/10, MCP client): a server asks the client's model a question. policy.check@1
 // decides first; an `ask` becomes one question to the user per server and process; then the
-// question goes to llm.chat@1 on the budget and signal of the run whose tool call is in flight.
+// question goes to llm.chat@2 on the budget and signal of the run whose tool call is in flight.
 
 /** Asks the user a yes or no question for a server (or for a capability, when METE itself asks); the host decides how (CLI terminal, desktop dialog). */
 export type Confirm = (
@@ -101,7 +101,7 @@ export const createSampling = (deps: SamplingDeps): Sample => {
 		const check = {
 			adapterId: deps.adapterId,
 			action: "mcp.sampling",
-			capability: "llm.chat@1",
+			capability: "llm.chat@2",
 			command: server,
 			args: {},
 		} as const;
@@ -122,7 +122,7 @@ export const createSampling = (deps: SamplingDeps): Sample => {
 		const refusal = samplingRefusal(params);
 		if (refusal) throw refuse(refusal);
 		const chat = deps.chat();
-		if (!chat) throw refuse("llm.chat@1 is not provided");
+		if (!chat) throw refuse("llm.chat@2 is not provided");
 		const both = AbortSignal.any([signal, ctx.signal]);
 		await permitted(server, ctx, both);
 		return answer(chat, request(params, ctx.runId), both);

@@ -42,7 +42,7 @@ const MANIFEST: ModuleManifest = {
 	displayName: "Gateway",
 	class: "essential",
 	trust: "core",
-	provides: ["llm.chat@1"],
+	provides: ["llm.chat@2"],
 	requires: [
 		"storage.sql@1",
 		"quota.reserve@3",
@@ -202,7 +202,7 @@ export type GatewayModule = MeteModule & {
 	models(signal: AbortSignal): Promise<ModelRef[]>;
 };
 
-/** Creates the gateway module, which provides llm.chat@1. */
+/** Creates the gateway module, which provides llm.chat@2. */
 export const createGatewayModule = (
 	options: GatewayOptions = {},
 ): GatewayModule => {
@@ -231,7 +231,7 @@ export const createGatewayModule = (
 			};
 			const impl = buildChat(ctx, live, opts, write);
 			ctx.disposables.add(
-				ctx.capabilities.provide("llm.chat@1", {
+				ctx.capabilities.provide("llm.chat@2", {
 					id: MANIFEST.id,
 					trust: "core",
 					features: [],

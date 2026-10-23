@@ -30,7 +30,7 @@ const MANIFEST: ModuleManifest = {
 	trust: "core",
 	provides: ["team.engine@2"],
 	requires: [
-		"llm.chat@1",
+		"llm.chat@2",
 		"fs.read@1",
 		"fs.write@1",
 		"fs.edit@1",

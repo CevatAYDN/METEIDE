@@ -139,8 +139,8 @@ const setup = async (workspace: Sections = {}) => {
 	});
 	const ctx: ModuleContext = { ...base, storage: scoped };
 	const chat = () => {
-		const r = registry.resolve<LlmChatAdapter>("llm.chat@1");
-		if (!r.ok) throw new Error("llm.chat@1 missing");
+		const r = registry.resolve<LlmChatAdapter>("llm.chat@2");
+		if (!r.ok) throw new Error("llm.chat@2 missing");
 		return r.value[0].impl;
 	};
 	return {
@@ -157,7 +157,7 @@ const setup = async (workspace: Sections = {}) => {
 };
 
 describe("gateway module", () => {
-	it("provides llm.chat@1, defines provider units first and logs each call", async () => {
+	it("provides llm.chat@2, defines provider units first and logs each call", async () => {
 		const s = await setup();
 		expect(await s.gateway.activate(s.ctx)).toEqual(ok(undefined));
 		const out = await collect(s.chat().chat(req, new AbortController().signal));

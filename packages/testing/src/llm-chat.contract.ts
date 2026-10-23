@@ -1,7 +1,7 @@
 import type { LlmChatAdapter, LlmChatRequest, LlmChunk } from "@mete/contracts";
 import { afterEach, describe, expect, it } from "vitest";
 
-// Contract kit for llm.chat@1 (docs/06 llm types, docs/09 Gateway).
+// Contract kit for llm.chat@2 (docs/06 llm types, docs/09 Gateway).
 
 /**
  * What sits behind the adapter: one model that answers with text, no model that
@@ -26,9 +26,9 @@ const collect = async (chunks: AsyncIterable<LlmChunk>) => {
 
 const terminal = (c: LlmChunk) => c.type === "finish" || c.type === "error";
 
-/** Every llm.chat@1 adapter MUST pass these tests. */
+/** Every llm.chat@2 adapter MUST pass these tests. */
 export const llmChatContract = (name: string, open: LlmChatHarness) =>
-	describe(`llm.chat@1 contract: ${name}`, () => {
+	describe(`llm.chat@2 contract: ${name}`, () => {
 		let close: (() => Promise<void>) | undefined;
 		afterEach(async () => {
 			await close?.();
