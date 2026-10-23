@@ -30,8 +30,10 @@ import type { RestartPolicy } from "../domain/restart-policy.js";
 import type { DaemonFailure } from "../domain/status-service.js";
 
 // Owns the `mete daemon` child of one folder: starts it on the first call, talks the daemon protocol
-// to it and starts it again at once after a crash, within the restart policy (ARCHITECTURE.md, Failure
-// handling), so the runs it held resume from their snapshots without waiting for a call.
+// to it and starts it again after a crash, within the restart policy (ARCHITECTURE.md, Failure handling).
+// A daemon that had answered starts again at once, so the runs it held resume from their snapshots; one
+// that ended before it answered (a held run lock, an invalid configuration) would fail the same way, so
+// it starts again on the next call, after the user could fix the cause.
 
 /** Starts `mete daemon` for a folder. */
 export type SpawnDaemon = (
@@ -58,6 +60,8 @@ type Live = {
 	exitCode?: number | null;
 	ended: boolean;
 	stopping: boolean;
+	/** It has answered a request, so a crash is not a failure to start. */
+	served: boolean;
 	/** Settles once the process has ended. */
 	closed: Promise<void>;
 };
@@ -86,6 +90,7 @@ const launch = (
 		tail: [],
 		ended: false,
 		stopping: false,
+		served: false,
 		closed: new Promise<void>((resolve) => {
 			settle = resolve;
 		}),
@@ -96,7 +101,7 @@ const launch = (
 		live.ended = true;
 		conn.dispose();
 		settle();
-		if (!live.stopping) onCrash(live);
+		if (live.served && !live.stopping) onCrash(live);
 	};
 	child.stderr.on("data", (chunk: Buffer | string) =>
 		keepTail(live.tail, chunk),
@@ -155,12 +160,16 @@ const call = async <T>(
 ): Promise<Result<T, DaemonFailure>> => {
 	try {
 		const answer = parse(await live.conn.sendRequest(method, params));
+		live.served = true;
 		if (answer.success) return ok(answer.data);
 		return err({ code: "protocol", detail: answer.error.message });
 	} catch (e) {
 		// Disposing the connection rejects a waiting request with a ResponseError too, so a daemon
 		// that ended counts first.
-		if (!live.ended && e instanceof ResponseError) return refusal(e);
+		if (!live.ended && e instanceof ResponseError) {
+			live.served = true;
+			return refusal(e);
+		}
 		return err({ code: "stopped", detail: detailOf(live) });
 	}
 };

@@ -205,8 +205,9 @@ describe("the daemon host", () => {
 		expect(fake.state.starts).toEqual(["/work/a", "/work/b", "/work/a"]);
 	});
 
-	it("starts a crashed daemon again at once, before the next call", async () => {
+	it("starts a daemon that served and crashed again at once, before the next call", async () => {
 		const { fake, host } = await setup();
+		expect((await host.status("/w")).ok).toBe(true);
 		const lost = await host.status("/w", "die");
 		expect(!lost.ok && lost.error).toMatchObject({ code: "stopped" });
 		expect(fake.state.starts).toEqual(["/w", "/w"]);
@@ -229,6 +230,8 @@ describe("the daemon host", () => {
 		expect(!first.ok && first.error.detail).toBe(
 			"exit code 1: no provider key for /w",
 		);
+		// It never served, so it would fail the same way at once: the next call starts it, not the crash.
+		expect(fake.state.starts).toHaveLength(1);
 		await host.status("/w");
 		await host.status("/w");
 		const blocked = await host.status("/w");
