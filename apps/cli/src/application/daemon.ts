@@ -21,8 +21,9 @@ import {
 } from "vscode-jsonrpc/node";
 import { type App, engineOf, notReadyLines } from "../infrastructure/app.js";
 import type { Io } from "./commands.js";
+import { providerStates, trackExhausted } from "./provider-states.js";
 
-// `mete daemon`: protocol version 4 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-048).
+// `mete daemon`: protocol version 5 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-050).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
@@ -96,6 +97,17 @@ const serveApproveAndResume = (conn: MessageConnection, app: App) => {
 	});
 };
 
+// Each provider's state for the quota dashboard (ADR-050); the daemon tracks spent quotas for its
+// whole life, so a pause seen before the client asked still counts.
+const serveQuota = (
+	conn: MessageConnection,
+	app: App,
+	until: (id: string) => string | undefined,
+) =>
+	conn.onRequest(DAEMON_METHODS.quota, async () => ({
+		providers: await providerStates(app, until),
+	}));
+
 // The bus has no catch-all pattern, so each event domain gets its own subscription; one event
 // matches one domain, so the notifications keep the publish order.
 const forwardEvents = (events: EventBus, conn: MessageConnection, io: Io) => {
@@ -134,6 +146,8 @@ export const daemonCommand = async (
 	serveStatus(conn, app);
 	serveRunStart(conn, app);
 	serveApproveAndResume(conn, app);
+	const spent = trackExhausted(app.events);
+	serveQuota(conn, app, spent.until);
 	const unsubscribe = forwardEvents(app.events, conn, io);
 	conn.listen();
 	let stop = () => {};
@@ -143,6 +157,7 @@ export const daemonCommand = async (
 	});
 	stop();
 	unsubscribe();
+	spent.dispose();
 	conn.dispose();
 	return 0;
 };
