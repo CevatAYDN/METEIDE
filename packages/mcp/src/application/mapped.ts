@@ -67,7 +67,8 @@ const callTool = async (
 		const options = deps.sessions.callOptions(
 			t.mapping.server,
 			t.entry.tool,
-			signal,
+			ctx,
+			t.ref,
 		);
 		const r = await deps.sessions.calls.during(t.mapping.server, ctx, () =>
 			s.value.client.callTool(

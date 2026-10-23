@@ -93,3 +93,6 @@ export const SAMPLING_PRIORITY_HIGH = 0.7;
 
 /** Tab 09, quota (priority classes): sampling runs inside a foreground run, so class P1. */
 export const SAMPLING_PRIORITY = 1;
+
+/** Tab 10, MCP client (ADR-067): a call publishes a progress step at most this often. */
+export const PROGRESS_EVERY_MS = 1_000;

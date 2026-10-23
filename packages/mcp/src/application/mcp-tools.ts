@@ -93,7 +93,8 @@ const invoke = async (
 		const options = deps.sessions.callOptions(
 			input.server,
 			input.tool,
-			ctx.signal,
+			ctx,
+			"mcp.tools@1",
 		);
 		const r = await deps.sessions.calls.during(input.server, ctx, () =>
 			session.client.callTool(

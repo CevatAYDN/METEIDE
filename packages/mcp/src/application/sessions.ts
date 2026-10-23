@@ -1,12 +1,14 @@
 import { delimiter } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
+	type CapabilityRef,
 	err,
 	type McpServer,
 	ok,
 	type Result,
 	type RuntimeEnsureAdapter,
 	type SecretStore,
+	type ToolContext,
 	type ToolError,
 } from "@mete/contracts";
 import type { Logger } from "@mete/kernel";
@@ -22,6 +24,7 @@ import {
 	type Progress,
 	type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
+import { PROGRESS_EVERY_MS } from "../defaults.js";
 import { oauthSignIn, type SignInFlow } from "../infrastructure/oauth.js";
 import type { Opened, OpenTransport } from "../infrastructure/transport.js";
 import type { Calls } from "./calls.js";
@@ -65,6 +68,15 @@ export type SessionDeps = {
 	readonly secrets?: SecretStore;
 	/** How the host sends the user to sign in; without it only saved tokens work. */
 	readonly authorize?: Authorize;
+	/** Publishes a progress step of a call made in a run (ADR-067); without it progress reaches the log only. */
+	readonly progress?: (ctx: ToolContext, step: ToolProgress) => void;
+};
+
+/** What `agent.tool.progress` carries: never the server's message, which is tool output. */
+export type ToolProgress = {
+	readonly capability: CapabilityRef;
+	readonly progress: number;
+	readonly total?: number;
 };
 
 const why = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -246,18 +258,37 @@ const notConfigured = (id: string) =>
 	);
 
 // A tool that reports progress is a long one; the SDK's request timeout would kill it otherwise.
-// shortcut: progress reaches the log only; upgrade with the team panel (Phase 5, docs/10).
+// Every step reaches the log; a call in a run publishes its first step at once and later ones at
+// most once a second, since storage keeps every event (ADR-067).
 const callOptions =
 	(deps: SessionDeps) =>
-	(server: string, tool: string, signal: AbortSignal) => ({
-		signal,
-		resetTimeoutOnProgress: true,
-		onprogress: (p: Progress) =>
-			deps.logger.info(
-				{ moduleId: deps.moduleId, server, tool, ...p },
-				"MCP tool progress",
-			),
-	});
+	(
+		server: string,
+		tool: string,
+		ctx: ToolContext,
+		capability: CapabilityRef,
+	) => {
+		let last = Number.NEGATIVE_INFINITY;
+		return {
+			signal: ctx.signal,
+			resetTimeoutOnProgress: true,
+			onprogress: (p: Progress) => {
+				deps.logger.info(
+					{ moduleId: deps.moduleId, server, tool, ...p },
+					"MCP tool progress",
+				);
+				const now = Date.now();
+				if (!deps.progress || ctx.runId === undefined) return;
+				if (now - last < PROGRESS_EVERY_MS) return;
+				last = now;
+				deps.progress(ctx, {
+					capability,
+					progress: p.progress,
+					...(p.total === undefined ? {} : { total: p.total }),
+				});
+			},
+		};
+	};
 
 export const createSessions = (deps: SessionDeps) => {
 	const live = new Map<string, Promise<Result<Session, ToolError>>>();

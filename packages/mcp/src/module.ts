@@ -8,6 +8,7 @@ import {
 	type ModuleManifest,
 	ok,
 	type PolicyCheckAdapter,
+	type ToolContext,
 } from "@mete/contracts";
 import type {
 	CapabilityRegistry,
@@ -23,6 +24,7 @@ import {
 	createSessions,
 	type Elicit,
 	type Sessions,
+	type ToolProgress,
 } from "./application/sessions.js";
 import type { Authorize } from "./application/sign-in.js";
 import { BUILT_IN_SERVERS } from "./defaults.js";
@@ -38,6 +40,8 @@ import {
 /** What mcp-client is given; tests pass their own transports. */
 export type McpClientOptions = {
 	readonly workspaceDir: string;
+	/** The id progress events carry (ADR-067); without it progress reaches the log only. */
+	readonly workspaceId?: string;
 	/** The built-in adapters/ folder of level 2 mapping files (docs/10). */
 	readonly adaptersDir?: string;
 	readonly open?: OpenTransport;
@@ -189,8 +193,27 @@ const openSessions = (
 		...(sample ? { sample } : {}),
 		...(ctx.secrets ? { secrets: ctx.secrets } : {}),
 		...(opts.authorize ? { authorize: opts.authorize } : {}),
+		...(opts.workspaceId === undefined
+			? {}
+			: { progress: publishProgress(ctx, opts.workspaceId) }),
 	});
 };
+
+// agent.tool.progress (ADR-067), with the run and agent of the call on the envelope.
+const publishProgress =
+	(ctx: ModuleContext, workspaceId: string) =>
+	(tc: ToolContext, step: ToolProgress) =>
+		ctx.events.publish({
+			id: crypto.randomUUID(),
+			ts: new Date().toISOString(),
+			schema: 1,
+			workspaceId,
+			...(tc.runId === undefined ? {} : { runId: tc.runId }),
+			...(tc.agentId === undefined ? {} : { agentId: tc.agentId }),
+			source: MANIFEST.id,
+			type: "agent.tool.progress",
+			payload: step,
+		});
 
 /** The mcp-client module: mcp.tools@1 over the servers of mcp.yaml (docs/10, MCP client). */
 export const createMcpClientModule = (opts: McpClientOptions): MeteModule => {

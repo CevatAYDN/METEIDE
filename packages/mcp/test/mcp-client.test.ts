@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import type {
 	McpServer,
 	McpToolsAdapter,
+	MeteEvent,
 	PolicyVerdict,
 } from "@mete/contracts";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -18,6 +19,9 @@ const FIXTURE = fileURLToPath(
 	new URL("./fixtures/server.mjs", import.meta.url),
 );
 const signal = new AbortController().signal;
+const WS = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
+const RUN = "7f3c2a1e-4b5d-4c6e-8f9a-0b1c2d3e4f5a";
+const AGENT = "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
 const fixture = {
 	id: "fixture",
 	transport: "stdio",
@@ -44,6 +48,7 @@ const start = async (
 		module,
 		activated,
 		infos,
+		ctx,
 		tools: r.ok ? r.value[0].impl : undefined,
 	};
 };
@@ -200,6 +205,31 @@ describe("mcp-client notifications", () => {
 				msg: "MCP tool progress",
 			},
 		]);
+	});
+
+	it("publishes the first progress step of a call in a run, without the server's message (ADR-067)", async () => {
+		const seen: MeteEvent[] = [];
+		const p = await start("allow", [fixture], dir, { workspaceId: WS });
+		p.ctx.events.subscribe("agent.*", (e) => void seen.push(e));
+		await p.tools?.call({ server: "fixture", tool: "steps" }, { signal });
+		expect(seen).toEqual([]);
+		await p.tools?.call(
+			{ server: "fixture", tool: "steps" },
+			{ signal, runId: RUN, agentId: AGENT },
+		);
+		await p.module.deactivate();
+		// Both steps come in the same second, so the second one stays in the log.
+		expect(seen).toMatchObject([
+			{
+				type: "agent.tool.progress",
+				workspaceId: WS,
+				runId: RUN,
+				agentId: AGENT,
+				source: "mcp-client",
+				payload: { capability: "mcp.tools@1", progress: 1, total: 2 },
+			},
+		]);
+		expect(seen[0]?.payload).not.toHaveProperty("message");
 	});
 
 	it("lists a tool the server adds after it connected", async () => {
