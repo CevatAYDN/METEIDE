@@ -1,5 +1,6 @@
 import type { LlmChatAdapter, LlmChatRequest, LlmChunk } from "@mete/contracts";
 import { describe, expect, it } from "vitest";
+import { MAX_REQUEST_BYTES } from "../../src/defaults.js";
 import {
 	createGatewayApp,
 	serveGateway,
@@ -263,6 +264,19 @@ describe("gateway HTTP app", () => {
 });
 
 describe("serveGateway", () => {
+	it("answers 413 for a body over the limit before reading it", async () => {
+		const { app: a, asked } = app([model, finish]);
+		const big = body({
+			messages: [{ role: "user", content: "x".repeat(MAX_REQUEST_BYTES + 1) }],
+		});
+		const res = await post(a, { body: big });
+		expect(res.status).toBe(413);
+		expect(await res.json()).toMatchObject({
+			error: { code: "request_too_large" },
+		});
+		expect(asked).toEqual([]);
+	});
+
 	it("listens on 127.0.0.1 on a free port until closed", async () => {
 		const { chat } = fakeChat([model, finish]);
 		const server = await serveGateway({

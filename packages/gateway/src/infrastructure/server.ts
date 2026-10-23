@@ -11,6 +11,8 @@ import {
 	type ToolCall,
 } from "@mete/contracts";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
+import { MAX_REQUEST_BYTES } from "../defaults.js";
 import {
 	errorResponse,
 	toLlmRequest,
@@ -33,7 +35,7 @@ export type GatewayServerOptions = {
 type Content = Exclude<LlmChunk, { type: "model" | "error" }>;
 type Frame = { id: string; created: number; model: string };
 
-const wireError = (status: 400 | 401, code: string, message: string) =>
+const wireError = (status: 400 | 401 | 413, code: string, message: string) =>
 	Response.json({ error: { message, type: code, code } }, { status });
 
 const sameToken = (header: string | undefined, token: string) => {
@@ -134,8 +136,6 @@ const streamed = (
 	});
 };
 
-// shortcut: no body size limit; only a holder of the session token on 127.0.0.1 reaches it,
-// add hono/body-limit when the server is wired into an app.
 const readBody = async (raw: Request) => {
 	try {
 		return WireRequestSchema.safeParse(await raw.json());
@@ -218,8 +218,18 @@ export const createGatewayApp = (options: GatewayServerOptions) => {
 	app.get("/v1/models", async (c) =>
 		c.json(modelList(await opts.models(c.req.raw.signal))),
 	);
-	app.post("/v1/chat/completions", (c) =>
-		completions(opts, c.req.raw, (n) => c.req.header(n)),
+	app.post(
+		"/v1/chat/completions",
+		bodyLimit({
+			maxSize: MAX_REQUEST_BYTES,
+			onError: () =>
+				wireError(
+					413,
+					"request_too_large",
+					`the request body is over ${MAX_REQUEST_BYTES} bytes`,
+				),
+		}),
+		(c) => completions(opts, c.req.raw, (n) => c.req.header(n)),
 	);
 	return app;
 };
