@@ -82,6 +82,39 @@ describe("fs tools beyond the kit", () => {
 		);
 	});
 
+	// A link whose target is missing is followed too (docs/10, "resolved through symbolic links"):
+	// policy sees the real outside path, and nothing is created at the target.
+	const outsideDenied: PolicyCheckAdapter = {
+		check: (i) =>
+			ok({
+				verdict: i.action === "fs.write.outside" ? "deny" : "allow",
+				rule: "test",
+			}),
+	};
+
+	it("refuses a write through a dangling directory link that leaves the workspace", async () => {
+		const { deps } = await setup(outsideDenied);
+		const gone = join(ws.globalDir, "gone");
+		await symlink(gone, join(ws.workspaceDir, "dir"), "junction");
+		const write = { path: "dir/file.txt", content: "escaped" };
+		expect(code(await writeTool(deps, write, ctx))).toBe("denied");
+		const edit = { path: "dir/file.txt", oldStr: "a", newStr: "b" };
+		expect(code(await editTool(deps, edit, ctx))).toBe("denied");
+		await expect(lstat(gone)).rejects.toThrow();
+	});
+
+	it("refuses a write through a dangling file link that leaves the workspace", async (t) => {
+		const { deps } = await setup(outsideDenied);
+		const pwned = join(ws.globalDir, "pwned.txt");
+		const made = await symlink(pwned, join(ws.workspaceDir, "note.txt"), "file")
+			.then(() => true)
+			.catch(() => false); // Windows without Developer Mode refuses file links
+		if (!made) t.skip();
+		const write = { path: "note.txt", content: "escaped" };
+		expect(code(await writeTool(deps, write, ctx))).toBe("denied");
+		await expect(lstat(pwned)).rejects.toThrow();
+	});
+
 	it("deletes a link itself, never the file it points to", async (t) => {
 		const { deps, asked } = await setup();
 		const target = join(ws.workspaceDir, "target.txt");

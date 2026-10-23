@@ -1,26 +1,39 @@
 import {
+	lstat,
 	mkdir,
 	readFile,
+	readlink,
 	realpath,
 	rm,
 	stat,
 	writeFile,
 } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { err, ok, type Result, type ToolError } from "@mete/contracts";
 import { withLockRetry } from "@mete/kernel";
 import { errnoOf } from "./errno.js";
 
 // File access for the fs tools; Windows lock errors retry (docs/10, Built-in tools).
 
-/** The real path behind `abs`; a path that does not exist yet keeps its missing tail. */
-export const realTarget = async (abs: string): Promise<string> => {
+// As many links as Linux follows before ELOOP; a longer chain of dangling links is left as given.
+const MAX_HOPS = 40;
+
+/**
+ * The real path behind `abs`; a path that does not exist yet keeps its missing tail. A link whose
+ * target is missing is followed by hand, since a write through it would create that target (docs/10).
+ */
+export const realTarget = async (abs: string, hops = 0): Promise<string> => {
 	try {
 		return await realpath(abs);
 	} catch (e) {
 		const parent = dirname(abs);
 		if (errnoOf(e) !== "ENOENT" || parent === abs) return abs;
-		return join(await realTarget(parent), basename(abs));
+		const link = await lstat(abs)
+			.then((s) => s.isSymbolicLink())
+			.catch(() => false);
+		if (link && hops < MAX_HOPS)
+			return realTarget(resolve(parent, await readlink(abs)), hops + 1);
+		return join(await realTarget(parent, hops), basename(abs));
 	}
 };
 
