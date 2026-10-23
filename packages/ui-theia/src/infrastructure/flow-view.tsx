@@ -1,7 +1,7 @@
 import "@xyflow/react/dist/style.css";
 import type { TeamView } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
-import { type Edge, type Node, ReactFlow } from "@xyflow/react";
+import { type Edge, type Node, Position, ReactFlow } from "@xyflow/react";
 import { type CSSProperties, useMemo } from "react";
 import { type FlowNodeData, flowGraph } from "../application/flow-graph.js";
 
@@ -43,6 +43,9 @@ export const FlowView = ({ view }: { readonly view: TeamView }) => {
 				(n): Node => ({
 					id: n.id,
 					position: { ...n.position },
+					// Levels run left to right, so edges leave a node on its right and enter on its left.
+					sourcePosition: Position.Right,
+					targetPosition: Position.Left,
 					data: {
 						label: (
 							<>
@@ -69,7 +72,8 @@ export const FlowView = ({ view }: { readonly view: TeamView }) => {
 				nodesDraggable={false}
 				nodesConnectable={false}
 				fitView
-				colorMode="system"
+				// The canvas follows Theia's theme, not the system's.
+				style={{ background: "var(--theia-editor-background)" }}
 			/>
 		</div>
 	);
