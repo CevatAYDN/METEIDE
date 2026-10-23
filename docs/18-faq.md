@@ -73,7 +73,7 @@ Each answer is binding and names the tab that holds the full rule. A question no
 | What is the default autonomy? | Level 2: reads, workspace writes and allow-listed commands run; risky actions ask | 12 |
 | How do I undo agent changes? | Restore a checkpoint with one click | 12 |
 | How do I stop everything? | "Stop all" or `Ctrl+Shift+.` | 12 |
-| Can agents change their own permissions? | No. Policy, bindings and MCP files are protected paths | 12 |
+| Can agents change their own permissions? | No. The policy, bindings, MCP and every other `.mete/*.yaml` settings file, the team templates and `.meteignore` are protected paths (ADR-072) | 12 |
 | Can a team work overnight? | Yes, through triggers; runs pause on quota and resume after resets; level 3 needs worktrees or snapshots | 12 |
 | What happens when something crashes? | The supervisor restarts modules; the desktop restarts the daemon; runs resume from snapshots | 03 |
 

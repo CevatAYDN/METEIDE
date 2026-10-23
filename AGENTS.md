@@ -77,7 +77,7 @@ to THIRD_PARTY_NOTICES.md (project, license, files, changes).
 ## Never
 - call real model providers in tests
 - add telemetry, network calls outside adapters, or hardcoded API keys
-- write to .mete/policy.yaml, .mete/bindings.yaml or .mete/mcp.yaml from agent code paths
+- write to .mete/*.yaml (policy, bindings, MCP servers, settings sections), .mete/teams/ or .meteignore from agent code paths
 - disable a lint rule without a comment that explains why
 - use Docker, GitHub Actions or local model runtimes as requirements
 
