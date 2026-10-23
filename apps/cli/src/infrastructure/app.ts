@@ -248,6 +248,14 @@ export const waiting = (app: App) =>
 		return [`${id} waits for ${missing.join(", ")}`];
 	});
 
+/** The lines `engineOf` gave plus, when a provider is inactive, how to add its key. */
+export const notReadyLines = (app: App, lines: readonly string[]) => [
+	...lines,
+	...(app.inactive.some((m) => m.moduleId.startsWith("provider-"))
+		? ["Add a provider key with: mete key set openrouter"]
+		: []),
+];
+
 /** The engine, or the lines that say why it is not active. */
 export const engineOf = (app: App): Result<TeamEngineAdapter, string[]> => {
 	const r = app.registry.resolve<TeamEngineAdapter>("team.engine@2");

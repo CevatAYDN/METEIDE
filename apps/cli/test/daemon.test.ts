@@ -3,6 +3,7 @@ import { PassThrough } from "node:stream";
 import {
 	DAEMON_ERROR_CODE,
 	DAEMON_METHODS,
+	DaemonErrorDataSchema,
 	DaemonStatusResultSchema,
 	type MeteEvent,
 } from "@mete/contracts";
@@ -16,7 +17,11 @@ import {
 } from "vscode-jsonrpc/node";
 import { daemonCommand } from "../src/application/daemon.js";
 import { createApp } from "../src/infrastructure/app.js";
-import { lockHolder, runLockFile } from "../src/infrastructure/run-lock.js";
+import {
+	lockHolder,
+	runLockFile,
+	takeRunLock,
+} from "../src/infrastructure/run-lock.js";
 import { main } from "../src/main.js";
 import {
 	memorySecrets,
@@ -121,20 +126,55 @@ describe("mete daemon", () => {
 		c.dispose();
 	});
 
-	it("refuses without an engine, on the folder it was given, and frees the lock", async () => {
+	it("serves without an engine and answers mete/status with not_ready and the reasons", async () => {
 		const repo = await tempRepo({ "a.txt": "a\n" });
 		close = repo.close;
+		const [toDaemon, toClient] = [new PassThrough(), new PassThrough()];
+		const t = recordingIo();
+		const done = main(["daemon", "repo"], t.io, {
+			cwd: join(repo.workspaceDir, ".."),
+			globalDir: repo.globalDir,
+			logger: silent,
+			secrets: memorySecrets(),
+			daemon: () => ({ input: toDaemon, output: toClient }),
+		});
+		const { c } = clientOf(toClient, toDaemon);
+		const refused = await failure(c.sendRequest(DAEMON_METHODS.status, {}));
+		expect(refused.code).toBe(DAEMON_ERROR_CODE);
+		const data = DaemonErrorDataSchema.parse(refused.data);
+		const reasons = data.code === "not_ready" ? data.reasons : [];
+		expect(reasons[0]).toBe("core-engine is not active.");
+		expect(reasons.at(-1)).toBe(
+			"Add a provider key with: mete key set openrouter",
+		);
+
+		toDaemon.end();
+		expect(await done).toBe(0);
+		expect(t.out).toEqual([]);
+		expect(t.err).toEqual([
+			`serving METE to a desktop client for ${repo.workspaceDir}`,
+			...reasons,
+		]);
+		expect(await lockHolder(runLockFile(repo.workspaceDir))).toBeUndefined();
+		c.dispose();
+	});
+
+	it("still refuses before it serves while another process holds the folder", async () => {
+		const repo = await tempRepo({ "a.txt": "a\n" });
+		close = repo.close;
+		const lock = await takeRunLock(runLockFile(repo.workspaceDir));
+		if (!lock.ok) throw new Error(lock.error);
 		const t = recordingIo();
 		const env = {
-			cwd: join(repo.workspaceDir, ".."),
+			cwd: repo.workspaceDir,
 			globalDir: repo.globalDir,
 			logger: silent,
 			secrets: memorySecrets(),
 			daemon: () => ({ input: new PassThrough(), output: new PassThrough() }),
 		};
-		expect(await main(["daemon", "repo"], t.io, env)).toBe(1);
+		expect(await main(["daemon"], t.io, env)).toBe(1);
 		expect(t.out).toEqual([]);
-		expect(t.err).toContain("core-engine is not active.");
-		expect(await lockHolder(runLockFile(repo.workspaceDir))).toBeUndefined();
+		expect(t.err[0]).toContain(`another mete command (pid ${process.pid}:`);
+		await lock.value();
 	});
 });

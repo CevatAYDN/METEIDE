@@ -16,7 +16,7 @@ import {
 	namesOf,
 	statusLines,
 } from "../domain/format.js";
-import { type App, engineOf } from "../infrastructure/app.js";
+import { type App, engineOf, notReadyLines } from "../infrastructure/app.js";
 import { runHistory } from "../infrastructure/history.js";
 
 // The mete commands (ARCHITECTURE.md, CLI). Each returns the process exit code.
@@ -141,9 +141,7 @@ export const withEngine = async (
 ) => {
 	const engine = engineOf(app);
 	if (engine.ok) return use(engine.value);
-	for (const line of engine.error) io.err(line);
-	if (app.inactive.some((m) => m.moduleId.startsWith("provider-")))
-		io.err("Add a provider key with: mete key set openrouter");
+	for (const line of notReadyLines(app, engine.error)) io.err(line);
 	return 1;
 };
 
