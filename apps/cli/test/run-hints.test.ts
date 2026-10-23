@@ -132,7 +132,7 @@ describe("mete run quota pause", () => {
 		expect(lines).toHaveLength(3);
 		expect(lines[0]).toMatch(/^ {2}fake: its free quota is used up until /);
 		expect(lines[1]).toBe(
-			"  shy: none of its models can be used here (the privacy rules may leave them out: allowTraining in privacy.yaml; or its key was refused)",
+			"  shy: none of its models can be used here (the privacy rules may leave them out: allowTraining in privacy.yaml; the model mode may: models in gateway.yaml; or its key was refused)",
 		);
 		expect(lines[2]).toBe("  nvidia: no key (mete key set nvidia)");
 	});

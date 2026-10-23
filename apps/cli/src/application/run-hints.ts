@@ -63,7 +63,7 @@ const activeLine = (
 	if (until)
 		return `${id}: its free quota is used up until ${new Date(until).toLocaleString()}`;
 	if (usable.has(id)) return undefined;
-	return `${id}: none of its models can be used here (the privacy rules may leave them out: allowTraining in privacy.yaml; or its key was refused)`;
+	return `${id}: none of its models can be used here (the privacy rules may leave them out: allowTraining in privacy.yaml; the model mode may: models in gateway.yaml; or its key was refused)`;
 };
 
 /** One line per provider that cannot carry the run on now, and why. */
