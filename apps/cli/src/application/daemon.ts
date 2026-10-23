@@ -3,6 +3,7 @@ import {
 	DAEMON_ERROR_CODE,
 	DAEMON_METHODS,
 	DaemonAuditParamsSchema,
+	DaemonChainParamsSchema,
 	type DaemonErrorData,
 	DaemonEstimateParamsSchema,
 	DaemonRunApproveParamsSchema,
@@ -29,6 +30,7 @@ import { auditEntries } from "./audit.js";
 import type { Io } from "./commands.js";
 import { estimateFor } from "./estimate.js";
 import {
+	LISTING_TIMEOUT_MS,
 	providerStates,
 	quotaUnits,
 	trackExhausted,
@@ -187,6 +189,15 @@ const serveTemplateRead = (conn: MessageConnection, app: App) =>
 		throw new ResponseError(DAEMON_ERROR_CODE, `no template ${id}`, data);
 	});
 
+// The models a tier's chain would try for a member's needs, for the team editor's pinned model
+// (ADR-077): the gateway's listing only, so no engine is needed, and no pin, so every choice shows.
+const serveChain = (conn: MessageConnection, app: App) =>
+	conn.onRequest(DAEMON_METHODS.chain, async (params: unknown) => {
+		const { tier, needs } = parsed(DaemonChainParamsSchema.safeParse(params));
+		const signal = AbortSignal.timeout(LISTING_TIMEOUT_MS);
+		return { models: await app.chain({ tier }, { needs }, signal) };
+	});
+
 // The composer's request estimate per provider (ADR-068): files and the gateway's listing only, so no
 // engine is needed; a template that does not load is not_found.
 const serveEstimate = (
@@ -262,6 +273,7 @@ export const daemonCommand = async (
 	serveAudit(conn, app);
 	serveTemplates(conn, app);
 	serveTemplateRead(conn, app);
+	serveChain(conn, app);
 	const spent = trackExhausted(app.events);
 	serveQuota(conn, app, spent.until);
 	serveEstimate(conn, app, spent.until);

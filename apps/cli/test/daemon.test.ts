@@ -1,3 +1,4 @@
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import {
@@ -79,6 +80,66 @@ const failure = async (p: Promise<unknown>) => {
 };
 
 describe("mete daemon", () => {
+	it("puts a role's estimate on its pinned model's provider (ADR-077)", async () => {
+		const duo = [
+			"apiVersion: mete/v1",
+			"kind: TeamTemplate",
+			"metadata: { id: duo, name: Duo, version: 1.0.0 }",
+			"pattern: single",
+			"roles:",
+			"  - { id: writer, name: Writer, goal: Write, tier: coder, capabilities: [] }",
+			"tasks:",
+			"  - { id: write, role: writer, title: Write }",
+			"",
+		].join("\n");
+		const estimateWith = async (pins: string | undefined) => {
+			const repo = await tempRepo({ "a.txt": "a\n" });
+			const meta = join(repo.workspaceDir, ".mete");
+			await mkdir(join(meta, "teams"), { recursive: true });
+			await writeFile(join(meta, "teams", "duo.yaml"), duo);
+			if (pins) await writeFile(join(meta, "pins.yaml"), pins);
+			const app = await createApp({
+				workspaceDir: repo.workspaceDir,
+				globalDir: repo.globalDir,
+				templatesDir: join(repo.globalDir, "no-templates"),
+				logger: silent,
+				secrets: memorySecrets(),
+				providers: [
+					scriptedProvider({ script: [] }),
+					scriptedProvider({ script: [] }, { id: "other" }),
+				],
+			});
+			if (!app.ok) throw new Error(JSON.stringify(app.error));
+			const [toDaemon, toClient] = [new PassThrough(), new PassThrough()];
+			const serving = daemonCommand(
+				app.value,
+				recordingIo().io,
+				repo.workspaceDir,
+				{
+					input: toDaemon,
+					output: toClient,
+				},
+			);
+			const { c } = clientOf(toClient, toDaemon);
+			const answer = await c.sendRequest(DAEMON_METHODS.estimate, {
+				templateId: "duo",
+			});
+			toDaemon.end();
+			await serving;
+			await app.value.stop();
+			await repo.close();
+			return answer;
+		};
+		expect(await estimateWith(undefined)).toEqual({
+			providers: [{ providerId: "fake", requests: 12 }],
+			unassigned: 0,
+		});
+		expect(await estimateWith("duo:\n  writer: other/coder-1\n")).toEqual({
+			providers: [{ providerId: "other", requests: 12 }],
+			unassigned: 0,
+		});
+	});
+
 	it("answers mete/status, forwards every event in order and stops when the client leaves", async () => {
 		const repo = await tempRepo({ "a.txt": "a\n" });
 		const app = await createApp({
@@ -128,6 +189,24 @@ describe("mete daemon", () => {
 			c.sendRequest(DAEMON_METHODS.estimate, { templateId: "nope" }),
 		);
 		expect(unknown.data).toEqual({ code: "not_found" });
+
+		// mete/chain lists what a tier would try for the needs, for the editor's pinned model (ADR-077).
+		expect(
+			await c.sendRequest(DAEMON_METHODS.chain, {
+				tier: "coder",
+				needs: ["tool_calling"],
+			}),
+		).toEqual({ models: [{ providerId: "fake", modelId: "coder-1" }] });
+		expect(
+			await c.sendRequest(DAEMON_METHODS.chain, {
+				tier: "coder",
+				needs: ["vision"],
+			}),
+		).toEqual({ models: [] });
+		const badChain = await failure(
+			c.sendRequest(DAEMON_METHODS.chain, { tier: "huge", needs: [] }),
+		);
+		expect(badChain.code).toBe(ErrorCodes.InvalidParams);
 
 		const first = event("network.lost");
 		const second = event("run.resumed");
