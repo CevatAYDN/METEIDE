@@ -17,6 +17,9 @@ export const BACKOFF_MS = [2_000, 8_000, 30_000] as const;
 /** Tab 09, Gateway: wait for a reset only when it comes sooner than this. */
 export const RESET_WAIT_MAX_MS = 90_000;
 
+/** Tab 09, Gateway, Stalls (ADR-062): a call fails with network after no chunk for this long. */
+export const STALL_LIMITS = { firstMs: 120_000, gapMs: 60_000 } as const;
+
 /** Tab 09, Gateway: failures on one model before moving down the chain. */
 export const FAILURES_PER_MODEL = 3;
 

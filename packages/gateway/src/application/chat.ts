@@ -16,7 +16,7 @@ import {
 	type SecretsMaskAdapter,
 	type ToolCall,
 } from "@mete/contracts";
-import { CHAIN_LENGTH } from "../defaults.js";
+import { CHAIN_LENGTH, STALL_LIMITS } from "../defaults.js";
 import { ABORTED, reserveError } from "../domain/llm-errors.js";
 import { type PrivacyRules, resolveChain } from "../domain/resolve.js";
 import { afterFailure, estimateTokens } from "../domain/retry.js";
@@ -33,6 +33,7 @@ import {
 	strike,
 } from "./model-memory.js";
 import { maskMessages, type Offered } from "./prepare.js";
+import { type StallLimits, watched } from "./stall.js";
 
 // The llm.chat@2 request pipeline (docs/09, Gateway): privacy filter → secret masking →
 // quota reservation → provider call → quota observation, moving down the chain on failures.
@@ -45,6 +46,8 @@ export type ChatDeps = {
 	readonly rules: () => PrivacyRules;
 	readonly sleep: (ms: number, signal: AbortSignal) => Promise<void>;
 	readonly now: () => number;
+	/** How long a provider call may stay quiet (ADR-062); tests shorten it. */
+	readonly stall?: StallLimits;
 	/** Keeps one row per provider call for replay (docs/07, model_calls). */
 	readonly record: (call: ModelCall) => void;
 	readonly warn: (
@@ -79,6 +82,7 @@ type Try = {
 	readonly reservation: string;
 	readonly call: ChatRequest;
 	readonly req: LlmChatRequest;
+	readonly stall: StallLimits;
 };
 
 type Walk = {
@@ -118,7 +122,8 @@ async function* attempt(
 	signal: AbortSignal,
 ): AsyncGenerator<LlmChunk, Outcome> {
 	let streamed = false;
-	for await (const c of t.o.adapter.chat(t.call, signal)) {
+	const open = (s: AbortSignal) => t.o.adapter.chat(t.call, s);
+	for await (const c of watched(open, signal, t.stall)) {
 		if (c.type === "error") return { kind: "error", error: c.error, streamed };
 		ended.outcome = keep(seen, c);
 		yield c;
@@ -339,7 +344,8 @@ async function* walk(
 		const { o, id } = g.value;
 		const named = nameModel(st, o, w.chain[0]);
 		const call = { ...w.call, model: o.model.id };
-		const t: Try = { o, reservation: id, call, req: w.req };
+		const stall = deps.stall ?? STALL_LIMITS;
+		const t: Try = { o, reservation: id, call, req: w.req, stall };
 		const { outcome, observations } = yield* settled(deps, t, named, signal);
 		if (outcome.kind === "finish") return void forgive(memory, keyOf(o));
 		const end = await onFailure(deps, st, { o, outcome, observations }, signal);
