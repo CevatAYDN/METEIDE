@@ -115,7 +115,8 @@ export type LlmChatRequest = Omit<ChatRequest, "model"> & {
   target: { tier: Tier } | ModelRef;
   runId: string; priority: 0 | 1 | 2;                       // as in QuotaRequest
   needs?: ("tool_calling" | "vision" | "long_context")[];   // the role's needs (tab 08)
-  avoidFamilies?: string[] };                               // families of the roles in prefer_different_family_than
+  avoidFamilies?: string[];                                 // families of the roles in prefer_different_family_than
+  prefer?: ModelRef };                                      // the role's pinned model, first when a candidate (ADR-077)
 export type LlmError = ProviderError | { code: "no_model"; message: string }
   | { code: "quota_exhausted"; message: string; resumesAt: string }    // run pause reasons no_model and quota
   | { code: "too_large"; message: string };   // @2: folded once, then the run pauses with reason no_model (tab 08); the message names the estimate

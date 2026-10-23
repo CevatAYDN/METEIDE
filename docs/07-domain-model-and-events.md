@@ -118,7 +118,7 @@ From Phase 2, handoffs go into the workspace `handoffs` table: `id`, `workspace_
 | `task.status.changed` | from, to | core-engine |
 | `task.merge.failed` | code (`merge_conflict` or `io`), message, branch, paths (the conflicting files) | core-engine |
 | `task.clarification.requested` | toRoleId, question | core-engine |
-| `agent.created` | roleId, providerId, modelId | core-engine |
+| `agent.created` | roleId, providerId, modelId, tier? (the role's tier, ADR-077) | core-engine |
 | `agent.model.changed` | from, to, reason | core-engine |
 | `agent.thinking.started` / `agent.thinking.ended` | none | core-engine |
 | `agent.message.sent` | messageId, from, to, kind, summary | core-engine |
