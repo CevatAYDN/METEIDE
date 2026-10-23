@@ -32,6 +32,7 @@ Phase 1 baseline, recorded from a live `mete run` of an edit task on the referen
 | Metric | Value | Measured | Commit |
 | --- | --- | --- | --- |
 | CLI cold start | 1.13 s, median of 5 `mete status` runs after a warm-up, Node 23.9.0 | 2026-10-22 | ab9f1c1 |
+| CLI cold start, remeasured | 1.71 s, median of 5 `mete status` runs after a warm-up in an empty folder, on Node 24.21.0, the `devEngines` runtime `pnpm` runs; the same runs on Node 23.9.0 take 1.91 s, so the growth over 1.13 s comes from the CLI, not from Node. It is more than 10% over the accepted baseline, an open finding for the release | 2026-10-23 | 9d3ee14 |
 | Idle memory (RSS) | 130 MB at the end of `mete status`, median of 5 (101 to 158 MB) | 2026-10-22 | ab9f1c1 |
 | Model calls per run | 21: 7 answered and 14 refused with 401 by two OpenRouter models on every turn | 2026-10-22 | ab9f1c1 |
 | Prompt and completion tokens per run | 14,000 prompt and 412 completion over the 7 answered calls | 2026-10-22 | ab9f1c1 |
