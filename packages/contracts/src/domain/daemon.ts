@@ -6,10 +6,10 @@ import { PolicyActionSchema, PolicyVerdictSchema } from "./policy.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 10 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-058).
+// Daemon protocol version 11 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-065).
 // The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The messages of version 10; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 11; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
@@ -19,6 +19,7 @@ export const DAEMON_METHODS = {
 	events: "mete/events",
 	audit: "mete/audit",
 	templates: "mete/templates",
+	stopAll: "mete/stop.all",
 	event: "mete/event",
 } as const;
 
@@ -147,6 +148,11 @@ export const DaemonTemplatesResultSchema = z.strictObject({
 			description: z.string().min(1).optional(),
 		}),
 	),
+});
+
+/** Result of `mete/stop.all`: the runs it cancelled, the kill switch of SECURITY.md (ADR-065). */
+export const DaemonStopAllResultSchema = z.strictObject({
+	cancelled: z.array(IdSchema),
 });
 
 /** Result of `mete/run.approve` and `mete/run.resume`: a request that returns nothing sends null. */

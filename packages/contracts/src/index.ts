@@ -38,6 +38,7 @@ export {
 	DaemonRunStartResultSchema,
 	DaemonStatusParamsSchema,
 	DaemonStatusResultSchema,
+	DaemonStopAllResultSchema,
 	DaemonTemplatesResultSchema,
 	type ProviderState,
 	ProviderStateSchema,

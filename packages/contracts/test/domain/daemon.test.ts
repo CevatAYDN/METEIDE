@@ -14,6 +14,7 @@ import {
 	DaemonRunStartResultSchema,
 	DaemonStatusParamsSchema,
 	DaemonStatusResultSchema,
+	DaemonStopAllResultSchema,
 	DaemonTemplatesResultSchema,
 	RunViewSchema,
 } from "../../src/domain/daemon.js";
@@ -34,7 +35,7 @@ const run: RunView = {
 	endedAt: "2026-10-23T11:00:00.000Z",
 };
 
-describe("daemon protocol version 10", () => {
+describe("daemon protocol version 11", () => {
 	it("answers mete/events with the run's events in order and the count of unreadable rows", () => {
 		const event = {
 			id: crypto.randomUUID(),
@@ -119,6 +120,7 @@ describe("daemon protocol version 10", () => {
 			events: "mete/events",
 			audit: "mete/audit",
 			templates: "mete/templates",
+			stopAll: "mete/stop.all",
 			event: "mete/event",
 		});
 	});
@@ -307,5 +309,17 @@ describe("daemon protocol version 10", () => {
 			{ templates: [{ id: "x" }] },
 		])
 			expect(DaemonTemplatesResultSchema.safeParse(bad).success).toBe(false);
+	});
+
+	it("answers mete/stop.all with the ids of the runs it cancelled (ADR-065)", () => {
+		const id = crypto.randomUUID();
+		expect(DaemonStopAllResultSchema.parse({ cancelled: [id] })).toEqual({
+			cancelled: [id],
+		});
+		expect(DaemonStopAllResultSchema.parse({ cancelled: [] })).toEqual({
+			cancelled: [],
+		});
+		for (const bad of [{}, { cancelled: ["not-an-id"] }])
+			expect(DaemonStopAllResultSchema.safeParse(bad).success).toBe(false);
 	});
 });
