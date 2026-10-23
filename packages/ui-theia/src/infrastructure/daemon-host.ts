@@ -9,6 +9,7 @@ import {
 	DaemonQuotaResultSchema,
 	DaemonRunStartResultSchema,
 	DaemonStatusResultSchema,
+	DaemonTemplatesResultSchema,
 	err,
 	type MeteEvent,
 	ok,
@@ -222,6 +223,11 @@ const reads = (send: Send) => ({
 	quota: (dir: string) =>
 		send(dir, DAEMON_METHODS.quota, {}, (raw) =>
 			DaemonQuotaResultSchema.safeParse(raw),
+		),
+	/** The team templates the composer offers (ADR-058). */
+	templates: (dir: string) =>
+		send(dir, DAEMON_METHODS.templates, {}, (raw) =>
+			DaemonTemplatesResultSchema.safeParse(raw),
 		),
 });
 

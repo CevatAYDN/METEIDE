@@ -15,9 +15,9 @@ import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service
 import { MeteDaemonService } from "../domain/status-service.js";
 import { failureText, noFolderText, plain } from "./status-text.js";
 
-// The first run composer (ADR-047): a goal, and a team when the router is unsure.
-// shortcut: the composer screen of docs/13 (template picker, estimate, autonomy level) comes when
-// the daemon can list templates and estimates.
+// The run composer (ADR-047, ADR-058): a goal, then "Let METE choose", a template or a single agent;
+// the router asks for a team when it is unsure.
+// shortcut: the request estimate and the autonomy level of docs/13 come when the daemon offers them.
 
 /** The palette entry "METE: Start run". */
 export const START_RUN_COMMAND: Command = Command.toLocalizedCommand(
@@ -27,6 +27,9 @@ export const START_RUN_COMMAND: Command = Command.toLocalizedCommand(
 );
 
 type TeamPick = QuickPickItem & { readonly templateId: string | null };
+
+// The composer's list: undefined lets the router choose.
+type StartPick = QuickPickItem & { readonly templateId?: string | null };
 
 @injectable()
 export class MeteStartRunContribution implements CommandContribution {
@@ -55,6 +58,12 @@ export class MeteStartRunContribution implements CommandContribution {
 		)?.trim();
 		if (!goal) return;
 		const dir = root.resource.path.fsPath();
+		const chosen = await this.pickStart(dir);
+		if (!chosen) return;
+		if (chosen.templateId !== undefined)
+			return this.report(
+				await this.starting(dir, { goal, templateId: chosen.templateId }),
+			);
 		let r = await this.starting(dir, { goal });
 		if (!r.ok && r.error.code === "choose_template") {
 			const team = await this.pickTeam(r.error.suggestions ?? []);
@@ -62,11 +71,39 @@ export class MeteStartRunContribution implements CommandContribution {
 			const req: RunStart = { goal, templateId: team.templateId };
 			r = await this.starting(dir, req);
 		}
+		this.report(r);
+	}
+
+	protected report(r: Awaited<ReturnType<MeteDaemonService["startRun"]>>) {
 		if (r.ok)
 			void this.messages.info(
 				nls.localize("mete/run/started", "Run started: {0}", r.value.runId),
 			);
 		else void this.messages.warn(failureText(r.error, plain));
+	}
+
+	// "Let METE choose", the folder's templates, a single agent (ADR-058); without the list, the router.
+	protected async pickStart(dir: string) {
+		const listed = await this.daemon.templates(dir);
+		const templates = listed.ok ? listed.value.templates : [];
+		const picks: StartPick[] = [
+			{ label: nls.localize("mete/run/choose", "Let METE choose") },
+			...templates.map((t) => ({
+				label: t.name,
+				...(t.description ? { description: t.description } : {}),
+				templateId: t.id,
+			})),
+			{
+				label: nls.localize("mete/run/single", "Single agent"),
+				templateId: null,
+			},
+		];
+		return this.quick.pick(picks, {
+			placeHolder: nls.localize(
+				"mete/run/pickStart",
+				"Which team should work on it?",
+			),
+		});
 	}
 
 	// The router picks a team before the run exists (docs/08), which can take a minute on free

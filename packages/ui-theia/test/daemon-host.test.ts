@@ -143,6 +143,14 @@ describe("the daemon host", () => {
 		});
 	});
 
+	it("lists the folder's team templates (ADR-058)", async () => {
+		const { host } = await setup();
+		expect(await host.templates("/w")).toEqual({
+			ok: true,
+			value: { templates: [{ id: "game-studio", name: "Game studio" }] },
+		});
+	});
+
 	it("asks each provider's state and refuses one that does not parse", async () => {
 		const { fake, host } = await setup();
 		expect(await host.quota("/w")).toEqual({

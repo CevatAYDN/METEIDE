@@ -95,13 +95,15 @@
 			"used": "Kullanılan"
 		},
 		"run": {
-			"noArtifact": "Bu çalıştırmanın henüz açılacak bir raporu yok.",
-			"openArtifact": "Artefaktı aç",
 			"approve": "Çalıştırmayı onayla",
 			"approved": "Onaylandı; çalıştırma devam ediyor.",
+			"choose": "METE seçsin",
 			"feedback": "Neyin değişmesi gerekiyor?",
 			"goal": "METE bu klasörde ne yapsın?",
+			"noArtifact": "Bu çalıştırmanın henüz açılacak bir raporu yok.",
 			"noneWaiting": "Seni bekleyen çalıştırma yok.",
+			"openArtifact": "Artefaktı aç",
+			"pickStart": "Hangi takım çalışsın?",
 			"pickTeam": "METE bu hedefe hangi ekibin uyduğundan emin değil; birini seç",
 			"resume": "Çalıştırmayı sürdür",
 			"resumed": "Sürdürüldü.",

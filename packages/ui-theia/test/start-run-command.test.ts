@@ -35,12 +35,33 @@ const UNSURE: Reply = {
 	},
 };
 const STARTED: Reply = { ok: true, value: { runId: "r1" } };
+const TEMPLATES = {
+	ok: true as const,
+	value: {
+		templates: [
+			{
+				id: "game-studio",
+				name: "Game studio",
+				description: "Idea to playable prototype",
+			},
+			{ id: "web-dev", name: "Web development" },
+		],
+	},
+};
+const LISTED = [
+	"Let METE choose",
+	"Game studio",
+	"Web development",
+	"Single agent",
+];
 
 const setup = (opts: {
 	folders: string[];
 	goal: string | undefined;
 	replies: Reply[];
-	pick?: (labels: string[]) => number | undefined;
+	/** Answers each pick in turn; a pick left without an answer takes the first item. */
+	picks?: ((labels: string[]) => number | undefined)[];
+	templates?: unknown;
 }) => {
 	const info: string[] = [];
 	const warn: string[] = [];
@@ -68,11 +89,13 @@ const setup = (opts: {
 		input: async () => opts.goal,
 		pick: async (items: { label: string }[]) => {
 			picked.push(items.map((i) => i.label));
-			const i = opts.pick?.(items.map((x) => x.label));
+			const answer = opts.picks?.shift() ?? (() => 0);
+			const i = answer(items.map((x) => x.label));
 			return i === undefined ? undefined : items[i];
 		},
 	} as unknown as QuickInputService);
 	c.bind(MeteDaemonService).toConstantValue({
+		templates: async () => opts.templates ?? TEMPLATES,
 		startRun: async (_dir: string, req: RunStart) => {
 			asked.push(req);
 			return opts.replies.shift();
@@ -102,8 +125,39 @@ describe("METE: Start run", () => {
 			replies: [STARTED],
 		});
 		await t.run();
+		// METE chooses unless a template is picked (ADR-058).
+		expect(t.picked).toEqual([LISTED]);
 		expect(t.asked).toEqual([{ goal: "fix the bug" }]);
 		expect(t.info).toEqual(["Run started: r1"]);
+	});
+
+	it("starts the template picked from the list, or a single agent, without asking the router", async () => {
+		const game = setup({
+			folders: ["/w"],
+			goal: "g",
+			replies: [STARTED],
+			picks: [(labels) => labels.indexOf("Game studio")],
+		});
+		await game.run();
+		expect(game.asked).toEqual([{ goal: "g", templateId: "game-studio" }]);
+		const single = setup({
+			folders: ["/w"],
+			goal: "g",
+			replies: [STARTED],
+			picks: [(labels) => labels.indexOf("Single agent")],
+		});
+		await single.run();
+		expect(single.asked).toEqual([{ goal: "g", templateId: null }]);
+		// Without the list (an older or failing daemon) METE chooses, as before.
+		const failing = setup({
+			folders: ["/w"],
+			goal: "g",
+			replies: [STARTED],
+			templates: { ok: false, error: { code: "stopped", detail: "x" } },
+		});
+		await failing.run();
+		expect(failing.picked).toEqual([["Let METE choose", "Single agent"]]);
+		expect(failing.asked).toEqual([{ goal: "g" }]);
 	});
 
 	it("asks for a team when the router is unsure and starts again with the one picked", async () => {
@@ -111,10 +165,13 @@ describe("METE: Start run", () => {
 			folders: ["/w"],
 			goal: "g",
 			replies: [UNSURE, STARTED],
-			pick: (labels) => labels.indexOf("Single agent"),
+			picks: [() => 0, (labels) => labels.indexOf("Single agent")],
 		});
 		await single.run();
-		expect(single.picked).toEqual([["research", "web-dev", "Single agent"]]);
+		expect(single.picked).toEqual([
+			LISTED,
+			["research", "web-dev", "Single agent"],
+		]);
 		expect(single.asked).toEqual([
 			{ goal: "g" },
 			{ goal: "g", templateId: null },
@@ -125,7 +182,7 @@ describe("METE: Start run", () => {
 			folders: ["/w"],
 			goal: "g",
 			replies: [UNSURE, STARTED],
-			pick: () => 1,
+			picks: [() => 0, () => 1],
 		});
 		await team.run();
 		expect(team.asked.at(-1)).toEqual({ goal: "g", templateId: "web-dev" });
@@ -135,9 +192,23 @@ describe("METE: Start run", () => {
 		const empty = setup({ folders: ["/w"], goal: "   ", replies: [] });
 		await empty.run();
 		expect(empty.asked).toEqual([]);
-		const cancelled = setup({ folders: ["/w"], goal: "g", replies: [UNSURE] });
+		const cancelled = setup({
+			folders: ["/w"],
+			goal: "g",
+			replies: [UNSURE],
+			picks: [() => 0, () => undefined],
+		});
 		await cancelled.run();
 		expect(cancelled.asked).toHaveLength(1);
+		// Leaving the template list empty starts nothing.
+		const left = setup({
+			folders: ["/w"],
+			goal: "g",
+			replies: [],
+			picks: [() => undefined],
+		});
+		await left.run();
+		expect(left.asked).toEqual([]);
 		expect(cancelled.info).toEqual([]);
 		expect(cancelled.warn).toEqual([]);
 	});

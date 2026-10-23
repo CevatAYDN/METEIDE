@@ -88,6 +88,10 @@ export class MeteDaemonBackend
 		return this.host.quota(workspaceDir);
 	}
 
+	templates(workspaceDir: string) {
+		return this.host.templates(workspaceDir);
+	}
+
 	onStop() {
 		this.host.stop();
 	}

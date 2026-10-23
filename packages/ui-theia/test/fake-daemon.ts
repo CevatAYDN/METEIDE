@@ -52,6 +52,7 @@ conn.onRequest("mete/audit", (p) => {
 	const entry = { seq: 1, ts: run.createdAt, runId: run.id, agentId: null, action: "fs.write", capability: "fs.edit@1", adapterId: "tools-fs", argsSha256: "a".repeat(64), verdict: "allow", rule: "autonomy:2:inside", tainted: false };
 	return { entries: p.verdict === "deny" ? [] : [entry] };
 });
+conn.onRequest("mete/templates", () => ({ templates: [{ id: "game-studio", name: "Game studio" }] }));
 conn.onRequest("mete/quota", () =>
 	mode === "badquota"
 		? { providers: [{ id: "groq", state: "exhausted" }], units: [] }

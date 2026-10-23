@@ -95,6 +95,19 @@ export interface MeteDaemonService {
 	): Promise<
 		Result<{ readonly entries: readonly AuditEntry[] }, DaemonFailure>
 	>;
+	/** The team templates the router may pick, by id, name and description (ADR-058). */
+	templates(workspaceDir: string): Promise<
+		Result<
+			{
+				readonly templates: readonly {
+					readonly id: string;
+					readonly name: string;
+					readonly description?: string | undefined;
+				}[];
+			},
+			DaemonFailure
+		>
+	>;
 	/** Whether each provider can carry a run on now (ADR-050), and the pool's units (ADR-054, ADR-055). */
 	quota(workspaceDir: string): Promise<
 		Result<
