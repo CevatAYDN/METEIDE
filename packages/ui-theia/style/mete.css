@@ -115,6 +115,12 @@
 	border-radius: 10px;
 }
 
+/* A field the user cannot change, such as a team member's id that tasks name, reads as fixed. */
+.mete-field:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
 /* An option of a list the user picks one of: a card that shows which one is chosen. */
 .mete-option {
 	display: flex;
