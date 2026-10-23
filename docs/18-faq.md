@@ -34,7 +34,7 @@ Each answer is binding and names the tab that holds the full rule. A question no
 
 | Question | Answer | Tab |
 | --- | --- | --- |
-| How do I make my own team? | Write a YAML template in `.mete/teams/` or use the visual template editor in Settings | 08, 13 |
+| How do I make my own team? | Write a YAML template in `.mete/teams/` or use the visual template editor ("METE: Edit team", or Edit under a team in the run composer; ADR-075) | 08, 13 |
 | Can I run CrewAI, MetaGPT or ChatDev? | Yes, as optional engines with `engine: crewai`, `metagpt` or `chatdev`; their calls still pass the gateway | 08 |
 | Who decides that a task is done? | Verify gates, the guardrail and the approver. A model's claim never decides | 08 |
 | What if the lead keeps rejecting? | After 3 revisions the task is blocked and the human decides | 07 |
