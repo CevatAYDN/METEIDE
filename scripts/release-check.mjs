@@ -1,6 +1,7 @@
 // The release check of docs/15 (Release process, step 2): every release-tier check of the test
 // table, run in turn and reported once. A step that fails, cannot run or is not built yet fails the
 // check; nothing is skipped silently. Run it with `pnpm release:check`; it downloads tools.
+import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -79,6 +80,72 @@ const electronegativity = () => {
 	}
 };
 
+// The licenses docs/05 allows in what ships (Tooling rules); EPL-2.0 is Theia's, CC0 and OFL-1.1 are
+// for assets and fonts, which a package list cannot tell from code.
+const ALLOWED = new Set([
+	"MIT",
+	"Apache-2.0",
+	"BSD-2-Clause",
+	"BSD-3-Clause",
+	"ISC",
+	"MPL-2.0",
+	"EPL-2.0",
+	"CC0-1.0",
+	"OFL-1.1",
+]);
+
+// An SPDX expression passes when one OR choice has only allowed licenses; a WITH exception keeps
+// the license it extends. shortcut: parentheses are dropped, so "(A OR B) AND C" reads as
+// "A OR B AND C"; pnpm lists none such today, parse the grammar when one comes.
+const allowed = (expression) =>
+	expression
+		.replace(/[()]/g, "")
+		.split(" OR ")
+		.some((choice) =>
+			choice
+				.split(" AND ")
+				.every((l) => ALLOWED.has(l.split(" WITH ")[0].trim())),
+		);
+assert.equal(
+	allowed("EPL-2.0 OR GPL-2.0-only WITH Classpath-exception-2.0"),
+	true,
+);
+assert.equal(allowed("(OFL-1.1 AND MIT)"), true);
+assert.equal(allowed("(MIT AND GPL-3.0)"), false);
+assert.equal(allowed("LGPL-2.1+"), false);
+
+// Each license outside the list, with the packages under it.
+const licenses = () => {
+	const r = spawnSync(
+		process.execPath,
+		[PNPM, "licenses", "list", "--prod", "--json"],
+		{
+			cwd: ROOT,
+			encoding: "utf8",
+			timeout: 5 * MINUTE,
+			maxBuffer: 64 * 1024 * 1024,
+		},
+	);
+	if (r.status !== 0)
+		return {
+			status: "fail",
+			reason:
+				tail(`${r.stdout}
+${r.stderr}`) || `exit code ${r.status}`,
+		};
+	const outside = Object.entries(JSON.parse(r.stdout))
+		.filter(([license]) => !allowed(license))
+		.map(
+			([license, pkgs]) => `${license} (${pkgs.map((p) => p.name).join(", ")})`,
+		);
+	return outside.length === 0
+		? { status: "pass", reason: "" }
+		: {
+				status: "fail",
+				reason: `not allowed by docs/05: ${outside.join("; ")}`,
+			};
+};
+
 // shortcut: the scan arguments follow osv-scanner's documentation and were not run here, because it
 // was not installed; check them the first time it is.
 const osvScanner = () => {
@@ -110,7 +177,7 @@ const STEPS = [
 		"audit, high and critical fail",
 		() => viaPnpm(["audit", "--audit-level", "high"], 5),
 	],
-	["licenses of what ships", () => viaPnpm(["licenses", "list", "--prod"], 5)],
+	["licenses of what ships", licenses],
 	["osv-scanner", osvScanner],
 	["Electronegativity", electronegativity],
 	[
