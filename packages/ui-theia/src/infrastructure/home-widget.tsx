@@ -23,6 +23,7 @@ import {
 import { SET_KEY_COMMAND } from "../application/key-command.js";
 import { type HomeModel, homeModel } from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
+import { OPEN_ARTIFACT_COMMAND } from "./artifact-command.js";
 import { OPEN_BOARD_COMMAND } from "./board-contribution.js";
 
 // The Home panel (docs/13, Home): recent runs of the first open folder, asked of its daemon.
@@ -112,6 +113,7 @@ export class MeteHomeWidget extends ReactWidget {
 			revise: REVISE_RUN_COMMAND.id,
 			resume: RESUME_RUN_COMMAND.id,
 			open: OPEN_BOARD_COMMAND.id,
+			artifact: OPEN_ARTIFACT_COMMAND.id,
 		}[action];
 		return this.commands.executeCommand(id, runId);
 	}

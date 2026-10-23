@@ -12,7 +12,7 @@ import { failureText, noFolderText, runsText } from "./status-text.js";
 // colour the Studio stage (ADR-052). shortcut: Baloo 2 waits for a decision on its font files.
 
 /** What a button of the inbox asks for. */
-export type HomeAction = "approve" | "revise" | "resume" | "open";
+export type HomeAction = "approve" | "revise" | "resume" | "open" | "artifact";
 
 const PANEL: CSSProperties = {
 	padding: "12px",
@@ -161,6 +161,10 @@ const Waiting = ({
 					<Button
 						label={nls.localize("mete/home/revise", "Revise…")}
 						onClick={() => act("revise", row.id)}
+					/>
+					<Button
+						label={nls.localize("mete/run/openArtifact", "Open artifact")}
+						onClick={() => act("artifact", row.id)}
 					/>
 				</>
 			) : null}

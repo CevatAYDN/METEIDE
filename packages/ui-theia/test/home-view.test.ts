@@ -129,6 +129,7 @@ describe("the Home view", () => {
 		expect(inbox).not.toContain("quota goal");
 		expect(inbox.match(/>Approve</g)).toHaveLength(1);
 		expect(inbox.match(/>Revise…</g)).toHaveLength(1);
+		expect(inbox.match(/>Open artifact</g)).toHaveLength(1);
 		expect(inbox.match(/>Resume</g)).toHaveLength(2);
 		expect(inbox).toContain("unless .mete/policy.yaml allows it");
 	});

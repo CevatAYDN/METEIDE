@@ -79,6 +79,8 @@
 			"unusable": "{0}: modellerinden hiçbiri burada kullanılamıyor (gizlilik kuralları onları dışarıda bırakabilir: privacy.yaml içindeki allowTraining; model modu bırakabilir: gateway.yaml içindeki models; ya da anahtarı reddedildi)"
 		},
 		"run": {
+			"noArtifact": "Bu çalıştırmanın henüz açılacak bir raporu yok.",
+			"openArtifact": "Artefaktı aç",
 			"approve": "Çalıştırmayı onayla",
 			"approved": "Onaylandı; çalıştırma devam ediyor.",
 			"feedback": "Neyin değişmesi gerekiyor?",

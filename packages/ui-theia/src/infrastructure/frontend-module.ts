@@ -10,6 +10,7 @@ import {
 	METE_DAEMON_PATH,
 	MeteDaemonService,
 } from "../domain/status-service.js";
+import { MeteArtifactContribution } from "./artifact-command.js";
 import { bindAudit } from "./audit-contribution.js";
 import { bindBoard } from "./board-contribution.js";
 import { bindHome } from "./home-contribution.js";
@@ -32,6 +33,7 @@ export default new ContainerModule((bind) => {
 	bind(CommandContribution).to(MeteStartRunContribution).inSingletonScope();
 	bind(CommandContribution).to(MeteApprovalContribution).inSingletonScope();
 	bind(CommandContribution).to(MeteKeyContribution).inSingletonScope();
+	bind(CommandContribution).to(MeteArtifactContribution).inSingletonScope();
 	bindHome(bind);
 	bindBoard(bind);
 	bindAudit(bind);
