@@ -91,6 +91,8 @@ export type AppOptions = {
 	readonly authorize?: Authorize;
 	/** Only `mete mcp` sets it: the transport mcp-server answers on (docs/10). */
 	readonly serve?: Transport;
+	/** Module ids left out of the app; only the chaos test sets it (docs/15, Chaos). */
+	readonly without?: readonly string[];
 };
 
 /** A started app. */
@@ -177,7 +179,7 @@ const modulesFor = (
 			workspaceDir: opts.workspaceDir,
 		}),
 		...servedBy(opts, registry),
-	];
+	].filter((m) => !opts.without?.includes(m.manifest.id));
 };
 
 // storage only with storage.sql@1 in requires, secrets only with the secrets permission (docs/06).

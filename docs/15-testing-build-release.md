@@ -13,7 +13,7 @@ All checks run on the developer's machine through lefthook and package scripts; 
 | Contract | Kits in `@mete/testing` | Every adapter of every capability | pre-push for touched capabilities; full at release |
 | LLM replay | Hand-written fetch fakes and scripted adapters now; MSW cassettes once `pnpm test:record` exists | Agent flows with recorded or scripted model responses | pre-push |
 | End-to-end | Playwright for Electron | Desktop flows: onboarding, run, approval, replay | release |
-| Chaos | Seeded script | Disable optional modules one by one and in random sets; the app must start and finish the single-agent fixture task | release |
+| Chaos | Seeded script | Disable optional modules one by one and in random sets; the app must start and finish the single-agent fixture task. `pnpm test:chaos` leaves each optional module of the CLI's composition out, then five sets drawn from `CHAOS_SEED`, then all of them, and finishes the typo-fix fixture with a scripted provider each time \[D\] | release |
 | MCP conformance | MCP Inspector, scripted | METE as server; METE as client against a Node, a Python and an HTTP reference server \[D\] | release |
 | Accessibility | axe-core inside E2E | No serious or critical violations \[D\] | release |
 | Security | Electronegativity, osv-scanner, `pnpm audit` (high and critical fail), `pnpm licenses list` | Whole repository | release |

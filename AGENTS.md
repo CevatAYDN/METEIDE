@@ -51,6 +51,7 @@ pnpm check                         Biome + tsc + dependency-cruiser + affected t
 pnpm test                          all tests
 pnpm --filter @mete/<pkg> test     one package
 pnpm build                         build all packages
+pnpm test:chaos                    release tier: the chaos test of docs/15, offline (optional modules left out, the single-agent fixture still finishes)
 pnpm check:mcp                     release tier: MCP Inspector conformance of `mete mcp`, and METE as a client against three reference servers (downloads them)
 pnpm test:record                   humans only: records LLM cassettes with real keys (not built yet)
 
