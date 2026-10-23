@@ -10,6 +10,7 @@ export {
 } from "./domain/effects.js";
 export {
 	type Box,
+	characterAt,
 	inside,
 	type Layout,
 	layoutOf,

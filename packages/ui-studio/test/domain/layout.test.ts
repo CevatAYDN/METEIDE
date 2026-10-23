@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inside, layoutOf } from "../../src/domain/layout.js";
+import { characterAt, inside, layoutOf } from "../../src/domain/layout.js";
 import type { Character, Scene } from "../../src/domain/scene.js";
 
 // The room's anchors by id: what the painter and the effects share.
@@ -64,5 +64,25 @@ describe("a point in a box", () => {
 		expect(inside(box, { x: 110, y: 70 })).toBe(true);
 		expect(inside(box, { x: 111, y: 40 })).toBe(false);
 		expect(inside(box, { x: 50, y: 19 })).toBe(false);
+	});
+});
+
+describe("characterAt", () => {
+	const l = layoutOf(scene([[ch("a"), ch("b"), ch("c", "waiting")]]));
+	const head = (id: string) => l.heads[id] ?? { x: 0, y: 0 };
+
+	it("finds the character whose head or shoulders a point is on, as the demo's click does", () => {
+		const a = head("a");
+		expect(characterAt(l, a)).toBe("a");
+		expect(characterAt(l, { x: a.x + 20, y: a.y + 50 })).toBe("a");
+		expect(characterAt(l, head("c"))).toBe("c");
+	});
+
+	it("finds none between two desks, above a head or below the shoulders", () => {
+		const a = head("a");
+		const b = head("b");
+		expect(characterAt(l, { x: (a.x + b.x) / 2, y: a.y })).toBeUndefined();
+		expect(characterAt(l, { x: a.x, y: a.y - 30 })).toBeUndefined();
+		expect(characterAt(l, { x: a.x, y: a.y + 60 })).toBeUndefined();
 	});
 });

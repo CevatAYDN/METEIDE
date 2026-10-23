@@ -99,6 +99,25 @@ const seatsOf = (scene: Scene) => {
 export const inside = (box: Box, p: Point) =>
 	p.x >= box.x && p.x <= box.x + box.w && p.y >= box.y && p.y <= box.y + box.h;
 
+/**
+ * The character a click at `p` is on, by id: the demo's test (docs/prototypes/studio-view.html, hit),
+ * within 24 sideways of the head and from 24 above it to 58 below, the nearest when two qualify.
+ */
+export const characterAt = (layout: Layout, p: Point): string | undefined => {
+	let best: string | undefined;
+	let bestDistance = Number.POSITIVE_INFINITY;
+	for (const [id, h] of Object.entries(layout.heads)) {
+		const dx = Math.abs(p.x - h.x);
+		const dy = p.y - h.y;
+		const distance = dx + Math.abs(dy - 14) * 0.5;
+		if (dx < 24 && dy > -24 && dy < 58 && distance < bestDistance) {
+			best = id;
+			bestDistance = distance;
+		}
+	}
+	return best;
+};
+
 /** The anchors of the room; an empty team still gets its wall and one row of floor. */
 export const layoutOf = (scene: Scene): Layout => ({
 	width: ROOM_W,
