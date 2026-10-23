@@ -65,7 +65,7 @@ describe("the Flow graph", () => {
 		expect(flowGraph(view([]))).toEqual({ nodes: [], edges: [] });
 	});
 
-	it("puts the agents in a column before the tasks, each with an edge to the task it works on", () => {
+	it("puts each agent under the task it works on, with an edge to it", () => {
 		const agent = (id: string, taskId?: string): AgentCard => ({
 			id,
 			roleId: "artist",
@@ -87,11 +87,14 @@ describe("the Flow graph", () => {
 			"agent:a2",
 			"agent:a3",
 		]);
-		const brief = g.nodes.find((n) => n.id === "brief");
-		expect(agents.every((n) => n.position.x < (brief?.position.x ?? 0))).toBe(
-			true,
-		);
-		expect(new Set(agents.map((n) => n.position.y)).size).toBe(3);
+		const at = (id: string) => g.nodes.find((n) => n.id === id)?.position;
+		// a1 stands under its task; a2 (an unknown task) and a3 (none) stand under level 0.
+		expect(at("agent:a1")?.x).toBe(at("art")?.x);
+		expect(at("agent:a1")?.y).toBeGreaterThan(at("art")?.y ?? 0);
+		expect(at("agent:a2")?.x).toBe(at("brief")?.x);
+		expect(at("agent:a3")?.x).toBe(at("brief")?.x);
+		const ys = [at("brief")?.y, at("agent:a2")?.y, at("agent:a3")?.y];
+		expect(new Set(ys).size).toBe(3);
 		expect(agents[0]?.data).toEqual({
 			kind: "agent",
 			roleId: "artist",

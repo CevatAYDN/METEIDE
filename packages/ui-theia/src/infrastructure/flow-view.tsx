@@ -8,6 +8,8 @@ import { type FlowNodeData, flowGraph } from "../application/flow-graph.js";
 // The Flow view of the Team panel (docs/13; ADR-051): the run's tasks and agents as a graph in React
 // Flow (docs/05), read only. The stylesheet import keeps this file frontend-only.
 // shortcut: the graph is fitted when its node count changes (a remount); a moved node does not refit.
+// shortcut: React Flow zooms out to 0.5 at most, so a chain of more than about 10 levels is clipped;
+// a zoom control or a smaller minimum is a decision for docs/13.
 
 type TaskData = Extract<FlowNodeData, { kind: "task" }>;
 
@@ -70,8 +72,10 @@ export const FlowView = ({ view }: { readonly view: TeamView }) => {
 				(n): Node => ({
 					id: n.id,
 					position: { ...n.position },
-					// Levels run left to right, so edges leave a node on its right and enter on its left.
-					sourcePosition: Position.Right,
+					// Levels run left to right, so edges leave a node on its right and enter on its left;
+					// an agent stands under its task, so its edge leaves from its top.
+					sourcePosition:
+						n.data.kind === "agent" ? Position.Top : Position.Right,
 					targetPosition: Position.Left,
 					data: { label: labelOf(n.data) },
 					style: nodeStyle(n.data),

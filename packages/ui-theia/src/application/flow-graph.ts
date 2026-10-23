@@ -8,8 +8,9 @@ import {
 
 // The Flow view's graph (docs/13, Team panel; ADR-051): the run's tasks as nodes and dependsOn as
 // edges, laid out in levels: a task sits one level after the deepest task it waits for, and the
-// tasks of a level stack in their order. Agents stand in a column before the tasks, each with an
-// edge to the task it works on. React Flow does no layout, and a layout library is not in docs/05,
+// tasks of a level stack in their order. Each agent stands under the task it works on, with an edge
+// to it, so the graph grows with the tasks and not with the agents (a review opens an agent of its
+// own). React Flow does no layout, and a layout library is not in docs/05,
 // so this is small own code.
 
 const LEVEL_WIDTH = 260;
@@ -67,12 +68,20 @@ const levelsOf = (tasks: readonly TaskCard[]) => {
 const stepOf = ({ progress, total }: NonNullable<AgentCard["progress"]>) =>
 	total === undefined ? `${progress}` : `${progress}/${total}`;
 
-// Agent ids get a prefix, so an agent never takes the node of a task with the same id.
-const agentNodes = (agents: readonly AgentCard[], ids: Set<string>) => ({
-	nodes: agents.map(
-		(a, row): FlowNode => ({
+// Agent ids get a prefix, so an agent never takes the node of a task with the same id. An agent
+// stands under its task, in that level's next free row; one without a known task under level 0.
+const agentNodes = (
+	agents: readonly AgentCard[],
+	levels: ReadonlyMap<string, number>,
+	rows: Map<number, number>,
+) => ({
+	nodes: agents.map((a): FlowNode => {
+		const level = (a.taskId && levels.get(a.taskId)) || 0;
+		const row = rows.get(level) ?? 0;
+		rows.set(level, row + 1);
+		return {
 			id: `agent:${a.id}`,
-			position: { x: -LEVEL_WIDTH, y: row * ROW_HEIGHT },
+			position: { x: level * LEVEL_WIDTH, y: row * ROW_HEIGHT },
 			data: {
 				kind: "agent",
 				roleId: a.roleId,
@@ -80,10 +89,10 @@ const agentNodes = (agents: readonly AgentCard[], ids: Set<string>) => ({
 				thinking: a.thinking,
 				...(a.progress ? { progress: stepOf(a.progress) } : {}),
 			},
-		}),
-	),
+		};
+	}),
 	edges: agents.flatMap((a): FlowEdge[] =>
-		a.taskId !== undefined && ids.has(a.taskId)
+		a.taskId !== undefined && levels.has(a.taskId)
 			? [
 					{
 						id: `agent:${a.id}>${a.taskId}`,
@@ -122,7 +131,7 @@ export const flowGraph = (
 			.filter((d) => ids.has(d))
 			.map((d) => ({ id: `${d}>${t.id}`, source: d, target: t.id })),
 	);
-	const agents = agentNodes(view.agents, ids);
+	const agents = agentNodes(view.agents, levels, rows);
 	return {
 		nodes: [...nodes, ...agents.nodes],
 		edges: [...edges, ...agents.edges],
