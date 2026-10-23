@@ -1,0 +1,60 @@
+{
+	"mete": {
+		"category": "METE",
+		"home": {
+			"approve": "Approve",
+			"asOf": "As of {0}",
+			"caption": "METE: recent runs",
+			"created": "Created",
+			"goal": "Goal",
+			"loading": "Asking the METE daemon…",
+			"open": "Open home",
+			"recentRuns": "Recent runs",
+			"refresh": "Refresh",
+			"refreshCommand": "Refresh home",
+			"resume": "Resume",
+			"resumeHint": "Resume repeats the tool call the policy asked about, so the run stops again unless .mete/policy.yaml allows it.",
+			"revise": "Revise…",
+			"setKey": "Set provider key…",
+			"status": "Status",
+			"title": "METE",
+			"waiting": "Waiting for you"
+		},
+		"key": {
+			"hasKey": "key set",
+			"noKey": "no key",
+			"prompt": "API key for {0}",
+			"saved": "Key saved; METE restarted to use it.",
+			"set": "Set provider key",
+			"which": "Which provider's key?"
+		},
+		"run": {
+			"approve": "Approve run",
+			"approved": "Approved; the run goes on.",
+			"feedback": "What should change?",
+			"goal": "What should METE do in this folder?",
+			"noneWaiting": "No run waits for you.",
+			"pickTeam": "METE is not sure which team fits this goal; choose one",
+			"resume": "Resume run",
+			"resumed": "Resumed.",
+			"revise": "Revise run",
+			"revised": "Sent back with your feedback.",
+			"single": "Single agent",
+			"start": "Start run",
+			"started": "Run started: {0}",
+			"which": "Which run?"
+		},
+		"status": {
+			"blocked": "The METE daemon keeps stopping, so METE does not start it again for now: {0}",
+			"chooseTemplate": "Choose a team for this goal: {0}",
+			"label": "Status",
+			"noFolder": "Open a folder first: METE works on one folder at a time.",
+			"none": "No runs in this folder yet.",
+			"notReady": "METE is not ready yet: {0}",
+			"protocol": "The METE daemon sent an answer METE does not understand: {0}",
+			"refused": "The METE daemon refused the request: {0}",
+			"runs": "{0} run(s) in this folder: {1}",
+			"stopped": "The METE daemon stopped: {0}"
+		}
+	}
+}

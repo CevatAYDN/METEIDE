@@ -22,30 +22,24 @@ import { failureText, noFolderText, plain } from "./status-text.js";
 // The approvals inbox's actions (ADR-048), as palette commands so the keyboard reaches them; the
 // Home view's buttons run the same commands with the run id. Without one they ask which run.
 
-const command = (id: string, label: string, key: string): Command =>
-	Command.toLocalizedCommand(
-		{ id, category: "METE", label },
-		key,
-		"mete/category",
-	);
-
+// Written out one by one, so Theia's nls-extract can read each label and key.
 /** "METE: Approve run". */
-export const APPROVE_RUN_COMMAND = command(
-	"mete.run.approve",
-	"Approve run",
+export const APPROVE_RUN_COMMAND: Command = Command.toLocalizedCommand(
+	{ id: "mete.run.approve", category: "METE", label: "Approve run" },
 	"mete/run/approve",
+	"mete/category",
 );
 /** "METE: Revise run": sends the waiting task back with feedback. */
-export const REVISE_RUN_COMMAND = command(
-	"mete.run.revise",
-	"Revise run",
+export const REVISE_RUN_COMMAND: Command = Command.toLocalizedCommand(
+	{ id: "mete.run.revise", category: "METE", label: "Revise run" },
 	"mete/run/revise",
+	"mete/category",
 );
 /** "METE: Resume run". */
-export const RESUME_RUN_COMMAND = command(
-	"mete.run.resume",
-	"Resume run",
+export const RESUME_RUN_COMMAND: Command = Command.toLocalizedCommand(
+	{ id: "mete.run.resume", category: "METE", label: "Resume run" },
 	"mete/run/resume",
+	"mete/category",
 );
 
 type Target = { readonly dir: string; readonly runId: string };

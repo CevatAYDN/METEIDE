@@ -1,0 +1,60 @@
+{
+	"mete": {
+		"category": "METE",
+		"home": {
+			"approve": "Onayla",
+			"asOf": "{0} itibarıyla",
+			"caption": "METE: son çalıştırmalar",
+			"created": "Oluşturuldu",
+			"goal": "Hedef",
+			"loading": "METE daemon'una soruluyor…",
+			"open": "Ana sayfayı aç",
+			"recentRuns": "Son çalıştırmalar",
+			"refresh": "Yenile",
+			"refreshCommand": "Ana sayfayı yenile",
+			"resume": "Sürdür",
+			"resumeHint": "Sürdür, politikanın sorduğu araç çağrısını yineler; .mete/policy.yaml buna izin vermedikçe çalıştırma yeniden durur.",
+			"revise": "Düzeltme iste…",
+			"setKey": "Sağlayıcı anahtarı ayarla…",
+			"status": "Durum",
+			"title": "METE",
+			"waiting": "Seni bekleyenler"
+		},
+		"key": {
+			"hasKey": "anahtar var",
+			"noKey": "anahtar yok",
+			"prompt": "{0} için API anahtarı",
+			"saved": "Anahtar kaydedildi; METE onu kullanmak için yeniden başladı.",
+			"set": "Sağlayıcı anahtarı ayarla",
+			"which": "Hangi sağlayıcının anahtarı?"
+		},
+		"run": {
+			"approve": "Çalıştırmayı onayla",
+			"approved": "Onaylandı; çalıştırma devam ediyor.",
+			"feedback": "Neyin değişmesi gerekiyor?",
+			"goal": "METE bu klasörde ne yapsın?",
+			"noneWaiting": "Seni bekleyen çalıştırma yok.",
+			"pickTeam": "METE bu hedefe hangi ekibin uyduğundan emin değil; birini seç",
+			"resume": "Çalıştırmayı sürdür",
+			"resumed": "Sürdürüldü.",
+			"revise": "Düzeltme iste",
+			"revised": "Geri bildiriminle geri gönderildi.",
+			"single": "Tek ajan",
+			"start": "Çalıştırma başlat",
+			"started": "Çalıştırma başladı: {0}",
+			"which": "Hangi çalıştırma?"
+		},
+		"status": {
+			"blocked": "METE daemon'u durup duruyor, bu yüzden METE onu şimdilik yeniden başlatmıyor: {0}",
+			"chooseTemplate": "Bu hedef için bir ekip seç: {0}",
+			"label": "Durum",
+			"noFolder": "Önce bir klasör aç: METE aynı anda tek bir klasörde çalışır.",
+			"none": "Bu klasörde henüz çalıştırma yok.",
+			"notReady": "METE henüz hazır değil: {0}",
+			"protocol": "METE daemon'u METE'nin anlamadığı bir yanıt gönderdi: {0}",
+			"refused": "METE daemon'u isteği reddetti: {0}",
+			"runs": "Bu klasörde {0} çalıştırma: {1}",
+			"stopped": "METE daemon'u durdu: {0}"
+		}
+	}
+}
