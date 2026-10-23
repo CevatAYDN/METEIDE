@@ -6,7 +6,9 @@ export default defineConfig({
 		coverage: {
 			provider: "v8",
 			include: ["src/**"],
-			exclude: ["src/index.ts"],
+			// The PixiJS stage needs WebGL and a canvas, which Node lacks; it is checked in the window,
+			// like the Theia glue of ui-theia.
+			exclude: ["src/index.ts", "src/infrastructure/stage.ts"],
 			thresholds: { lines: 75, "src/domain/**": { lines: 90 } },
 		},
 	},

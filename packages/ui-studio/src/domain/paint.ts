@@ -1,229 +1,114 @@
-import { TOKENS, type TokenMode } from "@mete/ui-kit";
 import type { EffectColour } from "./effects.js";
 import { type Layout, layoutOf, type Point } from "./layout.js";
-import type { Character, CharacterState, Scene } from "./scene.js";
+import { EFFECT, STATE } from "./palette.js";
+import type { Primitive } from "./primitive.js";
+import {
+	board,
+	chair,
+	coffee,
+	desk,
+	type RoomLabels,
+	roomShell,
+} from "./room.js";
+import type { Character, Scene } from "./scene.js";
 
-// The studio room as primitives the stage draws (ADR-052: shapes before sprites, colours from the
-// design tokens): the wall board with its notes, the coffee corner with the agents waiting for
-// quota, and the desk rows. Pure, so the layout is tested without WebGL; the canvas text comes
-// localized from the caller.
-
-/** One thing to draw, in canvas pixels. */
-export type Primitive =
-	| {
-			readonly kind: "rect";
-			readonly x: number;
-			readonly y: number;
-			readonly w: number;
-			readonly h: number;
-			readonly fill: string;
-			readonly stroke?: string;
-	  }
-	| {
-			readonly kind: "circle";
-			readonly x: number;
-			readonly y: number;
-			readonly r: number;
-			readonly fill: string;
-	  }
-	| {
-			readonly kind: "text";
-			readonly x: number;
-			readonly y: number;
-			readonly text: string;
-			readonly fill: string;
-			readonly size: number;
-	  };
+// The studio room as primitives the stage draws, in the room's own space and the demo's colours
+// (ADR-070). The list is in drawing order: the room, then each desk's chair, character and desk, so
+// the desk hides a seated body, then the characters at the coffee corner, then the labels and marks
+// over everything. Pure, so the room is tested without WebGL; the canvas text comes localized.
 
 /** The words on the canvas, in the user's language. */
-export type StageLabels = {
-	readonly todo: string;
-	readonly inProgress: string;
-	readonly done: string;
-	readonly coffee: string;
+export type StageLabels = RoomLabels & {
 	/** The countdown under a waiting character, from its quota's reset time. */
 	readonly until: (resetsAt: string) => string;
 };
 
-type Colours = (typeof TOKENS)[TokenMode];
-
-const stateColour = (c: Colours): Record<CharacterState, string> => ({
-	idle: c.muted,
-	thinking: c.accent,
-	working: c.good,
-	waiting: c.warn,
+// shortcut: a character is a disc in its state's colour until the characters of the theme are drawn.
+const body = (ch: Character, { x, y }: Point): Primitive => ({
+	kind: "circle",
+	x,
+	y,
+	r: 16,
+	fill: STATE[ch.state],
 });
 
-const NOTE_COLOUR = (c: Colours) => ({
-	todo: c.chip,
-	in_progress: c.warn,
-	done: c.good,
-});
-
-const board = (
-	scene: Scene,
-	l: Layout,
-	c: Colours,
-	labels: StageLabels,
-): Primitive[] => {
-	const titles = {
-		todo: labels.todo,
-		in_progress: labels.inProgress,
-		done: labels.done,
-	};
-	const out: Primitive[] = [
-		{ kind: "rect", ...l.board, fill: c.panel, stroke: c.line },
-	];
-	for (const column of ["todo", "in_progress", "done"] as const) {
-		const at = l.columns[column];
-		const notes = scene.notes[column];
-		out.push({
-			kind: "text",
-			...at,
-			text: `${titles[column]} (${notes.length})`,
-			fill: c.ink,
-			size: 13,
-		});
-		for (const note of notes) {
-			const p = l.notes[note.id];
-			if (p)
-				out.push({
-					kind: "rect",
-					...p,
-					w: 18,
-					h: 18,
-					fill: NOTE_COLOUR(c)[column],
-				});
-		}
-	}
-	return out;
-};
-
-// What a character's state adds above or below it: a count badge, thinking dots, its tool, its countdown.
-const marks = (
-	ch: Character,
-	{ x, y }: Point,
-	c: Colours,
-	until?: string,
-): Primitive[] => {
-	const out: Primitive[] = [];
-	if (ch.count > 1) {
-		out.push({ kind: "circle", x: x + 16, y: y - 14, r: 9, fill: c.accent });
-		out.push({
-			kind: "text",
-			x: x + 12,
-			y: y - 21,
-			text: String(ch.count),
-			fill: c.panel,
-			size: 11,
-		});
-	}
-	if (ch.state === "thinking")
-		for (const dx of [-8, 0, 8])
-			out.push({
-				kind: "circle",
-				x: x + dx,
-				y: y - 26,
-				r: 2.5,
-				fill: c.accent,
-			});
-	if (ch.state === "working" && ch.tool)
-		out.push({
-			kind: "text",
-			x: x - 52,
-			y: y + 44,
-			text: ch.tool,
-			fill: c.muted,
-			size: 11,
-		});
-	if (ch.state === "waiting" && until)
-		out.push({
-			kind: "text",
-			x: x - 22,
-			y: y + 52,
-			text: until,
-			fill: c.muted,
-			size: 10,
-		});
-	return out;
-};
-
-const person = (
-	ch: Character,
-	at: Point,
-	c: Colours,
-	until?: string,
-): Primitive[] => [
-	{ kind: "circle", x: at.x, y: at.y, r: 16, fill: stateColour(c)[ch.state] },
-	// Inside the desk below the character, clear of the desk's top edge.
-	{
-		kind: "text",
-		x: at.x - 40,
-		y: at.y + 30,
-		text: ch.roleId,
-		fill: c.ink,
+// What a character's state adds over the room: its name, a count badge, thinking dots, its tool,
+// its countdown.
+const marks = (ch: Character, { x, y }: Point, until?: string): Primitive[] => {
+	const pill = (dy: number, text: string): Primitive => ({
+		kind: "label",
+		x,
+		y: y + dy,
+		text,
+		fill: STATE.label,
+		ink: STATE.ink,
 		size: 12,
-	},
-	...marks(ch, at, c, until),
-];
+		maxWidth: 140,
+	});
+	return [
+		pill(-41, ch.roleId),
+		...(ch.count > 1
+			? [
+					{
+						kind: "label",
+						x: x + 22,
+						y: y - 22,
+						text: String(ch.count),
+						fill: STATE.thinking,
+						ink: "#ffffff",
+						size: 11,
+					} as const,
+				]
+			: []),
+		...(ch.state === "thinking"
+			? [-8, 0, 8].map(
+					(dx): Primitive => ({
+						kind: "circle",
+						x: x + 30 + dx,
+						y: y - 14,
+						r: 2.5,
+						fill: STATE.thinking,
+					}),
+				)
+			: []),
+		...(ch.state === "working" && ch.tool ? [pill(-62, ch.tool)] : []),
+		...(ch.state === "waiting" && until ? [pill(66, until)] : []),
+	];
+};
 
-const people = (
-	scene: Scene,
-	l: Layout,
-	c: Colours,
-	labels: StageLabels,
-): Primitive[] =>
+const seated = (scene: Scene, l: Layout): Primitive[] =>
+	l.desks.flatMap((d) => {
+		const x = d.x + d.w / 2;
+		const y = d.y + 30;
+		const ch = scene.rows.flat().find((c) => c.id === d.id);
+		const head = l.heads[d.id];
+		const person = ch && head && ch.state !== "waiting" ? [body(ch, head)] : [];
+		return [...chair(x, y), ...person, ...desk(x, y)];
+	});
+
+const overlay = (scene: Scene, l: Layout, labels: StageLabels): Primitive[] =>
 	scene.rows.flat().flatMap((ch) => {
 		const head = l.heads[ch.id];
 		if (!head) return [];
-		return person(
-			ch,
-			head,
-			c,
-			ch.resetsAt ? labels.until(ch.resetsAt) : undefined,
-		);
+		return marks(ch, head, ch.resetsAt ? labels.until(ch.resetsAt) : undefined);
 	});
 
-/** The token colour of each effect colour, in the colours of `mode`. */
-export const effectColours = (
-	mode: TokenMode,
-): Record<EffectColour, string> => {
-	const c = TOKENS[mode];
-	return { good: c.good, accent: c.accent, warn: c.warn, bad: c.bad };
-};
+/** The colour of each effect, the demo's. */
+export const EFFECT_COLOURS: Readonly<Record<EffectColour, string>> = EFFECT;
 
-/** The primitives of the room, for a canvas of `width` pixels in the colours of `mode`. */
-export const paintScene = (
-	scene: Scene,
-	mode: TokenMode,
-	width: number,
-	labels: StageLabels,
-): Primitive[] => {
-	const c = TOKENS[mode];
-	const l = layoutOf(scene, width);
+/** The primitives of the room, in drawing order; the first is the floor, as wide and tall as the room. */
+export const paintScene = (scene: Scene, labels: StageLabels): Primitive[] => {
+	const l = layoutOf(scene);
+	const waiting = scene.rows.flat().filter((ch) => ch.state === "waiting");
 	return [
-		{ kind: "rect", x: 0, y: 0, w: width, h: l.height, fill: c.bg },
-		...board(scene, l, c, labels),
-		{ kind: "rect", ...l.coffee, fill: c.chip, stroke: c.line },
-		{
-			kind: "text",
-			x: l.coffee.x + 8,
-			y: l.coffee.y + 8,
-			text: labels.coffee,
-			fill: c.ink,
-			size: 13,
-		},
-		...l.desks.map(
-			(d): Primitive => ({
-				kind: "rect",
-				x: d.x,
-				y: d.y,
-				w: d.w,
-				h: d.h,
-				fill: c.panel,
-				stroke: c.line,
-			}),
-		),
-		...people(scene, l, c, labels),
+		...roomShell(l),
+		...board(scene, l, labels),
+		...coffee(labels),
+		...seated(scene, l),
+		...waiting.flatMap((ch) => {
+			const head = l.heads[ch.id];
+			return head ? [body(ch, head)] : [];
+		}),
+		...overlay(scene, l, labels),
 	];
 };

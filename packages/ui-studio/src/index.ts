@@ -1,4 +1,6 @@
 // Public API of this package: the run view model the Team panel's views share (ADR-051).
+
+export { ROOM_W } from "./defaults.js";
 export { type AgentCard, agentsAfter } from "./domain/agents.js";
 export {
 	type Effect,
@@ -14,11 +16,11 @@ export {
 	type Point,
 } from "./domain/layout.js";
 export {
-	effectColours,
-	type Primitive,
+	EFFECT_COLOURS,
 	paintScene,
 	type StageLabels,
 } from "./domain/paint.js";
+export type { Primitive } from "./domain/primitive.js";
 export {
 	type Character,
 	type CharacterState,

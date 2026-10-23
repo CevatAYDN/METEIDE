@@ -3,7 +3,6 @@ import { ThemeService } from "@theia/core/lib/browser/theming";
 import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { nls } from "@theia/core/lib/common/nls";
-import { getThemeMode } from "@theia/core/lib/common/theme";
 import type { Message } from "@theia/core/shared/@lumino/messaging";
 import {
 	inject,
@@ -105,7 +104,6 @@ export class MeteBoardWidget extends ReactWidget {
 						studio: (view, pulse) => (
 							<StudioView
 								view={view}
-								mode={getThemeMode(this.themes.getCurrentTheme().type)}
 								active={this.shown}
 								onCoffee={() =>
 									void this.commands.executeCommand(OPEN_QUOTA_COMMAND.id)

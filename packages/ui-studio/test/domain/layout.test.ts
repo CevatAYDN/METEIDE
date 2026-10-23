@@ -21,20 +21,38 @@ const scene = (rows: Character[][], todo: string[] = []): Scene => ({
 
 describe("the room's layout", () => {
 	it("gives every character a desk and a head, and a waiting one its head in the coffee corner", () => {
-		const l = layoutOf(scene([[ch("a"), ch("b", "waiting")]]), 900);
+		const l = layoutOf(scene([[ch("a"), ch("b", "waiting")]]));
 		expect(l.desks.map((d) => d.id)).toEqual(["a", "b"]);
-		const coffee = l.coffee;
 		const b = l.heads.b;
-		expect(b && b.x >= coffee.x && b.x <= coffee.x + coffee.w).toBe(true);
+		expect(b && b.x >= l.coffee.x && b.x <= l.coffee.x + 2 * l.coffee.w).toBe(
+			true,
+		);
 		const a = l.heads.a;
 		const desk = l.desks[0];
-		expect(a && desk && a.x === desk.x + desk.w / 2).toBe(true);
+		// A seated head sits behind its desk, right of the monitor.
+		expect(a && desk && a.x > desk.x + desk.w / 2 && a.y < desk.y).toBe(true);
 	});
 
-	it("anchors the first five notes of a column by task id, left to right", () => {
-		const l = layoutOf(scene([], ["n1", "n2", "n3", "n4", "n5", "n6"]), 900);
-		expect(Object.keys(l.notes)).toEqual(["n1", "n2", "n3", "n4", "n5"]);
-		expect((l.notes.n2?.x ?? 0) > (l.notes.n1?.x ?? 0)).toBe(true);
+	it("spreads a row's desks across the room's own width, 1280 wide like the demo", () => {
+		const l = layoutOf(scene([[ch("a"), ch("b"), ch("c")]]));
+		expect(l.width).toBe(1280);
+		const centres = l.desks.map((d) => d.x + d.w / 2);
+		expect(centres.map(Math.round)).toEqual([213, 640, 1067]);
+	});
+
+	it("keeps the wall and one row of floor for a team with no agent yet, and grows with its rows", () => {
+		const empty = layoutOf(scene([]));
+		const two = layoutOf(scene([[ch("a")], [ch("b")]]));
+		expect(empty.height).toBeGreaterThan(empty.wall + 200);
+		// Two rows make the demo's 16:9 room.
+		expect(two.height).toBe(720);
+	});
+
+	it("anchors three notes a column, top to bottom, and counts the rest for a badge", () => {
+		const l = layoutOf(scene([], ["n1", "n2", "n3", "n4", "n5"]));
+		expect(Object.keys(l.notes)).toEqual(["n1", "n2", "n3"]);
+		expect((l.notes.n2?.y ?? 0) > (l.notes.n1?.y ?? 0)).toBe(true);
+		expect(l.hidden).toEqual({ todo: 2, in_progress: 0, done: 0 });
 		expect(l.columns.todo.x).toBeLessThan(l.columns.done.x);
 	});
 });

@@ -423,9 +423,6 @@ importers:
       '@mete/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@mete/ui-kit':
-        specifier: workspace:*
-        version: link:../ui-kit
       '@tweenjs/tween.js':
         specifier: 25.0.0
         version: 25.0.0

@@ -1,11 +1,12 @@
 import type { MeteEvent } from "@mete/contracts";
 import {
 	createStage,
-	effectColours,
+	EFFECT_COLOURS,
 	effectsOf,
 	inside,
 	layoutOf,
 	paintScene,
+	ROOM_W,
 	type Stage,
 	type StageLabels,
 	sceneOf,
@@ -14,12 +15,10 @@ import {
 import { nls } from "@theia/core/lib/common/nls";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-/** The token mode the room is painted in: light or dark. */
-type TokenMode = Parameters<typeof paintScene>[1];
-
-// The Studio view of the Team panel (docs/13; ADR-052): the room of @mete/ui-studio on a canvas.
-// The canvas follows its box's width (Theia's panels resize without a window resize) and the
-// room's height; it is drawn again when the run, the width or the theme mode changes.
+// The Studio view of the Team panel (docs/13; ADR-052, ADR-070): the room of @mete/ui-studio on a
+// canvas, in the demo's own colours. The canvas follows its box's width (Theia's panels resize
+// without a window resize), the stage scaling the room to it; it is drawn again when the run or the
+// width changes.
 
 const labels = (): StageLabels => ({
 	todo: nls.localize("mete/board/todo", "To do"),
@@ -78,19 +77,19 @@ type Pulse = { readonly event: MeteEvent; readonly before: TeamView };
 const useEffects = (stage: Stage | undefined, props: Props, width: number) => {
 	// The pulse present at mount is past: only one that arrives afterwards plays (live events only).
 	const played = useRef<Pulse | undefined>(props.pulse);
-	const { pulse, view, mode, active } = props;
+	const { pulse, view, active } = props;
 	useEffect(() => {
 		if (!stage || !pulse || width === 0 || played.current === pulse) return;
 		played.current = pulse;
 		const frame = (v: TeamView) => {
 			const scene = sceneOf(v);
-			return { view: v, layout: layoutOf(scene, width) };
+			return { view: v, layout: layoutOf(scene) };
 		};
 		stage.play(
 			effectsOf(pulse.event, frame(pulse.before), frame(view)),
-			effectColours(mode),
+			EFFECT_COLOURS,
 		);
-	}, [stage, pulse, view, mode, width]);
+	}, [stage, pulse, view, width]);
 	useEffect(() => {
 		if (active) stage?.resume();
 		else stage?.pause();
@@ -99,7 +98,6 @@ const useEffects = (stage: Stage | undefined, props: Props, width: number) => {
 
 type Props = {
 	readonly view: TeamView;
-	readonly mode: TokenMode;
 	readonly pulse?: Pulse;
 	/** False while the panel is hidden: the stage stops. */
 	readonly active: boolean;
@@ -107,16 +105,16 @@ type Props = {
 	readonly onCoffee?: () => void;
 };
 
-/** The run's studio room, in the colours of the editor's theme mode, with its live effects. */
+/** The run's studio room, with its live effects. */
 export const StudioView = (props: Props) => {
-	const { view, mode } = props;
+	const { view } = props;
 	const box = useRef<HTMLDivElement>(null);
 	const canvas = useRef<HTMLCanvasElement>(null);
 	const width = useWidth(box);
 	const stage = useStage(canvas);
 	const primitives = useMemo(
-		() => (width > 0 ? paintScene(sceneOf(view), mode, width, labels()) : []),
-		[view, mode, width],
+		() => (width > 0 ? paintScene(sceneOf(view), labels()) : []),
+		[view, width],
 	);
 	useEffect(() => {
 		const room = primitives[0];
@@ -125,15 +123,17 @@ export const StudioView = (props: Props) => {
 		stage.draw(primitives);
 	}, [stage, primitives, width]);
 	useEffects(stage, props, width);
-	// The canvas is as wide as the room, so a click's offset is a point of the layout.
+	// A click's offset, scaled back to the room's own space, is a point of the layout.
 	// shortcut: notes and characters take no click yet (no task view, and the character card needs
 	// tier and request count the fold does not carry); the palette opens the dashboard by keyboard.
-	const coffee = useMemo(
-		() => layoutOf(sceneOf(view), width).coffee,
-		[view, width],
-	);
-	const onCoffee = (e: React.MouseEvent) =>
-		inside(coffee, { x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY });
+	const coffee = useMemo(() => layoutOf(sceneOf(view)).coffee, [view]);
+	const onCoffee = (e: React.MouseEvent) => {
+		const scale = ROOM_W / width;
+		return inside(coffee, {
+			x: e.nativeEvent.offsetX * scale,
+			y: e.nativeEvent.offsetY * scale,
+		});
+	};
 	return (
 		<div ref={box} style={{ width: "100%" }}>
 			<canvas

@@ -1,13 +1,10 @@
-import { TOKENS } from "@mete/ui-kit";
 import { describe, expect, it } from "vitest";
-import {
-	effectColours,
-	type Primitive,
-	paintScene,
-} from "../../src/domain/paint.js";
+import { paintScene } from "../../src/domain/paint.js";
+import { DESK, STATE } from "../../src/domain/palette.js";
+import type { Primitive } from "../../src/domain/primitive.js";
 import type { Character, Scene } from "../../src/domain/scene.js";
 
-// The room's primitives for scenes written by hand: what is drawn where, and in which colours.
+// The room's primitives for scenes written by hand: what is drawn where, in which order and colour.
 
 const labels = {
 	todo: "To do",
@@ -41,34 +38,48 @@ const scene = (
 		},
 	};
 };
-const texts = (p: Primitive[]) =>
-	p.flatMap((x) => (x.kind === "text" ? [x.text] : []));
-const circles = (p: Primitive[]) => p.filter((x) => x.kind === "circle");
+const words = (p: Primitive[]) =>
+	p.flatMap((x) => (x.kind === "text" || x.kind === "label" ? [x.text] : []));
+const bodies = (p: Primitive[]) =>
+	p.flatMap((x) => (x.kind === "circle" && x.r === 16 ? [x] : []));
 
 describe("the room's primitives", () => {
-	it("paints the background and the board in the theme's colours, with each column's count", () => {
-		const s = scene([], { todo: ["a", "b"], done: ["c"] });
-		const light = paintScene(s, "light", 900, labels);
-		const dark = paintScene(s, "dark", 900, labels);
-		expect(light[0]).toMatchObject({
-			kind: "rect",
-			x: 0,
-			y: 0,
-			w: 900,
-			fill: TOKENS.light.bg,
-		});
-		expect(dark[0]).toMatchObject({ fill: TOKENS.dark.bg });
-		expect(texts(light)).toEqual(
-			expect.arrayContaining([
-				"To do (2)",
-				"In progress (0)",
-				"Done (1)",
-				"Coffee",
-			]),
+	it("starts with the floor, as wide and tall as the room, and writes the board's columns, a badge for hidden notes and the coffee sign", () => {
+		const s = scene([], { todo: ["a", "b", "c", "d"], done: ["e"] });
+		const p = paintScene(s, labels);
+		expect(p[0]).toMatchObject({ kind: "rect", x: 0, y: 0, w: 1280, h: 490 });
+		expect(words(p)).toEqual(
+			expect.arrayContaining(["To do", "In progress", "Done", "Coffee", "+1"]),
+		);
+		expect(words(p)).not.toContain("d");
+	});
+
+	it("keeps a note's colour when its task moves to another column", () => {
+		const fill = (p: Primitive[]) =>
+			p.find(
+				(x) =>
+					x.kind === "rect" &&
+					x.w === 104 &&
+					x.r === 3 &&
+					!x.fill.startsWith("rgba"),
+			);
+		const before = fill(paintScene(scene([], { todo: ["t1"] }), labels));
+		const after = fill(paintScene(scene([], { done: ["t1"] }), labels));
+		expect(before?.kind === "rect" && before.fill).toBe(
+			after?.kind === "rect" && after.fill,
 		);
 	});
 
-	it("colours each character by its state, with thinking dots, a tool label and a count badge", () => {
+	it("draws a seated character between its chair and its desk, so the desk hides its body", () => {
+		const p = paintScene(scene([[ch("dev", "idle")]]), labels);
+		const at = (fill: string) =>
+			p.findIndex((x) => "fill" in x && x.fill === fill);
+		const body = p.indexOf(bodies(p)[0] as Primitive);
+		expect(at(DESK.chair)).toBeLessThan(body);
+		expect(body).toBeLessThan(at(DESK.top));
+	});
+
+	it("colours each character by its state, with its name, thinking dots, its tool and a count badge", () => {
 		const s = scene([
 			[
 				ch("idle", "idle"),
@@ -77,19 +88,16 @@ describe("the room's primitives", () => {
 			],
 			[ch("crowd", "idle", { count: 4 })],
 		]);
-		const p = paintScene(s, "light", 900, labels);
-		const big = circles(p).filter((x) => x.kind === "circle" && x.r === 16);
-		expect(big.map((x) => x.kind === "circle" && x.fill)).toEqual([
-			TOKENS.light.muted,
-			TOKENS.light.accent,
-			TOKENS.light.good,
-			TOKENS.light.muted,
+		const p = paintScene(s, labels);
+		expect(bodies(p).map((x) => x.kind === "circle" && x.fill)).toEqual([
+			STATE.idle,
+			STATE.thinking,
+			STATE.working,
+			STATE.idle,
 		]);
-		expect(
-			circles(p).filter((x) => x.kind === "circle" && x.r === 2.5),
-		).toHaveLength(3);
-		expect(texts(p)).toEqual(
-			expect.arrayContaining(["fs.read@1", "4", "crowd"]),
+		expect(p.filter((x) => x.kind === "circle" && x.r === 2.5)).toHaveLength(3);
+		expect(words(p)).toEqual(
+			expect.arrayContaining(["idle", "fs.read@1", "4", "crowd"]),
 		);
 	});
 
@@ -97,35 +105,14 @@ describe("the room's primitives", () => {
 		const s = scene([
 			[ch("artist", "waiting", { resetsAt: "2026-10-24T09:30:00.000Z" })],
 		]);
-		const p = paintScene(s, "dark", 900, labels);
-		const person = circles(p).find((x) => x.kind === "circle" && x.r === 16);
-		expect(person && person.kind === "circle" && person.x).toBeGreaterThan(
-			900 - 170 - 16,
+		const p = paintScene(s, labels);
+		const [person] = bodies(p);
+		expect(person?.kind === "circle" && person.x).toBeGreaterThan(800);
+		expect(person?.kind === "circle" && person.fill).toBe(STATE.waiting);
+		// After the last desk: nothing at the desk hides it.
+		expect(p.indexOf(person as Primitive)).toBeGreaterThan(
+			p.findLastIndex((x) => "fill" in x && x.fill === DESK.top),
 		);
-		expect(person && person.kind === "circle" && person.fill).toBe(
-			TOKENS.dark.warn,
-		);
-		expect(texts(p)).toContain("until 09:30");
-	});
-
-	it("gives each effect colour its token in the theme's mode", () => {
-		expect(effectColours("dark")).toEqual({
-			good: TOKENS.dark.good,
-			accent: TOKENS.dark.accent,
-			warn: TOKENS.dark.warn,
-			bad: TOKENS.dark.bad,
-		});
-	});
-
-	it("grows the room with its rows", () => {
-		const one = paintScene(scene([[ch("a", "idle")]]), "light", 900, labels);
-		const two = paintScene(
-			scene([[ch("a", "idle")], [ch("b", "idle")]]),
-			"light",
-			900,
-			labels,
-		);
-		const h = (p: Primitive[]) => (p[0]?.kind === "rect" ? p[0].h : 0);
-		expect(h(two)).toBeGreaterThan(h(one));
+		expect(words(p)).toContain("until 09:30");
 	});
 });

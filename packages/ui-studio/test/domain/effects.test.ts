@@ -39,7 +39,7 @@ const event = (
 
 const frame = (view: TeamView): Frame => ({
 	view,
-	layout: layoutOf(sceneOf(view), 900),
+	layout: layoutOf(sceneOf(view)),
 });
 
 // Applies `e` to `view` and returns its effects.
