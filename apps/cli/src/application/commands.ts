@@ -18,6 +18,7 @@ import {
 } from "../domain/format.js";
 import { type App, engineOf, notReadyLines } from "../infrastructure/app.js";
 import { runHistory } from "../infrastructure/history.js";
+import { noteStart } from "./run-hints.js";
 
 // The mete commands (ARCHITECTURE.md, CLI). Each returns the process exit code.
 
@@ -207,6 +208,7 @@ export const runCommand = (app: App, io: Io, what: RunWhat) =>
 		const seen = target ? runHistory(app.registry, target) : undefined;
 		const titles = namesOf(seen?.events ?? []).titles;
 		const run = follow(app.events, io, target, titles);
+		if ("goal" in what) noteStart(app, io);
 		const r = await begin(engine, what);
 		if (!r.ok) return refused(io, r.error);
 		noteLevelThree(io, app.registry, engine, run.runId());
