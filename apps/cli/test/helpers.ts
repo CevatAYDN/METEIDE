@@ -113,12 +113,23 @@ export type Behaviour =
 	| { noModels: true }
 	| { hang: true };
 
+/** The provider's id (default fake), its request limit (default 20) and whether it is a daily one. */
+export type FakeShape = {
+	readonly id?: string;
+	readonly limit?: number;
+	readonly daily?: boolean;
+};
+
 /** A provider module behind the gateway that answers from a script; no network. */
-export const scriptedProvider = (b: Behaviour): MeteModule => {
+export const scriptedProvider = (
+	b: Behaviour,
+	shape: FakeShape = {},
+): MeteModule => {
+	const id = shape.id ?? "fake";
 	let calls = 0;
 	const model = {
 		id: "coder-1",
-		providerId: "fake",
+		providerId: id,
 		family: "fake",
 		contextWindow: 64_000,
 		toolCalling: true,
@@ -127,7 +138,7 @@ export const scriptedProvider = (b: Behaviour): MeteModule => {
 		deprecated: false,
 	};
 	const adapter: ProviderAdapter = {
-		id: "fake",
+		id,
 		format: "openai-chat",
 		listModels: async () => ok("noModels" in b ? [] : [model]),
 		async *chat(req, signal) {
@@ -143,22 +154,22 @@ export const scriptedProvider = (b: Behaviour): MeteModule => {
 		},
 		quotaUnits: () => [
 			{
-				providerId: "fake",
-				unit: "requests_per_minute",
-				limit: 20,
+				providerId: id,
+				unit: shape.daily ? "requests_per_day" : "requests_per_minute",
 				scope: "account",
-				reset: "sliding",
+				limit: shape.limit ?? 20,
+				reset: shape.daily ? "fixed_daily" : "sliding",
 			},
 		],
 		observe: () => [],
 		privacy: () => ({ trains: false, logs: false, publishes: false }),
 	};
 	return {
-		manifest: MANIFEST,
+		manifest: { ...MANIFEST, id: `provider-${id}` },
 		async activate(ctx) {
 			ctx.disposables.add(
 				ctx.capabilities.provide("provider.chat@2", {
-					id: "fake",
+					id,
 					trust: "first-party",
 					features: [],
 					impl: adapter,

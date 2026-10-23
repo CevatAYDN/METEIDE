@@ -18,7 +18,7 @@ import {
 } from "../domain/format.js";
 import { type App, engineOf, notReadyLines } from "../infrastructure/app.js";
 import { runHistory } from "../infrastructure/history.js";
-import { noteStart } from "./run-hints.js";
+import { hintAt, noteStart, watchQuotaPause } from "./run-hints.js";
 
 // The mete commands (ARCHITECTURE.md, CLI). Each returns the process exit code.
 
@@ -63,20 +63,6 @@ const show = (f: Followed, io: Io, e: MeteEvent) => {
 	const end = endOf(e);
 	if (end) f.done(end);
 };
-
-const hintAt = (io: Io, e: MeteEvent) => {
-	if (e.type !== "run.paused") return;
-	if (e.payload.reason === "quota") io.err(QUOTA_HINT);
-	if (e.payload.reason === "network") io.err(NETWORK_HINT);
-};
-
-// A network pause tries again by itself (docs/08, Single agent, Pauses).
-const NETWORK_HINT =
-	"The run waits for the network and tries again on its own; Ctrl+C stops it.";
-
-// A quota pause waits for the reset; paid models can carry on meanwhile (ADR-042).
-const QUOTA_HINT =
-	"The run waits for the quota reset. To go on with paid models when the free ones run out, set models: both in .mete/gateway.yaml (spending is capped by dailySpendUsd, 1 US dollar a day by default).";
 
 const FOLLOWED = [
 	"run.*",
@@ -211,10 +197,12 @@ export const runCommand = (app: App, io: Io, what: RunWhat) =>
 		if ("goal" in what) noteStart(app, io);
 		const r = await begin(engine, what);
 		if (!r.ok) return refused(io, r.error);
+		const stopHints = watchQuotaPause(app, io, run.runId);
 		noteLevelThree(io, app.registry, engine, run.runId());
 		const stopWatching = cancelOnInterrupt(io, engine, run.runId);
 		const status = await run.ended;
 		stopWatching();
+		stopHints();
 		const runId = run.runId();
 		const view = runId ? engine.status(runId) : undefined;
 		const team = view?.ok === true && view.value[0]?.templateId != null;

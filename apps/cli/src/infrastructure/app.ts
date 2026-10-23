@@ -8,7 +8,7 @@ import type {
 } from "@mete/contracts";
 import { err, ok } from "@mete/contracts";
 import { createCoreEngineModule } from "@mete/core";
-import { createGatewayModule } from "@mete/gateway";
+import { createGatewayModule, type GatewayModule } from "@mete/gateway";
 import {
 	type CapabilityRegistry,
 	type ConfigInvalid,
@@ -101,6 +101,10 @@ export type App = {
 	readonly modules: readonly MeteModule[];
 	/** Modules that failed to activate, such as a provider without its key, with the reason. */
 	readonly inactive: readonly { moduleId: string; reason: string }[];
+	/** The keychain the providers read; the pause hints check whether a provider has a key. */
+	readonly secrets: SecretStore;
+	/** The models the gateway may use after the privacy rules, from its cached listing. */
+	readonly models: GatewayModule["models"];
 	readonly stop: () => Promise<void>;
 };
 
@@ -129,6 +133,7 @@ const modulesFor = (
 	opts: AppOptions,
 	workspaceId: string,
 	registry: CapabilityRegistry,
+	gateway: GatewayModule,
 ): MeteModule[] => {
 	const dirs = { workspaceDir: opts.workspaceDir, globalDir: opts.globalDir };
 	return [
@@ -143,7 +148,7 @@ const modulesFor = (
 			createGoogleModule(),
 			createCustomModule(),
 		]),
-		createGatewayModule(),
+		gateway,
 		createToolsFsModule(dirs),
 		createToolsShellModule(dirs),
 		createVcsGitModule(dirs),
@@ -225,7 +230,8 @@ export const createApp = async (
 		contextFor,
 		logger: opts.logger,
 	});
-	const modules = modulesFor(opts, workspaceId, registry);
+	const gateway = createGatewayModule();
+	const modules = modulesFor(opts, workspaceId, registry, gateway);
 	for (const m of modules) await lifecycle.register(m);
 	await lifecycle.start();
 	await lifecycle.openWorkspace();
@@ -235,6 +241,8 @@ export const createApp = async (
 		lifecycle,
 		modules,
 		inactive,
+		secrets,
+		models: gateway.models,
 		stop: lifecycle.stop,
 	});
 };
