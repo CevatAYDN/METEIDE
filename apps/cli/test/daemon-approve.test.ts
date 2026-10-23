@@ -6,6 +6,7 @@ import {
 	DAEMON_ERROR_CODE,
 	DAEMON_METHODS,
 	DaemonErrorDataSchema,
+	DaemonEventsResultSchema,
 	DaemonRunStartResultSchema,
 } from "@mete/contracts";
 import { afterEach, describe, expect, it } from "vitest";
@@ -94,6 +95,7 @@ describe("mete daemon approvals", () => {
 			new StreamMessageWriter(toDaemon),
 		);
 		const types: string[] = [];
+		const got: { id: string; runId?: string }[] = [];
 		let waiting: () => void = () => {};
 		let completed: () => void = () => {};
 		const asked = new Promise<void>((r) => {
@@ -102,11 +104,15 @@ describe("mete daemon approvals", () => {
 		const done = new Promise<void>((r) => {
 			completed = r;
 		});
-		c.onNotification(DAEMON_METHODS.event, (e: { type: string }) => {
-			types.push(e.type);
-			if (e.type === "approval.requested") waiting();
-			if (e.type === "run.completed") completed();
-		});
+		c.onNotification(
+			DAEMON_METHODS.event,
+			(e: { id: string; type: string; runId?: string }) => {
+				got.push(e);
+				types.push(e.type);
+				if (e.type === "approval.requested") waiting();
+				if (e.type === "run.completed") completed();
+			},
+		);
 		c.listen();
 
 		const { runId } = DaemonRunStartResultSchema.parse(
@@ -134,6 +140,22 @@ describe("mete daemon approvals", () => {
 		expect(types).toEqual(
 			expect.arrayContaining(["approval.requested", "approval.resolved"]),
 		);
+
+		// The history is what the client saw live, in the same order (ADR-051); the forwarder also
+		// sends events of no run, so only this run's count.
+		const history = DaemonEventsResultSchema.parse(
+			await c.sendRequest(DAEMON_METHODS.events, { runId }),
+		);
+		expect(history.unreadable).toBe(0);
+		const live = got.filter((e) => e.runId === runId).map((e) => e.id);
+		expect(history.events.map((e) => e.id)).toEqual(
+			live.slice(0, history.events.length),
+		);
+		expect(history.events.map((e) => e.type)).toContain("run.completed");
+		const unknown = await failure(
+			c.sendRequest(DAEMON_METHODS.events, { runId: crypto.randomUUID() }),
+		);
+		expect(DaemonErrorDataSchema.parse(unknown.data).code).toBe("not_found");
 
 		const late = await failure(
 			c.sendRequest(DAEMON_METHODS.runResume, { runId }),

@@ -20,10 +20,11 @@ import {
 	StreamMessageWriter,
 } from "vscode-jsonrpc/node";
 import { type App, engineOf, notReadyLines } from "../infrastructure/app.js";
+import { runHistory } from "../infrastructure/history.js";
 import type { Io } from "./commands.js";
 import { providerStates, trackExhausted } from "./provider-states.js";
 
-// `mete daemon`: protocol version 5 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-050).
+// `mete daemon`: protocol version 6 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-051).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
@@ -97,6 +98,22 @@ const serveApproveAndResume = (conn: MessageConnection, app: App) => {
 	});
 };
 
+// A run's persisted events for the team panel (ADR-051): the engine answers not_found for a run it
+// does not know, as for mete/status; rows that no longer parse are counted, never dropped silently.
+const serveEvents = (conn: MessageConnection, app: App) =>
+	conn.onRequest(DAEMON_METHODS.events, (params: unknown) => {
+		const p = parsed(DaemonRunIdParamsSchema.safeParse(params ?? {}));
+		const r = readyEngine(app).status(p.runId);
+		if (!r.ok) throw refused(r.error);
+		const history = runHistory(app.registry, p.runId);
+		if (!history)
+			throw new ResponseError(
+				ErrorCodes.InternalError,
+				"storage is not active",
+			);
+		return { events: history.events, unreadable: history.broken.length };
+	});
+
 // Each provider's state for the quota dashboard (ADR-050); the daemon tracks spent quotas for its
 // whole life, so a pause seen before the client asked still counts.
 const serveQuota = (
@@ -146,6 +163,7 @@ export const daemonCommand = async (
 	serveStatus(conn, app);
 	serveRunStart(conn, app);
 	serveApproveAndResume(conn, app);
+	serveEvents(conn, app);
 	const spent = trackExhausted(app.events);
 	serveQuota(conn, app, spent.until);
 	const unsubscribe = forwardEvents(app.events, conn, io);
