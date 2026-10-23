@@ -22,7 +22,7 @@ These 73 decisions are accepted. Changing one requires a new ADR that marks the 
 | 014 | Two vault layers, personal and workspace, both Obsidian-compatible Markdown | Token efficiency, privacy, portability | One global vault, a custom note format | C |
 | 015 | Multi-unit quota pool; each provider adapter declares its units | Providers meter requests, tokens, credits and GPU time | Request count only | C |
 | 016 | Web search default is Exa MCP without a key, then Tavily, Exa API, You.com and Firecrawl adapters. Brave is excluded. Pages are read by METE's own reader | Zero setup; no card; pages read without quota | SearXNG through WSL2 as default; Brave | C |
-| 017 | ChatDev, CrewAI and MetaGPT ideas are ported natively; the original libraries are only optional `team.engine@1` adapters behind the gateway | Best parts with the least coupling | Python sidecars as main engine; ignoring them | C |
+| 017 | ChatDev, CrewAI and MetaGPT ideas are ported natively; the original libraries are only optional `team.engine` adapters behind the gateway (version 1 when decided, now `team.engine@2`, docs/06) | Best parts with the least coupling | Python sidecars as main engine; ignoring them | C |
 | 018 | Studio view uses PixiJS and tween.js, driven only by events; Kenney CC0 starter assets | Light 2D renderer; every visual must be real | Phaser, DOM animation | C |
 | 019 | Windows first; Linux through WSL2; macOS after MVP | Founder's machine is Windows | Equal three-platform start | C |
 | 020 | Documentation in English; UI in English and Turkish | Free models read English most reliably; the founder is Turkish | Turkish-only documentation | D |
@@ -31,7 +31,7 @@ These 73 decisions are accepted. Changing one requires a new ADR that marks the 
 | 023 | Templates name model tiers; models are discovered from each provider's `/v1/models` at runtime | Free catalogs change every few weeks | Model names in templates | C |
 | 024 | The core runs as a separate daemon process | Agent crashes never take the editor down | Core inside the Theia backend | D |
 | 025 | No telemetry; logs stay local | Privacy; no servers | Opt-in telemetry | D |
-| 026 | The team engine capability is `team.engine@1`; game engine capabilities are `gameengine.*@1` | "engine" meant two things in the conversation | One shared `engine` namespace | D |
+| 026 | The team engine capability is `team.engine` (`@1` when decided, now `@2`, docs/06); game engine capabilities are `gameengine.*@1` | "engine" meant two things in the conversation | One shared `engine` namespace | D |
 | 027 | Workspace folder `.mete/`, ignore file `.meteignore` | Matches the product name | `.crew/` from early examples | D |
 | 028 | Autonomy levels 0 to 3, default 2 | Safe daily default; full autonomy only by choice | On/off autonomy | C |
 | 029 | Tab completion is an optional module | Per-keystroke calls do not fit free limits | Tab completion in core | C |

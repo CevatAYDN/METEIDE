@@ -88,7 +88,7 @@ A client that starts the daemon from Electron sets `ELECTRON_RUN_AS_NODE=1`. The
 
 - The kernel supervisor restarts a crashed child process. Default: at most 3 restarts in 5 minutes; then the circuit opens, the module is disabled, `module.disabled` is published and the user sees a calm notice \[D\].
 - When a capability loses its provider, the registry resolves the next adapter in the fallback chain. Every capability defines what happens when its chain is empty (06 Kernel and modules); for example, plain grep serves `knowledge.search@1` \[C\].
-- When the daemon crashes, the desktop restarts it. Runs resume from their persisted XState snapshots \[C\]. The desktop restarts it under the kernel supervisor's limits: at most 3 restarts in 5 minutes, then it stops starting it and shows the reason the daemon gave \[D\].
+- When the daemon crashes, the desktop restarts it. Runs resume from their persisted XState snapshots \[C\]. The desktop restarts it under the kernel supervisor's limits: at most 3 restarts in 5 minutes, then it stops starting it and shows the reason the daemon gave, taken from the last 5 lines of its standard error \[D\].
 - Network loss pauses runs (`run.paused`, reason `network`) and resumes them when the connection returns \[C\].
 
 ## Data locations
