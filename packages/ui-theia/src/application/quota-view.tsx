@@ -1,19 +1,20 @@
-import { ANY_PROVIDER, type QuotaUnitUsage } from "@mete/contracts";
+import { ANY_PROVIDER, type QuotaUsage } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties } from "react";
 import type { DaemonFailure } from "../domain/status-service.js";
 import { failureText, noFolderText } from "./status-text.js";
 
 // The Quota dashboard (docs/13; ADR-054): the quota pool's units of the folder's daemon, one row
-// per provider, unit and model scope, with used, limit and reset time. Inline styles on Theia's CSS
-// variables, as the other panels.
+// per provider, unit and model scope, with used, limit, reset time and, on request, the history:
+// each amount in the window with its time (ADR-055; a list, not a chart). Inline styles on Theia's
+// CSS variables, as the other panels.
 
 /** What the view draws: waiting, no folder, why the daemon gave no units, or the units. */
 export type QuotaModel =
 	| { readonly kind: "loading" }
 	| { readonly kind: "no_folder" }
 	| { readonly kind: "failed"; readonly failure: DaemonFailure }
-	| { readonly kind: "units"; readonly units: readonly QuotaUnitUsage[] };
+	| { readonly kind: "units"; readonly units: readonly QuotaUsage[] };
 
 const PANEL: CSSProperties = {
 	padding: "12px",
@@ -40,7 +41,28 @@ const limitText = (limit: number | null) =>
 		? nls.localize("mete/quota/noLimit", "Not known yet")
 		: String(limit);
 
-const Rows = ({ units }: { readonly units: readonly QuotaUnitUsage[] }) =>
+// The amounts still in the window, oldest first, folded under their count.
+const History = ({ history }: { readonly history: QuotaUsage["history"] }) =>
+	history.length === 0 ? (
+		DASH
+	) : (
+		<details>
+			<summary>
+				{nls.localize("mete/quota/amounts", "{0} amount(s)", history.length)}
+			</summary>
+			<ul style={{ margin: 0, paddingLeft: "16px" }}>
+				{history.map((h, i) => (
+					// Two amounts can share a time, so the position keeps the key unique.
+					// biome-ignore lint/suspicious/noArrayIndexKey: the list is never reordered
+					<li key={`${h.at}/${i}`}>
+						{new Date(h.at).toLocaleString()} — {h.amount}
+					</li>
+				))}
+			</ul>
+		</details>
+	);
+
+const Rows = ({ units }: { readonly units: readonly QuotaUsage[] }) =>
 	units.length === 0 ? (
 		<p>
 			{nls.localize(
@@ -59,6 +81,7 @@ const Rows = ({ units }: { readonly units: readonly QuotaUnitUsage[] }) =>
 						nls.localize("mete/quota/used", "Used"),
 						nls.localize("mete/quota/limit", "Limit"),
 						nls.localize("mete/quota/resets", "Resets"),
+						nls.localize("mete/quota/history", "History"),
 					].map((h) => (
 						<th key={h} scope="col" style={CELL}>
 							{h}
@@ -76,6 +99,9 @@ const Rows = ({ units }: { readonly units: readonly QuotaUnitUsage[] }) =>
 						<td style={CELL}>{limitText(u.limit)}</td>
 						<td style={CELL}>
 							{u.resetsAt ? new Date(u.resetsAt).toLocaleString() : DASH}
+						</td>
+						<td style={CELL}>
+							<History history={u.history} />
 						</td>
 					</tr>
 				))}

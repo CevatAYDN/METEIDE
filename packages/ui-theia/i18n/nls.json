@@ -70,9 +70,11 @@
 			"which": "Which provider's key?"
 		},
 		"quota": {
+			"amounts": "{0} amount(s)",
 			"anyProvider": "Every paid model",
 			"caption": "METE: each provider's quota units",
 			"exhausted": "{0}: its free quota is used up until {1}",
+			"history": "History",
 			"inactive": "{0}: not active; the log says why",
 			"label": "Quota",
 			"limit": "Limit",

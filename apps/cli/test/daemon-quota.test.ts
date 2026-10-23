@@ -115,7 +115,10 @@ describe("mete daemon quota", () => {
 			{ id: "shy", state: "unusable" },
 			{ id: "nvidia", state: "no_key" },
 		]);
-		expect(await fakeDay()).toMatchObject({ used: 1, limit: 1 });
+		const spent = await fakeDay();
+		expect(spent).toMatchObject({ used: 1, limit: 1 });
+		// The one request of the run, with its time (ADR-055).
+		expect(spent?.history.map((h) => h.amount)).toEqual([1]);
 
 		toDaemon.end();
 		expect(await serving).toBe(0);

@@ -1,4 +1,4 @@
-import type { QuotaUnitUsage } from "@mete/contracts";
+import type { QuotaUsage } from "@mete/contracts";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -11,13 +11,14 @@ const html = (model: QuotaModel) =>
 		createElement(QuotaView, { model, onRefresh: () => {} }),
 	);
 
-const unit = (over: Partial<QuotaUnitUsage> = {}): QuotaUnitUsage => ({
+const unit = (over: Partial<QuotaUsage> = {}): QuotaUsage => ({
 	providerId: "openrouter",
 	unit: "requests_per_day",
 	scope: null,
 	used: 3,
 	limit: 50,
 	resetsAt: "2026-10-24T00:00:00.000Z",
+	history: [],
 	...over,
 });
 
@@ -43,14 +44,26 @@ describe("the Quota dashboard", () => {
 		expect(out).toContain(">Not known yet</td>");
 	});
 
-	it("names the spending cap, and a unit without model or reset with a dash", () => {
+	it("folds each unit's amounts under their count, oldest first (ADR-055)", () => {
+		const history = [
+			{ at: "2026-10-23T09:00:00.000Z", amount: 1 },
+			{ at: "2026-10-23T09:00:00.000Z", amount: 2 },
+		];
+		const out = html({ kind: "units", units: [unit({ history })] });
+		expect(out).toContain("<summary>2 amount(s)</summary>");
+		expect(out.match(/<li>/g)).toHaveLength(2);
+		expect(out.indexOf("— 1</li>")).toBeLessThan(out.indexOf("— 2</li>"));
+		expect(out.indexOf("— 1</li>")).toBeGreaterThan(0);
+	});
+
+	it("names the spending cap, and a unit without model, reset or history with a dash", () => {
 		const { resetsAt: _, ...cap } = unit({
 			providerId: "*",
 			unit: "usd_per_day",
 		});
 		const out = html({ kind: "units", units: [cap] });
 		expect(out).toContain(">Every paid model</td>");
-		expect(out.match(/>—<\/td>/g)).toHaveLength(2);
+		expect(out.match(/>—<\/td>/g)).toHaveLength(3);
 	});
 
 	it("says there are no units yet, a folder is needed, or why the daemon gave none", () => {

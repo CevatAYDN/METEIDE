@@ -55,7 +55,7 @@ conn.onRequest("mete/audit", (p) => {
 conn.onRequest("mete/quota", () =>
 	mode === "badquota"
 		? { providers: [{ id: "groq", state: "exhausted" }], units: [] }
-		: { providers: [{ id: "groq", state: "exhausted", resetsAt: "2026-10-24T00:00:00.000Z" }, { id: "nvidia", state: "no_key" }], units: [{ providerId: "groq", unit: "requests_per_minute", scope: null, used: 3, limit: 30 }] },
+		: { providers: [{ id: "groq", state: "exhausted", resetsAt: "2026-10-24T00:00:00.000Z" }, { id: "nvidia", state: "no_key" }], units: [{ providerId: "groq", unit: "requests_per_minute", scope: null, used: 3, limit: 30, history: [{ at: "2026-10-23T09:00:00.000Z", amount: 3 }] }] },
 );
 conn.onClose(() => process.exit(0));
 conn.listen();

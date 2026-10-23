@@ -6,10 +6,10 @@ import { PolicyActionSchema, PolicyVerdictSchema } from "./policy.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 8 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-054).
+// Daemon protocol version 9 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-055).
 // The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The messages of version 8; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 9; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
@@ -89,16 +89,11 @@ export const ProviderStateSchema = z.discriminatedUnion("state", [
 /** What `ProviderStateSchema` parses. */
 export type ProviderState = z.infer<typeof ProviderStateSchema>;
 
-/** One unit and scope of the quota pool: quota.reserve@3 `usage()` without its history (ADR-054). */
-export const QuotaUnitUsageSchema = QuotaUsageSchema.omit({ history: true });
-
-/** What `QuotaUnitUsageSchema` parses. */
-export type QuotaUnitUsage = z.infer<typeof QuotaUnitUsageSchema>;
-
 /** Result of `mete/quota`: one entry per provider module, and the pool's units (ADR-054). */
 export const DaemonQuotaResultSchema = z.strictObject({
 	providers: z.array(ProviderStateSchema),
-	units: z.array(QuotaUnitUsageSchema),
+	/** quota.reserve@3 `usage()` as it is (ADR-054), history included since version 9 (ADR-055). */
+	units: z.array(QuotaUsageSchema),
 });
 
 /**

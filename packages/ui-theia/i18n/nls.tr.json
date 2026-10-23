@@ -70,9 +70,11 @@
 			"which": "Hangi sağlayıcının anahtarı?"
 		},
 		"quota": {
+			"amounts": "{0} miktar",
 			"anyProvider": "Tüm ücretli modeller",
 			"caption": "METE: her sağlayıcının kota birimleri",
 			"exhausted": "{0}: ücretsiz kotası {1} tarihine kadar bitti",
+			"history": "Geçmiş",
 			"inactive": "{0}: etkin değil; nedenini günlük söylüyor",
 			"label": "Kota",
 			"limit": "Sınır",

@@ -163,6 +163,7 @@ describe("the daemon host", () => {
 						scope: null,
 						used: 3,
 						limit: 30,
+						history: [{ at: "2026-10-23T09:00:00.000Z", amount: 3 }],
 					},
 				],
 			},
