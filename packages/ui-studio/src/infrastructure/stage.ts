@@ -219,7 +219,7 @@ const playerOf = (
 		state.paused = false;
 		if (!player.reduced || group.getAll().length > 0) app.ticker.start();
 		else {
-			live.draw();
+			drawLive();
 			app.render();
 		}
 	};
