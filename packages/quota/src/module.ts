@@ -86,8 +86,10 @@ const openPool = (ctx: ModuleContext, now: () => number) => {
 	});
 	const store = createQuotaStore(ctx.storage.global, now);
 	try {
-		// shortcut: saved usage is read once, so the CLI and the daemon running at the
-		// same time each count alone; read the window from the database in check() then.
+		// shortcut: saved usage is read once and each save replaces the key's saved rows, so two
+		// METE processes at once each count alone and the later save keeps only its own view; the
+		// provider's first refusal closes the unit again (observe). Upgrade with a merge rule for
+		// recorded calls, header values and resets across processes, which needs an ADR (docs/09).
 		pool.load(store.load());
 	} catch (error) {
 		return err(`saved quota could not be read: ${String(error)}`);

@@ -172,7 +172,7 @@ Pool rules \[D\]:
 - `limit: "discover"` means no limit until the first exhausted observation; the limit then becomes the usage in the current window without the refused call that brought the observation, at least 1.
 - An exhausted observation counts as `remaining: 0`, so the window's usage becomes the limit.
 - A unit is closed while its usage is at or above the limit, or until the `resetsAt` of an exhausted observation when one was given; otherwise it opens when its window resets. Closing publishes `quota.exhausted`; opening again publishes `quota.restored`.
-- Usage of day and month units and learned limits live in the global `mete.db` (`quota_usage`, `quota_limits`), so a restart keeps them; minute units are counted in memory.
+- Usage of day and month units and learned limits live in the global `mete.db` (`quota_usage`, `quota_limits`), so a restart keeps them; minute units are counted in memory. A process reads the saved usage once when it starts and replaces its rows when it saves, so two METE processes at the same time (a `mete run` in one folder and the desktop's daemon in another) each count alone and the later save keeps only its own count; the provider's first refusal closes the unit again, so the cost is about one refused call per provider. A rule that merges recorded calls, header values and resets across processes is an open decision \[D\].
 - Quota does not pause runs: the core publishes `run.paused` with the returned `resumesAt` (tab 07), and budgets (Scheduler, step 5) are the core's.
 
 ## Scheduler
