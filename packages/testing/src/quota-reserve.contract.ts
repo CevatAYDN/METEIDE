@@ -6,7 +6,7 @@ import {
 } from "@mete/contracts";
 import { afterEach, describe, expect, it } from "vitest";
 
-// Contract kit for quota.reserve@3 (docs/09, Quota pool).
+// Contract kit for quota.reserve@4 (docs/09, Quota pool).
 
 /** The fixed time every kit adapter's clock MUST return. */
 export const QUOTA_KIT_NOW = Date.parse("2026-10-21T12:00:00Z");
@@ -36,9 +36,9 @@ const ask = (...providers: string[]): QuotaRequest => ({
 
 const signal = () => new AbortController().signal;
 
-/** Every quota.reserve@3 adapter MUST pass these tests. */
+/** Every quota.reserve@4 adapter MUST pass these tests. */
 export const quotaReserveContract = (name: string, open: QuotaReserveHarness) =>
-	describe(`quota.reserve@3 contract: ${name}`, () => {
+	describe(`quota.reserve@4 contract: ${name}`, () => {
 		let close: (() => Promise<void>) | undefined;
 		afterEach(async () => {
 			await close?.();
@@ -100,6 +100,16 @@ export const quotaReserveContract = (name: string, open: QuotaReserveHarness) =>
 				error: { code: "aborted" },
 			});
 			await expect(a.reserve(ask("x"), signal())).rejects.toThrow();
+		});
+
+		it("answers too_large when no entry could ever fit, instead of waiting (@4)", async () => {
+			const a = await fresh();
+			a.define([daily("a"), daily("b")]);
+			const big = { ...ask("a", "b"), estimate: { requests_per_day: 2 } };
+			expect(await a.reserve(big, signal())).toEqual({
+				ok: false,
+				error: { code: "too_large" },
+			});
 		});
 
 		it("reads each defined unit with what it counted, and the read reserves nothing (@3)", async () => {

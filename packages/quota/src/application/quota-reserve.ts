@@ -17,7 +17,7 @@ import type { UnitUsage } from "../domain/pool-usage.js";
 import type { QuotaStore } from "../infrastructure/quota-store.js";
 import type { Granted, Scheduler, SchedulerOptions } from "./scheduler.js";
 
-// quota.reserve@3 from docs/09 (Quota pool): reservations, settling, quota.* events
+// quota.reserve@4 from docs/09 (Quota pool): reservations, settling, quota.* events
 // and saving day and month usage.
 
 type QuotaEvent = Extract<MeteEvent, { type: `quota.${string}` }>;
@@ -108,7 +108,7 @@ const settle = (
 	return ok(undefined);
 };
 
-/** Creates the quota.reserve@3 adapter; `dispose` stops its timers and waiters. */
+/** Creates the quota.reserve@4 adapter; `dispose` stops its timers and waiters. */
 export const createQuotaReserve = (deps: ReserveDeps) => {
 	const st: ReserveState = {
 		deps,

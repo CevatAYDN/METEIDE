@@ -12,12 +12,12 @@ import {
 	type QuotaAmounts,
 	type QuotaObservation,
 	type QuotaReserveAdapter,
-	type ReserveFailed,
 	type Result,
 	type SecretsMaskAdapter,
 	type ToolCall,
 } from "@mete/contracts";
 import { CHAIN_LENGTH } from "../defaults.js";
+import { ABORTED, reserveError } from "../domain/llm-errors.js";
 import { type PrivacyRules, resolveChain } from "../domain/resolve.js";
 import { afterFailure, estimateTokens } from "../domain/retry.js";
 import { costOf } from "../domain/spend.js";
@@ -90,21 +90,7 @@ type Walk = {
 	readonly tokens: { readonly prompt: number; readonly completion: number };
 };
 
-const ABORTED: ProviderError = {
-	code: "aborted",
-	message: "the call was aborted",
-};
-
 const fail = (error: LlmError): LlmChunk => ({ type: "error", error });
-
-const reserveError = (e: ReserveFailed): LlmError =>
-	e.code === "aborted"
-		? ABORTED
-		: {
-				code: "quota_exhausted",
-				message: `quota exhausted until ${e.resumesAt}`,
-				resumesAt: e.resumesAt,
-			};
 
 // How the call ended, set before the finish is yielded.
 type Ended = { outcome: Outcome | undefined };
@@ -267,7 +253,11 @@ const grant = async (
 		{ runId, priority, chain, estimate: w.estimate },
 		signal,
 	);
-	if (!r.ok) return err(reserveError(r.error));
+	if (!r.ok) {
+		const e = reserveError(r.error, w.estimate.tokens_per_minute);
+		if (e.code === "too_large") deps.warn({ runId }, e.message);
+		return err(e);
+	}
 	const { providerId, modelId, id } = r.value;
 	const o = remaining.find(
 		(x) => x.model.providerId === providerId && x.model.id === modelId,

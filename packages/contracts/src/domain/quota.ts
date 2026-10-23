@@ -3,7 +3,7 @@ import { IdSchema, TimestampSchema } from "./ids.js";
 import type { Result } from "./result.js";
 import { QuotaUnitSchema } from "./states.js";
 
-// quota.reserve@3 from docs/06 (Kernel API) and docs/09 (Quota pool, Scheduler).
+// quota.reserve@4 from docs/06 (Kernel API) and docs/09 (Quota pool, Scheduler).
 
 const text = z.string().min(1);
 
@@ -61,7 +61,7 @@ export const QuotaRequestSchema = z.strictObject({
 	estimate: QuotaAmountsSchema,
 });
 
-/** What a caller asks quota.reserve@3. */
+/** What a caller asks quota.reserve@4. */
 export type QuotaRequest = z.infer<typeof QuotaRequestSchema>;
 
 /** The `quota` configuration (docs/09, effective limit); one entry per provider unit. */
@@ -103,10 +103,14 @@ export type Reservation = {
 	readonly modelId: string;
 };
 
-/** No capacity before `resumesAt` (ISO 8601), or the signal aborted the wait. */
+/**
+ * No capacity before `resumesAt` (ISO 8601), the signal aborted the wait, or (@4, ADR-056) every
+ * chain entry has a unit whose limit is below the request's amount, so no wait would help.
+ */
 export type ReserveFailed =
 	| { readonly code: "quota_exhausted"; readonly resumesAt: string }
-	| { readonly code: "aborted" };
+	| { readonly code: "aborted" }
+	| { readonly code: "too_large" };
 
 /** `settle` got an id that is unknown or already settled. */
 export type UnknownReservation = {
@@ -132,7 +136,7 @@ export const QuotaUsageSchema = z.strictObject({
 /** What `usage()` answers for one unit and scope. */
 export type QuotaUsage = z.infer<typeof QuotaUsageSchema>;
 
-/** The quota.reserve@3 adapter; the gateway settles every reservation it gets. */
+/** The quota.reserve@4 adapter; the gateway settles every reservation it gets. */
 export interface QuotaReserveAdapter {
 	define(specs: readonly QuotaUnitSpec[]): void;
 	reserve(

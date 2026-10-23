@@ -92,7 +92,7 @@ export type ProviderState = z.infer<typeof ProviderStateSchema>;
 /** Result of `mete/quota`: one entry per provider module, and the pool's units (ADR-054). */
 export const DaemonQuotaResultSchema = z.strictObject({
 	providers: z.array(ProviderStateSchema),
-	/** quota.reserve@3 `usage()` as it is (ADR-054), history included since version 9 (ADR-055). */
+	/** quota.reserve@4 `usage()` as it is (ADR-054), history included since version 9 (ADR-055). */
 	units: z.array(QuotaUsageSchema),
 });
 

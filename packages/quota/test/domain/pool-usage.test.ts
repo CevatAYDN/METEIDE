@@ -2,7 +2,7 @@ import type { QuotaUnitSpec } from "@mete/contracts";
 import { describe, expect, it } from "vitest";
 import { createPool } from "../../src/domain/pool.js";
 
-// The pool read of quota.reserve@3 (docs/09, usage(); ADR-054).
+// The pool read of quota.reserve@4 (docs/09, usage(); ADR-054).
 
 const T0 = Date.parse("2026-10-21T12:00:00Z");
 const MIN = 60_000;

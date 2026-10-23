@@ -104,7 +104,7 @@ describe("scheduler: reserving", () => {
 		expect(s.pending()).toBe(0);
 	});
 
-	it("rejects an undefined provider and a chain where nothing can ever fit", async () => {
+	it("rejects an undefined provider, and answers too_large for a chain where nothing can ever fit (@4)", async () => {
 		const s = setup([rpm("a", 1)]);
 		await expect(
 			s.scheduler.reserve(req(RUN_A, 1, ["a", "x"]), never),
@@ -113,7 +113,10 @@ describe("scheduler: reserving", () => {
 			...req(RUN_A, 1, ["a"]),
 			estimate: { requests_per_minute: 2 },
 		};
-		await expect(s.scheduler.reserve(big, never)).rejects.toThrow(/never fit/);
+		expect(await s.scheduler.reserve(big, never)).toEqual({
+			ok: false,
+			error: { code: "too_large" },
+		});
 	});
 
 	it("returns aborted at once for an aborted signal", async () => {

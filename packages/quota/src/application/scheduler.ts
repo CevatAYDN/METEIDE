@@ -102,7 +102,7 @@ const tryServe = (
 ): "served" | "failed" | "blocked" => {
 	const list = checks(st, w, now);
 	if (list.every(([, c]) => c.kind === "never")) {
-		w.done(new Error("quota: the estimate would never fit any chain entry"));
+		w.done(err({ code: "too_large" }));
 		return "failed";
 	}
 	const open = list.find(

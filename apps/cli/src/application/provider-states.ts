@@ -73,7 +73,7 @@ export const providerStates = async (
 
 /** The quota pool's units with their history (ADR-054, ADR-055); none when the quota module is not active. */
 export const quotaUnits = (app: App): QuotaUsage[] => {
-	const quota = app.registry.resolve<QuotaReserveAdapter>("quota.reserve@3");
+	const quota = app.registry.resolve<QuotaReserveAdapter>("quota.reserve@4");
 	if (!quota.ok) return [];
 	return [...quota.value[0].impl.usage()];
 };

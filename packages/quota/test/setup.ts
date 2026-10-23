@@ -100,8 +100,8 @@ export const setup = async (
 		setTimer: time.setTimer,
 	});
 	const adapter = () => {
-		const r = registry.resolve<QuotaReserveAdapter>("quota.reserve@3");
-		if (!r.ok) throw new Error("quota.reserve@3 missing");
+		const r = registry.resolve<QuotaReserveAdapter>("quota.reserve@4");
+		if (!r.ok) throw new Error("quota.reserve@4 missing");
 		return r.value[0].impl;
 	};
 	const close = async () => {

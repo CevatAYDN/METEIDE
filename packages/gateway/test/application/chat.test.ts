@@ -411,6 +411,27 @@ describe("llm.chat@2 pipeline", () => {
 		);
 	});
 
+	it("ends with too_large naming the estimate when no model could ever take the call (ADR-056)", async () => {
+		const a = fakeProvider("a", [[done]]);
+		const q = fakeQuota();
+		q.failWith({ code: "too_large" });
+		const { deps: d, warned } = deps({
+			discover: async () => [offer(a.adapter, "m")],
+			quota: q.quota,
+		});
+		const out = await collect(createLlmChat(d).chat(req, signal()));
+		expect(out).toEqual([
+			{
+				type: "error",
+				error: {
+					code: "too_large",
+					message: expect.stringMatching(/about \d+ tokens/),
+				},
+			},
+		]);
+		expect(warned).toEqual([{ runId: req.runId }]);
+	});
+
 	it("ends with aborted for an aborted signal, during a wait or from the pool", async () => {
 		const a = fakeProvider("a", [[status(429)]]);
 		const q = fakeQuota();

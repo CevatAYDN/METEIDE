@@ -8,7 +8,7 @@ import {
 } from "./pool-state.js";
 import { type Entry, nextReset, prune } from "./windows.js";
 
-// The pool read of quota.reserve@3 (docs/09, usage(); ADR-054): each defined unit as it stands,
+// The pool read of quota.reserve@4 (docs/09, usage(); ADR-054): each defined unit as it stands,
 // one row per scope. It never changes the state: a passed response reset is applied to a copy.
 
 /** One unit and scope of the pool; times are epoch milliseconds. */

@@ -1,7 +1,7 @@
 import { quotaReserveContract } from "@mete/testing";
 import { folders, setup } from "./setup.js";
 
-// Runs the quota.reserve@3 contract kit against this package's adapter.
+// Runs the quota.reserve@4 contract kit against this package's adapter.
 
 quotaReserveContract("quota module", async (now) => {
 	const s = await setup(await folders(), {}, now);

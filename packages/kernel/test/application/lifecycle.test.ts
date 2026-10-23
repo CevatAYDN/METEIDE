@@ -278,7 +278,7 @@ describe("createLifecycle", () => {
 
 	it("keeps a module resolving until its requires resolve, then activates it", async () => {
 		const { life, log } = await setup();
-		const quota = manifest("quota", ["quota.reserve@3"], ["storage.sql@1"]);
+		const quota = manifest("quota", ["quota.reserve@4"], ["storage.sql@1"]);
 		await life.register(fakeModule(quota).mod);
 		expect(life.state("quota")).toBe("resolving");
 		await life.register(fakeModule(manifest("storage", ["storage.sql@1"])).mod);
@@ -292,10 +292,10 @@ describe("createLifecycle", () => {
 	it("activates a chain registered in reverse order", async () => {
 		const { life } = await setup();
 		await life.register(
-			fakeModule(manifest("gateway", ["llm.chat@2"], ["quota.reserve@3"])).mod,
+			fakeModule(manifest("gateway", ["llm.chat@2"], ["quota.reserve@4"])).mod,
 		);
 		await life.register(
-			fakeModule(manifest("quota", ["quota.reserve@3"], ["storage.sql@1"])).mod,
+			fakeModule(manifest("quota", ["quota.reserve@4"], ["storage.sql@1"])).mod,
 		);
 		expect(life.state("gateway")).toBe("resolving");
 		await life.register(fakeModule(manifest("storage", ["storage.sql@1"])).mod);
@@ -331,7 +331,7 @@ describe("createLifecycle", () => {
 		const { life, log } = await setup();
 		const storage = fakeModule(manifest("storage", ["storage.sql@1"]));
 		const quota = fakeModule(
-			manifest("quota", ["quota.reserve@3"], ["storage.sql@1"]),
+			manifest("quota", ["quota.reserve@4"], ["storage.sql@1"]),
 		);
 		const late = fakeModule(manifest("late", [], [], ["onWorkspaceOpen"]));
 		await life.register(quota.mod);

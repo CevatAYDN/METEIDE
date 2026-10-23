@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { QuotaUsageSchema } from "../../src/domain/quota.js";
 
-// What quota.reserve@3 usage() answers per unit and scope (ADR-054).
+// What quota.reserve@4 usage() answers per unit and scope (ADR-054).
 
 const row = {
 	providerId: "openrouter",
@@ -13,7 +13,7 @@ const row = {
 	history: [{ at: "2026-10-21T12:00:00.000Z", amount: 3 }],
 };
 
-describe("quota.reserve@3 usage rows (ADR-054)", () => {
+describe("quota.reserve@4 usage rows (ADR-054)", () => {
 	it("takes a model scope, an unknown limit and no reset", () => {
 		expect(QuotaUsageSchema.safeParse(row).success).toBe(true);
 		const { resetsAt: _, ...noReset } = row;
