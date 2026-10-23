@@ -64,14 +64,18 @@ export class MeteAuditWidget extends ReactWidget {
 
 	/** Asks the daemon of the first open folder for its runs and the audit rows that match. */
 	async refresh(): Promise<void> {
+		// A later filter or refresh wins: an answer asked for another filter is dropped.
+		const filter = this.filter;
 		const [root] = await this.workspace.roots;
 		if (!root) return this.setModel({ kind: "no_folder" });
 		this.dir = root.resource.path.fsPath();
 		const status = await this.daemon.status(this.dir);
+		if (this.filter !== filter) return;
 		this.runs = status.ok
 			? status.value.map((r) => ({ id: r.id, goal: r.goal }))
 			: [];
-		const r = await this.daemon.audit(this.dir, this.filter);
+		const r = await this.daemon.audit(this.dir, filter);
+		if (this.filter !== filter) return;
 		this.setModel(
 			r.ok
 				? { kind: "rows", entries: r.value.entries }
@@ -112,6 +116,7 @@ export class MeteAuditWidget extends ReactWidget {
 					runs: this.runs,
 					onFilter: (filter) => {
 						this.filter = filter;
+						this.update();
 						void this.refresh();
 					},
 					onExport: () => void this.export(),
