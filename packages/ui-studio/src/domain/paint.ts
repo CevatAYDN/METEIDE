@@ -119,7 +119,8 @@ const person = (
 		{
 			kind: "text",
 			x: x - 40,
-			y: y + 22,
+			// Inside the desk below the character, clear of the desk's top edge.
+			y: y + 30,
 			text: ch.roleId,
 			fill: c.ink,
 			size: 12,
@@ -182,7 +183,7 @@ const coffee = (
 			out.push({
 				kind: "text",
 				x: cx - 22,
-				y: PAD + 100,
+				y: PAD + 114,
 				text: labels.until(ch.resetsAt),
 				fill: c.muted,
 				size: 10,
