@@ -7,6 +7,7 @@ import {
 	DaemonQuotaResultSchema,
 	DaemonRunStartResultSchema,
 	DaemonStatusResultSchema,
+	DaemonTemplatesResultSchema,
 	type MeteEvent,
 	MeteEventSchema,
 } from "@mete/contracts";
@@ -236,6 +237,21 @@ describe("mete daemon", () => {
 		// mete/audit needs no engine either (ADR-053); a new folder has no rows.
 		expect(await c.sendRequest(DAEMON_METHODS.audit, {})).toEqual({
 			entries: [],
+		});
+		// mete/templates reads files only (ADR-058): the four built-in templates, by id.
+		const listed = DaemonTemplatesResultSchema.parse(
+			await c.sendRequest(DAEMON_METHODS.templates),
+		);
+		expect(listed.templates.map((x) => x.id)).toEqual([
+			"game-studio",
+			"research",
+			"seo-audit",
+			"web-dev",
+		]);
+		expect(listed.templates[0]).toEqual({
+			id: "game-studio",
+			name: "Game studio",
+			description: "Idea to playable prototype",
 		});
 
 		toDaemon.end();

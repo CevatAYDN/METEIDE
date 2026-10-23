@@ -11,6 +11,7 @@ import {
 	EVENT_TYPES,
 	RunStartSchema,
 } from "@mete/contracts";
+import { listTemplates } from "@mete/core";
 import type { EventBus } from "@mete/kernel";
 import {
 	createMessageConnection,
@@ -134,6 +135,19 @@ const serveAudit = (conn: MessageConnection, app: App) =>
 		return { entries };
 	});
 
+// The templates the composer offers (ADR-058): files only, so no engine is needed.
+const serveTemplates = (conn: MessageConnection, app: App) =>
+	conn.onRequest(DAEMON_METHODS.templates, async () => {
+		const { templates } = await listTemplates(app.templates);
+		return {
+			templates: templates.map(({ metadata: m }) => ({
+				id: m.id,
+				name: m.name,
+				...(m.description ? { description: m.description } : {}),
+			})),
+		};
+	});
+
 // Each provider's state for the quota dashboard (ADR-050); the daemon tracks spent quotas for its
 // whole life, so a pause seen before the client asked still counts.
 const serveQuota = (
@@ -187,6 +201,7 @@ export const daemonCommand = async (
 	serveApproveAndResume(conn, app);
 	serveEvents(conn, app);
 	serveAudit(conn, app);
+	serveTemplates(conn, app);
 	const spent = trackExhausted(app.events);
 	serveQuota(conn, app, spent.until);
 	const unsubscribe = forwardEvents(app.events, conn, io);

@@ -7,7 +7,7 @@ import type {
 	TeamEngineAdapter,
 } from "@mete/contracts";
 import { err, ok } from "@mete/contracts";
-import { createCoreEngineModule } from "@mete/core";
+import { createCoreEngineModule, type TemplateDirs } from "@mete/core";
 import { createGatewayModule, type GatewayModule } from "@mete/gateway";
 import {
 	type CapabilityRegistry,
@@ -107,8 +107,16 @@ export type App = {
 	readonly secrets: SecretStore;
 	/** The models the gateway may use after the privacy rules, from its cached listing. */
 	readonly models: GatewayModule["models"];
+	/** The template folders core-engine reads, which mete/templates lists (ADR-058). */
+	readonly templates: TemplateDirs;
 	readonly stop: () => Promise<void>;
 };
+
+// The built-in folder unless a test names another, and the workspace's .mete/teams/ (docs/08).
+const templatesOf = (opts: AppOptions): TemplateDirs => ({
+	builtIn: opts.templatesDir ?? BUILT_IN_TEMPLATES,
+	workspace: opts.workspaceDir,
+});
 
 const disposables = () => {
 	const items: { dispose(): void }[] = [];
@@ -172,10 +180,7 @@ const modulesFor = (
 		createCoreEngineModule({
 			workspaceId,
 			recover: opts.recover !== false,
-			templates: {
-				builtIn: opts.templatesDir ?? BUILT_IN_TEMPLATES,
-				workspace: opts.workspaceDir,
-			},
+			templates: templatesOf(opts),
 			workspaceDir: opts.workspaceDir,
 		}),
 		...servedBy(opts, registry),
@@ -245,6 +250,7 @@ export const createApp = async (
 		inactive,
 		secrets,
 		models: gateway.models,
+		templates: templatesOf(opts),
 		stop: lifecycle.stop,
 	});
 };

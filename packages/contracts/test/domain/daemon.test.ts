@@ -14,6 +14,7 @@ import {
 	DaemonRunStartResultSchema,
 	DaemonStatusParamsSchema,
 	DaemonStatusResultSchema,
+	DaemonTemplatesResultSchema,
 	RunViewSchema,
 } from "../../src/domain/daemon.js";
 import type { EngineError, RunView } from "../../src/domain/engine.js";
@@ -33,7 +34,7 @@ const run: RunView = {
 	endedAt: "2026-10-23T11:00:00.000Z",
 };
 
-describe("daemon protocol version 7", () => {
+describe("daemon protocol version 10", () => {
 	it("answers mete/events with the run's events in order and the count of unreadable rows", () => {
 		const event = {
 			id: crypto.randomUUID(),
@@ -117,6 +118,7 @@ describe("daemon protocol version 7", () => {
 			quota: "mete/quota",
 			events: "mete/events",
 			audit: "mete/audit",
+			templates: "mete/templates",
 			event: "mete/event",
 		});
 	});
@@ -289,5 +291,21 @@ describe("daemon protocol version 7", () => {
 		expect(DaemonQuotaResultSchema.safeParse({ providers: [] }).success).toBe(
 			false,
 		);
+	});
+
+	it("answers mete/templates with each template by id, name and an optional description (ADR-058)", () => {
+		const listed = {
+			templates: [
+				{ id: "web-dev", name: "Web development", description: "A page" },
+				{ id: "duo", name: "Duo" },
+			],
+		};
+		expect(DaemonTemplatesResultSchema.parse(listed)).toEqual(listed);
+		for (const bad of [
+			{},
+			{ templates: [{ id: "", name: "x" }] },
+			{ templates: [{ id: "x" }] },
+		])
+			expect(DaemonTemplatesResultSchema.safeParse(bad).success).toBe(false);
 	});
 });

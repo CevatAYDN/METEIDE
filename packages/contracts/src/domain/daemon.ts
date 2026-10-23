@@ -6,10 +6,10 @@ import { PolicyActionSchema, PolicyVerdictSchema } from "./policy.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 9 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-055).
+// Daemon protocol version 10 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-058).
 // The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The messages of version 9; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 10; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
@@ -18,6 +18,7 @@ export const DAEMON_METHODS = {
 	quota: "mete/quota",
 	events: "mete/events",
 	audit: "mete/audit",
+	templates: "mete/templates",
 	event: "mete/event",
 } as const;
 
@@ -135,6 +136,17 @@ export type AuditEntry = z.infer<typeof AuditEntrySchema>;
 /** Result of `mete/audit`: the rows, newest first. */
 export const DaemonAuditResultSchema = z.strictObject({
 	entries: z.array(AuditEntrySchema),
+});
+
+/** Result of `mete/templates`: the team templates the router may pick, by id (ADR-058). */
+export const DaemonTemplatesResultSchema = z.strictObject({
+	templates: z.array(
+		z.strictObject({
+			id: z.string().min(1),
+			name: z.string().min(1),
+			description: z.string().min(1).optional(),
+		}),
+	),
 });
 
 /** Result of `mete/run.approve` and `mete/run.resume`: a request that returns nothing sends null. */
