@@ -148,7 +148,7 @@ describe("the studio's effects", () => {
 		expect(kinds(effects)).toEqual(["move head", "mark"]);
 	});
 
-	it("marks the tool's domain, dims the room offline and celebrates the end", () => {
+	it("leaves a tool's work to its monitor and the network pause to the room's state, and celebrates the end", () => {
 		const start = applyAll(RUN, EMPTY_TEAM_VIEW, [agent(DEV, "dev")]);
 		const tool = play(
 			start,
@@ -158,12 +158,10 @@ describe("the studio's effects", () => {
 				{ agentId: DEV },
 			),
 		);
-		expect(tool.effects).toEqual([
-			expect.objectContaining({ kind: "mark", text: "{ }" }),
-		]);
+		expect(tool.effects).toEqual([]);
 		expect(
 			play(start, event("run.paused", { reason: "network" })).effects,
-		).toEqual([{ kind: "dim", on: true }]);
+		).toEqual([]);
 		expect(
 			kinds(play(start, event("run.completed", { summary: "s" })).effects),
 		).toEqual(["burst", "jump"]);

@@ -82,6 +82,37 @@ const test = ({ x, y }: ScreenBox): Primitive[] => [
 	]),
 ];
 
+/** The offline icon (docs/13, `run.paused` with reason `network`): a struck-out signal on a dark screen. */
+export const offlineScreen = ({ x, y }: ScreenBox): Primitive[] => {
+	const cx = x + W / 2;
+	const cy = y + H / 2 + 8;
+	return [
+		rect([x, y, W, H], 0, SCREEN.offlineBg),
+		{ kind: "circle", x: cx, y: cy, r: 1.8, fill: SCREEN.offlineIcon },
+		...[6, 11, 16].map(
+			(r): Primitive => ({
+				kind: "arc",
+				x: cx,
+				y: cy,
+				r,
+				start: (-3 * Math.PI) / 4,
+				end: -Math.PI / 4,
+				stroke: SCREEN.offlineIcon,
+				width: 1.6,
+			}),
+		),
+		{
+			kind: "line",
+			x1: cx - 12,
+			y1: y + 6,
+			x2: cx + 12,
+			y2: y + H - 6,
+			stroke: SCREEN.offlineSlash,
+			width: 2,
+		},
+	];
+};
+
 /** The dot that drifts across a dark monitor at `t` seconds, as a screensaver; `seed` offsets each monitor's path. */
 export const sleepDot = (box: ScreenBox, seed: number, t: number): Shape => ({
 	kind: "circle",

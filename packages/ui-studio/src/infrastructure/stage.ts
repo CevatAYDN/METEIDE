@@ -247,16 +247,10 @@ const appOn = async (
 	return app;
 };
 
-// Plays the effects of live events over the room: the dimming layer first, then each tween.
+// Plays the effects of live events over the room, a tween each.
 const playOn =
-	(app: App, player: Player, dim: Shapes): Stage["play"] =>
+	(app: App, player: Player): Stage["play"] =>
 	(effects, colours) => {
-		const shade = effects.findLast((e) => e.kind === "dim");
-		if (shade?.kind === "dim")
-			dim
-				.clear()
-				.rect(0, 0, app.screen.width, app.screen.height)
-				.fill({ color: "#000000", alpha: shade.on ? 0.3 : 0 });
 		for (const m of motionsOf(
 			effects,
 			colours,
@@ -280,7 +274,6 @@ export const createStage = async (
 	const app = await appOn(pixi, canvas, width, height);
 	const room = new pixi.Container();
 	const moving = new pixi.Graphics();
-	const dim = new pixi.Graphics();
 	let motion: Painted["moving"] = () => [];
 	// The moving shapes of this moment, drawn again over the still room.
 	const drawMoving = () => {
@@ -292,7 +285,7 @@ export const createStage = async (
 		canvas,
 		draw: drawMoving,
 	});
-	app.stage.addChild(room, moving, dim, player.fx);
+	app.stage.addChild(room, moving, player.fx);
 	return {
 		draw: (painted) => {
 			for (const old of room.removeChildren()) old.destroy();
@@ -311,7 +304,7 @@ export const createStage = async (
 			app.renderer.resize(w, Math.ceil(h * scale));
 			app.render();
 		},
-		play: playOn(app, player, dim),
+		play: playOn(app, player),
 		pause,
 		resume,
 		destroy: () => app.destroy(),

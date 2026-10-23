@@ -4,6 +4,7 @@ import {
 	DESK,
 	MARK,
 	PEOPLE,
+	ROOM,
 	SCREEN,
 	WINDOW,
 } from "../../src/domain/palette.js";
@@ -128,6 +129,43 @@ describe("the room's primitives", () => {
 		expect(page(working("web.search@1"))).toBe(true);
 		expect(lit(paint(scene([[ch("dev", "idle")]])))).toBe(false);
 		expect(lit(paint(scene([[ch("dev", "thinking")]])))).toBe(false);
+	});
+
+	it("shows the offline icon on every monitor and shades the whole room while offline, so a panel opened then draws it too", () => {
+		const offline = (s: Scene): Scene => ({ ...s, offline: true });
+		const rows = [
+			[ch("dev", "working", { tool: "fs.read@1" }), ch("qa", "idle")],
+		];
+		const room = paintScene(offline(scene(rows)), labels);
+		const icons = room.still.filter(
+			(x) => x.kind === "line" && x.stroke === SCREEN.offlineSlash,
+		);
+		expect(icons).toHaveLength(2);
+		expect(
+			room.still.some((x) => x.kind === "rect" && x.fill === SCREEN.codeBg),
+		).toBe(false);
+		const floor = room.still[0];
+		const top = room.moving(AT).at(-1);
+		expect(top).toMatchObject({
+			kind: "rect",
+			fill: ROOM.offlineShade,
+			x: 0,
+			y: 0,
+		});
+		if (floor?.kind === "rect" && top?.kind === "rect")
+			expect([top.w, top.h]).toEqual([floor.w, floor.h]);
+		// No screensaver dot over the offline icon.
+		expect(
+			room
+				.moving(AT)
+				.some((x) => x.kind === "circle" && x.fill === SCREEN.sleepDot),
+		).toBe(false);
+		const online = paintScene(scene(rows), labels);
+		expect(
+			online
+				.moving(AT)
+				.some((x) => x.kind === "rect" && x.fill === ROOM.offlineShade),
+		).toBe(false);
 	});
 
 	it("splits the room into a still layer and a moving one, which has no text and changes with the moment", () => {

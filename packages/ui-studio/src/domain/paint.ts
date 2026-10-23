@@ -1,9 +1,16 @@
+import { ROOM_W } from "../defaults.js";
 import { characterMotion, characterOf } from "./character.js";
 import type { EffectColour } from "./effects.js";
 import { type Layout, layoutOf } from "./layout.js";
 import { marksMotion, marksOf } from "./marks.js";
-import { EFFECT } from "./palette.js";
-import type { Moment, Painted, Primitive, Shape } from "./primitive.js";
+import { EFFECT, ROOM } from "./palette.js";
+import {
+	type Moment,
+	type Painted,
+	type Primitive,
+	rect,
+	type Shape,
+} from "./primitive.js";
 import { wallMoving, wallStill } from "./props.js";
 import {
 	board,
@@ -14,7 +21,7 @@ import {
 	roomShell,
 } from "./room.js";
 import type { Scene } from "./scene.js";
-import { screenOf, sleepDot } from "./screen.js";
+import { offlineScreen, screenOf, sleepDot } from "./screen.js";
 import { seedOf } from "./seed.js";
 
 // The studio room as primitives the stage draws, in the room's own space and the demo's colours
@@ -36,10 +43,12 @@ const seated = (scene: Scene, l: Layout): Primitive[] =>
 		const head = l.heads[d.id];
 		const person =
 			ch && head && ch.state !== "waiting" ? characterOf(ch, head, true) : [];
-		// The monitor wakes while its character works at the desk.
-		const screen =
-			ch?.state === "working"
-				? screenOf(ch.tool, { x: x - 62, y: y - 77 })
+		// The monitor wakes while its character works at the desk; offline, every monitor says so.
+		const box = { x: x - 62, y: y - 77 };
+		const screen = scene.offline
+			? offlineScreen(box)
+			: ch?.state === "working"
+				? screenOf(ch.tool, box)
 				: [];
 		return [...chair(x, y), ...person, ...desk(x, y, screen)];
 	});
@@ -59,7 +68,8 @@ const overlay = (scene: Scene, l: Layout, labels: StageLabels): Primitive[] =>
 export const EFFECT_COLOURS: Readonly<Record<EffectColour, string>> = EFFECT;
 
 // What moves, above everything still (ADR-070): the wall's window, clock and leaves, the dot on each
-// dark monitor, then each character's eyes and typing hands and the dots and spinner of its marks.
+// dark monitor, then each character's eyes and typing hands and the dots and spinner of its marks, and
+// offline the shade over all of it.
 const moving = (scene: Scene, l: Layout, at: Moment): Shape[] => [
 	...wallMoving(at),
 	...l.desks.flatMap((d) => {
@@ -68,7 +78,7 @@ const moving = (scene: Scene, l: Layout, at: Moment): Shape[] => [
 			.some((c) => c.id === d.id && c.state === "working");
 		const seed = (seedOf(d.id) % 100) / 10;
 		const box = { x: d.x + d.w / 2 - 62, y: d.y + 30 - 77 };
-		return working ? [] : [sleepDot(box, seed, at.t)];
+		return working || scene.offline ? [] : [sleepDot(box, seed, at.t)];
 	}),
 	...scene.rows.flat().flatMap((ch) => {
 		const head = l.heads[ch.id];
@@ -78,6 +88,9 @@ const moving = (scene: Scene, l: Layout, at: Moment): Shape[] => [
 			...marksMotion(ch, head, at.t),
 		];
 	}),
+	...(scene.offline
+		? [rect([0, 0, ROOM_W, l.height], 0, ROOM.offlineShade)]
+		: []),
 ];
 
 /**

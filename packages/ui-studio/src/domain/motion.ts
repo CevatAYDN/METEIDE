@@ -115,8 +115,7 @@ const motionOf = (e: Effect, c: Ctx): Motion[] => {
 };
 
 /**
- * The motions of the effects; `alive` is how many particles already play. A `dim` effect has no
- * motion: the stage shades the room.
+ * The motions of the effects; `alive` is how many particles already play.
  */
 export const motionsOf = (
 	effects: readonly Effect[],

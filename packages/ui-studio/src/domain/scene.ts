@@ -30,6 +30,8 @@ export type Note = { readonly id: string; readonly title: string };
 export type Scene = {
 	readonly rows: readonly (readonly Character[])[];
 	readonly notes: Readonly<Record<Place["column"], readonly Note[]>>;
+	/** The run waits for the network: monitors show the offline icon and the room is shaded. */
+	readonly offline?: boolean;
 };
 
 const characterOf = (view: TeamView, a: AgentCard, count = 1): Character => {
@@ -77,5 +79,6 @@ export const sceneOf = (view: TeamView): Scene => {
 			...chunk(characters.filter((c) => !leads.has(c.roleId))),
 		],
 		notes,
+		...(view.signals.pausedFor === "network" ? { offline: true } : {}),
 	};
 };

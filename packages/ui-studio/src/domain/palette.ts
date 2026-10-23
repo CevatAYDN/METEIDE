@@ -3,6 +3,8 @@
 
 /** The room: wall, floor, rug and the light from the window. */
 export const ROOM = {
+	// The shade over the room while the run waits for the network (docs/13).
+	offlineShade: "rgba(0,0,0,.3)",
 	wall: "#a8c8be",
 	stripe: "rgba(255,255,255,.16)",
 	trim: "#8f6c4b",
@@ -190,4 +192,7 @@ export const SCREEN = {
 	testPending: "#565c74",
 	testText: "#4a5068",
 	sleepDot: "rgba(150,170,255,.6)",
+	offlineBg: "#2a2d3a",
+	offlineIcon: "#8a90a8",
+	offlineSlash: "#d9544a",
 } as const;

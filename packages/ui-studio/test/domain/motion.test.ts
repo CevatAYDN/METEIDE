@@ -11,7 +11,6 @@ const effects: Effect[] = [
 	{ kind: "mark", at, text: "!", colour: "warn" },
 	{ kind: "move", target: "envelope", from: at, to: { x: 200, y: 50 } },
 	{ kind: "jump", at: [at] },
-	{ kind: "dim", on: true },
 ];
 
 describe("the stage's motions", () => {

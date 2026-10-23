@@ -71,6 +71,12 @@ describe("the studio room", () => {
 		expect(running.rows[0]?.[0]?.state).toBe("working");
 	});
 
+	it("is offline while the run is paused for the network, and only then", () => {
+		expect(sceneOf(view([], { pausedFor: "network" })).offline).toBe(true);
+		expect(sceneOf(view([], { pausedFor: "quota" })).offline).toBeFalsy();
+		expect(sceneOf(view([])).offline).toBeFalsy();
+	});
+
 	it("stands one character per role for more than twelve agents, with the count", () => {
 		const many = [
 			...Array.from({ length: 10 }, (_, i) => agent(`d${i}`, "dev")),

@@ -5,11 +5,12 @@ import type { TeamView } from "./team-view.js";
 // What the studio shows when a live event arrives (docs/13, the event table; ADR-052): the notes
 // and characters whose place changed move there (a new note drops onto the board, an agent walks
 // to or from the coffee corner), and some events add a mark or a burst. Effects play for live
-// events only; a panel opened later draws the state. An effect aimed at a role plays at that
-// role's first character and is skipped when it has none. shortcut: the assigner's envelope of
-// task.assigned (the event names no assigner), the work shown on a monitor (a short glyph of the
-// tool's domain instead) and the rows whose events no module publishes yet (agent.message.sent,
-// review.requested, vault.note.saved) come with the theme module.
+// events only; a panel opened later draws the state, which also holds what the table shows as a
+// state: a tool's work on its monitor, the offline monitors and shade of a network pause (paint.ts).
+// An effect aimed at a role plays at that role's first character and is skipped when it has none.
+// shortcut: the assigner's envelope of task.assigned (the event names no assigner) and the rows
+// whose events no module publishes yet (agent.message.sent, review.requested, vault.note.saved)
+// come when those events do.
 
 /** A token colour an effect is drawn in. */
 export type EffectColour = "good" | "accent" | "warn" | "bad";
@@ -34,7 +35,6 @@ export type Effect =
 			readonly text: string;
 			readonly colour: EffectColour;
 	  }
-	| { readonly kind: "dim"; readonly on: boolean }
 	| { readonly kind: "jump"; readonly at: readonly Point[] };
 
 /** The room before or after the event. */
@@ -70,18 +70,6 @@ const headOfAgent = (f: Frame, agentId: string | undefined) => {
 
 const headOfRole = (f: Frame, roleId: string | undefined) =>
 	headOfAgent(f, f.view.agents.find((a) => a.roleId === roleId)?.id);
-
-const TOOL_GLYPHS: Readonly<Record<string, string>> = {
-	fs: "{ }",
-	web: "www",
-	media: "img",
-	"3d": "3d",
-	shell: ">_",
-	vcs: "git",
-	gameengine: "test",
-	browser: "web",
-	seo: "seo",
-};
 
 const above = (p: Point, dy = 40): Point => ({ x: p.x, y: p.y - dy });
 
@@ -142,24 +130,6 @@ const statusEffects = (
 const optional = <K extends string>(key: K, p: Point | undefined) =>
 	(p ? { [key]: p } : {}) as Partial<Record<K, Point>>;
 
-const toolEffects = (
-	e: Extract<MeteEvent, { type: "agent.tool.called" }>,
-	f: Frame,
-): Effect[] => {
-	const head = headOfAgent(f, e.agentId);
-	const domain = e.payload.capability.split(".")[0] ?? "";
-	return head
-		? [
-				{
-					kind: "mark",
-					at: above(head, 48),
-					text: TOOL_GLYPHS[domain] ?? "...",
-					colour: "accent",
-				},
-			]
-		: [];
-};
-
 const humanAsked = (
 	e: Extract<MeteEvent, { type: "approval.requested" }>,
 	f: Frame,
@@ -188,15 +158,8 @@ const eventEffects = (e: MeteEvent, f: Frame): Effect[] => {
 	switch (e.type) {
 		case "task.status.changed":
 			return statusEffects(e, f);
-		case "agent.tool.called":
-			return toolEffects(e, f);
 		case "approval.requested":
 			return humanAsked(e, f);
-		case "run.paused":
-			return e.payload.reason === "network" ? [{ kind: "dim", on: true }] : [];
-		case "run.resumed":
-		case "network.restored":
-			return [{ kind: "dim", on: false }];
 		case "run.completed":
 			return completed(f);
 		default:
