@@ -1,4 +1,4 @@
-import type { ApprovalInput, RunStart } from "@mete/contracts";
+import type { ApprovalInput, RunStart, Tier } from "@mete/contracts";
 import { ILogger } from "@theia/core/lib/common/logger";
 import type { BackendApplicationContribution } from "@theia/core/lib/node";
 import { inject, injectable } from "@theia/core/shared/inversify";
@@ -8,6 +8,7 @@ import type {
 	AuditFilter,
 	MeteDaemonClient,
 	MeteDaemonService,
+	Need,
 } from "../domain/status-service.js";
 import { createDaemonHost } from "./daemon-host.js";
 import { createKeyService } from "./key-service.js";
@@ -102,6 +103,10 @@ export class MeteDaemonBackend
 
 	readTemplate(workspaceDir: string, id: string) {
 		return this.host.readTemplate(workspaceDir, id);
+	}
+
+	chain(workspaceDir: string, tier: Tier, needs: readonly Need[]) {
+		return this.host.chain(workspaceDir, tier, needs);
 	}
 
 	onStop() {

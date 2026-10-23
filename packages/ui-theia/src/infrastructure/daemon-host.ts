@@ -3,6 +3,7 @@ import {
 	type ApprovalInput,
 	DAEMON_METHODS,
 	DaemonAuditResultSchema,
+	DaemonChainResultSchema,
 	DaemonDoneResultSchema,
 	DaemonErrorDataSchema,
 	DaemonEstimateResultSchema,
@@ -19,6 +20,7 @@ import {
 	parseEvent,
 	type Result,
 	type RunStart,
+	type Tier,
 } from "@mete/contracts";
 import {
 	createMessageConnection,
@@ -29,7 +31,7 @@ import {
 } from "vscode-jsonrpc/node";
 import { STDERR_TAIL_LINES } from "../defaults.js";
 import type { RestartPolicy } from "../domain/restart-policy.js";
-import type { DaemonFailure } from "../domain/status-service.js";
+import type { DaemonFailure, Need } from "../domain/status-service.js";
 
 // Owns the `mete daemon` child of one folder: starts it on the first call, talks the daemon protocol
 // to it and starts it again after a crash, within the restart policy (ARCHITECTURE.md, Failure handling).
@@ -245,7 +247,8 @@ const reads = (send: Send) => ({
 });
 
 // What the run composer asks before Start: the team templates (ADR-058) and each one's request
-// estimate (ADR-068); and the text of one template for the team editor (ADR-075).
+// estimate (ADR-068); and the text of one template and a tier's models for the team editor
+// (ADR-075, ADR-077).
 const composing = (send: Send) => ({
 	templates: (dir: string) =>
 		send(dir, DAEMON_METHODS.templates, {}, (raw) =>
@@ -258,6 +261,10 @@ const composing = (send: Send) => ({
 	readTemplate: (dir: string, id: string) =>
 		send(dir, DAEMON_METHODS.templateRead, { id }, (raw) =>
 			DaemonTemplateReadResultSchema.safeParse(raw),
+		),
+	chain: (dir: string, tier: Tier, needs: readonly Need[]) =>
+		send(dir, DAEMON_METHODS.chain, { tier, needs }, (raw) =>
+			DaemonChainResultSchema.safeParse(raw),
 		),
 });
 

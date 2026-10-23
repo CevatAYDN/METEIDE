@@ -57,6 +57,7 @@ conn.onRequest("mete/template.read", (p) => {
 	if (p.id === "nope") throw new ResponseError(-32000, "no template nope", { code: "not_found" });
 	return p.id === "bad" ? { id: "bad", source: "global", yaml: "" } : { id: p.id, source: "builtIn", yaml: "kind: TeamTemplate" };
 });
+conn.onRequest("mete/chain", (p) => (p.tier === "vision" ? { models: [{ providerId: "groq" }] } : { models: [{ providerId: "groq", modelId: "m" }] }));
 conn.onRequest("mete/stop.all", () => ({ cancelled: [run.id] }));
 conn.onRequest("mete/estimate", (p) => (p.templateId === "bad" ? { providers: "x" } : { providers: [{ providerId: "groq", requests: 15 }], unassigned: 3 }));
 conn.onRequest("mete/quota", () =>

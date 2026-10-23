@@ -1,14 +1,17 @@
 import type {
 	ApprovalInput,
 	AuditEntry,
+	DaemonChainResultSchema,
 	DaemonEstimateResultSchema,
 	DaemonStatusResultSchema,
 	DaemonTemplateReadResultSchema,
 	MeteEvent,
+	NeedSchema,
 	ProviderState,
 	QuotaUsage,
 	Result,
 	RunStart,
+	Tier,
 } from "@mete/contracts";
 
 import type { ProviderKey } from "./provider-keys.js";
@@ -25,6 +28,12 @@ export type StatusRuns = ReturnType<typeof DaemonStatusResultSchema.parse>;
 export type TemplateText = ReturnType<
 	typeof DaemonTemplateReadResultSchema.parse
 >;
+
+/** A need of a role (docs/08), as the template schema parses it. */
+export type Need = ReturnType<typeof NeedSchema.parse>;
+
+/** What `mete/chain` answers (ADR-077), as the daemon protocol schema parses it. */
+export type Chain = ReturnType<typeof DaemonChainResultSchema.parse>;
 
 /** What `mete/estimate` answers (ADR-068), as the daemon protocol schema parses it. */
 export type Estimate = ReturnType<typeof DaemonEstimateResultSchema.parse>;
@@ -127,6 +136,12 @@ export interface MeteDaemonService {
 		workspaceDir: string,
 		templateId: string | null,
 	): Promise<Result<Estimate, DaemonFailure>>;
+	/** The models a tier's chain would try for the needs, for the team editor's pinned model (ADR-077). */
+	chain(
+		workspaceDir: string,
+		tier: Tier,
+		needs: readonly Need[],
+	): Promise<Result<Chain, DaemonFailure>>;
 	/** The text of the template file the daemon would load for an id, and its folder, for the team editor (ADR-075). */
 	readTemplate(
 		workspaceDir: string,

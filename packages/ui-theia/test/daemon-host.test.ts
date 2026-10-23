@@ -176,6 +176,16 @@ describe("the daemon host", () => {
 		expect(!odd.ok && odd.error.code).toBe("protocol");
 	});
 
+	it("asks for a tier's models for the team editor's pinned model, and refuses an odd answer (ADR-077)", async () => {
+		const { host } = await setup();
+		expect(await host.chain("/w", "coder", ["tool_calling"])).toEqual({
+			ok: true,
+			value: { models: [{ providerId: "groq", modelId: "m" }] },
+		});
+		const odd = await host.chain("/w", "vision", []);
+		expect(!odd.ok && odd.error.code).toBe("protocol");
+	});
+
 	it("sends Stop all and returns the runs the daemon cancelled (ADR-065)", async () => {
 		const { host } = await setup();
 		expect(await host.stopAll("/w")).toEqual({
