@@ -1,0 +1,108 @@
+# The game studio of docs/08 (Built-in templates; ADR-057): a designer writes the game design
+# document, the lead and the human approve it, a project manager splits it into a task list whose
+# entries become tasks of the run (spawns), and developers, an artist and a tester work through
+# them one at a time, each step approved by the lead. The prototype is a browser game without a game
+# engine: gameengine.* gates are skipped while no engine is bound and the tester reports the gap,
+# and the artist writes placeholder files while no media.* capability is bound. Core does not honor
+# before_start, review, retrospective or watches yet; the lines stay as docs/08 writes them.
+apiVersion: mete/v1
+kind: TeamTemplate
+metadata:
+  id: game-studio
+  name: Game studio
+  version: 1.0.0
+  description: Idea to playable prototype
+pattern: hierarchical
+roles:
+  - id: designer
+    name: Game designer
+    goal: >-
+      Turn the goal into a clear, buildable game design document for a small browser game (HTML,
+      CSS and JavaScript, no dependencies, no game engine). Reply with only a JSON object
+      {"title": string, "pitch": string, "mechanics": [string], "scope": string, "acceptance":
+      [string]}: mechanics and acceptance are lists of short sentences, and scope says what the
+      prototype leaves out.
+    backstory: Ten years of designing small, focused games
+    tier: reasoning
+    needs: [tool_calling]
+    prefer_different_family_than: []
+    capabilities: [web.search@1, web.fetch@1, fs.read@1, fs.write@1, vault.read@1]
+    watches: []
+  - id: lead
+    name: Lead
+    goal: >-
+      Approve or return work against acceptance criteria. Judge a step only by its own title and
+      acceptance: later steps cover the rest. Approve a design that a developer can build in a few
+      files; approve a task list of at most six tasks that ends with a tester task; return work
+      with exactly what to fix.
+    tier: reasoning
+    needs: [tool_calling]
+    capabilities: [fs.read@1, vcs.git@2, knowledge.search@1]
+    watches: [gdd@1, task-list@1]
+  - id: pm
+    name: Project manager
+    goal: >-
+      Split the approved design into at most six owned tasks. Reply with only a JSON object
+      {"tasks": [{"id": string, "role": string, "title": string, "acceptance": [string],
+      "dependsOn": [string]}]}: id is lowercase with underscores and unique, role is developer,
+      artist or tester, acceptance lists what must be true when the task is done, and dependsOn
+      (optional) names only earlier tasks of the list. Put the game in the folder game with
+      game/index.html as its page, and end with one tester task that depends on the others.
+    tier: reasoning
+    needs: [tool_calling]
+    capabilities: [fs.read@1, fs.write@1]
+    watches: [gdd@1]
+  - id: developer
+    name: Developer
+    goal: >-
+      Implement your task with small verified edits in the folder game: plain HTML, CSS and
+      JavaScript that run when game/index.html is opened in a browser, no dependencies, no build
+      step. Reply with the list of files you wrote.
+    tier: coder
+    needs: [tool_calling]
+    capabilities: [fs.*@1, shell.exec@1, vcs.git@2, code.graph@1, gameengine.build@1]
+  - id: artist
+    name: Artist
+    goal: >-
+      Produce the assets the task names. While no image tool is available, write simple placeholder
+      files (SVG shapes) under game/assets. Reply with only a JSON object {"assets": [{"name":
+      string, "description": string, "path": string}]} naming each file you wrote.
+    tier: vision
+    needs: [tool_calling]
+    capabilities: [media.image.generate@1, media.3d.fromImage@1, 3d.cleanup@1, 3d.export@1, gameengine.importAsset@1, fs.write@1]
+  - id: tester
+    name: Tester
+    goal: >-
+      Prove that the features work. Read the code in the folder game, take a screenshot of the
+      folder game when the screenshot tool is available, and check each acceptance sentence. Reply
+      with only a JSON object {"passed": boolean, "checks": [{"name": string, "passed": boolean,
+      "details": string}], "gaps": [string]}: passed is true only when every check passed, and gaps
+      names what you could not check, such as play in a game engine.
+    tier: coder
+    needs: [tool_calling]
+    prefer_different_family_than: [developer]
+    capabilities: [fs.read@1, shell.exec@1, gameengine.test@1, browser.screenshot@2]
+tasks:
+  - id: write_gdd
+    role: designer
+    title: Write the game design document
+    expected_output: artifact:gdd@1
+    before_start: { clarify_with: human }
+    guardrail: { schema: gdd@1, max_retries: 2 }
+    approval: lead
+  - id: plan_tasks
+    role: pm
+    title: Split the design into tasks
+    expected_output: artifact:task-list@1
+    context: [write_gdd]
+    approval: lead
+    spawns: true
+spawn_defaults:
+  developer: { verify: [{ capability: gameengine.build@1 }], review: { pair_with: tester, max_turns: 4 }, approval: lead }
+  artist: { expected_output: artifact:asset-spec@1, approval: lead }
+  tester: { expected_output: artifact:test-report@1, verify: [{ capability: gameengine.test@1 }], approval: lead }
+policies:
+  revision_limit: 3
+  human_checkpoints: [write_gdd]
+  retrospective: true
+budget: { cloud_requests: 150, max_hours: 6 }
