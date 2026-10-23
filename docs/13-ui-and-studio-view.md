@@ -23,7 +23,7 @@ The desktop UI is Theia plus METE panels; its signature is the studio view, wher
 
 The run composer asks for the goal, then offers "Let METE choose" (the router decides, and asks with its suggestions when it is unsure), each template of `mete/templates` by name with its description, and "Single agent" (ADR-058).
 
-A run paused for quota shows under its row why each provider cannot carry it on, and a "Resume now" button; "METE: Resume run" offers it too (ADR-059), so a key or privacy change takes effect before the pause's reset.
+A run paused for quota shows under its row why each provider cannot carry it on, and a "Resume now" button; "METE: Resume run" offers it too (ADR-059), so a key or privacy change takes effect before the pause's reset. A run paused by the user, which a desktop quit does to a running run, shows a "Resume" button and is offered by "METE: Resume run" too (ADR-061).
 
 The Quota dashboard is its own view, "METE: Open quota dashboard": a table of the `units` of `mete/quota` (ADR-054), one row per provider, unit and model scope with used, limit and reset time and, on request under each row, its history: each amount in the window with its time (ADR-055); it asks again on every `quota.*` event.
 
