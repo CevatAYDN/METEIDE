@@ -17,7 +17,7 @@ METE IDE is domain-agnostic. Game development, web development, SEO, research an
 | Name | METE IDE (repository and package scope: `mete`, `@mete/*`; CLI binary: `mete`) |
 | License | Apache-2.0 |
 | Platforms | Windows 10/11 64-bit first; Linux built and smoke-tested through WSL2 in Phase 1, and a run on a native Linux desktop is a release gate before any Linux package is published \[D\]; macOS after the public MVP |
-| Models | Free cloud providers only: NVIDIA Build, OpenRouter `:free` models, OpenCode Zen free models, Hugging Face Spaces through MCP. No local models. Internet is required. A provider stays in the default chain only while its free models cost nothing to use; OpenCode Zen stays even though it asks for billing details before it issues a key \[C\]; the chain lives in configuration and its first entry is re-verified at each release \[D\] |
+| Models | Free cloud models by default: NVIDIA Build, OpenRouter `:free` models, OpenCode Zen free models, Groq, Google AI Studio, Hugging Face Spaces through MCP; paid models only when the user picks the `paid` or `both` model mode, under a daily spending cap (ADR-042). No local models. Internet is required. A provider stays in the default chain only while its free models cost nothing to use; OpenCode Zen stays even though it asks for billing details before it issues a key \[C\]; the chain lives in configuration and its first entry is re-verified at each release \[D\] |
 | Language | TypeScript in strict mode; Rust through napi-rs only for hot paths proven by measurement |
 | Runtime | Node.js 24 LTS for the core daemon, CLI and tooling; the desktop shell is Eclipse Theia on Electron and runs the Node bundled with Theia's pinned Electron \[D\] |
 | Managed runtimes | Node.js and Python (through uv) are downloaded on demand to run MCP servers and optional engine adapters; versions and their SHA-256 are pinned in code (`packages/mcp/src/defaults.ts`, tab 10), downloaded only from official release URLs and SHA-256 verified before first use \[D\] |
@@ -70,13 +70,13 @@ Every specification tab follows the same rules, so humans and models read them t
 
 Every decision in this documentation comes from the design conversation \[C\] or was fixed here to close a gap \[D\]; nothing is left as an unstated assumption. Every \[D\] item is tagged where it appears; the most important ones are also ADRs in the Decisions tab.
 
-Decisions fixed by this documentation \[D\], in short: English documentation; the `.mete/` folder name; `team.engine@1` as the name of the team engine capability (to avoid a clash with game engines); the core running as a separate daemon process; no telemetry; Windows installer and Linux package formats; default numbers for limits and timeouts; the vault folder layout; the learning router formula; Conventional Commits; quota as a hard constraint (every team template MUST declare a per-task request and token budget, and the scheduler MUST pause on `quota.exhausted` instead of assuming paid credit); local release builds (a maintainer produces release artifacts locally from the lockfile, and the release notes record toolchain versions and the lockfile hash); until `docs/adr/` exists, this overview is the interim source of truth.
+Decisions fixed by this documentation \[D\], in short: English documentation; the `.mete/` folder name; `team.engine` as the name of the team engine capability (to avoid a clash with game engines; its current version is in tab 06); the core running as a separate daemon process; no telemetry; Windows installer and Linux package formats; default numbers for limits and timeouts; the vault folder layout; the learning router formula; Conventional Commits; quota as a hard constraint (every team template MUST declare a per-task request and token budget, and the scheduler MUST pause on `quota.exhausted` instead of assuming paid credit); local release builds (a maintainer produces release artifacts locally from the lockfile, and the release notes record toolchain versions and the lockfile hash).
 
 Ideas discussed earlier in the conversation and later replaced. An implementation MUST NOT use them:
 
 | Superseded idea | Replaced by |
 | --- | --- |
-| Local models for heavy work, offline mode | Free cloud providers only, pause on network loss |
+| Local models for heavy work, offline mode | Cloud providers only, free by default, pause on network loss |
 | Docker or Podman sandbox as a requirement | Tool-level limits, git worktrees, command allow list; containers only as an optional MCP runtime |
 | GitHub Actions for CI and background agents | Local CI with lefthook; METE's own trigger engine |
 | Bottleneck for quota | p-queue plus METE's own multi-unit token buckets |
