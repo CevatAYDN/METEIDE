@@ -142,7 +142,8 @@
 			"quotaOut": "{0} ücretsiz kotası bitti; ajanları kahve köşesinde bekliyor.",
 			"thinking": "{0} düşünüyor.",
 			"tool": "{0}, {1} kullanıyor.",
-			"until": "{0} saatine kadar"
+			"until": "{0} saatine kadar",
+			"vault": "Vault"
 		},
 		"status": {
 			"blocked": "METE daemon'u durup duruyor, bu yüzden METE onu şimdilik yeniden başlatmıyor: {0}",

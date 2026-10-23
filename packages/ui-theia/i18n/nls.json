@@ -162,7 +162,8 @@
 			"quotaOut": "{0}'s free quota is used up; its agents wait at the coffee corner.",
 			"thinking": "{0} is thinking.",
 			"tool": "{0} uses {1}.",
-			"until": "until {0}"
+			"until": "until {0}",
+			"vault": "Vault"
 		}
 	}
 }

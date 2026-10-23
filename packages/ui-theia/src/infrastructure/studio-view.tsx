@@ -25,6 +25,7 @@ const labels = (): StageLabels => ({
 	inProgress: nls.localize("mete/board/inProgress", "In progress"),
 	done: nls.localize("mete/board/done", "Done"),
 	coffee: nls.localize("mete/studio/coffee", "Coffee corner"),
+	vault: nls.localize("mete/studio/vault", "Vault"),
 	until: (resetsAt) =>
 		nls.localize(
 			"mete/studio/until",
@@ -113,7 +114,7 @@ export const StudioView = (props: Props) => {
 	const width = useWidth(box);
 	const stage = useStage(canvas);
 	const primitives = useMemo(
-		() => (width > 0 ? paintScene(sceneOf(view), labels()) : []),
+		() => (width > 0 ? paintScene(sceneOf(view), labels(), new Date()) : []),
 		[view, width],
 	);
 	useEffect(() => {
