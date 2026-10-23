@@ -9,11 +9,12 @@ export const METE_DAEMON_PATH = "/services/mete-daemon";
 export type StatusRuns = ReturnType<typeof DaemonStatusResultSchema.parse>;
 
 /**
- * Why a status call has no runs: the daemon stopped (`detail` is its exit code and last stderr
- * lines), the restart limit is reached, the daemon refused the request, or its answer did not parse.
+ * Why a status call has no runs: the daemon is not ready (`detail` is what core-engine waits for,
+ * ADR-046), it stopped (`detail` is its exit code and last stderr lines), the restart limit is
+ * reached, the daemon refused the request, or its answer did not parse.
  */
 export type DaemonFailure = {
-	readonly code: "stopped" | "blocked" | "refused" | "protocol";
+	readonly code: "not_ready" | "stopped" | "blocked" | "refused" | "protocol";
 	readonly detail: string;
 };
 

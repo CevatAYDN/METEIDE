@@ -14,6 +14,12 @@ const plain = (text: string) =>
 /** Says why the daemon gave no runs, with what it reported. */
 export const failureText = ({ code, detail: raw }: DaemonFailure) => {
 	const detail = plain(raw);
+	if (code === "not_ready")
+		return nls.localize(
+			"mete/status/notReady",
+			"METE is not ready yet: {0}",
+			detail,
+		);
 	if (code === "blocked")
 		return nls.localize(
 			"mete/status/blocked",

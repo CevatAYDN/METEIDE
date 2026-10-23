@@ -19,6 +19,8 @@ if (mode === "exit") {
 const run = { id: "6f1c3d52-9b7e-4a52-8d5f-0a1b2c3d4e5f", workspaceId: "0b6f0a43-3f0e-4a3e-9a58-1b2c3d4e5f60", templateId: null, goal: "fix it", status: "paused", pauseReason: "quota", autonomyLevel: 2, budget: { cloudRequests: 10, maxHours: 1 }, createdAt: "2026-10-23T10:00:00.000Z" };
 const conn = createMessageConnection(new StreamMessageReader(process.stdin), new StreamMessageWriter(process.stdout));
 conn.onRequest("mete/status", (p) => {
+	if (mode === "notready") throw new ResponseError(-32000, "core-engine is not active", { code: "not_ready", reasons: ["core-engine is not active.", "Add a provider key with: mete key set openrouter"] });
+	if (p && p.runId === "baddata") throw new ResponseError(-32000, "odd", { oops: 1 });
 	if (p && p.runId === "die") process.exit(1);
 	if (p && p.runId === "refuse") throw new ResponseError(-32000, "run not found", { code: "not_found" });
 	if (p && p.runId === "garbage") return [{ nope: 1 }];

@@ -142,6 +142,7 @@ describe("METE: Status", () => {
 
 	it("names each reason the daemon gave no runs, with what it reported", async () => {
 		const texts: Record<DaemonFailure["code"], string> = {
+			not_ready: "METE is not ready yet: no provider key",
 			stopped: "The METE daemon stopped: exit code 1: no provider key",
 			blocked:
 				"The METE daemon keeps stopping, so METE does not start it again for now: exit code 1: no provider key",

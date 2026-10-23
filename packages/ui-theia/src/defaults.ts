@@ -9,7 +9,8 @@ export const DAEMON_MAX_RESTARTS = 3;
 /** The window those restarts count in: 5 minutes (03 Architecture, Failure handling). */
 export const DAEMON_RESTART_WINDOW_MS = 5 * 60 * 1000;
 
-// shortcut: no document fixes this number; five lines hold the usual reasons a daemon stops
-// (no provider key, a lock held by `mete run`), and it moves when a real one needs more.
+// shortcut: no document fixes this number; five lines hold the usual reasons a daemon still stops
+// (a run lock held by another command, an invalid configuration), and it moves when a real one
+// needs more.
 /** The last lines of the daemon's stderr kept to say why it stopped. */
 export const STDERR_TAIL_LINES = 5;

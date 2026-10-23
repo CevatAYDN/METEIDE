@@ -46,6 +46,27 @@ describe("the daemon host", () => {
 		expect(!garbage.ok && garbage.error.code).toBe("protocol");
 	});
 
+	it("shows what core-engine waits for and keeps the daemon, so the restart limit never counts it", async () => {
+		const { fake, host } = await setup(1);
+		fake.state.mode = "notready";
+		for (let i = 0; i < 4; i++)
+			expect(await host.status("/w")).toEqual({
+				ok: false,
+				error: {
+					code: "not_ready",
+					detail:
+						"core-engine is not active; Add a provider key with: mete key set openrouter",
+				},
+			});
+		expect(fake.state.starts).toEqual(["/w"]);
+	});
+
+	it("treats error data that does not parse as a protocol fault", async () => {
+		const { host } = await setup();
+		const odd = await host.status("/w", "baddata");
+		expect(!odd.ok && odd.error).toEqual({ code: "protocol", detail: "odd" });
+	});
+
 	it("replaces the daemon when another folder is asked about", async () => {
 		const { fake, host } = await setup();
 		await host.status("/work/a");

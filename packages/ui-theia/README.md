@@ -6,11 +6,11 @@ Modules: none (not a MeteModule)
 
 ## What it contains
 
-- A frontend module with one command, "METE: Status" in the command palette (docs/13, Design system). It asks the backend for the runs of the first open folder and shows their count and the newest five by status and goal, "Open a folder first" without a folder, or why the daemon gave none (it stopped, it keeps stopping, it refused, its answer did not parse), with the daemon's exit code and last stderr lines.
+- A frontend module with one command, "METE: Status" in the command palette (docs/13, Design system). It asks the backend for the runs of the first open folder and shows their count and the newest five by status and goal, "Open a folder first" without a folder, or why the daemon gave none: it is not ready (what core-engine waits for, ADR-046), it stopped or keeps stopping (its exit code and last stderr lines), it refused, or its answer did not parse.
 - A backend module with one RPC service (`/services/mete-daemon`, method `status`). The backend owns the daemon: the first call for a folder starts `mete daemon <folder>` on its own Node with `ELECTRON_RUN_AS_NODE=1`, one folder at a time (another folder replaces it), and the backend closes its input on exit, which is how a daemon is asked to stop. Checked on Windows 11: a daemon asked through its input frees its run lock in under 100 ms, but when the desktop quits the daemon is gone within a second and the lock stays, so the quit ends it first; the next start takes the stale lock over (a pid that is no longer alive) and a run that was running becomes paused with reason `user` until it is resumed (docs/07, recovery). A daemon that ended on its own starts again on the next call, at most 3 times in 5 minutes (ARCHITECTURE, Failure handling). There is no panel yet (shortcut: the first panel brings TSX and `@types/react`, event streaming and eager restarts).
 - Every label and message goes through `nls.localize` (docs/05, Localization). The Turkish resource file is not written yet (shortcut: it joins the English and Turkish item of Phase 5).
 
-The first start in a folder needs what `mete status` needs: a provider key (`mete key set openrouter`), and no `mete run` or other `mete daemon` holding the folder's run lock. When it is missing, the command says so.
+Without a provider key the daemon still starts and the command says METE is not ready yet, with what core-engine waits for and how to add a key (`mete key set openrouter`); a key added while the daemon runs is seen after the daemon restarts (ADR-046). A run lock held by another `mete` command still stops the daemon, and the command says so.
 
 ## Decisions behind the layout
 

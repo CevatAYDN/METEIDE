@@ -1,6 +1,7 @@
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import {
 	DAEMON_METHODS,
+	DaemonErrorDataSchema,
 	DaemonStatusResultSchema,
 	err,
 	ok,
@@ -17,7 +18,7 @@ import { STDERR_TAIL_LINES } from "../defaults.js";
 import type { RestartPolicy } from "../domain/restart-policy.js";
 import type { DaemonFailure, StatusRuns } from "../domain/status-service.js";
 
-// Owns the `mete daemon` child of one folder: starts it on the first call, talks protocol version 1
+// Owns the `mete daemon` child of one folder: starts it on the first call, talks protocol version 2
 // to it and starts it again after a crash, within the restart policy (ARCHITECTURE.md, Failure handling).
 // shortcut: a crashed daemon starts again on the next call, not at once; eager restarts come with
 // the first panel that streams events.
@@ -38,7 +39,7 @@ type Live = {
 	readonly dir: string;
 	readonly child: ChildProcessWithoutNullStreams;
 	readonly conn: MessageConnection;
-	/** The last stderr lines: they say why a daemon stopped (no provider key, the run lock is held). */
+	/** The last stderr lines: they say why a daemon stopped (the run lock is held, an invalid configuration). */
 	readonly tail: string[];
 	exitCode?: number | null;
 	ended: boolean;
@@ -91,6 +92,19 @@ const detailOf = (live: Live) => {
 	return [code, live.tail.join(" ")].filter(Boolean).join(": ");
 };
 
+// A refusal carries its reason in data (ADR-046): not_ready lists what core-engine waits for. An
+// error without data, such as invalid params, keeps its message; data that does not parse is a
+// protocol fault.
+const refusal = (e: ResponseError<unknown>): Result<never, DaemonFailure> => {
+	if (e.data === undefined) return err({ code: "refused", detail: e.message });
+	const data = DaemonErrorDataSchema.safeParse(e.data);
+	if (!data.success) return err({ code: "protocol", detail: e.message });
+	if (data.data.code !== "not_ready")
+		return err({ code: "refused", detail: e.message });
+	const reasons = data.data.reasons.map((r) => r.replace(/\.$/, ""));
+	return err({ code: "not_ready", detail: reasons.join("; ") });
+};
+
 const ask = async (
 	live: Live,
 	runId: string | undefined,
@@ -107,8 +121,7 @@ const ask = async (
 	} catch (e) {
 		// Disposing the connection rejects a waiting request with a ResponseError too, so a daemon
 		// that ended counts first.
-		if (!live.ended && e instanceof ResponseError)
-			return err({ code: "refused", detail: e.message });
+		if (!live.ended && e instanceof ResponseError) return refusal(e);
 		return err({ code: "stopped", detail: detailOf(live) });
 	}
 };
