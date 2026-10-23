@@ -83,6 +83,23 @@ describe("the Board session", () => {
 		expect(next.model).toMatchObject({ recent: next.recent });
 	});
 
+	it("keeps the last live event and the view before it for the Studio, never one from history", () => {
+		const loaded = loadedBoard(
+			receiveBoard(startBoard(shown), "/w", started),
+			shown,
+			ok([created]),
+		);
+		expect(loaded.pulse).toBeUndefined();
+		const next = receiveBoard(
+			loaded,
+			"/w",
+			event("task.assigned", { agentId: TASK }),
+		);
+		expect(next.pulse?.event.type).toBe("task.assigned");
+		expect(next.pulse?.before).toBe(loaded.view);
+		expect(next.model).toMatchObject({ pulse: next.pulse });
+	});
+
 	it("stays failed when live events come after a failed read", () => {
 		const s = loadedBoard(startBoard(shown), shown, {
 			ok: false,

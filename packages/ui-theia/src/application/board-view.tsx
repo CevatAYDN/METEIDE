@@ -26,6 +26,8 @@ export type BoardModel =
 			readonly unreadable: number;
 			/** The run's latest studio events, for the Studio's accessible list. */
 			readonly recent: readonly MeteEvent[];
+			/** The last live event and the view before it, for the Studio's effects. */
+			readonly pulse?: { readonly event: MeteEvent; readonly before: TeamView };
 	  };
 
 const PANEL: CSSProperties = {
@@ -121,7 +123,10 @@ export type TeamControls = {
 	readonly mode: TeamMode;
 	readonly onMode: (mode: TeamMode) => void;
 	readonly flow: (view: TeamView) => ReactNode;
-	readonly studio: (view: TeamView) => ReactNode;
+	readonly studio: (
+		view: TeamView,
+		pulse?: { readonly event: MeteEvent; readonly before: TeamView },
+	) => ReactNode;
 };
 
 const modeName = (mode: TeamMode) =>
@@ -211,7 +216,7 @@ const Shown = ({
 		);
 	return (
 		<>
-			{controls.studio(model.view)}
+			{controls.studio(model.view, model.pulse)}
 			<Recent view={model.view} recent={model.recent} />
 		</>
 	);

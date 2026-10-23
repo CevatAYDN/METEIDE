@@ -25,8 +25,13 @@ export type BoardSession = {
 	readonly buffer?: readonly MeteEvent[];
 	/** The run's latest events of tab 13's studio table, for the Studio's accessible list. */
 	readonly recent: readonly MeteEvent[];
+	/** The last live event the fold took and the view before it: what the Studio animates. */
+	readonly pulse?: Pulse;
 	readonly model: BoardModel;
 };
+
+/** A live event and the view before it; history and the buffer make none (ADR-052). */
+export type Pulse = { readonly event: MeteEvent; readonly before: TeamView };
 
 /** No run chosen yet. */
 export const IDLE_BOARD: BoardSession = {
@@ -86,6 +91,7 @@ const drawn = (s: BoardSession, shown: Shown, view: TeamView): BoardModel => ({
 	view,
 	unreadable: s.unreadable,
 	recent: s.recent,
+	...(s.pulse ? { pulse: s.pulse } : {}),
 });
 
 /** A live event of a folder's daemon; one the fold does not take, or already folded, changes nothing. */
@@ -102,7 +108,7 @@ export const receiveBoard = (
 	const view = applyAll(shown.runId, s.view, [e]);
 	const recent = recentAfter(s.recent, shown.runId, [e]);
 	if (view === s.view && recent === s.recent) return s;
-	const next = { ...s, view, recent };
+	const next = { ...s, view, recent, pulse: { event: e, before: s.view } };
 	const model = s.model.kind === "board" ? drawn(next, shown, view) : s.model;
 	return { ...next, model };
 };

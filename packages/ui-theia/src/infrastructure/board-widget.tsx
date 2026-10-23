@@ -3,6 +3,7 @@ import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { nls } from "@theia/core/lib/common/nls";
 import { getThemeMode } from "@theia/core/lib/common/theme";
+import type { Message } from "@theia/core/shared/@lumino/messaging";
 import {
 	inject,
 	injectable,
@@ -35,6 +36,8 @@ export class MeteBoardWidget extends ReactWidget {
 	@inject(ThemeService) protected readonly themes!: ThemeService;
 
 	protected session: BoardSession = IDLE_BOARD;
+	/** False while the panel is hidden, so the Studio's stage stops (docs/13, Performance and access). */
+	protected shown = true;
 	protected mode: TeamMode = "board";
 
 	@postConstruct()
@@ -65,6 +68,18 @@ export class MeteBoardWidget extends ReactWidget {
 		this.setSession(loadedBoard(this.session, shown, r));
 	}
 
+	protected override onAfterShow(msg: Message): void {
+		super.onAfterShow(msg);
+		this.shown = true;
+		this.update();
+	}
+
+	protected override onAfterHide(msg: Message): void {
+		super.onAfterHide(msg);
+		this.shown = false;
+		this.update();
+	}
+
 	protected setSession(next: BoardSession): void {
 		const drawn = next.model !== this.session.model;
 		this.session = next;
@@ -82,10 +97,12 @@ export class MeteBoardWidget extends ReactWidget {
 						this.update();
 					},
 					flow: (view) => <FlowView view={view} />,
-					studio: (view) => (
+					studio: (view, pulse) => (
 						<StudioView
 							view={view}
 							mode={getThemeMode(this.themes.getCurrentTheme().type)}
+							active={this.shown}
+							{...(pulse ? { pulse } : {})}
 						/>
 					),
 				}}

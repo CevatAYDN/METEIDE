@@ -1,5 +1,9 @@
+import type { MeteEvent } from "@mete/contracts";
 import {
 	createStage,
+	effectColours,
+	effectsOf,
+	layoutOf,
 	paintScene,
 	type Stage,
 	type StageLabels,
@@ -67,14 +71,41 @@ const useStage = (canvas: React.RefObject<HTMLCanvasElement | null>) => {
 	return stage;
 };
 
-/** The run's studio room, in the colours of the editor's theme mode. */
-export const StudioView = ({
-	view,
-	mode,
-}: {
+type Pulse = { readonly event: MeteEvent; readonly before: TeamView };
+
+// Plays the effects of each new live event over the room, once; a hidden panel pauses the stage.
+const useEffects = (stage: Stage | undefined, props: Props, width: number) => {
+	const played = useRef<Pulse | undefined>(undefined);
+	const { pulse, view, mode, active } = props;
+	useEffect(() => {
+		if (!stage || !pulse || width === 0 || played.current === pulse) return;
+		played.current = pulse;
+		const frame = (v: TeamView) => {
+			const scene = sceneOf(v);
+			return { view: v, layout: layoutOf(scene, width) };
+		};
+		stage.play(
+			effectsOf(pulse.event, frame(pulse.before), frame(view)),
+			effectColours(mode),
+		);
+	}, [stage, pulse, view, mode, width]);
+	useEffect(() => {
+		if (active) stage?.resume();
+		else stage?.pause();
+	}, [stage, active]);
+};
+
+type Props = {
 	readonly view: TeamView;
 	readonly mode: TokenMode;
-}) => {
+	readonly pulse?: Pulse;
+	/** False while the panel is hidden: the stage stops. */
+	readonly active: boolean;
+};
+
+/** The run's studio room, in the colours of the editor's theme mode, with its live effects. */
+export const StudioView = (props: Props) => {
+	const { view, mode } = props;
 	const box = useRef<HTMLDivElement>(null);
 	const canvas = useRef<HTMLCanvasElement>(null);
 	const width = useWidth(box);
@@ -89,6 +120,7 @@ export const StudioView = ({
 		stage.resize(width, room.h);
 		stage.draw(primitives);
 	}, [stage, primitives, width]);
+	useEffects(stage, props, width);
 	return (
 		<div ref={box} style={{ width: "100%" }}>
 			<canvas ref={canvas} style={{ display: "block", borderRadius: "20px" }} />
