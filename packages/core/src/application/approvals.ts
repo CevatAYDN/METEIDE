@@ -21,6 +21,7 @@ import {
 	type Live,
 	platformOf,
 } from "./run-state.js";
+import { afterApproval } from "./spawned.js";
 
 // The human's decision on a team task (team.engine@2 approve, docs/08 Task execution sequence,
 // step 7). The engine resumes the run afterwards.
@@ -98,7 +99,8 @@ export const recordDecision = (
 	if (!id.ok) return id;
 	const r = decide(c.team, id.value, a.data);
 	if (!r) return invalid(l, refusal(c.team, id.value));
-	const applied = goOn(s, l, r.team, id.value);
+	const after = afterApproval(s, l, r.team, id.value);
+	const applied = goOn(s, l, after.team, id.value);
 	if (!applied.ok) return applied;
 	const taskId = c.team.tasks[id.value]?.id;
 	const { decision, feedback } = a.data;
@@ -110,5 +112,6 @@ export const recordDecision = (
 	emit(s, l, { type: "approval.resolved", payload }, taskId);
 	if (r.change)
 		emit(s, l, { type: "task.status.changed", payload: r.change }, taskId);
+	after.announce();
 	return ok(undefined);
 };

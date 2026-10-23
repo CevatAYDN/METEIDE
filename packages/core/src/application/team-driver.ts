@@ -5,6 +5,7 @@ import {
 	reviewConversation,
 	verdictRepair,
 } from "../domain/review.js";
+import { checkSpawns } from "../domain/spawn.js";
 import type { TaskEvent } from "../domain/task-machine.js";
 import {
 	type ArtifactMeta,
@@ -35,6 +36,7 @@ import {
 	platformOf,
 	toolContext,
 } from "./run-state.js";
+import { afterApproval } from "./spawned.js";
 import {
 	createCheckpoint,
 	dropWorktree,
@@ -131,7 +133,7 @@ export const submit = async (s: EngineState, l: Live, reply: string) => {
 	if (!team || !task) return stuck(s, l);
 	if (!(await verified(s, l, team, task))) return;
 	const guard = guardrailOf(team, task);
-	const checked = checkReport(guard?.schema, reply);
+	const checked = checkSpawns(team, task, checkReport(guard?.schema, reply));
 	if (checked.ok) {
 		const report = checked.report;
 		const artifact = await saveArtifact(s, l, {
@@ -217,7 +219,8 @@ export const verdict = (s: EngineState, l: Live, reply: string) => {
 		decision === "approve"
 			? approve(team, task, review)
 			: applyTask(team, task, { type: "REVISE", feedback: feedback ?? "" });
-	apply(s, l, { type: "REVIEWED", team: r.team });
+	const after = afterApproval(s, l, r.team, task);
+	apply(s, l, { type: "REVIEWED", team: after.team });
 	const taskId = team.tasks[task]?.id;
 	const payload = {
 		approver: review,
@@ -226,6 +229,7 @@ export const verdict = (s: EngineState, l: Live, reply: string) => {
 	};
 	emit(s, l, { type: "approval.resolved", payload }, taskId);
 	changed(s, l, taskId, r.change);
+	after.announce();
 };
 
 // A writing task works in a worktree of its own (docs/08, Parallel work and merging), started the
@@ -301,8 +305,10 @@ const merge = async (s: EngineState, l: Live, team: TeamState, id: string) => {
 const accept = (s: EngineState, l: Live, team: TeamState, id: string) => {
 	const r = approve(team, id, "system");
 	if (!r.change) return stuck(s, l);
-	apply(s, l, { type: "TEAM", team: r.team });
+	const after = afterApproval(s, l, r.team, id);
+	apply(s, l, { type: "TEAM", team: after.team });
 	changed(s, l, team.tasks[id]?.id, r.change);
+	after.announce();
 };
 
 const lastReport = (team: TeamState) => {

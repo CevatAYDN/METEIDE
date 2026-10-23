@@ -12,8 +12,8 @@ import { type TaskEvent, taskMachine } from "./task-machine.js";
 
 // A team run's tasks (docs/08, Task execution sequence) as plain data inside the run snapshot,
 // with the template it started from, so a resumed run does not depend on the file any more.
-// shortcut: tasks run one at a time and `spawns` creates no tasks yet; parallel work and spawned
-// task lists come with the slices that need them (web-dev, game-studio).
+// Tasks a `spawns` task adds join the template copy (domain/spawn.ts, ADR-057).
+// shortcut: tasks run one at a time; parallel work comes with the slice that needs it.
 
 type TaskStatus = z.infer<typeof TaskStatusSchema>;
 
@@ -81,6 +81,16 @@ export type TeamStep =
 /** A status change of one task, for task.status.changed. */
 export type TaskChange = { readonly from: TaskStatus; readonly to: TaskStatus };
 
+/** A task entry before its first start, under the template's revision limit. */
+export const todoEntry = (template: TeamTemplate, id: string): TaskEntry => ({
+	id,
+	status: "todo",
+	context: { revisionLimit: template.policies.revision_limit, revisions: 0 },
+	messages: [],
+	approvals: [],
+	repairs: 0,
+});
+
 /** A new team run: every task todo. */
 export const teamOf = (
 	template: TeamTemplate,
@@ -88,20 +98,7 @@ export const teamOf = (
 ): TeamState => ({
 	template,
 	tasks: Object.fromEntries(
-		template.tasks.map((t) => [
-			t.id,
-			{
-				id: newId(),
-				status: "todo",
-				context: {
-					revisionLimit: template.policies.revision_limit,
-					revisions: 0,
-				},
-				messages: [],
-				approvals: [],
-				repairs: 0,
-			},
-		]),
+		template.tasks.map((t) => [t.id, todoEntry(template, newId())]),
 	),
 });
 

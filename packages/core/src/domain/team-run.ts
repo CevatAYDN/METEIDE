@@ -1,13 +1,14 @@
 import type { ChatMessage } from "@mete/contracts";
 import type { Platform } from "./prompt.js";
 import type { RunContext } from "./run-machine.js";
+import { acceptanceOf, spawnGuardrail } from "./spawn.js";
 import type { TeamState } from "./team.js";
 import { type Seat, SINGLE_AGENT, writes } from "./tools.js";
 
 // What a team task's agent receives (docs/08, Agent context assembly): its role, the goal, the
 // task and the reports of its context tasks. Pure.
-// shortcut: no acceptance criteria, knowledge results, skills or start brief yet; they come with
-// the artifacts, knowledge (Phase 4) and handoff slices.
+// A spawned task also gets its acceptance sentences (ADR-057).
+// shortcut: no knowledge results or skills yet; they come with the knowledge layer (Phase 6).
 
 const taskOf = (team: TeamState, id: string) =>
 	team.template.tasks.find((t) => t.id === id);
@@ -17,7 +18,7 @@ const roleOf = (team: TeamState, id: string) =>
 
 /** A task's guardrail, if it has one. */
 export const guardrailOf = (team: TeamState, id: string) =>
-	taskOf(team, id)?.guardrail;
+	taskOf(team, id)?.guardrail ?? spawnGuardrail(team, id);
 
 /** Whether the task's role has a tool that changes the working tree (docs/08, Parallel work and merging). */
 export const isWriter = (team: TeamState, id: string) =>
@@ -74,6 +75,14 @@ const system = (team: TeamState, id: string, where: Platform) => {
 	].join("\n");
 };
 
+// A spawned task's acceptance sentences (ADR-057); templates give tasks none.
+const acceptance = (team: TeamState, id: string) => {
+	const lines = acceptanceOf(team, id);
+	return lines.length > 0
+		? [["Acceptance:", ...lines.map((a) => `- ${a}`)].join("\n")]
+		: [];
+};
+
 const reports = (team: TeamState, id: string) =>
 	(taskOf(team, id)?.context ?? []).map(
 		(dep) =>
@@ -105,6 +114,7 @@ export const taskConversation = (
 		...(brief ? [brief] : []),
 		`Team goal: ${goal}`,
 		`Your task: ${taskOf(team, id)?.title ?? id}`,
+		...acceptance(team, id),
 		...reports(team, id),
 	].join("\n\n");
 	return [

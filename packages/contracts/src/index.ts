@@ -1,5 +1,9 @@
 // Public API of this package: types, contracts and the module (CONTRIBUTING.md).
-export { CHARS_PER_TOKEN, TIER_MIN_CONTEXT } from "./defaults.js";
+export {
+	CHARS_PER_TOKEN,
+	TEMPLATE_DEFAULTS,
+	TIER_MIN_CONTEXT,
+} from "./defaults.js";
 export {
 	artifactSchema,
 	type ResearchReport,

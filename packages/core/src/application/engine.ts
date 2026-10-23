@@ -36,6 +36,7 @@ import {
 	type Live,
 	platformOf,
 } from "./run-state.js";
+import { announce } from "./spawned.js";
 
 // team.engine@2 (docs/06 engine types, docs/07 Run state machine, docs/08 Single agent and teams).
 
@@ -147,23 +148,13 @@ const begin = (
 };
 
 // task.created for every task, in template order, once the run started and before its first step.
-const created = (s: EngineState, l: Live, team: TeamState) => {
-	const idOf = (id: string) => team.tasks[id]?.id ?? id;
-	for (const t of team.template.tasks)
-		emit(
-			s,
-			l,
-			{
-				type: "task.created",
-				payload: {
-					title: t.title,
-					roleId: t.role,
-					dependsOn: (t.context ?? []).map(idOf),
-				},
-			},
-			idOf(t.id),
-		);
-};
+const created = (s: EngineState, l: Live, team: TeamState) =>
+	announce(
+		s,
+		l,
+		team,
+		team.template.tasks.map((t) => t.id),
+	);
 
 const fromTemplate = (e: TemplateError): EngineError =>
 	e.code === "invalid_template"
