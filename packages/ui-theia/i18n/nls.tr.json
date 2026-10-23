@@ -1,5 +1,22 @@
 {
 	"mete": {
+		"audit": {
+			"action": "Eylem",
+			"any": "Hepsi",
+			"capability": "Yetenek",
+			"caption": "METE: politikanın kararları",
+			"export": "JSON olarak dışa aktar…",
+			"exportTitle": "Denetim günlüğünü dışa aktar",
+			"exported": "{0} denetim satırı dışa aktarıldı.",
+			"loading": "Denetim günlüğü okunuyor…",
+			"none": "Bu filtrelere uyan denetim satırı yok.",
+			"open": "Denetim günlüğünü aç",
+			"rule": "Kural",
+			"run": "Çalıştırma",
+			"time": "Zaman",
+			"title": "Denetim günlüğü",
+			"verdict": "Karar"
+		},
 		"board": {
 			"blocked": "Engellendi",
 			"boardMode": "Pano",

@@ -1,5 +1,22 @@
 {
 	"mete": {
+		"audit": {
+			"action": "Action",
+			"any": "Any",
+			"capability": "Capability",
+			"caption": "METE: the policy's decisions",
+			"export": "Export as JSON…",
+			"exportTitle": "Export the audit log",
+			"exported": "Exported {0} audit row(s).",
+			"loading": "Reading the audit log…",
+			"none": "No audit rows match these filters.",
+			"open": "Open audit log",
+			"rule": "Rule",
+			"run": "Run",
+			"time": "Time",
+			"title": "Audit log",
+			"verdict": "Verdict"
+		},
 		"board": {
 			"blocked": "Blocked",
 			"boardMode": "Board",

@@ -33,6 +33,10 @@ vi.mock("../src/infrastructure/home-contribution.js", () => ({
 vi.mock("../src/infrastructure/board-contribution.js", () => ({
 	bindBoard: () => {},
 }));
+// The Audit log view loads lumino and the filesystem browser too; test/audit-view.test.ts covers it.
+vi.mock("../src/infrastructure/audit-contribution.js", () => ({
+	bindAudit: () => {},
+}));
 vi.mock(
 	"@theia/core/lib/browser/messaging/service-connection-provider",
 	() => ({
