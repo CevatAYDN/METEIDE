@@ -3,10 +3,14 @@ import type { CSSProperties } from "react";
 import type { HomeModel, HomeRow } from "../domain/home-model.js";
 import { failureText, noFolderText, runsText } from "./status-text.js";
 
-// The Home panel's recent runs (docs/13, Home). The panel holds no state of its own: the widget
-// passes the model and a refresh. Text is shown as it is: React escapes it, Markdown is not involved.
+// The Home panel (docs/13, Home): the approvals inbox of ADR-048 ("Waiting for you") above the
+// recent runs. The panel holds no state of its own: the widget passes the model and the actions.
+// Text is shown as it is: React escapes it, Markdown is not involved.
 // shortcut: inline styles on Theia's own CSS variables; the METE tokens and Baloo 2 of docs/13
 // (Design system) come with packages/ui-kit, which is still empty.
+
+/** What a button of the inbox asks for. */
+export type HomeAction = "approve" | "revise" | "resume";
 
 const PANEL: CSSProperties = {
 	padding: "12px",
@@ -23,8 +27,17 @@ const CELL: CSSProperties = {
 	verticalAlign: "top",
 };
 const MUTED: CSSProperties = { color: "var(--theia-descriptionForeground)" };
+const ROW: CSSProperties = { display: "flex", gap: "6px", flexWrap: "wrap" };
+const TITLE: CSSProperties = { margin: 0, fontSize: "1.1em" };
 
 const when = (iso: string) => new Date(iso).toLocaleString();
+
+const Goal = ({ row }: { readonly row: HomeRow }) => (
+	<>
+		{row.goal}
+		{row.templateId ? <span style={MUTED}> · {row.templateId}</span> : null}
+	</>
+);
 
 const Runs = ({ rows }: { readonly rows: readonly HomeRow[] }) =>
 	rows.length === 0 ? (
@@ -49,10 +62,7 @@ const Runs = ({ rows }: { readonly rows: readonly HomeRow[] }) =>
 					<tr key={r.id}>
 						<td style={CELL}>{r.status}</td>
 						<td style={CELL}>
-							{r.goal}
-							{r.templateId ? (
-								<span style={MUTED}> · {r.templateId}</span>
-							) : null}
+							<Goal row={r} />
 						</td>
 						<td style={CELL}>{when(r.createdAt)}</td>
 					</tr>
@@ -60,6 +70,85 @@ const Runs = ({ rows }: { readonly rows: readonly HomeRow[] }) =>
 			</tbody>
 		</table>
 	);
+
+type Act = (action: HomeAction, runId: string) => void;
+
+const Button = ({
+	label,
+	onClick,
+}: {
+	readonly label: string;
+	readonly onClick: () => void;
+}) => (
+	<button type="button" className="theia-button" onClick={onClick}>
+		{label}
+	</button>
+);
+
+// A team run waits for a decision; a single-agent run waits only for a policy ask, which Resume
+// repeats (docs/08), so it gets Resume and the hint.
+const Waiting = ({
+	row,
+	act,
+}: {
+	readonly row: HomeRow;
+	readonly act: Act;
+}) => (
+	<li style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+		<span>
+			<Goal row={row} />
+		</span>
+		<div style={ROW}>
+			{row.templateId ? (
+				<>
+					<Button
+						label={nls.localize("mete/home/approve", "Approve")}
+						onClick={() => act("approve", row.id)}
+					/>
+					<Button
+						label={nls.localize("mete/home/revise", "Revise…")}
+						onClick={() => act("revise", row.id)}
+					/>
+				</>
+			) : null}
+			<Button
+				label={nls.localize("mete/home/resume", "Resume")}
+				onClick={() => act("resume", row.id)}
+			/>
+		</div>
+		{row.templateId ? null : (
+			<span style={MUTED}>
+				{nls.localize(
+					"mete/home/resumeHint",
+					"Resume repeats the tool call the policy asked about, so the run stops again unless .mete/policy.yaml allows it.",
+				)}
+			</span>
+		)}
+	</li>
+);
+
+const Inbox = ({
+	rows,
+	act,
+}: {
+	readonly rows: readonly HomeRow[];
+	readonly act: Act;
+}) => {
+	const waiting = rows.filter((r) => r.waiting);
+	if (waiting.length === 0) return null;
+	return (
+		<section aria-label={nls.localize("mete/home/waiting", "Waiting for you")}>
+			<h2 style={TITLE}>
+				{nls.localize("mete/home/waiting", "Waiting for you")}
+			</h2>
+			<ul style={{ listStyle: "none", padding: 0, margin: "8px 0 0" }}>
+				{waiting.map((r) => (
+					<Waiting key={r.id} row={r} act={act} />
+				))}
+			</ul>
+		</section>
+	);
+};
 
 const Body = ({ model }: { readonly model: HomeModel }) => {
 	if (model.kind === "loading")
@@ -72,23 +161,25 @@ const Body = ({ model }: { readonly model: HomeModel }) => {
 	return <Runs rows={model.rows} />;
 };
 
-/** What the panel draws for a model; `onRefresh` asks the daemon again. */
+/** What the panel draws for a model; `onRefresh` asks the daemon again, `onAct` answers a run. */
 export const HomeView = ({
 	model,
 	onRefresh,
+	onAct,
 }: {
 	readonly model: HomeModel;
 	readonly onRefresh: () => void;
+	readonly onAct: Act;
 }) => (
 	<section style={PANEL} aria-live="polite">
-		<h2 style={{ margin: 0, fontSize: "1.1em" }}>
-			{nls.localize("mete/home/recentRuns", "Recent runs")}
-		</h2>
+		{model.kind === "runs" ? <Inbox rows={model.rows} act={onAct} /> : null}
+		<h2 style={TITLE}>{nls.localize("mete/home/recentRuns", "Recent runs")}</h2>
 		<Body model={model} />
 		<div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-			<button type="button" className="theia-button" onClick={onRefresh}>
-				{nls.localize("mete/home/refresh", "Refresh")}
-			</button>
+			<Button
+				label={nls.localize("mete/home/refresh", "Refresh")}
+				onClick={onRefresh}
+			/>
 			{"at" in model ? (
 				<span style={MUTED}>
 					{nls.localize("mete/home/asOf", "As of {0}", when(model.at))}

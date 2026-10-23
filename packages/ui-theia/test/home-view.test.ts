@@ -10,10 +10,18 @@ import type { StatusRuns } from "../src/domain/status-service.js";
 const AT = "2026-10-23T10:00:00.000Z";
 
 const html = (model: HomeModel) =>
-	renderToStaticMarkup(createElement(HomeView, { model, onRefresh: () => {} }));
+	renderToStaticMarkup(
+		createElement(HomeView, { model, onRefresh: () => {}, onAct: () => {} }),
+	);
 
-const run = (status: string, goal: string, templateId: string | null) =>
+const run = (
+	status: string,
+	goal: string,
+	templateId: string | null,
+	pauseReason?: string,
+) =>
 	({
+		...(pauseReason ? { pauseReason } : {}),
 		id: crypto.randomUUID(),
 		workspaceId: crypto.randomUUID(),
 		templateId,
@@ -88,5 +96,42 @@ describe("the Home view", () => {
 			),
 		);
 		expect(notReady).toContain("METE is not ready yet: no key");
+	});
+
+	it("lists the runs that wait for you above the recent runs, with the answers each can take", () => {
+		const out = html(
+			homeModel(
+				{
+					ok: true,
+					value: [
+						run("paused", "team goal", "duo", "approval"),
+						run("paused", "single goal", null, "approval"),
+						run("paused", "quota goal", null, "quota"),
+					],
+				},
+				AT,
+			),
+		);
+		expect(out.indexOf("Waiting for you")).toBeLessThan(
+			out.indexOf("Recent runs"),
+		);
+		const inbox = out.slice(
+			out.indexOf("Waiting for you"),
+			out.indexOf("Recent runs"),
+		);
+		expect(inbox).toContain("team goal");
+		expect(inbox).toContain("single goal");
+		expect(inbox).not.toContain("quota goal");
+		expect(inbox.match(/>Approve</g)).toHaveLength(1);
+		expect(inbox.match(/>Revise…</g)).toHaveLength(1);
+		expect(inbox.match(/>Resume</g)).toHaveLength(2);
+		expect(inbox).toContain("unless .mete/policy.yaml allows it");
+	});
+
+	it("shows no inbox when nothing waits", () => {
+		const out = html(
+			homeModel({ ok: true, value: [run("completed", "done", null)] }, AT),
+		);
+		expect(out).not.toContain("Waiting for you");
 	});
 });

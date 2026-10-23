@@ -1,16 +1,18 @@
 import type { Result } from "@mete/contracts";
 import type { DaemonFailure, StatusRuns } from "./status-service.js";
 
-// What the Home panel shows (docs/13, Home: recent runs). The panel is a snapshot taken when it
-// opens or is refreshed, so the time it was taken travels with it.
+// What the Home panel shows (docs/13, Home: recent runs, and the approvals inbox of ADR-048). The
+// time the answer was taken travels with it.
 
-/** One recent run as the panel lists it. */
+/** One run as the panel lists it. */
 export type HomeRow = {
 	readonly id: string;
 	readonly status: string;
 	readonly goal: string;
 	readonly templateId: string | null;
 	readonly createdAt: string;
+	/** Paused for approval: the run waits for the human (ADR-048). */
+	readonly waiting: boolean;
 };
 
 /** The panel's state: waiting for the daemon, no folder open, the runs, or why there are none. */
@@ -28,6 +30,10 @@ export type HomeModel =
 			readonly at: string;
 	  };
 
+/** A run paused for approval waits for the human; the engine decides what an answer does. */
+export const waitsForYou = (r: StatusRuns[number]) =>
+	r.status === "paused" && r.pauseReason === "approval";
+
 /** Turns a `mete/status` reply into what the panel shows, taken at `at` (ISO 8601). */
 export const homeModel = (
 	reply: Result<StatusRuns, DaemonFailure>,
@@ -42,6 +48,7 @@ export const homeModel = (
 					goal: r.goal,
 					templateId: r.templateId,
 					createdAt: r.createdAt,
+					waiting: waitsForYou(r),
 				})),
 				at,
 			}

@@ -1,3 +1,4 @@
+import { CommandService } from "@theia/core";
 import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { nls } from "@theia/core/lib/common/nls";
@@ -7,8 +8,13 @@ import {
 	postConstruct,
 } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
+import {
+	APPROVE_RUN_COMMAND,
+	RESUME_RUN_COMMAND,
+	REVISE_RUN_COMMAND,
+} from "../application/approval-commands.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
-import { HomeView } from "../application/home-view.js";
+import { type HomeAction, HomeView } from "../application/home-view.js";
 import { type HomeModel, homeModel } from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 
@@ -23,6 +29,7 @@ export class MeteHomeWidget extends ReactWidget {
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;
 	@inject(WorkspaceService) protected readonly workspace!: WorkspaceService;
 	@inject(MeteDaemonEvents) protected readonly events!: MeteDaemonEvents;
+	@inject(CommandService) protected readonly commands!: CommandService;
 
 	protected model: HomeModel = { kind: "loading" };
 	/** The folder the shown runs belong to. */
@@ -56,6 +63,16 @@ export class MeteHomeWidget extends ReactWidget {
 		this.setModel(homeModel(reply, new Date().toISOString()));
 	}
 
+	// The inbox's buttons run the palette commands, so the keyboard and the mouse share one path.
+	protected act(action: HomeAction, runId: string) {
+		const id = {
+			approve: APPROVE_RUN_COMMAND.id,
+			revise: REVISE_RUN_COMMAND.id,
+			resume: RESUME_RUN_COMMAND.id,
+		}[action];
+		return this.commands.executeCommand(id, runId);
+	}
+
 	protected setModel(model: HomeModel): void {
 		this.model = model;
 		this.update();
@@ -63,7 +80,11 @@ export class MeteHomeWidget extends ReactWidget {
 
 	protected override render() {
 		return (
-			<HomeView model={this.model} onRefresh={() => void this.refresh()} />
+			<HomeView
+				model={this.model}
+				onRefresh={() => void this.refresh()}
+				onAct={(action, runId) => void this.act(action, runId)}
+			/>
 		);
 	}
 }
