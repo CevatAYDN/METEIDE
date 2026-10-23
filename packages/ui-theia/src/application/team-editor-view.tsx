@@ -212,7 +212,8 @@ export const TeamEditorView = ({
 				<button
 					type="button"
 					className="mete-button"
-					disabled={blocked || !model.changed}
+					// A built-in team saves as it is too: the copy then opens in the YAML editor.
+					disabled={blocked || (!model.changed && model.source === "workspace")}
 					onClick={actions.onSave}
 				>
 					{nls.localize("mete/team/save", "Save")}

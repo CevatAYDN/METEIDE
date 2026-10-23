@@ -97,6 +97,25 @@ describe("editing", () => {
 		expect(issues.join("\n")).toContain(String(used));
 	});
 
+	it("drops a removed member's spawn defaults and the other members' family preference for it, which no control shows", () => {
+		const studio = draft(
+			readFileSync(
+				join(__dirname, "..", "..", "..", "templates", "game-studio.yaml"),
+				"utf8",
+			),
+		);
+		const at = (id: string) =>
+			teamOf(studio).roles.findIndex((r) => r.id === id);
+		const issues = issuesOf(removeRole(studio, at("developer"))).join("\n");
+		expect(issues).not.toContain("spawn_defaults");
+		expect(issues).not.toContain("prefer_different_family_than");
+		expect(
+			teamOf(removeRole(studio, at("developer"))).roles.map(
+				(r) => r.prefer_different_family_than,
+			),
+		).not.toContainEqual(["developer"]);
+	});
+
 	it("adds a task for a member, which then is no longer idle, and removes it again", () => {
 		const doc = addRole(draft());
 		const member = teamOf(doc).roles.at(-1)?.id ?? "";

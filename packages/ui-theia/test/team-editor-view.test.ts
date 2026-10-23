@@ -94,6 +94,15 @@ describe("TeamEditorView", () => {
 		expect(openYaml("builtIn")).toContain('disabled=""');
 		expect(openYaml("workspace")).not.toContain('disabled=""');
 	});
+
+	it("saves an unchanged built-in team as the folder's copy, and an unchanged copy not again", () => {
+		const save = (source: "workspace" | "builtIn") =>
+			html(ready(DOC, { source, changed: false })).match(
+				/<button[^>]*>Save</,
+			)?.[0];
+		expect(save("builtIn")).not.toContain('disabled=""');
+		expect(save("workspace")).toContain('disabled=""');
+	});
 });
 
 describe("the composer's Edit button", () => {

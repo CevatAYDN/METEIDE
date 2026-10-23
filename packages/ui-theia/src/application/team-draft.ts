@@ -75,7 +75,10 @@ type Path = readonly (string | number)[];
 /** The draft with the value at `path` set, or removed when the value is undefined. */
 export const edited = (doc: Draft, path: Path, value: unknown): Draft => {
 	const next = doc.clone();
-	if (value === undefined) next.deleteIn(path);
+	// deleteIn throws when a key on the way is missing; a missing key is already removed.
+	if (value === undefined) {
+		if (next.hasIn(path)) next.deleteIn(path);
+	}
 	// A scalar keeps the node and its comment; a list or map becomes a new node.
 	else
 		next.setIn(
@@ -93,11 +96,7 @@ const added = (doc: Draft, path: Path, value: object): Draft => {
 	return next;
 };
 
-const removed = (doc: Draft, path: Path): Draft => {
-	const next = doc.clone();
-	next.deleteIn(path);
-	return next;
-};
+const removed = (doc: Draft, path: Path) => edited(doc, path, undefined);
 
 const freshId = (base: string, taken: readonly string[]) => {
 	let id = base;
@@ -120,9 +119,25 @@ export const addRole = (doc: Draft): Draft => {
 	});
 };
 
-/** The draft without the member at `index`; tasks that still name it show up in issuesOf. */
-export const removeRole = (doc: Draft, index: number) =>
-	removed(doc, ["roles", index]);
+/**
+ * The draft without the member at `index`, its spawn defaults and the other members' preference to
+ * differ from it, which the screen shows no control for; tasks that still name it show up in issuesOf.
+ */
+export const removeRole = (doc: Draft, index: number): Draft => {
+	const team = teamOf(doc);
+	const id = team.roles[index]?.id ?? "";
+	let next = removed(removed(doc, ["roles", index]), ["spawn_defaults", id]);
+	team.roles.forEach((r, i) => {
+		const kept = r.prefer_different_family_than.filter((x) => x !== id);
+		if (i !== index && kept.length < r.prefer_different_family_than.length)
+			next = edited(
+				next,
+				["roles", i < index ? i : i - 1, "prefer_different_family_than"],
+				kept,
+			);
+	});
+	return next;
+};
 
 /** The draft with a new task for a member, with a free id and an empty title for the user to write. */
 export const addTask = (doc: Draft, roleId: string): Draft => {
