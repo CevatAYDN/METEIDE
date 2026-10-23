@@ -69,6 +69,25 @@ describe("decide: input and hard rules", () => {
 			});
 	});
 
+	it("denies commands that end programs at every level, in any case (ADR-063)", () => {
+		for (const c of [
+			// What the gate run's tester ran, which closed the user's browser.
+			"taskkill /F /IM msedge.exe /T 2>$null; Start-Sleep -Seconds 2",
+			"TASKKILL.EXE /PID 4 /F",
+			"Get-Process msedge | stop-process -Force",
+			"spps -Name chrome",
+			"kill -9 1234",
+			"pkill node",
+			"killall Finder",
+			"(Get-Process msedge).Kill()",
+			"tskill 1234",
+		])
+			expect(decide(shell(c), at(3)).verdict, c).toBe("deny");
+		// Commands that only name such a word in passing are fine.
+		for (const c of ["npm run build", "node --check game/game.js"])
+			expect(decide(shell(c), at(3)).verdict, c).toBe("allow");
+	});
+
 	it("denies writes to protected paths, whatever the case on Windows", () => {
 		expect(decide(write("/repo/.mete/policy.yaml"), at(3)).rule).toBe(
 			"protected_path",

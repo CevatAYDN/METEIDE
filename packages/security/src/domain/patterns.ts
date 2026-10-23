@@ -14,10 +14,15 @@ const REGEX_SPECIAL = /[.*+?^${}()|[\]\\]/g;
 const escapeRegex = (s: string) => s.replace(REGEX_SPECIAL, "\\$&");
 const collapse = (s: string) => s.trim().replace(/\s+/g, " ");
 
-/** Whole-command match after trimming and collapsing spaces; `*` matches any text. */
-export const commandMatches = (pattern: string, command: string): boolean => {
+/** Whole-command match after trimming and collapsing spaces; `*` matches any text; deny rules ignore case. */
+export const commandMatches = (
+	pattern: string,
+	command: string,
+	ignoreCase = false,
+): boolean => {
 	const body = collapse(pattern).split("*").map(escapeRegex).join(".*");
-	return new RegExp(`^${body}$`, "s").test(collapse(command));
+	const flags = ignoreCase ? "si" : "s";
+	return new RegExp(`^${body}$`, flags).test(collapse(command));
 };
 
 // Commands run in a shell (docs/10), so these characters can chain, redirect or run more.

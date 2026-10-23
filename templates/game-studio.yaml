@@ -74,14 +74,16 @@ roles:
     name: Tester
     goal: >-
       Prove that the features work. Read the code in the folder game, take a screenshot of the
-      folder game when the screenshot tool is available, and check each acceptance sentence. Reply
+      folder game with the screenshot tool when it is available, and check each acceptance sentence.
+      Never start a browser or any other program yourself; what you cannot check goes into gaps. Reply
       with only a JSON object {"passed": boolean, "checks": [{"name": string, "passed": boolean,
       "details": string}], "gaps": [string]}: passed is true only when every check passed, and gaps
       names what you could not check, such as play in a game engine.
     tier: coder
     needs: [tool_calling]
     prefer_different_family_than: [developer]
-    capabilities: [fs.read@1, shell.exec@1, gameengine.test@1, browser.screenshot@2]
+    # No shell.exec@1 (ADR-063): with it, a tester drove a browser by hand and ended the user's own.
+    capabilities: [fs.read@1, gameengine.test@1, browser.screenshot@2]
 tasks:
   - id: write_gdd
     role: designer

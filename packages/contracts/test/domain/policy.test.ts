@@ -22,6 +22,14 @@ describe("PolicySchema", () => {
 			never_allow: [
 				{ action: "fs.write", path: "~/.ssh/**" },
 				{ action: "shell.exec", command: "rm -rf /*" },
+				{ action: "shell.exec", command: "*taskkill*" },
+				{ action: "shell.exec", command: "*tskill*" },
+				{ action: "shell.exec", command: "*Stop-Process*" },
+				{ action: "shell.exec", command: "spps *" },
+				{ action: "shell.exec", command: "kill *" },
+				{ action: "shell.exec", command: "pkill *" },
+				{ action: "shell.exec", command: "killall *" },
+				{ action: "shell.exec", command: "*.Kill*" },
 			],
 			shell: {
 				allow: ["pnpm *", "npm test", "npm run *", "git status", "git diff *"],

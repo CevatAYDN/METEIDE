@@ -99,8 +99,9 @@ const neverAllowed = (s: Subject, env: CheckerEnv) =>
 	env.policy.never_allow.findIndex((rule) =>
 		"command" in rule
 			? s.action === "shell.exec" &&
+				// A deny rule ignores case, as PowerShell and Windows programs do (ADR-063).
 				[s.command, ...commandParts(s.command)].some((c) =>
-					commandMatches(rule.command, c),
+					commandMatches(rule.command, c, true),
 				)
 			: WRITES.has(s.action) &&
 				(rule.action === "fs.write" || rule.action === s.action) &&
