@@ -64,12 +64,14 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 
 ## Daemon protocol
 
-`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 3 (ADR-047) has two requests and one notification, and each side validates what it receives with the schemas in `@mete/contracts` (`daemon.ts`) \[D\]:
+`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 4 (ADR-048) has four requests and one notification, and each side validates what it receives with the schemas in `@mete/contracts` (`daemon.ts`) \[D\]:
 
 | Message | Kind | Params | Result |
 | --- | --- | --- | --- |
 | `mete/status` | request | `{ runId? }` | the `RunView` list that `mete status` prints; on failure a JSON-RPC error whose `data.code` is the `EngineError` code, or `not_ready` with `data.reasons` (the lines `mete status` prints) while core-engine is not active |
 | `mete/run.start` | request | the `RunStart` of team.engine@2: `{ goal?, templateId?, priority?, continue? }` | `{ runId }`; errors as for `mete/status`, and `choose_template` carries the router's `data.suggestions` |
+| `mete/run.approve` | request | `{ runId, input }`, `input` the `ApprovalInput` of team.engine@2 | `null`; errors as for `mete/status` |
+| `mete/run.resume` | request | `{ runId }` | `null`; errors as for `mete/status` |
 | `mete/event` | notification, daemon to client | one `MeteEvent` (docs/07) | none; every catalog event the bus publishes, in publish order |
 
 A client that starts the daemon from Electron sets `ELECTRON_RUN_AS_NODE=1`. The desktop backend starts the daemon when the first message for a folder is sent, keeps one daemon for one folder at a time and stops it by closing its input \[D\]. A new message or a changed shape needs an ADR and a new protocol version \[D\].
