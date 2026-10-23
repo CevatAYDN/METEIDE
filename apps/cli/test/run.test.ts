@@ -4,11 +4,11 @@ import { type ChatChunk, ok, type TeamEngineAdapter } from "@mete/contracts";
 import { createCapabilityRegistry, createEventBus } from "@mete/kernel";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-	keyCommand,
 	runCommand,
 	statusCommand,
 	stopCommand,
 } from "../src/application/commands.js";
+import { keyCommand } from "../src/application/keys.js";
 import { type App, createApp } from "../src/infrastructure/app.js";
 import {
 	type Behaviour,
@@ -98,6 +98,12 @@ describe("mete run", () => {
 		const s = recordingIo();
 		expect(await statusCommand(app, s.io)).toBe(0);
 		expect(s.out[0]).toMatch(/completed\s+fix the typo in greet\.js$/);
+		// --json prints the RunView list that mete/status answers.
+		const j = recordingIo();
+		expect(await statusCommand(app, j.io, undefined, true)).toBe(0);
+		expect(JSON.parse(j.out.join("\n"))).toMatchObject([
+			{ status: "completed", goal: "fix the typo in greet.js" },
+		]);
 	});
 
 	it("points at the provider keys when the run fails because a key was refused", async () => {

@@ -3,12 +3,10 @@ import type {
 	EngineError,
 	MeteEvent,
 	RunView,
-	SecretStore,
 	TeamEngineAdapter,
 } from "@mete/contracts";
 import type { EventBus } from "@mete/kernel";
-import { apiKeyName } from "@mete/providers";
-import { searchKeyName } from "@mete/tools";
+
 import {
 	eventLine,
 	exitCode,
@@ -254,7 +252,12 @@ const explain = (
  * `mete events <run id>`: the run's persisted history, one line per event: when, what, which
  * module, which task and agent role. A row that no longer parses is reported, never skipped.
  */
-export const eventsCommand = (app: App, io: Io, runId: string) => {
+export const eventsCommand = (
+	app: App,
+	io: Io,
+	runId: string,
+	json = false,
+) => {
 	const h = runHistory(app.registry, runId);
 	if (!h) {
 		io.err("storage.sql@1 is not active, so no events can be read");
@@ -264,22 +267,32 @@ export const eventsCommand = (app: App, io: Io, runId: string) => {
 		io.err(`no events for run ${runId}`);
 		return 1;
 	}
+	// --json: the shape of mete/events (ARCHITECTURE.md, Daemon protocol).
+	if (json)
+		io.out(
+			JSON.stringify(
+				{ events: h.events, unreadable: h.broken.length },
+				null,
+				2,
+			),
+		);
 	const names = namesOf(h.events);
-	for (const e of h.events) io.out(historyLine(e, names));
+	if (!json) for (const e of h.events) io.out(historyLine(e, names));
 	for (const b of h.broken)
 		io.err(`event ${b.seq} cannot be read: ${b.issues}`);
 	return h.broken.length > 0 ? 1 : 0;
 };
 
-/** `mete status [<run id>]`. */
-export const statusCommand = (app: App, io: Io, runId?: string) =>
+/** `mete status [<run id>] [--json]`; --json prints the RunView list mete/status answers. */
+export const statusCommand = (app: App, io: Io, runId?: string, json = false) =>
 	withEngine(app, io, async (engine) => {
 		const r = engine.status(runId);
 		if (!r.ok) {
 			io.err(r.error.message);
 			return 1;
 		}
-		for (const line of statusLines(r.value)) io.out(line);
+		if (json) io.out(JSON.stringify(r.value, null, 2));
+		else for (const line of statusLines(r.value)) io.out(line);
 		return 0;
 	});
 
@@ -327,68 +340,5 @@ const stopOne = async (engine: TeamEngineAdapter, io: Io, run: RunView) => {
 	}
 	const r = await engine.cancel(run.id);
 	io.out(r.ok ? `${run.id} cancelled` : r.error.message);
-	return r.ok ? 0 : 1;
-};
-
-const PROVIDER =
-	/^(nvidia|openrouter|opencode-zen|groq|google|tavily|custom:[a-z0-9]+(-[a-z0-9]+)*)$/;
-const BUILT_IN = [
-	"nvidia",
-	"openrouter",
-	"opencode-zen",
-	"groq",
-	"google",
-	"tavily",
-];
-const SEARCH = new Set(["tavily"]);
-
-// Model providers keep providers/<id>/apiKey, search providers search/<id>/apiKey (docs/09, docs/10).
-const accountOf = (id: string) =>
-	SEARCH.has(id) ? searchKeyName(id) : apiKeyName(id);
-
-const listKeys = async (secrets: SecretStore, io: Io) => {
-	for (const id of BUILT_IN) {
-		const r = await secrets.get(accountOf(id));
-		if (!r.ok) {
-			io.err(r.error.message);
-			return 1;
-		}
-		io.out(`${id.padEnd(14)} ${r.value ? "key set" : "no key"}`);
-	}
-	return 0;
-};
-
-/** `mete key set|delete <provider id>` and `mete key list`; a key never comes from argv. */
-export const keyCommand = async (
-	secrets: SecretStore,
-	io: Io,
-	action: string | undefined,
-	provider: string | undefined,
-) => {
-	if (action === "list") return listKeys(secrets, io);
-	const valid = provider !== undefined && PROVIDER.test(provider);
-	if (valid && action === "set") return setKey(secrets, io, provider);
-	if (valid && action === "delete") return deleteKey(secrets, io, provider);
-	io.err(
-		"usage: mete key set|delete <nvidia|openrouter|opencode-zen|groq|google|tavily|custom:<slug>>, mete key list",
-	);
-	return 1;
-};
-
-const setKey = async (secrets: SecretStore, io: Io, provider: string) => {
-	const key = await io.readSecret(`${provider} API key: `);
-	if (!key) {
-		io.err("no key entered");
-		return 1;
-	}
-	const r = await secrets.set(accountOf(provider), key);
-	io.out(r.ok ? `${provider} key saved in the keychain` : r.error.message);
-	return r.ok ? 0 : 1;
-};
-
-const deleteKey = async (secrets: SecretStore, io: Io, provider: string) => {
-	const r = await secrets.delete(accountOf(provider));
-	if (!r.ok) io.out(r.error.message);
-	else io.out(r.value ? `${provider} key deleted` : `${provider} had no key`);
 	return r.ok ? 0 : 1;
 };

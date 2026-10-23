@@ -150,6 +150,12 @@ describe("the research template", () => {
 		expect(after.out.at(-1)).toBe(`completed\n${REPORT}`);
 		const history = recordingIo();
 		expect(eventsCommand(app, history.io, runId)).toBe(0);
+		// --json prints what mete/events answers: the events and the count that no longer parse.
+		const json = recordingIo();
+		expect(eventsCommand(app, json.io, runId, true)).toBe(0);
+		const parsed = JSON.parse(json.out.join("\n"));
+		expect(parsed.unreadable).toBe(0);
+		expect(parsed.events).toHaveLength(history.out.length);
 		// When, what, which module, which task: one line answers each.
 		const blocked = history.out.find((l) => l.endsWith(": blocked")) ?? "";
 		expect(blocked).toMatch(/^\d{4}-\d\d-\d\dT\S+Z {2}task\.status\.changed /);

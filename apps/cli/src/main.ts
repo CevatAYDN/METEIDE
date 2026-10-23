@@ -10,7 +10,6 @@ import { terminalAuthorize } from "./application/authorize.js";
 import {
 	eventsCommand,
 	type Io,
-	keyCommand,
 	mcpCommand,
 	type RunWhat,
 	runCommand,
@@ -20,6 +19,7 @@ import {
 import { terminalConfirm } from "./application/confirm.js";
 import { type DaemonStreams, daemonCommand } from "./application/daemon.js";
 import { terminalElicit } from "./application/elicit.js";
+import { keyCommand } from "./application/keys.js";
 import { registryAddCommand, registryCommand } from "./application/registry.js";
 import { type App, type AppOptions, createApp } from "./infrastructure/app.js";
 import { fileLogger } from "./infrastructure/log.js";
@@ -41,8 +41,8 @@ const USAGE = [
 	'  mete run --continue ["<goal>"]   go on from the last run\'s handoff',
 	"  mete approve <run id> [<task id>]   approve a team task that waits for you",
 	'  mete revise <run id> <task id> "<feedback>"   send it back with feedback',
-	"  mete status [<run id>]       list the runs of this folder",
-	"  mete events <run id>         show a run's history: time, event, module, task, agent",
+	"  mete status [<run id>] [--json]   list the runs of this folder",
+	"  mete events <run id> [--json]   show a run's history: time, event, module, task, agent",
 	"  mete audit [<run id>] [--json]   show the audit log, newest first: action, verdict, policy rule",
 	"  mete stop <run id> | --all   cancel paused runs",
 	"  mete mcp [<folder>]          serve this folder's teams to an MCP host (Claude Code, Cursor, Cline)",
@@ -223,10 +223,14 @@ const dispatch = (
 			return answer(opts, io, rest, command);
 		case "events":
 			return rest[0]
-				? withApp(reader, io, async (a) => eventsCommand(a, io, rest[0] ?? ""))
+				? withApp(reader, io, async (a) =>
+						eventsCommand(a, io, rest[0] ?? "", p.values.json === true),
+					)
 				: usage(io);
 		case "status":
-			return withApp(reader, io, (a) => statusCommand(a, io, rest[0]));
+			return withApp(reader, io, (a) =>
+				statusCommand(a, io, rest[0], p.values.json === true),
+			);
 		case "audit":
 			return withApp(reader, io, async (a) =>
 				auditCommand(a, io, rest[0], p.values.json === true),
