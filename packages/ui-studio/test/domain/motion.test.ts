@@ -11,6 +11,7 @@ const effects: Effect[] = [
 	{ kind: "mark", at, text: "!", colour: "warn" },
 	{ kind: "move", target: "envelope", from: at, to: { x: 200, y: 50 } },
 	{ kind: "jump", at: [at] },
+	{ kind: "icon", at, icon: "bell", colour: "accent" },
 ];
 
 describe("the stage's motions", () => {
@@ -21,6 +22,7 @@ describe("the stage's motions", () => {
 			"text",
 			"dot",
 			"dot",
+			"icon",
 		]);
 		const envelope = m.find((x) => x.shape.kind === "dot" && x.shape.r === 6);
 		expect(envelope?.to).toEqual({ x: 200, y: 50 });
@@ -40,10 +42,11 @@ describe("the stage's motions", () => {
 		).toHaveLength(0);
 	});
 
-	it("keeps only marks, fading in place, under reduced motion", () => {
+	it("keeps only marks and icons, fading in place, under reduced motion", () => {
 		const m = motionsOf(effects, colours, true, 0);
-		expect(m).toHaveLength(1);
+		expect(m).toHaveLength(2);
 		expect(m[0]?.shape).toEqual({ kind: "text", text: "!", colour: "#fa0" });
+		expect(m[1]?.shape).toEqual({ kind: "icon", icon: "bell", colour: "#00f" });
 		expect(m[0]?.to.y).toBe(m[0]?.from.y);
 	});
 });

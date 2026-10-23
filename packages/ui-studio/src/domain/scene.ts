@@ -24,7 +24,12 @@ export type Character = {
 };
 
 /** A task note on the wall board. */
-export type Note = { readonly id: string; readonly title: string };
+export type Note = {
+	readonly id: string;
+	readonly title: string;
+	/** Its task is blocked: the note carries the large red pin (docs/13). */
+	readonly blocked?: boolean;
+};
 
 /** The room: desk rows top to bottom, and the board's notes by column. */
 export type Scene = {
@@ -72,7 +77,11 @@ export const sceneOf = (view: TeamView): Scene => {
 		done: [],
 	};
 	for (const t of view.tasks)
-		notes[placeOf(t.status).column].push({ id: t.id, title: t.title });
+		notes[placeOf(t.status).column].push({
+			id: t.id,
+			title: t.title,
+			...(t.status === "blocked" ? { blocked: true } : {}),
+		});
 	return {
 		rows: [
 			...chunk(characters.filter((c) => leads.has(c.roleId))),

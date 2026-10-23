@@ -128,7 +128,30 @@ describe("the studio's effects", () => {
 				{ taskId: TASK },
 			),
 		);
-		expect(blocked.effects.filter((x) => x.kind === "mark")).toHaveLength(2);
+		// The note's pin is the board's state (paint); the agent's "!" is the event's.
+		expect(blocked.effects.filter((x) => x.kind === "mark")).toEqual([
+			expect.objectContaining({ text: "!", colour: "bad" }),
+		]);
+	});
+
+	it("rings a bell above the approver's desk when the human is asked, and not for a role", () => {
+		const start = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			created,
+			agent(LEAD, "lead"),
+			event("approval.requested", { approver: "lead" }, { taskId: TASK }),
+		]);
+		expect(
+			play(
+				start,
+				event("approval.requested", { approver: "human" }, { taskId: TASK }),
+			).effects,
+		).toEqual([expect.objectContaining({ kind: "icon", icon: "bell" })]);
+		expect(
+			play(
+				start,
+				event("approval.requested", { approver: "lead" }, { taskId: TASK }),
+			).effects,
+		).toEqual([]);
 	});
 
 	it("walks an agent to the coffee corner with a nap when its run pauses for its spent quota", () => {

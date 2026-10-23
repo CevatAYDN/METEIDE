@@ -30,6 +30,7 @@ export const BOARD = {
 	shadow: "rgba(60,40,20,.18)",
 	noteInk: "#3d3128",
 	pin: "#d9544a",
+	pinMark: "#ffffff",
 	badge: "rgba(36,34,58,.82)",
 	badgeInk: "#ffffff",
 	notes: ["#ffe08a", "#ffc4d6", "#c9ebb8", "#b8c8ff"],

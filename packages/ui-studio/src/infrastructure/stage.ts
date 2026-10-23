@@ -119,20 +119,32 @@ type Player = {
 	readonly start: () => void;
 };
 
+// A bell: its dome and mouth, the rim, and the clapper under it.
+const bell = (p: Player, colour: string) =>
+	new p.pixi.Graphics()
+		.roundRect(-6, -8, 12, 11, 6)
+		.fill(colour)
+		.roundRect(-8, 2, 16, 3, 1.5)
+		.fill(colour)
+		.circle(0, 7, 2)
+		.fill(colour);
+
 const shapeOf = (p: Player, m: Motion) => {
 	const s = m.shape;
 	const target =
 		s.kind === "dot"
 			? new p.pixi.Graphics().circle(0, 0, s.r).fill(s.colour)
-			: new p.pixi.Text({
-					text: s.text,
-					style: {
-						fill: s.colour,
-						fontSize: 18,
-						fontFamily: p.font,
-						fontWeight: "700",
-					},
-				});
+			: s.kind === "icon"
+				? bell(p, s.colour)
+				: new p.pixi.Text({
+						text: s.text,
+						style: {
+							fill: s.colour,
+							fontSize: 18,
+							fontFamily: p.font,
+							fontWeight: "700",
+						},
+					});
 	if (s.kind === "dot") target.alpha = s.alpha;
 	target.position.set(m.from.x, m.from.y);
 	return target;

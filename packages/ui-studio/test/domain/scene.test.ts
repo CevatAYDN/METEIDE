@@ -104,6 +104,10 @@ describe("the studio room", () => {
 		expect(titles(s.notes.todo)).toEqual(["a"]);
 		expect(titles(s.notes.in_progress)).toEqual(["b", "d"]);
 		expect(s.notes.done).toEqual([{ id: "c", title: "c" }]);
+		expect(s.notes.in_progress.map((n) => n.blocked)).toEqual([
+			undefined,
+			true,
+		]);
 		expect(s.rows).toEqual([]);
 	});
 });

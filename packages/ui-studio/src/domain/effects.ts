@@ -35,7 +35,13 @@ export type Effect =
 			readonly text: string;
 			readonly colour: EffectColour;
 	  }
-	| { readonly kind: "jump"; readonly at: readonly Point[] };
+	| { readonly kind: "jump"; readonly at: readonly Point[] }
+	| {
+			readonly kind: "icon";
+			readonly at: Point;
+			readonly icon: "bell";
+			readonly colour: EffectColour;
+	  };
 
 /** The room before or after the event. */
 export type Frame = { readonly layout: Layout; readonly view: TeamView };
@@ -102,14 +108,9 @@ const STATUS: Partial<Record<string, (t: Task) => Effect[]>> = {
 					{ kind: "mark", at: above(agent), text: "!", colour: "warn" },
 				]
 			: [],
-	blocked: ({ note, agent }) => [
-		...(note
-			? [{ kind: "mark", at: note, text: "!", colour: "bad" } as const]
-			: []),
-		...(agent
-			? [{ kind: "mark", at: above(agent), text: "!", colour: "bad" } as const]
-			: []),
-	],
+	// The note's large red pin is the board's state (room.ts); the event adds the agent's "!".
+	blocked: ({ agent }) =>
+		agent ? [{ kind: "mark", at: above(agent), text: "!", colour: "bad" }] : [],
 };
 
 const statusEffects = (
@@ -140,7 +141,7 @@ const humanAsked = (
 		f.view.signals.leadRoles[0];
 	const lead = headOfRole(f, role);
 	return lead
-		? [{ kind: "mark", at: above(lead), text: "!", colour: "accent" }]
+		? [{ kind: "icon", at: above(lead), icon: "bell", colour: "accent" }]
 		: [];
 };
 

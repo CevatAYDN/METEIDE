@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { paintScene } from "../../src/domain/paint.js";
 import {
+	BOARD,
 	DESK,
 	MARK,
 	PEOPLE,
@@ -69,6 +70,26 @@ describe("the room's primitives", () => {
 			expect.arrayContaining(["To do", "In progress", "Done", "Coffee", "+1"]),
 		);
 		expect(words(p)).not.toContain("d");
+	});
+
+	it('pins a blocked task\'s note with a large red pin and a "!", and every other note with the small pin', () => {
+		const s = scene([]);
+		const room = paint({
+			...s,
+			notes: {
+				...s.notes,
+				in_progress: [
+					{ id: "a", title: "a" },
+					{ id: "b", title: "b", blocked: true },
+				],
+			},
+		});
+		const pins = room.flatMap((x) =>
+			x.kind === "circle" && x.fill === BOARD.pin ? [x.r] : [],
+		);
+		expect(pins.filter((r) => r === 6)).toHaveLength(1);
+		expect(pins.filter((r) => r === 2.8)).toHaveLength(1);
+		expect(words(room)).toContain("!");
 	});
 
 	it("keeps a note's colour when its task moves to another column", () => {

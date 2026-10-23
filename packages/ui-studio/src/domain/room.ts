@@ -1,8 +1,8 @@
 import { ROOM_W } from "../defaults.js";
-import type { Layout } from "./layout.js";
+import type { Layout, Point } from "./layout.js";
 import { BOARD, COFFEE, DESK, ROOM } from "./palette.js";
 import { type Primitive, rect } from "./primitive.js";
-import type { Scene } from "./scene.js";
+import type { Note, Scene } from "./scene.js";
 import { seedOf } from "./seed.js";
 
 // The cozy office of the approved demo as primitives (ADR-070): the wall and floor, the board with
@@ -93,6 +93,23 @@ export const roomShell = (l: Layout): Primitive[] => [
 const tint = (id: string) =>
 	BOARD.notes[seedOf(id) % BOARD.notes.length] ?? BOARD.notes[0];
 
+// A note's pin; a blocked task's is large, with a "!" (docs/13, `task.status.changed` to `blocked`).
+const pinOf = (note: Note, p: Point): Primitive[] =>
+	note.blocked
+		? [
+				{ kind: "circle", x: p.x + 52, y: p.y + 1, r: 6, fill: BOARD.pin },
+				{
+					kind: "text",
+					x: p.x + 50,
+					y: p.y - 5,
+					text: "!",
+					fill: BOARD.pinMark,
+					size: 10,
+					weight: 800,
+				},
+			]
+		: [{ kind: "circle", x: p.x + 52, y: p.y + 1, r: 2.8, fill: BOARD.pin }];
+
 const notesOf = (scene: Scene, l: Layout): Primitive[] =>
 	Object.values(scene.notes)
 		.flat()
@@ -112,7 +129,7 @@ const notesOf = (scene: Scene, l: Layout): Primitive[] =>
 					weight: 600,
 					maxWidth: 92,
 				},
-				{ kind: "circle", x: p.x + 52, y: p.y + 1, r: 2.8, fill: BOARD.pin },
+				...pinOf(note, p),
 			];
 		});
 

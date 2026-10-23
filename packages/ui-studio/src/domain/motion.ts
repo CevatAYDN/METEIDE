@@ -2,9 +2,9 @@ import type { Effect, EffectColour } from "./effects.js";
 
 // What the stage animates for an effect (docs/13, Performance and access; ADR-052): a shape that
 // starts at one place and ends at another in a time. A burst is twelve particles, never more than
-// 300 alive at once; reduced motion plays no particles, moves or jumps, and a mark fades in place.
+// 300 alive at once; reduced motion plays no particles, moves or jumps, and a mark or an icon fades in place.
 
-/** The shape a motion draws: a dot or a short text. */
+/** The shape a motion draws: a dot, a short text or an icon. */
 export type Shape =
 	| {
 			readonly kind: "dot";
@@ -12,7 +12,8 @@ export type Shape =
 			readonly colour: string;
 			readonly alpha: number;
 	  }
-	| { readonly kind: "text"; readonly text: string; readonly colour: string };
+	| { readonly kind: "text"; readonly text: string; readonly colour: string }
+	| { readonly kind: "icon"; readonly icon: "bell"; readonly colour: string };
 
 /** One tween: the shape from a place to a place, in milliseconds. */
 export type Motion = {
@@ -54,12 +55,16 @@ const burst = (
 	});
 };
 
+// A mark or an icon rises and fades over its place; under reduced motion it fades in place.
 const mark = (
-	e: Extract<Effect, { kind: "mark" }>,
+	e: Extract<Effect, { kind: "mark" | "icon" }>,
 	colour: string,
 	reduced: boolean,
 ): Motion => ({
-	shape: { kind: "text", text: e.text, colour },
+	shape:
+		e.kind === "icon"
+			? { kind: "icon", icon: e.icon, colour }
+			: { kind: "text", text: e.text, colour },
 	from: { x: e.at.x - 5, y: e.at.y },
 	to: { x: e.at.x - 5, y: reduced ? e.at.y : e.at.y - 14, alpha: 0 },
 	ms: 1500,
@@ -98,9 +103,10 @@ type Ctx = {
 	readonly room: number;
 };
 
-// The motions of one effect; under reduced motion only a mark plays.
+// The motions of one effect; under reduced motion only a mark or an icon plays.
 const motionOf = (e: Effect, c: Ctx): Motion[] => {
-	if (e.kind === "mark") return [mark(e, c.colours[e.colour], c.reduced)];
+	if (e.kind === "mark" || e.kind === "icon")
+		return [mark(e, c.colours[e.colour], c.reduced)];
 	if (c.reduced) return [];
 	switch (e.kind) {
 		case "burst":
