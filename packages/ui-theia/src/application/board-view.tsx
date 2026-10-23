@@ -11,7 +11,7 @@ import { failureText } from "./status-text.js";
 
 // The Team panel (docs/13, ADR-051): one run's tasks on the Board (To do, In progress and Done) or
 // as the Flow graph, both from the view model the fold of @mete/ui-studio keeps. Text is shown as it is: React escapes it.
-// shortcut: inline styles on Theia's CSS variables, as the Home view; the METE tokens come with ui-kit.
+// Inline styles on Theia's CSS variables, as the Home view: the DOM panels keep Theia's colours (ADR-052).
 
 /** What the Board draws: no run chosen yet, waiting for the history, why it failed, or the run. */
 export type BoardModel =
