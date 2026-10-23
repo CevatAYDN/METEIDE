@@ -19,6 +19,8 @@ export type TaskCard = {
 	readonly id: string;
 	readonly title: string;
 	readonly roleId: string;
+	/** The tasks this one waits for, by task id (the Flow view's edges). */
+	readonly dependsOn: readonly string[];
 	readonly agentId?: string;
 	readonly status: TaskStatus;
 };
@@ -67,6 +69,7 @@ const tasksAfter = (
 				id: e.taskId,
 				title: e.payload.title,
 				roleId: e.payload.roleId,
+				dependsOn: e.payload.dependsOn,
 				status: "todo",
 			},
 		];

@@ -34,8 +34,8 @@ const event = (
 		payload,
 	}) as MeteEvent;
 
-const created = (taskId: string, title: string) =>
-	event("task.created", { title, roleId: "writer", dependsOn: [] }, taskId);
+const created = (taskId: string, title: string, dependsOn: string[] = []) =>
+	event("task.created", { title, roleId: "writer", dependsOn }, taskId);
 const moved = (taskId: string, from: string, to: string) =>
 	event("task.status.changed", { from, to }, taskId);
 
@@ -44,7 +44,7 @@ describe("the team view fold", () => {
 		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [
 			event("run.started", {}),
 			created(NOTES, "Take notes"),
-			created(SUMMARY, "Summarize"),
+			created(SUMMARY, "Summarize", [NOTES]),
 			event("task.assigned", { agentId: AGENT }, NOTES),
 			moved(NOTES, "todo", "in_progress"),
 		]);
@@ -53,10 +53,17 @@ describe("the team view fold", () => {
 				id: NOTES,
 				title: "Take notes",
 				roleId: "writer",
+				dependsOn: [],
 				agentId: AGENT,
 				status: "in_progress",
 			},
-			{ id: SUMMARY, title: "Summarize", roleId: "writer", status: "todo" },
+			{
+				id: SUMMARY,
+				title: "Summarize",
+				roleId: "writer",
+				dependsOn: [NOTES],
+				status: "todo",
+			},
 		]);
 	});
 
