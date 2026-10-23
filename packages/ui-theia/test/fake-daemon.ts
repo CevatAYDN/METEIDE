@@ -53,6 +53,10 @@ conn.onRequest("mete/audit", (p) => {
 	return { entries: p.verdict === "deny" ? [] : [entry] };
 });
 conn.onRequest("mete/templates", () => ({ templates: [{ id: "game-studio", name: "Game studio" }] }));
+conn.onRequest("mete/template.read", (p) => {
+	if (p.id === "nope") throw new ResponseError(-32000, "no template nope", { code: "not_found" });
+	return p.id === "bad" ? { id: "bad", source: "global", yaml: "" } : { id: p.id, source: "builtIn", yaml: "kind: TeamTemplate" };
+});
 conn.onRequest("mete/stop.all", () => ({ cancelled: [run.id] }));
 conn.onRequest("mete/estimate", (p) => (p.templateId === "bad" ? { providers: "x" } : { providers: [{ providerId: "groq", requests: 15 }], unassigned: 3 }));
 conn.onRequest("mete/quota", () =>

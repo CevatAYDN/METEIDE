@@ -164,6 +164,18 @@ describe("the daemon host", () => {
 		});
 	});
 
+	it("reads a template's text for the team editor, a miss as refused, and refuses an odd answer (ADR-075)", async () => {
+		const { host } = await setup();
+		expect(await host.readTemplate("/w", "web-dev")).toEqual({
+			ok: true,
+			value: { id: "web-dev", source: "builtIn", yaml: "kind: TeamTemplate" },
+		});
+		const missing = await host.readTemplate("/w", "nope");
+		expect(!missing.ok && missing.error.code).toBe("refused");
+		const odd = await host.readTemplate("/w", "bad");
+		expect(!odd.ok && odd.error.code).toBe("protocol");
+	});
+
 	it("sends Stop all and returns the runs the daemon cancelled (ADR-065)", async () => {
 		const { host } = await setup();
 		expect(await host.stopAll("/w")).toEqual({

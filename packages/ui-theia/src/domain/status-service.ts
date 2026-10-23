@@ -3,6 +3,7 @@ import type {
 	AuditEntry,
 	DaemonEstimateResultSchema,
 	DaemonStatusResultSchema,
+	DaemonTemplateReadResultSchema,
 	MeteEvent,
 	ProviderState,
 	QuotaUsage,
@@ -19,6 +20,11 @@ export const METE_DAEMON_PATH = "/services/mete-daemon";
 
 /** The runs `mete/status` answers, as the daemon protocol schema parses them. */
 export type StatusRuns = ReturnType<typeof DaemonStatusResultSchema.parse>;
+
+/** What `mete/template.read` answers (ADR-075), as the daemon protocol schema parses it. */
+export type TemplateText = ReturnType<
+	typeof DaemonTemplateReadResultSchema.parse
+>;
 
 /** What `mete/estimate` answers (ADR-068), as the daemon protocol schema parses it. */
 export type Estimate = ReturnType<typeof DaemonEstimateResultSchema.parse>;
@@ -121,6 +127,11 @@ export interface MeteDaemonService {
 		workspaceDir: string,
 		templateId: string | null,
 	): Promise<Result<Estimate, DaemonFailure>>;
+	/** The text of the template file the daemon would load for an id, and its folder, for the team editor (ADR-075). */
+	readTemplate(
+		workspaceDir: string,
+		id: string,
+	): Promise<Result<TemplateText, DaemonFailure>>;
 	/** Whether each provider can carry a run on now (ADR-050), and the pool's units (ADR-054, ADR-055). */
 	quota(workspaceDir: string): Promise<
 		Result<

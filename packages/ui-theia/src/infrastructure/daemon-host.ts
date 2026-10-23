@@ -11,6 +11,7 @@ import {
 	DaemonRunStartResultSchema,
 	DaemonStatusResultSchema,
 	DaemonStopAllResultSchema,
+	DaemonTemplateReadResultSchema,
 	DaemonTemplatesResultSchema,
 	err,
 	type MeteEvent,
@@ -244,7 +245,7 @@ const reads = (send: Send) => ({
 });
 
 // What the run composer asks before Start: the team templates (ADR-058) and each one's request
-// estimate (ADR-068).
+// estimate (ADR-068); and the text of one template for the team editor (ADR-075).
 const composing = (send: Send) => ({
 	templates: (dir: string) =>
 		send(dir, DAEMON_METHODS.templates, {}, (raw) =>
@@ -253,6 +254,10 @@ const composing = (send: Send) => ({
 	estimate: (dir: string, templateId: string | null) =>
 		send(dir, DAEMON_METHODS.estimate, { templateId }, (raw) =>
 			DaemonEstimateResultSchema.safeParse(raw),
+		),
+	readTemplate: (dir: string, id: string) =>
+		send(dir, DAEMON_METHODS.templateRead, { id }, (raw) =>
+			DaemonTemplateReadResultSchema.safeParse(raw),
 		),
 });
 
