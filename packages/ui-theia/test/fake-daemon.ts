@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-// A script that speaks protocol version 1 like `mete daemon`, run by a real Node child, so the host
+// A script that speaks protocol version 2 like `mete daemon`, run by a real Node child, so the host
 // is tested over real pipes without Electron or @mete/cli. The mode (argv 3) picks its behaviour.
 
 const jsonrpc = createRequire(__filename).resolve("vscode-jsonrpc/node");
