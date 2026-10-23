@@ -54,9 +54,9 @@ export const createAuditWriter = (db: BetterSqlite3.Database) => {
 
 /** Which rows `readAuditLog` returns (ADR-053); every field is optional. */
 export type AuditFilter = {
-	readonly runId?: string;
-	readonly verdict?: string;
-	readonly action?: string;
+	readonly runId?: string | undefined;
+	readonly verdict?: string | undefined;
+	readonly action?: string | undefined;
 	readonly limit: number;
 };
 
