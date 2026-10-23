@@ -90,7 +90,22 @@
 			"stopped": "The METE daemon stopped: {0}"
 		},
 		"studio": {
+			"approved": "{0} is approved and moves to Done.",
+			"asksRole": "{0} asks {1} for approval.",
+			"asksYou": "{0} waits for your approval.",
+			"assigned": "{0} goes to an agent.",
+			"blocked": "{0} is blocked.",
+			"changesAsked": "{0} goes back to its agent with changes asked.",
 			"coffee": "Coffee corner",
+			"completed": "The run is complete; everyone celebrates.",
+			"created": "A note for {0} drops into To do.",
+			"moved": "{0} is now {1}.",
+			"offline": "The network is down; the room dims.",
+			"paused": "The run is paused: {0}.",
+			"quotaBack": "{0}'s quota is back; its agents return to their desks.",
+			"quotaOut": "{0}'s free quota is used up; its agents wait at the coffee corner.",
+			"thinking": "{0} is thinking.",
+			"tool": "{0} uses {1}.",
 			"until": "until {0}"
 		}
 	}

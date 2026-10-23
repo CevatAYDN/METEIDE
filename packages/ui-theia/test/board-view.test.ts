@@ -123,7 +123,7 @@ describe("the Board view", () => {
 		expect(out).toContain('aria-pressed="true">Studio<');
 		expect(out).toContain("studio of 1 task(s)");
 		const list = out.slice(out.indexOf('aria-label="Latest events"'));
-		expect(list).toContain("task.created · Notes");
+		expect(list).toContain("A note for Notes drops into To do.");
 		expect(
 			html({ kind: "board", goal: "g", view, unreadable: 0, recent: [] }),
 		).not.toContain("Latest events");

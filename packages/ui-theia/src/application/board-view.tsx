@@ -9,6 +9,7 @@ import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties, ReactNode } from "react";
 import type { DaemonFailure } from "../domain/status-service.js";
 import { failureText } from "./status-text.js";
+import { studioText } from "./studio-text.js";
 
 // The Team panel (docs/13, ADR-051): one run's tasks on the Board (To do, In progress and Done) or
 // as the Flow graph, both from the view model the fold of @mete/ui-studio keeps. Text is shown as it is: React escapes it.
@@ -154,18 +155,7 @@ const ModeSwitch = ({ controls }: { readonly controls: TeamControls }) => (
 	</div>
 );
 
-// What an event of the studio table is about: its task's title, else, for an agent's own event,
-// the agent's role (a run's events carry the last active agent, who did not do them).
-const subjectOf = (view: TeamView, e: MeteEvent) =>
-	view.tasks.find((t) => t.id === e.taskId)?.title ??
-	(e.type.startsWith("agent.")
-		? view.agents.find((a) => a.id === e.agentId)?.roleId
-		: undefined) ??
-	"";
-
 // The Studio's accessible list (docs/13: every visual event is also written to a list).
-// shortcut: one line per event, its type and subject; the sentences of tab 13's table come with
-// the animations they describe.
 const Recent = ({
 	view,
 	recent,
@@ -178,10 +168,9 @@ const Recent = ({
 		aria-label={nls.localize("mete/board/recent", "Latest events")}
 		style={{ ...MUTED, margin: 0, paddingLeft: "16px" }}
 	>
-		{recent.map((e) => {
-			const subject = subjectOf(view, e);
-			return <li key={e.id}>{subject ? `${e.type} · ${subject}` : e.type}</li>;
-		})}
+		{recent.map((e) => (
+			<li key={e.id}>{studioText(view, e)}</li>
+		))}
 	</ul>
 );
 

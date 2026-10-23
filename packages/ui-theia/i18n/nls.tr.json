@@ -77,7 +77,22 @@
 			"which": "Hangi çalıştırma?"
 		},
 		"studio": {
+			"approved": "{0} onaylandı ve Bitti'ye geçiyor.",
+			"asksRole": "{0}, {1} rolünden onay istiyor.",
+			"asksYou": "{0} senin onayını bekliyor.",
+			"assigned": "{0} bir ajana veriliyor.",
+			"blocked": "{0} engellendi.",
+			"changesAsked": "{0} değişiklik istenerek ajanına geri gidiyor.",
 			"coffee": "Kahve köşesi",
+			"completed": "Çalıştırma tamamlandı; herkes kutluyor.",
+			"created": "{0} için bir not Yapılacak'a düşüyor.",
+			"moved": "{0} artık {1}.",
+			"offline": "Ağ kesildi; oda kararıyor.",
+			"paused": "Çalıştırma duraklatıldı: {0}.",
+			"quotaBack": "{0} kotası geri geldi; ajanları masalarına dönüyor.",
+			"quotaOut": "{0} ücretsiz kotası bitti; ajanları kahve köşesinde bekliyor.",
+			"thinking": "{0} düşünüyor.",
+			"tool": "{0}, {1} kullanıyor.",
 			"until": "{0} saatine kadar"
 		},
 		"status": {
