@@ -16,6 +16,8 @@ export type HomeRow = {
 	readonly waiting: boolean;
 	/** Paused for quota: it goes on when a provider can carry it (ADR-044). */
 	readonly quotaPaused: boolean;
+	/** Paused by the user, as a desktop quit does: it goes on only when resumed (ADR-061). */
+	readonly userPaused: boolean;
 };
 
 /** The panel's state: waiting for the daemon, no folder open, the runs, or why there are none. */
@@ -45,6 +47,10 @@ export const waitsForYou = (r: StatusRuns[number]) =>
 export const waitingCount = (model: HomeModel) =>
 	model.kind === "runs" ? model.rows.filter((r) => r.waiting).length : 0;
 
+/** A run paused by the user, or by a desktop quit, goes on only when someone resumes it (ADR-061). */
+export const waitsForUser = (r: StatusRuns[number]) =>
+	r.status === "paused" && r.pauseReason === "user";
+
 /** A run paused for quota goes on by itself once a provider can carry it. */
 export const waitsForQuota = (r: StatusRuns[number]) =>
 	r.status === "paused" && r.pauseReason === "quota";
@@ -69,6 +75,7 @@ export const homeModel = (
 					createdAt: r.createdAt,
 					waiting: waitsForYou(r),
 					quotaPaused: waitsForQuota(r),
+					userPaused: waitsForUser(r),
 				})),
 				providers,
 				blocked: providers.filter((p) => p.state !== "ready"),

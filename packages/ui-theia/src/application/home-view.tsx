@@ -116,6 +116,12 @@ const Runs = ({
 							{r.quotaPaused && blocked.length > 0 ? (
 								<Blocked providers={blocked} />
 							) : null}
+							{r.userPaused ? (
+								<Button
+									label={nls.localize("mete/home/resume", "Resume")}
+									onClick={() => act("resume", r.id)}
+								/>
+							) : null}
 							{r.quotaPaused ? (
 								<Button
 									label={nls.localize("mete/home/resumeNow", "Resume now")}

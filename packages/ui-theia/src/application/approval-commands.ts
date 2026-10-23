@@ -12,7 +12,11 @@ import {
 } from "@theia/core/lib/common/quick-pick-service";
 import { inject, injectable } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
-import { waitsForQuota, waitsForYou } from "../domain/home-model.js";
+import {
+	waitsForQuota,
+	waitsForUser,
+	waitsForYou,
+} from "../domain/home-model.js";
 import {
 	type DaemonFailure,
 	MeteDaemonService,
@@ -80,10 +84,10 @@ export class MeteApprovalContribution implements CommandContribution {
 	}
 
 	protected async resume(given: unknown) {
-		// A quota pause may be resumed before its reset, after a key or privacy change (ADR-059).
+		// A quota pause may be resumed before its reset (ADR-059), a user's pause or a quit's any time (ADR-061).
 		const t = await this.target(
 			given,
-			(r) => waitsForYou(r) || waitsForQuota(r),
+			(r) => waitsForYou(r) || waitsForQuota(r) || waitsForUser(r),
 		);
 		if (!t) return;
 		const r = await this.daemon.resume(t.dir, t.runId);

@@ -122,7 +122,7 @@ describe("the approvals inbox commands", () => {
 		expect(t.calls[0]?.runId).toBe("c");
 	});
 
-	it("offers runs paused for quota to Resume only (ADR-059)", async () => {
+	it("offers runs paused for quota or by the user to Resume only (ADR-059, ADR-061)", async () => {
 		const t = setup({
 			runs: [
 				run("a", "first", "approval"),
@@ -132,7 +132,7 @@ describe("the approvals inbox commands", () => {
 			pick: 1,
 		});
 		await t.exec("mete.run.resume");
-		expect(t.picked).toEqual([["first", "spent"]]);
+		expect(t.picked).toEqual([["first", "spent", "mine"]]);
 		expect(t.calls).toEqual([{ kind: "resume", runId: "b" }]);
 	});
 

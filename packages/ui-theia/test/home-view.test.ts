@@ -192,6 +192,26 @@ describe("the Home view", () => {
 		expect(out.slice(out.indexOf("done goal"))).not.toContain("Resume now");
 	});
 
+	it("offers Resume under a run paused by the user, such as by a desktop quit (ADR-061)", () => {
+		const out = html(
+			homeModel(
+				{
+					ok: true,
+					value: [
+						run("paused", "quit goal", null, "user"),
+						run("completed", "done goal", null),
+					],
+				},
+				AT,
+			),
+		);
+		const row = out.slice(out.indexOf("quit goal"), out.indexOf("done goal"));
+		expect(row).toContain(">Resume</button>");
+		expect(out.slice(out.indexOf("done goal"))).not.toContain(
+			">Resume</button>",
+		);
+	});
+
 	it("lets each run's goal open the run in the team panel", () => {
 		const r = run("completed", "notes", null);
 		const out = renderToStaticMarkup(
