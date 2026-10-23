@@ -26,6 +26,8 @@ export type TaskCard = {
 	readonly agentId?: string;
 	/** The role that approves the task, once it asked (not the human). */
 	readonly approver?: string;
+	/** The task's latest report, relative to the workspace (docs/07, Artifact). */
+	readonly artifactPath?: string;
 	readonly status: TaskStatus;
 };
 
@@ -91,6 +93,11 @@ const tasksAfter = (
 		}));
 	if (e.type === "task.status.changed")
 		return update(tasks, e.taskId, (t) => ({ ...t, status: e.payload.to }));
+	if (e.type === "artifact.created" || e.type === "artifact.updated")
+		return update(tasks, e.taskId, (t) => ({
+			...t,
+			artifactPath: e.payload.path,
+		}));
 	if (e.type === "approval.requested" && e.payload.approver !== "human")
 		return update(tasks, e.taskId, (t) => ({
 			...t,

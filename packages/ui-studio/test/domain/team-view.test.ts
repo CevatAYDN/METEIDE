@@ -101,6 +101,21 @@ describe("the team view fold", () => {
 		expect(view.tasks[0]?.approver).toBe("lead");
 	});
 
+	it("keeps each task's latest artifact path", () => {
+		const art = (type: string, path: string) =>
+			event(
+				type,
+				{ artifactId: crypto.randomUUID(), type: "code-change@1", path },
+				NOTES,
+			);
+		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			created(NOTES, "Take notes"),
+			art("artifact.created", ".mete/artifacts/r/notes.md"),
+			art("artifact.updated", ".mete/artifacts/r/notes-2.md"),
+		]);
+		expect(view.tasks[0]?.artifactPath).toBe(".mete/artifacts/r/notes-2.md");
+	});
+
 	it("keeps the view unchanged by events it does not draw", () => {
 		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [created(NOTES, "Take notes")]);
 		const next = applyEvent(RUN, view, event("agent.thinking.started", {}));
