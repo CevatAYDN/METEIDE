@@ -7,6 +7,8 @@ import {
 	DaemonDoneResultSchema,
 	type DaemonErrorData,
 	DaemonErrorDataSchema,
+	DaemonEstimateParamsSchema,
+	DaemonEstimateResultSchema,
 	DaemonEventsResultSchema,
 	DaemonQuotaResultSchema,
 	DaemonRunApproveParamsSchema,
@@ -121,6 +123,7 @@ describe("daemon protocol version 11", () => {
 			audit: "mete/audit",
 			templates: "mete/templates",
 			stopAll: "mete/stop.all",
+			estimate: "mete/estimate",
 			event: "mete/event",
 		});
 	});
@@ -321,5 +324,28 @@ describe("daemon protocol version 11", () => {
 		});
 		for (const bad of [{}, { cancelled: ["not-an-id"] }])
 			expect(DaemonStopAllResultSchema.safeParse(bad).success).toBe(false);
+	});
+
+	it("asks mete/estimate for a template or a single agent and answers requests per provider (ADR-068)", () => {
+		expect(DaemonEstimateParamsSchema.parse({ templateId: "web-dev" })).toEqual(
+			{
+				templateId: "web-dev",
+			},
+		);
+		expect(DaemonEstimateParamsSchema.parse({ templateId: null })).toEqual({
+			templateId: null,
+		});
+		expect(DaemonEstimateParamsSchema.safeParse({}).success).toBe(false);
+		const answer = {
+			providers: [{ providerId: "groq", requests: 15 }],
+			unassigned: 3,
+		};
+		expect(DaemonEstimateResultSchema.parse(answer)).toEqual(answer);
+		for (const bad of [
+			{ providers: [] },
+			{ providers: [{ providerId: "groq", requests: -1 }], unassigned: 0 },
+			{ providers: [{ providerId: "groq", requests: 1.5 }], unassigned: 0 },
+		])
+			expect(DaemonEstimateResultSchema.safeParse(bad).success).toBe(false);
 	});
 });

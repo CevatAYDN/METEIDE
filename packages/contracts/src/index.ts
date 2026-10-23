@@ -31,6 +31,8 @@ export {
 	DaemonDoneResultSchema,
 	type DaemonErrorData,
 	DaemonErrorDataSchema,
+	DaemonEstimateParamsSchema,
+	DaemonEstimateResultSchema,
 	DaemonEventsResultSchema,
 	DaemonQuotaResultSchema,
 	DaemonRunApproveParamsSchema,
