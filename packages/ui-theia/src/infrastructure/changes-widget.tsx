@@ -1,3 +1,4 @@
+import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import { ThemeService } from "@theia/core/lib/browser/theming";
 import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
@@ -27,6 +28,7 @@ export class MeteChangesWidget extends ReactWidget {
 	@inject(WorkspaceService) protected readonly workspace!: WorkspaceService;
 	@inject(MeteDaemonEvents) protected readonly events!: MeteDaemonEvents;
 	@inject(ThemeService) protected readonly themes!: ThemeService;
+	@inject(OpenerService) protected readonly openers!: OpenerService;
 
 	protected model: ChangesModel = { kind: "loading" };
 	protected dir: string | undefined;
@@ -81,6 +83,16 @@ export class MeteChangesWidget extends ReactWidget {
 		this.setModel(this.modelOf(r.value, picked));
 	}
 
+	/** Opens a changed file with Theia's default opener, the editor the app ships (ADR-102). */
+	protected async openFile(path: string): Promise<void> {
+		const [root] = await this.workspace.roots;
+		if (!root) return;
+		// shortcut: a file the handler cannot open leaves the panel as it was.
+		await open(this.openers, root.resource.resolve(path)).catch(
+			() => undefined,
+		);
+	}
+
 	// A picked file that the list no longer holds drops its diff, so no stale one is shown.
 	protected modelOf(changes: Changes, picked?: string): ChangesModel {
 		if (!changes.vcs) return { kind: "no_git" };
@@ -107,6 +119,7 @@ export class MeteChangesWidget extends ReactWidget {
 					controls={{
 						onPick: (path) => void this.load(path),
 						onRefresh: () => void this.refresh(),
+						onOpen: (path) => void this.openFile(path),
 					}}
 				/>
 			</div>

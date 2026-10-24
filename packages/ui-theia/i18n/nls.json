@@ -57,6 +57,7 @@
 			"noGit": "This folder is not a git repository. A run's checkpoints can still put its files back.",
 			"one": "1 changed file",
 			"open": "Open changes",
+			"openFile": "Open file",
 			"refresh": "Refresh",
 			"renamed": "Renamed",
 			"title": "Changes"

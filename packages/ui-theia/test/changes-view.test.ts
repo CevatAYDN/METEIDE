@@ -16,7 +16,7 @@ const html = (model: ChangesModel) =>
 	renderToStaticMarkup(
 		createElement(ChangesView, {
 			model,
-			controls: { onPick: () => {}, onRefresh: () => {} },
+			controls: { onPick: () => {}, onRefresh: () => {}, onOpen: () => {} },
 		}),
 	);
 
@@ -103,5 +103,46 @@ describe("the Changes panel", () => {
 			picked: "a.ts",
 		} as ChangesModel);
 		expect(out).toContain("2 more lines");
+	});
+
+	it("offers to open the picked file in the editor", () => {
+		const out = html({
+			kind: "files",
+			picked: "src/a.ts",
+			changes: {
+				vcs: true,
+				branch: "main",
+				files: [{ path: "src/a.ts", change: "modified" }],
+				diff: "+new\n",
+			},
+		});
+		expect(out).toContain(">Open file<");
+	});
+
+	it("offers open for an untracked file, which has no diff to read", () => {
+		const out = html({
+			kind: "files",
+			picked: "src/new.ts",
+			changes: {
+				vcs: true,
+				branch: "main",
+				files: [{ path: "src/new.ts", change: "untracked" }],
+			},
+		});
+		expect(out).toContain(">Open file<");
+	});
+
+	it("offers nothing to open for a deleted file, whose path is gone", () => {
+		const out = html({
+			kind: "files",
+			picked: "src/gone.ts",
+			changes: {
+				vcs: true,
+				branch: "main",
+				files: [{ path: "src/gone.ts", change: "deleted" }],
+				diff: "-old\n",
+			},
+		});
+		expect(out).not.toContain(">Open file<");
 	});
 });

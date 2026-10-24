@@ -25,6 +25,7 @@ export type ChangesModel =
 export type ChangesControls = {
 	readonly onPick: (path: string) => void;
 	readonly onRefresh: () => void;
+	readonly onOpen: (path: string) => void;
 };
 
 /** The word a changed file shows; no git term reaches the panel (ADR-100). */
@@ -57,6 +58,26 @@ const toneOf = (line: string) => {
 	if (line.startsWith("-")) return "del";
 	return "plain";
 };
+
+/** A picked file can be opened in the editor unless the working tree no longer holds it (ADR-102). */
+const openable = (change: ChangedFile["change"]) => change !== "deleted";
+
+/** Opens the picked file with the widget's opener (ADR-102). */
+const OpenFile = ({
+	file,
+	onOpen,
+}: {
+	readonly file: ChangedFile;
+	readonly onOpen: (path: string) => void;
+}) => (
+	<button
+		type="button"
+		className="mete-button quiet"
+		onClick={() => onOpen(file.path)}
+	>
+		{nls.localize("mete/changes/openFile", "Open file")}
+	</button>
+);
 
 const Diff = ({ text }: { readonly text: string }) => {
 	const lines = text.split("\n");
@@ -133,6 +154,7 @@ const Files = ({
 	readonly controls: ChangesControls;
 }) => {
 	const { changes, picked } = model;
+	const pickedFile = changes.files.find((f) => f.path === picked);
 	return (
 		<>
 			<p style={MUTED}>
@@ -148,6 +170,9 @@ const Files = ({
 					onPick={controls.onPick}
 				/>
 			)}
+			{pickedFile !== undefined && openable(pickedFile.change) ? (
+				<OpenFile file={pickedFile} onOpen={controls.onOpen} />
+			) : null}
 			{picked === undefined ? null : changes.diff === undefined ? (
 				<p style={MUTED}>
 					{nls.localize(

@@ -57,6 +57,7 @@
 			"noGit": "Bu klasör bir git deposu değil. Bir koşunun kontrol noktaları dosyalarını yine de geri getirebilir.",
 			"one": "1 dosya değişti",
 			"open": "Değişiklikleri aç",
+			"openFile": "Dosyayı aç",
 			"refresh": "Yenile",
 			"renamed": "Taşındı",
 			"title": "Değişiklikler"
