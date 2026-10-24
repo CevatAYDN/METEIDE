@@ -3,8 +3,8 @@ import { nls } from "@theia/core/lib/common/nls";
 import { roleWords } from "../domain/roster.js";
 import type { StatusRuns } from "../domain/status-service.js";
 import { tokenCount } from "./context-meter.js";
-import { shortWhen } from "./home-view.js";
 import type { Tone } from "./roster-look.js";
+import { shortWhen } from "./runs-list.js";
 import { optionLabel } from "./settings-form.js";
 
 // The run strip's chips (ADR-094): facts the run already has, as an icon, a word and a tone. The run's

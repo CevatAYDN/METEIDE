@@ -15,8 +15,8 @@ import {
 	REVISE_RUN_COMMAND,
 } from "../application/approval-commands.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
-import type { HomeAction } from "../application/home-view.js";
 import { SET_KEY_COMMAND } from "../application/key-command.js";
+import type { HomeAction } from "../application/runs-list.js";
 import type { Workspace } from "../application/workspaces-section.js";
 import {
 	type HomeModel,

@@ -4,9 +4,9 @@ import { describe, expect, it } from "vitest";
 import {
 	QuotaSection,
 	RunsSection,
-	shortWhen,
 	WaitingSection,
 } from "../src/application/home-view.js";
+import { shortWhen } from "../src/application/runs-list.js";
 import {
 	parentTail,
 	type Workspace,
