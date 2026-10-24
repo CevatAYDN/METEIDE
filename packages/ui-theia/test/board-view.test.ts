@@ -28,9 +28,13 @@ const html = (
 				studio: (v) => `studio of ${v.tasks.length} task(s)`,
 				restore: { onRestore: () => {}, restoring },
 				onOpenReport: () => {},
+				names: { writer: "Copy writer" },
 			},
 		}),
 	);
+// The pressed mode button: its codicon, then its name.
+const pressed = (name: string) =>
+	new RegExp(`aria-pressed="true"><span[^>]*></span>${name}<`);
 
 const event = (type: string, payload: object, taskId: string): MeteEvent =>
 	({
@@ -190,12 +194,29 @@ describe("the Board view", () => {
 			recent: [],
 		};
 		const board = html(model);
-		expect(board).toContain('aria-pressed="true">Board<');
+		expect(board).toMatch(pressed("Board"));
 		expect(board).toContain('aria-label="To do"');
 		const flow = html(model, "flow");
-		expect(flow).toContain('aria-pressed="true">Flow<');
+		expect(flow).toMatch(pressed("Flow"));
 		expect(flow).toContain("flow of 1 task(s)");
 		expect(flow).not.toContain('aria-label="To do"');
+	});
+
+	it("lists the run's members in the Team view, named as the team file names them (ADR-089)", () => {
+		const notes = task("Notes");
+		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [notes.created]);
+		const out = html(
+			{ kind: "board", goal: "g", view, unreadable: 0, recent: [] },
+			"team",
+		);
+		expect(out).toMatch(pressed("Team"));
+		expect(out).toContain('aria-label="Copy writer"');
+		expect(out).toContain(
+			"Members: 1 · working: 0 · waiting for you: 0 · done: 0",
+		);
+		expect(out).toContain("0 of 1 tasks done");
+		expect(out).toContain("codicon-circle-outline");
+		expect(out).not.toContain('aria-label="To do"');
 	});
 
 	it("draws the Studio with a list of the latest events, each with its task", () => {
@@ -211,7 +232,7 @@ describe("the Board view", () => {
 			},
 			"studio",
 		);
-		expect(out).toContain('aria-pressed="true">Studio<');
+		expect(out).toMatch(pressed("Studio"));
 		expect(out).toContain("studio of 1 task(s)");
 		const list = out.slice(out.indexOf('aria-label="Latest events"'));
 		expect(list).toContain("A note for Notes drops into To do.");

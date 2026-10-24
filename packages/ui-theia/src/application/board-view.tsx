@@ -7,15 +7,17 @@ import {
 } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties, ReactNode } from "react";
+import { rosterOf } from "../domain/roster.js";
 import type { DaemonFailure } from "../domain/status-service.js";
 import { CheckpointList, type RestoreControls } from "./checkpoint-list.js";
 import { LINK, LIST, MUTED, PANEL, TITLE } from "./look.js";
 import { openReportLabel, ResultsList, reportPath } from "./results-list.js";
 import { failureText } from "./status-text.js";
 import { studioText } from "./studio-text.js";
+import { TeamView as Roster } from "./team-view.js";
 
-// The Team panel (docs/13, ADR-051): one run's tasks on the Board (To do, In progress and Done) or
-// as the Flow graph, both from the view model the fold of @mete/ui-studio keeps. Text is shown as it is: React escapes it.
+// The Team panel (docs/13, ADR-051): one run's tasks on the Board (To do, In progress and Done),
+// its members in the Team view (ADR-089) or as the Flow graph, both from the view model the fold of @mete/ui-studio keeps. Text is shown as it is: React escapes it.
 // Inline styles on Theia's CSS variables, as the Home view: the DOM panels keep Theia's colours (ADR-052).
 
 /** What the Board draws: no run chosen yet, waiting for the history, why it failed, or the run. */
@@ -125,7 +127,7 @@ const COLUMN_ORDER: readonly Place["column"][] = [
 ];
 
 /** Which of the Team panel's views draws the run: the Board, the Flow graph or the Studio. */
-export type TeamMode = "board" | "flow" | "studio";
+export type TeamMode = "board" | "flow" | "studio" | "team";
 
 /** How the panel switches views and draws the Flow graph and the Studio, which live outside this file. */
 export type TeamControls = {
@@ -140,6 +142,8 @@ export type TeamControls = {
 	readonly restore: RestoreControls;
 	/** Opens a report, by its path relative to the workspace (ADR-085). */
 	readonly onOpenReport: (path: string) => void;
+	/** Each member's name by role id from the run's team file, for the Team view (ADR-089). */
+	readonly names: Readonly<Record<string, string>>;
 };
 
 const modeName = (mode: TeamMode) =>
@@ -147,11 +151,19 @@ const modeName = (mode: TeamMode) =>
 		board: nls.localize("mete/board/boardMode", "Board"),
 		flow: nls.localize("mete/board/flowMode", "Flow"),
 		studio: nls.localize("mete/board/studioMode", "Studio"),
+		team: nls.localize("mete/board/teamMode", "Team"),
 	})[mode];
+
+const MODE_ICONS: Readonly<Record<TeamMode, string>> = {
+	board: "project",
+	flow: "type-hierarchy",
+	studio: "organization",
+	team: "person",
+};
 
 const ModeSwitch = ({ controls }: { readonly controls: TeamControls }) => (
 	<div style={{ display: "flex", gap: "6px" }}>
-		{(["board", "flow", "studio"] as const).map((mode) => (
+		{(["board", "flow", "studio", "team"] as const).map((mode) => (
 			<button
 				key={mode}
 				type="button"
@@ -159,6 +171,11 @@ const ModeSwitch = ({ controls }: { readonly controls: TeamControls }) => (
 				aria-pressed={mode === controls.mode}
 				onClick={() => controls.onMode(mode)}
 			>
+				<span
+					aria-hidden="true"
+					className={`codicon codicon-${MODE_ICONS[mode]}`}
+					style={{ marginRight: "6px", verticalAlign: "text-bottom" }}
+				/>
 				{modeName(mode)}
 			</button>
 		))}
@@ -201,6 +218,8 @@ const Shown = ({
 	readonly model: Extract<BoardModel, { kind: "board" }>;
 	readonly controls: TeamControls;
 }) => {
+	if (controls.mode === "team")
+		return <Roster members={rosterOf(model.view)} names={controls.names} />;
 	if (controls.mode === "flow")
 		return model.view.tasks.length === 0 ? (
 			<NoTasks />

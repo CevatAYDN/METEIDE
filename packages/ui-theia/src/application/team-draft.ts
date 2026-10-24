@@ -306,3 +306,14 @@ export const guardrailHints = (team: TeamView): string[] => {
 	);
 	return [...new Set(outputs)].filter((t) => artifactSchema(t)).sort();
 };
+
+/** Each member's name by its id, for the Team view (ADR-089); a text that does not parse names none. */
+export const roleNames = (yaml: string): Readonly<Record<string, string>> => {
+	const doc = draftOf(yaml);
+	if (!doc.ok) return {};
+	return Object.fromEntries(
+		teamOf(doc.value)
+			.roles.filter((r) => r.id && r.name)
+			.map((r) => [r.id, r.name]),
+	);
+};

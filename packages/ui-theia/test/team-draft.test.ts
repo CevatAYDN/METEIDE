@@ -14,6 +14,7 @@ import {
 	removeRole,
 	removeTask,
 	renameRole,
+	roleNames,
 	runsOf,
 	teamOf,
 	withCheckpoint,
@@ -266,5 +267,17 @@ describe("renameRole", () => {
 			ok: false,
 			error: { taken: "lead" },
 		});
+	});
+});
+
+describe("roleNames", () => {
+	it("names each member by its id for the Team view, and none for text that does not parse (ADR-089)", () => {
+		expect(roleNames(WEB_DEV)).toEqual({
+			ui_designer: "UI designer",
+			frontend_developer: "Frontend developer",
+			qa: "QA",
+			lead: "Lead",
+		});
+		expect(roleNames("roles: [")).toEqual({});
 	});
 });

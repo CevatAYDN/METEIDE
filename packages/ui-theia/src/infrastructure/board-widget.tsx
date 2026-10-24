@@ -23,6 +23,7 @@ import { restoredText } from "../application/checkpoint-list.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { panelRoot } from "../application/panel-root.js";
 import { failureText, plain } from "../application/status-text.js";
+import { roleNames } from "../application/team-draft.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { FlowView } from "./flow-view.js";
 import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
@@ -55,6 +56,8 @@ export class MeteBoardWidget extends ReactWidget {
 	protected mode: TeamMode = "board";
 	/** The checkpoint a restore is in flight for (ADR-079). */
 	protected restoring: string | undefined;
+	/** The shown run's member names by role id, from its team file (ADR-089). */
+	protected names: Readonly<Record<string, string>> = {};
 	/** True while the panel shows the composer, which it also shows before any run. */
 	protected composing = true;
 
@@ -99,10 +102,30 @@ export class MeteBoardWidget extends ReactWidget {
 	async showRun(dir: string, runId: string, goal: string): Promise<void> {
 		this.composing = false;
 		this.shownRun.set(runId);
+		// The previous run's names never show on this one, also when its team file cannot be read.
+		this.names = {};
 		const shown = { dir, runId, goal };
 		this.setSession(startBoard(shown));
 		const r = await this.daemon.events(dir, runId);
 		this.setSession(loadedBoard(this.session, shown, r));
+		const created = r.ok
+			? r.value.events.find((e) => e.type === "run.created")
+			: undefined;
+		if (created?.type === "run.created" && created.payload.templateId)
+			void this.loadNames(dir, runId, created.payload.templateId);
+	}
+
+	// The names the team file gives now; a run of an edited or removed team keeps its role ids in words.
+	protected async loadNames(dir: string, runId: string, templateId: string) {
+		const t = await this.daemon.readTemplate(dir, templateId);
+		if (
+			!t.ok ||
+			this.session.model.kind !== "board" ||
+			this.shownRun.runId !== runId
+		)
+			return;
+		this.names = roleNames(t.value.yaml);
+		this.update();
 	}
 
 	// Coming to the composer puts the cursor in the goal field (docs/13: keyboard-first) and asks for
@@ -199,6 +222,7 @@ export class MeteBoardWidget extends ReactWidget {
 						restoring: this.restoring,
 					},
 					onOpenReport: (path) => void this.openReport(path),
+					names: this.names,
 				}}
 			/>
 		);
