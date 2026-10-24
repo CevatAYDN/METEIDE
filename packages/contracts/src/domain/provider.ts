@@ -181,6 +181,11 @@ export interface ProviderAdapter {
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
+/** The provider id of a custom endpoint: `custom:<slug>` (docs/09). */
+export const CustomProviderIdSchema = z
+	.string()
+	.regex(/^custom:[a-z0-9]+(-[a-z0-9]+)*$/, "expected custom:<slug>");
+
 /** One custom endpoint from the `providers:` section; its key is in the keychain (docs/09). */
 const CustomEndpointSchema = z.strictObject({
 	slug: z.string().regex(SLUG, "expected a kebab-case slug"),

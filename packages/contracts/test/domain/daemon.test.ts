@@ -15,6 +15,10 @@ import {
 	DaemonEstimateParamsSchema,
 	DaemonEstimateResultSchema,
 	DaemonEventsResultSchema,
+	DaemonProviderModelsParamsSchema,
+	DaemonProviderModelsResultSchema,
+	DaemonProviderTestParamsSchema,
+	DaemonProviderTestResultSchema,
 	DaemonQuotaResultSchema,
 	DaemonRunApproveParamsSchema,
 	DaemonRunIdParamsSchema,
@@ -29,6 +33,7 @@ import {
 	RunViewSchema,
 } from "../../src/domain/daemon.js";
 import type { EngineError, RunView } from "../../src/domain/engine.js";
+import type { ModelInfo, ProviderError } from "../../src/domain/provider.js";
 
 // Typed as RunView, so a field added to the type stops this file from compiling until the schema follows.
 const run: RunView = {
@@ -136,6 +141,8 @@ describe("daemon protocol version 14", () => {
 			chain: "mete/chain",
 			checkpointRestore: "mete/checkpoint.restore",
 			settings: "mete/settings",
+			providerModels: "mete/provider.models",
+			providerTest: "mete/provider.test",
 			event: "mete/event",
 		});
 	});
@@ -448,5 +455,79 @@ describe("daemon protocol version 14", () => {
 			{ id: "web-dev", source: "workspace" },
 		])
 			expect(DaemonTemplateReadResultSchema.safeParse(bad).success).toBe(false);
+	});
+
+	it("asks mete/provider.models for a custom endpoint only, and answers its models or the failure (ADR-087)", () => {
+		const ask = { providerId: "custom:my-lab" };
+		expect(DaemonProviderModelsParamsSchema.parse(ask)).toEqual(ask);
+		for (const providerId of ["groq", "custom:", "custom:My_Lab", "custom:a/b"])
+			expect(
+				DaemonProviderModelsParamsSchema.safeParse({ providerId }).success,
+			).toBe(false);
+		const model: ModelInfo = {
+			id: "lab-7b",
+			providerId: "custom:my-lab",
+			family: "",
+			contextWindow: 0,
+			toolCalling: "unknown",
+			vision: "unknown",
+			free: true,
+			deprecated: false,
+		};
+		for (const answer of [
+			{ models: [model] },
+			{ models: [] },
+			{ failed: { code: "unauthorized", message: "bad key", status: 401 } },
+			{ failed: { code: "network", message: "fetch failed" } },
+		])
+			expect(DaemonProviderModelsResultSchema.parse(answer)).toEqual(answer);
+		for (const bad of [
+			{},
+			{ failed: { code: "teapot", message: "" } },
+			{ models: [model], failed: { code: "server", message: "" } },
+		])
+			expect(DaemonProviderModelsResultSchema.safeParse(bad).success).toBe(
+				false,
+			);
+	});
+
+	it("asks mete/provider.test for models of a custom endpoint and answers each probe in order (ADR-087)", () => {
+		const ask = { providerId: "custom:my-lab", models: ["lab-7b", "lab-70b"] };
+		expect(DaemonProviderTestParamsSchema.parse(ask)).toEqual(ask);
+		for (const bad of [
+			{ providerId: "custom:my-lab", models: [] },
+			{ providerId: "custom:my-lab", models: [""] },
+			{ providerId: "nvidia", models: ["m"] },
+		])
+			expect(DaemonProviderTestParamsSchema.safeParse(bad).success).toBe(false);
+		const answer = {
+			results: [
+				{ modelId: "lab-7b", ok: true, ms: 840 },
+				{
+					modelId: "lab-70b",
+					ok: false,
+					failed: {
+						code: "bad_request",
+						message: "no such model",
+						status: 404,
+					},
+				},
+			],
+		};
+		expect(DaemonProviderTestResultSchema.parse(answer)).toEqual(answer);
+		for (const bad of [
+			{ results: [{ modelId: "m", ok: true }] },
+			{ results: [{ modelId: "m", ok: false, ms: 1 }] },
+			{ results: [{ modelId: "m", ok: true, ms: -1 }] },
+		])
+			expect(DaemonProviderTestResultSchema.safeParse(bad).success).toBe(false);
+	});
+
+	it("passes on every ProviderError code and nothing else", () => {
+		const failed = DaemonProviderModelsResultSchema.parse({
+			failed: { code: "aborted", message: "" },
+		});
+		if ("failed" in failed)
+			expectTypeOf(failed.failed.code).toEqualTypeOf<ProviderError["code"]>();
 	});
 });
