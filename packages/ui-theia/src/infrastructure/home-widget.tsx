@@ -85,7 +85,11 @@ export class MeteHomeSectionWidget extends ReactWidget {
 			return (
 				<WorkspacesSection
 					workspaces={workspaces}
-					onOpen={(uri) => this.store.openWorkspace(uri)}
+					actions={{
+						onOpen: (uri) => this.store.openWorkspace(uri),
+						onForget: (uri) => void this.store.forgetWorkspace(uri),
+						onAdd: () => void this.store.addWorkspace(),
+					}}
 				/>
 			);
 		if (this.section === "quota")

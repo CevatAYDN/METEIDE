@@ -7,12 +7,14 @@ import {
 	WaitingSection,
 } from "../src/application/home-view.js";
 import {
+	parentTail,
 	type Workspace,
 	WorkspacesSection,
 } from "../src/application/workspaces-section.js";
 import {
 	type HomeModel,
 	homeModel,
+	runsHere,
 	waitingCount,
 } from "../src/domain/home-model.js";
 import type { StatusRuns } from "../src/domain/status-service.js";
@@ -37,7 +39,10 @@ const html = (model: HomeModel, workspaces: readonly Workspace[] = []) =>
 				onSetKey: none,
 				onStart: none,
 			}),
-			createElement(WorkspacesSection, { workspaces, onOpen: none }),
+			createElement(WorkspacesSection, {
+				workspaces,
+				actions: { onOpen: none, onForget: none, onAdd: none },
+			}),
 			createElement(QuotaSection, { model, onOpenQuota: none }),
 		),
 	);
@@ -287,6 +292,32 @@ describe("the Home view", () => {
 		// Each path takes one line that ends in an ellipsis; the tooltip keeps it whole.
 		expect(list).toContain('<li title="/w/game">');
 		expect(list).toContain("text-overflow:ellipsis");
+		// The open folder cannot be forgotten; the others can, and a folder can be added.
+		expect(list.match(/>Forget</g)).toHaveLength(1);
+		expect(list).toContain('aria-label="Forget game"');
+		expect(list).toContain(">Open folder…</button>");
+	});
+
+	it("shows the folder that holds a workspace, cut at the front", () => {
+		const at = (path: string, name: string) =>
+			parentTail({ uri: "file:///x", name, path, current: false });
+		expect(at("/w/game", "game")).toBe("/w");
+		expect(
+			at(
+				String.raw`C:\Users\me\AppData\Local\Temp\claude\0123456789abcdef\scratchpad\gate-game4`,
+				"gate-game4",
+			),
+		).toBe(String.raw`…\0123456789abcdef\scratchpad`);
+	});
+
+	it("opens another folder in a new window only while a run here is running or queued", () => {
+		const of = (status: string) =>
+			runsHere(homeModel({ ok: true, value: [run(status, "g", null)] }, AT));
+		expect(of("running")).toBe(true);
+		expect(of("queued")).toBe(true);
+		expect(of("paused")).toBe(false);
+		expect(of("completed")).toBe(false);
+		expect(runsHere({ kind: "loading" })).toBe(false);
 	});
 
 	it("marks the run the Team panel shows, and only that one", () => {

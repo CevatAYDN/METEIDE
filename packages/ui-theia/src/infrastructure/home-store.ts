@@ -1,11 +1,13 @@
 import { CommandService } from "@theia/core";
 import { Emitter } from "@theia/core/lib/common/event";
+import { nls } from "@theia/core/lib/common/nls";
 import URI from "@theia/core/lib/common/uri";
 import {
 	inject,
 	injectable,
 	postConstruct,
 } from "@theia/core/shared/inversify";
+import { FileDialogService } from "@theia/filesystem/lib/browser/file-dialog/file-dialog-service";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import {
 	APPROVE_RUN_COMMAND,
@@ -19,6 +21,7 @@ import type { Workspace } from "../application/workspaces-section.js";
 import {
 	type HomeModel,
 	homeModel,
+	runsHere,
 	waitingCount,
 } from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
@@ -37,6 +40,7 @@ export class MeteHomeStore {
 	@inject(MeteDaemonEvents) protected readonly events!: MeteDaemonEvents;
 	@inject(CommandService) protected readonly commands!: CommandService;
 	@inject(MeteInboxBadge) protected readonly badge!: MeteInboxBadge;
+	@inject(FileDialogService) protected readonly dialogs!: FileDialogService;
 
 	protected readonly changed = new Emitter<void>();
 	/** Fires when the model or the workspaces change. */
@@ -110,9 +114,31 @@ export class MeteHomeStore {
 		return this.commands.executeCommand(id, runId);
 	}
 
-	/** Opens a folder Theia remembers. */
+	/**
+	 * Opens a folder in this window, or in a new one while a run here is running or queued, since
+	 * this folder's daemon ends when the window takes another folder (ADR-078).
+	 */
 	openWorkspace(uri: string) {
-		this.workspace.open(new URI(uri));
+		this.workspace.open(new URI(uri), {
+			preserveWindow: !runsHere(this.model),
+		});
+	}
+
+	/** Drops a folder from the list; the folder stays on disk. */
+	async forgetWorkspace(uri: string) {
+		await this.workspace.removeRecentWorkspace(uri);
+		this.workspaces = this.workspaces.filter((w) => w.uri !== uri);
+		this.changed.fire();
+	}
+
+	/** Asks for a folder and opens it as a click on the list would. */
+	async addWorkspace() {
+		const folder = await this.dialogs.showOpenDialog({
+			title: nls.localize("mete/home/openFolder", "Open folder…"),
+			canSelectFiles: false,
+			canSelectFolders: true,
+		});
+		if (folder) this.openWorkspace(folder.toString());
 	}
 
 	protected setModel(model: HomeModel): void {

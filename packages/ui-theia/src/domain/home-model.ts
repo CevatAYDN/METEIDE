@@ -82,3 +82,11 @@ export const homeModel = (
 				at,
 			}
 		: { kind: "failed", failure: reply.error, at };
+
+/**
+ * Whether a run here is running or queued: its daemon ends when this window takes another folder,
+ * so another folder then opens in a new window (ADR-078).
+ */
+export const runsHere = (model: HomeModel) =>
+	model.kind === "runs" &&
+	model.rows.some((r) => r.status === "running" || r.status === "queued");
