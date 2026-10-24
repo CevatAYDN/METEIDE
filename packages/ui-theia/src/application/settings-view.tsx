@@ -2,6 +2,7 @@ import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties } from "react";
 import type { DaemonFailure, Settings } from "../domain/status-service.js";
 import { MUTED, PANEL, ROW, TITLE } from "./look.js";
+import { SaveBar } from "./save-bar.js";
 import { ScopeSwitch } from "./scope-switch.js";
 import type { Target } from "./section-draft.js";
 import {
@@ -42,6 +43,8 @@ export type SettingsActions = {
 	readonly onRefresh: () => void;
 	/** The scope switch (ADR-095): every form saves to this target. */
 	readonly onScope: (target: Target) => void;
+	/** The save bar (ADR-095): every changed form saves. */
+	readonly onSaveAll: () => void;
 };
 
 /** The group the screen shows, and the choice of another. */
@@ -207,6 +210,7 @@ const Loaded = ({
 					</div>
 				) : null}
 			</div>
+			{target ? <SaveBar forms={forms} onSave={actions.onSaveAll} /> : null}
 		</>
 	);
 };

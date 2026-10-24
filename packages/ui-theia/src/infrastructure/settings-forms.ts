@@ -90,6 +90,11 @@ export class SettingsForms {
 		await Promise.all(SECTIONS.map((s) => this.retarget(s, target)));
 	}
 
+	/** The save bar (ADR-095): every changed form saves to its own file, one after the other. */
+	async saveAll() {
+		for (const s of SECTIONS) if (this.states.get(s)?.dirty) await this.save(s);
+	}
+
 	// Reset: the form's keys leave this folder's file, so the global file's value or the default
 	// applies again. A form that shows this folder's file drops its typing, which the clear replaces.
 	protected async clear(section: FormSection) {

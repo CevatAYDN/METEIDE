@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { EndpointTestState } from "../src/application/endpoint-test.js";
 import { SET_KEY_COMMAND } from "../src/application/key-command.js";
 import type { Target } from "../src/application/section-draft.js";
-import { shortPath } from "../src/application/settings-form.js";
+import { type FormState, shortPath } from "../src/application/settings-form.js";
 import type { GroupId } from "../src/application/settings-groups.js";
 import {
 	SETTINGS_LINKS,
@@ -25,6 +25,7 @@ const html = (model: SettingsModel, group: GroupId = "models") =>
 				onOpen: none,
 				onRefresh: none,
 				onScope: none,
+				onSaveAll: none,
 			},
 			choice: { group, onGroup: none },
 		}),
@@ -120,7 +121,7 @@ describe("the Settings screen", () => {
 });
 
 describe("the Settings forms (ADR-082)", () => {
-	const gatewayForm = (state: { target?: Target; busy?: boolean } = {}) => ({
+	const gatewayForm = (state: Partial<FormState> = {}) => ({
 		state: {
 			target: "workspace" as Target,
 			file: "/w/.mete/gateway.yaml",
@@ -135,7 +136,7 @@ describe("the Settings forms (ADR-082)", () => {
 	const withForms = (
 		model: SettingsModel,
 		group: GroupId = "models",
-		state?: { target?: Target; busy?: boolean },
+		state?: Partial<FormState>,
 	) =>
 		renderToStaticMarkup(
 			createElement(SettingsView, {
@@ -146,6 +147,7 @@ describe("the Settings forms (ADR-082)", () => {
 					onOpen: none,
 					onRefresh: none,
 					onScope: none,
+					onSaveAll: none,
 				},
 				forms: { gateway: gatewayForm(state) },
 				choice: { group, onGroup: none },
@@ -175,10 +177,8 @@ describe("the Settings forms (ADR-082)", () => {
 		expect(
 			shortPath(String.raw`C:\Users\me\AppData\Roaming\METE\settings.yaml`),
 		).toBe(String.raw`C:\Users\me\AppData\Roaming\METE\settings.yaml`);
-		// Save waits for a change, so an untouched file is never rewritten.
-		expect(gateway).toMatch(
-			/<button type="button" class="mete-button" disabled="">Save<\/button>/,
-		);
+		// A form has no Save of its own: the bar at the bottom saves them all.
+		expect(gateway).not.toMatch(/>Save<\/button>/);
 	});
 
 	it("leaves the target to the switch at the top, which is off for All folders without a global file", () => {
@@ -232,6 +232,57 @@ describe("the Settings forms (ADR-082)", () => {
 		expect(unrelated).not.toContain("From all folders");
 	});
 
+	// The save bar (ADR-095), over three forms that differ in what the user did.
+	const bar = (states: Record<string, Partial<FormState>>) => {
+		const page = renderToStaticMarkup(
+			createElement(SettingsView, {
+				model: LOADED,
+				actions: {
+					onApply: none,
+					onCommand: none,
+					onOpen: none,
+					onRefresh: none,
+					onScope: none,
+					onSaveAll: none,
+				},
+				forms: Object.fromEntries(
+					Object.entries(states).map(([name, s]) => [
+						name,
+						{ ...gatewayForm(s), actions: gatewayForm().actions },
+					]),
+				),
+			}),
+		);
+		return page.slice(page.indexOf('aria-label="Save changes'));
+	};
+
+	it("says nothing is changed and keeps Save changes off, until a form is changed", () => {
+		const idle = bar({ gateway: {}, policy: {} });
+		expect(idle).toContain("No unsaved changes");
+		expect(idle).toMatch(/disabled="">Save changes</);
+		const changed = bar({ gateway: { dirty: true }, policy: { dirty: true } });
+		expect(changed).toContain("Unsaved changes: gateway, policy");
+		expect(changed).not.toMatch(/disabled="">Save changes</);
+		expect(changed).toMatch(/>Save changes</);
+	});
+
+	it("holds Save changes while a form saves, and names the file of a form that has a problem", () => {
+		expect(bar({ gateway: { dirty: true, busy: true } })).toMatch(
+			/disabled="">Save changes</,
+		);
+		const refused = bar({
+			gateway: { dirty: true },
+			policy: {
+				dirty: true,
+				file: "/w/.mete/policy.yaml",
+				note: { kind: "refused", text: "Not saved: autonomy: bad" },
+			},
+		});
+		expect(refused).toContain("A problem with .mete/policy.yaml");
+		expect(refused).not.toContain("A problem with .mete/gateway.yaml");
+		expect(bar({ gateway: { dirty: true } })).not.toContain("A problem with");
+	});
+
 	it("holds Reset while the form saves", () => {
 		expect(withForms(LOADED, "models", { busy: true })).toMatch(
 			/<button type="button" class="mete-button quiet" disabled=""[^>]*>Reset</,
@@ -251,6 +302,7 @@ describe("Apply now (ADR-083)", () => {
 					onOpen: none,
 					onRefresh: none,
 					onScope: none,
+					onSaveAll: none,
 				},
 				apply: { busy: false, activeRuns },
 			}),
@@ -284,6 +336,7 @@ describe("the custom endpoints card (ADR-087)", () => {
 					onOpen: none,
 					onRefresh: none,
 					onScope: none,
+					onSaveAll: none,
 				},
 				endpoints: {
 					state: {

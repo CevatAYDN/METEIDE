@@ -209,6 +209,7 @@ export class MeteSettingsWidget extends ReactWidget {
 						onOpen: (file) => void open(this.openers, URI.fromFilePath(file)),
 						onRefresh: () => void this.refresh(),
 						onScope: (target) => void this.forms?.retargetAll(target),
+						onSaveAll: () => void this.forms?.saveAll(),
 					}}
 				/>
 			</div>

@@ -7,11 +7,10 @@ import {
 	FormFields,
 	FormNote,
 	type FormState,
-	SaveButton,
 } from "./settings-form.js";
 
-// A form as the Settings screen draws it (ADR-095): where its value comes from, its fields, Save and
-// what the last save said. The target is the screen's switch, not a box of the form.
+// A form as the Settings screen draws it (ADR-095): where its value comes from, its fields and what
+// the last save said. The target is the screen's switch and Save is its bar, not parts of the form.
 
 // Where METE loaded a field of the form from: this folder's file, which Reset can clear, or the global one.
 const Origin = ({
@@ -87,9 +86,6 @@ export const SectionForm = ({
 			onClear={actions.onClear}
 		/>
 		<FormFields section={section} state={state} onField={actions.onField} />
-		<div style={ROW}>
-			<SaveButton state={state} onSave={actions.onSave} />
-		</div>
 		<FormNote state={state} />
 	</div>
 );

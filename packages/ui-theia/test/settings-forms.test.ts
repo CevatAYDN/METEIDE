@@ -119,3 +119,46 @@ describe("the scope switch and Reset (ADR-095)", () => {
 		expect(forms.forms().gateway?.state.note?.kind).toBe("refused");
 	});
 });
+
+describe("the one save bar (ADR-095)", () => {
+	const settle = () => new Promise((r) => setTimeout(r, 0));
+	const fileOf = (s: string) => WORK.resolve(`.mete/${s}.yaml`).path.fsPath();
+
+	it("saves every changed form to its own file and leaves a clean form's file alone", async () => {
+		const { files, disk } = fakeFiles({ [fileOf("policy")]: "autonomy: 1\n" });
+		const forms = new SettingsForms(files, () => {});
+		await forms.load(WORK, GLOBAL);
+		forms.forms().gateway?.actions.onField("dailySpendUsd", 2);
+		forms.forms().policy?.actions.onField("autonomy", 3);
+		await forms.saveAll();
+		expect(disk.get(fileOf("gateway"))).toBe("dailySpendUsd: 2\n");
+		expect(disk.get(fileOf("policy"))).toBe("autonomy: 3\n");
+		expect(disk.has(fileOf("privacy"))).toBe(false);
+		const states = Object.values(forms.forms()).map((f) => f.state.dirty);
+		expect(states).toEqual([false, false, false]);
+	});
+
+	it("keeps a refused form changed, with its note, and still saves the others", async () => {
+		const { files, disk } = fakeFiles({ [fileOf("policy")]: "autonomy: [\n" });
+		const forms = new SettingsForms(files, () => {});
+		await forms.load(WORK, GLOBAL);
+		forms.forms().gateway?.actions.onField("dailySpendUsd", 2);
+		forms.forms().policy?.actions.onField("autonomy", 3);
+		await forms.saveAll();
+		await settle();
+		expect(disk.get(fileOf("gateway"))).toBe("dailySpendUsd: 2\n");
+		expect(disk.get(fileOf("policy"))).toBe("autonomy: [\n");
+		const policy = forms.forms().policy?.state;
+		expect(policy?.dirty).toBe(true);
+		expect(policy?.note?.kind).toBe("refused");
+		expect(forms.forms().gateway?.state.note?.kind).toBe("saved");
+	});
+
+	it("does nothing when no form changed", async () => {
+		const { files, disk } = fakeFiles({});
+		const forms = new SettingsForms(files, () => {});
+		await forms.load(WORK, GLOBAL);
+		await forms.saveAll();
+		expect(disk.size).toBe(0);
+	});
+});
