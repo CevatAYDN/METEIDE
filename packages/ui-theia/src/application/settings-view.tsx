@@ -128,7 +128,7 @@ const Loaded = ({
 		<p style={MUTED}>
 			{nls.localize(
 				"mete/settings/loaded",
-				"As METE loaded them at {0}. Edits to these files apply when METE starts again; a key no file sets takes its module's built-in default.",
+				"As METE loaded them at {0}. Edits to these files apply when METE starts again, except pins, which apply when the next task starts; a key no file sets takes its module's built-in default.",
 				new Date(settings.loadedAt).toLocaleString(),
 			)}
 		</p>

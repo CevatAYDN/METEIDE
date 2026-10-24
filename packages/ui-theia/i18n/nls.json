@@ -141,7 +141,7 @@
 			"editTeam": "Edit team…",
 			"global": "Global:",
 			"language": "Display language",
-			"loaded": "As METE loaded them at {0}. Edits to these files apply when METE starts again; a key no file sets takes its module's built-in default.",
+			"loaded": "As METE loaded them at {0}. Edits to these files apply when METE starts again, except pins, which apply when the next task starts; a key no file sets takes its module's built-in default.",
 			"loading": "Asking the METE daemon…",
 			"merged": "What METE uses:",
 			"preferences": "Preferences",

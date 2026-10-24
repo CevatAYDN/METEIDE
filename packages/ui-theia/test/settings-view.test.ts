@@ -58,6 +58,8 @@ describe("the Settings screen", () => {
 		expect(mcp).not.toContain("What METE uses:");
 		expect(gateway).toContain("What METE uses:");
 		expect(out).toContain("Edits to these files apply when METE starts again");
+		// Pins are read when a task is seated (ADR-077), so they need no restart.
+		expect(out).toContain("except pins, which apply when the next task starts");
 	});
 
 	it("leads to the team editor, provider keys and Theia's preferences and language", () => {

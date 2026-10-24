@@ -141,7 +141,7 @@
 			"editTeam": "Ekibi düzenle…",
 			"global": "Genel:",
 			"language": "Görüntüleme dili",
-			"loaded": "METE bunları {0} anında yükledi. Bu dosyalardaki değişiklikler METE yeniden başlayınca geçerli olur; hiçbir dosyanın ayarlamadığı bir anahtar modülün yerleşik varsayılanını alır.",
+			"loaded": "METE bunları {0} anında yükledi. Bu dosyalardaki değişiklikler METE yeniden başlayınca geçerli olur, pins dışında: o, bir sonraki görev başlarken geçerli olur; hiçbir dosyanın ayarlamadığı bir anahtar modülün yerleşik varsayılanını alır.",
 			"loading": "METE daemon'una soruluyor…",
 			"merged": "METE'nin kullandığı:",
 			"preferences": "Tercihler",
