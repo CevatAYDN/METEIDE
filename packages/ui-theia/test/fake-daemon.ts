@@ -58,6 +58,7 @@ conn.onRequest("mete/template.read", (p) => {
 	return p.id === "bad" ? { id: "bad", source: "global", yaml: "" } : { id: p.id, source: "builtIn", yaml: "kind: TeamTemplate" };
 });
 conn.onRequest("mete/chain", (p) => (p.tier === "vision" ? { models: [{ providerId: "groq" }] } : { models: [{ providerId: "groq", modelId: "m" }] }));
+conn.onRequest("mete/models", (p) => ({ models: p.models.filter((m) => m.modelId !== "gone").map((m) => (m.modelId === "odd" ? { id: "odd" } : { id: m.modelId, providerId: m.providerId, family: "", contextWindow: 128000, toolCalling: true, vision: false, free: true, deprecated: false })) }));
 conn.onRequest("mete/provider.models", (p) => {
 	if (p.providerId === "custom:gone") throw new ResponseError(-32000, "no custom:gone", { code: "not_found" });
 	return { failed: { code: "unauthorized", message: "bad key", status: 401 } };

@@ -4,12 +4,14 @@ import type {
 	DaemonChainResultSchema,
 	DaemonCheckpointRestoreResultSchema,
 	DaemonEstimateResultSchema,
+	DaemonModelsResultSchema,
 	DaemonProviderModelsResultSchema,
 	DaemonProviderTestResultSchema,
 	DaemonSettingsResultSchema,
 	DaemonStatusResultSchema,
 	DaemonTemplateReadResultSchema,
 	MeteEvent,
+	ModelRef,
 	NeedSchema,
 	ProviderState,
 	QuotaUsage,
@@ -38,6 +40,9 @@ export type Need = ReturnType<typeof NeedSchema.parse>;
 
 /** What `mete/chain` answers (ADR-077), as the daemon protocol schema parses it. */
 export type Chain = ReturnType<typeof DaemonChainResultSchema.parse>;
+
+/** What `mete/models` answers (ADR-090): the listed facts of the asked models. */
+export type ModelFacts = ReturnType<typeof DaemonModelsResultSchema.parse>;
 
 /** What `mete/checkpoint.restore` answers (ADR-079): the ref restored and the one that undoes it. */
 export type Restored = ReturnType<
@@ -164,6 +169,11 @@ export interface MeteDaemonService {
 		tier: Tier,
 		needs: readonly Need[],
 	): Promise<Result<Chain, DaemonFailure>>;
+	/** The listed facts of the asked models, such as their context window, for the Team view (ADR-090). */
+	models(
+		workspaceDir: string,
+		models: readonly ModelRef[],
+	): Promise<Result<ModelFacts, DaemonFailure>>;
 	/** Restarts the folder's daemon so it loads the configuration again (ADR-083). */
 	restart(): Promise<void>;
 	/** The configuration the folder's daemon loaded, every string masked (ADR-081). */

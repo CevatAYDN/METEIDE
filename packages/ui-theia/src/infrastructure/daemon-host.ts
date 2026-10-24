@@ -9,6 +9,7 @@ import {
 	DaemonErrorDataSchema,
 	DaemonEstimateResultSchema,
 	DaemonEventsResultSchema,
+	DaemonModelsResultSchema,
 	DaemonProviderModelsResultSchema,
 	DaemonProviderTestResultSchema,
 	DaemonQuotaResultSchema,
@@ -20,6 +21,7 @@ import {
 	DaemonTemplatesResultSchema,
 	err,
 	type MeteEvent,
+	type ModelRef,
 	ok,
 	parseEvent,
 	type Result,
@@ -269,6 +271,10 @@ const composing = (send: Send) => ({
 	chain: (dir: string, tier: Tier, needs: readonly Need[]) =>
 		send(dir, DAEMON_METHODS.chain, { tier, needs }, (raw) =>
 			DaemonChainResultSchema.safeParse(raw),
+		),
+	models: (dir: string, models: readonly ModelRef[]) =>
+		send(dir, DAEMON_METHODS.models, { models }, (raw) =>
+			DaemonModelsResultSchema.safeParse(raw),
 		),
 	settings: (dir: string) =>
 		send(dir, DAEMON_METHODS.settings, {}, (raw) =>

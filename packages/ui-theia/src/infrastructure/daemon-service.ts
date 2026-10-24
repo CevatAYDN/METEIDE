@@ -1,4 +1,4 @@
-import type { ApprovalInput, RunStart, Tier } from "@mete/contracts";
+import type { ApprovalInput, ModelRef, RunStart, Tier } from "@mete/contracts";
 import { ILogger } from "@theia/core/lib/common/logger";
 import type { BackendApplicationContribution } from "@theia/core/lib/node";
 import { inject, injectable } from "@theia/core/shared/inversify";
@@ -107,6 +107,10 @@ export class MeteDaemonBackend
 
 	chain(workspaceDir: string, tier: Tier, needs: readonly Need[]) {
 		return this.host.chain(workspaceDir, tier, needs);
+	}
+
+	models(workspaceDir: string, models: readonly ModelRef[]) {
+		return this.host.models(workspaceDir, models);
 	}
 
 	restart() {

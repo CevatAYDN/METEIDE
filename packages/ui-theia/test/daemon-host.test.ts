@@ -186,6 +186,21 @@ describe("the daemon host", () => {
 		expect(!odd.ok && odd.error.code).toBe("protocol");
 	});
 
+	it("asks for the listed facts of models, and refuses an odd answer (ADR-090)", async () => {
+		const { host } = await setup();
+		const asked = await host.models("/w", [
+			{ providerId: "groq", modelId: "gone" },
+			{ providerId: "groq", modelId: "m" },
+		]);
+		expect(asked.ok && asked.value.models).toEqual([
+			expect.objectContaining({ id: "m", contextWindow: 128_000 }),
+		]);
+		const odd = await host.models("/w", [
+			{ providerId: "groq", modelId: "odd" },
+		]);
+		expect(!odd.ok && odd.error.code).toBe("protocol");
+	});
+
 	it("asks for a custom endpoint's models and probes, and a missing one as refused (ADR-087)", async () => {
 		const { host } = await setup();
 		expect(await host.providerModels("/w", "custom:lab")).toEqual({
