@@ -36,10 +36,11 @@ export class EndpointKeys {
 		this.put(slug, { ...this.stateOf(slug), key, note: undefined });
 	}
 
-	/** The endpoint's slug was edited, so its typed key moves with it. */
+	/** The endpoint's slug was edited, so its typed key moves with it; a key being set stays put. */
+	// shortcut: renaming onto another endpoint's slug takes over its typed key; duplicate slugs cannot be saved.
 	rename(from: string, to: string) {
 		const state = this.states.get(from);
-		if (!state || from === to) return;
+		if (!state || from === to || state.busy) return;
 		this.states.delete(from);
 		this.put(to, state);
 	}

@@ -73,6 +73,34 @@ describe("a custom endpoint's key from the card", () => {
 		expect(set).toEqual([["custom:my-lab2", "sk-test"]]);
 	});
 
+	it("leaves a key that is being set with the slug it is set for", async () => {
+		let done: (r: Done) => void = () => {};
+		let asked = () => {};
+		const started = new Promise<void>((resolve) => {
+			asked = resolve;
+		});
+		const keys = new EndpointKeys({
+			setKey: () => {
+				asked();
+				return new Promise<Done>((resolve) => {
+					done = resolve;
+				});
+			},
+			activeRuns: async () => 0,
+			onSaved: () => {},
+			onChange: () => {},
+		});
+		keys.type("my-lab", "sk-test");
+		const setting = keys.set("my-lab");
+		await started;
+		keys.rename("my-lab", "other");
+		expect(keys.stateOf("other").key).toBe("");
+		done({ ok: true, value: null });
+		await setting;
+		expect(keys.stateOf("my-lab").busy).toBe(false);
+		expect(keys.stateOf("other").busy).toBe(false);
+	});
+
 	it("drops the typed key of a removed endpoint", () => {
 		const { keys } = setup();
 		keys.type("my-lab", "sk-test");
