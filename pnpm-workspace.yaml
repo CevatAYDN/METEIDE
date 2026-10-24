@@ -2,8 +2,8 @@ packages:
   - apps/*
   - packages/*
 # Install scripts run only for the packages that say true: the Theia packages whose .node files the
-# desktop bundle copies (drivelist, native-keymap, @theia/ffmpeg). Electron stays false because the
-# Theia CLI runs its install.js itself (theia build).
+# desktop bundle copies (drivelist, native-keymap, @theia/ffmpeg) and node-pty, whose prebuild the
+# terminal loads. Electron stays false because the Theia CLI runs its install.js itself (theia build).
 allowBuilds:
   "@parcel/watcher": false
   "@theia/ffmpeg": true
@@ -15,14 +15,17 @@ allowBuilds:
   lefthook: true
   msgpackr-extract: false
   native-keymap: true
+  node-pty: true
   puppeteer: false
 # The generated Theia application imports every Theia extension by name and expects them hoisted;
 # pnpm's strict layout hides the ones that are only dependencies of other extensions (apps/desktop).
 publicHoistPattern:
   - "@theia/*"
   - "@parcel/*"
+  - "@vscode/ripgrep*"
   - drivelist
   - native-keymap
+  - node-pty
   - reflect-metadata
   - trash
 # docs/05: a release younger than 14 days MUST NOT be adopted (20160 minutes).

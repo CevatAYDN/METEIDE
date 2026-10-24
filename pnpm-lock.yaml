@@ -121,6 +121,9 @@ importers:
       '@theia/preferences':
         specifier: 1.76.0
         version: 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/terminal':
+        specifier: 1.76.0
+        version: 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
       '@theia/workspace':
         specifier: 1.76.0
         version: 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
@@ -1501,6 +1504,9 @@ packages:
   '@theia/ffmpeg@1.76.0':
     resolution: {integrity: sha512-lLhUcV1SE0/AEdJsHHo3RIPhm2/b2cfr1AO0ZjsMhXHxf0ITjJgqZ4smasH9poTuQeVaV3cxbh9Cflcpi0t1mw==}
 
+  '@theia/file-search@1.76.0':
+    resolution: {integrity: sha512-hwdu99xJw8CGdoH9guCu+CJdq/9MWdSLIhtp7c5tk2Jo4OfZxLbfB5PMfuBAq9Elh1KR9cwL2iKas+cphKKwcQ==}
+
   '@theia/filesystem@1.76.0':
     resolution: {integrity: sha512-k/aS4GktTXZA4o8Zw+e+bFDMjWQlGNCQrWHnTaxZO/tCVaqhs4MwUh1nJ+iWTmzHfE1SeK86uFmdOsm2b6z2og==}
 
@@ -1534,8 +1540,14 @@ packages:
   '@theia/preferences@1.76.0':
     resolution: {integrity: sha512-xEoxMl4Ya4W9CPeUI5zOP6krJsa3M+a87UUSpCxBSQRwUVzQN6/sfkpuCLO4lvqQ1aprwY3qPgYp4SP+9nn9ow==}
 
+  '@theia/process@1.76.0':
+    resolution: {integrity: sha512-Yly21WJS2Nd3LvokrYXE1t5IRM2kIyhkG1u+0CTXtb3zue9kD32fWc+yvpCAF4yIB0a3ijNnJG1x0wdfEcAC5w==}
+
   '@theia/request@1.76.0':
     resolution: {integrity: sha512-jVzLoja+kvIUZmbeY1Dh8Yz5Tq56DP7Zp/w2hgCymrfr2DL59sPdBZFGsQfpHgZaLW3No1c1zamMWmrHrKDXzg==}
+
+  '@theia/terminal@1.76.0':
+    resolution: {integrity: sha512-M9uYbgpmU4IYGYDvAH6oIcgxOCETxEJvXRs1Tir7I+8AJ6I8r6sdRhSCKc0q3re3avmIkaJzfATIhGVZXPgz9w==}
 
   '@theia/userstorage@1.76.0':
     resolution: {integrity: sha512-/sbWKkBhL96Gy8gNKqjhGfiCdTNzREjJgjAfBBoSVqdZoI6aeHVIMDd07BYWHhKI171YzqHxeSW2rtgRssxncw==}
@@ -4175,6 +4187,9 @@ packages:
     engines: {node: ^20.17.0 || >=22.9.0}
     hasBin: true
 
+  node-pty@1.2.0-beta.12:
+    resolution: {integrity: sha512-uExTCG/4VmSJa4+TjxFwPXv8BfacmfFEBL6JpxCMDghcwqzvD0yTcGmZ1fKOK6HY33tp0CelLblqTECJizc+Yw==}
+
   node@runtime:24.21.0:
     resolution:
       type: variations
@@ -5062,6 +5077,10 @@ packages:
   streamx@2.28.1:
     resolution: {integrity: sha512-zEzXb0s5Cds7tqMH6rhZ05lcJydCWiQPEwiNngVqzsxCc962vLY4Uw+mW7od8kDH258k2Uz/JrOkdIAAhSh9VA==}
 
+  string-argv@0.1.2:
+    resolution: {integrity: sha512-mBqPGEOMNJKXRo7z0keX0wlAhbBAjilUdPW13nN0PecVryZxdHIeM7TqbsSUA7VYuS00HGC6mojP7DlQzfa9ZA==}
+    engines: {node: '>=0.6.19'}
+
   string-width@4.2.3:
     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
     engines: {node: '>=8'}
@@ -5677,6 +5696,28 @@ packages:
   xtend@4.0.2:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
     engines: {node: '>=0.4'}
+
+  xterm-addon-fit@0.8.0:
+    resolution: {integrity: sha512-yj3Np7XlvxxhYF/EJ7p3KHaMt6OdwQ+HDu573Vx1lRXsVxOcnVJs51RgjZOouIZOczTsskaS+CpXspK81/DLqw==}
+    deprecated: This package is now deprecated. Move to @xterm/addon-fit instead.
+    peerDependencies:
+      xterm: ^5.0.0
+
+  xterm-addon-search@0.13.0:
+    resolution: {integrity: sha512-sDUwG4CnqxUjSEFh676DlS3gsh3XYCzAvBPSvJ5OPgF3MRL3iHLPfsb06doRicLC2xXNpeG2cWk8x1qpESWJMA==}
+    deprecated: This package is now deprecated. Move to @xterm/addon-search instead.
+    peerDependencies:
+      xterm: ^5.0.0
+
+  xterm-addon-webgl@0.16.0:
+    resolution: {integrity: sha512-E8cq1AiqNOv0M/FghPT+zPAEnvIQRDbAbkb04rRYSxUym69elPWVJ4sv22FCLBqM/3LcrmBLl/pELnBebVFKgA==}
+    deprecated: This package is now deprecated. Move to @xterm/addon-webgl instead.
+    peerDependencies:
+      xterm: ^5.0.0
+
+  xterm@5.3.0:
+    resolution: {integrity: sha512-8QqjlekLUFTrU6x7xck1MsPzPA571K5zNqWm0M0oroYEWVOptZ0+ubQSkQ3uxIEhcIHRujJy6emDWX4A7qyFzg==}
+    deprecated: This package is now deprecated. Move to @xterm/xterm instead.
 
   y18n@4.0.3:
     resolution: {integrity: sha512-JKhqTOwSrqNA1NY5lSztJ1GrBiUodLMmIZuLiDaMRJ+itFd+ABVE8XBjOvIWL+rSqNDC74LCSFmlb/U4UZ4hJQ==}
@@ -6790,6 +6831,30 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@theia/file-search@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/filesystem': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/process': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/workspace': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@vscode/ripgrep': 1.18.0
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
+      - utf-8-validate
+
   '@theia/filesystem@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
     dependencies:
       '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
@@ -6992,10 +7057,56 @@ snapshots:
       - typescript
       - utf-8-validate
 
+  '@theia/process@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      node-pty: 1.2.0-beta.12
+      string-argv: 0.1.2
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - supports-color
+      - utf-8-validate
+
   '@theia/request@1.76.0':
     dependencies:
       tslib: 2.8.1
       undici: 7.30.0
+
+  '@theia/terminal@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/file-search': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/filesystem': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/process': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/variable-resolver': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/workspace': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      tslib: 2.8.1
+      xterm: 5.3.0
+      xterm-addon-fit: 0.8.0(xterm@5.3.0)
+      xterm-addon-search: 0.13.0(xterm@5.3.0)
+      xterm-addon-webgl: 0.16.0(xterm@5.3.0)
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
+      - utf-8-validate
 
   '@theia/userstorage@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
     dependencies:
@@ -9806,6 +9917,10 @@ snapshots:
       undici: 6.29.0
       which: 6.0.1
 
+  node-pty@1.2.0-beta.12:
+    dependencies:
+      node-addon-api: 7.1.1
+
   node@runtime:24.21.0: {}
 
   nopt@9.0.0:
@@ -10692,6 +10807,8 @@ snapshots:
       - bare-abort-controller
       - react-native-b4a
 
+  string-argv@0.1.2: {}
+
   string-width@4.2.3:
     dependencies:
       emoji-regex: 8.0.0
@@ -11299,6 +11416,20 @@ snapshots:
   xstate@5.33.2: {}
 
   xtend@4.0.2: {}
+
+  xterm-addon-fit@0.8.0(xterm@5.3.0):
+    dependencies:
+      xterm: 5.3.0
+
+  xterm-addon-search@0.13.0(xterm@5.3.0):
+    dependencies:
+      xterm: 5.3.0
+
+  xterm-addon-webgl@0.16.0(xterm@5.3.0):
+    dependencies:
+      xterm: 5.3.0
+
+  xterm@5.3.0: {}
 
   y18n@4.0.3: {}
 
