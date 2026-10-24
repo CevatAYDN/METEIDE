@@ -2,7 +2,7 @@ import type { Tier } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties } from "react";
 import { type Member, type MemberState, roleWords } from "../domain/roster.js";
-import { Context, tokenCount, type Windows } from "./context-meter.js";
+import { Context, type Windows } from "./context-meter.js";
 import { LIST, MUTED } from "./look.js";
 import { Icon, LINE, TONES, type Tone } from "./roster-look.js";
 
@@ -212,23 +212,6 @@ const count = (
 	kinds: readonly MemberState["kind"][],
 ) => members.filter((m) => kinds.includes(m.state.kind)).length;
 
-// The run's tokens, the sum over its members, once any call has reported usage (ADR-090).
-const RunTokens = ({ members }: { readonly members: readonly Member[] }) => {
-	const used = members.flatMap((m) => (m.used ? [m.used] : []));
-	if (used.length === 0) return null;
-	return (
-		<>
-			{" · "}
-			{nls.localize(
-				"mete/roster/runTokens",
-				"run tokens: {0} · calls: {1}",
-				tokenCount(used.reduce((n, u) => n + u.tokens, 0)),
-				used.reduce((n, u) => n + u.calls, 0),
-			)}
-		</>
-	);
-};
-
 const Summary = ({ members }: { readonly members: readonly Member[] }) => (
 	<p style={MUTED}>
 		{nls.localize(
@@ -239,7 +222,6 @@ const Summary = ({ members }: { readonly members: readonly Member[] }) => (
 			count(members, ["waits_for_you"]),
 			count(members, ["done"]),
 		)}
-		<RunTokens members={members} />
 	</p>
 );
 

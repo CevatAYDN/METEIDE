@@ -341,6 +341,12 @@ export const selectedAfterRemove = (
 ): number =>
 	Math.max(0, Math.min(count - 1, selected - (removed <= selected ? 1 : 0)));
 
+/** The team's own name, for the run strip (ADR-094); none when the text does not parse or names none. */
+export const teamName = (yaml: string): string | undefined => {
+	const doc = draftOf(yaml);
+	return doc.ok ? teamOf(doc.value).metadata.name || undefined : undefined;
+};
+
 /** Each member's name by its id, for the Team view (ADR-089); a text that does not parse names none. */
 export const roleNames = (yaml: string): Readonly<Record<string, string>> => {
 	const doc = draftOf(yaml);

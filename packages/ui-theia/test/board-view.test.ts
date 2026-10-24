@@ -9,6 +9,7 @@ import {
 	type TeamMode,
 } from "../src/application/board-view.js";
 import { restoredText } from "../src/application/checkpoint-list.js";
+import type { RunFacts } from "../src/application/run-strip.js";
 
 // The Board rendered to HTML on Node from a view the real fold built.
 
@@ -17,6 +18,7 @@ const html = (
 	model: BoardModel,
 	mode: TeamMode = "board",
 	restoring?: string,
+	run: RunFacts = {},
 ) =>
 	renderToStaticMarkup(
 		createElement(BoardView, {
@@ -30,6 +32,7 @@ const html = (
 				onOpenReport: () => {},
 				names: { writer: "Copy writer" },
 				windows: {},
+				run,
 				waiting: {
 					onApprove: () => {},
 					onRevise: () => {},
@@ -75,6 +78,42 @@ const section = (out: string, name: string) => {
 };
 
 describe("the Board view", () => {
+	it("shows the run strip under the goal in every view, once the daemon has answered (ADR-094)", () => {
+		const model: BoardModel = {
+			kind: "board",
+			goal: "Build a page",
+			view: applyAll(RUN, EMPTY_TEAM_VIEW, [
+				event(
+					"task.created",
+					{ title: "Write it", roleId: "writer", dependsOn: [] },
+					"t1",
+				),
+			]),
+			unreadable: 0,
+			recent: [],
+			feed: [],
+		};
+		const facts: RunFacts = {
+			run: {
+				id: RUN,
+				workspaceId: "w",
+				templateId: null,
+				goal: "Build a page",
+				status: "paused",
+				autonomyLevel: 1,
+				budget: { cloudRequests: 12, maxHours: 2 },
+				createdAt: "2026-10-24T15:00:00",
+			},
+		};
+		for (const mode of ["board", "flow", "studio", "team"] as const) {
+			const out = html(model, mode, undefined, facts);
+			expect(out).toContain("Paused");
+			expect(out).toContain("up to 12 requests, 2 h");
+			expect(out.indexOf("Build a page")).toBeLessThan(out.indexOf("Paused"));
+		}
+		expect(html(model)).not.toContain("up to 12 requests");
+	});
+
 	it("lists the run's reports as Results with Open, and a Done card opens its report (ADR-085)", () => {
 		const gdd = task("Write the design");
 		const notes = task("Draft the notes");

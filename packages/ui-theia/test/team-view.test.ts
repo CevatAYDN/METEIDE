@@ -60,7 +60,7 @@ describe("the Team view", () => {
 		expect(out).toContain(
 			"Members: 2 · working: 1 · waiting for you: 0 · done: 0<",
 		);
-		// A run recorded before ADR-090 has no usage: no context line and no run tokens.
+		// A run recorded before ADR-090 has no usage: no context line and nothing about tokens.
 		expect(out).not.toContain("Tokens: ");
 	});
 
@@ -110,7 +110,8 @@ describe("the Team view", () => {
 		expect(out.match(/Tokens: /g)).toHaveLength(4);
 		// A share that rounds to 0 still says some context is used.
 		expect(out).toContain("Context &lt;1% · 500 of 128k");
-		expect(out).toContain("run tokens: 1M · calls: 16");
+		// The run's tokens and calls moved to the run strip (ADR-094): the Team view keeps its member counts only.
+		expect(out).not.toContain("run tokens");
 	});
 
 	it("writes token counts with a fixed suffix", () => {

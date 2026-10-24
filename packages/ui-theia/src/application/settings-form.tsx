@@ -75,7 +75,7 @@ const OPTIONS: Readonly<Record<string, () => string>> = {
 	false: () => nls.localize("mete/settings/no", "No"),
 };
 
-const optionLabel = (v: string | number | boolean | undefined) =>
+export const optionLabel = (v: string | number | boolean | undefined) =>
 	OPTIONS[String(v)]?.() ?? String(v);
 
 // A number shows its default as it is; a choice by its option's name.

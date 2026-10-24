@@ -160,7 +160,6 @@
 			"longContext": "Uzun okuma",
 			"quota": "{0} saatine kadar kota bekliyor",
 			"reasoning": "Düşünür",
-			"runTokens": "çalıştırma tokenı: {0} · çağrı: {1}",
 			"summary": "Üye: {0} · çalışan: {1} · seni bekleyen: {2} · biten: {3}",
 			"tasks": "{1} görevden {0} tanesi bitti",
 			"thinking": "Düşünüyor",
@@ -416,6 +415,24 @@
 			"start": "Çalıştırma başlat",
 			"startWaits": "Önce bir model sağlayıcısının anahtarını girin.",
 			"title": "METE’ye hoş geldiniz"
+		},
+		"strip": {
+			"autonomy": "Özerklik {0}",
+			"cancelled": "İptal edildi",
+			"checkpoints": "{0} kontrol noktası",
+			"completed": "Bitti",
+			"failed": "Başarısız",
+			"limits": "en çok {0} istek, {1} sa",
+			"oneCheckpoint": "1 kontrol noktası",
+			"paused": "Duraklatıldı",
+			"queued": "Sırada",
+			"running": "Çalışıyor",
+			"singleAgent": "Tek ajan",
+			"started": "{0} başladı",
+			"tookHours": "{0} sa {1} dk sürdü",
+			"tookMinutes": "{0} dk sürdü",
+			"tookShort": "bir dakikadan az sürdü",
+			"usage": "{0} çağrı · {1} token"
 		}
 	}
 }

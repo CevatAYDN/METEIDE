@@ -160,7 +160,6 @@
 			"longContext": "Long reads",
 			"quota": "Waiting for quota until {0}",
 			"reasoning": "Thinker",
-			"runTokens": "run tokens: {0} · calls: {1}",
 			"summary": "Members: {0} · working: {1} · waiting for you: {2} · done: {3}",
 			"tasks": "{0} of {1} tasks done",
 			"thinking": "Thinking",
@@ -416,6 +415,24 @@
 			"start": "Start a run",
 			"startWaits": "Set a model provider's key first.",
 			"title": "Welcome to METE"
+		},
+		"strip": {
+			"autonomy": "Autonomy {0}",
+			"cancelled": "Cancelled",
+			"checkpoints": "{0} checkpoints",
+			"completed": "Done",
+			"failed": "Failed",
+			"limits": "up to {0} requests, {1} h",
+			"oneCheckpoint": "1 checkpoint",
+			"paused": "Paused",
+			"queued": "Queued",
+			"running": "Running",
+			"singleAgent": "Single agent",
+			"started": "started {0}",
+			"tookHours": "took {0} h {1} min",
+			"tookMinutes": "took {0} min",
+			"tookShort": "took under a minute",
+			"usage": "{0} calls · {1} tokens"
 		}
 	}
 }

@@ -14,6 +14,8 @@ import type { Windows } from "./context-meter.js";
 import { FeedView } from "./feed-view.js";
 import { LINK, LIST, MUTED, PANEL, TITLE } from "./look.js";
 import { openReportLabel, ResultsList, reportPath } from "./results-list.js";
+import type { RunFacts } from "./run-strip.js";
+import { RunStrip } from "./run-strip-view.js";
 import { failureText } from "./status-text.js";
 import { studioText } from "./studio-text.js";
 import { TeamView as Roster } from "./team-view.js";
@@ -153,6 +155,8 @@ export type TeamControls = {
 	readonly windows: Windows;
 	/** The Waiting for you strip's answers for the shown run (ADR-091). */
 	readonly waiting: Omit<WaitingControls, "onOpen">;
+	/** What the daemon says of the shown run, for the run strip (ADR-094). */
+	readonly run: RunFacts;
 };
 
 const modeName = (mode: TeamMode) =>
@@ -286,6 +290,7 @@ const Board = ({
 }) => (
 	<>
 		<h2 style={TITLE}>{model.goal}</h2>
+		<RunStrip facts={controls.run} view={model.view} />
 		{model.unreadable > 0 ? (
 			<p style={MUTED}>
 				{nls.localize(

@@ -28,8 +28,9 @@ import { BoardView, type TeamMode } from "../application/board-view.js";
 import { restoredText } from "../application/checkpoint-list.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { panelRoot } from "../application/panel-root.js";
+import type { RunFacts } from "../application/run-strip.js";
 import { failureText, plain } from "../application/status-text.js";
-import { roleNames } from "../application/team-draft.js";
+import { roleNames, teamName } from "../application/team-draft.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { FlowView } from "./flow-view.js";
 import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
@@ -66,6 +67,8 @@ export class MeteBoardWidget extends ReactWidget {
 	protected names: Readonly<Record<string, string>> = {};
 	/** Each model's listed context window by `<providerId>/<modelId>`, for the Team view (ADR-090). */
 	protected windows: Readonly<Record<string, number>> = {};
+	/** What the daemon says of the shown run, and its team's name, for the run strip (ADR-094). */
+	protected run: RunFacts = {};
 	/** The models asked for already, so each is asked once per shown run. */
 	protected asked = new Set<string>();
 	/** True while the panel shows the composer, which it also shows before any run. */
@@ -84,9 +87,17 @@ export class MeteBoardWidget extends ReactWidget {
 		// The panel and the Studio's stage take the tokens of Theia's theme (ADR-052, ADR-069): draw again on a change.
 		this.toDispose.push(this.themes.onDidColorThemeChange(() => this.update()));
 		this.toDispose.push(
-			this.events.onDidReceive(({ workspaceDir, event }) =>
-				this.setSession(receiveBoard(this.session, workspaceDir, event)),
-			),
+			this.events.onDidReceive(({ workspaceDir, event }) => {
+				this.setSession(receiveBoard(this.session, workspaceDir, event));
+				// A run's status, times and end come from the daemon, so each run.* event asks again.
+				const shown = this.session.shown;
+				if (
+					shown &&
+					event.runId === shown.runId &&
+					event.type.startsWith("run.")
+				)
+					void this.loadRun(shown.dir, shown.runId);
+			}),
 		);
 		this.toDispose.push(this.composer.onDidChange(() => this.update()));
 		this.toDispose.push(
@@ -114,17 +125,28 @@ export class MeteBoardWidget extends ReactWidget {
 		this.shownRun.set(runId);
 		// The previous run's names never show on this one, also when its team file cannot be read.
 		this.names = {};
+		this.run = {};
 		this.windows = {};
 		this.asked = new Set();
 		const shown = { dir, runId, goal };
 		this.setSession(startBoard(shown));
 		const r = await this.daemon.events(dir, runId);
 		this.setSession(loadedBoard(this.session, shown, r));
+		void this.loadRun(dir, runId);
 		const created = r.ok
 			? r.value.events.find((e) => e.type === "run.created")
 			: undefined;
 		if (created?.type === "run.created" && created.payload.templateId)
 			void this.loadNames(dir, runId, created.payload.templateId);
+	}
+
+	// The run's entry of mete/status; a run another panel state replaced meanwhile is not drawn.
+	protected async loadRun(dir: string, runId: string): Promise<void> {
+		const r = await this.daemon.status(dir, runId);
+		if (!r.ok || this.shownRun.runId !== runId) return;
+		const run = r.value.find((x) => x.id === runId);
+		if (run) this.run = { ...this.run, run };
+		this.update();
 	}
 
 	// The names the team file gives now; a run of an edited or removed team keeps its role ids in words.
@@ -137,6 +159,8 @@ export class MeteBoardWidget extends ReactWidget {
 		)
 			return;
 		this.names = roleNames(t.value.yaml);
+		const name = teamName(t.value.yaml);
+		this.run = { ...this.run, ...(name ? { teamName: name } : {}) };
 		this.update();
 	}
 
@@ -275,6 +299,7 @@ export class MeteBoardWidget extends ReactWidget {
 					onOpenReport: (path) => void this.openReport(path),
 					names: this.names,
 					windows: this.windows,
+					run: this.run,
 					waiting: {
 						onApprove: () => void this.decide(APPROVE_RUN_COMMAND.id),
 						onRevise: (feedback) =>
