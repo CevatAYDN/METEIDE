@@ -94,6 +94,41 @@ describe("the agents of the team view", () => {
 		]);
 	});
 
+	it("adds up each call's tokens and keeps the latest prompt with the model that call used (ADR-090)", () => {
+		const usage = (prompt: number, completion: number) =>
+			event("agent.thinking.ended", { usage: { prompt, completion } });
+		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			created,
+			usage(1_000, 200),
+			event("agent.model.changed", {
+				from: { providerId: "groq", modelId: "openai/gpt-oss-120b" },
+				to: { providerId: "nvidia", modelId: "nemotron" },
+				reason: "quota",
+			}),
+			event("agent.thinking.started", {}),
+			usage(3_000, 100),
+			// A call that ended with an error has no usage and changes nothing.
+			event("agent.thinking.started", {}),
+			event("agent.thinking.ended", {}),
+		]);
+		expect(view.agents[0]).toMatchObject({
+			thinking: false,
+			usage: {
+				calls: 2,
+				tokens: 4_300,
+				last: { prompt: 3_000, providerId: "nvidia", modelId: "nemotron" },
+			},
+		});
+		// A run recorded before ADR-090 has no usage at all.
+		expect(
+			"usage" in
+				(applyAll(RUN, EMPTY_TEAM_VIEW, [
+					created,
+					event("agent.thinking.ended", {}),
+				]).agents[0] ?? {}),
+		).toBe(false);
+	});
+
 	it("keeps a tool's last progress step on the agent until the call completes (ADR-067)", () => {
 		const step = (progress: number) =>
 			event("agent.tool.progress", {
