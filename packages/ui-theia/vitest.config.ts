@@ -16,6 +16,8 @@ export default defineConfig({
 				"src/infrastructure/home-store.ts",
 				// The composer widget's Theia glue, now held by the Team panel (ADR-078).
 				"src/infrastructure/run-composer.tsx",
+				// The Settings forms' file service glue; section-draft.ts holds their logic (ADR-082).
+				"src/infrastructure/settings-forms.ts",
 				"src/infrastructure/*-view.tsx",
 				"src/infrastructure/backend-module.ts",
 				"src/infrastructure/daemon-service.ts",

@@ -79,3 +79,56 @@ describe("the Settings screen", () => {
 		expect(failed).toContain('role="alert"');
 	});
 });
+
+describe("the Settings forms (ADR-082)", () => {
+	const gatewayForm = {
+		state: {
+			target: "workspace" as const,
+			file: "/w/.mete/gateway.yaml",
+			values: { models: "both", dailySpendUsd: undefined },
+			defaults: { models: "free", dailySpendUsd: 1 },
+			busy: false,
+		},
+		actions: { onField: none, onTarget: none, onSave: none },
+	};
+	const withForms = (model: SettingsModel) =>
+		renderToStaticMarkup(
+			createElement(SettingsView, {
+				model,
+				actions: { onCommand: none, onOpen: none, onRefresh: none },
+				forms: { gateway: gatewayForm },
+			}),
+		);
+
+	it("always shows the gateway, policy and privacy sections, and a form where it has one", () => {
+		const out = withForms(LOADED);
+		for (const name of ["gateway", "policy", "privacy"])
+			expect(out).toContain(`aria-label="${name}"`);
+		const policy = out.slice(out.indexOf('aria-label="policy"'));
+		expect(policy).toContain("No file sets this section; its defaults apply.");
+		const gateway = out.slice(
+			out.indexOf('aria-label="gateway"'),
+			out.indexOf('aria-label="mcp"'),
+		);
+		expect(gateway).toContain(
+			'<label for="mete-setting-models">Models</label>',
+		);
+		expect(gateway).toContain(
+			'<option value="both" selected="">Free first, then paid</option>',
+		);
+		expect(gateway).toContain('placeholder="Default (1)"');
+		expect(gateway).toContain(">Save<");
+	});
+
+	it("turns the global save off when the daemon names no global file", () => {
+		const out = withForms(LOADED);
+		expect(out).toMatch(
+			/<input type="checkbox" disabled=""\/>Save for every folder/,
+		);
+		const global = withForms({
+			kind: "settings",
+			settings: { ...LOADED.settings, globalFile: "/g/settings.yaml" },
+		} as SettingsModel);
+		expect(global).toMatch(/<input type="checkbox"\/>Save for every folder/);
+	});
+});

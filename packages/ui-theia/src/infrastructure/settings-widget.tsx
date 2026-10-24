@@ -10,6 +10,7 @@ import {
 	injectable,
 	postConstruct,
 } from "@theia/core/shared/inversify";
+import { FileService } from "@theia/filesystem/lib/browser/file-service";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import { panelRoot } from "../application/panel-root.js";
 import {
@@ -17,6 +18,7 @@ import {
 	SettingsView,
 } from "../application/settings-view.js";
 import { MeteDaemonService } from "../domain/status-service.js";
+import { SettingsForms } from "./settings-forms.js";
 
 // The read-only Settings screen (docs/13; ADR-081) of the first open folder: it asks the daemon
 // what it loaded when it opens and on Refresh; a file opens in Theia's editor.
@@ -31,8 +33,10 @@ export class MeteSettingsWidget extends ReactWidget {
 	@inject(ThemeService) protected readonly themes!: ThemeService;
 	@inject(CommandService) protected readonly commands!: CommandService;
 	@inject(OpenerService) protected readonly openers!: OpenerService;
+	@inject(FileService) protected readonly files!: FileService;
 
 	protected model: SettingsModel = { kind: "loading" };
+	protected forms: SettingsForms | undefined;
 
 	@postConstruct()
 	protected init(): void {
@@ -46,6 +50,7 @@ export class MeteSettingsWidget extends ReactWidget {
 		this.title.closable = true;
 		// The panel takes the tokens of Theia's theme (ADR-069): draw again on a change.
 		this.toDispose.push(this.themes.onDidColorThemeChange(() => this.update()));
+		this.forms = new SettingsForms(this.files, () => this.update());
 		void this.refresh();
 	}
 
@@ -59,6 +64,8 @@ export class MeteSettingsWidget extends ReactWidget {
 				? { kind: "settings", settings: r.value }
 				: { kind: "failed", failure: r.error },
 		);
+		// The forms read their files from disk, not the loaded values (ADR-082).
+		if (r.ok) await this.forms?.load(root.resource, r.value.globalFile);
 	}
 
 	protected setModel(model: SettingsModel): void {
@@ -71,6 +78,7 @@ export class MeteSettingsWidget extends ReactWidget {
 			<div {...panelRoot(this.themes.getCurrentTheme().type)}>
 				<SettingsView
 					model={this.model}
+					forms={this.forms?.forms() ?? {}}
 					actions={{
 						onCommand: (id) => void this.commands.executeCommand(id),
 						onOpen: (file) => void open(this.openers, URI.fromFilePath(file)),

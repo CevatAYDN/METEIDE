@@ -1,8 +1,14 @@
 import { nls } from "@theia/core/lib/common/nls";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { stringify } from "yaml";
 import type { DaemonFailure, Settings } from "../domain/status-service.js";
 import { LINK, MUTED, PANEL, ROW, TITLE } from "./look.js";
+import type { FormSection } from "./section-draft.js";
+import {
+	type FormActions,
+	type FormState,
+	SettingsForm,
+} from "./settings-form.js";
 import { failureText, noFolderText } from "./status-text.js";
 
 // The read-only Settings screen (docs/13, Settings; ADR-081): the configuration the daemon loaded,
@@ -57,6 +63,35 @@ const yamlOf = (value: unknown) => stringify(value ?? {}).trimEnd();
 
 type Section = Settings["sections"][number];
 
+/** The forms of the sections that have one (ADR-082), with their state and actions. */
+export type Forms = {
+	readonly [S in FormSection]?: {
+		readonly state: FormState;
+		readonly actions: FormActions;
+	};
+};
+
+const FORM_SECTIONS: readonly FormSection[] = ["gateway", "policy", "privacy"];
+
+// The sections with a form always show, also when no file sets them.
+const withForms = (sections: readonly Section[]): readonly Section[] =>
+	[
+		...sections,
+		...FORM_SECTIONS.filter((n) => !sections.some((s) => s.name === n)).map(
+			(name) => ({ name, merged: undefined }),
+		),
+	].sort((a, b) => a.name.localeCompare(b.name));
+
+// docs/09: in a sensitive workspace allowTraining changes nothing.
+const sensitiveOf = (sections: readonly Section[]) => {
+	const ws = sections.find((s) => s.name === "workspace")?.merged;
+	return (
+		typeof ws === "object" &&
+		ws !== null &&
+		(ws as Record<string, unknown>).sensitivity === "sensitive"
+	);
+};
+
 const FileValue = ({
 	label,
 	from,
@@ -85,12 +120,22 @@ const FileValue = ({
 const SectionCard = ({
 	section,
 	onOpen,
+	form,
 }: {
 	readonly section: Section;
 	readonly onOpen: (file: string) => void;
+	readonly form?: ReactNode;
 }) => (
 	<section className="mete-card" aria-label={section.name}>
 		<h3 style={TITLE}>{section.name}</h3>
+		{!section.global && !section.workspace ? (
+			<p style={MUTED}>
+				{nls.localize(
+					"mete/settings/unset",
+					"No file sets this section; its defaults apply.",
+				)}
+			</p>
+		) : null}
 		{/* With one file the merged value is that file's; with both, it is what modules read. */}
 		{section.global && section.workspace ? (
 			<div>
@@ -114,15 +159,42 @@ const SectionCard = ({
 				onOpen={onOpen}
 			/>
 		) : null}
+		{form}
 	</section>
 );
+
+// A section's form, if it has one, under what METE loaded.
+const formOf = (name: string, forms: Forms, settings: Settings): ReactNode => {
+	const form = forms[name as FormSection];
+	if (!form) return undefined;
+	return (
+		<>
+			{name === "privacy" && sensitiveOf(settings.sections) ? (
+				<p style={MUTED}>
+					{nls.localize(
+						"mete/settings/sensitive",
+						"This folder is sensitive, so providers that train on prompts stay out whatever this says.",
+					)}
+				</p>
+			) : null}
+			<SettingsForm
+				section={name as FormSection}
+				state={form.state}
+				actions={form.actions}
+				canSaveGlobally={settings.globalFile !== undefined}
+			/>
+		</>
+	);
+};
 
 const Loaded = ({
 	settings,
 	actions,
+	forms,
 }: {
 	readonly settings: Settings;
 	readonly actions: SettingsActions;
+	readonly forms: Forms;
 }) => (
 	<>
 		<p style={MUTED}>
@@ -132,8 +204,13 @@ const Loaded = ({
 				new Date(settings.loadedAt).toLocaleString(),
 			)}
 		</p>
-		{settings.sections.map((s) => (
-			<SectionCard key={s.name} section={s} onOpen={actions.onOpen} />
+		{withForms(settings.sections).map((s) => (
+			<SectionCard
+				key={s.name}
+				section={s}
+				onOpen={actions.onOpen}
+				form={formOf(s.name, forms, settings)}
+			/>
 		))}
 	</>
 );
@@ -142,9 +219,11 @@ const Loaded = ({
 export const SettingsView = ({
 	model,
 	actions,
+	forms = {},
 }: {
 	readonly model: SettingsModel;
 	readonly actions: SettingsActions;
+	readonly forms?: Forms;
 }) => (
 	<section style={PANEL} aria-live="polite">
 		<h2 style={TITLE}>{nls.localize("mete/settings/title", "Settings")}</h2>
@@ -175,7 +254,7 @@ export const SettingsView = ({
 			<p role="alert">{failureText(model.failure)}</p>
 		) : null}
 		{model.kind === "settings" ? (
-			<Loaded settings={model.settings} actions={actions} />
+			<Loaded settings={model.settings} actions={actions} forms={forms} />
 		) : null}
 	</section>
 );
