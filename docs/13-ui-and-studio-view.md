@@ -21,6 +21,8 @@ The desktop UI is Theia plus METE panels; its signature is the studio view, wher
 | Settings | Control | Providers and custom endpoints (form, Test), Bindings (ordered adapters per capability), Policy and autonomy, MCP servers and plugins (registry search, install with permissions), Skills, Templates (YAML editor plus visual editor; the visual editor is the team editor screen, ADR-075 and ADR-076, with a member's pinned model, ADR-077), Appearance, Language; read-only first: what the daemon loaded per section and from which file (ADR-081); forms for the gateway, privacy and policy sections, saved to this folder's file or globally (ADR-082), and Apply now, which restarts the daemon while no run is running (ADR-083) |
 | Audit log | Accountability | Filterable list, JSON export |
 
+Settings, the Quota dashboard and the Audit log do not come back when METE starts again; the Team panel, the team editor and Theia's editors do (ADR-086).
+
 The run composer asks for the goal, then offers "Let METE choose" (the router decides, and asks with its suggestions when it is unsure), each template of `mete/templates` by name with its description, and "Single agent" (ADR-058).
 
 A run paused for quota shows under its row why each provider cannot carry it on, and a "Resume now" button; "METE: Resume run" offers it too (ADR-059), so a key or privacy change takes effect before the pause's reset. A run paused by the user, which a desktop quit does to a running run, shows a "Resume" button and is offered by "METE: Resume run" too (ADR-061).
