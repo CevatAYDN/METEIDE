@@ -26,6 +26,7 @@ import { mcpSpecs, runMcpTool } from "./mcp-steps.js";
 type Assistant = Extract<ChatMessage, { role: "assistant" }>;
 type ToolMessage = Extract<ChatMessage, { role: "tool" }>;
 type Finish = Extract<ChatChunk, { type: "finish" }>["reason"];
+type Usage = Extract<ChatChunk, { type: "finish" }>["usage"];
 type ModelChunk = Extract<LlmChunk, { type: "model" }>;
 
 /** What the steps need from the module. */
@@ -44,6 +45,8 @@ export type ModelOutcome =
 			readonly kind: "replied";
 			readonly message: Assistant;
 			readonly finish: Finish;
+			/** The call's token counts, for agent.thinking.ended (ADR-090). */
+			readonly usage: Usage;
 	  }
 	| { readonly kind: "error"; readonly error: LlmError }
 	| { readonly kind: "missing" };
@@ -74,14 +77,14 @@ const maskOutcome = async (
 
 type Reply = { content: string; readonly calls: ToolCall[] };
 
-const replied = (r: Reply, finish: Finish): ModelOutcome => {
+const replied = (r: Reply, finish: Finish, usage: Usage): ModelOutcome => {
 	const toolCalls = r.calls.length > 0 ? { toolCalls: r.calls } : {};
 	const message: Assistant = {
 		role: "assistant",
 		content: r.content,
 		...toolCalls,
 	};
-	return { kind: "replied", message, finish };
+	return { kind: "replied", message, finish, usage };
 };
 
 // Adds a chunk to the reply; returns the outcome once a chunk ends it.
@@ -92,7 +95,7 @@ const take = (
 	if (c.type === "text") r.content += c.text;
 	else if (c.type === "tool-call")
 		r.calls.push({ id: c.id, name: c.name, args: c.args });
-	else if (c.type === "finish") return replied(r, c.reason);
+	else if (c.type === "finish") return replied(r, c.reason, c.usage);
 	else return { kind: "error", error: c.error };
 	return undefined;
 };

@@ -11,7 +11,7 @@ import {
 	type Live,
 	toolContext,
 } from "./run-state.js";
-import { callModel, callTool } from "./steps.js";
+import { callModel, callTool, type ModelOutcome } from "./steps.js";
 import { summarizeTurn } from "./summarize.js";
 import { submit, teamTurn, verdict } from "./team-driver.js";
 import { createCheckpoint } from "./vcs-steps.js";
@@ -49,6 +49,35 @@ const onModel = (s: EngineState, l: Live, c: ModelChunk) => {
 	emit(s, l, { type: "agent.model.changed", payload }, taskId);
 };
 
+// One model call between agent.thinking.started and agent.thinking.ended; the end carries the
+// call's token counts when the call finished (ADR-090).
+const think = async (
+	s: EngineState,
+	l: Live,
+	call: {
+		readonly run: Parameters<typeof callModel>[1];
+		readonly task: string | undefined;
+		readonly signal: AbortSignal;
+	},
+) => {
+	emit(s, l, { type: "agent.thinking.started", payload: {} }, call.task);
+	let usage: Extract<ModelOutcome, { kind: "replied" }>["usage"] | undefined;
+	try {
+		const out = await callModel(
+			s.deps,
+			call.run,
+			(m) => onModel(s, l, m),
+			call.signal,
+		);
+		if (out.kind === "replied") usage = out.usage;
+		return out;
+	} finally {
+		l.model = undefined;
+		const payload = usage ? { usage } : {};
+		emit(s, l, { type: "agent.thinking.ended", payload }, call.task);
+	}
+};
+
 const modelTurn = async (s: EngineState, l: Live, token: object) => {
 	// The pin is read before the call starts: a run paused while it is read never calls the model.
 	const seat = await pinnedSeat(s, l);
@@ -59,16 +88,7 @@ const modelTurn = async (s: EngineState, l: Live, token: object) => {
 	const { priority, messages } = l.snapshot.context;
 	const task = activeRole(l.snapshot.context).taskId;
 	const run = { runId: l.meta.id, priority, messages, seat };
-	emit(s, l, { type: "agent.thinking.started", payload: {} }, task);
-	const out = await callModel(
-		s.deps,
-		run,
-		(m) => onModel(s, l, m),
-		signal,
-	).finally(() => {
-		l.model = undefined;
-		emit(s, l, { type: "agent.thinking.ended", payload: {} }, task);
-	});
+	const out = await think(s, l, { run, task, signal });
 	if (!owns(l, token)) return; // paused or cancelled meanwhile: the reply is dropped
 	const at = s.deps.now();
 	// A request too large for every model folds the older turns once and is asked again; with

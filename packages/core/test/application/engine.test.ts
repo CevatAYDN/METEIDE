@@ -77,6 +77,15 @@ describe("single-agent engine", () => {
 		expect(h.events.at(-1)?.payload).toEqual({
 			summary: "Renamed foo to bar.",
 		});
+		// Each call's token counts close it, for the Team view's context share (ADR-090).
+		expect(
+			h.events
+				.filter((e) => e.type === "agent.thinking.ended")
+				.map((e) => e.payload),
+		).toEqual([
+			{ usage: { prompt: 1, completion: 1 } },
+			{ usage: { prompt: 1, completion: 1 } },
+		]);
 		expect(
 			h.db.prepare("SELECT role_id, model_id, requests FROM agents").all(),
 		).toEqual([{ role_id: "assistant", model_id: "m1", requests: 2 }]);
@@ -131,6 +140,12 @@ describe("single-agent engine", () => {
 			"run.resumed",
 			"run.completed",
 		]);
+		// A call that ended with an error has no usage to report (ADR-090).
+		expect(
+			h.events
+				.filter((e) => e.type === "agent.thinking.ended")
+				.map((e) => e.payload),
+		).toEqual([{}, { usage: { prompt: 1, completion: 1 } }]);
 	});
 
 	it("pauses on a network error and tries again by itself 30 seconds later", async () => {
