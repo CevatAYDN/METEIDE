@@ -17,6 +17,19 @@ export type HomeAction = "approve" | "revise" | "resume" | "open" | "artifact";
 
 const when = (iso: string) => new Date(iso).toLocaleString();
 
+const HOUR = { hour: "2-digit", minute: "2-digit" } as const;
+
+/**
+ * A run's time as the narrow list shows it: the hour and minute for a run of today, with the day and
+ * month for an older one; the tooltip keeps the whole time. Absolute, so it never goes stale.
+ */
+export const shortWhen = (iso: string, now = new Date()) => {
+	const at = new Date(iso);
+	return at.toDateString() === now.toDateString()
+		? at.toLocaleTimeString(undefined, HOUR)
+		: at.toLocaleString(undefined, { day: "numeric", month: "short", ...HOUR });
+};
+
 const Goal = ({ row }: { readonly row: HomeRow }) => (
 	<>
 		{row.goal}
@@ -107,7 +120,8 @@ const RunItem = ({
 		</span>
 		<span style={MUTED}>
 			<span className={`mete-chip ${toneOf(row)}`}>{row.status}</span>
-			{row.templateId ? ` · ${row.templateId}` : ""} · {when(row.createdAt)}
+			{row.templateId ? ` · ${row.templateId}` : ""} ·{" "}
+			<span title={when(row.createdAt)}>{shortWhen(row.createdAt)}</span>
 		</span>
 		{row.quotaPaused && blocked.length > 0 ? (
 			<Blocked providers={blocked} />
@@ -314,25 +328,32 @@ export const RunsSection = ({
 		aria-live="polite"
 		aria-label={nls.localize("mete/home/runs", "Runs")}
 	>
-		{model.kind === "no_folder" ? null : (
-			<div style={ROW}>
+		<div style={ROW}>
+			{model.kind === "no_folder" ? null : (
 				<Button
 					label={nls.localize("mete/home/newRun", "New run")}
 					onClick={onStart}
 				/>
-			</div>
-		)}
-		<Body model={model} onSetKey={onSetKey} act={onAct} shown={shown} />
-		<div style={ROW}>
-			<button type="button" className="mete-button quiet" onClick={onRefresh}>
+			)}
+			{/* The list follows the run events by itself; Refresh is for a daemon that came back. */}
+			<button
+				type="button"
+				className="mete-button quiet"
+				onClick={onRefresh}
+				{...("at" in model
+					? {
+							title: nls.localize(
+								"mete/home/asOf",
+								"As of {0}",
+								when(model.at),
+							),
+						}
+					: {})}
+			>
 				{nls.localize("mete/home/refresh", "Refresh")}
 			</button>
-			{"at" in model ? (
-				<span style={MUTED}>
-					{nls.localize("mete/home/asOf", "As of {0}", when(model.at))}
-				</span>
-			) : null}
 		</div>
+		<Body model={model} onSetKey={onSetKey} act={onAct} shown={shown} />
 	</section>
 );
 

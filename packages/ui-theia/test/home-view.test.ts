@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
 	QuotaSection,
 	RunsSection,
+	shortWhen,
 	WaitingSection,
 } from "../src/application/home-view.js";
 import {
@@ -103,7 +104,26 @@ describe("the Home view", () => {
 		expect(out).toContain("fix &lt;the&gt; bug");
 		expect(out).toContain(" · research");
 		expect(out).toContain('<span class="mete-chip ">completed</span>');
-		expect(out).toContain("As of ");
+		// The snapshot's time is Refresh's tooltip, beside New run, above the list.
+		expect(out).toMatch(
+			/<button type="button" class="mete-button quiet" title="As of [^"]+">Refresh</,
+		);
+		expect(out.indexOf(">Refresh<")).toBeLessThan(out.indexOf("notes"));
+	});
+
+	it("shows a run of today by its hour and an older one with its day, the whole time in the tooltip", () => {
+		const now = new Date(2026, 9, 24, 15, 0);
+		const today = new Date(2026, 9, 24, 9, 5).toISOString();
+		const older = new Date(2026, 9, 3, 9, 5).toISOString();
+		expect(shortWhen(today, now)).not.toContain("24");
+		expect(shortWhen(today, now)).toMatch(/09.05/);
+		expect(shortWhen(older, now)).toContain("3");
+		expect(shortWhen(older, now)).toMatch(/09.05/);
+		const out = html(
+			homeModel({ ok: true, value: [run("completed", "notes", null)] }, AT),
+		);
+		// No seconds in the list.
+		expect(out).not.toMatch(/:\d\d:\d\d</);
 	});
 
 	it("counts the runs that wait for you for the inbox badge, and none without runs", () => {
