@@ -4,12 +4,14 @@ import { describe, expect, it } from "vitest";
 import {
 	addRole,
 	addTask,
+	blankDraft,
 	capabilityHints,
 	copyAs,
 	draftOf,
 	edited,
 	guardrailHints,
 	idleMembers,
+	idOfName,
 	issuesOf,
 	removeRole,
 	removeTask,
@@ -17,6 +19,7 @@ import {
 	roleNames,
 	runsOf,
 	selectedAfterRemove,
+	TEMPLATE_ID,
 	teamOf,
 	withCheckpoint,
 	withRuns,
@@ -294,5 +297,38 @@ describe("selectedAfterRemove (ADR-093)", () => {
 		expect(selectedAfterRemove(0, 0, 2)).toBe(0);
 		expect(selectedAfterRemove(0, 0, 0)).toBe(0);
 		expect(selectedAfterRemove(5, 9, 2)).toBe(1);
+	});
+});
+
+describe("a blank team (ADR-093)", () => {
+	it("asks for exactly the member's name and goal and the task's title, and is a valid team once they are written", () => {
+		const doc = blankDraft("my-team", "My team");
+		expect(teamOf(doc).metadata).toMatchObject({
+			id: "my-team",
+			name: "My team",
+		});
+		expect(teamOf(doc).roles.map((r) => [r.id, r.tier])).toEqual([
+			["lead", "coder"],
+		]);
+		expect(teamOf(doc).tasks.map((t) => [t.id, t.role])).toEqual([
+			["lead_task", "lead"],
+		]);
+		expect(issuesOf(doc).map((i) => i.split(":")[0])).toEqual([
+			"roles.0.name",
+			"roles.0.goal",
+			"tasks.0.title",
+		]);
+		const filled = ["name", "goal"].reduce(
+			(d, k) => edited(d, ["roles", 0, k], `a ${k}`),
+			edited(doc, ["tasks", 0, "title"], "a title"),
+		);
+		expect(issuesOf(filled)).toEqual([]);
+	});
+
+	it("suggests an id from the name, and none from a name without a letter or digit", () => {
+		expect(idOfName("  My Web Team! ")).toBe("my-web-team");
+		expect(idOfName("SEO audit v2")).toBe("seo-audit-v2");
+		expect(idOfName("***")).toBe("");
+		expect(TEMPLATE_ID.test(idOfName("Ekip Takımı 2"))).toBe(true);
 	});
 });

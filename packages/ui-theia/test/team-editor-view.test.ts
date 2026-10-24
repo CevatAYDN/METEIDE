@@ -7,8 +7,10 @@ import { optionsOf } from "../src/application/composer.js";
 import { ComposerView } from "../src/application/composer-view.js";
 import {
 	addRole,
+	blankDraft,
 	type Draft,
 	draftOf,
+	edited,
 	issuesOf,
 	removeRole,
 	teamOf,
@@ -248,6 +250,7 @@ describe("the composer's Edit button", () => {
 				onSelect: nothing,
 				onStart: nothing,
 				onEdit: nothing,
+				onNewTeam: nothing,
 			}),
 		);
 		expect(out.match(/>Edit</g)).toHaveLength(1);
@@ -304,5 +307,41 @@ tasks: [{ id: a, role: r, title: A, approval: human }]`,
 		expect(out).toMatch(
 			/<button type="button" class="mete-button" disabled="">Save</,
 		);
+	});
+});
+
+describe("a new team (ADR-093)", () => {
+	const blank = blankDraft("my-team", "My team");
+	const fresh = (
+		more: Partial<Extract<TeamEditorModel, { kind: "ready" }>> = {},
+	) => html(ready(blank, { source: "new", fixedIds: [], ...more }));
+
+	it("says that Save writes it, offers no copy of itself, and keeps the YAML shut until the file exists", () => {
+		const out = fresh();
+		expect(out).toContain(
+			"A new team: Save writes it to .mete/teams/my-team.yaml.",
+		);
+		expect(out).not.toContain("Save as new team");
+		expect(out).toMatch(/<button[^>]*disabled=""[^>]*>Open YAML/);
+	});
+
+	it("lets the member's id change before the first Save, and blocks Save on what is still empty", () => {
+		const out = fresh();
+		expect(out).not.toMatch(/<input[^>]*disabled=""[^>]*value="lead"/);
+		expect(out).toContain("roles.0.name");
+		expect(out).toContain("tasks.0.title");
+		expect(out).toMatch(
+			/<button type="button" class="mete-button" disabled="">Save</,
+		);
+	});
+
+	it("saves once its name, goal and title are written", () => {
+		const done = ["name", "goal"].reduce(
+			(d, k) => edited(d, ["roles", 0, k], `a ${k}`),
+			edited(blank, ["tasks", 0, "title"], "a title"),
+		);
+		const out = html(ready(done, { source: "new", fixedIds: [] }));
+		expect(out).not.toContain('role="alert"');
+		expect(out).toMatch(/<button type="button" class="mete-button">Save</);
 	});
 });

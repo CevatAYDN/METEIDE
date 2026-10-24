@@ -17,6 +17,7 @@ import {
 	noFolderText,
 	plain,
 } from "../application/status-text.js";
+import { idOfName, TEMPLATE_ID } from "../application/team-draft.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { MeteTeamEditorWidget } from "./team-editor-widget.js";
 
@@ -27,6 +28,13 @@ import { MeteTeamEditorWidget } from "./team-editor-widget.js";
 export const EDIT_TEAM_COMMAND: Command = Command.toLocalizedCommand(
 	{ id: "mete.team.edit", category: "METE", label: "Edit team" },
 	"mete/team/edit",
+	"mete/category",
+);
+
+/** The palette entry "METE: New team" (ADR-093). */
+export const NEW_TEAM_COMMAND: Command = Command.toLocalizedCommand(
+	{ id: "mete.team.new", category: "METE", label: "New team" },
+	"mete/team/new",
 	"mete/category",
 );
 
@@ -54,6 +62,59 @@ export class MeteTeamEditorContribution extends AbstractViewContribution<MeteTea
 				await widget.load(id);
 			},
 		});
+		commands.registerCommand(NEW_TEAM_COMMAND, {
+			execute: async () => {
+				const made = await this.askNew();
+				if (!made) return;
+				const widget = await this.openView({ activate: true, reveal: true });
+				await widget.startNew(made.id, made.name);
+			},
+		});
+	}
+
+	// A new team asks for its name, then its id, suggested from the name; an id the daemon already
+	// reads, in either folder, is refused as Save as new team refuses it (ADR-093).
+	protected async askNew(): Promise<{ id: string; name: string } | undefined> {
+		const root = this.workspace.tryGetRoots()[0];
+		if (!root) return void this.messages.info(noFolderText());
+		const name = (
+			await this.quick.input({
+				prompt: nls.localize("mete/team/newName", "Name of the new team"),
+				validateInput: async (v) =>
+					v.trim()
+						? undefined
+						: nls.localize("mete/team/newNameEmpty", "Give the team a name."),
+			})
+		)?.trim();
+		if (!name) return;
+		const id = await this.quick.input({
+			prompt: nls.localize(
+				"mete/team/newId",
+				"Id of the new team (such as my-web-team)",
+			),
+			value: idOfName(name),
+			validateInput: async (v) =>
+				TEMPLATE_ID.test(v)
+					? undefined
+					: nls.localize(
+							"mete/team/newIdInvalid",
+							"Use lower case letters and digits joined by dashes, such as my-web-team.",
+						),
+		});
+		if (!id) return;
+		const taken = await this.daemon.readTemplate(
+			root.resource.path.fsPath(),
+			id,
+		);
+		if (taken.ok)
+			return void this.messages.warn(
+				nls.localize(
+					"mete/team/taken",
+					"A team with the id {0} already exists.",
+					id,
+				),
+			);
+		return { id, name };
 	}
 
 	// The team the composer passed, or one picked among the folder's templates.

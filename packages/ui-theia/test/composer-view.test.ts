@@ -36,6 +36,7 @@ const html = (model: ComposerModel, input: Partial<ComposerInput> = {}) =>
 			onSelect: () => {},
 			onStart: () => {},
 			onEdit: () => {},
+			onNewTeam: () => {},
 		}),
 	);
 
@@ -50,6 +51,7 @@ describe("ComposerView", () => {
 			"Sites",
 			"15 requests: groq 15; tasks the team adds come on top",
 			"Single agent",
+			"New team",
 			"Start run",
 		])
 			expect(out).toContain(text);

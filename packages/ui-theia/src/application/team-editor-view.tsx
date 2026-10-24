@@ -9,6 +9,7 @@ import { noFolderText } from "./status-text.js";
 import {
 	capabilityHints,
 	guardrailHints,
+	TEMPLATE_ID,
 	type TeamView,
 } from "./team-draft.js";
 import { TeamRules } from "./work-fields.js";
@@ -27,7 +28,7 @@ export type TeamEditorModel =
 	| {
 			readonly kind: "ready";
 			readonly team: TeamView;
-			readonly source: "workspace" | "builtIn";
+			readonly source: "workspace" | "builtIn" | "new";
 			/** The member ids the file came with: those stay fixed. */
 			readonly fixedIds: readonly string[];
 			readonly issues: readonly string[];
@@ -65,7 +66,28 @@ const COLUMN = {
 	flexDirection: "column",
 	gap: "14px",
 } as const;
-const TEMPLATE_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+const SOURCE_TEXT = (id: string) => ({
+	builtIn: nls.localize(
+		"mete/team/builtIn",
+		"A built-in team: Save writes your copy to .mete/teams/{0}.yaml, which METE then uses instead.",
+		id,
+	),
+	workspace: nls.localize(
+		"mete/team/workspace",
+		"This folder's team, saved in .mete/teams/{0}.yaml.",
+		id,
+	),
+	new: nls.localize(
+		"mete/team/newTeam",
+		"A new team: Save writes it to .mete/teams/{0}.yaml.",
+		id,
+	),
+});
+
+/** Where the team came from and what Save does with it. */
+const sourceText = (model: Ready): string =>
+	SOURCE_TEXT(model.team.metadata.id)[model.source];
 
 const Header = ({
 	model,
@@ -78,19 +100,7 @@ const Header = ({
 		<h2 style={TITLE}>
 			{nls.localize("mete/team/title", "Edit team")}: {model.team.metadata.id}
 		</h2>
-		<p style={MUTED}>
-			{model.source === "builtIn"
-				? nls.localize(
-						"mete/team/builtIn",
-						"A built-in team: Save writes your copy to .mete/teams/{0}.yaml, which METE then uses instead.",
-						model.team.metadata.id,
-					)
-				: nls.localize(
-						"mete/team/workspace",
-						"This folder's team, saved in .mete/teams/{0}.yaml.",
-						model.team.metadata.id,
-					)}
-		</p>
+		<p style={MUTED}>{sourceText(model)}</p>
 		<label style={FIELD}>
 			{nls.localize("mete/team/name", "Team name")}
 			<input
@@ -274,7 +284,9 @@ export const TeamEditorView = ({
 					{nls.localize("mete/team/openYaml", "Open YAML")}
 				</button>
 			</div>
-			<SaveAs disabled={blocked} onSaveAs={actions.onSaveAs} />
+			{model.source === "new" ? null : (
+				<SaveAs disabled={blocked} onSaveAs={actions.onSaveAs} />
+			)}
 		</section>
 	);
 };

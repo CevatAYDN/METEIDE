@@ -5,7 +5,7 @@ import {
 	type Result,
 	TeamTemplateSchema,
 } from "@mete/contracts";
-import { type Document, isNode, parseDocument } from "yaml";
+import { Document, isNode, parseDocument } from "yaml";
 import { z } from "zod";
 
 // The team editor's draft (docs/13, Settings, Templates; ADR-075): the template's YAML document,
@@ -81,6 +81,32 @@ export const draftOf = (yaml: string): Result<Draft, string> => {
 	const [first] = doc.errors;
 	return first ? err(first.message) : ok(doc);
 };
+
+/** A template id: lower case words joined by dashes (the schema's rule, which contracts does not export). */
+export const TEMPLATE_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/** An id suggested from a team's name, or none when the name has no letter or digit (ADR-093). */
+export const idOfName = (name: string): string =>
+	name
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+
+/**
+ * A blank team (ADR-093): one member with the coder tier and an empty name and goal, and one task of
+ * that member with an empty title, for the user to write; the schema refuses it until they are.
+ */
+export const blankDraft = (id: string, name: string): Draft =>
+	new Document({
+		apiVersion: "mete/v1",
+		kind: "TeamTemplate",
+		metadata: { id, name, version: "0.1.0" },
+		pattern: "single",
+		roles: [
+			{ id: "lead", name: "", goal: "", tier: "coder", capabilities: [] },
+		],
+		tasks: [{ id: "lead_task", role: "lead", title: "" }],
+	});
 
 /** The team in a draft, with empty values where the draft has none. */
 export const teamOf = (doc: Draft): TeamView => {

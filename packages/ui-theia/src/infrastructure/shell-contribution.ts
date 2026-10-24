@@ -10,7 +10,10 @@ import { OPEN_AUDIT_COMMAND } from "./audit-contribution.js";
 import { OPEN_BOARD_COMMAND, START_RUN_COMMAND } from "./board-contribution.js";
 import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
 import { SHOW_SETTINGS_COMMAND } from "./settings-contribution.js";
-import { EDIT_TEAM_COMMAND } from "./team-editor-contribution.js";
+import {
+	EDIT_TEAM_COMMAND,
+	NEW_TEAM_COMMAND,
+} from "./team-editor-contribution.js";
 import { MeteWaitingStatusBar } from "./waiting.js";
 import { OPEN_WELCOME_COMMAND } from "./welcome-contribution.js";
 
@@ -28,6 +31,7 @@ const ITEMS = [
 		[
 			OPEN_QUOTA_COMMAND,
 			OPEN_AUDIT_COMMAND,
+			NEW_TEAM_COMMAND,
 			EDIT_TEAM_COMMAND,
 			SHOW_SETTINGS_COMMAND,
 			OPEN_WELCOME_COMMAND,

@@ -33,6 +33,8 @@ type Props = ComposerInput & {
 	readonly onStart: () => void;
 	/** Opens a team in the team editor (ADR-075). */
 	readonly onEdit: (templateId: string) => void;
+	/** Starts a blank team in the team editor (ADR-093). */
+	readonly onNewTeam: () => void;
 };
 
 // A team's option carries an Edit button beside it, which opens the team editor (ADR-075).
@@ -158,6 +160,15 @@ export const ComposerView = (props: Props) => {
 				onSelect={props.onSelect}
 				onEdit={props.onEdit}
 			/>
+			<div style={ROW}>
+				<button
+					type="button"
+					className="mete-button quiet"
+					onClick={props.onNewTeam}
+				>
+					{nls.localize("mete/team/new", "New team")}
+				</button>
+			</div>
 			<div style={ROW}>
 				<button
 					type="button"

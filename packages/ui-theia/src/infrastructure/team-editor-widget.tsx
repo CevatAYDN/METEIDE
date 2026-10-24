@@ -20,6 +20,7 @@ import { failureText } from "../application/status-text.js";
 import {
 	addRole,
 	addTask,
+	blankDraft,
 	copyAs,
 	type Draft,
 	draftOf,
@@ -86,13 +87,26 @@ export class MeteTeamEditorWidget
 
 	// Theia restores the tab after a restart: it reopens the team it showed; unsaved edits are not kept.
 	storeState(): object | undefined {
-		return this.model.kind === "ready"
+		// A team not saved yet has no file to reopen.
+		return this.model.kind === "ready" && this.model.source !== "new"
 			? { id: this.model.team.metadata.id }
 			: undefined;
 	}
 
 	restoreState(state: object): void {
 		if ("id" in state && typeof state.id === "string") void this.load(state.id);
+	}
+
+	/** Opens a blank team under an id and name the caller has checked (ADR-093); nothing is written until Save. */
+	async startNew(id: string, name: string): Promise<void> {
+		if (!(await this.mayLeave(id))) return;
+		const [root] = await this.workspace.roots;
+		this.root = root?.resource;
+		if (!this.root) return this.setModel({ kind: "no_folder" });
+		this.doc = blankDraft(id, name);
+		this.selected = 0;
+		await this.pinned.read(this.root);
+		this.setModel(this.readyOf("new", true, []));
 	}
 
 	/** Reads the template with this id through the daemon of the first open folder. */
@@ -158,17 +172,20 @@ export class MeteTeamEditorWidget
 		return answer === discard;
 	}
 
+	// `fixed` names the member ids the file came with; a team not yet saved has none, so any id may change.
 	protected readyOf(
-		source: "workspace" | "builtIn",
+		source: "workspace" | "builtIn" | "new",
 		changed: boolean,
+		fixed?: readonly string[],
 	): TeamEditorModel {
 		const doc = this.doc;
 		if (!doc) return { kind: "loading" };
 		const team = teamOf(doc);
 		const fixedIds =
-			this.model.kind === "ready" && changed
+			fixed ??
+			(this.model.kind === "ready" && changed
 				? this.model.fixedIds
-				: team.roles.map((r) => r.id);
+				: team.roles.map((r) => r.id));
 		const issues = issuesOf(doc);
 		void this.fetchChains(team);
 		return {
