@@ -7,10 +7,10 @@ import { PolicyActionSchema, PolicyVerdictSchema } from "./policy.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 14 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-077).
+// Daemon protocol version 15 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-079).
 // The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The messages of version 14; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 15; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
@@ -24,6 +24,7 @@ export const DAEMON_METHODS = {
 	estimate: "mete/estimate",
 	templateRead: "mete/template.read",
 	chain: "mete/chain",
+	checkpointRestore: "mete/checkpoint.restore",
 	event: "mete/event",
 } as const;
 
@@ -198,6 +199,18 @@ export const DaemonChainResultSchema = z.strictObject({
 	models: z.array(ModelRefSchema),
 });
 
+/** Params of `mete/checkpoint.restore`: the run and the id of its `checkpoint.created` event (ADR-079). */
+export const DaemonCheckpointRestoreParamsSchema = z.strictObject({
+	runId: IdSchema,
+	checkpointId: IdSchema,
+});
+
+/** Result of `mete/checkpoint.restore`: the ref restored and the checkpoint that undoes it. */
+export const DaemonCheckpointRestoreResultSchema = z.strictObject({
+	ref: z.string().min(1),
+	undo: z.string().min(1),
+});
+
 /** Result of `mete/run.approve` and `mete/run.resume`: a request that returns nothing sends null. */
 export const DaemonDoneResultSchema = z.null();
 
@@ -208,7 +221,17 @@ export const DaemonDoneResultSchema = z.null();
  */
 export const DaemonErrorDataSchema = z.discriminatedUnion("code", [
 	z.strictObject({
-		code: z.enum(["bad_input", "not_found", "not_supported", "invalid_state"]),
+		code: z.enum([
+			"bad_input",
+			"not_found",
+			"not_supported",
+			"invalid_state",
+			// A refused checkpoint.restore@1 (ADR-079).
+			"run_active",
+			"no_vcs",
+			"invalid",
+			"failed",
+		]),
 	}),
 	z.strictObject({
 		code: z.literal("choose_template"),

@@ -1,4 +1,5 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
+import type { CheckpointRestoreError } from "../../src/domain/checkpoint.js";
 import {
 	AuditEntrySchema,
 	DAEMON_METHODS,
@@ -6,6 +7,8 @@ import {
 	DaemonAuditResultSchema,
 	DaemonChainParamsSchema,
 	DaemonChainResultSchema,
+	DaemonCheckpointRestoreParamsSchema,
+	DaemonCheckpointRestoreResultSchema,
 	DaemonDoneResultSchema,
 	type DaemonErrorData,
 	DaemonErrorDataSchema,
@@ -130,6 +133,7 @@ describe("daemon protocol version 14", () => {
 			estimate: "mete/estimate",
 			templateRead: "mete/template.read",
 			chain: "mete/chain",
+			checkpointRestore: "mete/checkpoint.restore",
 			event: "mete/event",
 		});
 	});
@@ -172,7 +176,7 @@ describe("daemon protocol version 14", () => {
 		expect(DaemonStatusResultSchema.safeParse(run).success).toBe(false);
 	});
 
-	it("carries an EngineError code in the error data", () => {
+	it("carries an EngineError or a checkpoint.restore@1 code in the error data", () => {
 		for (const code of [
 			"bad_input",
 			"not_found",
@@ -184,7 +188,7 @@ describe("daemon protocol version 14", () => {
 			false,
 		);
 		expectTypeOf<Exclude<DaemonErrorData["code"], "not_ready">>().toEqualTypeOf<
-			EngineError["code"]
+			EngineError["code"] | CheckpointRestoreError["code"]
 		>();
 	});
 
@@ -373,6 +377,26 @@ describe("daemon protocol version 14", () => {
 			DaemonChainResultSchema.safeParse({ models: [{ providerId: "groq" }] })
 				.success,
 		).toBe(false);
+	});
+
+	it("asks mete/checkpoint.restore for a run's checkpoint by event id and answers both refs (ADR-079)", () => {
+		const ask = { runId: run.id, checkpointId: run.workspaceId };
+		expect(DaemonCheckpointRestoreParamsSchema.parse(ask)).toEqual(ask);
+		for (const bad of [
+			{ runId: run.id },
+			{ runId: "r1", checkpointId: run.workspaceId },
+			{ ...ask, ref: "refs/mete/checkpoints/x/1" },
+		])
+			expect(DaemonCheckpointRestoreParamsSchema.safeParse(bad).success).toBe(
+				false,
+			);
+		const answer = {
+			ref: "refs/mete/checkpoints/r/1",
+			undo: "refs/mete/checkpoints/r/2",
+		};
+		expect(DaemonCheckpointRestoreResultSchema.parse(answer)).toEqual(answer);
+		for (const code of ["run_active", "no_vcs", "invalid", "failed"])
+			expect(DaemonErrorDataSchema.parse({ code })).toEqual({ code });
 	});
 
 	it("asks mete/template.read for a template by id and answers its text and folder (ADR-075)", () => {

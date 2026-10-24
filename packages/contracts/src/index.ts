@@ -36,6 +36,8 @@ export {
 	DaemonAuditResultSchema,
 	DaemonChainParamsSchema,
 	DaemonChainResultSchema,
+	DaemonCheckpointRestoreParamsSchema,
+	DaemonCheckpointRestoreResultSchema,
 	DaemonDoneResultSchema,
 	type DaemonErrorData,
 	DaemonErrorDataSchema,

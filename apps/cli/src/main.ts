@@ -21,6 +21,7 @@ import { type DaemonStreams, daemonCommand } from "./application/daemon.js";
 import { terminalElicit } from "./application/elicit.js";
 import { keyCommand } from "./application/keys.js";
 import { registryAddCommand, registryCommand } from "./application/registry.js";
+import { rollbackCommand } from "./application/rollback.js";
 import { templateValidate } from "./application/templates.js";
 import { type App, type AppOptions, createApp } from "./infrastructure/app.js";
 import { fileLogger } from "./infrastructure/log.js";
@@ -47,6 +48,7 @@ const USAGE = [
 	"  mete audit [<run id>] [--json]   show the audit log, newest first: action, verdict, policy rule",
 	"  mete template validate [<id>]   check the team templates a run may use, and name each issue",
 	"  mete stop <run id> | --all   cancel paused runs",
+	"  mete rollback <run id> <n>   restore a paused or ended run's checkpoint n (git); prints how to undo it",
 	"  mete mcp [<folder>]          serve this folder's teams to an MCP host (Claude Code, Cursor, Cline)",
 	"  mete daemon [<folder>]       serve this folder to the METE desktop over stdio (JSON-RPC)",
 	'  mete registry search "<words>"   find MCP servers in the official MCP registry; installs nothing',
@@ -163,6 +165,14 @@ const stop = (reader: AppOptions, io: Io, target: string | undefined) =>
 			)
 		: usage(io);
 
+// Restoring changes files, so no run may start meanwhile: it takes the lock as mete run does (ADR-079).
+const rollback = (reader: AppOptions, io: Io, runId?: string, n?: string) =>
+	runId && n
+		? locked(reader, io, () =>
+				withApp(reader, io, (a) => rollbackCommand(a, io, runId, n)),
+			)
+		: usage(io);
+
 // The folder a long-running command serves: the one it was given, or the current one.
 const inFolder = (opts: AppOptions, folder?: string) => ({
 	...opts,
@@ -248,6 +258,8 @@ const dispatch = (
 			return read(reader, io, p.positionals, p.values.json === true);
 		case "stop":
 			return stop(reader, io, p.values.all ? "all" : rest[0]);
+		case "rollback":
+			return rollback(reader, io, rest[0], rest[1]);
 		case "mcp":
 			return mcp(opts, io, ends.serve, rest[0]);
 		case "daemon":

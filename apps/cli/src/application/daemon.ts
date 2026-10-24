@@ -4,6 +4,7 @@ import {
 	DAEMON_METHODS,
 	DaemonAuditParamsSchema,
 	DaemonChainParamsSchema,
+	DaemonCheckpointRestoreParamsSchema,
 	type DaemonErrorData,
 	DaemonEstimateParamsSchema,
 	DaemonRunApproveParamsSchema,
@@ -35,8 +36,9 @@ import {
 	quotaUnits,
 	trackExhausted,
 } from "./provider-states.js";
+import { restoreCheckpoint } from "./rollback.js";
 
-// `mete daemon`: protocol version 13 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-075).
+// `mete daemon`: protocol version 15 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-079).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
@@ -142,6 +144,22 @@ const serveEvents = (conn: MessageConnection, app: App) =>
 				"storage is not active",
 			);
 		return { events: history.events, unreadable: history.broken.length };
+	});
+
+// A run's checkpoint by the id of its checkpoint.created event (ADR-079); a refusal keeps its code.
+const serveCheckpointRestore = (conn: MessageConnection, app: App) =>
+	conn.onRequest(DAEMON_METHODS.checkpointRestore, async (params: unknown) => {
+		const p = parsed(
+			DaemonCheckpointRestoreParamsSchema.safeParse(params ?? {}),
+		);
+		readyEngine(app);
+		const pick = (e: { id: string }) => e.id === p.checkpointId;
+		const r = await restoreCheckpoint(app, p.runId, pick);
+		if (r.ok) return r.value;
+		if (r.error.code === "no_storage")
+			throw new ResponseError(ErrorCodes.InternalError, r.error.message);
+		const data: DaemonErrorData = { code: r.error.code };
+		throw new ResponseError(DAEMON_ERROR_CODE, r.error.message, data);
 	});
 
 // The workspace audit log (ADR-053); it needs storage only, so it answers while core-engine is not
@@ -274,6 +292,7 @@ export const daemonCommand = async (
 	serveTemplates(conn, app);
 	serveTemplateRead(conn, app);
 	serveChain(conn, app);
+	serveCheckpointRestore(conn, app);
 	const spent = trackExhausted(app.events);
 	serveQuota(conn, app, spent.until);
 	serveEstimate(conn, app, spent.until);
