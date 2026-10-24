@@ -6,7 +6,6 @@ import {
 	type FrontendApplicationContribution,
 	FrontendApplicationContribution as FrontendApplicationContributionId,
 	ViewContainer,
-	type Widget,
 	WidgetFactory,
 	WidgetManager,
 } from "@theia/core/lib/browser";
@@ -18,7 +17,6 @@ import {
 	injectable,
 	type interfaces,
 } from "@theia/core/shared/inversify";
-import { waitingCount } from "../domain/home-model.js";
 import { MeteHomeStore } from "./home-store.js";
 import {
 	HOME_SECTIONS,
@@ -27,6 +25,7 @@ import {
 	sectionId,
 } from "./home-widget.js";
 import { METE_VIEW_ID, MeteInboxBadge } from "./inbox-badge.js";
+import { followWaiting, SHOW_WAITING_COMMAND } from "./waiting.js";
 
 // The METE view's place in Theia (ADR-078): a view container in the left area, as the Explorer is,
 // whose collapsible sections are the parts below; its commands (docs/13, Design system: every METE
@@ -43,17 +42,6 @@ export const OPEN_HOME_COMMAND: Command = Command.toLocalizedCommand(
 export const REFRESH_HOME_COMMAND: Command = Command.toLocalizedCommand(
 	{ id: "mete.home.refresh", category: "METE", label: "Refresh home" },
 	"mete/home/refreshCommand",
-	"mete/category",
-);
-
-/** The palette entry "METE: Show what waits for you", which the status bar's waiting count runs. */
-export const SHOW_WAITING_COMMAND: Command = Command.toLocalizedCommand(
-	{
-		id: "mete.home.waiting",
-		category: "METE",
-		label: "Show what waits for you",
-	},
-	"mete/home/showWaiting",
 	"mete/category",
 );
 
@@ -151,25 +139,6 @@ const containerFactory = (ctx: interfaces.Context): WidgetFactory => ({
 		return container;
 	},
 });
-
-// Waiting for you shows only while a run waits, so an empty inbox takes no height; it changes only
-// when the count crosses zero, so a user who hides it meanwhile keeps it hidden.
-const followWaiting = (
-	container: ViewContainer,
-	waiting: Widget,
-	store: MeteHomeStore,
-) => {
-	let shown: boolean | undefined;
-	const follow = () => {
-		const now = waitingCount(store.model) > 0;
-		if (now === shown) return;
-		shown = now;
-		container.getPartFor(waiting)?.setHidden(!now);
-	};
-	follow();
-	const listening = store.onDidChange(follow);
-	container.disposed.connect(() => listening.dispose());
-};
 
 /** Binds the METE view, its sections, their store and its contribution into the frontend container. */
 export const bindHome = (bind: interfaces.Bind) => {
