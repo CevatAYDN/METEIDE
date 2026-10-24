@@ -109,8 +109,38 @@ const checkpoint = async (
 			type: "checkpoint.created",
 			payload: { kind: "git", ref: cp.value },
 		});
-	apply(s, l, { type: "CHECKPOINTED", step: t.step });
+	const snapshot = cp.value ? undefined : await openSnapshot(s, l, t.step);
+	if (snapshot && !snapshot.ok) {
+		const fail = { code: "checkpoint_failed", message: snapshot.error.message };
+		if (owns(l, token))
+			apply(s, l, { type: "FAIL", at: s.deps.now(), ...fail });
+		return false;
+	}
+	apply(s, l, {
+		type: "CHECKPOINTED",
+		step: t.step,
+		...(snapshot?.value ? { snapshot: snapshot.value } : {}),
+	});
 	return owns(l, token);
+};
+
+// Without git, the step's file snapshot (ADR-080); none when the engine keeps no snapshots.
+const openSnapshot = async (s: EngineState, l: Live, step: number) => {
+	if (!s.deps.snapshots) return undefined;
+	const opened = await s.deps.snapshots.open(l.meta.id, step);
+	if (opened.ok)
+		emit(s, l, {
+			type: "checkpoint.created",
+			payload: { kind: "snapshot", ref: opened.value },
+		});
+	return opened;
+};
+
+// Copies a file into the step's snapshot before an fs tool writes it (ADR-080).
+const keeping = (s: EngineState, l: Live) => {
+	const ref = l.snapshot.context.snapshot;
+	const store = s.deps.snapshots;
+	return ref && store ? (path: string) => store.keep(ref, path) : undefined;
 };
 
 // A finished tool call is kept even when the run was paused meanwhile (docs/08).
@@ -123,7 +153,11 @@ const toolTurn = async (
 	if (t.checkpoint && !(await checkpoint(s, l, token, t))) return;
 	const out = await callTool(
 		s.deps,
-		{ call: t.call, seat: activeSeat(l.snapshot.context) },
+		{
+			call: t.call,
+			seat: activeSeat(l.snapshot.context),
+			beforeWrite: keeping(s, l),
+		},
 		toolContext(l),
 		(b) => emit(s, l, b, activeRole(l.snapshot.context).taskId),
 	);

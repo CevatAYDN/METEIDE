@@ -22,6 +22,7 @@ import {
 	RUN_MIGRATIONS,
 	type RunStore,
 } from "../../src/infrastructure/run-store.js";
+import type { SnapshotStore } from "../../src/infrastructure/snapshot-store.js";
 import type { TemplateDirs } from "../../src/infrastructure/template-store.js";
 
 // A real registry, bus and database around scripted fake adapters, with a manual clock.
@@ -104,6 +105,7 @@ export const engineHarness = (opts: {
 	wrapStore?: (store: RunStore) => RunStore;
 	templates?: TemplateDirs;
 	artifacts?: ArtifactStore;
+	snapshots?: SnapshotStore;
 }) => {
 	const registry = createCapabilityRegistry(() => []);
 	const events: MeteEvent[] = [];
@@ -178,6 +180,7 @@ export const engineHarness = (opts: {
 		platform: "linux",
 		templates: opts.templates,
 		artifacts: opts.artifacts,
+		snapshots: opts.snapshots,
 	});
 	return {
 		...created,

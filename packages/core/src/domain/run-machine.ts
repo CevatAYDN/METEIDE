@@ -39,6 +39,8 @@ export type RunContext = {
 	readonly since?: number | undefined;
 	/** Index of the last step (assistant message) that has its checkpoint. */
 	readonly checkpointed: number;
+	/** The file snapshot of that step, in a folder that is not a git repository (ADR-080). */
+	readonly snapshot?: string | undefined;
 	readonly agent?: AgentRef | undefined;
 	readonly pause?:
 		| { readonly reason: PauseReason; readonly resumesAt?: string | undefined }
@@ -78,7 +80,7 @@ export type RunEvent =
 			review?: string;
 	  }
 	| { type: "REVIEWED"; team: TeamState }
-	| { type: "CHECKPOINTED"; step: number }
+	| { type: "CHECKPOINTED"; step: number; snapshot?: string }
 	| { type: "PAUSE"; at: number; reason: PauseReason; resumesAt?: string }
 	| { type: "RESUME"; at: number }
 	| { type: "COMPLETE"; at: number; summary: string }
@@ -145,6 +147,7 @@ export const runMachine = setup({
 				messages: event.messages,
 				requests: context.requests + 1,
 				checkpointed: -1,
+				snapshot: undefined,
 			})),
 		},
 		// A guardrail repair stays in the attempt: one more user message, turns keep counting.
@@ -165,6 +168,7 @@ export const runMachine = setup({
 				messages: event.messages,
 				turns: 0,
 				checkpointed: -1,
+				snapshot: undefined,
 				agent: undefined,
 				review: event.review,
 				tainted: false,
@@ -181,7 +185,10 @@ export const runMachine = setup({
 			}),
 		},
 		CHECKPOINTED: {
-			actions: assign({ checkpointed: ({ event }) => event.step }),
+			actions: assign({
+				checkpointed: ({ event }) => event.step,
+				snapshot: ({ event }) => event.snapshot,
+			}),
 		},
 	},
 	states: {

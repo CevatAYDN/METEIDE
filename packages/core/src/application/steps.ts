@@ -268,9 +268,34 @@ export const runCapability = async (
 };
 
 /** Runs one tool call after checking its arguments against the schema the model was offered. */
+// The fs tools whose file a snapshot keeps before they write it (ADR-080); a delete is a write too.
+const SNAPSHOTTED = new Set(["fs.write@1", "fs.edit@1"]);
+const PathArgs = z.object({ path: z.string() });
+
+// Runs the snapshot hook for an fs write; its failure refuses the call, so no write goes unrecorded.
+const kept = async (
+	ref: string,
+	args: unknown,
+	beforeWrite: BeforeWrite | undefined,
+) => {
+	const path = PathArgs.safeParse(args);
+	if (!beforeWrite || !SNAPSHOTTED.has(ref) || !path.success) return undefined;
+	const r = await beforeWrite(path.data.path);
+	return r.ok ? undefined : r.error.message;
+};
+
+/** Called with an fs tool's path before it writes there. */
+export type BeforeWrite = (
+	path: string,
+) => Promise<Result<void, { readonly message: string }>>;
+
 export const callTool = async (
 	deps: StepDeps,
-	{ call, seat }: { call: ToolCall; seat: Seat },
+	{
+		call,
+		seat,
+		beforeWrite,
+	}: { call: ToolCall; seat: Seat; beforeWrite?: BeforeWrite | undefined },
 	ctx: ToolContext,
 	emit: Emit,
 ): Promise<ToolOutcome> => {
@@ -290,6 +315,12 @@ export const callTool = async (
 		return refused(deps, call, {
 			code: "bad_input",
 			message: z.prettifyError(args.error),
+		});
+	const unkept = await kept(entry.ref, args.data, beforeWrite);
+	if (unkept)
+		return refused(deps, call, {
+			code: "io",
+			message: `the file could not be snapshotted first: ${unkept}`,
 		});
 	const chain = deps.registry.resolve<AnyTool>(entry.ref);
 	if (!chain.ok)

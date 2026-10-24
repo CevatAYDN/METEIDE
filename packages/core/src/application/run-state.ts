@@ -24,6 +24,7 @@ import {
 import type { ArtifactStore } from "../infrastructure/artifact-store.js";
 import type { HandoffStore } from "../infrastructure/handoff-store.js";
 import type { RunMeta, RunStore } from "../infrastructure/run-store.js";
+import type { SnapshotStore } from "../infrastructure/snapshot-store.js";
 import type { TemplateDirs } from "../infrastructure/template-store.js";
 import type { StepDeps } from "./steps.js";
 
@@ -47,6 +48,8 @@ export type EngineDeps = StepDeps & {
 	readonly artifacts?: ArtifactStore | undefined;
 	/** Where runs leave their handoffs (docs/07); without it none are written. */
 	readonly handoffs?: HandoffStore | undefined;
+	/** Where file snapshots go in a folder without git (ADR-080); without it none are made. */
+	readonly snapshots?: SnapshotStore | undefined;
 };
 
 /**
