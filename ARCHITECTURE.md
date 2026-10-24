@@ -67,7 +67,7 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 
 ## Daemon protocol
 
-`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 15 (ADR-079) has thirteen requests and one notification, and each side validates what it receives with the schemas in `@mete/contracts` (`daemon.ts`) \[D\]:
+`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 16 (ADR-081) has fourteen requests and one notification, and each side validates what it receives with the schemas in `@mete/contracts` (`daemon.ts`) \[D\]:
 
 | Message | Kind | Params | Result |
 | --- | --- | --- | --- |
@@ -84,6 +84,7 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 | `mete/template.read` | request | `{ id }` | `{ id, source, yaml }`: the text of the template file `mete/templates` would load for the id (the workspace's `.mete/teams/<id>.yaml` first, `source` `workspace`, else the built-in one, `builtIn`), also when it does not validate, for the team editor; an id that no folder holds answers `not_found`; answered while core-engine is not active too (ADR-075) |
 | `mete/chain` | request | `{ tier, needs }` | `{ models: [{ providerId, modelId }] }`: the chain the gateway resolves for the tier and needs, best first, without a pin, for the team editor's pinned-model choice; answered while core-engine is not active too (ADR-077) |
 | `mete/checkpoint.restore` | request | `{ runId, checkpointId }` | `{ ref, undo }`: restores the run's git checkpoint whose `checkpoint.created` event has that id, after recording the current state as the `undo` checkpoint; refused unless the run is paused or ended, with the codes of `checkpoint.restore@1` (ADR-079) |
+| `mete/settings` | request | none | `{ loadedAt, sections }`: for each configuration section in the global `settings.yaml` or `.mete/`, its merged value and each file's value with its path, as the daemon loaded them, every string masked by `secrets.mask@1`; answered while core-engine is not active too (ADR-081) |
 | `mete/event` | notification, daemon to client | one `MeteEvent` (docs/07) | none; every catalog event the bus publishes, in publish order |
 
 A client that starts the daemon from Electron sets `ELECTRON_RUN_AS_NODE=1`. The desktop backend starts the daemon when the first message for a folder is sent, keeps one daemon for one folder at a time, stops it by closing its input, and restarts it after the desktop sets a provider key (ADR-049). The desktop starts the daemon detached from its own process group, so a quit or crash of the desktop leaves the daemon to stop on its closed input and free the run lock \[D\]. A new message or a changed shape needs an ADR and a new protocol version \[D\].
