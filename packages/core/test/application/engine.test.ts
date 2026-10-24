@@ -77,12 +77,13 @@ describe("single-agent engine", () => {
 		expect(h.events.at(-1)?.payload).toEqual({
 			summary: "Renamed foo to bar.",
 		});
-		// Each call's token counts close it, for the Team view's context share (ADR-090).
-		expect(
-			h.events
-				.filter((e) => e.type === "agent.thinking.ended")
-				.map((e) => e.payload),
-		).toEqual([
+		// Each call's token counts close it on the agent's envelope, the first call too, for the
+		// Team view's context share (ADR-090).
+		const ended = h.events.filter((e) => e.type === "agent.thinking.ended");
+		const agentId = h.events.find((e) => e.type === "agent.created")?.agentId;
+		expect(agentId).toBeDefined();
+		expect(ended.map((e) => e.agentId)).toEqual([agentId, agentId]);
+		expect(ended.map((e) => e.payload)).toEqual([
 			{ usage: { prompt: 1, completion: 1 } },
 			{ usage: { prompt: 1, completion: 1 } },
 		]);
