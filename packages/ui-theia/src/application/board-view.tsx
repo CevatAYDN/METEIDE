@@ -10,11 +10,12 @@ import type { CSSProperties, ReactNode } from "react";
 import { rosterOf } from "../domain/roster.js";
 import type { DaemonFailure } from "../domain/status-service.js";
 import { CheckpointList, type RestoreControls } from "./checkpoint-list.js";
+import type { Windows } from "./context-meter.js";
 import { LINK, LIST, MUTED, PANEL, TITLE } from "./look.js";
 import { openReportLabel, ResultsList, reportPath } from "./results-list.js";
 import { failureText } from "./status-text.js";
 import { studioText } from "./studio-text.js";
-import { TeamView as Roster, type Windows } from "./team-view.js";
+import { TeamView as Roster } from "./team-view.js";
 
 // The Team panel (docs/13, ADR-051): one run's tasks on the Board (To do, In progress and Done),
 // its members in the Team view (ADR-089) or as the Flow graph, both from the view model the fold of @mete/ui-studio keeps. Text is shown as it is: React escapes it.

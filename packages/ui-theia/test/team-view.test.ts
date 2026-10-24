@@ -1,11 +1,11 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { tokenCount } from "../src/application/context-meter.js";
 import {
 	stateLook,
 	TeamView,
 	tierLabel,
-	tokenCount,
 } from "../src/application/team-view.js";
 import type { Member } from "../src/domain/roster.js";
 
