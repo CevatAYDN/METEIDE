@@ -137,6 +137,12 @@ export const draftOf = (
 
 type Doc = ReturnType<typeof parseDocument>;
 
+/** Whether the text sets any key; a missing, empty or comment-only file sets none. */
+export const hasKeys = (text: string | undefined): boolean => {
+	const { contents } = parseDocument(text ?? "");
+	return isMap(contents) && contents.items.length > 0;
+};
+
 // A map a removed key left empty goes with it, so a cleared field leaves no `budget: {}` behind.
 const prune = (doc: Doc, at: readonly string[]) => {
 	for (let n = at.length - 1; n > 0; n--) {

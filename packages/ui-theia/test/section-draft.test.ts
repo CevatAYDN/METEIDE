@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	defaultsOf,
 	draftOf,
+	hasKeys,
 	layerOf,
 	savedText,
 } from "../src/application/section-draft.js";
@@ -155,5 +156,14 @@ describe("clearing a field (ADR-095 Reset)", () => {
 				"global",
 			),
 		).toEqual({ ok: true, value: "privacy:\n  allowTraining: true\n" });
+	});
+});
+
+describe("whether a file sets any key", () => {
+	it("is no for a missing, empty or comment-only file, and yes for any key", () => {
+		expect(hasKeys(undefined)).toBe(false);
+		expect(hasKeys("")).toBe(false);
+		expect(hasKeys("# notes only\n")).toBe(false);
+		expect(hasKeys("models: free\n")).toBe(true);
 	});
 });

@@ -17,6 +17,7 @@ const fakeFiles = (initial: Record<string, string>) => {
 		exists: async (u: URI) => disk.has(u.path.fsPath()),
 		read: async (u: URI) => ({ value: disk.get(u.path.fsPath()) ?? "" }),
 		write: async (u: URI, text: string) => void disk.set(u.path.fsPath(), text),
+		delete: async (u: URI) => void disk.delete(u.path.fsPath()),
 	} as unknown as FileService;
 	return { files, disk };
 };
@@ -101,7 +102,8 @@ describe("the scope switch and Reset (ADR-095)", () => {
 		forms.forms().gateway?.actions.onField("dailySpendUsd", 5);
 		forms.forms().gateway?.actions.onClear();
 		await settle();
-		expect(disk.get(gateway)).toBe("");
+		// The file held only this form's key, so it goes: an empty file would still be a layer.
+		expect(disk.has(gateway)).toBe(false);
 		expect(disk.get(GLOBAL_KEY)).toBe("");
 		expect(forms.forms().gateway?.state.target).toBe("global");
 		expect(forms.forms().gateway?.state.values.dailySpendUsd).toBe(5);
@@ -160,5 +162,37 @@ describe("the one save bar (ADR-095)", () => {
 		await forms.load(WORK, GLOBAL);
 		await forms.saveAll();
 		expect(disk.size).toBe(0);
+	});
+});
+
+describe("a file an edit leaves with no key (ADR-095)", () => {
+	const fileOf = (s: string) => WORK.resolve(`.mete/${s}.yaml`).path.fsPath();
+	const settle = () => new Promise((r) => setTimeout(r, 0));
+
+	it("is deleted when Save clears its last field, so it stays no empty layer", async () => {
+		const { files, disk } = fakeFiles({
+			[fileOf("gateway")]: "dailySpendUsd: 2\n",
+		});
+		const forms = new SettingsForms(files, () => {});
+		await forms.load(WORK, GLOBAL);
+		forms.forms().gateway?.actions.onField("dailySpendUsd", undefined);
+		await forms.saveAll();
+		expect(disk.has(fileOf("gateway"))).toBe(false);
+		expect(forms.forms().gateway?.state.note?.kind).toBe("saved");
+	});
+
+	it("is left alone when it held no key: a missing, empty or comment-only file is not written or removed", async () => {
+		const { files, disk } = fakeFiles({
+			[fileOf("policy")]: "# my notes\n",
+			[fileOf("privacy")]: "",
+		});
+		const forms = new SettingsForms(files, () => {});
+		await forms.load(WORK, GLOBAL);
+		for (const s of ["gateway", "policy", "privacy"] as const)
+			forms.forms()[s]?.actions.onClear();
+		await settle();
+		expect(disk.has(fileOf("gateway"))).toBe(false);
+		expect(disk.get(fileOf("policy"))).toBe("# my notes\n");
+		expect(disk.get(fileOf("privacy"))).toBe("");
 	});
 });

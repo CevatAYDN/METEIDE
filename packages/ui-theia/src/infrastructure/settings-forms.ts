@@ -8,6 +8,7 @@ import {
 	type FieldValue,
 	FORM_FIELDS,
 	type FormSection,
+	hasKeys,
 	savedText,
 	type Target,
 } from "../application/section-draft.js";
@@ -72,6 +73,22 @@ export class SettingsForms {
 		return textOf(this.files, file);
 	}
 
+	// The file edited in place (savedText). A file the edit leaves with no key is deleted, since an
+	// empty file is still a layer that sets nothing; a file that held no key is left as it is.
+	protected async edit(
+		file: URI,
+		section: FormSection,
+		target: Target,
+		changes: Draft,
+	) {
+		const before = await this.textOf(file);
+		const r = savedText(before, section, target, changes);
+		if (!r.ok) return r;
+		if (r.value !== "") await this.files.write(file, r.value);
+		else if (hasKeys(before)) await this.files.delete(file);
+		return r;
+	}
+
 	// What the user typed in a form since its file was read.
 	protected keptOf(section: FormSection): Draft {
 		const state = this.states.get(section);
@@ -105,14 +122,8 @@ export class SettingsForms {
 			FORM_FIELDS[section].map((f) => [f.path.join("."), undefined]),
 		);
 		try {
-			const r = savedText(
-				await this.textOf(file),
-				section,
-				"workspace",
-				cleared,
-			);
+			const r = await this.edit(file, section, "workspace", cleared);
 			if (!r.ok) return this.refused(section, r.error);
-			await this.files.write(file, r.value);
 			const text = nls.localize(
 				"mete/settings/cleared",
 				"Cleared in {0}; it applies when METE starts again.",
@@ -174,14 +185,8 @@ export class SettingsForms {
 			keys.map((k) => [k, state.values[k]]),
 		);
 		try {
-			const r = savedText(
-				await this.textOf(file),
-				section,
-				state.target,
-				changes,
-			);
+			const r = await this.edit(file, section, state.target, changes);
 			if (!r.ok) return this.refused(section, r.error);
-			await this.files.write(file, r.value);
 			const text = nls.localize(
 				"mete/settings/saved",
 				"Saved to {0}; it applies when METE starts again.",
