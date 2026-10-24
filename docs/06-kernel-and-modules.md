@@ -372,7 +372,7 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 | `web.fetch@1` | Page to clean Markdown | Native reader | Steps needing it are blocked with a notice |
 | `web.search@1` | Web search returning URLs | Exa MCP (no key) → Tavily → Exa API → You.com → Firecrawl | Steps needing it are blocked with a notice |
 | `vcs.git@2` | Status, diff, worktrees, checkpoints | simple-git | Core uses file snapshots |
-| `checkpoint.restore@1` | Restore a run's git checkpoint, recording the current state first (ADR-079) | Native (core-engine) | Answers `no_vcs`; a folder that is not a git repository has no checkpoint to restore yet |
+| `checkpoint.restore@1` | Restore a run's git checkpoint or file snapshot, recording the current state first (ADR-079, ADR-080) | Native (core-engine) | A git ref without `vcs.git@2` answers `no_vcs`; snapshots need no adapter |
 | `code.graph@1` | Query code structure | tree-sitter graph; Graphify through MCP as an alternative | `knowledge.search@1` works without it |
 | `knowledge.search@1` | Hybrid search | knowledge-search module | Plain ripgrep search |
 | `vault.read@1`, `vault.write@1` | Notes and lessons | vault module | Lessons are not saved; runs continue |
