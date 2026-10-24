@@ -89,7 +89,7 @@ Third-party code still runs with the user's operating-system rights; METE enforc
 
 - Git workspaces: before every step that may write, METE records the state as a commit under `refs/mete/checkpoints/<run id>/<n>`, which creates no branches \[D\].
 - Other workspaces: before the first write to a file in a step, that file is copied to the global `snapshots/<run id>/<n>/` folder \[D\]. Snapshots come with Phase 5; until then only git workspaces get checkpoints.
-- Every checkpoint can be restored with one click; restoring publishes `rollback.performed`.
+- Every checkpoint can be restored with one click; restoring publishes `rollback.performed`. A restore waits for the run to be paused or ended, changes only files, and first records the current state as a new checkpoint, so it can itself be undone (ADR-079) \[D\].
 - Checkpoints are kept 14 days after the run ends \[D\]. The process that drives runs (the one that recovers them) removes older runs' checkpoints when core-engine starts, so a command that only reads never removes them \[D\].
 
 ## Kill switch
