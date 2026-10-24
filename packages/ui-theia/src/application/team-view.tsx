@@ -163,7 +163,8 @@ export const tokenCount = (n: number): string => {
 	const short = (x: number) =>
 		x < 10 ? x.toFixed(1).replace(/\.0$/, "") : String(Math.round(x));
 	if (n < 1_000) return String(n);
-	return n < 1_000_000 ? `${short(n / 1_000)}k` : `${short(n / 1_000_000)}M`;
+	// From 999.5k on the k count would round to 1000k, so it is written in M.
+	return n < 999_500 ? `${short(n / 1_000)}k` : `${short(n / 1_000_000)}M`;
 };
 
 /** The listed context window of each model, by `<providerId>/<modelId>` (ADR-090). */

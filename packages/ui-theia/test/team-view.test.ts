@@ -114,13 +114,9 @@ describe("the Team view", () => {
 	});
 
 	it("writes token counts with a fixed suffix", () => {
-		expect([999, 1_500, 61_440, 128_000, 1_200_000].map(tokenCount)).toEqual([
-			"999",
-			"1.5k",
-			"61k",
-			"128k",
-			"1.2M",
-		]);
+		expect(
+			[999, 1_500, 61_440, 128_000, 999_700, 1_200_000].map(tokenCount),
+		).toEqual(["999", "1.5k", "61k", "128k", "1M", "1.2M"]);
 	});
 
 	it("gives every state an icon and a word, and every tier a plain label", () => {
