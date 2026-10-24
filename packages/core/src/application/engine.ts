@@ -22,6 +22,7 @@ import {
 } from "../infrastructure/template-store.js";
 import { recordDecision } from "./approvals.js";
 import { type Opening, offerBrief, takeHandoff } from "./continue.js";
+import { createCheckpointRestore } from "./restore.js";
 import { pruneOldCheckpoints } from "./retention.js";
 import { routeFor } from "./route.js";
 import { drive } from "./run-driver.js";
@@ -343,6 +344,7 @@ export const createEngine = (deps: EngineDeps) => {
 			void pruneOldCheckpoints(s.deps);
 		},
 		stop: () => stop(s),
+		restore: createCheckpointRestore(deps),
 	};
 };
 

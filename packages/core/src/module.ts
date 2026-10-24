@@ -2,7 +2,7 @@
 import { randomUUID } from "node:crypto";
 import { release, type } from "node:os";
 import { err, type ModuleManifest, ok } from "@mete/contracts";
-import type { MeteModule, ModuleError } from "@mete/kernel";
+import type { MeteModule, ModuleContext, ModuleError } from "@mete/kernel";
 import { createEngine, type EngineDeps } from "./application/engine.js";
 import { createArtifactStore } from "./infrastructure/artifact-store.js";
 import { createHandoffStore } from "./infrastructure/handoff-store.js";
@@ -28,7 +28,7 @@ const MANIFEST: ModuleManifest = {
 	displayName: "Core engine",
 	class: "essential",
 	trust: "core",
-	provides: ["team.engine@2"],
+	provides: ["team.engine@2", "checkpoint.restore@1"],
 	requires: [
 		"llm.chat@2",
 		"fs.read@1",
@@ -66,7 +66,31 @@ const realTimer: EngineDeps["setTimer"] = (fn, ms) => {
 	return () => clearTimeout(t);
 };
 
-/** Creates core-engine, which provides team.engine@2 for single-agent and team runs. */
+// The engine's dependencies from the module context and the workspace database.
+const depsOf = (
+	opts: CoreEngineOptions,
+	ctx: ModuleContext,
+	db: Parameters<typeof createRunStore>[0],
+): EngineDeps => ({
+	workspaceId: opts.workspaceId,
+	registry: ctx.capabilities,
+	events: ctx.events,
+	config: ctx.config,
+	logger: ctx.logger,
+	store: createRunStore(db),
+	handoffs: createHandoffStore(db),
+	now: opts.now ?? Date.now,
+	newId: randomUUID,
+	setTimer: opts.setTimer ?? realTimer,
+	os: `${type()} ${release()}`,
+	platform: process.platform,
+	templates: opts.templates,
+	artifacts: opts.workspaceDir
+		? createArtifactStore(opts.workspaceDir)
+		: undefined,
+});
+
+/** Creates core-engine, which provides team.engine@2 for single-agent and team runs and checkpoint.restore@1. */
 export const createCoreEngineModule = (opts: CoreEngineOptions): MeteModule => {
 	let stop: (() => Promise<void>) | undefined;
 	return {
@@ -75,24 +99,7 @@ export const createCoreEngineModule = (opts: CoreEngineOptions): MeteModule => {
 			if (!ctx.storage) return err(failed("storage.sql@1 was not provided"));
 			const migrated = ctx.storage.migrate("workspace", RUN_MIGRATIONS);
 			if (!migrated.ok) return err(failed(migrated.error.message));
-			const created = createEngine({
-				workspaceId: opts.workspaceId,
-				registry: ctx.capabilities,
-				events: ctx.events,
-				config: ctx.config,
-				logger: ctx.logger,
-				store: createRunStore(ctx.storage.workspace),
-				handoffs: createHandoffStore(ctx.storage.workspace),
-				now: opts.now ?? Date.now,
-				newId: randomUUID,
-				setTimer: opts.setTimer ?? realTimer,
-				os: `${type()} ${release()}`,
-				platform: process.platform,
-				templates: opts.templates,
-				artifacts: opts.workspaceDir
-					? createArtifactStore(opts.workspaceDir)
-					: undefined,
-			});
+			const created = createEngine(depsOf(opts, ctx, ctx.storage.workspace));
 			if (opts.recover !== false) created.recover();
 			stop = created.stop;
 			ctx.disposables.add(
@@ -101,6 +108,14 @@ export const createCoreEngineModule = (opts: CoreEngineOptions): MeteModule => {
 					trust: "core",
 					features: [],
 					impl: created.engine,
+				}),
+			);
+			ctx.disposables.add(
+				ctx.capabilities.provide("checkpoint.restore@1", {
+					id: MANIFEST.id,
+					trust: "core",
+					features: [],
+					impl: created.restore,
 				}),
 			);
 			return ok(undefined);

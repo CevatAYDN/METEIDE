@@ -2,12 +2,16 @@ import { randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type {
-	LlmChatAdapter,
-	LlmChunk,
-	MeteEvent,
-	StorageSqlAdapter,
-	TeamEngineAdapter,
+import {
+	type CheckpointRestoreAdapter,
+	err,
+	type LlmChatAdapter,
+	type LlmChunk,
+	type MeteEvent,
+	ok,
+	type StorageSqlAdapter,
+	type TeamEngineAdapter,
+	type VcsGitAdapter,
 } from "@mete/contracts";
 import {
 	createCapabilityRegistry,
@@ -16,8 +20,12 @@ import {
 	type ModuleContext,
 } from "@mete/kernel";
 import { createStorageModule } from "@mete/storage";
-import { type EngineScenario, teamEngineContract } from "@mete/testing";
-import { afterAll, describe, expect, it } from "vitest";
+import {
+	checkpointRestoreContract,
+	type EngineScenario,
+	teamEngineContract,
+} from "@mete/testing";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { createCoreEngineModule } from "../src/module.js";
 import { reply, slow } from "./helpers/engine.js";
 
@@ -111,7 +119,96 @@ teamEngineContract("core-engine", async (scenario) => {
 	return { engine: engineOf(h.registry), events: h.events, close: h.close };
 });
 
+// A vcs.git@2 that keeps checkpoint refs in memory: create numbers them per run, restore knows them.
+const fakeVcs = (): VcsGitAdapter => {
+	const refs = new Set<string>();
+	const counts = new Map<string, number>();
+	return {
+		run: async (input) => {
+			if (input.op === "checkpoint.create") {
+				const n = (counts.get(input.runId) ?? 0) + 1;
+				counts.set(input.runId, n);
+				const ref = `refs/mete/checkpoints/${input.runId}/${n}`;
+				refs.add(ref);
+				return ok({ op: "checkpoint.create", ref, sha: "0".repeat(40) });
+			}
+			if (input.op === "checkpoint.restore")
+				return refs.has(input.ref)
+					? ok({ op: "checkpoint.restore", ref: input.ref })
+					: err({ code: "not_found", message: `no checkpoint ${input.ref}` });
+			return err({ code: "io", message: `not faked: ${input.op}` });
+		},
+	};
+};
+
+const restoreOf = (registry: ModuleContext["capabilities"]) => {
+	const r = registry.resolve<CheckpointRestoreAdapter>("checkpoint.restore@1");
+	if (!r.ok) throw new Error("checkpoint.restore@1 missing");
+	return r.value[0].impl;
+};
+
+// A run of the slow model, paused once it runs.
+const pausedRun = async (engine: TeamEngineAdapter) => {
+	const r = await engine.start({ goal: "wait" });
+	if (!r.ok) throw new Error(r.error.message);
+	await engine.pause(r.value.runId);
+	await vi.waitFor(() => {
+		const s = engine.status(r.value.runId);
+		expect(s.ok && s.value[0]?.status).toBe("paused");
+	});
+	return r.value.runId;
+};
+
+checkpointRestoreContract("core-engine", async () => {
+	const h = await setup("slow");
+	const vcs = fakeVcs();
+	h.registry.provide<VcsGitAdapter>("vcs.git@2", {
+		id: "vcs-git",
+		trust: "core",
+		features: [],
+		impl: vcs,
+	});
+	const engine = engineOf(h.registry);
+	const paused = await pausedRun(engine);
+	const running = await engine.start({ goal: "wait" });
+	if (!running.ok) throw new Error(running.error.message);
+	const made = await vcs.run(
+		{ op: "checkpoint.create", runId: paused },
+		{ signal: new AbortController().signal },
+	);
+	if (!made.ok || made.value.op !== "checkpoint.create")
+		throw new Error("no checkpoint");
+	const events: MeteEvent[] = [];
+	h.base.events.subscribe("checkpoint.*", (e) => events.push(e));
+	h.base.events.subscribe("rollback.*", (e) => events.push(e));
+	const runningId = running.value.runId;
+	return {
+		adapter: restoreOf(h.registry),
+		events,
+		paused: { runId: paused, checkpointId: randomUUID(), ref: made.value.ref },
+		running: {
+			runId: runningId,
+			checkpointId: randomUUID(),
+			ref: `refs/mete/checkpoints/${runningId}/1`,
+		},
+		close: h.close,
+	};
+});
+
 describe("core-engine module", () => {
+	it("answers no_vcs for a restore without vcs.git@2", async () => {
+		const h = await setup("slow");
+		const runId = await pausedRun(engineOf(h.registry));
+		const ref = `refs/mete/checkpoints/${runId}/1`;
+		const r = await restoreOf(h.registry).restore({
+			runId,
+			checkpointId: randomUUID(),
+			ref,
+		});
+		expect(r.ok ? undefined : r.error.code).toBe("no_vcs");
+		await h.close();
+	});
+
 	it("fails to activate without storage", async () => {
 		const h = await setup("answers");
 		const bare = createCoreEngineModule({ workspaceId: randomUUID() });
