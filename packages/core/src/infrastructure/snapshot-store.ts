@@ -3,12 +3,14 @@ import {
 	mkdir,
 	readdir,
 	readFile,
+	rm,
 	writeFile,
 } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { err, ok, type Result } from "@mete/contracts";
 import { withLockRetry } from "@mete/kernel";
 import { z } from "zod";
+import type { RestoreStep, Snapshot } from "../domain/snapshot-plan.js";
 
 // File snapshots for a folder that is not a git repository (ADR-080; SECURITY.md, Checkpoints and
 // rollback), in the global snapshots/<run id>/<n>/ folder: manifest.json names the step and each file
@@ -117,6 +119,61 @@ const keep = async (
 	}
 };
 
+// Every snapshot of the run with its files, in number order.
+const load = async (
+	p: Place,
+	runId: string,
+): Promise<Result<readonly Snapshot[], SnapshotError>> => {
+	try {
+		const ns = (await numbers(p, runId)).sort((a, b) => a - b);
+		const read = ns.map(async (n) => ({
+			n,
+			entries: (await readManifest(join(p.root, runId, String(n)))).entries,
+		}));
+		return ok(await Promise.all(read));
+	} catch (e) {
+		return err(io(e));
+	}
+};
+
+// Writes back or deletes each file of a restore plan.
+const apply = async (
+	p: Place,
+	runId: string,
+	plan: readonly RestoreStep[],
+): Promise<Result<void, SnapshotError>> => {
+	try {
+		for (const step of plan) {
+			const target = join(p.workspaceDir, step.path);
+			if ("delete" in step)
+				await withLockRetry(() => rm(target, { force: true }));
+			else {
+				const copy = join(p.root, runId, String(step.from), FILES, step.path);
+				await mkdir(dirname(target), { recursive: true });
+				await withLockRetry(() => copyFile(copy, target));
+			}
+		}
+		return ok(undefined);
+	} catch (e) {
+		return err(io(e));
+	}
+};
+
+// A new snapshot of the files as they are now, for no step: the undo of a restore (ADR-079).
+const capture = async (
+	p: Place,
+	runId: string,
+	paths: readonly string[],
+): Promise<Result<string, SnapshotError>> => {
+	const opened = await open(p, runId, -1);
+	if (!opened.ok) return opened;
+	for (const path of paths) {
+		const kept = await keep(p, opened.value, path);
+		if (!kept.ok) return kept;
+	}
+	return opened;
+};
+
 /** The snapshots of runs kept under `root`, for the workspace `workspaceDir`. */
 export const createSnapshotStore = (root: string, workspaceDir: string) => {
 	const p: Place = { root, workspaceDir };
@@ -125,6 +182,19 @@ export const createSnapshotStore = (root: string, workspaceDir: string) => {
 		open: (runId: string, step: number) => open(p, runId, step),
 		/** Copies a file into the snapshot the first time it is kept there, or records its absence. */
 		keep: (ref: string, path: string) => keep(p, ref, path),
+		/** Every snapshot of the run with its files, in number order. */
+		load: (runId: string) => load(p, runId),
+		/** Writes back or deletes each file of a restore plan. */
+		apply: (runId: string, plan: readonly RestoreStep[]) =>
+			apply(p, runId, plan),
+		/** A new snapshot of the files as they are now: the undo of a restore. */
+		capture: (runId: string, paths: readonly string[]) =>
+			capture(p, runId, paths),
+		/** Removes every snapshot of the run (the 14-day prune). */
+		prune: (runId: string) =>
+			withLockRetry(() =>
+				rm(join(p.root, runId), { recursive: true, force: true }),
+			),
 	};
 };
 

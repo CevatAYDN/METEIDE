@@ -7,6 +7,7 @@ import { createEngine, type EngineDeps } from "./application/engine.js";
 import { createArtifactStore } from "./infrastructure/artifact-store.js";
 import { createHandoffStore } from "./infrastructure/handoff-store.js";
 import { createRunStore, RUN_MIGRATIONS } from "./infrastructure/run-store.js";
+import { createSnapshotStore } from "./infrastructure/snapshot-store.js";
 import type { TemplateDirs } from "./infrastructure/template-store.js";
 
 /** What the composition root passes; clock and timer are injectable for tests. */
@@ -20,6 +21,8 @@ export type CoreEngineOptions = {
 	readonly templates?: TemplateDirs;
 	/** The workspace root; team runs write their artifacts to its .mete/artifacts/. */
 	readonly workspaceDir?: string;
+	/** The global snapshots/ folder, for file snapshots where the workspace has no git (ADR-080). */
+	readonly snapshotsDir?: string;
 };
 
 const MANIFEST: ModuleManifest = {
@@ -50,7 +53,8 @@ const MANIFEST: ModuleManifest = {
 	],
 	activation: ["onStartup"],
 	isolation: "in-process",
-	// fs.write: artifact files in .mete/artifacts/ (ARCHITECTURE.md, workspace files).
+	// fs.write: artifact files in .mete/artifacts/ (ARCHITECTURE.md, workspace files), and file snapshots in
+	// the global snapshots/ folder and their restore into the workspace (ADR-080).
 	permissions: ["llm", "fs.write"],
 };
 
@@ -88,6 +92,10 @@ const depsOf = (
 	artifacts: opts.workspaceDir
 		? createArtifactStore(opts.workspaceDir)
 		: undefined,
+	snapshots:
+		opts.workspaceDir && opts.snapshotsDir
+			? createSnapshotStore(opts.snapshotsDir, opts.workspaceDir)
+			: undefined,
 });
 
 /** Creates core-engine, which provides team.engine@2 for single-agent and team runs and checkpoint.restore@1. */

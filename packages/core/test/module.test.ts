@@ -21,11 +21,14 @@ import {
 } from "@mete/kernel";
 import { createStorageModule } from "@mete/storage";
 import {
+	type CheckpointKind,
+	checkpointRef,
 	checkpointRestoreContract,
 	type EngineScenario,
 	teamEngineContract,
 } from "@mete/testing";
 import { afterAll, describe, expect, it, vi } from "vitest";
+import { createSnapshotStore } from "../src/infrastructure/snapshot-store.js";
 import { createCoreEngineModule } from "../src/module.js";
 import { reply, slow } from "./helpers/engine.js";
 
@@ -94,7 +97,11 @@ const setup = async (scenario: EngineScenario | "none") => {
 			features: [],
 			impl: { chat: chatFor(scenario) },
 		});
-	const module = createCoreEngineModule({ workspaceId: randomUUID() });
+	const module = createCoreEngineModule({
+		workspaceId: randomUUID(),
+		workspaceDir: join(root, "repo"),
+		snapshotsDir: join(root, "snapshots"),
+	});
 	const storageCtx = sql.value[0].impl.scopeFor("core-engine");
 	const activated = await module.activate({
 		...base,
@@ -105,7 +112,7 @@ const setup = async (scenario: EngineScenario | "none") => {
 		disposables.dispose();
 		await storage.deactivate();
 	};
-	return { module, registry, events, activated, close, base };
+	return { module, registry, events, activated, close, base, root };
 };
 
 const engineOf = (registry: ModuleContext["capabilities"]) => {
@@ -159,25 +166,47 @@ const pausedRun = async (engine: TeamEngineAdapter) => {
 	return r.value.runId;
 };
 
-checkpointRestoreContract("core-engine", async () => {
-	const h = await setup("slow");
-	const vcs = fakeVcs();
-	h.registry.provide<VcsGitAdapter>("vcs.git@2", {
-		id: "vcs-git",
-		trust: "core",
-		features: [],
-		impl: vcs,
-	});
-	const engine = engineOf(h.registry);
-	const paused = await pausedRun(engine);
-	const running = await engine.start({ goal: "wait" });
-	if (!running.ok) throw new Error(running.error.message);
+// A checkpoint of the paused run: a fake git ref, or a real file snapshot in the temp folder.
+const madeCheckpoint = async (
+	kind: CheckpointKind,
+	vcs: VcsGitAdapter,
+	root: string,
+	runId: string,
+) => {
+	if (kind === "snapshot") {
+		const store = createSnapshotStore(
+			join(root, "snapshots"),
+			join(root, "repo"),
+		);
+		const opened = await store.open(runId, 0);
+		if (!opened.ok) throw new Error(opened.error.message);
+		await store.keep(opened.value, "a.txt");
+		return opened.value;
+	}
 	const made = await vcs.run(
-		{ op: "checkpoint.create", runId: paused },
+		{ op: "checkpoint.create", runId },
 		{ signal: new AbortController().signal },
 	);
 	if (!made.ok || made.value.op !== "checkpoint.create")
 		throw new Error("no checkpoint");
+	return made.value.ref;
+};
+
+checkpointRestoreContract("core-engine", async (kind) => {
+	const h = await setup("slow");
+	const vcs = fakeVcs();
+	if (kind === "git")
+		h.registry.provide<VcsGitAdapter>("vcs.git@2", {
+			id: "vcs-git",
+			trust: "core",
+			features: [],
+			impl: vcs,
+		});
+	const engine = engineOf(h.registry);
+	const paused = await pausedRun(engine);
+	const running = await engine.start({ goal: "wait" });
+	if (!running.ok) throw new Error(running.error.message);
+	const ref = await madeCheckpoint(kind, vcs, h.root, paused);
 	const events: MeteEvent[] = [];
 	h.base.events.subscribe("checkpoint.*", (e) => events.push(e));
 	h.base.events.subscribe("rollback.*", (e) => events.push(e));
@@ -185,11 +214,11 @@ checkpointRestoreContract("core-engine", async () => {
 	return {
 		adapter: restoreOf(h.registry),
 		events,
-		paused: { runId: paused, checkpointId: randomUUID(), ref: made.value.ref },
+		paused: { runId: paused, checkpointId: randomUUID(), ref },
 		running: {
 			runId: runningId,
 			checkpointId: randomUUID(),
-			ref: `refs/mete/checkpoints/${runningId}/1`,
+			ref: checkpointRef(kind, runningId, 1),
 		},
 		close: h.close,
 	};

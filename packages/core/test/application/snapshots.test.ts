@@ -92,6 +92,41 @@ describe("file snapshots without git", () => {
 		expect(await readFile(join(workspace, "a.ts"), "utf8")).toBe("bar\n");
 	});
 
+	it("restores the files as they were before the step, deletes what it created, and the undo puts them back", async () => {
+		const { h, runId, workspace } = await run([
+			{ name: "fs_edit", args: { path: "a.ts", oldStr: "foo", newStr: "bar" } },
+			{ name: "fs_write", args: { path: "new.txt", content: "hi" } },
+		]);
+		const read = (path: string) =>
+			readFile(join(workspace, path), "utf8").catch(() => "(none)");
+		const checkpoint = h.events.find((e) => e.type === "checkpoint.created");
+		if (!checkpoint) throw new Error("no checkpoint");
+		const ref = `snapshots/${runId}/1`;
+		const back = await h.restore.restore({
+			runId,
+			checkpointId: checkpoint.id,
+			ref,
+		});
+		expect(back).toEqual({
+			ok: true,
+			value: { ref, undo: `snapshots/${runId}/2` },
+		});
+		expect([await read("a.ts"), await read("new.txt")]).toEqual([
+			"foo\n",
+			"(none)",
+		]);
+		const undo = await h.restore.restore({
+			runId,
+			checkpointId: checkpoint.id,
+			ref: `snapshots/${runId}/2`,
+		});
+		expect(undo.ok).toBe(true);
+		expect([await read("a.ts"), await read("new.txt")]).toEqual([
+			"bar\n",
+			"hi",
+		]);
+	});
+
 	it("does not copy a path outside the workspace", async () => {
 		const { workspace, snapshots } = await folders();
 		const store = createSnapshotStore(snapshots, workspace);
