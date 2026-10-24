@@ -326,12 +326,14 @@
 			"workspace": "This folder's team, saved in .mete/teams/{0}.yaml."
 		},
 		"welcome": {
+			"caption": "METE: keys, privacy and web search to start with",
 			"getKey": "Get a key",
 			"keys": "2. Model provider keys",
 			"keysLead": "Set at least one. A key stays in the operating system keychain and never in a file.",
 			"language": "1. Language",
 			"languageLead": "METE speaks English and Turkish; METE starts again in the language you pick.",
 			"loading": "Reading the provider keys…",
+			"open": "Welcome",
 			"privacy": "3. Privacy",
 			"privacyLead": "Providers that may train on your prompts stay out unless you let them in.",
 			"privacyNoFolder": "They are off now; open a folder to change this in Settings.",

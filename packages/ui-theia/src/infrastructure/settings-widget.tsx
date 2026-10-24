@@ -19,6 +19,7 @@ import {
 	type SettingsModel,
 	SettingsView,
 } from "../application/settings-view.js";
+import { activeRunsOf } from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { EndpointKeys } from "./endpoint-keys.js";
 import { EndpointTests } from "./endpoint-tests.js";
@@ -107,11 +108,7 @@ export class MeteSettingsWidget extends ReactWidget {
 	// Runs a restart would pause (ADR-083): queued or running ones; none when the status fails.
 	protected async activeRuns(dir: string): Promise<number> {
 		const r = await this.daemon.status(dir);
-		return r.ok
-			? r.value.filter(
-					(run) => run.status === "running" || run.status === "queued",
-				).length
-			: 0;
+		return r.ok ? activeRunsOf(r.value) : 0;
 	}
 
 	// Apply now (ADR-083): checks the runs again, restarts the daemon, and shows what it loaded.

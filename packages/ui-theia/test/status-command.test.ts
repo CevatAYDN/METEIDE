@@ -56,6 +56,10 @@ vi.mock("../src/infrastructure/shell-contribution.js", () => ({
 vi.mock("../src/infrastructure/team-editor-contribution.js", () => ({
 	bindTeamEditor: () => {},
 }));
+// The Welcome screen loads lumino too; test/welcome-view.test.ts covers the screen.
+vi.mock("../src/infrastructure/welcome-contribution.js", () => ({
+	bindWelcome: () => {},
+}));
 // Opening an artifact goes through Theia's browser openers; test/artifact.test.ts covers the choice.
 vi.mock("../src/infrastructure/artifact-command.js", () => ({
 	MeteArtifactContribution: class MeteArtifactContribution {

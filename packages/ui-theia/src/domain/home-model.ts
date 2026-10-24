@@ -83,6 +83,10 @@ export const homeModel = (
 			}
 		: { kind: "failed", failure: reply.error, at };
 
+/** The runs a daemon restart would pause (ADR-061): the queued or running ones. */
+export const activeRunsOf = (runs: StatusRuns) =>
+	runs.filter((r) => r.status === "running" || r.status === "queued").length;
+
 /**
  * Whether a run here is running or queued: its daemon ends when this window takes another folder,
  * so another folder then opens in a new window (ADR-078).

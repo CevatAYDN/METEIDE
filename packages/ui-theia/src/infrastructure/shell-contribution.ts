@@ -12,6 +12,7 @@ import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
 import { SHOW_SETTINGS_COMMAND } from "./settings-contribution.js";
 import { EDIT_TEAM_COMMAND } from "./team-editor-contribution.js";
 import { MeteWaitingStatusBar } from "./waiting.js";
+import { OPEN_WELCOME_COMMAND } from "./welcome-contribution.js";
 
 // METE's place in Theia's chrome (ADR-078): the METE menu of the menu bar, before Help ("9_help"),
 // and the status bar item that counts the runs waiting for the user while there are any.
@@ -29,6 +30,7 @@ const ITEMS = [
 			OPEN_AUDIT_COMMAND,
 			EDIT_TEAM_COMMAND,
 			SHOW_SETTINGS_COMMAND,
+			OPEN_WELCOME_COMMAND,
 		],
 	],
 	["3_stop", [STOP_ALL_COMMAND]],

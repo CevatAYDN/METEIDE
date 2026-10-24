@@ -13,6 +13,7 @@ import {
 	WorkspacesSection,
 } from "../src/application/workspaces-section.js";
 import {
+	activeRunsOf,
 	type HomeModel,
 	homeModel,
 	runsHere,
@@ -338,6 +339,14 @@ describe("the Home view", () => {
 		expect(of("paused")).toBe(false);
 		expect(of("completed")).toBe(false);
 		expect(runsHere({ kind: "loading" })).toBe(false);
+		// A daemon restart waits for the same runs (Set key, Apply now).
+		expect(
+			activeRunsOf(
+				["running", "queued", "paused", "completed"].map((s) =>
+					run(s, "g", null),
+				) as StatusRuns,
+			),
+		).toBe(2);
 	});
 
 	it("marks the run the Team panel shows, and only that one", () => {
