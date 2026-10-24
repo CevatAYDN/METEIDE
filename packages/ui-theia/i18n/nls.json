@@ -475,7 +475,7 @@
 			"providers": "Custom endpoints",
 			"quota": "Quota limits",
 			"shell": "Which shell",
-			"workspace": "Sensitive folder"
+			"workspace": "Folder id and sensitivity"
 		}
 	}
 }

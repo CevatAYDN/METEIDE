@@ -127,8 +127,9 @@ const TITLES: Readonly<Record<string, () => string>> = {
 	// docs/09, Privacy: allowTraining.
 	privacy: () =>
 		nls.localize("mete/section/privacy", "Training on your prompts"),
-	// docs/09, Privacy: the folder's sensitivity.
-	workspace: () => nls.localize("mete/section/workspace", "Sensitive folder"),
+	// The kernel checks the folder's id; the gateway reads its sensitivity (docs/09, Privacy).
+	workspace: () =>
+		nls.localize("mete/section/workspace", "Folder id and sensitivity"),
 	// docs/10: the adapters bound to each capability.
 	bindings: () => nls.localize("mete/section/bindings", "Tool adapters"),
 	// docs/10, MCP client.

@@ -475,7 +475,7 @@
 			"providers": "Özel uç noktalar",
 			"quota": "Kota sınırları",
 			"shell": "Hangi kabuk",
-			"workspace": "Hassas klasör"
+			"workspace": "Klasör kimliği ve hassasiyeti"
 		}
 	}
 }
