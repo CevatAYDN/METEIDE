@@ -23,6 +23,7 @@ import { MeteDaemonService } from "../domain/status-service.js";
 import { FlowView } from "./flow-view.js";
 import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
 import { MeteRunComposer } from "./run-composer.js";
+import { MeteShownRun } from "./shown-run.js";
 import { StudioView } from "./studio-view.js";
 
 // The Team panel (docs/13; ADR-051): one chosen run on the Board, as the Flow graph or in the Studio,
@@ -40,6 +41,7 @@ export class MeteBoardWidget extends ReactWidget {
 	@inject(ThemeService) protected readonly themes!: ThemeService;
 	@inject(CommandService) protected readonly commands!: CommandService;
 	@inject(MeteRunComposer) protected readonly composer!: MeteRunComposer;
+	@inject(MeteShownRun) protected readonly shownRun!: MeteShownRun;
 
 	protected session: BoardSession = IDLE_BOARD;
 	/** False while the panel is hidden, so the Studio's stage stops (docs/13, Performance and access). */
@@ -71,6 +73,8 @@ export class MeteBoardWidget extends ReactWidget {
 				({ dir, runId, goal }) => void this.showRun(dir, runId, goal),
 			),
 		);
+		// A closed panel shows no run, so Runs marks none.
+		this.toDispose.push({ dispose: () => this.shownRun.set(undefined) });
 		void this.composer.reopen();
 		this.update();
 	}
@@ -78,6 +82,7 @@ export class MeteBoardWidget extends ReactWidget {
 	/** Shows the run composer in place of the run. */
 	showComposer(): Promise<void> {
 		this.composing = true;
+		this.shownRun.set(undefined);
 		this.update();
 		return this.composer.reopen();
 	}
@@ -85,6 +90,7 @@ export class MeteBoardWidget extends ReactWidget {
 	/** Shows the run: its history first, then its live events. */
 	async showRun(dir: string, runId: string, goal: string): Promise<void> {
 		this.composing = false;
+		this.shownRun.set(runId);
 		const shown = { dir, runId, goal };
 		this.setSession(startBoard(shown));
 		const r = await this.daemon.events(dir, runId);

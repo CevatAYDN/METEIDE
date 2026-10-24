@@ -17,10 +17,11 @@ const sources = (dir: string): string[] =>
 	});
 
 // nls.localize("key", "English text", ...) and
-// Command.toLocalizedCommand({ id, category: "METE", label: "Status" }, "label key", "category key").
+// Command.toLocalizedCommand({ id, category: "METE", label: "Status" }, "label key", "category key"),
+// also wrapped over lines, where the formatter ends the label with a comma.
 const LOCALIZE = /nls\.localize\(\s*"([^"]+)",\s*"([^"]*)"/g;
 const COMMAND =
-	/toLocalizedCommand\(\s*\{[^}]*?category:\s*"([^"]+)",\s*label:\s*"([^"]+)"\s*\},\s*"([^"]+)",\s*"([^"]+)"/g;
+	/toLocalizedCommand\(\s*\{[^}]*?category:\s*"([^"]+)",\s*label:\s*"([^"]+)",?\s*\},\s*"([^"]+)",\s*"([^"]+)"/g;
 
 // Each key with the English text the code gives it.
 const pairsOf = (text: string): [string, string][] =>

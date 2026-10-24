@@ -46,6 +46,17 @@ export const REFRESH_HOME_COMMAND: Command = Command.toLocalizedCommand(
 	"mete/category",
 );
 
+/** The palette entry "METE: Show what waits for you", which the status bar's waiting count runs. */
+export const SHOW_WAITING_COMMAND: Command = Command.toLocalizedCommand(
+	{
+		id: "mete.home.waiting",
+		category: "METE",
+		label: "Show what waits for you",
+	},
+	"mete/home/showWaiting",
+	"mete/category",
+);
+
 /** Set once the METE view has been put in a restored layout. */
 const PLACED_KEY = "mete.view.placed";
 
@@ -87,6 +98,20 @@ export class MeteHomeContribution
 				await this.store.refresh();
 			},
 		});
+		commands.registerCommand(SHOW_WAITING_COMMAND, {
+			execute: () => this.showWaiting(),
+		});
+	}
+
+	// Opens the METE view on Waiting for you, also when the user had hidden or collapsed it.
+	protected async showWaiting(): Promise<void> {
+		await this.openView({ activate: true, reveal: true });
+		const container = await this.widgetManager.getWidget(METE_VIEW_ID);
+		const waiting = await this.widgetManager.getWidget(sectionId("waiting"));
+		if (!(container instanceof ViewContainer) || !waiting) return;
+		const part = container.getPartFor(waiting);
+		part?.setHidden(false);
+		if (part) part.collapsed = false;
 	}
 
 	/** Puts the METE view in the side bar of a fresh layout. */

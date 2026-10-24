@@ -58,9 +58,11 @@
 			"revise": "Revise…",
 			"runs": "Runs",
 			"setKey": "Set provider key…",
+			"showWaiting": "Show what waits for you",
 			"title": "METE",
 			"waiting": "Waiting for you",
 			"waitingBadge": "{0} run(s) wait for you",
+			"waitingCount": "{0} waiting for you",
 			"workspaces": "Workspaces"
 		},
 		"key": {

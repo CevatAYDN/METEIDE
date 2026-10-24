@@ -25,6 +25,7 @@ import {
 import { MeteDaemonService } from "../domain/status-service.js";
 import { MeteBoardWidget } from "./board-widget.js";
 import { MeteRunComposer } from "./run-composer.js";
+import { MeteShownRun } from "./shown-run.js";
 
 // The Team panel's place in Theia, the one run view in the main area (docs/13, Team panel; ADR-051,
 // ADR-078): "METE: Open team panel" picks one of the folder's runs and shows it there, "METE: Start
@@ -121,6 +122,7 @@ export const bindBoard = (bind: interfaces.Bind) => {
 	bind(FrontendApplicationContributionId).toService(MeteBoardContribution);
 	bind(MeteBoardWidget).toSelf();
 	bind(MeteRunComposer).toSelf();
+	bind(MeteShownRun).toSelf().inSingletonScope();
 	bind(WidgetFactory)
 		.toDynamicValue((ctx) => ({
 			id: MeteBoardWidget.ID,

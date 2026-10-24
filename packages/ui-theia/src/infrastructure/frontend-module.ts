@@ -14,6 +14,7 @@ import { bindAudit } from "./audit-contribution.js";
 import { bindBoard } from "./board-contribution.js";
 import { bindHome } from "./home-contribution.js";
 import { bindQuota } from "./quota-contribution.js";
+import { bindShell } from "./shell-contribution.js";
 import { bindStopAll } from "./stop-all-contribution.js";
 import { bindTeamEditor } from "./team-editor-contribution.js";
 
@@ -41,4 +42,5 @@ export default new ContainerModule((bind) => {
 	bindQuota(bind);
 	bindStopAll(bind);
 	bindTeamEditor(bind);
+	bindShell(bind);
 });

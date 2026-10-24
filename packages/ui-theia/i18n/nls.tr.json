@@ -58,9 +58,11 @@
 			"revise": "Düzeltme iste…",
 			"runs": "Çalıştırmalar",
 			"setKey": "Sağlayıcı anahtarı ayarla…",
+			"showWaiting": "Seni bekleyenleri göster",
 			"title": "METE",
 			"waiting": "Seni bekleyenler",
 			"waitingBadge": "{0} çalıştırma seni bekliyor",
+			"waitingCount": "{0} seni bekliyor",
 			"workspaces": "Çalışma alanları"
 		},
 		"key": {

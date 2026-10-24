@@ -20,6 +20,7 @@ import { WorkspacesSection } from "../application/workspaces-section.js";
 import { START_RUN_COMMAND } from "./board-contribution.js";
 import { MeteHomeStore } from "./home-store.js";
 import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
+import { MeteShownRun } from "./shown-run.js";
 
 // One section of the METE view (docs/13, Home; ADR-078), a part of its view container. Every
 // section draws from the one store, so they show the same answer.
@@ -47,6 +48,7 @@ const labelOf = (section: HomeSection) =>
 @injectable()
 export class MeteHomeSectionWidget extends ReactWidget {
 	@inject(MeteHomeStore) protected readonly store!: MeteHomeStore;
+	@inject(MeteShownRun) protected readonly shownRun!: MeteShownRun;
 	@inject(CommandService) protected readonly commands!: CommandService;
 	@inject(ThemeService) protected readonly themes!: ThemeService;
 
@@ -57,6 +59,7 @@ export class MeteHomeSectionWidget extends ReactWidget {
 		// The panel takes the tokens of Theia's theme (ADR-069): draw again on a change.
 		this.toDispose.push(this.themes.onDidColorThemeChange(() => this.update()));
 		this.toDispose.push(this.store.onDidChange(() => this.update()));
+		this.toDispose.push(this.shownRun.onDidChange(() => this.update()));
 	}
 
 	/** Makes this widget the given section; the factory calls it once, right after creating it. */
@@ -99,6 +102,7 @@ export class MeteHomeSectionWidget extends ReactWidget {
 				onAct={act}
 				onSetKey={() => this.run(SET_KEY_COMMAND.id)}
 				onStart={() => this.run(START_RUN_COMMAND.id)}
+				shown={this.shownRun.runId}
 			/>
 		);
 	}

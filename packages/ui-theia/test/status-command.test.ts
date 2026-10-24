@@ -44,6 +44,10 @@ vi.mock("../src/infrastructure/quota-contribution.js", () => ({
 vi.mock("../src/infrastructure/stop-all-contribution.js", () => ({
 	bindStopAll: () => {},
 }));
+// The METE menu and the status bar's waiting count load lumino too; the window check covers them.
+vi.mock("../src/infrastructure/shell-contribution.js", () => ({
+	bindShell: () => {},
+}));
 // The team editor's screen loads lumino too; test/team-editor-view.test.ts covers the screen.
 vi.mock("../src/infrastructure/team-editor-contribution.js", () => ({
 	bindTeamEditor: () => {},

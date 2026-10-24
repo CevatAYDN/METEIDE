@@ -70,16 +70,38 @@ const CLAMP: CSSProperties = {
 	overflow: "hidden",
 };
 
+const ITEM: CSSProperties = {
+	display: "flex",
+	flexDirection: "column",
+	gap: "2px",
+	padding: "4px 6px",
+	margin: "0 -6px",
+	borderRadius: "10px",
+};
+
+// The run the Team panel shows stands out, as a selected row does in a list.
+const CURRENT: CSSProperties = {
+	...ITEM,
+	background: "var(--chip, var(--theia-list-activeSelectionBackground))",
+	outline:
+		"1.5px solid var(--line, var(--theia-contrastActiveBorder, transparent))",
+};
+
 const RunItem = ({
 	row,
 	blocked,
 	act,
+	current,
 }: {
 	readonly row: HomeRow;
 	readonly blocked: readonly ProviderState[];
 	readonly act: Act;
+	readonly current: boolean;
 }) => (
-	<li style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+	<li
+		style={current ? CURRENT : ITEM}
+		{...(current ? { "aria-current": "true" as const } : {})}
+	>
 		<span style={CLAMP} title={row.goal}>
 			<OpenGoal row={row} act={act} />
 		</span>
@@ -110,17 +132,25 @@ const Runs = ({
 	rows,
 	blocked,
 	act,
+	shown,
 }: {
 	readonly rows: readonly HomeRow[];
 	readonly blocked: readonly ProviderState[];
 	readonly act: Act;
+	readonly shown: string | undefined;
 }) =>
 	rows.length === 0 ? (
 		<p>{runsText([])}</p>
 	) : (
 		<ul style={LIST}>
 			{rows.map((r) => (
-				<RunItem key={r.id} row={r} blocked={blocked} act={act} />
+				<RunItem
+					key={r.id}
+					row={r}
+					blocked={blocked}
+					act={act}
+					current={r.id === shown}
+				/>
 			))}
 		</ul>
 	);
@@ -240,10 +270,12 @@ const Body = ({
 	model,
 	onSetKey,
 	act,
+	shown,
 }: {
 	readonly model: HomeModel;
 	readonly onSetKey: () => void;
 	readonly act: Act;
+	readonly shown: string | undefined;
 }) => {
 	if (model.kind === "loading")
 		return (
@@ -252,7 +284,9 @@ const Body = ({
 	if (model.kind === "no_folder") return <p>{noFolderText()}</p>;
 	if (model.kind === "failed")
 		return <Failed model={model} onSetKey={onSetKey} />;
-	return <Runs rows={model.rows} blocked={model.blocked} act={act} />;
+	return (
+		<Runs rows={model.rows} blocked={model.blocked} act={act} shown={shown} />
+	);
 };
 
 /**
@@ -265,12 +299,15 @@ export const RunsSection = ({
 	onAct,
 	onSetKey,
 	onStart,
+	shown,
 }: {
 	readonly model: HomeModel;
 	readonly onRefresh: () => void;
 	readonly onAct: Act;
 	readonly onSetKey: () => void;
 	readonly onStart: () => void;
+	/** The run the Team panel shows, which the list marks. */
+	readonly shown?: string | undefined;
 }) => (
 	<section
 		style={SECTION}
@@ -285,7 +322,7 @@ export const RunsSection = ({
 				/>
 			</div>
 		)}
-		<Body model={model} onSetKey={onSetKey} act={onAct} />
+		<Body model={model} onSetKey={onSetKey} act={onAct} shown={shown} />
 		<div style={ROW}>
 			<button type="button" className="mete-button quiet" onClick={onRefresh}>
 				{nls.localize("mete/home/refresh", "Refresh")}

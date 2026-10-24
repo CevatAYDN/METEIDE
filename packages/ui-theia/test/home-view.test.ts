@@ -289,6 +289,27 @@ describe("the Home view", () => {
 		expect(list).toContain("text-overflow:ellipsis");
 	});
 
+	it("marks the run the Team panel shows, and only that one", () => {
+		const shownRun = run("completed", "shown goal", null);
+		const out = renderToStaticMarkup(
+			createElement(RunsSection, {
+				model: homeModel(
+					{ ok: true, value: [shownRun, run("completed", "other goal", null)] },
+					AT,
+				),
+				onRefresh: none,
+				onAct: none,
+				onSetKey: none,
+				onStart: none,
+				shown: shownRun.id,
+			}),
+		);
+		expect(out.match(/aria-current="true"/g)).toHaveLength(1);
+		expect(
+			out.slice(out.indexOf("aria-current"), out.indexOf("other goal")),
+		).toContain("shown goal");
+	});
+
 	it("says nothing waits when no run waits for an answer", () => {
 		const out = html(
 			homeModel({ ok: true, value: [run("completed", "done", null)] }, AT),
