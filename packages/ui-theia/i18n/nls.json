@@ -136,6 +136,21 @@
 			"unassigned": "{0} unassigned",
 			"which": "Which run?"
 		},
+		"settings": {
+			"caption": "METE: the configuration it loaded",
+			"editTeam": "Edit team…",
+			"global": "Global:",
+			"language": "Display language",
+			"loaded": "As METE loaded them at {0}. Edits to these files apply when METE starts again; a key no file sets takes its module's built-in default.",
+			"loading": "Asking the METE daemon…",
+			"merged": "What METE uses:",
+			"preferences": "Preferences",
+			"refresh": "Refresh",
+			"setKey": "Set provider key…",
+			"show": "Show settings",
+			"title": "Settings",
+			"workspace": "This folder:"
+		},
 		"status": {
 			"blocked": "The METE daemon keeps stopping, so METE does not start it again for now: {0}",
 			"chooseTemplate": "Choose a team for this goal: {0}",

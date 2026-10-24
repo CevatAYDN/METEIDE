@@ -4,6 +4,7 @@ import type {
 	DaemonChainResultSchema,
 	DaemonCheckpointRestoreResultSchema,
 	DaemonEstimateResultSchema,
+	DaemonSettingsResultSchema,
 	DaemonStatusResultSchema,
 	DaemonTemplateReadResultSchema,
 	MeteEvent,
@@ -40,6 +41,9 @@ export type Chain = ReturnType<typeof DaemonChainResultSchema.parse>;
 export type Restored = ReturnType<
 	typeof DaemonCheckpointRestoreResultSchema.parse
 >;
+
+/** What `mete/settings` answers (ADR-081): the loaded configuration, merged and per file. */
+export type Settings = ReturnType<typeof DaemonSettingsResultSchema.parse>;
 
 /** What `mete/estimate` answers (ADR-068), as the daemon protocol schema parses it. */
 export type Estimate = ReturnType<typeof DaemonEstimateResultSchema.parse>;
@@ -148,6 +152,8 @@ export interface MeteDaemonService {
 		tier: Tier,
 		needs: readonly Need[],
 	): Promise<Result<Chain, DaemonFailure>>;
+	/** The configuration the folder's daemon loaded, every string masked (ADR-081). */
+	settings(workspaceDir: string): Promise<Result<Settings, DaemonFailure>>;
 	/** Restores a paused or ended run's checkpoint by the id of its checkpoint.created event (ADR-079). */
 	checkpointRestore(
 		workspaceDir: string,

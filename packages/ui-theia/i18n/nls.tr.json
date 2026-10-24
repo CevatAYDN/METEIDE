@@ -136,6 +136,21 @@
 			"unassigned": "{0} atanmamış",
 			"which": "Hangi çalıştırma?"
 		},
+		"settings": {
+			"caption": "METE: yüklediği yapılandırma",
+			"editTeam": "Ekibi düzenle…",
+			"global": "Genel:",
+			"language": "Görüntüleme dili",
+			"loaded": "METE bunları {0} anında yükledi. Bu dosyalardaki değişiklikler METE yeniden başlayınca geçerli olur; hiçbir dosyanın ayarlamadığı bir anahtar modülün yerleşik varsayılanını alır.",
+			"loading": "METE daemon'una soruluyor…",
+			"merged": "METE'nin kullandığı:",
+			"preferences": "Tercihler",
+			"refresh": "Yenile",
+			"setKey": "Sağlayıcı anahtarı ayarla…",
+			"show": "Ayarları göster",
+			"title": "Ayarlar",
+			"workspace": "Bu klasör:"
+		},
 		"status": {
 			"blocked": "METE daemon'u durup duruyor, bu yüzden METE onu şimdilik yeniden başlatmıyor: {0}",
 			"chooseTemplate": "Bu hedef için bir ekip seç: {0}",
