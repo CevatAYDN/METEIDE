@@ -8,6 +8,9 @@ overrides:
   electron: 42.11.12
   serialize-javascript: ^7.1.2
 
+patchedDependencies:
+  '@vscode/windows-ca-certs@0.3.4': 4ff0c39bd0e83c0374825eb67e0b0e7f2dd44a36da592269847f05b787e4d8b8
+
 importers:
 
   .:
@@ -118,6 +121,12 @@ importers:
       '@theia/navigator':
         specifier: 1.76.0
         version: 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/plugin-ext':
+        specifier: 1.76.0
+        version: 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)(zod@4.6.5)
+      '@theia/plugin-ext-vscode':
+        specifier: 1.76.0
+        version: 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)(zod@4.6.5)
       '@theia/preferences':
         specifier: 1.76.0
         version: 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
@@ -1466,6 +1475,15 @@ packages:
     resolution: {integrity: sha512-4BAffykYOgO+5nzBWYwE3W90sBgLJoUPRWWcL8wlyiM8IB8ipJz3UMJ9KXQd1RKQXpKp8Tutn80HZtWsu2u76w==}
     engines: {node: '>=10'}
 
+  '@theia/ai-core-ui@1.76.0':
+    resolution: {integrity: sha512-BA1dp3PlSHsH6UF6Q/V/4mCtIA/LRsoK3ruAvtDQErLvm0LktLd1uUG7WmLbIxjA77tlSGYDWNavC3ABRoYWUQ==}
+
+  '@theia/ai-core@1.76.0':
+    resolution: {integrity: sha512-eAYdhG3pXW2uKkslIouuzE+shg2+LiMES8ONRAq4n6JiuKdy0ycWg86yg+bNaUXmju78MMeq9mdXGp1a5ENV/w==}
+
+  '@theia/ai-mcp@1.76.0':
+    resolution: {integrity: sha512-/aNNIgaMq4ZFOpCmgXALmXCjcw019QGSL/1buV/zLTwPcdnGPg8s0DeJUsqiFeyeUPyvQQl4PXqZWAwiFaQfsw==}
+
   '@theia/application-manager@1.76.0':
     resolution: {integrity: sha512-paYQvGBc6bUCVnfVPYo2BZPtFJumm4/5OO2M7yq342dBEezRIy/9bFIOEHs5wDCiC48Vqq1G2g3e36Jp752isw==}
     peerDependencies:
@@ -1477,12 +1495,21 @@ packages:
   '@theia/application-package@1.76.0':
     resolution: {integrity: sha512-XREacI7NkTjxbHE5EIqcwg8mYc1BMiebz61XDMiqGhR2PG+/36+DAZvymO2fk/eQtbGen4iyXRpDH7L7DASriA==}
 
+  '@theia/bulk-edit@1.76.0':
+    resolution: {integrity: sha512-5pgYuaZY8K5A6umJalMUVJcW18b792JbVVWkKedGweaSH9vNhjYKWfD2WieipQs71xmyzUSWUSoHRdJRrrANIA==}
+
   '@theia/bundle-plugin@1.76.0':
     resolution: {integrity: sha512-NP7+Dx2UfrxppOb3gnbuBBccGwtoAkhRihNQvwMKZ7dWtyj2f+86Zg79nQf0PSGcmsCSov8NFGzLrnyKjId43A==}
+
+  '@theia/callhierarchy@1.76.0':
+    resolution: {integrity: sha512-b+CCB9dod9HJh5D7QM9r+ey68amsYneI5uvG8FaR561QiX5NUbdAPlOYQVrJOv8HqDee+nJtfghJj1JYw9ny1w==}
 
   '@theia/cli@1.76.0':
     resolution: {integrity: sha512-pc7jNa/r+WisySRRb3OJvc84YYzcohBLDsVbkN+trbMtczwzUhxtAHyU/3NzivwsshD98uEOLeai1X8mzsEf0Q==}
     hasBin: true
+
+  '@theia/console@1.76.0':
+    resolution: {integrity: sha512-K49uLgNIb83hyISstRIdmvyx9o3STQpvMEdrfbvo7p3zXweiIjtTM3kBNMKFnjYIMKjcVkbFkjz0r+nQxyGFzg==}
 
   '@theia/core@1.76.0':
     resolution: {integrity: sha512-E1hJGgzHbu/Whqo8pxU9MkAblOnnGedPybPOVRspZjuKF8ApRof6cNpSrUeFevrGPmF5Jesd2NqchtvIExXGRg==}
@@ -1499,6 +1526,12 @@ packages:
         optional: true
       '@types/react-dom':
         optional: true
+
+  '@theia/debug@1.76.0':
+    resolution: {integrity: sha512-fdW1IVQyDyid0WHvLvvAwnLnSq5weh4+oHiMSHFy3vuTy9BRrcieKSjU1b9gWtMM6f9wKDtHLuLGgYzdE57rTg==}
+
+  '@theia/editor-preview@1.76.0':
+    resolution: {integrity: sha512-pL9Zl5mbVamYTa9/C7tNoEG75cnaaB4IFXmZMZaoRXzjhIG2jiOCge0xg+qI/F4iVMq3kSyndSfmqTRcZhZsxQ==}
 
   '@theia/editor@1.76.0':
     resolution: {integrity: sha512-HeC696z+LkwHdTYq6v3/Z5b9LQdOHgVmqGsqWrb/RwB8n47p2PbX8p3ORGTlLsbo3ItAb7pET1nRxee4j8ssMw==}
@@ -1535,14 +1568,29 @@ packages:
   '@theia/navigator@1.76.0':
     resolution: {integrity: sha512-Xuc4XUVtFBYPJqjxF+uPFnEsKZIDGlf5Qt55lgp2GrXskjUyO5jirF+Q9O6KUg+MYm+hlQ1r5g0hKowNTf0uyQ==}
 
+  '@theia/notebook@1.76.0':
+    resolution: {integrity: sha512-nm6wh8F9i/0owEjQo4Hx9dbFIps2/6hyjBSpP2lLKnHAADCI2MePNhMQZcbcTtilxIAqPL3xRS+1jc54/gTXOw==}
+
   '@theia/outline-view@1.76.0':
     resolution: {integrity: sha512-1k+1mF+EwZqvuxwZmU/IBsX/r4V0qK3DIbTkDNXRZJrldLD/1a+6BUBTVrymUIgFeCA8A83/ZmNUZAFXC9PeyA==}
+
+  '@theia/output@1.76.0':
+    resolution: {integrity: sha512-68N1MRqUaf1t+r6i4ePGfgwuSZlTsBfiGntwH3O7AyAIxksV2+Ok+oBGKQR0HkSyVGeSmx8BFILr3HRWwO/8dA==}
 
   '@theia/ovsx-client@1.76.0':
     resolution: {integrity: sha512-epYFvWHiYKoqTK/UjuUN26SMQ1qs2vZmodqL+2rdcG6rbnsyawBByYL6wDT+pT/lrmiunElLz67/ChDMohQSgg==}
 
+  '@theia/plugin-ext-vscode@1.76.0':
+    resolution: {integrity: sha512-ZT3HkN69Q79VKhmapvgJU4P/ZTTxHctidKE3ienks40Ewu8Qx0wFHFr/AgJ4wg9xxjvc+Smz81pJPgqBUz/Y/w==}
+
+  '@theia/plugin-ext@1.76.0':
+    resolution: {integrity: sha512-lEnGlysG8MQT6P8HIB+uBZmwluYoTgU0i4iQygTOVsQ0BiLH9gmKERSxZSf+3wL3IGRoL9tt+v211IibPxZJdQ==}
+
   '@theia/plugin-utils@1.76.0':
     resolution: {integrity: sha512-KAVDGoFakhNAXuyKf/MlFR9h57mUvfUDKyW4GodLC3bHtsAR51zn+N7YI5bsYIDPRJGK31jkw6KEfbmN+RARsA==}
+
+  '@theia/plugin@1.76.0':
+    resolution: {integrity: sha512-OPXjKL+gm3JH3vbGhatHc5IQ/aylvRy1qmhQ9YNghk4eV2AnKTYrd2r4o/jeDXDmsNxWM5sfOCmhhqfC3PljTw==}
 
   '@theia/preferences@1.76.0':
     resolution: {integrity: sha512-xEoxMl4Ya4W9CPeUI5zOP6krJsa3M+a87UUSpCxBSQRwUVzQN6/sfkpuCLO4lvqQ1aprwY3qPgYp4SP+9nn9ow==}
@@ -1553,11 +1601,29 @@ packages:
   '@theia/request@1.76.0':
     resolution: {integrity: sha512-jVzLoja+kvIUZmbeY1Dh8Yz5Tq56DP7Zp/w2hgCymrfr2DL59sPdBZFGsQfpHgZaLW3No1c1zamMWmrHrKDXzg==}
 
+  '@theia/scm@1.76.0':
+    resolution: {integrity: sha512-2porrDle9dLs3ONLDF/IlmHi0gqbAZDpcEY6Gx+3EJ6VGGxL04zSjiOD1F/uQzGweoNKxUa4f7VHWhqkJ9etKw==}
+
   '@theia/search-in-workspace@1.76.0':
     resolution: {integrity: sha512-s/BI7Ip2rIxKs2aQ4YnXZkKx0iC8jL+jB+SsulbOAmPIKBgs3PThTzjeRQI0IXXRoiDsmxYyKUpvTbXGt2k06w==}
 
+  '@theia/task@1.76.0':
+    resolution: {integrity: sha512-7ZBEo8Hy3k8CicLtt00AE3cKBXk542LicfOc64Zd4d8Y+bSRwFqHHcLdnm9fAKChHeulKXv9Z/FG9zAm5ojZ9Q==}
+
+  '@theia/telemetry@1.76.0':
+    resolution: {integrity: sha512-yuqk0RP3l96fFoAlqE35lFjuGb2Zv+KslUyDNPXEcxDDRt/KTjcS+784V4zUYBNSbCBdhRTqNnqkgM6uUsbdWA==}
+
   '@theia/terminal@1.76.0':
     resolution: {integrity: sha512-M9uYbgpmU4IYGYDvAH6oIcgxOCETxEJvXRs1Tir7I+8AJ6I8r6sdRhSCKc0q3re3avmIkaJzfATIhGVZXPgz9w==}
+
+  '@theia/test@1.76.0':
+    resolution: {integrity: sha512-TGdbzjEbUJQGYvpGUn0UkhuMy2AldmuRXgLS9Ac735YxddTn30XC/13twODMQLWdyutgQp9qU8pFVr5c+DtC5w==}
+
+  '@theia/timeline@1.76.0':
+    resolution: {integrity: sha512-coqJsh1MrDN62G6w/DS1Q6Ced0fjUxa3t0kCcADze69IGJ1T061G33tzsyk5PvR/s1PtHaGvo0O7U1XN7akBDw==}
+
+  '@theia/typehierarchy@1.76.0':
+    resolution: {integrity: sha512-FwD5YOaOWPcCgx8fIcJYUGVv70sCLu1oX/tCwN5PXGJddtcscKaXXErsMias1V2ZJILSY88q+3/KDu5hjHpq1A==}
 
   '@theia/userstorage@1.76.0':
     resolution: {integrity: sha512-/sbWKkBhL96Gy8gNKqjhGfiCdTNzREjJgjAfBBoSVqdZoI6aeHVIMDd07BYWHhKI171YzqHxeSW2rtgRssxncw==}
@@ -1567,6 +1633,10 @@ packages:
 
   '@theia/workspace@1.76.0':
     resolution: {integrity: sha512-KxR85wdO1HFB3P30zozHp2X/m2BSjeB8VyRQdS/360qOl6rZksJPIfHlDedlbZiD/j6gbVgWnwHVAagZTWn8BA==}
+
+  '@tootallnate/once@1.1.2':
+    resolution: {integrity: sha512-RbzJvlNzmRq5c3O09UipeuXno4tA1FE6ikOjxZK0tuxVv3412l64l5t1W5pj4+rJq9vpkm/kwiR07aZXnsKPxw==}
+    engines: {node: '>= 6'}
 
   '@tootallnate/once@2.0.1':
     resolution: {integrity: sha512-HqmEUIGRJ5fSXchkVgR5F7qn48bDBzv0kWj/Kfu5e6uci4UlEeng4331LnBkWffb++Ei3FOVLxo8JJWMFBDMeQ==}
@@ -1650,6 +1720,9 @@ packages:
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
 
+  '@types/diff@5.2.3':
+    resolution: {integrity: sha512-K0Oqlrq3kQMaO2RhfrNQX5trmt+XLyom88zS0u84nnIcLvFnRUMRRHmrGny5GSM+kNO9IZLARsdQHDzkhAgmrQ==}
+
   '@types/earcut@3.0.0':
     resolution: {integrity: sha512-k/9fOUGO39yd2sCjrbAJvGDEQvRwRnQIZlBz43roGwUZo5SHAmyVvSFyaVVZkicRVCaDXPKlbxrUcBuJoSWunQ==}
 
@@ -1677,6 +1750,9 @@ packages:
   '@types/http-errors@2.0.5':
     resolution: {integrity: sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==}
 
+  '@types/js-yaml@4.0.9':
+    resolution: {integrity: sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg==}
+
   '@types/keyv@3.1.4':
     resolution: {integrity: sha512-BQ5aZNSCpj7D6K2ksrRCTmKRLEpnPvWDiLPfoGyhZ++8YtiK9d/3DBKPJgry359X/P1PfruyYwvnvwFjuEiEIg==}
 
@@ -1703,6 +1779,9 @@ packages:
 
   '@types/mime@1.3.5':
     resolution: {integrity: sha512-/pyBZWSLD2n0dcHE3hq8s8ZvcETHtEuF+3E7XVt0Ig2nvsVQXdghHVcEkIWjy9A0wKfTn97a/PSDYohKIlnP/w==}
+
+  '@types/mime@2.0.3':
+    resolution: {integrity: sha512-Jus9s4CDbqwocc5pOAnh8ShfrnMcPHuJYzVcSUU7lrh8Ni5HuIqX3oilL86p3dlTrk0LzHRCgA/GQ7uNCw6l2Q==}
 
   '@types/mocha@10.0.10':
     resolution: {integrity: sha512-xPyYSz1cMPnJQhl0CLMH68j3gprKZaTjG3s5Vi+fDgx+uhG9NOXwbVt52eFS8ECyXhyKcjDLCBEqBExKuiZb7Q==}
@@ -1821,6 +1900,12 @@ packages:
   '@vscode/codicons@0.0.45':
     resolution: {integrity: sha512-1KAZ7XCMagp5Gdrlr4bbbcAqgcIL623iO1wW6rfcSVGAVUQvR0WP7bQx1SbJ11gmV3fdQTSEFIJQ/5C+HuVasw==}
 
+  '@vscode/debugprotocol@1.68.0':
+    resolution: {integrity: sha512-2J27dysaXmvnfuhFGhfeuxfHRXunqNPxtBoR3koiTOA9rdxWNDTa1zIFLCFMSHJ9MPTPKFcBeblsyaCJCIlQxg==}
+
+  '@vscode/proxy-agent@0.13.2':
+    resolution: {integrity: sha512-BSUd0NTj44WvG4O9A6N+4R1XhxtPqCYltWeHyNkquX9T//a1US+cd8fxzcZCPd3z7dygdYIPkZAKM+CrefWWOA==}
+
   '@vscode/ripgrep-darwin-arm64@1.18.0':
     resolution: {integrity: sha512-r3ktHSvbFycQNF6sl7sNDPocpsI7J+mEzh1IaZFkY0spm3k2Z9t8hPAeOK7+p0l6p6/swkQC14XWX01low+94Q==}
     cpu: [arm64]
@@ -1884,6 +1969,10 @@ packages:
   '@vscode/ripgrep@1.18.0':
     resolution: {integrity: sha512-ns5lWe44tSfbTMbVUsyB+I1819PVSw4AdpgK0RNkzfWfwy6+3IUNSxwSrfTno1/oWaS/hERNz+XLWVyga2aJBQ==}
 
+  '@vscode/windows-ca-certs@0.3.4':
+    resolution: {integrity: sha512-DcDLjBpu8srh6wUiZqEMyhXHzNDO81ecZOttL3+1u3Iht4CS6Qtxy5WkTPX/aDgbheASO/MK8yg6uLq58RzEWg==}
+    os: [win32]
+
   '@webgpu/types@0.1.74':
     resolution: {integrity: sha512-lgiI4hbuLcI9unnm2cL/tvCaQU45dp0xcLWJh5uB/9MBGvIA4F8XIk7nSiBeg+K4xWGYwgZKn80LmERI5CxoTA==}
 
@@ -1946,6 +2035,9 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
+  advanced-mark.js@2.7.1:
+    resolution: {integrity: sha512-OVoypiDXWqP+BCfXznAvwiyXZth/SF36R8SCsqptAA+0CdpX8DX9FH1qZ1OhrJxOeaSF4AgkeCFd+6EmsNAqww==}
+
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
     engines: {node: '>= 6.0.0'}
@@ -1975,6 +2067,9 @@ packages:
 
   ajv@8.20.0:
     resolution: {integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==}
+
+  anser@2.3.5:
+    resolution: {integrity: sha512-vcZjxvvVoxTeR5XBNJB38oTu/7eDCZlwdz32N1eNgpyPF7j/Z7Idf+CUwQOkKKpJ7RJyjxgLHCM7vdIK0iCNMQ==}
 
   ansi-colors@4.1.3:
     resolution: {integrity: sha512-/6w/C21Pm1A7aZitlI5Ni/2J6FFQN8i1Cvz3kHABAAbw93v/NlvKdVOqz7CCWz/3iv/JplRSEEZ83XION15ovw==}
@@ -2642,6 +2737,10 @@ packages:
   devtools-protocol@0.0.1687809:
     resolution: {integrity: sha512-t7kSb+UKYdyxcmqy98U2P86ne6rCve3DIJ4+lp54i/hhClgFuG35JrLj23rO14Jw3sWDsp7i+22QhNU0+/qk8g==}
 
+  diff@5.2.2:
+    resolution: {integrity: sha512-vtcDfH3TOjP8UekytvnHH1o1P4FcUdt4eQ1Y+Abap1tk/OB2MWQvcwS2ClCd1zuIhc3JKOx6p3kod8Vfys3E+A==}
+    engines: {node: '>=0.3.1'}
+
   diff@7.0.0:
     resolution: {integrity: sha512-PJWHUb1RFevKCwaFA9RlG5tCd+FO5iRh9A8HEtkmBH2Li03iJriB6m6JIN4rGz3K3JLawI7/veA1xzRKP6ISBw==}
     engines: {node: '>=0.3.1'}
@@ -2935,6 +3034,10 @@ packages:
   escape-html@1.0.3:
     resolution: {integrity: sha512-NiSupZ4OeuGwr68lGIeym/ksIZMJodUGOSCZ/FSnTxcrekbvqrgdUxlJOMpijaKZVjAJrWrGs/6Jy8OMuyj9ow==}
 
+  escape-string-regexp@1.0.5:
+    resolution: {integrity: sha512-vbRorB5FUQWvla16U8R/qgaFIya2qGzwDrNmCZuYKrbdSUMG6I1ZCGQRefkRVhuOkIGVne7BQ35DSfo1qvJqFg==}
+    engines: {node: '>=0.8.0'}
+
   escape-string-regexp@4.0.0:
     resolution: {integrity: sha512-TtpcNJ3XAzx3Gq8sWRzJaVajRs0uVxA2YAkdb1jm2YkPz4G6egUFAyA3n5vtEIZefPk5Wa4UXbKuS5fKkJWdgA==}
     engines: {node: '>=10'}
@@ -3063,6 +3166,10 @@ packages:
   filename-reserved-regex@2.0.0:
     resolution: {integrity: sha512-lc1bnsSr4L4Bdif8Xb/qrtokGbq5zlsms/CYH8PP+WtCkGNF65DPiQY8vG3SakEdRn8Dlnm+gW/qWKKjS5sZzQ==}
     engines: {node: '>=4'}
+
+  filenamify@4.3.0:
+    resolution: {integrity: sha512-hcFKyUG57yWGAzu1CMt/dPzYZuv+jAJUT85bL8mrXvNe6hWj6yEHEc4EdcgiA6Z3oi1/9wXJdZPXF2dZNgwgOg==}
+    engines: {node: '>=8'}
 
   fill-range@7.1.1:
     resolution: {integrity: sha512-YsGpe3WHLK8ZYi4tWDg2Jy3ebRz2rXowDxnld4bkQB00cc/1Zw9AWnC0i9ztDJitivtQvaI9KaLyKrc+hBW0yg==}
@@ -3326,6 +3433,10 @@ packages:
   http-link-header@1.1.4:
     resolution: {integrity: sha512-xT3GPW6/ZbGuw4UvwHqErSCEjNUlwbQJuZn9/q5U4WEKfp2kENVCAlousG1zLxHeaQ/ffOHUNpWamvkbBW0eNw==}
     engines: {node: '>=6.0.0'}
+
+  http-proxy-agent@4.0.1:
+    resolution: {integrity: sha512-k0zdNgqWTGA6aeIRVpvfVob4fL52dTfaehylg0Y4UvSySvOq/Y+BOyPrgpUrA7HylqvU8vIZGsRuXmspskV0Tg==}
+    engines: {node: '>= 6'}
 
   http-proxy-agent@5.0.0:
     resolution: {integrity: sha512-n2hY8YdoRE1i7r6M0w9DIw5GgZN0G25P8zLCRQ8rjXtTU3vsNFBI/vWK/UIeE6g5MUUz6avwAPXmL6Fy9D/90w==}
@@ -3911,6 +4022,9 @@ packages:
   lodash-es@4.18.1:
     resolution: {integrity: sha512-J8xewKD/Gk22OZbhpOVSwcs60zhd95ESDwezOFuA3/099925PdHJ7OFHNTGtajL3AlZkykD32HykiMo+BIBI8A==}
 
+  lodash.clonedeep@4.5.0:
+    resolution: {integrity: sha512-H5ZhCF25riFd9uB5UCkVKo61m3S/xZk1x4wA6yp/L3RFP6Z/eHH1ymQcGLo7J3GMPfm0V/7m1tryHuGVxpqEBQ==}
+
   lodash.debounce@4.0.8:
     resolution: {integrity: sha512-FT1yDzDYEoYWhnSGnpE/4Kj1fLZkDFyqRb7fNt6FdYOSxlUWAtp42Eh6Wb0rGIv/m9Bgo7x4GhQbm5Ys4SG5ow==}
 
@@ -3941,6 +4055,9 @@ packages:
 
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
+
+  macaddress@0.5.4:
+    resolution: {integrity: sha512-i8xVWoUjj2woYU8kbpQby86Kq7uF7xl2brtKREXUBWpfgqx1fKXEeYzDiVMVxA/IufC1d3xxwJRHtFCX+9IspA==}
 
   magic-string@1.4.3:
     resolution: {integrity: sha512-z12OxmaPGE0F4xlpGdjuAUckipLpQlTAuAmyGhNoD7ODpYUzvDfvtxUbjM/jwznyP178oju/KDdyi220wNJ0RQ==}
@@ -4037,6 +4154,11 @@ packages:
   mime@1.6.0:
     resolution: {integrity: sha512-x0Vn8spI+wuJ1O6S7gnbaQg8Pxh4NNHb7KSINmEWKiPE4RKOplvijn+NkmYmmRgP68mc70j2EbeTFRsrswaQeg==}
     engines: {node: '>=4'}
+    hasBin: true
+
+  mime@2.6.0:
+    resolution: {integrity: sha512-USPkMeET31rOMiarsBNIHZKLGgvKc/LrjofAnBlOttf5ajRvqiRA8QsenbcooctK6d6Ts6aqZXBA+XbkKthiQg==}
+    engines: {node: '>=4.0.0'}
     hasBin: true
 
   mimic-fn@2.1.0:
@@ -4453,6 +4575,14 @@ packages:
   p-map@4.0.0:
     resolution: {integrity: sha512-/bjOqmgETBYB5BoEeGVea8dmvHb2m9GLy1E9W43yeyfP6QQCZGFNa+XRceJEuDB6zqr+gKpIAmlLebMpykw/MQ==}
     engines: {node: '>=10'}
+
+  p-queue@8.1.1:
+    resolution: {integrity: sha512-aNZ+VfjobsWryoiPnEApGGmf5WmNsCo9xu8dfaYamG5qaLP7ClhLN6NgsFe6SwJ2UbLEBK5dv9x8Mn5+RVhMWQ==}
+    engines: {node: '>=18'}
+
+  p-timeout@6.1.4:
+    resolution: {integrity: sha512-MyIV3ZA/PmyBN/ud8vV9XzwTrNtR4jFrObymZYnZqMmW0zA8Z17vnT0rBgFE/TlohB+YCHqXMgZzb3Csp49vqg==}
+    engines: {node: '>=14.16'}
 
   p-try@2.2.0:
     resolution: {integrity: sha512-R4nPAVTAU0B9D35/Gk3uJf/7XYbQcyohSKdvAxIRSNghFl4e71hVoGnBNQz9cWaXxO2I10KTC+3jMdvvoKw6dQ==}
@@ -5034,6 +5164,10 @@ packages:
     resolution: {integrity: sha512-qMCMfhY040cVHT43K9BFygqYbUPFZKHOg7K73mtTWJRb8pyP3fzf4Ixd5SzdEJQ6MRUg/WBnOLxghZtKKurENQ==}
     engines: {node: '>=10'}
 
+  smart-buffer@4.2.0:
+    resolution: {integrity: sha512-94hK0Hh8rPqQl2xXc3HsaBoOXKV20MToPkcXvwbISWLEs+64sBq5kFgn2kJDHb1Pry9yrP0dxrCI9RRci7RXKg==}
+    engines: {node: '>= 6.0.0', npm: '>= 3.0.0'}
+
   socket.io-adapter@2.5.8:
     resolution: {integrity: sha512-6Oy52pbg+kvdCVvjcN+FnY7BvxZ7cIHNScbvztT/It5d0vbwoJoVZmF2gjJmnV0/4WlXRfG15zc45ySk9Ah8bw==}
 
@@ -5048,6 +5182,14 @@ packages:
   socket.io@4.8.4:
     resolution: {integrity: sha512-9ZV9zg8vN8hO3Y25DhR7nUkJ1VDnBhq5O/JrXhFT9s6+F0gqytSASTHVfCFc2mJXaTfARroErplXlzFWwETZqQ==}
     engines: {node: '>=10.2.0'}
+
+  socks-proxy-agent@5.0.1:
+    resolution: {integrity: sha512-vZdmnjb9a2Tz6WEQVIurybSwElwPxMZaIc7PzqbJTrezcKNznv6giT7J7tZDZ1BojVaa1jvO/UiUdhDVB0ACoQ==}
+    engines: {node: '>= 6'}
+
+  socks@2.8.10:
+    resolution: {integrity: sha512-e0VyvkVTwVYViNovRkZ9aodhxVlyoMn7eJhVUPxZ+eK9P/7CBkxvvsBOHqFPEH416726W8tLXXXjKwqgTErrCQ==}
+    engines: {node: '>= 10.0.0', npm: '>= 3.0.0'}
 
   sonic-boom@4.2.1:
     resolution: {integrity: sha512-w6AxtubXa2wTXAUsZMMWERrsIRAdrK0Sc+FUytWvYAhBJLyuI4llrMIC1DtlNSdI99EI86KZum2MMq3EAZlF9Q==}
@@ -5157,6 +5299,10 @@ packages:
   strip-json-comments@3.1.1:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
+
+  strip-outer@1.0.1:
+    resolution: {integrity: sha512-k55yxKHwaXnpYGsOzg4Vl8+tDrWylxDEpknGjhTiZB8dFRU5rTo9CAzeycivxV3s+zlTKwrs6WxMxR95n26kwg==}
+    engines: {node: '>=0.10.0'}
 
   structured-source@4.0.0:
     resolution: {integrity: sha512-qGzRFNJDjFieQkl/sVOI2dUjHKRyL9dAJi2gCPGJLbJHBIkyOHxjuocpIEfbLioX+qSJpvbYdT49/YCdMznKxA==}
@@ -5277,6 +5423,10 @@ packages:
   traverse@0.3.10:
     resolution: {integrity: sha512-pd6fq5qmiFuPA3TpdqBCqJXlOrSdCSt0l9IZDg83Vbf4x3m/X18prEwMMVM5LXp9vGL9NxjeiDGBrTasqyngXQ==}
     engines: {node: '>= 0.4'}
+
+  trim-repeated@1.0.0:
+    resolution: {integrity: sha512-pkonvlKk8/ZuR0D5tLW8ljt5I8kmxp2XKymhepUeOdCEfKpZaktSArkLHZt76OB1ZvO9bssUsDty4SWhLvZpLg==}
+    engines: {node: '>=0.10.0'}
 
   ts-md5@1.3.1:
     resolution: {integrity: sha512-DiwiXfwvcTeZ5wCE0z+2A9EseZsztaiZtGrtSaY5JOD7ekPnR/GoIVD5gXZAlK9Na9Kvpo9Waz5rW64WKAWApg==}
@@ -5485,6 +5635,10 @@ packages:
   vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
+
+  vhost@3.0.2:
+    resolution: {integrity: sha512-S3pJdWrpFWrKMboRU4dLYgMrTgoPALsmYwOvyebK2M6X95b9kQrjZy5rwl3uzzpfpENe/XrNYu/2U+e7/bmT5g==}
+    engines: {node: '>= 0.8.0'}
 
   vite@8.3.3:
     resolution: {integrity: sha512-cTAldKPImjg6c+gk48U19POPn3GCBzZwpdsN8ZMEEcbpes+6/wvfqUd0C2y3qYY4wsj8PwgFwrZ/1jBPVttMSg==}
@@ -6682,6 +6836,81 @@ snapshots:
     dependencies:
       defer-to-connect: 2.0.1
 
+  '@theia/ai-core-ui@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
+    dependencies:
+      '@theia/ai-core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/preferences': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
+      - utf-8-validate
+
+  '@theia/ai-core@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/filesystem': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco-editor-core': 1.108.201
+      '@theia/output': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/variable-resolver': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/workspace': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@types/js-yaml': 4.0.9
+      fast-deep-equal: 3.1.3
+      js-yaml: 4.3.2
+      tslib: 2.8.1
+      undici: 7.30.0
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
+      - utf-8-validate
+
+  '@theia/ai-mcp@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)(zod@4.6.5)':
+    dependencies:
+      '@modelcontextprotocol/sdk': 1.32.1(supports-color@8.1.1)(zod@4.6.5)
+      '@theia/ai-core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/ai-core-ui': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/workspace': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+    transitivePeerDependencies:
+      - '@cfworker/json-schema'
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
+      - utf-8-validate
+      - zod
+
   '@theia/application-manager@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)':
     dependencies:
       '@electron/rebuild': 4.2.1(supports-color@8.1.1)
@@ -6723,11 +6952,52 @@ snapshots:
       - debug
       - supports-color
 
+  '@theia/bulk-edit@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/filesystem': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco-editor-core': 1.108.201
+      '@theia/workspace': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
+      - utf-8-validate
+
   '@theia/bundle-plugin@1.76.0':
     dependencies:
       detect-libc: 2.1.2
       resolve-package-path: 4.0.3
       tslib: 2.8.1
+
+  '@theia/callhierarchy@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      ts-md5: 1.3.1
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - supports-color
+      - utf-8-validate
 
   '@theia/cli@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)':
     dependencies:
@@ -6762,6 +7032,29 @@ snapshots:
       - debug
       - proxy-agent
       - supports-color
+      - utf-8-validate
+
+  '@theia/console@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/monaco': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco-editor-core': 1.108.201
+      anser: 2.3.5
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
       - utf-8-validate
 
   '@theia/core@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)':
@@ -6841,6 +7134,63 @@ snapshots:
       - bufferutil
       - debug
       - supports-color
+      - utf-8-validate
+
+  '@theia/debug@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
+    dependencies:
+      '@theia/console': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/filesystem': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/markers': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco-editor-core': 1.108.201
+      '@theia/output': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/process': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/task': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/terminal': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/test': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/variable-resolver': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/workspace': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@vscode/debugprotocol': 1.68.0
+      fast-deep-equal: 3.1.3
+      jsonc-parser: 3.3.1
+      p-debounce: 2.1.0
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
+      - utf-8-validate
+
+  '@theia/editor-preview@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/navigator': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
       - utf-8-validate
 
   '@theia/editor@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)':
@@ -7042,6 +7392,32 @@ snapshots:
       - typescript
       - utf-8-validate
 
+  '@theia/notebook@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/filesystem': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco-editor-core': 1.108.201
+      '@theia/outline-view': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      advanced-mark.js: 2.7.1
+      react-perfect-scrollbar: 1.5.8(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
+      - utf-8-validate
+
   '@theia/outline-view@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)':
     dependencies:
       '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
@@ -7057,6 +7433,29 @@ snapshots:
       - supports-color
       - utf-8-validate
 
+  '@theia/output@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/monaco': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco-editor-core': 1.108.201
+      p-queue: 8.1.1
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
+      - utf-8-validate
+
   '@theia/ovsx-client@1.76.0':
     dependencies:
       '@theia/request': 1.76.0
@@ -7064,12 +7463,119 @@ snapshots:
       semver: 7.8.5
       tslib: 2.8.1
 
+  '@theia/plugin-ext-vscode@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)(zod@4.6.5)':
+    dependencies:
+      '@theia/callhierarchy': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/filesystem': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco-editor-core': 1.108.201
+      '@theia/navigator': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/outline-view': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/plugin': 1.76.0
+      '@theia/plugin-ext': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)(zod@4.6.5)
+      '@theia/plugin-utils': 1.76.0
+      '@theia/scm': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/terminal': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/typehierarchy': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/userstorage': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/workspace': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      decompress: 4.2.1
+      filenamify: 4.3.0
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@cfworker/json-schema'
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
+      - utf-8-validate
+      - zod
+
+  '@theia/plugin-ext@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)(zod@4.6.5)':
+    dependencies:
+      '@theia/ai-core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/ai-mcp': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)(zod@4.6.5)
+      '@theia/bulk-edit': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/callhierarchy': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/console': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/debug': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/editor-preview': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/file-search': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/filesystem': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/markers': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/messages': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/monaco': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco-editor-core': 1.108.201
+      '@theia/navigator': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/notebook': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/output': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/plugin': 1.76.0
+      '@theia/plugin-utils': 1.76.0
+      '@theia/preferences': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/scm': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/search-in-workspace': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/task': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/telemetry': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/terminal': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/test': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/timeline': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/typehierarchy': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/variable-resolver': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/workspace': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@types/mime': 2.0.3
+      '@vscode/debugprotocol': 1.68.0
+      '@vscode/proxy-agent': 0.13.2(supports-color@8.1.1)
+      async-mutex: 0.4.1
+      decompress: 4.2.1
+      escape-html: 1.0.3
+      filenamify: 4.3.0
+      is-electron: 2.2.2
+      jsonc-parser: 3.3.1
+      lodash.clonedeep: 4.5.0
+      macaddress: 0.5.4
+      mime: 2.6.0
+      node-pty: 1.2.0-beta.12
+      semver: 7.8.5
+      tslib: 2.8.1
+      vhost: 3.0.2
+      vscode-textmate: 9.3.2
+    transitivePeerDependencies:
+      - '@cfworker/json-schema'
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
+      - utf-8-validate
+      - zod
+
   '@theia/plugin-utils@1.76.0':
     dependencies:
       '@types/fs-extra': 4.0.15
       fs-extra: 4.0.3
       jsonc-parser: 3.3.1
       tslib: 2.8.1
+
+  '@theia/plugin@1.76.0': {}
 
   '@theia/preferences@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
     dependencies:
@@ -7122,6 +7628,34 @@ snapshots:
       tslib: 2.8.1
       undici: 7.30.0
 
+  '@theia/scm@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/filesystem': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco-editor-core': 1.108.201
+      '@types/diff': 5.2.3
+      diff: 5.2.2
+      p-debounce: 2.1.0
+      react-textarea-autosize: 8.5.9(@types/react@19.3.0)(react@19.3.0)
+      ts-md5: 1.3.1
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
+      - utf-8-validate
+
   '@theia/search-in-workspace@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
     dependencies:
       '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
@@ -7147,6 +7681,53 @@ snapshots:
       - react-native-b4a
       - supports-color
       - typescript
+      - utf-8-validate
+
+  '@theia/task@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/filesystem': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/markers': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/monaco-editor-core': 1.108.201
+      '@theia/process': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/terminal': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/userstorage': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/variable-resolver': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/workspace': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      async-mutex: 0.3.2
+      jsonc-parser: 3.3.1
+      p-debounce: 2.1.0
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
+      - utf-8-validate
+
+  '@theia/telemetry@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - supports-color
       - utf-8-validate
 
   '@theia/terminal@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
@@ -7176,6 +7757,66 @@ snapshots:
       - react-native-b4a
       - supports-color
       - typescript
+      - utf-8-validate
+
+  '@theia/test@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/filesystem': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/navigator': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/terminal': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      xterm: 5.3.0
+      xterm-addon-fit: 0.8.0(xterm@5.3.0)
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
+      - utf-8-validate
+
+  '@theia/timeline@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/navigator': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
+      - utf-8-validate
+
+  '@theia/typehierarchy@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - supports-color
       - utf-8-validate
 
   '@theia/userstorage@1.76.0(@theia/electron@1.76.0(electron@42.11.12(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)':
@@ -7235,6 +7876,8 @@ snapshots:
       - supports-color
       - typescript
       - utf-8-validate
+
+  '@tootallnate/once@1.1.2': {}
 
   '@tootallnate/once@2.0.1': {}
 
@@ -7316,6 +7959,8 @@ snapshots:
 
   '@types/deep-eql@4.0.2': {}
 
+  '@types/diff@5.2.3': {}
+
   '@types/earcut@3.0.0': {}
 
   '@types/estree@1.0.9': {}
@@ -7355,6 +8000,8 @@ snapshots:
 
   '@types/http-errors@2.0.5': {}
 
+  '@types/js-yaml@4.0.9': {}
+
   '@types/keyv@3.1.4':
     dependencies:
       '@types/node': 24.19.1
@@ -7383,6 +8030,8 @@ snapshots:
   '@types/mdurl@2.0.0': {}
 
   '@types/mime@1.3.5': {}
+
+  '@types/mime@2.0.3': {}
 
   '@types/mocha@10.0.10': {}
 
@@ -7507,6 +8156,21 @@ snapshots:
 
   '@vscode/codicons@0.0.45': {}
 
+  '@vscode/debugprotocol@1.68.0': {}
+
+  '@vscode/proxy-agent@0.13.2(supports-color@8.1.1)':
+    dependencies:
+      '@tootallnate/once': 1.1.2
+      agent-base: 6.0.2(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@8.1.1)
+      http-proxy-agent: 4.0.1(supports-color@8.1.1)
+      https-proxy-agent: 5.0.1(supports-color@8.1.1)
+      socks-proxy-agent: 5.0.1(supports-color@8.1.1)
+    optionalDependencies:
+      '@vscode/windows-ca-certs': 0.3.4(patch_hash=4ff0c39bd0e83c0374825eb67e0b0e7f2dd44a36da592269847f05b787e4d8b8)
+    transitivePeerDependencies:
+      - supports-color
+
   '@vscode/ripgrep-darwin-arm64@1.18.0':
     optional: true
 
@@ -7557,6 +8221,11 @@ snapshots:
       '@vscode/ripgrep-win32-arm64': 1.18.0
       '@vscode/ripgrep-win32-ia32': 1.18.0
       '@vscode/ripgrep-win32-x64': 1.18.0
+
+  '@vscode/windows-ca-certs@0.3.4(patch_hash=4ff0c39bd0e83c0374825eb67e0b0e7f2dd44a36da592269847f05b787e4d8b8)':
+    dependencies:
+      node-addon-api: 8.9.2
+    optional: true
 
   '@webgpu/types@0.1.74': {}
 
@@ -7619,6 +8288,8 @@ snapshots:
 
   acorn@8.18.0: {}
 
+  advanced-mark.js@2.7.1: {}
+
   agent-base@6.0.2(supports-color@8.1.1):
     dependencies:
       debug: 4.4.3(supports-color@8.1.1)
@@ -7651,6 +8322,8 @@ snapshots:
       fast-uri: 3.1.8
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
+
+  anser@2.3.5: {}
 
   ansi-colors@4.1.3: {}
 
@@ -8332,6 +9005,8 @@ snapshots:
 
   devtools-protocol@0.0.1687809: {}
 
+  diff@5.2.2: {}
+
   diff@7.0.0: {}
 
   dir-glob@2.2.2:
@@ -8643,6 +9318,8 @@ snapshots:
 
   escape-html@1.0.3: {}
 
+  escape-string-regexp@1.0.5: {}
+
   escape-string-regexp@4.0.0: {}
 
   estree-walker@3.0.3:
@@ -8827,6 +9504,12 @@ snapshots:
   file-uri-to-path@1.0.0: {}
 
   filename-reserved-regex@2.0.0: {}
+
+  filenamify@4.3.0:
+    dependencies:
+      filename-reserved-regex: 2.0.0
+      strip-outer: 1.0.1
+      trim-repeated: 1.0.0
 
   fill-range@7.1.1:
     dependencies:
@@ -9142,6 +9825,14 @@ snapshots:
       toidentifier: 1.0.1
 
   http-link-header@1.1.4: {}
+
+  http-proxy-agent@4.0.1(supports-color@8.1.1):
+    dependencies:
+      '@tootallnate/once': 1.1.2
+      agent-base: 6.0.2(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@8.1.1)
+    transitivePeerDependencies:
+      - supports-color
 
   http-proxy-agent@5.0.0(supports-color@8.1.1):
     dependencies:
@@ -9703,6 +10394,8 @@ snapshots:
 
   lodash-es@4.18.1: {}
 
+  lodash.clonedeep@4.5.0: {}
+
   lodash.debounce@4.0.8: {}
 
   lodash.throttle@4.1.1: {}
@@ -9732,6 +10425,8 @@ snapshots:
   lowercase-keys@2.0.0: {}
 
   lru-cache@10.4.3: {}
+
+  macaddress@0.5.4: {}
 
   magic-string@1.4.3:
     dependencies:
@@ -9812,6 +10507,8 @@ snapshots:
       mime-db: 1.54.0
 
   mime@1.6.0: {}
+
+  mime@2.6.0: {}
 
   mimic-fn@2.1.0: {}
 
@@ -10101,6 +10798,13 @@ snapshots:
   p-map@4.0.0:
     dependencies:
       aggregate-error: 3.1.0
+
+  p-queue@8.1.1:
+    dependencies:
+      eventemitter3: 5.0.4
+      p-timeout: 6.1.4
+
+  p-timeout@6.1.4: {}
 
   p-try@2.2.0: {}
 
@@ -10803,6 +11507,8 @@ snapshots:
       astral-regex: 2.0.0
       is-fullwidth-code-point: 3.0.0
 
+  smart-buffer@4.2.0: {}
+
   socket.io-adapter@2.5.8(supports-color@8.1.1):
     dependencies:
       debug: 4.4.3(supports-color@8.1.1)
@@ -10842,6 +11548,19 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+
+  socks-proxy-agent@5.0.1(supports-color@8.1.1):
+    dependencies:
+      agent-base: 6.0.2(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@8.1.1)
+      socks: 2.8.10
+    transitivePeerDependencies:
+      - supports-color
+
+  socks@2.8.10:
+    dependencies:
+      ip-address: 10.7.3
+      smart-buffer: 4.2.0
 
   sonic-boom@4.2.1:
     dependencies:
@@ -10962,6 +11681,10 @@ snapshots:
   strip-json-comments@2.0.1: {}
 
   strip-json-comments@3.1.1: {}
+
+  strip-outer@1.0.1:
+    dependencies:
+      escape-string-regexp: 1.0.5
 
   structured-source@4.0.0:
     dependencies:
@@ -11124,6 +11847,10 @@ snapshots:
       gopd: 1.2.0
       typedarray.prototype.slice: 1.0.6
       which-typed-array: 1.1.24
+
+  trim-repeated@1.0.0:
+    dependencies:
+      escape-string-regexp: 1.0.5
 
   ts-md5@1.3.1: {}
 
@@ -11326,6 +12053,8 @@ snapshots:
       filename-reserved-regex: 2.0.0
 
   vary@1.1.2: {}
+
+  vhost@3.0.2: {}
 
   vite@8.3.3(@types/node@24.19.1)(esbuild@0.28.2)(yaml@2.9.1):
     dependencies:

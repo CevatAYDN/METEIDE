@@ -1,0 +1,12 @@
+diff --git a/binding.gyp b/binding.gyp
+index 1f7f13f20db8ce38750d8b1b8d1a28831b35dfc0..e541c9f29116faf778fdd071660e12faf7efebc5 100644
+--- a/binding.gyp
++++ b/binding.gyp
+@@ -18,7 +18,6 @@
+         "libraries": ["-lcrypt32"]
+       },
+       "msvs_configuration_attributes": {
+-        "SpectreMitigation": "Spectre"
+       },
+       "msvs_settings": {
+         "VCCLCompilerTool": {
