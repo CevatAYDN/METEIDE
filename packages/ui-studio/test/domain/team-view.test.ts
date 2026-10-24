@@ -126,6 +126,12 @@ describe("the team view fold", () => {
 			{ id: first.id, ref: ref(1), n: 1, at: first.ts, restoredAt: back.ts },
 			{ id: undo.id, ref: ref(2), n: 2, at: undo.ts },
 		]);
+		// A file snapshot (ADR-080) ends in its number too.
+		const snap = event("checkpoint.created", {
+			kind: "snapshot",
+			ref: `snapshots/${RUN}/3`,
+		});
+		expect(applyEvent(RUN, view, snap).checkpoints.at(-1)?.n).toBe(3);
 		const other = event(
 			"checkpoint.created",
 			{ kind: "git", ref: "refs/mete/checkpoints/x/1" },

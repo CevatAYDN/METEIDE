@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
 	ModuleManifest,
@@ -185,6 +186,8 @@ const modulesFor = (
 			recover: opts.recover !== false,
 			templates: templatesOf(opts),
 			workspaceDir: opts.workspaceDir,
+			// The global snapshots/ folder (ARCHITECTURE, Global contents; ADR-080).
+			snapshotsDir: join(opts.globalDir, "snapshots"),
 		}),
 		...servedBy(opts, registry),
 	].filter((m) => !opts.without?.includes(m.manifest.id));

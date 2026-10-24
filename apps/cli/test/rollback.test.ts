@@ -1,4 +1,5 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import {
@@ -84,6 +85,51 @@ const editedRun = async () => {
 	expect(await greet()).toContain("Hello");
 	return { app: app.value, repo, runId, greet };
 };
+
+describe("mete rollback without git (ADR-080)", () => {
+	it("restores a file snapshot, deleting nothing the run did not create, and undoes it", async () => {
+		const root = await mkdtemp(join(tmpdir(), "mete-nogit-"));
+		const workspaceDir = join(root, "work");
+		await mkdir(workspaceDir);
+		await writeFile(
+			join(workspaceDir, "greet.js"),
+			'export const greet = (n) => "Helo " + n;\n',
+		);
+		const app = await createApp({
+			workspaceDir,
+			globalDir: join(root, "global"),
+			templatesDir: join(root, "no-templates"),
+			logger: silent,
+			secrets: memorySecrets(),
+			providers: [scriptedProvider({ script: EDIT })],
+		});
+		if (!app.ok) throw new Error(JSON.stringify(app.error));
+		close = async () => {
+			await app.value.stop();
+			await rm(root, { recursive: true, force: true });
+		};
+		expect(
+			await runCommand(app.value, recordingIo().io, { goal: "fix the typo" }),
+		).toBe(0);
+		const engine = engineOf(app.value);
+		const runs = engine.ok ? engine.value.status() : undefined;
+		const runId = runs?.ok ? runs.value[0]?.id : undefined;
+		if (!runId) throw new Error("no run");
+		const greet = () => readFile(join(workspaceDir, "greet.js"), "utf8");
+		expect(await greet()).toContain('"Hello "');
+		const t = recordingIo();
+		expect(await rollbackCommand(app.value, t.io, runId, "1")).toBe(0);
+		expect(t.out).toEqual([
+			`restored snapshots/${runId}/1`,
+			`undo with: mete rollback ${runId} 2`,
+		]);
+		expect(await greet()).toContain('"Helo "');
+		expect(await rollbackCommand(app.value, recordingIo().io, runId, "2")).toBe(
+			0,
+		);
+		expect(await greet()).toContain('"Hello "');
+	});
+});
 
 describe("mete rollback", () => {
 	it("restores a checkpoint, and the line it prints undoes the restore", async () => {
