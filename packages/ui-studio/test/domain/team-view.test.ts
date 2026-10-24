@@ -116,6 +116,25 @@ describe("the team view fold", () => {
 		expect(view.tasks[0]?.artifactPath).toBe(".mete/artifacts/r/notes-2.md");
 	});
 
+	it("lists the run's checkpoints by number and time, and marks one when it is restored (ADR-079)", () => {
+		const ref = (n: number) => `refs/mete/checkpoints/${RUN}/${n}`;
+		const first = event("checkpoint.created", { kind: "git", ref: ref(1) });
+		const undo = event("checkpoint.created", { kind: "git", ref: ref(2) });
+		const back = event("rollback.performed", { checkpointId: first.id });
+		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [first, undo, back, back]);
+		expect(view.checkpoints).toEqual([
+			{ id: first.id, ref: ref(1), n: 1, at: first.ts, restoredAt: back.ts },
+			{ id: undo.id, ref: ref(2), n: 2, at: undo.ts },
+		]);
+		const other = event(
+			"checkpoint.created",
+			{ kind: "git", ref: "refs/mete/checkpoints/x/1" },
+			undefined,
+			crypto.randomUUID(),
+		);
+		expect(applyEvent(RUN, view, other).checkpoints).toBe(view.checkpoints);
+	});
+
 	it("keeps the view unchanged by events it does not draw", () => {
 		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [created(NOTES, "Take notes")]);
 		const next = applyEvent(RUN, view, event("agent.thinking.started", {}));

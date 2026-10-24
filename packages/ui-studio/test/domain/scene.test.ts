@@ -34,6 +34,7 @@ const view = (
 	tasks,
 	agents,
 	signals: { ...NO_SIGNALS, ...signals },
+	checkpoints: [],
 });
 
 describe("the studio room", () => {

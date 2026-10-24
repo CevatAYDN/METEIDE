@@ -3,6 +3,10 @@
 export { ROOM_W } from "./defaults.js";
 export { type AgentCard, agentsAfter } from "./domain/agents.js";
 export {
+	type CheckpointCard,
+	checkpointsAfter,
+} from "./domain/checkpoints.js";
+export {
 	type Effect,
 	type EffectColour,
 	effectsOf,

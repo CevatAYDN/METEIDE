@@ -1,5 +1,6 @@
 import type { MeteEvent } from "@mete/contracts";
 import { type AgentCard, agentsAfter } from "./agents.js";
+import { type CheckpointCard, checkpointsAfter } from "./checkpoints.js";
 import { NO_SIGNALS, type RunSignals, signalsAfter } from "./signals.js";
 
 // The view model the Team panel's views share (ADR-051, docs/13): a pure fold over one run's
@@ -8,7 +9,7 @@ import { NO_SIGNALS, type RunSignals, signalsAfter } from "./signals.js";
 // forwards it), so each event id is applied once. A card's place comes from its status alone, the
 // task state machine of docs/07; task.assigned only names the agent (the core publishes it just
 // before the change to in_progress). Agents follow their own events (agents.ts), and the Studio's
-// signals theirs (signals.ts). shortcut: messages come with the Studio's animations.
+// signals theirs (signals.ts), the checkpoint list its own (checkpoints.ts). shortcut: messages come with the Studio's animations.
 
 /** A task state of docs/07, as task.status.changed carries it. */
 export type TaskStatus = Extract<
@@ -37,6 +38,7 @@ export type TeamView = {
 	readonly tasks: readonly TaskCard[];
 	readonly agents: readonly AgentCard[];
 	readonly signals: RunSignals;
+	readonly checkpoints: readonly CheckpointCard[];
 };
 
 /** The view before the first event. */
@@ -45,6 +47,7 @@ export const EMPTY_TEAM_VIEW: TeamView = {
 	tasks: [],
 	agents: [],
 	signals: NO_SIGNALS,
+	checkpoints: [],
 };
 
 /** A Board column, and the marker a card in it carries (ADR-051). */
@@ -123,6 +126,7 @@ export const applyEvent = (
 		tasks: tasksAfter(view.tasks, e),
 		agents: agentsAfter(view.agents, e),
 		signals: signalsAfter(view.signals, e),
+		checkpoints: checkpointsAfter(view.checkpoints, e),
 	};
 };
 

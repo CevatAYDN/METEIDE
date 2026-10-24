@@ -25,6 +25,7 @@ const view = (tasks: TaskCard[], agents: AgentCard[] = []): TeamView => ({
 	tasks,
 	agents,
 	signals: NO_SIGNALS,
+	checkpoints: [],
 });
 
 describe("the Flow graph", () => {
