@@ -186,6 +186,30 @@ describe("the daemon host", () => {
 		expect(!odd.ok && odd.error.code).toBe("protocol");
 	});
 
+	it("asks for a custom endpoint's models and probes, and a missing one as refused (ADR-087)", async () => {
+		const { host } = await setup();
+		expect(await host.providerModels("/w", "custom:lab")).toEqual({
+			ok: true,
+			value: {
+				failed: { code: "unauthorized", message: "bad key", status: 401 },
+			},
+		});
+		expect(await host.providerTest("/w", "custom:lab", ["a", "b"])).toEqual({
+			ok: true,
+			value: {
+				results: [
+					{ modelId: "a", ok: true, ms: 5 },
+					{ modelId: "b", ok: true, ms: 5 },
+				],
+			},
+		});
+		const gone = await host.providerModels("/w", "custom:gone");
+		expect(!gone.ok && gone.error).toEqual({
+			code: "refused",
+			detail: "no custom:gone",
+		});
+	});
+
 	it("sends Stop all and returns the runs the daemon cancelled (ADR-065)", async () => {
 		const { host } = await setup();
 		expect(await host.stopAll("/w")).toEqual({

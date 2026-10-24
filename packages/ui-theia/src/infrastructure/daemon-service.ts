@@ -117,6 +117,18 @@ export class MeteDaemonBackend
 		return this.host.settings(workspaceDir);
 	}
 
+	providerModels(workspaceDir: string, providerId: string) {
+		return this.host.providerModels(workspaceDir, providerId);
+	}
+
+	providerTest(
+		workspaceDir: string,
+		providerId: string,
+		models: readonly string[],
+	) {
+		return this.host.providerTest(workspaceDir, providerId, models);
+	}
+
 	checkpointRestore(workspaceDir: string, runId: string, checkpointId: string) {
 		return this.host.checkpointRestore(workspaceDir, runId, checkpointId);
 	}

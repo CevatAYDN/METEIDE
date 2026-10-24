@@ -4,6 +4,8 @@ import type {
 	DaemonChainResultSchema,
 	DaemonCheckpointRestoreResultSchema,
 	DaemonEstimateResultSchema,
+	DaemonProviderModelsResultSchema,
+	DaemonProviderTestResultSchema,
 	DaemonSettingsResultSchema,
 	DaemonStatusResultSchema,
 	DaemonTemplateReadResultSchema,
@@ -44,6 +46,16 @@ export type Restored = ReturnType<
 
 /** What `mete/settings` answers (ADR-081): the loaded configuration, merged and per file. */
 export type Settings = ReturnType<typeof DaemonSettingsResultSchema.parse>;
+
+/** What `mete/provider.models` answers (ADR-087): a custom endpoint's models, or why the listing failed. */
+export type EndpointModels = ReturnType<
+	typeof DaemonProviderModelsResultSchema.parse
+>;
+
+/** What `mete/provider.test` answers (ADR-087): how each model's probe ended, in the order asked. */
+export type EndpointTest = ReturnType<
+	typeof DaemonProviderTestResultSchema.parse
+>;
 
 /** What `mete/estimate` answers (ADR-068), as the daemon protocol schema parses it. */
 export type Estimate = ReturnType<typeof DaemonEstimateResultSchema.parse>;
@@ -156,6 +168,17 @@ export interface MeteDaemonService {
 	restart(): Promise<void>;
 	/** The configuration the folder's daemon loaded, every string masked (ADR-081). */
 	settings(workspaceDir: string): Promise<Result<Settings, DaemonFailure>>;
+	/** A custom endpoint's models; refused while it is not loaded or has no key (ADR-087). */
+	providerModels(
+		workspaceDir: string,
+		providerId: string,
+	): Promise<Result<EndpointModels, DaemonFailure>>;
+	/** One probe per model, sent to the endpoint directly, only when the user presses Test (ADR-087). */
+	providerTest(
+		workspaceDir: string,
+		providerId: string,
+		models: readonly string[],
+	): Promise<Result<EndpointTest, DaemonFailure>>;
 	/** Restores a paused or ended run's checkpoint by the id of its checkpoint.created event (ADR-079). */
 	checkpointRestore(
 		workspaceDir: string,

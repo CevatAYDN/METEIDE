@@ -9,6 +9,8 @@ import {
 	DaemonErrorDataSchema,
 	DaemonEstimateResultSchema,
 	DaemonEventsResultSchema,
+	DaemonProviderModelsResultSchema,
+	DaemonProviderTestResultSchema,
 	DaemonQuotaResultSchema,
 	DaemonRunStartResultSchema,
 	DaemonSettingsResultSchema,
@@ -250,7 +252,7 @@ const reads = (send: Send) => ({
 
 // What the run composer asks before Start: the team templates (ADR-058) and each one's request
 // estimate (ADR-068); and the text of one template and a tier's models for the team editor
-// (ADR-075, ADR-077).
+// (ADR-075, ADR-077); and Settings: what was loaded, and a custom endpoint's models and Test (ADR-087).
 const composing = (send: Send) => ({
 	templates: (dir: string) =>
 		send(dir, DAEMON_METHODS.templates, {}, (raw) =>
@@ -271,6 +273,14 @@ const composing = (send: Send) => ({
 	settings: (dir: string) =>
 		send(dir, DAEMON_METHODS.settings, {}, (raw) =>
 			DaemonSettingsResultSchema.safeParse(raw),
+		),
+	providerModels: (dir: string, providerId: string) =>
+		send(dir, DAEMON_METHODS.providerModels, { providerId }, (raw) =>
+			DaemonProviderModelsResultSchema.safeParse(raw),
+		),
+	providerTest: (dir: string, providerId: string, models: readonly string[]) =>
+		send(dir, DAEMON_METHODS.providerTest, { providerId, models }, (raw) =>
+			DaemonProviderTestResultSchema.safeParse(raw),
 		),
 	checkpointRestore: (dir: string, runId: string, checkpointId: string) =>
 		send(

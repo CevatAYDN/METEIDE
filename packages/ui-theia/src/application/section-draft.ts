@@ -69,7 +69,8 @@ const keyOf = (path: readonly string[]) => path.join(".");
 const prefixOf = (section: FormSection, target: Target) =>
 	target === "global" ? [section] : [];
 
-const valueAt = (root: unknown, path: readonly string[]): unknown =>
+/** The value at a path of keys, or undefined where one is missing. */
+export const valueAt = (root: unknown, path: readonly string[]): unknown =>
 	path.reduce<unknown>(
 		(at, k) =>
 			typeof at === "object" && at !== null

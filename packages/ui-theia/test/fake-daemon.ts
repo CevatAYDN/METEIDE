@@ -58,6 +58,11 @@ conn.onRequest("mete/template.read", (p) => {
 	return p.id === "bad" ? { id: "bad", source: "global", yaml: "" } : { id: p.id, source: "builtIn", yaml: "kind: TeamTemplate" };
 });
 conn.onRequest("mete/chain", (p) => (p.tier === "vision" ? { models: [{ providerId: "groq" }] } : { models: [{ providerId: "groq", modelId: "m" }] }));
+conn.onRequest("mete/provider.models", (p) => {
+	if (p.providerId === "custom:gone") throw new ResponseError(-32000, "no custom:gone", { code: "not_found" });
+	return { failed: { code: "unauthorized", message: "bad key", status: 401 } };
+});
+conn.onRequest("mete/provider.test", (p) => ({ results: p.models.map((modelId) => ({ modelId, ok: true, ms: 5 })) }));
 conn.onRequest("mete/stop.all", () => ({ cancelled: [run.id] }));
 conn.onRequest("mete/estimate", (p) => (p.templateId === "bad" ? { providers: "x" } : { providers: [{ providerId: "groq", requests: 15 }], unassigned: 3 }));
 conn.onRequest("mete/quota", () =>
