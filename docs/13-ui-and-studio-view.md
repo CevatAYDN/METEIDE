@@ -13,7 +13,7 @@ The desktop UI is Theia plus METE panels; its signature is the studio view, wher
 | Workspace | Daily work | Theia editor, terminal, METE panels |
 | Run composer | Start work | Goal field, template picker with the router's suggestion, request estimate per provider (shown under each option, ADR-068), autonomy level (waits for a per-run level), Start; the Team panel with no run shown (ADR-071, ADR-078) |
 | Team panel | Watch a run | Three views on the same events: Studio, Flow (React Flow), Board (kanban) \[C\], and a fourth, Team: one row per role with its tier, model, state and what it does now (ADR-089), and how full its model's context is with the tokens it has used (ADR-090); the one run view in the main area, re-targeted by a selection (ADR-078); the run's checkpoints with a Restore button (ADR-079); Results, the run's reports with Open, and a Done card opens its report (ADR-085) |
-| Approvals inbox | Human gates | Pending approvals and clarifications with artifact preview and diff; Approve, Revise with feedback |
+| Approvals inbox | Human gates | Pending approvals and clarifications with artifact preview and diff; Approve, Revise with feedback; the Home view's Waiting for you lists every waiting run (ADR-048), and the Team panel's strip names, for the run it shows, each member whose task waits for the human, with its report and Approve and Revise (ADR-091) |
 | Replay | Look back | Timeline scrubber over the event log; Studio, Flow and Board show the past state; speed 1x, 2x, 4x \[C\] |
 | Quota dashboard | Capacity | Per provider and unit: used, limit, reset time, history |
 | Knowledge | Memory | Code graph view (Sigma.js), vault browser, hybrid search |
