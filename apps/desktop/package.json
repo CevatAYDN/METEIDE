@@ -27,8 +27,13 @@
 	},
 	"theiaPluginsDir": "plugins",
 	"theiaPlugins": {
+		"vscode.css-language-features": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.css-language-features.vsix",
 		"vscode.git": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.git.vsix",
-		"vscode.git-base": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.git-base.vsix"
+		"vscode.git-base": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.git-base.vsix",
+		"vscode.html-language-features": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.html-language-features.vsix",
+		"vscode.json-language-features": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.json-language-features.vsix",
+		"vscode.markdown-language-features": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.markdown-language-features.vsix",
+		"vscode.typescript-language-features": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.typescript-language-features.vsix"
 	},
 	"dependencies": {
 		"@mete/cli": "workspace:*",
