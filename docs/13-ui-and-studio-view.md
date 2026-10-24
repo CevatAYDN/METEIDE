@@ -9,10 +9,10 @@ The desktop UI is Theia plus METE panels; its signature is the studio view, wher
 | Screen | Purpose | Key elements |
 | --- | --- | --- |
 | Onboarding wizard | First start | Language (English or Turkish); provider keys for NVIDIA, OpenRouter and OpenCode Zen (at least one required, with links to get keys); privacy choice (training providers off by default); personal vault folder; web search (Exa MCP default, optional Tavily and Exa keys) \[C\] |
-| Home | Entry point | Workspaces, recent runs, quota summary |
+| Home | Entry point | The METE view on the left, collapsible sections: Waiting for you, Runs (a click shows the run in the Team panel), Workspaces, Quota summary (ADR-078) |
 | Workspace | Daily work | Theia editor, terminal, METE panels |
-| Run composer | Start work | Goal field, template picker with the router's suggestion, request estimate per provider (shown under each option, ADR-068), autonomy level (waits for a per-run level), Start; a screen in the main area (ADR-071) |
-| Team panel | Watch a run | Three views on the same events: Studio, Flow (React Flow), Board (kanban) \[C\] |
+| Run composer | Start work | Goal field, template picker with the router's suggestion, request estimate per provider (shown under each option, ADR-068), autonomy level (waits for a per-run level), Start; the Team panel with no run shown (ADR-071, ADR-078) |
+| Team panel | Watch a run | Three views on the same events: Studio, Flow (React Flow), Board (kanban) \[C\]; the one run view in the main area, re-targeted by a selection (ADR-078) |
 | Approvals inbox | Human gates | Pending approvals and clarifications with artifact preview and diff; Approve, Revise with feedback |
 | Replay | Look back | Timeline scrubber over the event log; Studio, Flow and Board show the past state; speed 1x, 2x, 4x \[C\] |
 | Quota dashboard | Capacity | Per provider and unit: used, limit, reset time, history |
