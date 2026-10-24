@@ -8,7 +8,7 @@ The desktop UI is Theia plus METE panels; its signature is the studio view, wher
 
 | Screen | Purpose | Key elements |
 | --- | --- | --- |
-| Onboarding wizard | First start | Language (English or Turkish); provider keys for NVIDIA, OpenRouter and OpenCode Zen (at least one required, with links to get keys); privacy choice (training providers off by default); personal vault folder; web search (Exa MCP default, optional Tavily and Exa keys) \[C\] |
+| Onboarding wizard | First start | Language (English or Turkish); provider keys for NVIDIA, OpenRouter and OpenCode Zen (at least one required, with links to get keys); privacy choice (training providers off by default); personal vault folder; web search (Exa MCP default, optional Tavily and Exa keys) \[C\]. Built as the Welcome screen (ADR-088): the vault folder comes with the vaults (Phase 6), the Exa key with an Exa API adapter, and the privacy choice is saved once a folder is open |
 | Home | Entry point | The METE view on the left, collapsible sections: Waiting for you, Runs (a click shows the run in the Team panel, which the list marks), Workspaces (each folder by name over the tail of the folder that holds it; a click opens it in this window, or in a new one while a run here is running or queued, since this folder's daemon ends with the switch; Forget drops it from the list and leaves the folder on disk; Open folder adds one; ADR-084), Quota summary (ADR-078) |
 | Workspace | Daily work | Theia editor, terminal, METE panels |
 | Run composer | Start work | Goal field, template picker with the router's suggestion, request estimate per provider (shown under each option, ADR-068), autonomy level (waits for a per-run level), Start; the Team panel with no run shown (ADR-071, ADR-078) |
