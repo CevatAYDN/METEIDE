@@ -1,3 +1,4 @@
+import { applyAll, EMPTY_TEAM_VIEW } from "@mete/ui-studio";
 import { Command, type CommandRegistry, MessageService } from "@theia/core";
 import {
 	AbstractViewContribution,
@@ -17,6 +18,7 @@ import {
 	type interfaces,
 } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
+import { restoredText } from "../application/checkpoint-list.js";
 import {
 	failureText,
 	noFolderText,
@@ -45,6 +47,23 @@ export const OPEN_BOARD_COMMAND: Command = Command.toLocalizedCommand(
 	"mete/category",
 );
 
+/** The palette entry "METE: Restore checkpoint" (ADR-079): a run, then one of its checkpoints. */
+export const RESTORE_CHECKPOINT_COMMAND: Command = Command.toLocalizedCommand(
+	{
+		id: "mete.checkpoint.restore",
+		category: "METE",
+		label: "Restore checkpoint",
+	},
+	"mete/checkpoint/command",
+	"mete/category",
+);
+
+type ChosenRun = {
+	readonly dir: string;
+	readonly runId: string;
+	readonly goal: string;
+};
+
 type RunPick = QuickPickItem & {
 	readonly runId: string;
 	readonly goal: string;
@@ -70,7 +89,16 @@ export class MeteBoardContribution
 
 	override registerCommands(commands: CommandRegistry): void {
 		commands.registerCommand(OPEN_BOARD_COMMAND, {
-			execute: (runId?: unknown) => this.pick(runId),
+			execute: async (runId?: unknown) => {
+				const run = await this.pick(runId);
+				if (run) await this.show(run);
+			},
+		});
+		commands.registerCommand(RESTORE_CHECKPOINT_COMMAND, {
+			execute: async (runId?: unknown) => {
+				const run = await this.pick(runId);
+				if (run) await this.restoreOne(run);
+			},
 		});
 		commands.registerCommand(START_RUN_COMMAND, {
 			execute: async () =>
@@ -83,9 +111,48 @@ export class MeteBoardContribution
 		await this.openView();
 	}
 
+	protected async show(run: ChosenRun) {
+		const widget = await this.openView({ activate: true, reveal: true });
+		await widget.showRun(run.dir, run.runId, run.goal);
+	}
+
+	// One of the run's checkpoints, from its history folded as the Team panel folds it; the panel then
+	// shows the run, so the list is in view.
+	protected async restoreOne(run: ChosenRun): Promise<void> {
+		const history = await this.daemon.events(run.dir, run.runId);
+		if (!history.ok)
+			return void this.messages.warn(failureText(history.error, plain));
+		const { checkpoints } = applyAll(
+			run.runId,
+			EMPTY_TEAM_VIEW,
+			history.value.events,
+		);
+		const picks = [...checkpoints].reverse().map((c) => ({
+			label: `#${c.n}`,
+			description: new Date(c.at).toLocaleString(),
+			id: c.id,
+		}));
+		if (picks.length === 0)
+			return void this.messages.info(
+				nls.localize("mete/checkpoint/none", "This run has no checkpoints."),
+			);
+		const chosen = await this.quick.pick(picks, {
+			placeHolder: nls.localize("mete/checkpoint/which", "Which checkpoint?"),
+		});
+		if (!chosen) return;
+		await this.show(run);
+		const r = await this.daemon.checkpointRestore(
+			run.dir,
+			run.runId,
+			chosen.id,
+		);
+		if (!r.ok) return void this.messages.warn(failureText(r.error, plain));
+		void this.messages.info(restoredText(r.value));
+	}
+
 	// The run the command was given (a Home row), or one picked among the folder's runs, which come
 	// newest first from mete/status.
-	protected async pick(given: unknown): Promise<void> {
+	protected async pick(given: unknown): Promise<ChosenRun | undefined> {
 		const root = this.workspace.tryGetRoots()[0];
 		if (!root) return void this.messages.info(noFolderText());
 		const dir = root.resource.path.fsPath();
@@ -104,9 +171,7 @@ export class MeteBoardContribution
 				nls.localize("mete/status/none", "No runs in this folder yet."),
 			);
 		const pick = runId ? picks[0] : await this.choose(picks);
-		if (!pick) return;
-		const widget = await this.openView({ activate: true, reveal: true });
-		await widget.showRun(dir, pick.runId, pick.goal);
+		return pick ? { dir, runId: pick.runId, goal: pick.goal } : undefined;
 	}
 
 	protected choose(picks: RunPick[]) {

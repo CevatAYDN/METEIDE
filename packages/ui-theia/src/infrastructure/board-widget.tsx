@@ -1,4 +1,4 @@
-import { CommandService } from "@theia/core";
+import { CommandService, MessageService } from "@theia/core";
 import { ThemeService } from "@theia/core/lib/browser/theming";
 import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
@@ -17,8 +17,10 @@ import {
 	startBoard,
 } from "../application/board-session.js";
 import { BoardView, type TeamMode } from "../application/board-view.js";
+import { restoredText } from "../application/checkpoint-list.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { panelRoot } from "../application/panel-root.js";
+import { failureText, plain } from "../application/status-text.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { FlowView } from "./flow-view.js";
 import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
@@ -40,6 +42,7 @@ export class MeteBoardWidget extends ReactWidget {
 	@inject(MeteDaemonEvents) protected readonly events!: MeteDaemonEvents;
 	@inject(ThemeService) protected readonly themes!: ThemeService;
 	@inject(CommandService) protected readonly commands!: CommandService;
+	@inject(MessageService) protected readonly messages!: MessageService;
 	@inject(MeteRunComposer) protected readonly composer!: MeteRunComposer;
 	@inject(MeteShownRun) protected readonly shownRun!: MeteShownRun;
 
@@ -47,6 +50,8 @@ export class MeteBoardWidget extends ReactWidget {
 	/** False while the panel is hidden, so the Studio's stage stops (docs/13, Performance and access). */
 	protected shown = true;
 	protected mode: TeamMode = "board";
+	/** The checkpoint a restore is in flight for (ADR-079). */
+	protected restoring: string | undefined;
 	/** True while the panel shows the composer, which it also shows before any run. */
 	protected composing = true;
 
@@ -110,6 +115,24 @@ export class MeteBoardWidget extends ReactWidget {
 		return this.composing || this.session.model.kind === "no_run";
 	}
 
+	// Restores one of the shown run's checkpoints; the list updates from the live events it causes
+	// (checkpoint.created for the undo, rollback.performed), and a refusal says why.
+	protected async restore(checkpointId: string): Promise<void> {
+		const shown = this.session.shown;
+		if (!shown || this.restoring) return;
+		this.restoring = checkpointId;
+		this.update();
+		const r = await this.daemon.checkpointRestore(
+			shown.dir,
+			shown.runId,
+			checkpointId,
+		);
+		this.restoring = undefined;
+		this.update();
+		if (!r.ok) return void this.messages.warn(failureText(r.error, plain));
+		void this.messages.info(restoredText(r.value));
+	}
+
 	protected override onAfterShow(msg: Message): void {
 		super.onAfterShow(msg);
 		this.shown = true;
@@ -157,6 +180,10 @@ export class MeteBoardWidget extends ReactWidget {
 							{...(pulse ? { pulse } : {})}
 						/>
 					),
+					restore: {
+						onRestore: (id) => void this.restore(id),
+						restoring: this.restoring,
+					},
 				}}
 			/>
 		);

@@ -36,6 +36,18 @@
 			"unreadable": "Bu çalıştırmanın {0} olayı okunamadı; mete events onları gösterir."
 		},
 		"category": "METE",
+		"checkpoint": {
+			"command": "Kontrol noktasını geri yükle",
+			"done": "#{0} kontrol noktası geri yüklendi; #{1} bunu geri alır.",
+			"hint": "Geri yükle, duraklamış ya da bitmiş bir çalıştırmada bu klasörün dosyalarını bir kontrol noktasındaki hâline döndürür; dosyaların şimdiki hâli önce yeni bir kontrol noktası olarak saklanır, böylece geri yükleme geri alınabilir.",
+			"none": "Bu çalıştırmanın kontrol noktası yok.",
+			"restore": "Geri yükle",
+			"restored": "{0} geri yüklendi",
+			"restoring": "Geri yükleniyor…",
+			"row": "#{0} · {1}",
+			"title": "Kontrol noktaları",
+			"which": "Hangi kontrol noktası?"
+		},
 		"composer": {
 			"title": "Çalıştırma başlat"
 		},
@@ -124,6 +136,26 @@
 			"unassigned": "{0} atanmamış",
 			"which": "Hangi çalıştırma?"
 		},
+		"status": {
+			"blocked": "METE daemon'u durup duruyor, bu yüzden METE onu şimdilik yeniden başlatmıyor: {0}",
+			"chooseTemplate": "Bu hedef için bir ekip seç: {0}",
+			"cli": "mete komutu başarısız oldu: {0}",
+			"label": "Durum",
+			"more": "ve {0} tane daha; Ana sayfa hepsini listeler",
+			"noFolder": "Önce bir klasör aç: METE aynı anda tek bir klasörde çalışır.",
+			"none": "Bu klasörde henüz çalıştırma yok.",
+			"notReady": "METE henüz hazır değil: {0}",
+			"protocol": "METE daemon'u METE'nin anlamadığı bir yanıt gönderdi: {0}",
+			"refused": "METE daemon'u isteği reddetti: {0}",
+			"runs": "Bu klasörde {0} çalıştırma: {1}",
+			"stopped": "METE daemon'u durdu: {0}"
+		},
+		"stopAll": {
+			"cancelled": "Tümünü durdur: {0} çalıştırma iptal edildi.",
+			"label": "Tümünü durdur",
+			"none": "Süren bir çalıştırma yoktu; hiçbiri iptal edilmedi.",
+			"tooltip": "Bu klasördeki her çalıştırmayı şimdi iptal et (Ctrl+Shift+.)"
+		},
 		"studio": {
 			"approved": "{0} onaylandı ve Bitti'ye geçiyor.",
 			"asksRole": "{0}, {1} rolünden onay istiyor.",
@@ -157,26 +189,6 @@
 			"tool": "{0}, {1} kullanıyor.",
 			"until": "{0} saatine kadar",
 			"vault": "Vault"
-		},
-		"status": {
-			"blocked": "METE daemon'u durup duruyor, bu yüzden METE onu şimdilik yeniden başlatmıyor: {0}",
-			"chooseTemplate": "Bu hedef için bir ekip seç: {0}",
-			"cli": "mete komutu başarısız oldu: {0}",
-			"label": "Durum",
-			"more": "ve {0} tane daha; Ana sayfa hepsini listeler",
-			"noFolder": "Önce bir klasör aç: METE aynı anda tek bir klasörde çalışır.",
-			"none": "Bu klasörde henüz çalıştırma yok.",
-			"notReady": "METE henüz hazır değil: {0}",
-			"protocol": "METE daemon'u METE'nin anlamadığı bir yanıt gönderdi: {0}",
-			"refused": "METE daemon'u isteği reddetti: {0}",
-			"runs": "Bu klasörde {0} çalıştırma: {1}",
-			"stopped": "METE daemon'u durdu: {0}"
-		},
-		"stopAll": {
-			"cancelled": "Tümünü durdur: {0} çalıştırma iptal edildi.",
-			"label": "Tümünü durdur",
-			"none": "Süren bir çalıştırma yoktu; hiçbiri iptal edilmedi.",
-			"tooltip": "Bu klasördeki her çalıştırmayı şimdi iptal et (Ctrl+Shift+.)"
 		},
 		"team": {
 			"addMember": "Üye ekle",

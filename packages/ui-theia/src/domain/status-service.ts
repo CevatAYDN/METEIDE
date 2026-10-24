@@ -2,6 +2,7 @@ import type {
 	ApprovalInput,
 	AuditEntry,
 	DaemonChainResultSchema,
+	DaemonCheckpointRestoreResultSchema,
 	DaemonEstimateResultSchema,
 	DaemonStatusResultSchema,
 	DaemonTemplateReadResultSchema,
@@ -34,6 +35,11 @@ export type Need = ReturnType<typeof NeedSchema.parse>;
 
 /** What `mete/chain` answers (ADR-077), as the daemon protocol schema parses it. */
 export type Chain = ReturnType<typeof DaemonChainResultSchema.parse>;
+
+/** What `mete/checkpoint.restore` answers (ADR-079): the ref restored and the one that undoes it. */
+export type Restored = ReturnType<
+	typeof DaemonCheckpointRestoreResultSchema.parse
+>;
 
 /** What `mete/estimate` answers (ADR-068), as the daemon protocol schema parses it. */
 export type Estimate = ReturnType<typeof DaemonEstimateResultSchema.parse>;
@@ -142,6 +148,12 @@ export interface MeteDaemonService {
 		tier: Tier,
 		needs: readonly Need[],
 	): Promise<Result<Chain, DaemonFailure>>;
+	/** Restores a paused or ended run's checkpoint by the id of its checkpoint.created event (ADR-079). */
+	checkpointRestore(
+		workspaceDir: string,
+		runId: string,
+		checkpointId: string,
+	): Promise<Result<Restored, DaemonFailure>>;
 	/** The text of the template file the daemon would load for an id, and its folder, for the team editor (ADR-075). */
 	readTemplate(
 		workspaceDir: string,

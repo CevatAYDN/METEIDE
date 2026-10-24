@@ -109,6 +109,10 @@ export class MeteDaemonBackend
 		return this.host.chain(workspaceDir, tier, needs);
 	}
 
+	checkpointRestore(workspaceDir: string, runId: string, checkpointId: string) {
+		return this.host.checkpointRestore(workspaceDir, runId, checkpointId);
+	}
+
 	onStop() {
 		this.host.stop();
 	}

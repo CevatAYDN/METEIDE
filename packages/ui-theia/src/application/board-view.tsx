@@ -8,6 +8,7 @@ import {
 import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties, ReactNode } from "react";
 import type { DaemonFailure } from "../domain/status-service.js";
+import { CheckpointList, type RestoreControls } from "./checkpoint-list.js";
 import { LIST, MUTED, PANEL, TITLE } from "./look.js";
 import { failureText } from "./status-text.js";
 import { studioText } from "./studio-text.js";
@@ -114,6 +115,8 @@ export type TeamControls = {
 		view: TeamView,
 		pulse?: { readonly event: MeteEvent; readonly before: TeamView },
 	) => ReactNode;
+	/** Restoring one of the run's checkpoints (ADR-079). */
+	readonly restore: RestoreControls;
 };
 
 const modeName = (mode: TeamMode) =>
@@ -233,6 +236,10 @@ const Board = ({
 				<Shown model={model} controls={controls} />
 			</>
 		)}
+		<CheckpointList
+			checkpoints={model.view.checkpoints}
+			restore={controls.restore}
+		/>
 	</>
 );
 

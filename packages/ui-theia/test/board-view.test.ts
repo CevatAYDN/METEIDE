@@ -8,11 +8,16 @@ import {
 	BoardView,
 	type TeamMode,
 } from "../src/application/board-view.js";
+import { restoredText } from "../src/application/checkpoint-list.js";
 
 // The Board rendered to HTML on Node from a view the real fold built.
 
 const RUN = crypto.randomUUID();
-const html = (model: BoardModel, mode: TeamMode = "board") =>
+const html = (
+	model: BoardModel,
+	mode: TeamMode = "board",
+	restoring?: string,
+) =>
 	renderToStaticMarkup(
 		createElement(BoardView, {
 			model,
@@ -21,6 +26,7 @@ const html = (model: BoardModel, mode: TeamMode = "board") =>
 				onMode: () => {},
 				flow: (v) => `flow of ${v.tasks.length} task(s)`,
 				studio: (v) => `studio of ${v.tasks.length} task(s)`,
+				restore: { onRestore: () => {}, restoring },
 			},
 		}),
 	);
@@ -58,6 +64,43 @@ const section = (out: string, name: string) => {
 };
 
 describe("the Board view", () => {
+	it("lists the run's checkpoints newest first with Restore, a restored one marked, and none without checkpoints (ADR-079)", () => {
+		const cp = (n: number) =>
+			event(
+				"checkpoint.created",
+				{ kind: "git", ref: `refs/mete/checkpoints/${RUN}/${n}` },
+				"",
+			);
+		const [one, two] = [cp(1), cp(2)];
+		const back = event("rollback.performed", { checkpointId: one.id }, "");
+		const board = (events: MeteEvent[]): BoardModel => ({
+			kind: "board",
+			goal: "fix it",
+			view: applyAll(RUN, EMPTY_TEAM_VIEW, events),
+			unreadable: 0,
+			recent: [],
+		});
+		const out = html(board([one, two, back]));
+		const list = section(out, "Checkpoints");
+		expect(list.indexOf("#2 · ")).toBeLessThan(list.indexOf("#1 · "));
+		expect(list.match(/>Restore</g)).toHaveLength(2);
+		expect(list.slice(list.indexOf("#1 · "))).toContain("restored ");
+		expect(list.slice(0, list.indexOf("#1 · "))).not.toContain("restored ");
+		const busy = section(
+			html(board([one, two]), "board", one.id),
+			"Checkpoints",
+		);
+		expect(busy).toContain(">Restoring…<");
+		expect(busy.match(/disabled=""/g)).toHaveLength(2);
+		expect(html(board([]))).not.toContain('aria-label="Checkpoints"');
+		expect(
+			restoredText({
+				ref: `refs/mete/checkpoints/${RUN}/1`,
+				undo: `refs/mete/checkpoints/${RUN}/3`,
+			}),
+		).toBe("Restored checkpoint #1; checkpoint #3 undoes it.");
+	});
+
 	it("puts each task in its column, with the marker of its status", () => {
 		const notes = task("Take <notes>");
 		const draft = task("Draft");

@@ -36,6 +36,18 @@
 			"unreadable": "{0} event(s) of this run could not be read; mete events names them."
 		},
 		"category": "METE",
+		"checkpoint": {
+			"command": "Restore checkpoint",
+			"done": "Restored checkpoint #{0}; checkpoint #{1} undoes it.",
+			"hint": "Restore puts this folder's files back as they were at a checkpoint, for a paused or ended run; the files as they are now are kept as a new checkpoint first, so a restore can be undone.",
+			"none": "This run has no checkpoints.",
+			"restore": "Restore",
+			"restored": "restored {0}",
+			"restoring": "Restoring…",
+			"row": "#{0} · {1}",
+			"title": "Checkpoints",
+			"which": "Which checkpoint?"
+		},
 		"composer": {
 			"title": "Start a run"
 		},

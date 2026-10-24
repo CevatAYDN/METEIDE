@@ -4,6 +4,7 @@ import {
 	DAEMON_METHODS,
 	DaemonAuditResultSchema,
 	DaemonChainResultSchema,
+	DaemonCheckpointRestoreResultSchema,
 	DaemonDoneResultSchema,
 	DaemonErrorDataSchema,
 	DaemonEstimateResultSchema,
@@ -265,6 +266,13 @@ const composing = (send: Send) => ({
 	chain: (dir: string, tier: Tier, needs: readonly Need[]) =>
 		send(dir, DAEMON_METHODS.chain, { tier, needs }, (raw) =>
 			DaemonChainResultSchema.safeParse(raw),
+		),
+	checkpointRestore: (dir: string, runId: string, checkpointId: string) =>
+		send(
+			dir,
+			DAEMON_METHODS.checkpointRestore,
+			{ runId, checkpointId },
+			(raw) => DaemonCheckpointRestoreResultSchema.safeParse(raw),
 		),
 });
 
