@@ -27,6 +27,8 @@ export type TaskCard = {
 	readonly agentId?: string;
 	/** The role that approves the task, once it asked (not the human). */
 	readonly approver?: string;
+	/** The human was asked to approve the current submission and has not decided yet (ADR-091). */
+	readonly waitsForHuman?: true;
 	/** The task's latest report, relative to the workspace (docs/07, Artifact). */
 	readonly artifactPath?: string;
 	readonly status: TaskStatus;
@@ -101,12 +103,24 @@ const tasksAfter = (
 			...t,
 			artifactPath: e.payload.path,
 		}));
-	if (e.type === "approval.requested" && e.payload.approver !== "human")
-		return update(tasks, e.taskId, (t) => ({
-			...t,
-			approver: e.payload.approver,
-		}));
+	if (e.type === "approval.requested" || e.type === "approval.resolved")
+		return update(tasks, e.taskId, (t) => approvalAfter(t, e));
 	return tasks;
+};
+
+// The approver role is kept for the Studio's bell (ADR-052); the human's turn is marked from its
+// request until its decision, after any approver role's (ADR-091).
+const approvalAfter = (
+	t: TaskCard,
+	e: Extract<MeteEvent, { type: "approval.requested" | "approval.resolved" }>,
+): TaskCard => {
+	if (e.payload.approver !== "human")
+		return e.type === "approval.requested"
+			? { ...t, approver: e.payload.approver }
+			: t;
+	if (e.type === "approval.requested") return { ...t, waitsForHuman: true };
+	const { waitsForHuman: _, ...rest } = t;
+	return rest;
 };
 
 // The run's own events, and the workspace's quota events, which name no run (ADR-052).

@@ -101,6 +101,32 @@ describe("the team view fold", () => {
 		expect(view.tasks[0]?.approver).toBe("lead");
 	});
 
+	it("marks a task while the human's decision is asked, after an approver role's too (ADR-091)", () => {
+		const asked = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			created(NOTES, "Take notes"),
+			event("approval.requested", { approver: "lead" }, NOTES),
+			event(
+				"approval.resolved",
+				{ approver: "lead", decision: "approve" },
+				NOTES,
+			),
+			event("approval.requested", { approver: "human" }, NOTES),
+		]);
+		expect(asked.tasks[0]).toMatchObject({
+			approver: "lead",
+			waitsForHuman: true,
+		});
+		const decided = applyAll(RUN, asked, [
+			event(
+				"approval.resolved",
+				{ approver: "human", decision: "approve" },
+				NOTES,
+			),
+		]);
+		expect(decided.tasks[0]?.waitsForHuman).toBeUndefined();
+		expect(decided.tasks[0]?.approver).toBe("lead");
+	});
+
 	it("keeps each task's latest artifact path", () => {
 		const art = (type: string, path: string) =>
 			event(
