@@ -11,12 +11,12 @@ describe("the inbox badge", () => {
 	it("counts the runs that wait on the Home tab, and on no other tab", () => {
 		const badge = new MeteInboxBadge();
 		badge.set(2);
-		expect(badge.decorate(tab("mete.home"))).toEqual([
+		expect(badge.decorate(tab("mete.view"))).toEqual([
 			{ badge: 2, tooltip: "2 run(s) wait for you" },
 		]);
 		expect(badge.decorate(tab("mete.board"))).toEqual([]);
 		badge.set(0);
-		expect(badge.decorate(tab("mete.home"))).toEqual([]);
+		expect(badge.decorate(tab("mete.view"))).toEqual([]);
 	});
 
 	it("asks the tab bar to redraw only when the count changes", () => {

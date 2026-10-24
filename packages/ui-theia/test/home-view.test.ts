@@ -1,7 +1,15 @@
-import { createElement } from "react";
+import { createElement, Fragment } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { HomeView } from "../src/application/home-view.js";
+import {
+	QuotaSection,
+	RunsSection,
+	WaitingSection,
+} from "../src/application/home-view.js";
+import {
+	type Workspace,
+	WorkspacesSection,
+} from "../src/application/workspaces-section.js";
 import {
 	type HomeModel,
 	homeModel,
@@ -9,19 +17,32 @@ import {
 } from "../src/domain/home-model.js";
 import type { StatusRuns } from "../src/domain/status-service.js";
 
-// The Home view rendered to HTML on Node: no DOM and no Theia widget, only the view and its model.
+// The METE view's sections rendered to HTML on Node, stacked in the view's order: no DOM and no
+// Theia widget, only the views and their model.
 
 const AT = "2026-10-23T10:00:00.000Z";
 
-const html = (model: HomeModel) =>
+const none = () => {};
+
+const html = (model: HomeModel, workspaces: readonly Workspace[] = []) =>
 	renderToStaticMarkup(
-		createElement(HomeView, {
-			model,
-			onRefresh: () => {},
-			onAct: () => {},
-			onSetKey: () => {},
-		}),
+		createElement(
+			Fragment,
+			null,
+			createElement(WaitingSection, { model, onAct: none }),
+			createElement(RunsSection, {
+				model,
+				onRefresh: none,
+				onAct: none,
+				onSetKey: none,
+				onStart: none,
+			}),
+			createElement(WorkspacesSection, { workspaces, onOpen: none }),
+			createElement(QuotaSection, { model, onOpenQuota: none }),
+		),
 	);
+
+const RUNS = 'aria-label="Runs"';
 
 const run = (
 	status: string,
@@ -50,18 +71,17 @@ describe("the Home view", () => {
 		);
 		expect(none).not.toContain("As of");
 		expect(none).toContain(
-			'<button type="button" class="mete-button">Refresh</button>',
+			'<button type="button" class="mete-button quiet">Refresh</button>',
 		);
 	});
 
-	it("offers Start run, which opens the composer, once there is a folder to run in (ADR-071)", () => {
-		const start =
-			'<button type="button" class="mete-button">Start run</button>';
+	it("offers New run, which opens the composer, once there is a folder to run in (ADR-078)", () => {
+		const start = '<button type="button" class="mete-button">New run</button>';
 		expect(html({ kind: "loading" })).toContain(start);
 		expect(html({ kind: "no_folder" })).not.toContain(start);
 	});
 
-	it("lists the runs by status, goal and template, with the time of the snapshot", () => {
+	it("lists the runs with a status chip, goal and template, with the time of the snapshot", () => {
 		const out = html(
 			homeModel(
 				{
@@ -74,11 +94,10 @@ describe("the Home view", () => {
 				AT,
 			),
 		);
-		expect(out).toContain('<th scope="col"');
-		expect(out).toContain(">paused</td>");
+		expect(out).toContain('<span class="mete-chip warn">paused</span>');
 		expect(out).toContain("fix &lt;the&gt; bug");
 		expect(out).toContain(" · research");
-		expect(out).toContain(">completed</td>");
+		expect(out).toContain('<span class="mete-chip ">completed</span>');
 		expect(out).toContain("As of ");
 	});
 
@@ -131,7 +150,7 @@ describe("the Home view", () => {
 		expect(notReady).toContain("METE is not ready yet: no key");
 	});
 
-	it("lists the runs that wait for you above the recent runs, with the answers each can take", () => {
+	it("lists the runs that wait for you above the runs, with the answers each can take", () => {
 		const out = html(
 			homeModel(
 				{
@@ -145,13 +164,8 @@ describe("the Home view", () => {
 				AT,
 			),
 		);
-		expect(out.indexOf("Waiting for you")).toBeLessThan(
-			out.indexOf("Recent runs"),
-		);
-		const inbox = out.slice(
-			out.indexOf("Waiting for you"),
-			out.indexOf("Recent runs"),
-		);
+		expect(out.indexOf("Waiting for you")).toBeLessThan(out.indexOf(RUNS));
+		const inbox = out.slice(out.indexOf("Waiting for you"), out.indexOf(RUNS));
 		expect(inbox).toContain("team goal");
 		expect(inbox).toContain("single goal");
 		expect(inbox).not.toContain("quota goal");
@@ -190,8 +204,11 @@ describe("the Home view", () => {
 		);
 		expect(quotaRow).toContain("openrouter: its free quota is used up until ");
 		expect(quotaRow).toContain("nvidia: no key (METE: Set provider key)");
-		// The quota summary below the table names every provider; the table names only those that block.
-		const table = out.slice(0, out.indexOf("</table>"));
+		// The quota chips name every provider; the runs name only those that block.
+		const table = out.slice(
+			out.indexOf(RUNS),
+			out.indexOf('aria-label="Workspaces"'),
+		);
 		expect(table).not.toContain("groq");
 		expect(table.slice(table.indexOf("done goal"))).not.toContain("<li>");
 		// A quota pause can be resumed before its reset (ADR-059), only there.
@@ -221,21 +238,14 @@ describe("the Home view", () => {
 
 	it("lets each run's goal open the run in the team panel", () => {
 		const r = run("completed", "notes", null);
-		const out = renderToStaticMarkup(
-			createElement(HomeView, {
-				model: homeModel({ ok: true, value: [r] }, AT),
-				onRefresh: () => {},
-				onAct: () => {},
-				onSetKey: () => {},
-			}),
-		);
+		const out = html(homeModel({ ok: true, value: [r] }, AT));
 		expect(out).toContain('title="Open in the team panel"');
 		expect(out).toMatch(
 			/<button type="button"[^>]*title="Open in the team panel">notes<\/button>/,
 		);
 	});
 
-	it("sums up every provider's quota state under the runs, and leaves it out when unknown", () => {
+	it("shows every provider's quota state as a chip with the whole state as its tooltip, and says when it is unknown", () => {
 		const out = html(
 			homeModel({ ok: true, value: [] }, AT, [
 				{ id: "groq", state: "ready" },
@@ -243,53 +253,48 @@ describe("the Home view", () => {
 			]),
 		);
 		const quota = out.slice(out.indexOf('aria-label="Quota"'));
-		expect(quota).toContain("groq: ready");
-		expect(quota).toContain("nvidia: no key (METE: Set provider key)");
-		expect(html(homeModel({ ok: true, value: [] }, AT))).not.toContain(
-			'aria-label="Quota"',
+		expect(quota).toContain('class="mete-chip good" title="groq: ready">groq<');
+		expect(quota).toContain(
+			'class="mete-chip warn" title="nvidia: no key (METE: Set provider key)">nvidia<',
+		);
+		expect(html(homeModel({ ok: true, value: [] }, AT))).toContain(
+			"The providers&#x27; states show once the daemon answers.",
 		);
 	});
 
 	it("lists the folders opened before, newest first, the open one marked and the others as links", () => {
-		const out = renderToStaticMarkup(
-			createElement(HomeView, {
-				model: homeModel({ ok: true, value: [] }, AT),
-				onRefresh: () => {},
-				onAct: () => {},
-				onSetKey: () => {},
-				workspaces: [
-					{
-						uri: "file:///w/site",
-						name: "site",
-						path: "/w/site",
-						current: true,
-					},
-					{
-						uri: "file:///w/game",
-						name: "game",
-						path: "/w/game",
-						current: false,
-					},
-				],
-			}),
-		);
+		const out = html(homeModel({ ok: true, value: [] }, AT), [
+			{
+				uri: "file:///w/site",
+				name: "site",
+				path: "/w/site",
+				current: true,
+			},
+			{
+				uri: "file:///w/game",
+				name: "game",
+				path: "/w/game",
+				current: false,
+			},
+		]);
 		const list = out.slice(
 			out.indexOf('aria-label="Workspaces"'),
-			out.indexOf("Recent runs"),
+			out.indexOf('aria-label="Quota"'),
 		);
 		expect(list).toContain("site <span");
 		expect(list).toContain("(open)");
 		expect(list).toMatch(/<button type="button"[^>]*>game<\/button>/);
-		expect(html(homeModel({ ok: true, value: [] }, AT))).not.toContain(
-			'aria-label="Workspaces"',
-		);
+		// Each path takes one line that ends in an ellipsis; the tooltip keeps it whole.
+		expect(list).toContain('<li title="/w/game">');
+		expect(list).toContain("text-overflow:ellipsis");
 	});
 
-	it("shows no inbox when nothing waits", () => {
+	it("says nothing waits when no run waits for an answer", () => {
 		const out = html(
 			homeModel({ ok: true, value: [run("completed", "done", null)] }, AT),
 		);
-		expect(out).not.toContain("Waiting for you");
+		expect(out).toContain("Nothing waits for you.");
+		expect(out).not.toContain(">Approve<");
 	});
 
 	it("offers to set a provider key while METE is not ready, and only then", () => {

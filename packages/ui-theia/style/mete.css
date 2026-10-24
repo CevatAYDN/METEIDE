@@ -80,6 +80,14 @@
 	font-weight: 600;
 }
 
+/* A chip that opens something, such as a provider's chip in the METE view. */
+button.mete-chip {
+	font: inherit;
+	font-weight: 600;
+	border: 1.5px solid var(--line, var(--theia-contrastBorder, transparent));
+	cursor: pointer;
+}
+
 .mete-chip.good {
 	color: var(--good, var(--theia-testing-iconPassed));
 }

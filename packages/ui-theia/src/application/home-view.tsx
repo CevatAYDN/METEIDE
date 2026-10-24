@@ -1,12 +1,14 @@
 import type { ProviderState } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
+import type { CSSProperties } from "react";
 import type { HomeModel, HomeRow } from "../domain/home-model.js";
-import { CELL, LINK, MUTED, PANEL, ROW, TABLE, TITLE } from "./look.js";
+import { LINK, LIST, MUTED, ROW, SECTION } from "./look.js";
 import { stateText } from "./quota-text.js";
 import { failureText, noFolderText, runsText } from "./status-text.js";
 
-// The Home panel (docs/13, Home): the approvals inbox of ADR-048 ("Waiting for you") above the
-// recent runs. The panel holds no state of its own: the widget passes the model and the actions.
+// The sections of the METE view (docs/13, Home; ADR-078): Waiting for you (the approvals inbox of
+// ADR-048), Runs, Workspaces and Quota, each a part of Theia's view container with its own header.
+// The sections hold no state of their own: the widgets pass the model and the actions.
 // Text is shown as it is: React escapes it, Markdown is not involved.
 // The panel root sets the METE tokens and Baloo 2 (ADR-069); the styles come from look.ts.
 
@@ -49,10 +51,61 @@ const OpenGoal = ({
 		title={nls.localize("mete/home/openRun", "Open in the team panel")}
 		onClick={() => act("open", row.id)}
 	>
-		<Goal row={row} />
+		{row.goal}
 	</button>
 );
 
+// A run's state as a chip: waiting and paused ask for a look, a failure stands out.
+const toneOf = (row: HomeRow) => {
+	if (row.waiting || row.status === "paused") return "warn";
+	if (row.status === "failed") return "bad";
+	return row.status === "running" ? "good" : "";
+};
+
+// A long goal takes two lines in the narrow side bar; the tooltip keeps it whole.
+const CLAMP: CSSProperties = {
+	display: "-webkit-box",
+	WebkitLineClamp: 2,
+	WebkitBoxOrient: "vertical",
+	overflow: "hidden",
+};
+
+const RunItem = ({
+	row,
+	blocked,
+	act,
+}: {
+	readonly row: HomeRow;
+	readonly blocked: readonly ProviderState[];
+	readonly act: Act;
+}) => (
+	<li style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+		<span style={CLAMP} title={row.goal}>
+			<OpenGoal row={row} act={act} />
+		</span>
+		<span style={MUTED}>
+			<span className={`mete-chip ${toneOf(row)}`}>{row.status}</span>
+			{row.templateId ? ` · ${row.templateId}` : ""} · {when(row.createdAt)}
+		</span>
+		{row.quotaPaused && blocked.length > 0 ? (
+			<Blocked providers={blocked} />
+		) : null}
+		{row.userPaused || row.quotaPaused ? (
+			<div style={ROW}>
+				<Button
+					label={
+						row.userPaused
+							? nls.localize("mete/home/resume", "Resume")
+							: nls.localize("mete/home/resumeNow", "Resume now")
+					}
+					onClick={() => act("resume", row.id)}
+				/>
+			</div>
+		) : null}
+	</li>
+);
+
+// The open folder's runs as the daemon lists them; a goal opens its run in the Team panel.
 const Runs = ({
 	rows,
 	blocked,
@@ -65,47 +118,11 @@ const Runs = ({
 	rows.length === 0 ? (
 		<p>{runsText([])}</p>
 	) : (
-		<table style={TABLE}>
-			<thead>
-				<tr>
-					<th scope="col" style={CELL}>
-						{nls.localize("mete/home/status", "Status")}
-					</th>
-					<th scope="col" style={CELL}>
-						{nls.localize("mete/home/goal", "Goal")}
-					</th>
-					<th scope="col" style={CELL}>
-						{nls.localize("mete/home/created", "Created")}
-					</th>
-				</tr>
-			</thead>
-			<tbody>
-				{rows.map((r) => (
-					<tr key={r.id}>
-						<td style={CELL}>{r.status}</td>
-						<td style={CELL}>
-							<OpenGoal row={r} act={act} />
-							{r.quotaPaused && blocked.length > 0 ? (
-								<Blocked providers={blocked} />
-							) : null}
-							{r.userPaused ? (
-								<Button
-									label={nls.localize("mete/home/resume", "Resume")}
-									onClick={() => act("resume", r.id)}
-								/>
-							) : null}
-							{r.quotaPaused ? (
-								<Button
-									label={nls.localize("mete/home/resumeNow", "Resume now")}
-									onClick={() => act("resume", r.id)}
-								/>
-							) : null}
-						</td>
-						<td style={CELL}>{when(r.createdAt)}</td>
-					</tr>
-				))}
-			</tbody>
-		</table>
+		<ul style={LIST}>
+			{rows.map((r) => (
+				<RunItem key={r.id} row={r} blocked={blocked} act={act} />
+			))}
+		</ul>
 	);
 
 type Act = (action: HomeAction, runId: string) => void;
@@ -168,25 +185,32 @@ const Waiting = ({
 	</li>
 );
 
-const Inbox = ({
-	rows,
-	act,
+/** The Waiting for you section (ADR-048, ADR-078): the runs that wait for an answer, with the answers. */
+export const WaitingSection = ({
+	model,
+	onAct,
 }: {
-	readonly rows: readonly HomeRow[];
-	readonly act: Act;
+	readonly model: HomeModel;
+	readonly onAct: Act;
 }) => {
-	const waiting = rows.filter((r) => r.waiting);
-	if (waiting.length === 0) return null;
+	const waiting =
+		model.kind === "runs" ? model.rows.filter((r) => r.waiting) : [];
 	return (
-		<section aria-label={nls.localize("mete/home/waiting", "Waiting for you")}>
-			<h2 style={TITLE}>
-				{nls.localize("mete/home/waiting", "Waiting for you")}
-			</h2>
-			<ul style={{ listStyle: "none", padding: 0, margin: "8px 0 0" }}>
-				{waiting.map((r) => (
-					<Waiting key={r.id} row={r} act={act} />
-				))}
-			</ul>
+		<section
+			style={SECTION}
+			aria-label={nls.localize("mete/home/waiting", "Waiting for you")}
+		>
+			{waiting.length === 0 ? (
+				<p style={MUTED}>
+					{nls.localize("mete/home/nothingWaits", "Nothing waits for you.")}
+				</p>
+			) : (
+				<ul style={LIST}>
+					{waiting.map((r) => (
+						<Waiting key={r.id} row={r} act={onAct} />
+					))}
+				</ul>
+			)}
 		</section>
 	);
 };
@@ -231,108 +255,41 @@ const Body = ({
 	return <Runs rows={model.rows} blocked={model.blocked} act={act} />;
 };
 
-/** A folder METE was opened on, newest first; `current` is the one open now. */
-export type Workspace = {
-	readonly uri: string;
-	readonly name: string;
-	readonly path: string;
-	readonly current: boolean;
-};
-
-// The Workspaces of docs/13's Home: the folders opened before, newest first; another one opens on a
-// click (Theia opens it), the current one is marked.
-const Workspaces = ({
-	workspaces,
-	open,
-}: {
-	readonly workspaces: readonly Workspace[];
-	readonly open: (uri: string) => void;
-}) => (
-	<section aria-label={nls.localize("mete/home/workspaces", "Workspaces")}>
-		<h2 style={TITLE}>{nls.localize("mete/home/workspaces", "Workspaces")}</h2>
-		<ul style={{ listStyle: "none", padding: 0, margin: "6px 0 0" }}>
-			{workspaces.map((w) => (
-				<li key={w.uri} title={w.path}>
-					{w.current ? (
-						<span>
-							{w.name}{" "}
-							<span style={MUTED}>
-								{nls.localize("mete/home/currentWorkspace", "(open)")}
-							</span>
-						</span>
-					) : (
-						<button type="button" style={LINK} onClick={() => open(w.uri)}>
-							{w.name}
-						</button>
-					)}{" "}
-					<span style={MUTED}>{w.path}</span>
-				</li>
-			))}
-		</ul>
-	</section>
-);
-
-// The quota summary of docs/13's Home: each provider's state, in the words of METE: Quota.
-const Quota = ({
-	providers,
-}: {
-	readonly providers: readonly ProviderState[];
-}) => (
-	<section aria-label={nls.localize("mete/home/quota", "Quota")}>
-		<h2 style={TITLE}>{nls.localize("mete/home/quota", "Quota")}</h2>
-		<ul style={{ margin: "6px 0 0", paddingLeft: "16px" }}>
-			{providers.map((p) => (
-				<li key={p.id}>{stateText(p)}</li>
-			))}
-		</ul>
-	</section>
-);
-
 /**
- * What the panel draws for a model; `onRefresh` asks the daemon again, `onAct` answers a run,
- * `onSetKey` sets a provider key and `onStart` opens the run composer (ADR-071).
+ * The Runs section (ADR-078): New run opens the composer, `onRefresh` asks the daemon again,
+ * `onAct` answers a run and `onSetKey` sets a provider key.
  */
-export const HomeView = ({
+export const RunsSection = ({
 	model,
 	onRefresh,
 	onAct,
 	onSetKey,
-	workspaces = [],
-	onOpenWorkspace = () => {},
-	onStart = () => {},
+	onStart,
 }: {
 	readonly model: HomeModel;
 	readonly onRefresh: () => void;
 	readonly onAct: Act;
 	readonly onSetKey: () => void;
-	readonly workspaces?: readonly Workspace[];
-	readonly onOpenWorkspace?: (uri: string) => void;
-	/** Opens the run composer. */
-	readonly onStart?: () => void;
+	readonly onStart: () => void;
 }) => (
-	<section style={PANEL} aria-live="polite">
+	<section
+		style={SECTION}
+		aria-live="polite"
+		aria-label={nls.localize("mete/home/runs", "Runs")}
+	>
 		{model.kind === "no_folder" ? null : (
 			<div style={ROW}>
 				<Button
-					label={nls.localize("mete/run/start", "Start run")}
+					label={nls.localize("mete/home/newRun", "New run")}
 					onClick={onStart}
 				/>
 			</div>
 		)}
-		{model.kind === "runs" ? <Inbox rows={model.rows} act={onAct} /> : null}
-		{workspaces.length > 0 ? (
-			<Workspaces workspaces={workspaces} open={onOpenWorkspace} />
-		) : null}
-		<h2 style={TITLE}>{nls.localize("mete/home/recentRuns", "Recent runs")}</h2>
 		<Body model={model} onSetKey={onSetKey} act={onAct} />
-		{model.kind === "runs" && model.providers.length > 0 ? (
-			<Quota providers={model.providers} />
-		) : null}
-		<div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-			<Button
-				label={nls.localize("mete/home/refresh", "Refresh")}
-				onClick={onRefresh}
-			/>
+		<div style={ROW}>
+			<button type="button" className="mete-button quiet" onClick={onRefresh}>
+				{nls.localize("mete/home/refresh", "Refresh")}
+			</button>
 			{"at" in model ? (
 				<span style={MUTED}>
 					{nls.localize("mete/home/asOf", "As of {0}", when(model.at))}
@@ -341,3 +298,52 @@ export const HomeView = ({
 		</div>
 	</section>
 );
+
+// A chip's colour by state; the chip's tooltip says the whole state in the words of METE: Quota.
+const QUOTA_TONE: { readonly [S in ProviderState["state"]]: string } = {
+	ready: "good",
+	no_key: "warn",
+	exhausted: "warn",
+	inactive: "bad",
+	unusable: "bad",
+};
+
+/** The Quota section: a chip per provider; a click opens the Quota dashboard. */
+export const QuotaSection = ({
+	model,
+	onOpenQuota,
+}: {
+	readonly model: HomeModel;
+	readonly onOpenQuota: () => void;
+}) => {
+	const providers = model.kind === "runs" ? model.providers : [];
+	return (
+		<section
+			style={SECTION}
+			aria-label={nls.localize("mete/home/quota", "Quota")}
+		>
+			{providers.length === 0 ? (
+				<p style={MUTED}>
+					{nls.localize(
+						"mete/home/quotaUnknown",
+						"The providers' states show once the daemon answers.",
+					)}
+				</p>
+			) : (
+				<div style={ROW}>
+					{providers.map((p) => (
+						<button
+							type="button"
+							key={p.id}
+							className={`mete-chip ${QUOTA_TONE[p.state]}`}
+							title={stateText(p)}
+							onClick={onOpenQuota}
+						>
+							{p.id}
+						</button>
+					))}
+				</div>
+			)}
+		</section>
+	);
+};

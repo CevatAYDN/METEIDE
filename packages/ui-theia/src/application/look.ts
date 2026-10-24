@@ -17,6 +17,13 @@ export const PANEL: CSSProperties = {
 	gap: "14px",
 };
 
+/** A section of the METE view, under its part's header in the narrow side bar. */
+export const SECTION: CSSProperties = {
+	...PANEL,
+	padding: "8px 12px 12px",
+	gap: "10px",
+};
+
 /** A panel's section heading. */
 export const TITLE: CSSProperties = {
 	margin: 0,
