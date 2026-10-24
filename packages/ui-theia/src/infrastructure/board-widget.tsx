@@ -1,8 +1,10 @@
 import { CommandService, MessageService } from "@theia/core";
+import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import { ThemeService } from "@theia/core/lib/browser/theming";
 import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { nls } from "@theia/core/lib/common/nls";
+import URI from "@theia/core/lib/common/uri";
 import type { Message } from "@theia/core/shared/@lumino/messaging";
 import {
 	inject,
@@ -45,6 +47,7 @@ export class MeteBoardWidget extends ReactWidget {
 	@inject(MessageService) protected readonly messages!: MessageService;
 	@inject(MeteRunComposer) protected readonly composer!: MeteRunComposer;
 	@inject(MeteShownRun) protected readonly shownRun!: MeteShownRun;
+	@inject(OpenerService) protected readonly openers!: OpenerService;
 
 	protected session: BoardSession = IDLE_BOARD;
 	/** False while the panel is hidden, so the Studio's stage stops (docs/13, Performance and access). */
@@ -133,6 +136,17 @@ export class MeteBoardWidget extends ReactWidget {
 		void this.messages.info(restoredText(r.value));
 	}
 
+	// A report of the shown run, by its path relative to the run's folder (ADR-085).
+	protected async openReport(path: string): Promise<void> {
+		const shown = this.session.shown;
+		if (!shown) return;
+		try {
+			await open(this.openers, URI.fromFilePath(shown.dir).resolve(path));
+		} catch (e) {
+			void this.messages.warn(String(e));
+		}
+	}
+
 	protected override onAfterShow(msg: Message): void {
 		super.onAfterShow(msg);
 		this.shown = true;
@@ -184,6 +198,7 @@ export class MeteBoardWidget extends ReactWidget {
 						onRestore: (id) => void this.restore(id),
 						restoring: this.restoring,
 					},
+					onOpenReport: (path) => void this.openReport(path),
 				}}
 			/>
 		);

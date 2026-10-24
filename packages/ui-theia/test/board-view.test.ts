@@ -27,6 +27,7 @@ const html = (
 				flow: (v) => `flow of ${v.tasks.length} task(s)`,
 				studio: (v) => `studio of ${v.tasks.length} task(s)`,
 				restore: { onRestore: () => {}, restoring },
+				onOpenReport: () => {},
 			},
 		}),
 	);
@@ -64,6 +65,53 @@ const section = (out: string, name: string) => {
 };
 
 describe("the Board view", () => {
+	it("lists the run's reports as Results with Open, and a Done card opens its report (ADR-085)", () => {
+		const gdd = task("Write the design");
+		const notes = task("Draft the notes");
+		const plain = task("Skeleton");
+		const report = (t: ReturnType<typeof task>, path: string) =>
+			event(
+				"artifact.created",
+				{ artifactId: crypto.randomUUID(), type: "report@1", path },
+				t.id,
+			);
+		const board = (events: MeteEvent[]): BoardModel => ({
+			kind: "board",
+			goal: "a game",
+			view: applyAll(RUN, EMPTY_TEAM_VIEW, events),
+			unreadable: 0,
+			recent: [],
+		});
+		const out = html(
+			board([
+				gdd.created,
+				notes.created,
+				plain.created,
+				report(gdd, ".mete/artifacts/r/write_gdd.json"),
+				gdd.to("submitted", "approved"),
+				report(notes, ".mete/artifacts/r/notes.md"),
+				notes.to("in_progress", "submitted"),
+				plain.to("submitted", "approved"),
+			]),
+		);
+		const results = section(out, "Results");
+		expect(results).toContain('title=".mete/artifacts/r/write_gdd.json"');
+		expect(results).toContain(">write_gdd.json<");
+		expect(results).toContain(
+			'aria-label="Open the report of Draft the notes"',
+		);
+		expect(results).not.toContain("Skeleton");
+		// Results come before the view switch.
+		expect(out.indexOf('aria-label="Results"')).toBeLessThan(
+			out.indexOf(">Board<"),
+		);
+		const done = section(out, "Done");
+		expect(done.match(/>Open report</g)).toHaveLength(1);
+		expect(done).toContain('aria-label="Open the report of Write the design"');
+		expect(section(out, "In progress")).not.toContain("Open report");
+		expect(html(board([plain.created]))).not.toContain('aria-label="Results"');
+	});
+
 	it("lists the run's checkpoints newest first with Restore, a restored one marked, and none without checkpoints (ADR-079)", () => {
 		const cp = (n: number) =>
 			event(

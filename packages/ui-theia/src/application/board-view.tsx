@@ -9,7 +9,8 @@ import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties, ReactNode } from "react";
 import type { DaemonFailure } from "../domain/status-service.js";
 import { CheckpointList, type RestoreControls } from "./checkpoint-list.js";
-import { LIST, MUTED, PANEL, TITLE } from "./look.js";
+import { LINK, LIST, MUTED, PANEL, TITLE } from "./look.js";
+import { openReportLabel, ResultsList, reportPath } from "./results-list.js";
 import { failureText } from "./status-text.js";
 import { studioText } from "./studio-text.js";
 
@@ -65,8 +66,16 @@ const markerText = (marker: NonNullable<Place["marker"]>) =>
 		blocked: nls.localize("mete/board/blocked", "Blocked"),
 	})[marker];
 
-const Card = ({ task }: { readonly task: TaskCard }) => {
-	const { marker } = placeOf(task.status);
+// A Done card opens its report; another column's report may still change (ADR-085).
+const Card = ({
+	task,
+	onOpen,
+}: {
+	readonly task: TaskCard;
+	readonly onOpen: (path: string) => void;
+}) => {
+	const { column, marker } = placeOf(task.status);
+	const path = column === "done" ? reportPath(task) : undefined;
 	return (
 		<li className="mete-card" style={CARD}>
 			<span>{task.title}</span>
@@ -74,6 +83,16 @@ const Card = ({ task }: { readonly task: TaskCard }) => {
 				{task.roleId}
 				{marker ? ` · ${markerText(marker)}` : ""}
 			</span>
+			{path ? (
+				<button
+					type="button"
+					style={LINK}
+					aria-label={openReportLabel(task)}
+					onClick={() => onOpen(path)}
+				>
+					{nls.localize("mete/board/openReport", "Open report")}
+				</button>
+			) : null}
 		</li>
 	);
 };
@@ -81,9 +100,11 @@ const Card = ({ task }: { readonly task: TaskCard }) => {
 const Column = ({
 	column,
 	tasks,
+	onOpen,
 }: {
 	readonly column: Place["column"];
 	readonly tasks: readonly TaskCard[];
+	readonly onOpen: (path: string) => void;
 }) => (
 	<section aria-label={columnName(column)}>
 		<h3 style={TITLE}>
@@ -91,7 +112,7 @@ const Column = ({
 		</h3>
 		<ul style={LIST}>
 			{tasks.map((t) => (
-				<Card key={t.id} task={t} />
+				<Card key={t.id} task={t} onOpen={onOpen} />
 			))}
 		</ul>
 	</section>
@@ -117,6 +138,8 @@ export type TeamControls = {
 	) => ReactNode;
 	/** Restoring one of the run's checkpoints (ADR-079). */
 	readonly restore: RestoreControls;
+	/** Opens a report, by its path relative to the workspace (ADR-085). */
+	readonly onOpenReport: (path: string) => void;
 };
 
 const modeName = (mode: TeamMode) =>
@@ -188,7 +211,7 @@ const Shown = ({
 		return model.view.tasks.length === 0 ? (
 			<NoTasks />
 		) : (
-			<Columns view={model.view} />
+			<Columns view={model.view} onOpen={controls.onOpenReport} />
 		);
 	return (
 		<>
@@ -198,13 +221,20 @@ const Shown = ({
 	);
 };
 
-const Columns = ({ view }: { readonly view: TeamView }) => (
+const Columns = ({
+	view,
+	onOpen,
+}: {
+	readonly view: TeamView;
+	readonly onOpen: (path: string) => void;
+}) => (
 	<div style={COLUMNS}>
 		{COLUMN_ORDER.map((column) => (
 			<Column
 				key={column}
 				column={column}
 				tasks={view.tasks.filter((t) => placeOf(t.status).column === column)}
+				onOpen={onOpen}
 			/>
 		))}
 	</div>
@@ -232,6 +262,7 @@ const Board = ({
 			<NoTasks />
 		) : (
 			<>
+				<ResultsList tasks={model.view.tasks} onOpen={controls.onOpenReport} />
 				<ModeSwitch controls={controls} />
 				<Shown model={model} controls={controls} />
 			</>
