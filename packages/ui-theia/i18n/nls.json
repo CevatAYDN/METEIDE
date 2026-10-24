@@ -175,6 +175,7 @@
 			"refresh": "Refresh",
 			"save": "Save",
 			"saved": "Saved to {0}; it applies when METE starts again.",
+			"savesTo": "Saves to {0}",
 			"sensitive": "This folder is sensitive, so providers that train on prompts stay out whatever this says.",
 			"setKey": "Set provider key…",
 			"show": "Show settings",

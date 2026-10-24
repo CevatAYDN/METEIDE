@@ -8,6 +8,7 @@ import {
 	type FormActions,
 	type FormState,
 	SettingsForm,
+	shortPath,
 } from "./settings-form.js";
 import { failureText, noFolderText } from "./status-text.js";
 
@@ -110,7 +111,7 @@ const FileValue = ({
 			title={from.file}
 			onClick={() => onOpen(from.file)}
 		>
-			{from.file}
+			{shortPath(from.file)}
 		</button>
 		<pre className="mete-card" style={CODE}>
 			{yamlOf(from.value)}
@@ -264,7 +265,8 @@ export const SettingsView = ({
 	readonly forms?: Forms;
 	readonly apply?: ApplyState;
 }) => (
-	<section style={PANEL} aria-live="polite">
+	// One readable column: the forms' fields need no more width than this.
+	<section style={{ ...PANEL, maxWidth: "760px" }} aria-live="polite">
 		<h2 style={TITLE}>{nls.localize("mete/settings/title", "Settings")}</h2>
 		<div style={ROW}>
 			{SETTINGS_LINKS.map(([id, label]) => (

@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { SET_KEY_COMMAND } from "../src/application/key-command.js";
+import { shortPath } from "../src/application/settings-form.js";
 import {
 	SETTINGS_LINKS,
 	type SettingsModel,
@@ -54,7 +55,11 @@ describe("the Settings screen", () => {
 		expect(gateway).toContain("models: both");
 		expect(gateway).toContain("models: free");
 		expect(gateway).toContain('title="/g/settings.yaml">/g/settings.yaml<');
-		expect(gateway).toContain('title="/w/.mete/gateway.yaml">');
+		// A folder's file is named from .mete on, whole in the tooltip; the global file stays whole.
+		expect(gateway).toContain(
+			'title="/w/.mete/gateway.yaml">.mete/gateway.yaml<',
+		);
+		expect(out).toContain("max-width:760px");
 		const mcp = out.slice(out.indexOf('aria-label="mcp"'));
 		expect(mcp).toContain("servers: []");
 		expect(mcp).not.toContain("Global:");
@@ -128,6 +133,15 @@ describe("the Settings forms (ADR-082)", () => {
 			'<option value="both" selected="">Free first, then paid</option>',
 		);
 		expect(gateway).toContain('placeholder="Default (1)"');
+		expect(gateway).toContain(
+			'title="/w/.mete/gateway.yaml">Saves to .mete/gateway.yaml<',
+		);
+		expect(shortPath(String.raw`C:\w\.mete\policy.yaml`)).toBe(
+			String.raw`.mete\policy.yaml`,
+		);
+		expect(
+			shortPath(String.raw`C:\Users\me\AppData\Roaming\METE\settings.yaml`),
+		).toBe(String.raw`C:\Users\me\AppData\Roaming\METE\settings.yaml`);
 		// Save waits for a change, so an untouched file is never rewritten.
 		expect(gateway).toMatch(
 			/<button type="button" class="mete-button" disabled="">Save<\/button>/,

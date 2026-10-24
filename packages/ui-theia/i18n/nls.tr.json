@@ -175,6 +175,7 @@
 			"refresh": "Yenile",
 			"save": "Kaydet",
 			"saved": "{0} dosyasına kaydedildi; METE yeniden başlayınca geçerli olur.",
+			"savesTo": "Kaydedileceği yer: {0}",
 			"sensitive": "Bu klasör hassas; bu ayar ne derse desin istemlerle eğitim yapan sağlayıcılar dışarıda kalır.",
 			"setKey": "Sağlayıcı anahtarı ayarla…",
 			"show": "Ayarları göster",

@@ -34,6 +34,15 @@ export type FormActions = {
 	readonly onSave: () => void;
 };
 
+/**
+ * A configuration file as the screen names it: a folder's file from its `.mete` folder on, since the
+ * open folder is known; any other file, such as the global settings.yaml, whole.
+ */
+export const shortPath = (file: string) => {
+	const at = file.search(/[\\/]\.mete[\\/][^\\/]+$/);
+	return at >= 0 ? file.slice(at + 1) : file;
+};
+
 // One literal nls.localize call per text, so Theia's nls-extract can read each.
 const LABELS: Readonly<Record<string, () => string>> = {
 	models: () => nls.localize("mete/settings/models", "Models"),
@@ -190,7 +199,15 @@ export const SettingsForm = ({
 				{nls.localize("mete/settings/save", "Save")}
 			</button>
 		</div>
-		{state.file ? <span style={MUTED}>{state.file}</span> : null}
+		{state.file ? (
+			<span style={MUTED} title={state.file}>
+				{nls.localize(
+					"mete/settings/savesTo",
+					"Saves to {0}",
+					shortPath(state.file),
+				)}
+			</span>
+		) : null}
 		{state.note ? (
 			<p role={state.note.kind === "refused" ? "alert" : undefined}>
 				{state.note.text}
