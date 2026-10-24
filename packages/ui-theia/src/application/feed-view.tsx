@@ -48,12 +48,20 @@ const nameOf = (names: Names, role: string) =>
 		? nls.localize("mete/feed/you", "You")
 		: (names[role] ?? roleWords(role));
 
-const clock = (ts: string) =>
-	new Date(ts).toLocaleTimeString([], {
+// The day too for an event of another day, such as a checkpoint saved after the run ended.
+const clock = (ts: string) => {
+	const at = new Date(ts);
+	const day =
+		at.toDateString() === new Date().toDateString()
+			? {}
+			: ({ day: "numeric", month: "short" } as const);
+	return at.toLocaleString([], {
+		...day,
 		hour: "2-digit",
 		minute: "2-digit",
 		second: "2-digit",
 	});
+};
 
 const Row = ({
 	event,
