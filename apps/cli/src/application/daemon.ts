@@ -7,6 +7,8 @@ import {
 	DaemonCheckpointRestoreParamsSchema,
 	type DaemonErrorData,
 	DaemonEstimateParamsSchema,
+	DaemonProviderModelsParamsSchema,
+	DaemonProviderTestParamsSchema,
 	DaemonRunApproveParamsSchema,
 	DaemonRunIdParamsSchema,
 	DaemonStatusParamsSchema,
@@ -14,6 +16,7 @@ import {
 	type EngineError,
 	EVENT_TYPES,
 	RunStartSchema,
+	type SecretsMaskAdapter,
 } from "@mete/contracts";
 import { listTemplates, readTemplate } from "@mete/core";
 import type { EventBus } from "@mete/kernel";
@@ -36,10 +39,11 @@ import {
 	quotaUnits,
 	trackExhausted,
 } from "./provider-states.js";
+import { customAdapter, endpointModels, probeModels } from "./provider-test.js";
 import { restoreCheckpoint } from "./rollback.js";
 import { settingsOf } from "./settings.js";
 
-// `mete daemon`: protocol version 16 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-081).
+// `mete daemon`: protocol version 17 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-087).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
@@ -175,6 +179,35 @@ const serveSettings = (conn: MessageConnection, app: App) =>
 		return settings;
 	});
 
+// A custom endpoint's adapter and the masker for its messages (ADR-087); no engine is needed. An
+// endpoint that is not loaded, or has no key, is not_found.
+const endpointOf = (app: App, providerId: string) => {
+	const masker = app.registry.resolve<SecretsMaskAdapter>("secrets.mask@1");
+	if (!masker.ok)
+		throw new ResponseError(
+			ErrorCodes.InternalError,
+			"secrets.mask@1 is not active",
+		);
+	const adapter = customAdapter(app, providerId);
+	if (adapter) return { adapter, mask: masker.value[0].impl };
+	const data: DaemonErrorData = { code: "not_found" };
+	throw new ResponseError(DAEMON_ERROR_CODE, `no ${providerId}`, data);
+};
+
+// The Settings screen's custom endpoint card: its models, and Test (ADR-087).
+const serveProviders = (conn: MessageConnection, app: App) => {
+	conn.onRequest(DAEMON_METHODS.providerModels, async (params: unknown) => {
+		const p = parsed(DaemonProviderModelsParamsSchema.safeParse(params));
+		const { adapter, mask } = endpointOf(app, p.providerId);
+		return endpointModels(adapter, mask);
+	});
+	conn.onRequest(DAEMON_METHODS.providerTest, async (params: unknown) => {
+		const p = parsed(DaemonProviderTestParamsSchema.safeParse(params));
+		const { adapter, mask } = endpointOf(app, p.providerId);
+		return probeModels(adapter, p.models, mask);
+	});
+};
+
 // The workspace audit log (ADR-053); it needs storage only, so it answers while core-engine is not
 // active too, as mete/quota does.
 const serveAudit = (conn: MessageConnection, app: App) =>
@@ -307,6 +340,7 @@ export const daemonCommand = async (
 	serveChain(conn, app);
 	serveCheckpointRestore(conn, app);
 	serveSettings(conn, app);
+	serveProviders(conn, app);
 	const spent = trackExhausted(app.events);
 	serveQuota(conn, app, spent.until);
 	serveEstimate(conn, app, spent.until);
