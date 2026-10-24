@@ -44,6 +44,8 @@ export {
 	DaemonEstimateParamsSchema,
 	DaemonEstimateResultSchema,
 	DaemonEventsResultSchema,
+	DaemonModelsParamsSchema,
+	DaemonModelsResultSchema,
 	DaemonProviderModelsParamsSchema,
 	DaemonProviderModelsResultSchema,
 	DaemonProviderTestParamsSchema,

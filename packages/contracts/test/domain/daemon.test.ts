@@ -15,6 +15,8 @@ import {
 	DaemonEstimateParamsSchema,
 	DaemonEstimateResultSchema,
 	DaemonEventsResultSchema,
+	DaemonModelsParamsSchema,
+	DaemonModelsResultSchema,
 	DaemonProviderModelsParamsSchema,
 	DaemonProviderModelsResultSchema,
 	DaemonProviderTestParamsSchema,
@@ -143,6 +145,7 @@ describe("daemon protocol version 14", () => {
 			settings: "mete/settings",
 			providerModels: "mete/provider.models",
 			providerTest: "mete/provider.test",
+			models: "mete/models",
 			event: "mete/event",
 		});
 	});
@@ -385,6 +388,30 @@ describe("daemon protocol version 14", () => {
 		expect(
 			DaemonChainResultSchema.safeParse({ models: [{ providerId: "groq" }] })
 				.success,
+		).toBe(false);
+	});
+
+	it("asks mete/models for models by provider and model, and answers their facts (ADR-090)", () => {
+		const ask = { models: [{ providerId: "groq", modelId: "m" }] };
+		expect(DaemonModelsParamsSchema.parse(ask)).toEqual(ask);
+		for (const bad of [{}, { models: [{ providerId: "groq" }] }])
+			expect(DaemonModelsParamsSchema.safeParse(bad).success).toBe(false);
+		const model: ModelInfo = {
+			id: "m",
+			providerId: "groq",
+			family: "llama",
+			contextWindow: 128_000,
+			toolCalling: true,
+			vision: false,
+			free: true,
+			deprecated: false,
+		};
+		for (const answer of [{ models: [model] }, { models: [] }])
+			expect(DaemonModelsResultSchema.parse(answer)).toEqual(answer);
+		expect(
+			DaemonModelsResultSchema.safeParse({
+				models: [{ providerId: "groq", modelId: "m" }],
+			}).success,
 		).toBe(false);
 	});
 

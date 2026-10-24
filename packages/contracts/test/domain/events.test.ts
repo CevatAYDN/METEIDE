@@ -100,6 +100,22 @@ describe("parseEvent", () => {
 		).toBe(false);
 	});
 
+	it("ends a model call with or without its usage, in whole tokens (ADR-090)", () => {
+		expect(parseEvent(envelope("agent.thinking.ended", {})).ok).toBe(true);
+		const usage = { prompt: 61_000, completion: 900 };
+		expect(parseEvent(envelope("agent.thinking.ended", { usage })).ok).toBe(
+			true,
+		);
+		for (const bad of [
+			{ prompt: 1 },
+			{ prompt: -1, completion: 0 },
+			{ prompt: 1.5, completion: 0 },
+		])
+			expect(
+				parseEvent(envelope("agent.thinking.ended", { usage: bad })).ok,
+			).toBe(false);
+	});
+
 	it("caps message summaries at 80 characters", () => {
 		const payload = (summary: string) => ({
 			messageId: crypto.randomUUID(),

@@ -92,7 +92,15 @@ const PAYLOADS = {
 		reason: text,
 	}),
 	"agent.thinking.started": none,
-	"agent.thinking.ended": none,
+	"agent.thinking.ended": z.strictObject({
+		/** The token counts of the model call it closes, when the call finished (ADR-090). */
+		usage: z
+			.strictObject({
+				prompt: z.number().int().nonnegative(),
+				completion: z.number().int().nonnegative(),
+			})
+			.optional(),
+	}),
 	"agent.message.sent": z.strictObject({
 		messageId: IdSchema,
 		from: text,

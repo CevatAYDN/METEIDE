@@ -8,10 +8,10 @@ import { CustomProviderIdSchema, ModelInfoSchema } from "./provider.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 17 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-087).
+// Daemon protocol version 18 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-090).
 // The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The messages of version 17; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 18; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
@@ -29,6 +29,7 @@ export const DAEMON_METHODS = {
 	settings: "mete/settings",
 	providerModels: "mete/provider.models",
 	providerTest: "mete/provider.test",
+	models: "mete/models",
 	event: "mete/event",
 } as const;
 
@@ -201,6 +202,16 @@ export const DaemonChainParamsSchema = z.strictObject({
 /** Result of `mete/chain`: the models the gateway would try for them, best first, without a pin. */
 export const DaemonChainResultSchema = z.strictObject({
 	models: z.array(ModelRefSchema),
+});
+
+/** Params of `mete/models`: the models whose facts the Team view's context share needs (ADR-090). */
+export const DaemonModelsParamsSchema = z.strictObject({
+	models: z.array(ModelRefSchema),
+});
+
+/** Result of `mete/models`: each asked model the gateway's listing has, in the order asked. */
+export const DaemonModelsResultSchema = z.strictObject({
+	models: z.array(ModelInfoSchema),
 });
 
 /** Params of `mete/checkpoint.restore`: the run and the id of its `checkpoint.created` event (ADR-079). */
