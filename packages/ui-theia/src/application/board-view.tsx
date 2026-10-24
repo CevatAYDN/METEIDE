@@ -16,6 +16,7 @@ import { openReportLabel, ResultsList, reportPath } from "./results-list.js";
 import { failureText } from "./status-text.js";
 import { studioText } from "./studio-text.js";
 import { TeamView as Roster } from "./team-view.js";
+import { type WaitingControls, WaitingStrip } from "./waiting-strip.js";
 
 // The Team panel (docs/13, ADR-051): one run's tasks on the Board (To do, In progress and Done),
 // its members in the Team view (ADR-089) or as the Flow graph, both from the view model the fold of @mete/ui-studio keeps. Text is shown as it is: React escapes it.
@@ -147,6 +148,8 @@ export type TeamControls = {
 	readonly names: Readonly<Record<string, string>>;
 	/** Each model's listed context window, for the Team view's context share (ADR-090). */
 	readonly windows: Windows;
+	/** The Waiting for you strip's answers for the shown run (ADR-091). */
+	readonly waiting: Omit<WaitingControls, "onOpen">;
 };
 
 const modeName = (mode: TeamMode) =>
@@ -290,6 +293,11 @@ const Board = ({
 			<NoTasks />
 		) : (
 			<>
+				<WaitingStrip
+					view={model.view}
+					names={controls.names}
+					controls={{ ...controls.waiting, onOpen: controls.onOpenReport }}
+				/>
 				<ResultsList tasks={model.view.tasks} onOpen={controls.onOpenReport} />
 				<ModeSwitch controls={controls} />
 				<Shown model={model} controls={controls} />

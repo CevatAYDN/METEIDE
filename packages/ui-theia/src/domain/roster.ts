@@ -66,11 +66,8 @@ const stateOf = (
 	agent: AgentCard | undefined,
 ): MemberState => {
 	const { pausedFor, exhausted } = view.signals;
-	// A task submitted with no role as approver waits for the human while the run is paused for it.
-	if (
-		pausedFor === "approval" &&
-		tasks.some((t) => t.status === "submitted" && !t.approver)
-	)
+	// A task whose approval the human was asked for, while the run is paused for it (ADR-091).
+	if (pausedFor === "approval" && tasks.some((t) => t.waitsForHuman))
 		return { kind: "waits_for_you" };
 	const resetsAt = agent && exhausted[agent.providerId];
 	if (pausedFor === "quota" && resetsAt) return { kind: "quota", resetsAt };

@@ -347,6 +347,11 @@
 			"which": "Hangi takım?",
 			"workspace": "Bu klasörün takımı, .mete/teams/{0}.yaml dosyasında."
 		},
+		"waiting": {
+			"asks": "{0}, “{1}” için onayını bekliyor",
+			"run": "Çalıştırma seni bekliyor.",
+			"send": "Geri gönder"
+		},
 		"welcome": {
 			"caption": "METE: başlamak için anahtarlar, gizlilik ve web araması",
 			"getKey": "Anahtar al",

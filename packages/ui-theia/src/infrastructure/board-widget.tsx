@@ -13,6 +13,11 @@ import {
 	postConstruct,
 } from "@theia/core/shared/inversify";
 import {
+	APPROVE_RUN_COMMAND,
+	RESUME_RUN_COMMAND,
+	REVISE_RUN_COMMAND,
+} from "../application/approval-commands.js";
+import {
 	type BoardSession,
 	IDLE_BOARD,
 	loadedBoard,
@@ -133,6 +138,13 @@ export class MeteBoardWidget extends ReactWidget {
 			return;
 		this.names = roleNames(t.value.yaml);
 		this.update();
+	}
+
+	// The strip's answers run ADR-048's commands with the shown run, as the Home view's buttons do.
+	protected decide(command: string, feedback?: string) {
+		const runId = this.shownRun.runId;
+		if (!runId) return Promise.resolve();
+		return this.commands.executeCommand(command, runId, feedback);
 	}
 
 	// Coming to the composer puts the cursor in the goal field (docs/13: keyboard-first) and asks for
@@ -263,6 +275,12 @@ export class MeteBoardWidget extends ReactWidget {
 					onOpenReport: (path) => void this.openReport(path),
 					names: this.names,
 					windows: this.windows,
+					waiting: {
+						onApprove: () => void this.decide(APPROVE_RUN_COMMAND.id),
+						onRevise: (feedback) =>
+							void this.decide(REVISE_RUN_COMMAND.id, feedback),
+						onResume: () => void this.decide(RESUME_RUN_COMMAND.id),
+					},
 				}}
 			/>
 		);

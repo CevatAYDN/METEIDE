@@ -30,6 +30,11 @@ const html = (
 				onOpenReport: () => {},
 				names: { writer: "Copy writer" },
 				windows: {},
+				waiting: {
+					onApprove: () => {},
+					onRevise: () => {},
+					onResume: () => {},
+				},
 			},
 		}),
 	);

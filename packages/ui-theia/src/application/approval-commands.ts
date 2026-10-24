@@ -62,17 +62,28 @@ export class MeteApprovalContribution implements CommandContribution {
 			execute: (runId?: unknown) => this.decide("approve", runId),
 		});
 		commands.registerCommand(REVISE_RUN_COMMAND, {
-			execute: (runId?: unknown) => this.decide("revise", runId),
+			execute: (runId?: unknown, feedback?: unknown) =>
+				this.decide("revise", runId, feedback),
 		});
 		commands.registerCommand(RESUME_RUN_COMMAND, {
 			execute: (runId?: unknown) => this.resume(runId),
 		});
 	}
 
-	protected async decide(decision: "approve" | "revise", given: unknown) {
+	// Revise's feedback comes typed from the Team panel's strip (ADR-091), or else from a quick input.
+	protected async decide(
+		decision: "approve" | "revise",
+		given: unknown,
+		typed?: unknown,
+	) {
 		const t = await this.target(given, waitsForYou);
 		if (!t) return;
-		const input = decision === "approve" ? { decision } : await this.feedback();
+		const input =
+			decision === "approve"
+				? { decision }
+				: typeof typed === "string" && typed.trim()
+					? { decision, feedback: typed.trim() }
+					: await this.feedback();
 		if (!input) return;
 		const r = await this.daemon.approve(t.dir, t.runId, input);
 		this.report(

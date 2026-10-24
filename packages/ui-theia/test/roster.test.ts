@@ -131,9 +131,24 @@ describe("the Team view's roster", () => {
 		const asking = roster([
 			...base,
 			audit.to("submitted"),
+			event("approval.requested", { approver: "human" }, { taskId: audit.id }),
 			event("run.paused", { reason: "approval" }),
 		]);
 		expect(asking[1]?.state).toEqual({ kind: "waits_for_you" });
+		// A human checkpoint: the lead approves first, then the human is asked (ADR-091).
+		const afterLead = roster([
+			...base,
+			audit.to("submitted"),
+			event("approval.requested", { approver: "lead" }, { taskId: audit.id }),
+			event(
+				"approval.resolved",
+				{ approver: "lead", decision: "approve" },
+				{ taskId: audit.id },
+			),
+			event("approval.requested", { approver: "human" }, { taskId: audit.id }),
+			event("run.paused", { reason: "approval" }),
+		]);
+		expect(afterLead[1]?.state).toEqual({ kind: "waits_for_you" });
 
 		const spent = roster([
 			...base,

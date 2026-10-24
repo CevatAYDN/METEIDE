@@ -347,6 +347,11 @@
 			"which": "Which team?",
 			"workspace": "This folder's team, saved in .mete/teams/{0}.yaml."
 		},
+		"waiting": {
+			"asks": "{0} asks you to approve “{1}”",
+			"run": "The run waits for you.",
+			"send": "Send back"
+		},
 		"welcome": {
 			"caption": "METE: keys, privacy and web search to start with",
 			"getKey": "Get a key",

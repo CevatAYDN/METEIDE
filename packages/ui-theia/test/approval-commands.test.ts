@@ -108,6 +108,18 @@ describe("the approvals inbox commands", () => {
 		]);
 	});
 
+	it("revises with the feedback the Team panel's strip typed, without asking again (ADR-091)", async () => {
+		const t = setup({ feedback: "never asked" });
+		await t.exec("mete.run.revise", "r1", "  bigger dot  ");
+		expect(t.calls).toEqual([
+			{
+				kind: "approve",
+				runId: "r1",
+				input: { decision: "revise", feedback: "bigger dot" },
+			},
+		]);
+	});
+
 	it("asks which run from the palette, among those that wait for you", async () => {
 		const t = setup({
 			runs: [
