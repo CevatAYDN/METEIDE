@@ -464,6 +464,18 @@
 			"teamsHint": "Change a team or start a new one",
 			"tools": "Tools and web search",
 			"toolsHint": "Adapters, MCP servers and the shell"
+		},
+		"section": {
+			"bindings": "Tool adapters",
+			"gateway": "Models and daily spend",
+			"mcp": "MCP servers",
+			"models": "Your model list",
+			"policy": "Approvals and limits",
+			"privacy": "Training on your prompts",
+			"providers": "Custom endpoints",
+			"quota": "Quota limits",
+			"shell": "Which shell",
+			"workspace": "Sensitive folder"
 		}
 	}
 }

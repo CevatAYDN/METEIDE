@@ -6,6 +6,7 @@ import { tokenCount } from "./context-meter.js";
 import type { Tone } from "./roster-look.js";
 import { shortWhen } from "./runs-list.js";
 import { optionLabel } from "./settings-form.js";
+import { statusWord } from "./status-text.js";
 
 // The run strip's chips (ADR-094): facts the run already has, as an icon, a word and a tone. The run's
 // own entry of `mete/status` gives its status, team, times, autonomy and limits; the fold of its events
@@ -33,39 +34,13 @@ export type RunEntry = StatusRuns[number];
 
 type Status = RunEntry["status"];
 
-const STATUS: Readonly<
-	Record<Status, () => Pick<Chip, "icon" | "text" | "tone">>
-> = {
-	queued: () => ({
-		icon: "clock",
-		text: nls.localize("mete/strip/queued", "Queued"),
-		tone: "muted",
-	}),
-	running: () => ({
-		icon: "play",
-		text: nls.localize("mete/strip/running", "Running"),
-		tone: "accent",
-	}),
-	paused: () => ({
-		icon: "debug-pause",
-		text: nls.localize("mete/strip/paused", "Paused"),
-		tone: "warn",
-	}),
-	completed: () => ({
-		icon: "pass",
-		text: nls.localize("mete/strip/completed", "Done"),
-		tone: "good",
-	}),
-	failed: () => ({
-		icon: "error",
-		text: nls.localize("mete/strip/failed", "Failed"),
-		tone: "bad",
-	}),
-	cancelled: () => ({
-		icon: "circle-slash",
-		text: nls.localize("mete/strip/cancelled", "Cancelled"),
-		tone: "muted",
-	}),
+const STATUS: Readonly<Record<Status, Pick<Chip, "icon" | "tone">>> = {
+	queued: { icon: "clock", tone: "muted" },
+	running: { icon: "play", tone: "accent" },
+	paused: { icon: "debug-pause", tone: "warn" },
+	completed: { icon: "pass", tone: "good" },
+	failed: { icon: "error", tone: "bad" },
+	cancelled: { icon: "circle-slash", tone: "muted" },
 };
 
 /** How long a run took, in minutes and hours; a still reading, since the run is over. */
@@ -189,7 +164,11 @@ export const chipsOf = (
 	return [
 		...(run
 			? [
-					{ key: "status", ...STATUS[run.status]() },
+					{
+						key: "status",
+						...STATUS[run.status],
+						text: statusWord(run.status),
+					},
 					teamChip(facts, run),
 					...timeChips(run, now),
 					...ruleChips(run),

@@ -66,7 +66,13 @@ const LOADED: SettingsModel = {
 describe("the Settings screen", () => {
 	it("shows each section merged and each file's value under its path, as YAML", () => {
 		const out = html(LOADED, "models");
-		const gateway = out.slice(out.indexOf('aria-label="gateway"'));
+		const gateway = out.slice(
+			out.indexOf('aria-label="Models and daily spend"'),
+		);
+		// The card's title is in plain words, with the section id beside it (ADR-095).
+		expect(gateway).toMatch(
+			/<h3[^>]*>Models and daily spend<span[^>]*> · gateway<\/span>/,
+		);
 		expect(gateway).toContain("models: both");
 		expect(gateway).toContain("models: free");
 		expect(gateway).toContain('title="/g/settings.yaml">/g/settings.yaml<');
@@ -77,8 +83,8 @@ describe("the Settings screen", () => {
 		expect(out).toContain("max-width:760px");
 		// The MCP section sits in the tools group.
 		const tools = html(LOADED, "tools");
-		const mcp = tools.slice(tools.indexOf('aria-label="mcp"'));
-		expect(out).not.toContain('aria-label="mcp"');
+		const mcp = tools.slice(tools.indexOf('aria-label="MCP servers"'));
+		expect(out).not.toContain('aria-label="MCP servers"');
 		expect(mcp).toContain("servers: []");
 		expect(mcp).not.toContain("Global:");
 		// One file: its value once, no merged block; two files: the merged value first.
@@ -156,8 +162,12 @@ describe("the Settings forms (ADR-082)", () => {
 
 	it("always shows the gateway, policy and privacy sections, and a form where it has one", () => {
 		const out = everyGroup((g) => withForms(LOADED, g));
-		for (const name of ["gateway", "policy", "privacy"])
-			expect(out).toContain(`aria-label="${name}"`);
+		for (const title of [
+			"Models and daily spend",
+			"Approvals and limits",
+			"Training on your prompts",
+		])
+			expect(out).toContain(`aria-label="${title}"`);
 		const policy = withForms(LOADED, "limits");
 		expect(policy).toContain("No file sets this section; its defaults apply.");
 		const gateway = withForms(LOADED, "models");
@@ -387,7 +397,7 @@ describe("the custom endpoints card (ADR-087)", () => {
 
 	it("shows the providers section with each endpoint's fields, saving globally unless asked", () => {
 		const out = withEndpoints("global");
-		const card = out.slice(out.indexOf('aria-label="providers"'));
+		const card = out.slice(out.indexOf('aria-label="Custom endpoints"'));
 		for (const label of ["Name", "Slug", "Base URL", "API format", "Remove"])
 			expect(card).toContain(label);
 		expect(card).toContain('value="https://lab.example/v1"');
@@ -500,16 +510,18 @@ describe("the groups list (ADR-095)", () => {
 	it("shows a section no group holds under Other files, and leaves that group out otherwise", () => {
 		expect(html(OTHER, "models")).toContain("Other files");
 		const other = html(OTHER, "other");
+		// A section METE has no words for keeps its id as its title.
 		expect(other).toContain('aria-label="foo"');
+		expect(other).toMatch(/<h3[^>]*>foo<\/h3>/);
 		expect(other).toContain("a: 1");
 		expect(html(OTHER, "tools")).not.toContain('aria-label="foo"');
 	});
 
 	it("shows only the chosen group's sections beside the list", () => {
 		const out = html(LOADED, "limits");
-		expect(out).toContain('aria-label="policy"');
-		expect(out).not.toContain('aria-label="gateway"');
-		expect(out).not.toContain('aria-label="mcp"');
+		expect(out).toContain('aria-label="Approvals and limits"');
+		expect(out).not.toContain('aria-label="Models and daily spend"');
+		expect(out).not.toContain('aria-label="MCP servers"');
 		expect(out).toContain("<h3");
 	});
 });

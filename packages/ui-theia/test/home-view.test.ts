@@ -101,10 +101,10 @@ describe("the Home view", () => {
 				AT,
 			),
 		);
-		expect(out).toContain('<span class="mete-chip warn">paused</span>');
+		expect(out).toContain('<span class="mete-chip warn">Paused</span>');
 		expect(out).toContain("fix &lt;the&gt; bug");
 		expect(out).toContain(" · research");
-		expect(out).toContain('<span class="mete-chip ">completed</span>');
+		expect(out).toContain('<span class="mete-chip ">Done</span>');
 		// The snapshot's time is Refresh's tooltip, beside New run, above the list.
 		expect(out).toMatch(
 			/<button type="button" class="mete-button quiet" title="As of [^"]+">Refresh</,

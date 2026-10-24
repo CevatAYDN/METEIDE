@@ -206,7 +206,7 @@ describe("METE: Status", () => {
 		});
 		await two.execute();
 		expect(two.info).toEqual([
-			'2 run(s) in this folder: paused "fix the bug"; completed "write notes"',
+			'2 run(s) in this folder: Paused "fix the bug"; Done "write notes"',
 		]);
 
 		const seven = setup(["/w"], {
@@ -235,7 +235,7 @@ describe("METE: Status", () => {
 		});
 		await goal.execute();
 		expect(goal.info).toEqual([
-			String.raw`1 run(s) in this folder: paused "fix \*the\* bug"`,
+			String.raw`1 run(s) in this folder: Paused "fix \*the\* bug"`,
 		]);
 	});
 

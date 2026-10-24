@@ -17,6 +17,7 @@ import {
 	type FormState,
 	shortPath,
 } from "./settings-form.js";
+import { sectionTitle } from "./settings-groups.js";
 
 // What one Settings section looks like (ADR-081 to ADR-087): its name, what METE loaded from each
 // file as YAML text with the file's path, and its form or card where it has one.
@@ -97,6 +98,22 @@ const FileValue = ({
 	</div>
 );
 
+// The plain-words title with the section id beside it, as tier tiles show the tier id (ADR-095).
+const SectionTitle = ({ name }: { readonly name: string }) => {
+	const title = sectionTitle(name);
+	return (
+		<h3 style={TITLE}>
+			{title ?? name}
+			{title ? (
+				<span style={{ ...MUTED, fontSize: "0.75em", fontWeight: 400 }}>
+					{" "}
+					· {name}
+				</span>
+			) : null}
+		</h3>
+	);
+};
+
 export const SectionCard = ({
 	section,
 	onOpen,
@@ -106,8 +123,11 @@ export const SectionCard = ({
 	readonly onOpen: (file: string) => void;
 	readonly form?: ReactNode;
 }) => (
-	<section className="mete-card" aria-label={section.name}>
-		<h3 style={TITLE}>{section.name}</h3>
+	<section
+		className="mete-card"
+		aria-label={sectionTitle(section.name) ?? section.name}
+	>
+		<SectionTitle name={section.name} />
 		{!section.global && !section.workspace ? (
 			<p style={MUTED}>
 				{nls.localize(

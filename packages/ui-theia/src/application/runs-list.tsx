@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import type { HomeRow } from "../domain/home-model.js";
 import { LINK, LIST, MUTED, ROW } from "./look.js";
 import { stateText } from "./quota-text.js";
-import { runsText } from "./status-text.js";
+import { runsText, statusWord } from "./status-text.js";
 
 // The run list of the METE view's Runs section (docs/13, Home; ADR-078), and the pieces the other
 // sections share with it: the inbox actions and the button.
@@ -123,7 +123,9 @@ const RunItem = ({
 			<OpenGoal row={row} act={act} />
 		</span>
 		<span style={MUTED}>
-			<span className={`mete-chip ${toneOf(row)}`}>{row.status}</span>
+			<span className={`mete-chip ${toneOf(row)}`}>
+				{statusWord(row.status)}
+			</span>
 			{row.templateId ? ` · ${row.templateId}` : ""} ·{" "}
 			<span title={when(row.createdAt)}>{shortWhen(row.createdAt)}</span>
 		</span>

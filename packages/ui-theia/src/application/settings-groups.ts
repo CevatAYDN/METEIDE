@@ -112,6 +112,35 @@ export const GROUPS: readonly GroupDef[] = [
 	},
 ];
 
+// Each section's card title (ADR-095): what the section holds, in the words of the doc that defines it.
+const TITLES: Readonly<Record<string, () => string>> = {
+	// ADR-087: the custom endpoints.
+	providers: () => nls.localize("mete/section/providers", "Custom endpoints"),
+	// ADR-082: which models, free, paid or both, and the daily spend.
+	gateway: () => nls.localize("mete/section/gateway", "Models and daily spend"),
+	// docs/09: the user's model rows, merged over the shipped list.
+	models: () => nls.localize("mete/section/models", "Your model list"),
+	// docs/09, Quota: a limit per provider unit.
+	quota: () => nls.localize("mete/section/quota", "Quota limits"),
+	// SECURITY.md: autonomy, what asks first, what is never allowed, the budget.
+	policy: () => nls.localize("mete/section/policy", "Approvals and limits"),
+	// docs/09, Privacy: allowTraining.
+	privacy: () =>
+		nls.localize("mete/section/privacy", "Training on your prompts"),
+	// docs/09, Privacy: the folder's sensitivity.
+	workspace: () => nls.localize("mete/section/workspace", "Sensitive folder"),
+	// docs/10: the adapters bound to each capability.
+	bindings: () => nls.localize("mete/section/bindings", "Tool adapters"),
+	// docs/10, MCP client.
+	mcp: () => nls.localize("mete/section/mcp", "MCP servers"),
+	// docs/10, Built-in tools: PowerShell or Git Bash on Windows.
+	shell: () => nls.localize("mete/section/shell", "Which shell"),
+};
+
+/** A section's plain-words title, or undefined for a section METE has no words for. */
+export const sectionTitle = (name: string): string | undefined =>
+	Object.hasOwn(TITLES, name) ? TITLES[name]?.() : undefined;
+
 /** A section as the groups see it: its name, and whether this folder's own file sets it. */
 export type GroupedSection = {
 	readonly name: string;

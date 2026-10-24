@@ -8,7 +8,7 @@ import type { DaemonFailure, StatusRuns } from "./status-service.js";
 /** One run as the panel lists it. */
 export type HomeRow = {
 	readonly id: string;
-	readonly status: string;
+	readonly status: StatusRuns[number]["status"];
 	readonly goal: string;
 	readonly templateId: string | null;
 	readonly createdAt: string;

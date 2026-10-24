@@ -464,6 +464,18 @@
 			"teamsHint": "Bir takımı değiştirin ya da yenisini başlatın",
 			"tools": "Araçlar ve web araması",
 			"toolsHint": "Bağdaştırıcılar, MCP sunucuları ve kabuk"
+		},
+		"section": {
+			"bindings": "Araç bağdaştırıcıları",
+			"gateway": "Modeller ve günlük harcama",
+			"mcp": "MCP sunucuları",
+			"models": "Model listeniz",
+			"policy": "Onaylar ve sınırlar",
+			"privacy": "İstemlerinizle eğitim",
+			"providers": "Özel uç noktalar",
+			"quota": "Kota sınırları",
+			"shell": "Hangi kabuk",
+			"workspace": "Hassas klasör"
 		}
 	}
 }

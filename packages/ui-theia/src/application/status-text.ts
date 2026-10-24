@@ -60,6 +60,20 @@ const FAILURE: Record<DaemonFailure["code"], (detail: string) => string> = {
 		nls.localize("mete/status/stopped", "The METE daemon stopped: {0}", d),
 };
 
+// A run's status in words, shared by the run strip, the Runs list and this message (ADR-094).
+const STATUS_WORD: Record<StatusRuns[number]["status"], () => string> = {
+	queued: () => nls.localize("mete/strip/queued", "Queued"),
+	running: () => nls.localize("mete/strip/running", "Running"),
+	paused: () => nls.localize("mete/strip/paused", "Paused"),
+	completed: () => nls.localize("mete/strip/completed", "Done"),
+	failed: () => nls.localize("mete/strip/failed", "Failed"),
+	cancelled: () => nls.localize("mete/strip/cancelled", "Cancelled"),
+};
+
+/** A run's status as a word. */
+export const statusWord = (status: StatusRuns[number]["status"]) =>
+	STATUS_WORD[status]();
+
 /** Says why the daemon gave no runs, with what it reported; `prepare` readies outside text. */
 export const failureText = ({ code, detail }: DaemonFailure, prepare = asIs) =>
 	FAILURE[code](prepare(detail));
@@ -74,6 +88,6 @@ export const runsText = (runs: StatusRuns, prepare = asIs) =>
 				runs.length,
 				runs
 					.slice(0, SHOWN_RUNS)
-					.map((r) => `${r.status} "${prepare(r.goal)}"`)
+					.map((r) => `${statusWord(r.status)} "${prepare(r.goal)}"`)
 					.join("; ") + moreText(runs.length - SHOWN_RUNS),
 			);
