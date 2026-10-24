@@ -12,6 +12,7 @@ import {
 	type TeamView,
 } from "./team-draft.js";
 import { TeamRules } from "./work-fields.js";
+import { OrderOfWork } from "./work-order-view.js";
 
 // The team editor's screen (docs/13, Settings, Templates; ADR-075): the team's name and description,
 // its members with their tasks, the schema's issues, and Save, Save as new team and Open YAML. The
@@ -59,6 +60,11 @@ export type TeamEditorActions = {
 type Ready = Extract<TeamEditorModel, { kind: "ready" }>;
 
 const FIELD = { display: "flex", flexDirection: "column", gap: "4px" } as const;
+const COLUMN = {
+	display: "flex",
+	flexDirection: "column",
+	gap: "14px",
+} as const;
 const TEMPLATE_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 const Header = ({
@@ -180,13 +186,14 @@ const Members = ({
 		<>
 			<h3 style={TITLE}>{nls.localize("mete/team/members", "Members")}</h3>
 			<div style={{ ...ROW, alignItems: "flex-start" }}>
-				<div style={{ flex: "1 1 280px", minWidth: 0 }}>
+				<div style={{ ...COLUMN, flex: "1 1 280px", minWidth: 0 }}>
 					<MemberGrid
 						team={model.team}
 						selected={i}
 						onSelect={actions.onSelectMember}
 						onAdd={actions.onAddMember}
 					/>
+					<OrderOfWork team={model.team} onSelect={actions.onSelectMember} />
 				</div>
 				{r ? (
 					<div style={{ flex: "2 1 420px", minWidth: 0 }}>

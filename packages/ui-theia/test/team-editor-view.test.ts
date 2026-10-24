@@ -10,6 +10,7 @@ import {
 	type Draft,
 	draftOf,
 	issuesOf,
+	removeRole,
 	teamOf,
 } from "../src/application/team-draft.js";
 import {
@@ -100,9 +101,9 @@ describe("TeamEditorView", () => {
 		expect(out).toMatch(/disabled="" value="qa"/);
 		expect(out).not.toMatch(/<input[^>]*value="frontend_developer"/);
 		// Four tiles, one for each member; the chosen tile is pressed.
-		expect(out.match(/<button type="button" class="mete-card"/g)).toHaveLength(
-			4,
-		);
+		expect(
+			out.match(/<button type="button" class="mete-card"[^>]*aria-pressed/g),
+		).toHaveLength(4);
 		expect(
 			out.match(/class="mete-card"[^>]*aria-pressed="true"/g),
 		).toHaveLength(1);
@@ -250,5 +251,58 @@ describe("the composer's Edit button", () => {
 			}),
 		);
 		expect(out.match(/>Edit</g)).toHaveLength(1);
+	});
+});
+
+describe("Order of work (ADR-093)", () => {
+	it("lists the tasks in the order a run can start them, with who does each and who approves it", () => {
+		const out = html(ready(DOC));
+		expect(out).toContain("Order of work");
+		const rows = [
+			...out.matchAll(
+				/<li><button[^>]*class="mete-card"[^>]*>(.*?)<\/button><\/li>/g,
+			),
+		];
+		expect(rows).toHaveLength(3);
+		expect(rows[0]?.[1]).toMatch(
+			/>1<\/span><strong>[^<]+<\/strong><span>UI designer<\/span>/,
+		);
+		expect(rows[1]?.[1]).toContain("<span>Frontend developer</span>");
+		expect(rows[1]?.[1]).toContain("after ");
+		expect(rows[2]?.[1]).toContain("approved by Lead");
+	});
+
+	it("says that the human approves a task, and has no list for a team without tasks", () => {
+		const game = draftOf(
+			readFileSync(
+				join(__dirname, "..", "..", "..", "templates", "game-studio.yaml"),
+				"utf8",
+			),
+		);
+		if (!game.ok) throw new Error(game.error);
+		expect(html(ready(game.value))).toContain("then by you");
+		const you = draftOf(
+			`roles: [{ id: r, name: R }]
+tasks: [{ id: a, role: r, title: A, approval: human }]`,
+		);
+		if (!you.ok) throw new Error(you.error);
+		expect(html(ready(you.value))).toContain("you approve it");
+		const none = draftOf("roles: []\ntasks: []");
+		if (!none.ok) throw new Error(none.error);
+		expect(html(ready(none.value, { selected: -1 }))).not.toContain(
+			"Order of work",
+		);
+	});
+
+	it("keeps Add member and the schema's refusal when the last member has been removed", () => {
+		let doc = DOC;
+		for (let i = 0; i < IDS.length; i++) doc = removeRole(doc, 0);
+		const out = html(ready(doc, { selected: -1 }));
+		expect(out).toContain("Add member");
+		expect(out).toContain('role="alert"');
+		expect(out).not.toContain("Remove member");
+		expect(out).toMatch(
+			/<button type="button" class="mete-button" disabled="">Save</,
+		);
 	});
 });
