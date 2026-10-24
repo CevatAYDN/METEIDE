@@ -13,6 +13,7 @@ import { createGatewayModule, type GatewayModule } from "@mete/gateway";
 import {
 	type CapabilityRegistry,
 	type ConfigInvalid,
+	type ConfigLayers,
 	createCapabilityRegistry,
 	createEventBus,
 	createLifecycle,
@@ -112,6 +113,8 @@ export type App = {
 	readonly chain: GatewayModule["chain"];
 	/** The template folders core-engine reads, which mete/templates lists (ADR-058). */
 	readonly templates: TemplateDirs;
+	/** The configuration files as loaded, and when (ADR-081). */
+	readonly config: { readonly layers: ConfigLayers; readonly loadedAt: string };
 	readonly stop: () => Promise<void>;
 };
 
@@ -213,19 +216,8 @@ const contextOf =
 		};
 	};
 
-/** Loads the configuration, registers every module, starts the kernel and opens the workspace. */
-export const createApp = async (
-	opts: AppOptions,
-): Promise<Result<App, readonly ConfigInvalid[]>> => {
-	const config = await loadConfig(opts, BUILT_IN_BINDINGS);
-	if (!config.ok) return err(config.error);
-	const { workspaceId, reader, bindings } = config.value;
-	const registry = createCapabilityRegistry(bindings);
-	// shortcut: one shared bus, so a throwing handler is logged instead of reported as its
-	// module's crash; per-module bus views come with the daemon.
-	const events = createEventBus((error, e) =>
-		opts.logger.error({ err: error, type: e.type }, "event handler threw"),
-	);
+// The modules that stopped and why, as module.deactivated reports them.
+const deactivated = (events: EventBus) => {
 	const inactive: { moduleId: string; reason: string }[] = [];
 	events.subscribe(
 		"module.deactivated",
@@ -233,6 +225,24 @@ export const createApp = async (
 			if (reason) inactive.push({ moduleId, reason });
 		},
 	);
+	return inactive;
+};
+
+/** Loads the configuration, registers every module, starts the kernel and opens the workspace. */
+export const createApp = async (
+	opts: AppOptions,
+): Promise<Result<App, readonly ConfigInvalid[]>> => {
+	const config = await loadConfig(opts, BUILT_IN_BINDINGS);
+	if (!config.ok) return err(config.error);
+	const { workspaceId, reader, bindings, layers } = config.value;
+	const loadedAt = new Date().toISOString();
+	const registry = createCapabilityRegistry(bindings);
+	// shortcut: one shared bus, so a throwing handler is logged instead of reported as its
+	// module's crash; per-module bus views come with the daemon.
+	const events = createEventBus((error, e) =>
+		opts.logger.error({ err: error, type: e.type }, "event handler threw"),
+	);
+	const inactive = deactivated(events);
 	const secrets = opts.secrets ?? createKeychainStore();
 	const base = { capabilities: registry, events, config: reader };
 	const contextFor = contextOf(base, opts.logger, secrets);
@@ -258,6 +268,7 @@ export const createApp = async (
 		models: gateway.models,
 		chain: gateway.chain,
 		templates: templatesOf(opts),
+		config: { layers, loadedAt },
 		stop: lifecycle.stop,
 	});
 };

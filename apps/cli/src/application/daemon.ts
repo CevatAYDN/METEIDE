@@ -37,8 +37,9 @@ import {
 	trackExhausted,
 } from "./provider-states.js";
 import { restoreCheckpoint } from "./rollback.js";
+import { settingsOf } from "./settings.js";
 
-// `mete daemon`: protocol version 15 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-079).
+// `mete daemon`: protocol version 16 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-081).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
@@ -160,6 +161,18 @@ const serveCheckpointRestore = (conn: MessageConnection, app: App) =>
 			throw new ResponseError(ErrorCodes.InternalError, r.error.message);
 		const data: DaemonErrorData = { code: r.error.code };
 		throw new ResponseError(DAEMON_ERROR_CODE, r.error.message, data);
+	});
+
+// The configuration the daemon loaded (ADR-081); it needs no engine, so it answers while METE is not ready.
+const serveSettings = (conn: MessageConnection, app: App) =>
+	conn.onRequest(DAEMON_METHODS.settings, async () => {
+		const settings = await settingsOf(app);
+		if (!settings)
+			throw new ResponseError(
+				ErrorCodes.InternalError,
+				"secrets.mask@1 is not active",
+			);
+		return settings;
 	});
 
 // The workspace audit log (ADR-053); it needs storage only, so it answers while core-engine is not
@@ -293,6 +306,7 @@ export const daemonCommand = async (
 	serveTemplateRead(conn, app);
 	serveChain(conn, app);
 	serveCheckpointRestore(conn, app);
+	serveSettings(conn, app);
 	const spent = trackExhausted(app.events);
 	serveQuota(conn, app, spent.until);
 	serveEstimate(conn, app, spent.until);

@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { z } from "zod";
+import { mergedSection } from "../../src/domain/config-reader.js";
 import { loadConfig } from "../../src/infrastructure/config-loader.js";
 
 const ID = "3f2a9c1e-5b7d-4e8a-9c21-7d4e5f6a8b90";
@@ -64,6 +65,10 @@ describe("loadConfig", () => {
 		expect(r.value.layers.global.file).toMatch(/settings\.yaml$/);
 		expect(r.value.layers.workspace.mcp?.value).toEqual({ retries: 5 });
 		expect(r.value.layers.workspace.mcp?.file).toMatch(/mcp\.yaml$/);
+		expect(mergedSection(r.value.layers, "mcp")).toEqual({
+			timeoutSec: 10,
+			retries: 5,
+		});
 	});
 
 	it("uses a built-in binding until the user binds that capability", async () => {

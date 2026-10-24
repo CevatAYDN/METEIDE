@@ -72,11 +72,14 @@ const blame = (
 	};
 };
 
+/** A section as modules read it: the workspace file deep-merged over the global section. */
+export const mergedSection = (layers: ConfigLayers, key: string): unknown =>
+	deepMerge(own(layers.global.sections, key), layers.workspace[key]?.value);
+
 /** Reads merged sections; each call validates against the caller's schema. */
 export const createConfigReader = (layers: ConfigLayers): ConfigReader => ({
 	get(key, schema) {
-		const ws = layers.workspace[key];
-		const merged = deepMerge(own(layers.global.sections, key), ws?.value);
+		const merged = mergedSection(layers, key);
 		const r = schema.safeParse(merged);
 		if (r.success) return ok(r.data);
 		const [issue] = r.error.issues;

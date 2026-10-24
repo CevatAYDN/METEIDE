@@ -24,6 +24,7 @@ export {
 	BindingsSchema,
 	type ConfigLayers,
 	createConfigReader,
+	mergedSection,
 } from "./domain/config-reader.js";
 export {
 	createEventBus,
