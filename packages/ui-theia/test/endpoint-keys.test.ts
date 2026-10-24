@@ -62,6 +62,24 @@ describe("a custom endpoint's key from the card", () => {
 		expect(saved()).toBe(0);
 	});
 
+	it("keeps a typed key with its endpoint while the slug is edited", async () => {
+		const { keys, set } = setup();
+		keys.type("my-lab", "sk-test");
+		keys.rename("my-lab", "my-");
+		keys.rename("my-", "my-lab2");
+		expect(keys.stateOf("my-lab").key).toBe("");
+		expect(keys.stateOf("my-lab2").key).toBe("sk-test");
+		await keys.set("my-lab2");
+		expect(set).toEqual([["custom:my-lab2", "sk-test"]]);
+	});
+
+	it("drops the typed key of a removed endpoint", () => {
+		const { keys } = setup();
+		keys.type("my-lab", "sk-test");
+		keys.forget("my-lab");
+		expect(keys.stateOf("my-lab").key).toBe("");
+	});
+
 	it("does nothing for a slug that is not one or an empty key", async () => {
 		const { keys, set } = setup();
 		keys.type("My Lab", "sk-test");

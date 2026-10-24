@@ -36,6 +36,19 @@ export class EndpointKeys {
 		this.put(slug, { ...this.stateOf(slug), key, note: undefined });
 	}
 
+	/** The endpoint's slug was edited, so its typed key moves with it. */
+	rename(from: string, to: string) {
+		const state = this.states.get(from);
+		if (!state || from === to) return;
+		this.states.delete(from);
+		this.put(to, state);
+	}
+
+	/** The endpoint left the card, so its typed key goes too. */
+	forget(slug: string) {
+		if (this.states.delete(slug)) this.deps.onChange();
+	}
+
 	async set(slug: string) {
 		const id = customId(slug);
 		const state = this.stateOf(slug);

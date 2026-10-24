@@ -12,6 +12,7 @@ import {
 } from "@theia/core/shared/inversify";
 import { FileService } from "@theia/filesystem/lib/browser/file-service";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
+import type { EndpointsActions } from "../application/endpoints-card.js";
 import { panelRoot } from "../application/panel-root.js";
 import {
 	type ApplyState,
@@ -143,7 +144,8 @@ export class MeteSettingsWidget extends ReactWidget {
 		const { keys, tests } = this;
 		if (!form || !keys || !tests) return form;
 		return {
-			...form,
+			state: form.state,
+			actions: this.keyedActions(form.actions, keys),
 			keys: {
 				stateOf: (slug: string) => keys.stateOf(slug),
 				onType: (slug: string, key: string) => keys.type(slug, key),
@@ -156,6 +158,27 @@ export class MeteSettingsWidget extends ReactWidget {
 				onPick: (slug: string, model: string, on: boolean) =>
 					tests.pick(slug, model, on),
 				onProbe: (slug: string) => void tests.probe(slug),
+			},
+		};
+	}
+
+	// Typed keys are kept by slug, so they follow a slug edit and go with a removed endpoint.
+	protected keyedActions(
+		actions: EndpointsActions,
+		keys: EndpointKeys,
+	): EndpointsActions {
+		// The list as it is now: two keystrokes can come before the card draws again.
+		const slugAt = (i: number) =>
+			this.endpoints?.form()?.state.list[i]?.slug ?? "";
+		return {
+			...actions,
+			onEdit: (i, field, value) => {
+				if (field === "slug") keys.rename(slugAt(i), value);
+				actions.onEdit(i, field, value);
+			},
+			onRemove: (i) => {
+				keys.forget(slugAt(i));
+				actions.onRemove(i);
 			},
 		};
 	}
