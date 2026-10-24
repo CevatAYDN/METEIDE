@@ -91,7 +91,7 @@ describe("the Welcome screen", () => {
 				busy: false,
 				dirty: false,
 			},
-			actions: { onField: none, onTarget: none, onSave: none },
+			actions: { onField: none, onTarget: none, onSave: none, onClear: none },
 			canSaveGlobally: true,
 		});
 		expect(form).toContain("Allow providers that may train on prompts");

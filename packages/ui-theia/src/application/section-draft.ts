@@ -6,7 +6,7 @@ import {
 	PrivacyConfigSchema,
 	type Result,
 } from "@mete/contracts";
-import { parseDocument } from "yaml";
+import { isMap, parseDocument } from "yaml";
 import type { ZodType } from "zod";
 
 // The Settings forms' files (ADR-082): a section edited in place in its YAML file, this folder's
@@ -93,6 +93,28 @@ export const defaultsOf = (section: FormSection): Draft =>
 		]),
 	);
 
+/** A configuration layer as `mete/settings` returns it: the section's value in one file. */
+export type Layers = {
+	readonly workspace?: { readonly value: unknown } | undefined;
+	readonly global?: { readonly value: unknown } | undefined;
+};
+
+/**
+ * Which file METE loaded a field of the form from: this folder's when it sets one, else the global
+ * one, else none. Only the form's own fields count, since the file may hold keys it has no field for.
+ */
+export const layerOf = (
+	section: FormSection,
+	layers: Layers,
+): Target | undefined => {
+	const sets = (layer: Layers["global"]) =>
+		FORM_FIELDS[section].some(
+			(f) => valueAt(layer?.value, f.path) !== undefined,
+		);
+	if (sets(layers.workspace)) return "workspace";
+	return sets(layers.global) ? "global" : undefined;
+};
+
 /** What the file sets of the form's fields; a missing file sets nothing. */
 export const draftOf = (
 	text: string | undefined,
@@ -113,15 +135,29 @@ export const draftOf = (
 	);
 };
 
-// A key set to its new value, or removed when cleared; deleteIn throws on a missing key.
-const setOrClear = (
-	doc: ReturnType<typeof parseDocument>,
-	at: readonly string[],
-	value: FieldValue,
-) => {
-	if (value !== undefined) doc.setIn(at, value);
-	else if (doc.hasIn(at)) doc.deleteIn(at);
+type Doc = ReturnType<typeof parseDocument>;
+
+// A map a removed key left empty goes with it, so a cleared field leaves no `budget: {}` behind.
+const prune = (doc: Doc, at: readonly string[]) => {
+	for (let n = at.length - 1; n > 0; n--) {
+		const parent = doc.getIn(at.slice(0, n), true);
+		if (!isMap(parent) || parent.items.length > 0) return;
+		doc.deleteIn(at.slice(0, n));
+	}
 };
+
+// A key set to its new value, or removed when cleared; deleteIn throws on a missing key.
+const setOrClear = (doc: Doc, at: readonly string[], value: FieldValue) => {
+	if (value !== undefined) return doc.setIn(at, value);
+	if (!doc.hasIn(at)) return;
+	doc.deleteIn(at);
+	prune(doc, at);
+};
+
+// An empty document prints as `null` and an empty map as `{}`: write nothing, as for a file not set.
+const isEmpty = (doc: Doc) =>
+	doc.contents === null ||
+	(isMap(doc.contents) && doc.contents.items.length === 0);
 
 /**
  * The file's new text with the changed fields set, or removed when cleared; refused with the schema's
@@ -144,6 +180,5 @@ export const savedText = (
 	const [issue] = checked.success ? [] : checked.error.issues;
 	if (issue)
 		return err(`${[...prefix, ...issue.path].join(".")}: ${issue.message}`);
-	// An empty document prints as `null`, which the loader would read as the section: write nothing.
-	return ok(doc.contents === null ? "" : doc.toString());
+	return ok(isEmpty(doc) ? "" : doc.toString());
 };

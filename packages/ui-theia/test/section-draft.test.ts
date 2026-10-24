@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	defaultsOf,
 	draftOf,
+	layerOf,
 	savedText,
 } from "../src/application/section-draft.js";
 
@@ -87,5 +88,72 @@ describe("a section's file as a form edits it", () => {
 			},
 		);
 		expect(unknown.ok).toBe(false);
+	});
+});
+
+describe("where a form's value comes from", () => {
+	const layers = (workspace?: unknown, global?: unknown) => ({
+		...(workspace === undefined ? {} : { workspace: { value: workspace } }),
+		...(global === undefined ? {} : { global: { value: global } }),
+	});
+
+	it("names this folder's file when it sets a field of the form, else the global file, else nothing", () => {
+		expect(
+			layerOf("gateway", layers({ models: "free" }, { models: "both" })),
+		).toBe("workspace");
+		expect(layerOf("gateway", layers(undefined, { models: "both" }))).toBe(
+			"global",
+		);
+		expect(layerOf("gateway", layers())).toBeUndefined();
+	});
+
+	it("looks at the form's own fields only, and reads an empty file as nothing set", () => {
+		// policy.yaml may hold keys the form has no field for, such as rules.
+		expect(
+			layerOf("policy", layers({ shell: { allow: ["ls"] } })),
+		).toBeUndefined();
+		expect(layerOf("policy", layers({ budget: { max_hours: 2 } }))).toBe(
+			"workspace",
+		);
+		expect(
+			layerOf("gateway", {
+				workspace: { value: undefined },
+				global: { value: { models: "paid" } },
+			}),
+		).toBe("global");
+	});
+});
+
+describe("clearing a field (ADR-095 Reset)", () => {
+	it("takes the maps a removed key leaves empty with it, and writes nothing for a file left empty", () => {
+		const cleared = (
+			text: string,
+			section: "policy" | "gateway",
+			target: "workspace" | "global",
+		) =>
+			savedText(text, section, target, {
+				"budget.max_hours": undefined,
+				models: undefined,
+			});
+		expect(
+			cleared("budget:\n  max_hours: 2\nautonomy: 1\n", "policy", "workspace"),
+		).toEqual({
+			ok: true,
+			value: "autonomy: 1\n",
+		});
+		expect(cleared("budget:\n  max_hours: 2\n", "policy", "workspace")).toEqual(
+			{
+				ok: true,
+				value: "",
+			},
+		);
+		// In the global file the section key goes too, and the other sections stay.
+		expect(
+			cleared(
+				"gateway:\n  models: free\nprivacy:\n  allowTraining: true\n",
+				"gateway",
+				"global",
+			),
+		).toEqual({ ok: true, value: "privacy:\n  allowTraining: true\n" });
 	});
 });

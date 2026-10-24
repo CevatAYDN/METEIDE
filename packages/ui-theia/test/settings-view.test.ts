@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { EndpointTestState } from "../src/application/endpoint-test.js";
 import { SET_KEY_COMMAND } from "../src/application/key-command.js";
+import type { Target } from "../src/application/section-draft.js";
 import { shortPath } from "../src/application/settings-form.js";
 import type { GroupId } from "../src/application/settings-groups.js";
 import {
@@ -23,6 +24,7 @@ const html = (model: SettingsModel, group: GroupId = "models") =>
 				onCommand: none,
 				onOpen: none,
 				onRefresh: none,
+				onScope: none,
 			},
 			choice: { group, onGroup: none },
 		}),
@@ -118,18 +120,23 @@ describe("the Settings screen", () => {
 });
 
 describe("the Settings forms (ADR-082)", () => {
-	const gatewayForm = {
+	const gatewayForm = (state: { target?: Target; busy?: boolean } = {}) => ({
 		state: {
-			target: "workspace" as const,
+			target: "workspace" as Target,
 			file: "/w/.mete/gateway.yaml",
 			values: { models: "both", dailySpendUsd: undefined },
 			defaults: { models: "free", dailySpendUsd: 1 },
 			busy: false,
 			dirty: false,
+			...state,
 		},
-		actions: { onField: none, onTarget: none, onSave: none },
-	};
-	const withForms = (model: SettingsModel, group: GroupId = "models") =>
+		actions: { onField: none, onTarget: none, onSave: none, onClear: none },
+	});
+	const withForms = (
+		model: SettingsModel,
+		group: GroupId = "models",
+		state?: { target?: Target; busy?: boolean },
+	) =>
 		renderToStaticMarkup(
 			createElement(SettingsView, {
 				model,
@@ -138,8 +145,9 @@ describe("the Settings forms (ADR-082)", () => {
 					onCommand: none,
 					onOpen: none,
 					onRefresh: none,
+					onScope: none,
 				},
-				forms: { gateway: gatewayForm },
+				forms: { gateway: gatewayForm(state) },
 				choice: { group, onGroup: none },
 			}),
 		);
@@ -173,16 +181,62 @@ describe("the Settings forms (ADR-082)", () => {
 		);
 	});
 
-	it("turns the global save off when the daemon names no global file", () => {
+	it("leaves the target to the switch at the top, which is off for All folders without a global file", () => {
 		const out = withForms(LOADED);
-		expect(out).toMatch(
-			/<input type="checkbox" disabled=""\/>Save for every folder/,
-		);
-		const global = withForms({
+		expect(out).not.toContain("Save for every folder");
+		const switchOf = (page: string) =>
+			page.slice(page.indexOf("<fieldset"), page.indexOf("</fieldset>"));
+		const folder = switchOf(out);
+		expect(folder).toContain("<legend");
+		expect(folder).toMatch(/aria-pressed="true">This folder</);
+		expect(folder).toMatch(/disabled="" aria-pressed="false">All folders</);
+		const withGlobal = {
 			kind: "settings",
 			settings: { ...LOADED.settings, globalFile: "/g/settings.yaml" },
-		} as SettingsModel);
-		expect(global).toMatch(/<input type="checkbox"\/>Save for every folder/);
+		} as SettingsModel;
+		const global = switchOf(
+			withForms(withGlobal, "models", { target: "global" }),
+		);
+		expect(global).toMatch(/aria-pressed="true">All folders</);
+		expect(global).not.toContain("disabled");
+		// No forms to switch (the daemon has not answered): no switch.
+		expect(html(LOADED)).not.toContain("All folders");
+	});
+
+	const only = (layers: object): SettingsModel => ({
+		kind: "settings",
+		settings: {
+			...LOADED.settings,
+			sections: [{ name: "gateway", merged: {}, ...layers }],
+		},
+	});
+
+	it("says where a form's value comes from: this folder's file with Reset, else the global file, else nothing", () => {
+		const out = withForms(LOADED);
+		expect(out).toContain("Changed for this folder");
+		expect(out).toMatch(
+			/title="Removes[^"]*\/w\/\.mete\/gateway\.yaml[^"]*">Reset</,
+		);
+		const global = withForms(
+			only({ global: { file: "/g/s.yaml", value: { models: "free" } } }),
+		);
+		expect(global).toContain("From all folders&#x27; file");
+		expect(global).not.toContain(">Reset<");
+		// A folder file that sets only keys the form has no field for says nothing.
+		const unrelated = withForms(
+			only({
+				workspace: { file: "/w/.mete/gateway.yaml", value: { other: 1 } },
+			}),
+		);
+		expect(unrelated).not.toContain("Changed for this folder");
+		expect(unrelated).not.toContain("From all folders");
+	});
+
+	it("holds Reset while the form saves", () => {
+		expect(withForms(LOADED, "models", { busy: true })).toMatch(
+			/<button type="button" class="mete-button quiet" disabled=""[^>]*>Reset</,
+		);
+		expect(withForms(LOADED)).not.toMatch(/disabled=""[^>]*>Reset</);
 	});
 });
 
@@ -196,6 +250,7 @@ describe("Apply now (ADR-083)", () => {
 					onCommand: none,
 					onOpen: none,
 					onRefresh: none,
+					onScope: none,
 				},
 				apply: { busy: false, activeRuns },
 			}),
@@ -228,6 +283,7 @@ describe("the custom endpoints card (ADR-087)", () => {
 					onCommand: none,
 					onOpen: none,
 					onRefresh: none,
+					onScope: none,
 				},
 				endpoints: {
 					state: {

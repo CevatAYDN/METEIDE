@@ -50,3 +50,72 @@ describe("the Settings forms' files", () => {
 		expect(gateway()?.state.dirty).toBe(false);
 	});
 });
+
+describe("the scope switch and Reset (ADR-095)", () => {
+	const workFile = (s: string) => WORK.resolve(`.mete/${s}.yaml`).path.fsPath();
+	const settle = () => new Promise((r) => setTimeout(r, 0));
+
+	it("moves every form to the other target at once, each keeping what was typed", async () => {
+		const { files } = fakeFiles({
+			[GLOBAL_KEY]: "privacy:\n  allowTraining: true\npolicy:\n  autonomy: 1\n",
+		});
+		const forms = new SettingsForms(files, () => {});
+		await forms.load(WORK, GLOBAL);
+		forms.forms().gateway?.actions.onField("dailySpendUsd", 2);
+		await forms.retargetAll("global");
+		const states = Object.values(forms.forms()).map((f) => f.state);
+		expect(states).toHaveLength(3);
+		expect(states.map((s) => s.target)).toEqual(["global", "global", "global"]);
+		expect(forms.forms().privacy?.state.values.allowTraining).toBe(true);
+		expect(forms.forms().policy?.state.values.autonomy).toBe(1);
+		expect(forms.forms().gateway?.state.values.dailySpendUsd).toBe(2);
+	});
+
+	it("clears the form's keys from this folder's file, leaves no empty map and keeps its other keys", async () => {
+		const policy = workFile("policy");
+		const { files, disk } = fakeFiles({
+			[policy]: "autonomy: 3\nbudget:\n  max_hours: 2\nshell:\n  allow: [ls]\n",
+		});
+		const forms = new SettingsForms(files, () => {});
+		await forms.load(WORK, GLOBAL);
+		forms.forms().policy?.actions.onClear();
+		await settle();
+		const left = disk.get(policy) ?? "";
+		expect(left).toContain("shell:");
+		expect(left).toContain("ls");
+		expect(left).not.toMatch(/autonomy|budget|\{\}/);
+		const state = forms.forms().policy?.state;
+		expect(state?.values.autonomy).toBeUndefined();
+		expect(state?.note?.kind).toBe("saved");
+	});
+
+	it("clears the folder's file whichever target the form shows, and leaves what was typed for the global file", async () => {
+		const gateway = workFile("gateway");
+		const { files, disk } = fakeFiles({
+			[gateway]: "models: free\n",
+			[GLOBAL_KEY]: "",
+		});
+		const forms = new SettingsForms(files, () => {});
+		await forms.load(WORK, GLOBAL);
+		await forms.retargetAll("global");
+		forms.forms().gateway?.actions.onField("dailySpendUsd", 5);
+		forms.forms().gateway?.actions.onClear();
+		await settle();
+		expect(disk.get(gateway)).toBe("");
+		expect(disk.get(GLOBAL_KEY)).toBe("");
+		expect(forms.forms().gateway?.state.target).toBe("global");
+		expect(forms.forms().gateway?.state.values.dailySpendUsd).toBe(5);
+		expect(forms.forms().gateway?.state.dirty).toBe(true);
+	});
+
+	it("says why when the folder's file is not valid YAML, and writes nothing", async () => {
+		const gateway = workFile("gateway");
+		const { files, disk } = fakeFiles({ [gateway]: "models: [\n" });
+		const forms = new SettingsForms(files, () => {});
+		await forms.load(WORK, GLOBAL);
+		forms.forms().gateway?.actions.onClear();
+		await settle();
+		expect(disk.get(gateway)).toBe("models: [\n");
+		expect(forms.forms().gateway?.state.note?.kind).toBe("refused");
+	});
+});

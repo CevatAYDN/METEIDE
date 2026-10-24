@@ -6,6 +6,7 @@ import {
 	defaultsOf,
 	draftOf,
 	type FieldValue,
+	FORM_FIELDS,
 	type FormSection,
 	savedText,
 	type Target,
@@ -54,6 +55,7 @@ export class SettingsForms {
 							this.field(section, key, value),
 						onTarget: (target: Target) => void this.retarget(section, target),
 						onSave: () => void this.save(section),
+						onClear: () => void this.clear(section),
 					},
 				},
 			]),
@@ -70,14 +72,52 @@ export class SettingsForms {
 		return textOf(this.files, file);
 	}
 
+	// What the user typed in a form since its file was read.
+	protected keptOf(section: FormSection): Draft {
+		const state = this.states.get(section);
+		return Object.fromEntries(
+			[...(this.changed.get(section) ?? [])].map((k) => [k, state?.values[k]]),
+		);
+	}
+
 	// Another target keeps what the user typed, over that file's own values.
 	protected retarget(section: FormSection, target: Target) {
+		return this.read(section, target, undefined, this.keptOf(section));
+	}
+
+	/** The scope switch (ADR-095): every form saves to the other target. */
+	async retargetAll(target: Target) {
+		await Promise.all(SECTIONS.map((s) => this.retarget(s, target)));
+	}
+
+	// Reset: the form's keys leave this folder's file, so the global file's value or the default
+	// applies again. A form that shows this folder's file drops its typing, which the clear replaces.
+	protected async clear(section: FormSection) {
 		const state = this.states.get(section);
-		const keys = [...(this.changed.get(section) ?? [])];
-		const kept: Draft = Object.fromEntries(
-			keys.map((k) => [k, state?.values[k]]),
+		const file = this.fileOf(section, "workspace");
+		if (!state || !file || state.busy) return;
+		const cleared: Draft = Object.fromEntries(
+			FORM_FIELDS[section].map((f) => [f.path.join("."), undefined]),
 		);
-		return this.read(section, target, undefined, kept);
+		try {
+			const r = savedText(
+				await this.textOf(file),
+				section,
+				"workspace",
+				cleared,
+			);
+			if (!r.ok) return this.refused(section, r.error);
+			await this.files.write(file, r.value);
+			const text = nls.localize(
+				"mete/settings/cleared",
+				"Cleared in {0}; it applies when METE starts again.",
+				file.path.fsPath(),
+			);
+			const kept = state.target === "workspace" ? {} : this.keptOf(section);
+			await this.read(section, state.target, { kind: "saved", text }, kept);
+		} catch (e) {
+			this.refused(section, String(e));
+		}
 	}
 
 	protected async read(

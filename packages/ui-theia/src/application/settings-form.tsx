@@ -1,4 +1,5 @@
 import { nls } from "@theia/core/lib/common/nls";
+import type { CSSProperties } from "react";
 import { MUTED, ROW } from "./look.js";
 import {
 	type Draft,
@@ -32,6 +33,15 @@ export type FormActions = {
 	readonly onField: (key: string, value: FieldValue) => void;
 	readonly onTarget: (target: Target) => void;
 	readonly onSave: () => void;
+	/** Removes the form's keys from this folder's file, whichever target the form shows. */
+	readonly onClear: () => void;
+};
+
+/** The column a form's parts stand in. */
+export const FORM: CSSProperties = {
+	display: "flex",
+	flexDirection: "column",
+	gap: "8px",
 };
 
 /**
@@ -157,48 +167,49 @@ const Field = ({
 	);
 };
 
-/** One section's form: its fields, where it saves, and Save. */
-export const SettingsForm = ({
+/** A form's fields, one after the other. */
+export const FormFields = ({
 	section,
 	state,
-	actions,
-	canSaveGlobally,
+	onField,
 }: {
 	readonly section: FormSection;
 	readonly state: FormState;
-	readonly actions: FormActions;
-	readonly canSaveGlobally: boolean;
+	readonly onField: FormActions["onField"];
 }) => (
-	<div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+	<>
 		{FORM_FIELDS[section].map((spec) => (
 			<Field
 				key={spec.path.join(".")}
 				spec={spec}
 				state={state}
-				onField={actions.onField}
+				onField={onField}
 			/>
 		))}
-		<div style={ROW}>
-			<label style={ROW}>
-				<input
-					type="checkbox"
-					checked={state.target === "global"}
-					disabled={!canSaveGlobally}
-					onChange={(e) =>
-						actions.onTarget(e.target.checked ? "global" : "workspace")
-					}
-				/>
-				{nls.localize("mete/settings/everyFolder", "Save for every folder")}
-			</label>
-			<button
-				type="button"
-				className="mete-button"
-				disabled={state.busy || !state.dirty || state.file === undefined}
-				onClick={actions.onSave}
-			>
-				{nls.localize("mete/settings/save", "Save")}
-			</button>
-		</div>
+	</>
+);
+
+/** Save, off until a field changed, so an untouched file is never rewritten. */
+export const SaveButton = ({
+	state,
+	onSave,
+}: {
+	readonly state: FormState;
+	readonly onSave: () => void;
+}) => (
+	<button
+		type="button"
+		className="mete-button"
+		disabled={state.busy || !state.dirty || state.file === undefined}
+		onClick={onSave}
+	>
+		{nls.localize("mete/settings/save", "Save")}
+	</button>
+);
+
+/** The file the form saves to, and what the last save said. */
+export const FormNote = ({ state }: { readonly state: FormState }) => (
+	<>
 		{state.file ? (
 			<span style={MUTED} title={state.file}>
 				{nls.localize(
@@ -213,5 +224,37 @@ export const SettingsForm = ({
 				{state.note.text}
 			</p>
 		) : null}
+	</>
+);
+
+/** A form that chooses its own target, as the Welcome screen's (ADR-088) does: fields, target, Save. */
+export const SettingsForm = ({
+	section,
+	state,
+	actions,
+	canSaveGlobally,
+}: {
+	readonly section: FormSection;
+	readonly state: FormState;
+	readonly actions: FormActions;
+	readonly canSaveGlobally: boolean;
+}) => (
+	<div style={FORM}>
+		<FormFields section={section} state={state} onField={actions.onField} />
+		<div style={ROW}>
+			<label style={ROW}>
+				<input
+					type="checkbox"
+					checked={state.target === "global"}
+					disabled={!canSaveGlobally}
+					onChange={(e) =>
+						actions.onTarget(e.target.checked ? "global" : "workspace")
+					}
+				/>
+				{nls.localize("mete/settings/everyFolder", "Save for every folder")}
+			</label>
+			<SaveButton state={state} onSave={actions.onSave} />
+		</div>
+		<FormNote state={state} />
 	</div>
 );

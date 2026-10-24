@@ -2,6 +2,8 @@ import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties } from "react";
 import type { DaemonFailure, Settings } from "../domain/status-service.js";
 import { MUTED, PANEL, ROW, TITLE } from "./look.js";
+import { ScopeSwitch } from "./scope-switch.js";
+import type { Target } from "./section-draft.js";
 import {
 	type Group,
 	type GroupId,
@@ -38,6 +40,8 @@ export type SettingsActions = {
 	readonly onCommand: (id: string) => void;
 	readonly onOpen: (file: string) => void;
 	readonly onRefresh: () => void;
+	/** The scope switch (ADR-095): every form saves to this target. */
+	readonly onScope: (target: Target) => void;
 };
 
 /** The group the screen shows, and the choice of another. */
@@ -156,6 +160,8 @@ const Loaded = ({
 }) => {
 	const groups = groupsOf(withForms(settings.sections));
 	const chosen = groups.find((g) => g.id === choice.group) ?? groups[0];
+	// The forms move together, so the first one tells where they all save.
+	const target = Object.values(forms)[0]?.state.target;
 	return (
 		<>
 			<p style={MUTED}>
@@ -165,6 +171,13 @@ const Loaded = ({
 					new Date(settings.loadedAt).toLocaleString(),
 				)}
 			</p>
+			{target ? (
+				<ScopeSwitch
+					target={target}
+					canGlobal={settings.globalFile !== undefined}
+					onTarget={actions.onScope}
+				/>
+			) : null}
 			<div style={LAYOUT}>
 				<nav
 					style={LIST}

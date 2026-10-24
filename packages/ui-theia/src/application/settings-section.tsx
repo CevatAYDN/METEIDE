@@ -10,11 +10,11 @@ import {
 	type EndpointsState,
 } from "./endpoints-card.js";
 import { LINK, MUTED, TITLE } from "./look.js";
-import type { FormSection } from "./section-draft.js";
+import { type FormSection, layerOf } from "./section-draft.js";
+import { SectionForm } from "./section-form.js";
 import {
 	type FormActions,
 	type FormState,
-	SettingsForm,
 	shortPath,
 } from "./settings-form.js";
 
@@ -154,22 +154,15 @@ export const formOf = (
 		return endpoints ? <EndpointsCard {...endpoints} /> : undefined;
 	const form = forms[name as FormSection];
 	if (!form) return undefined;
+	const loaded = settings.sections.find((s) => s.name === name);
 	return (
-		<>
-			{name === "privacy" && sensitiveOf(settings.sections) ? (
-				<p style={MUTED}>
-					{nls.localize(
-						"mete/settings/sensitive",
-						"This folder is sensitive, so providers that train on prompts stay out whatever this says.",
-					)}
-				</p>
-			) : null}
-			<SettingsForm
-				section={name as FormSection}
-				state={form.state}
-				actions={form.actions}
-				canSaveGlobally={settings.globalFile !== undefined}
-			/>
-		</>
+		<SectionForm
+			section={name as FormSection}
+			state={form.state}
+			actions={form.actions}
+			layer={loaded && layerOf(name as FormSection, loaded)}
+			folderFile={loaded?.workspace?.file}
+			sensitive={sensitiveOf(settings.sections)}
+		/>
 	);
 };
