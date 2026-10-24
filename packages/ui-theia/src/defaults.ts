@@ -15,5 +15,8 @@ export const STDERR_TAIL_LINES = 5;
 /** Events the Studio's accessible list shows, newest last (19 Studio view prototype, Events panel). */
 export const STUDIO_RECENT_EVENTS = 7;
 
+/** Events the Team view's Activity feed keeps for the shown run, the oldest dropped first: 200 (04 Decisions, ADR-092). */
+export const FEED_EVENTS = 200;
+
 /** The context share from which the Team view's bar takes the warning colour: 80% (04 Decisions, ADR-090). */
 export const CONTEXT_WARN_SHARE = 0.8;

@@ -1,8 +1,9 @@
 import type { MeteEvent, Result } from "@mete/contracts";
 import { applyAll, EMPTY_TEAM_VIEW, type TeamView } from "@mete/ui-studio";
-import { STUDIO_RECENT_EVENTS } from "../defaults.js";
+import { FEED_EVENTS, STUDIO_RECENT_EVENTS } from "../defaults.js";
 import type { DaemonFailure } from "../domain/status-service.js";
 import type { BoardModel } from "./board-view.js";
+import { inFeed } from "./feed-rows.js";
 
 // What the Board panel knows about the run it shows (ADR-051), as pure steps the widget calls. The
 // order matters: the fold records an event id even when the event changed nothing, so a status
@@ -25,6 +26,8 @@ export type BoardSession = {
 	readonly buffer?: readonly MeteEvent[];
 	/** The run's latest events of tab 13's studio table, for the Studio's accessible list. */
 	readonly recent: readonly MeteEvent[];
+	/** The run's latest events of the Team view's Activity feed (ADR-092). */
+	readonly feed: readonly MeteEvent[];
 	/** The last live event the fold took and the view before it: what the Studio animates. */
 	readonly pulse?: Pulse;
 	readonly model: BoardModel;
@@ -38,6 +41,7 @@ export const IDLE_BOARD: BoardSession = {
 	view: EMPTY_TEAM_VIEW,
 	unreadable: 0,
 	recent: [],
+	feed: [],
 	model: { kind: "no_run" },
 };
 
@@ -48,6 +52,7 @@ export const startBoard = (shown: Shown): BoardSession => ({
 	unreadable: 0,
 	buffer: [],
 	recent: [],
+	feed: [],
 	model: { kind: "loading" },
 });
 
@@ -68,22 +73,41 @@ const STUDIO_EVENTS = new Set<string>([
 	"run.completed",
 ]);
 
-// The latest events of the run (or of its workspace's quota) the studio table names, each once.
+// The latest events a list keeps, each once; the same list when none is added.
+const keptAfter = (
+	kept: readonly MeteEvent[],
+	events: readonly MeteEvent[],
+	keep: (e: MeteEvent) => boolean,
+	most: number,
+) => {
+	const added = events.filter(
+		(e) => keep(e) && !kept.some((x) => x.id === e.id),
+	);
+	return added.length === 0 ? kept : [...kept, ...added].slice(-most);
+};
+
+// The events of the run (or of its workspace's quota) the studio table names.
 const recentAfter = (
 	recent: readonly MeteEvent[],
 	runId: string,
 	events: readonly MeteEvent[],
-) => {
-	const added = events.filter(
+) =>
+	keptAfter(
+		recent,
+		events,
 		(e) =>
 			(e.runId === runId || (!e.runId && e.type.startsWith("quota."))) &&
-			STUDIO_EVENTS.has(e.type) &&
-			!recent.some((x) => x.id === e.id),
+			STUDIO_EVENTS.has(e.type),
+		STUDIO_RECENT_EVENTS,
 	);
-	return added.length === 0
-		? recent
-		: [...recent, ...added].slice(-STUDIO_RECENT_EVENTS);
-};
+
+// The run's events the Activity feed shows (ADR-092).
+const feedAfter = (
+	feed: readonly MeteEvent[],
+	runId: string,
+	events: readonly MeteEvent[],
+) =>
+	keptAfter(feed, events, (e) => e.runId === runId && inFeed(e), FEED_EVENTS);
 
 const drawn = (s: BoardSession, shown: Shown, view: TeamView): BoardModel => ({
 	kind: "board",
@@ -91,6 +115,7 @@ const drawn = (s: BoardSession, shown: Shown, view: TeamView): BoardModel => ({
 	view,
 	unreadable: s.unreadable,
 	recent: s.recent,
+	feed: s.feed,
 	...(s.pulse ? { pulse: s.pulse } : {}),
 });
 
@@ -107,8 +132,15 @@ export const receiveBoard = (
 	if (s.buffer) return { ...s, buffer: [...s.buffer, e] };
 	const view = applyAll(shown.runId, s.view, [e]);
 	const recent = recentAfter(s.recent, shown.runId, [e]);
-	if (view === s.view && recent === s.recent) return s;
-	const next = { ...s, view, recent, pulse: { event: e, before: s.view } };
+	const feed = feedAfter(s.feed, shown.runId, [e]);
+	if (view === s.view && recent === s.recent && feed === s.feed) return s;
+	const next = {
+		...s,
+		view,
+		recent,
+		feed,
+		pulse: { event: e, before: s.view },
+	};
 	const model = s.model.kind === "board" ? drawn(next, shown, view) : s.model;
 	return { ...next, model };
 };
@@ -127,7 +159,9 @@ export const loadedBoard = (
 	if (!r.ok) return { ...rest, model: { kind: "failed", failure: r.error } };
 	const history = applyAll(shown.runId, EMPTY_TEAM_VIEW, r.value.events);
 	const view = applyAll(shown.runId, history, live);
-	const recent = recentAfter([], shown.runId, [...r.value.events, ...live]);
-	const next = { ...rest, view, recent, unreadable: r.value.unreadable };
+	const all = [...r.value.events, ...live];
+	const recent = recentAfter([], shown.runId, all);
+	const feed = feedAfter([], shown.runId, all);
+	const next = { ...rest, view, recent, feed, unreadable: r.value.unreadable };
 	return { ...next, model: drawn(next, shown, view) };
 };

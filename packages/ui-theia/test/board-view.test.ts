@@ -91,6 +91,7 @@ describe("the Board view", () => {
 			view: applyAll(RUN, EMPTY_TEAM_VIEW, events),
 			unreadable: 0,
 			recent: [],
+			feed: [],
 		});
 		const out = html(
 			board([
@@ -137,6 +138,7 @@ describe("the Board view", () => {
 			view: applyAll(RUN, EMPTY_TEAM_VIEW, events),
 			unreadable: 0,
 			recent: [],
+			feed: [],
 		});
 		const out = html(board([one, two, back]));
 		const list = section(out, "Checkpoints");
@@ -179,6 +181,7 @@ describe("the Board view", () => {
 			view,
 			unreadable: 0,
 			recent: [],
+			feed: [],
 		});
 		expect(section(out, "To do")).toContain("Take &lt;notes&gt;");
 		const doing = section(out, "In progress");
@@ -198,6 +201,7 @@ describe("the Board view", () => {
 			view,
 			unreadable: 0,
 			recent: [],
+			feed: [],
 		};
 		const board = html(model);
 		expect(board).toMatch(pressed("Board"));
@@ -212,7 +216,7 @@ describe("the Board view", () => {
 		const notes = task("Notes");
 		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [notes.created]);
 		const out = html(
-			{ kind: "board", goal: "g", view, unreadable: 0, recent: [] },
+			{ kind: "board", goal: "g", view, unreadable: 0, recent: [], feed: [] },
 			"team",
 		);
 		expect(out).toMatch(pressed("Team"));
@@ -235,6 +239,7 @@ describe("the Board view", () => {
 				view,
 				unreadable: 0,
 				recent: [notes.created],
+				feed: [],
 			},
 			"studio",
 		);
@@ -243,7 +248,14 @@ describe("the Board view", () => {
 		const list = out.slice(out.indexOf('aria-label="Latest events"'));
 		expect(list).toContain("A note for Notes drops into To do.");
 		expect(
-			html({ kind: "board", goal: "g", view, unreadable: 0, recent: [] }),
+			html({
+				kind: "board",
+				goal: "g",
+				view,
+				unreadable: 0,
+				recent: [],
+				feed: [],
+			}),
 		).not.toContain("Latest events");
 	});
 
@@ -263,6 +275,7 @@ describe("the Board view", () => {
 			view,
 			unreadable: 0,
 			recent: [],
+			feed: [],
 		};
 		expect(html(model)).toContain("a single agent works without a board");
 		expect(html(model)).toContain(">Studio<");
@@ -280,6 +293,7 @@ describe("the Board view", () => {
 			view: EMPTY_TEAM_VIEW,
 			unreadable: 2,
 			recent: [],
+			feed: [],
 		});
 		expect(out).toContain("2 event(s) of this run could not be read");
 		expect(out).toContain("a single agent works without a board");

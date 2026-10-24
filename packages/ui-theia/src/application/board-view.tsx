@@ -11,6 +11,7 @@ import { rosterOf } from "../domain/roster.js";
 import type { DaemonFailure } from "../domain/status-service.js";
 import { CheckpointList, type RestoreControls } from "./checkpoint-list.js";
 import type { Windows } from "./context-meter.js";
+import { FeedView } from "./feed-view.js";
 import { LINK, LIST, MUTED, PANEL, TITLE } from "./look.js";
 import { openReportLabel, ResultsList, reportPath } from "./results-list.js";
 import { failureText } from "./status-text.js";
@@ -34,6 +35,8 @@ export type BoardModel =
 			readonly unreadable: number;
 			/** The run's latest studio events, for the Studio's accessible list. */
 			readonly recent: readonly MeteEvent[];
+			/** The run's latest events of the Team view's Activity feed (ADR-092). */
+			readonly feed: readonly MeteEvent[];
 			/** The last live event and the view before it, for the Studio's effects. */
 			readonly pulse?: { readonly event: MeteEvent; readonly before: TeamView };
 	  };
@@ -226,11 +229,14 @@ const Shown = ({
 }) => {
 	if (controls.mode === "team")
 		return (
-			<Roster
-				members={rosterOf(model.view)}
-				names={controls.names}
-				windows={controls.windows}
-			/>
+			<>
+				<Roster
+					members={rosterOf(model.view)}
+					names={controls.names}
+					windows={controls.windows}
+				/>
+				<FeedView view={model.view} feed={model.feed} names={controls.names} />
+			</>
 		);
 	if (controls.mode === "flow")
 		return model.view.tasks.length === 0 ? (
