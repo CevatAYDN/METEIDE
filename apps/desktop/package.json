@@ -27,6 +27,7 @@
 	},
 	"theiaPluginsDir": "plugins",
 	"theiaPlugins": {
+		"ms-vscode.js-debug": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/ms-vscode.js-debug.vsix",
 		"vscode.css-language-features": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.css-language-features.vsix",
 		"vscode.git": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.git.vsix",
 		"vscode.git-base": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.git-base.vsix",
@@ -39,6 +40,7 @@
 		"@mete/cli": "workspace:*",
 		"@mete/ui-theia": "workspace:*",
 		"@theia/core": "1.76.0",
+		"@theia/debug": "1.76.0",
 		"@theia/editor": "1.76.0",
 		"@theia/electron": "1.76.0",
 		"@theia/filesystem": "1.76.0",
