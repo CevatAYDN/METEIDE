@@ -5,6 +5,7 @@ import {
 	stateLook,
 	TeamView,
 	tierLabel,
+	tokenCount,
 } from "../src/application/team-view.js";
 import type { Member } from "../src/domain/roster.js";
 
@@ -45,7 +46,7 @@ describe("the Team view", () => {
 			},
 		];
 		const out = renderToStaticMarkup(
-			createElement(TeamView, { members, names: { qa: "QA" } }),
+			createElement(TeamView, { members, names: { qa: "QA" }, windows: {} }),
 		);
 		expect(out).toContain('aria-label="Frontend developer"');
 		expect(out).toContain('aria-label="QA"');
@@ -57,8 +58,65 @@ describe("the Team view", () => {
 		expect(out).toContain("Working with fs.write");
 		expect(out).toContain("Audit it · waits for “Build the page”");
 		expect(out).toContain(
-			"Members: 2 · working: 1 · waiting for you: 0 · done: 0",
+			"Members: 2 · working: 1 · waiting for you: 0 · done: 0<",
 		);
+		// A run recorded before ADR-090 has no usage: no context line and no run tokens.
+		expect(out).not.toContain("Tokens: ");
+	});
+
+	it("shows the latest call's context share with the counts, and the role's tokens (ADR-090)", () => {
+		const used = (prompt: number, providerId = "groq") => ({
+			...agent,
+			providerId,
+			usage: {
+				calls: 3,
+				tokens: 210_000,
+				last: { prompt, providerId, modelId: "llama-3.3-70b" },
+			},
+		});
+		const member = (a: Member["agent"], roleId: string): Member => ({
+			roleId,
+			...(a ? { agent: a } : {}),
+			state: { kind: "idle" },
+			done: 0,
+			total: 0,
+			...(a?.usage ? { used: { tokens: 250_000, calls: 4 } } : {}),
+		});
+		const out = renderToStaticMarkup(
+			createElement(TeamView, {
+				members: [
+					member(used(61_440), "writer"),
+					member(used(110_000, "nvidia"), "qa"),
+					member(used(5_000, "custom:lab"), "lab"),
+					member(agent, "idle"),
+				],
+				names: {},
+				windows: {
+					"groq/llama-3.3-70b": 128_000,
+					"nvidia/llama-3.3-70b": 128_000,
+				},
+			}),
+		);
+		expect(out).toContain("Context 48% · 61k of 128k");
+		expect(out).toContain("Tokens: 250k · calls: 4");
+		// From 80% the bar takes the warning colour; the text still says the number.
+		expect(out).toContain("Context 86% · 110k of 128k");
+		expect(out).toContain("width:85.9375%;background:var(--warn");
+		expect(out).toContain("width:48%;background:var(--accent");
+		// A model with no listed window shows the tokens alone, and a member with no usage nothing.
+		expect(out.match(/Context /g)).toHaveLength(2);
+		expect(out.match(/Tokens: /g)).toHaveLength(3);
+		expect(out).toContain("run tokens: 750k · calls: 12");
+	});
+
+	it("writes token counts with a fixed suffix", () => {
+		expect([999, 1_500, 61_440, 128_000, 1_200_000].map(tokenCount)).toEqual([
+			"999",
+			"1.5k",
+			"61k",
+			"128k",
+			"1.2M",
+		]);
 	});
 
 	it("gives every state an icon and a word, and every tier a plain label", () => {

@@ -188,6 +188,29 @@ describe("the Team view's roster", () => {
 		expect(rows[0]?.now).toBeUndefined();
 	});
 
+	it("adds up the tokens and calls of every agent of a role (ADR-090)", () => {
+		const first = task("Draft", "writer");
+		const second = task("Edit", "writer");
+		const a = agent("writer", first.id);
+		const b = agent("writer", second.id);
+		const usage = (x: typeof a, prompt: number) =>
+			x.on("agent.thinking.ended", { usage: { prompt, completion: 100 } });
+		const [writer] = roster([
+			first.created,
+			second.created,
+			a.created,
+			usage(a, 1_000),
+			b.created,
+			usage(b, 2_000),
+			usage(b, 3_000),
+		]);
+		expect(writer?.used).toEqual({ tokens: 6_300, calls: 3 });
+		// The share follows the latest agent's latest call.
+		expect(writer?.agent?.usage?.last.prompt).toBe(3_000);
+		const [quiet] = roster([first.created, a.created]);
+		expect(quiet?.used).toBeUndefined();
+	});
+
 	it("writes a role id as words", () => {
 		expect(roleWords("frontend_developer")).toBe("Frontend developer");
 		expect(roleWords("qa")).toBe("Qa");

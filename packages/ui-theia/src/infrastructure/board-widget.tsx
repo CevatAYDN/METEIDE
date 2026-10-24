@@ -1,3 +1,4 @@
+import type { ModelRef } from "@mete/contracts";
 import { CommandService, MessageService } from "@theia/core";
 import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import { ThemeService } from "@theia/core/lib/browser/theming";
@@ -58,6 +59,10 @@ export class MeteBoardWidget extends ReactWidget {
 	protected restoring: string | undefined;
 	/** The shown run's member names by role id, from its team file (ADR-089). */
 	protected names: Readonly<Record<string, string>> = {};
+	/** Each model's listed context window by `<providerId>/<modelId>`, for the Team view (ADR-090). */
+	protected windows: Readonly<Record<string, number>> = {};
+	/** The models asked for already, so each is asked once per shown run. */
+	protected asked = new Set<string>();
 	/** True while the panel shows the composer, which it also shows before any run. */
 	protected composing = true;
 
@@ -104,6 +109,8 @@ export class MeteBoardWidget extends ReactWidget {
 		this.shownRun.set(runId);
 		// The previous run's names never show on this one, also when its team file cannot be read.
 		this.names = {};
+		this.windows = {};
+		this.asked = new Set();
 		const shown = { dir, runId, goal };
 		this.setSession(startBoard(shown));
 		const r = await this.daemon.events(dir, runId);
@@ -186,6 +193,38 @@ export class MeteBoardWidget extends ReactWidget {
 		const drawn = next.model !== this.session.model;
 		this.session = next;
 		if (drawn) this.update();
+		this.askWindows();
+	}
+
+	// The context windows of the models the shown run's calls used, each asked once (ADR-090); a
+	// model the listing lacks keeps none, so its row shows the tokens alone.
+	protected askWindows(): void {
+		const { shown, view } = this.session;
+		if (!shown) return;
+		const key = (r: ModelRef) => `${r.providerId}/${r.modelId}`;
+		const refs = new Map<string, ModelRef>();
+		for (const a of view.agents) {
+			const last = a.usage?.last;
+			if (last && !this.asked.has(key(last)))
+				refs.set(key(last), {
+					providerId: last.providerId,
+					modelId: last.modelId,
+				});
+		}
+		if (refs.size === 0) return;
+		for (const k of refs.keys()) this.asked.add(k);
+		void this.loadWindows(shown.dir, shown.runId, [...refs.values()]);
+	}
+
+	protected async loadWindows(dir: string, runId: string, refs: ModelRef[]) {
+		const r = await this.daemon.models(dir, refs);
+		if (!r.ok || this.shownRun.runId !== runId) return;
+		const got = r.value.models.map((m) => [
+			`${m.providerId}/${m.id}`,
+			m.contextWindow,
+		]);
+		this.windows = { ...this.windows, ...Object.fromEntries(got) };
+		this.update();
 	}
 
 	protected override render() {
@@ -223,6 +262,7 @@ export class MeteBoardWidget extends ReactWidget {
 					},
 					onOpenReport: (path) => void this.openReport(path),
 					names: this.names,
+					windows: this.windows,
 				}}
 			/>
 		);

@@ -29,6 +29,7 @@ const html = (
 				restore: { onRestore: () => {}, restoring },
 				onOpenReport: () => {},
 				names: { writer: "Copy writer" },
+				windows: {},
 			},
 		}),
 	);

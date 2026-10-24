@@ -14,7 +14,7 @@ import { LINK, LIST, MUTED, PANEL, TITLE } from "./look.js";
 import { openReportLabel, ResultsList, reportPath } from "./results-list.js";
 import { failureText } from "./status-text.js";
 import { studioText } from "./studio-text.js";
-import { TeamView as Roster } from "./team-view.js";
+import { TeamView as Roster, type Windows } from "./team-view.js";
 
 // The Team panel (docs/13, ADR-051): one run's tasks on the Board (To do, In progress and Done),
 // its members in the Team view (ADR-089) or as the Flow graph, both from the view model the fold of @mete/ui-studio keeps. Text is shown as it is: React escapes it.
@@ -144,6 +144,8 @@ export type TeamControls = {
 	readonly onOpenReport: (path: string) => void;
 	/** Each member's name by role id from the run's team file, for the Team view (ADR-089). */
 	readonly names: Readonly<Record<string, string>>;
+	/** Each model's listed context window, for the Team view's context share (ADR-090). */
+	readonly windows: Windows;
 };
 
 const modeName = (mode: TeamMode) =>
@@ -219,7 +221,13 @@ const Shown = ({
 	readonly controls: TeamControls;
 }) => {
 	if (controls.mode === "team")
-		return <Roster members={rosterOf(model.view)} names={controls.names} />;
+		return (
+			<Roster
+				members={rosterOf(model.view)}
+				names={controls.names}
+				windows={controls.windows}
+			/>
+		);
 	if (controls.mode === "flow")
 		return model.view.tasks.length === 0 ? (
 			<NoTasks />

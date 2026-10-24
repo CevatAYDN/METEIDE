@@ -1,6 +1,7 @@
 import type { Tier } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties } from "react";
+import { CONTEXT_WARN_SHARE } from "../defaults.js";
 import { type Member, type MemberState, roleWords } from "../domain/roster.js";
 import { LIST, MUTED } from "./look.js";
 
@@ -157,6 +158,88 @@ const Model = ({ member }: { readonly member: Member }) =>
 		</div>
 	) : null;
 
+/** A token count with a fixed k or M suffix, the same in every language: 61k, 1.2M. */
+export const tokenCount = (n: number): string => {
+	const short = (x: number) =>
+		x < 10 ? x.toFixed(1).replace(/\.0$/, "") : String(Math.round(x));
+	if (n < 1_000) return String(n);
+	return n < 1_000_000 ? `${short(n / 1_000)}k` : `${short(n / 1_000_000)}M`;
+};
+
+/** The listed context window of each model, by `<providerId>/<modelId>` (ADR-090). */
+export type Windows = Readonly<Record<string, number>>;
+
+const BAR: CSSProperties = {
+	width: "96px",
+	height: "6px",
+	borderRadius: "3px",
+	overflow: "hidden",
+	flex: "none",
+	background: "var(--chip, var(--theia-badge-background))",
+};
+
+// The latest call's share of its model's context; the bar warns from CONTEXT_WARN_SHARE, the text
+// always says the number. A model with no listed window shows the tokens alone (ADR-090).
+const Share = ({
+	last,
+	window,
+}: {
+	readonly last: { readonly prompt: number };
+	readonly window: number;
+}) => {
+	const share = last.prompt / window;
+	const tone = share >= CONTEXT_WARN_SHARE ? "warn" : "accent";
+	return (
+		<>
+			<span aria-hidden="true" style={BAR}>
+				<span
+					style={{
+						display: "block",
+						height: "100%",
+						width: `${Math.min(100, share * 100)}%`,
+						background: TONES[tone],
+					}}
+				/>
+			</span>
+			<span>
+				{nls.localize(
+					"mete/roster/context",
+					"Context {0}% · {1} of {2}",
+					Math.round(share * 100),
+					tokenCount(last.prompt),
+					tokenCount(window),
+				)}
+			</span>
+		</>
+	);
+};
+
+const Context = ({
+	member,
+	windows,
+}: {
+	readonly member: Member;
+	readonly windows: Windows;
+}) => {
+	const last = member.agent?.usage?.last;
+	const window = last ? windows[`${last.providerId}/${last.modelId}`] : 0;
+	if (!member.used) return null;
+	return (
+		<div style={{ ...LINE, ...MUTED }}>
+			<Icon name="layers" />
+			{last && window ? <Share last={last} window={window} /> : null}
+			<span>
+				{nls.localize(
+					"mete/roster/tokens",
+					"Tokens: {0} · calls: {1}",
+					tokenCount(member.used.tokens),
+					member.used.calls,
+				)}
+			</span>
+		</div>
+	);
+};
+
 const TierChip = ({ tier }: { readonly tier: Tier }) => (
 	<span className="mete-chip" style={PILL} title={tier}>
 		<Icon name={TIER_ICONS[tier]} />
@@ -170,9 +253,11 @@ const TierChip = ({ tier }: { readonly tier: Tier }) => (
 const Row = ({
 	member,
 	name,
+	windows,
 }: {
 	readonly member: Member;
 	readonly name: string;
+	readonly windows: Windows;
 }) => {
 	const look = stateLook(member.state);
 	const ring = look.tone === "muted" ? undefined : TONES[look.tone];
@@ -198,6 +283,7 @@ const Row = ({
 					{member.agent?.tier ? <TierChip tier={member.agent.tier} /> : null}
 				</div>
 				<Model member={member} />
+				<Context member={member} windows={windows} />
 				{member.now ? <Now now={member.now} /> : null}
 			</div>
 			<div
@@ -236,6 +322,23 @@ const count = (
 	kinds: readonly MemberState["kind"][],
 ) => members.filter((m) => kinds.includes(m.state.kind)).length;
 
+// The run's tokens, the sum over its members, once any call has reported usage (ADR-090).
+const RunTokens = ({ members }: { readonly members: readonly Member[] }) => {
+	const used = members.flatMap((m) => (m.used ? [m.used] : []));
+	if (used.length === 0) return null;
+	return (
+		<>
+			{" · "}
+			{nls.localize(
+				"mete/roster/runTokens",
+				"run tokens: {0} · calls: {1}",
+				tokenCount(used.reduce((n, u) => n + u.tokens, 0)),
+				used.reduce((n, u) => n + u.calls, 0),
+			)}
+		</>
+	);
+};
+
 const Summary = ({ members }: { readonly members: readonly Member[] }) => (
 	<p style={MUTED}>
 		{nls.localize(
@@ -246,6 +349,7 @@ const Summary = ({ members }: { readonly members: readonly Member[] }) => (
 			count(members, ["waits_for_you"]),
 			count(members, ["done"]),
 		)}
+		<RunTokens members={members} />
 	</p>
 );
 
@@ -253,9 +357,11 @@ const Summary = ({ members }: { readonly members: readonly Member[] }) => (
 export const TeamView = ({
 	members,
 	names,
+	windows,
 }: {
 	readonly members: readonly Member[];
 	readonly names: Readonly<Record<string, string>>;
+	readonly windows: Windows;
 }) => (
 	<section
 		aria-label={nls.localize("mete/roster/title", "Team")}
@@ -268,6 +374,7 @@ export const TeamView = ({
 					key={m.roleId}
 					member={m}
 					name={names[m.roleId] ?? roleWords(m.roleId)}
+					windows={windows}
 				/>
 			))}
 		</ul>

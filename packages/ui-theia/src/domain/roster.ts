@@ -23,6 +23,8 @@ export type Member = {
 	readonly now?: { readonly task: string; readonly waitsFor?: string };
 	readonly done: number;
 	readonly total: number;
+	/** The tokens and calls of every agent the role has had (ADR-090); none before a call with usage. */
+	readonly used?: { readonly tokens: number; readonly calls: number };
 };
 
 /** A role id written as words: `frontend_developer` as "Frontend developer". */
@@ -80,9 +82,20 @@ const stateOf = (
 	return { kind: "idle" };
 };
 
+const usedOf = (agents: readonly AgentCard[]): Member["used"] => {
+	const counted = agents.flatMap((a) => (a.usage ? [a.usage] : []));
+	if (counted.length === 0) return undefined;
+	return {
+		tokens: counted.reduce((n, u) => n + u.tokens, 0),
+		calls: counted.reduce((n, u) => n + u.calls, 0),
+	};
+};
+
 const memberOf = (view: TeamView, roleId: string): Member => {
 	const tasks = view.tasks.filter((t) => t.roleId === roleId);
-	const agent = agentOf(view.agents.filter((a) => a.roleId === roleId));
+	const agents = view.agents.filter((a) => a.roleId === roleId);
+	const agent = agentOf(agents);
+	const used = usedOf(agents);
 	const now = nowOf(view, tasks, agent);
 	return {
 		roleId,
@@ -91,6 +104,7 @@ const memberOf = (view: TeamView, roleId: string): Member => {
 		...(now ? { now } : {}),
 		done: tasks.filter((t) => t.status === "approved").length,
 		total: tasks.length,
+		...(used ? { used } : {}),
 	};
 };
 
