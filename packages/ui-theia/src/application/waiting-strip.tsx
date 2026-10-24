@@ -21,6 +21,9 @@ const STRIP: CSSProperties = {
 	display: "flex",
 	flexDirection: "column",
 	gap: "10px",
+	maxWidth: "960px",
+	// The width the Team view's rows take, its padding and border inside it.
+	boxSizing: "border-box",
 	borderColor: TONES.warn,
 };
 
@@ -44,7 +47,12 @@ const Revise = ({ onRevise }: { readonly onRevise: (f: string) => void }) => (
 				rows={2}
 				aria-label={nls.localize("mete/run/feedback", "What should change?")}
 				placeholder={nls.localize("mete/run/feedback", "What should change?")}
-				style={{ flex: "1 1 240px", minWidth: 0 }}
+				style={{
+					flex: "1 1 320px",
+					minWidth: 0,
+					font: "inherit",
+					padding: "6px 8px",
+				}}
 			/>
 			<button type="submit" className="mete-button">
 				{nls.localize("mete/waiting/send", "Send back")}
@@ -86,7 +94,7 @@ const Asked = ({
 					</button>
 				) : null}
 			</div>
-			<div style={ROW}>
+			<div style={{ ...ROW, alignItems: "flex-start" }}>
 				<button
 					type="button"
 					className="mete-button"
