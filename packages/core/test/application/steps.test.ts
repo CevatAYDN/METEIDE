@@ -150,6 +150,38 @@ describe("steps for a seat", () => {
 		});
 	});
 
+	it("refuses an fs write whose file could not be snapshotted, and never runs it (ADR-080)", async () => {
+		const { deps, ran } = setup(["fs.write@1"]);
+		const kept: string[] = [];
+		const call = {
+			id: "c",
+			name: "fs_write",
+			args: { path: "a.txt", content: "x" },
+		};
+		const out = await callTool(
+			deps,
+			{
+				call,
+				seat: SINGLE_AGENT,
+				beforeWrite: async (path) => {
+					kept.push(path);
+					return { ok: false, error: { message: "disk full" } };
+				},
+			},
+			{ signal },
+			() => {},
+		);
+		expect(kept).toEqual(["a.txt"]);
+		expect(ran).toEqual([]);
+		expect(out.kind === "result" && JSON.parse(out.message.content)).toEqual({
+			ok: false,
+			error: {
+				code: "io",
+				message: "the file could not be snapshotted first: disk full",
+			},
+		});
+	});
+
 	it("refuses a tool call outside the seat without running it", async () => {
 		const { deps, ran } = setup(["shell.exec@1"]);
 		const call = { id: "c", name: "shell_exec", args: { command: "ls" } };
