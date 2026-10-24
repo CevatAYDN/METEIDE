@@ -109,6 +109,10 @@ export class MeteDaemonBackend
 		return this.host.chain(workspaceDir, tier, needs);
 	}
 
+	restart() {
+		return this.host.restart();
+	}
+
 	settings(workspaceDir: string) {
 		return this.host.settings(workspaceDir);
 	}

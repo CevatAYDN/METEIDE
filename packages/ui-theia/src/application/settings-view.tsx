@@ -24,6 +24,7 @@ export type SettingsModel =
 
 /** Where the screen's links go: a palette command by id, or a configuration file. */
 export type SettingsActions = {
+	readonly onApply: () => void;
 	readonly onCommand: (id: string) => void;
 	readonly onOpen: (file: string) => void;
 	readonly onRefresh: () => void;
@@ -200,7 +201,7 @@ const Loaded = ({
 		<p style={MUTED}>
 			{nls.localize(
 				"mete/settings/loaded",
-				"As METE loaded them at {0}. Edits to these files apply when METE starts again, except pins, which apply when the next task starts; a key no file sets takes its module's built-in default.",
+				"As METE loaded them at {0}. Edits to these files apply when METE starts again or on Apply now, except pins, which apply when the next task starts; a key no file sets takes its module's built-in default.",
 				new Date(settings.loadedAt).toLocaleString(),
 			)}
 		</p>
@@ -215,15 +216,53 @@ const Loaded = ({
 	</>
 );
 
+/** Apply now (ADR-083): in flight, and how many runs of the folder are queued or running. */
+export type ApplyState = {
+	readonly busy: boolean;
+	readonly activeRuns: number;
+};
+
+// A restart pauses a running run (ADR-061), so Apply now waits until none runs.
+const ApplyNow = ({
+	apply,
+	onApply,
+}: {
+	readonly apply: ApplyState;
+	readonly onApply: () => void;
+}) => (
+	<>
+		<button
+			type="button"
+			className="mete-button"
+			disabled={apply.busy || apply.activeRuns > 0}
+			onClick={onApply}
+		>
+			{apply.busy
+				? nls.localize("mete/settings/applying", "Restarting METE…")
+				: nls.localize("mete/settings/apply", "Apply now")}
+		</button>
+		{apply.activeRuns > 0 ? (
+			<span style={MUTED}>
+				{nls.localize(
+					"mete/settings/applyWaits",
+					"A run is running; Apply now waits until it is paused or ends.",
+				)}
+			</span>
+		) : null}
+	</>
+);
+
 /** The Settings screen for a model. */
 export const SettingsView = ({
 	model,
 	actions,
 	forms = {},
+	apply = { busy: false, activeRuns: 0 },
 }: {
 	readonly model: SettingsModel;
 	readonly actions: SettingsActions;
 	readonly forms?: Forms;
+	readonly apply?: ApplyState;
 }) => (
 	<section style={PANEL} aria-live="polite">
 		<h2 style={TITLE}>{nls.localize("mete/settings/title", "Settings")}</h2>
@@ -238,6 +277,7 @@ export const SettingsView = ({
 					{label()}
 				</button>
 			))}
+			<ApplyNow apply={apply} onApply={actions.onApply} />
 			<button
 				type="button"
 				className="mete-button quiet"

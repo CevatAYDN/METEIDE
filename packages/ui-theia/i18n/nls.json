@@ -138,6 +138,9 @@
 		},
 		"settings": {
 			"allowTraining": "Allow providers that may train on prompts",
+			"apply": "Apply now",
+			"applyWaits": "A run is running; Apply now waits until it is paused or ends.",
+			"applying": "Restarting METE…",
 			"autonomy": "Autonomy level",
 			"both": "Free first, then paid",
 			"caption": "METE: the configuration it loaded",
@@ -153,7 +156,7 @@
 			"level1": "1: approve each step",
 			"level2": "2: approve risky actions",
 			"level3": "3: full autonomy",
-			"loaded": "As METE loaded them at {0}. Edits to these files apply when METE starts again, except pins, which apply when the next task starts; a key no file sets takes its module's built-in default.",
+			"loaded": "As METE loaded them at {0}. Edits to these files apply when METE starts again or on Apply now, except pins, which apply when the next task starts; a key no file sets takes its module's built-in default.",
 			"loading": "Asking the METE daemon…",
 			"maxHours": "Hours per run",
 			"merged": "What METE uses:",

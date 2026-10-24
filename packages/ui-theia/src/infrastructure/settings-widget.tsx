@@ -14,6 +14,7 @@ import { FileService } from "@theia/filesystem/lib/browser/file-service";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import { panelRoot } from "../application/panel-root.js";
 import {
+	type ApplyState,
 	type SettingsModel,
 	SettingsView,
 } from "../application/settings-view.js";
@@ -37,6 +38,7 @@ export class MeteSettingsWidget extends ReactWidget {
 
 	protected model: SettingsModel = { kind: "loading" };
 	protected forms: SettingsForms | undefined;
+	protected apply: ApplyState = { busy: false, activeRuns: 0 };
 
 	@postConstruct()
 	protected init(): void {
@@ -58,7 +60,9 @@ export class MeteSettingsWidget extends ReactWidget {
 	async refresh(): Promise<void> {
 		const [root] = await this.workspace.roots;
 		if (!root) return this.setModel({ kind: "no_folder" });
-		const r = await this.daemon.settings(root.resource.path.fsPath());
+		const dir = root.resource.path.fsPath();
+		this.apply = { ...this.apply, activeRuns: await this.activeRuns(dir) };
+		const r = await this.daemon.settings(dir);
 		this.setModel(
 			r.ok
 				? { kind: "settings", settings: r.value }
@@ -66,6 +70,29 @@ export class MeteSettingsWidget extends ReactWidget {
 		);
 		// The forms read their files from disk, not the loaded values (ADR-082).
 		if (r.ok) await this.forms?.load(root.resource, r.value.globalFile);
+	}
+
+	// Runs a restart would pause (ADR-083): queued or running ones; none when the status fails.
+	protected async activeRuns(dir: string): Promise<number> {
+		const r = await this.daemon.status(dir);
+		return r.ok
+			? r.value.filter(
+					(run) => run.status === "running" || run.status === "queued",
+				).length
+			: 0;
+	}
+
+	// Apply now (ADR-083): checks the runs again, restarts the daemon, and shows what it loaded.
+	protected async applyNow(): Promise<void> {
+		const [root] = await this.workspace.roots;
+		if (!root || this.apply.busy) return;
+		const activeRuns = await this.activeRuns(root.resource.path.fsPath());
+		this.apply = { busy: activeRuns === 0, activeRuns };
+		this.update();
+		if (activeRuns > 0) return;
+		await this.daemon.restart();
+		this.apply = { busy: false, activeRuns: 0 };
+		await this.refresh();
 	}
 
 	protected setModel(model: SettingsModel): void {
@@ -79,7 +106,9 @@ export class MeteSettingsWidget extends ReactWidget {
 				<SettingsView
 					model={this.model}
 					forms={this.forms?.forms() ?? {}}
+					apply={this.apply}
 					actions={{
+						onApply: () => void this.applyNow(),
 						onCommand: (id) => void this.commands.executeCommand(id),
 						onOpen: (file) => void open(this.openers, URI.fromFilePath(file)),
 						onRefresh: () => void this.refresh(),

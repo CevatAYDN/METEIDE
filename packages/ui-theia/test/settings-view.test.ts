@@ -15,7 +15,12 @@ const html = (model: SettingsModel) =>
 	renderToStaticMarkup(
 		createElement(SettingsView, {
 			model,
-			actions: { onCommand: none, onOpen: none, onRefresh: none },
+			actions: {
+				onApply: none,
+				onCommand: none,
+				onOpen: none,
+				onRefresh: none,
+			},
 		}),
 	);
 
@@ -96,7 +101,12 @@ describe("the Settings forms (ADR-082)", () => {
 		renderToStaticMarkup(
 			createElement(SettingsView, {
 				model,
-				actions: { onCommand: none, onOpen: none, onRefresh: none },
+				actions: {
+					onApply: none,
+					onCommand: none,
+					onOpen: none,
+					onRefresh: none,
+				},
 				forms: { gateway: gatewayForm },
 			}),
 		);
@@ -134,5 +144,32 @@ describe("the Settings forms (ADR-082)", () => {
 			settings: { ...LOADED.settings, globalFile: "/g/settings.yaml" },
 		} as SettingsModel);
 		expect(global).toMatch(/<input type="checkbox"\/>Save for every folder/);
+	});
+});
+
+describe("Apply now (ADR-083)", () => {
+	const withApply = (activeRuns: number) =>
+		renderToStaticMarkup(
+			createElement(SettingsView, {
+				model: LOADED,
+				actions: {
+					onApply: none,
+					onCommand: none,
+					onOpen: none,
+					onRefresh: none,
+				},
+				apply: { busy: false, activeRuns },
+			}),
+		);
+
+	it("is on while no run runs, and off with the reason while one does", () => {
+		expect(withApply(0)).toContain(
+			'<button type="button" class="mete-button">Apply now</button>',
+		);
+		const busy = withApply(1);
+		expect(busy).toContain(
+			'<button type="button" class="mete-button" disabled="">Apply now</button>',
+		);
+		expect(busy).toContain("Apply now waits until it is paused or ends.");
 	});
 });

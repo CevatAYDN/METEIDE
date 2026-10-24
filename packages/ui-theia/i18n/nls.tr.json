@@ -138,6 +138,9 @@
 		},
 		"settings": {
 			"allowTraining": "İstemlerle eğitim yapabilen sağlayıcılara izin ver",
+			"apply": "Hemen uygula",
+			"applyWaits": "Bir çalıştırma sürüyor; Hemen uygula, o duraklayana ya da bitene kadar bekler.",
+			"applying": "METE yeniden başlatılıyor…",
 			"autonomy": "Özerklik seviyesi",
 			"both": "Önce ücretsiz, sonra ücretli",
 			"caption": "METE: yüklediği yapılandırma",
@@ -153,7 +156,7 @@
 			"level1": "1: her adımı onayla",
 			"level2": "2: riskli işleri onayla",
 			"level3": "3: tam özerklik",
-			"loaded": "METE bunları {0} anında yükledi. Bu dosyalardaki değişiklikler METE yeniden başlayınca geçerli olur, pins dışında: o, bir sonraki görev başlarken geçerli olur; hiçbir dosyanın ayarlamadığı bir anahtar modülün yerleşik varsayılanını alır.",
+			"loaded": "METE bunları {0} anında yükledi. Bu dosyalardaki değişiklikler METE yeniden başlayınca ya da Hemen uygula ile geçerli olur, pins dışında: o, bir sonraki görev başlarken geçerli olur; hiçbir dosyanın ayarlamadığı bir anahtar modülün yerleşik varsayılanını alır.",
 			"loading": "METE daemon'una soruluyor…",
 			"maxHours": "Çalıştırma başına saat",
 			"merged": "METE'nin kullandığı:",

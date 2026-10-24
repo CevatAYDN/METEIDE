@@ -152,6 +152,8 @@ export interface MeteDaemonService {
 		tier: Tier,
 		needs: readonly Need[],
 	): Promise<Result<Chain, DaemonFailure>>;
+	/** Restarts the folder's daemon so it loads the configuration again (ADR-083). */
+	restart(): Promise<void>;
 	/** The configuration the folder's daemon loaded, every string masked (ADR-081). */
 	settings(workspaceDir: string): Promise<Result<Settings, DaemonFailure>>;
 	/** Restores a paused or ended run's checkpoint by the id of its checkpoint.created event (ADR-079). */
