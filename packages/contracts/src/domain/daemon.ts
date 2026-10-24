@@ -7,10 +7,10 @@ import { PolicyActionSchema, PolicyVerdictSchema } from "./policy.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 15 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-079).
+// Daemon protocol version 16 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-081).
 // The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The messages of version 15; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 16; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
@@ -25,6 +25,7 @@ export const DAEMON_METHODS = {
 	templateRead: "mete/template.read",
 	chain: "mete/chain",
 	checkpointRestore: "mete/checkpoint.restore",
+	settings: "mete/settings",
 	event: "mete/event",
 } as const;
 
@@ -209,6 +210,28 @@ export const DaemonCheckpointRestoreParamsSchema = z.strictObject({
 export const DaemonCheckpointRestoreResultSchema = z.strictObject({
 	ref: z.string().min(1),
 	undo: z.string().min(1),
+});
+
+// One file's value of a section as the loader read it; the desktop shows it as text, never parses it.
+const SettingsFileSchema = z.strictObject({
+	file: z.string().min(1),
+	value: z.unknown(),
+});
+
+/**
+ * Result of `mete/settings` (no params, ADR-081): each configuration section the daemon loaded, merged
+ * as modules read it and per file, and when it was loaded; every string is already masked.
+ */
+export const DaemonSettingsResultSchema = z.strictObject({
+	loadedAt: TimestampSchema,
+	sections: z.array(
+		z.strictObject({
+			name: z.string().min(1),
+			merged: z.unknown(),
+			global: SettingsFileSchema.optional(),
+			workspace: SettingsFileSchema.optional(),
+		}),
+	),
 });
 
 /** Result of `mete/run.approve` and `mete/run.resume`: a request that returns nothing sends null. */

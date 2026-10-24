@@ -48,6 +48,7 @@ export {
 	DaemonRunApproveParamsSchema,
 	DaemonRunIdParamsSchema,
 	DaemonRunStartResultSchema,
+	DaemonSettingsResultSchema,
 	DaemonStatusParamsSchema,
 	DaemonStatusResultSchema,
 	DaemonStopAllResultSchema,

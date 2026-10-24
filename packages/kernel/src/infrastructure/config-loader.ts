@@ -25,6 +25,8 @@ export type LoadedConfig = {
 	readonly workspaceId: string;
 	readonly reader: ConfigReader;
 	readonly bindings: BindingReader;
+	/** The files read, before any schema: the read-only Settings screen shows them (ADR-081). */
+	readonly layers: ConfigLayers;
 };
 
 type Parsed = Result<unknown, ConfigInvalid>;
@@ -153,5 +155,6 @@ export const loadConfig = async (
 		workspaceId: workspace.value.id,
 		reader,
 		bindings: (ref) => map[ref] ?? builtIn[ref] ?? [],
+		layers,
 	});
 };

@@ -19,6 +19,7 @@ import {
 	DaemonRunApproveParamsSchema,
 	DaemonRunIdParamsSchema,
 	DaemonRunStartResultSchema,
+	DaemonSettingsResultSchema,
 	DaemonStatusParamsSchema,
 	DaemonStatusResultSchema,
 	DaemonStopAllResultSchema,
@@ -134,6 +135,7 @@ describe("daemon protocol version 14", () => {
 			templateRead: "mete/template.read",
 			chain: "mete/chain",
 			checkpointRestore: "mete/checkpoint.restore",
+			settings: "mete/settings",
 			event: "mete/event",
 		});
 	});
@@ -377,6 +379,35 @@ describe("daemon protocol version 14", () => {
 			DaemonChainResultSchema.safeParse({ models: [{ providerId: "groq" }] })
 				.success,
 		).toBe(false);
+	});
+
+	it("answers mete/settings with each section merged and per file, values as they are (ADR-081)", () => {
+		const answer = {
+			loadedAt: "2026-10-24T10:00:00.000Z",
+			sections: [
+				{
+					name: "policy",
+					merged: { level: 2, allow: ["a"] },
+					global: { file: "/g/settings.yaml", value: { level: 1 } },
+					workspace: { file: "/w/.mete/policy.yaml", value: { level: 2 } },
+				},
+				{
+					name: "workspace",
+					merged: { id: "x" },
+					workspace: { file: "/w/.mete/workspace.yaml", value: { id: "x" } },
+				},
+			],
+		};
+		expect(DaemonSettingsResultSchema.parse(answer)).toEqual(answer);
+		for (const bad of [
+			{ sections: [] },
+			{ ...answer, sections: [{ name: "", merged: {} }] },
+			{
+				...answer,
+				sections: [{ name: "p", merged: {}, global: { value: 1 } }],
+			},
+		])
+			expect(DaemonSettingsResultSchema.safeParse(bad).success).toBe(false);
 	});
 
 	it("asks mete/checkpoint.restore for a run's checkpoint by event id and answers both refs (ADR-079)", () => {

@@ -57,6 +57,13 @@ describe("loadConfig", () => {
 		expect(mcp).toEqual({ ok: true, value: { timeoutSec: 10, retries: 5 } });
 		expect(r.value.bindings("web.search@1")).toEqual(["exa-mcp", "tavily"]);
 		expect(r.value.bindings("fs.read@1")).toEqual([]);
+		// The files as read, for the read-only Settings screen (ADR-081).
+		expect(r.value.layers.global.sections).toEqual({
+			mcp: { timeoutSec: 10, retries: 2 },
+		});
+		expect(r.value.layers.global.file).toMatch(/settings\.yaml$/);
+		expect(r.value.layers.workspace.mcp?.value).toEqual({ retries: 5 });
+		expect(r.value.layers.workspace.mcp?.file).toMatch(/mcp\.yaml$/);
 	});
 
 	it("uses a built-in binding until the user binds that capability", async () => {
