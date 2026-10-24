@@ -99,6 +99,8 @@ describe("shellTool", () => {
 			);
 			expect(last.exitCode).toBe(0);
 		},
+		// Four PowerShell starts; under the full suite they outrun vitest's 5 s default.
+		15_000,
 	);
 
 	it.runIf(WINDOWS)(

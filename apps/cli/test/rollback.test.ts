@@ -143,7 +143,8 @@ describe("mete rollback", () => {
 		]);
 		expect(await rollbackCommand(app, recordingIo().io, runId, "2")).toBe(0);
 		expect(await greet()).toContain('"Hello "');
-	});
+		// A run in a git repository and two restores outrun vitest's 5 s default under the full suite.
+	}, 30_000);
 
 	it("refuses a number that is not one, and a checkpoint the run does not have", async () => {
 		const { app, runId, greet } = await editedRun();
