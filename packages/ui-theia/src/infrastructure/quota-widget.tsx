@@ -30,6 +30,13 @@ export class MeteQuotaWidget extends ReactWidget {
 	protected model: QuotaModel = { kind: "loading" };
 	protected dir: string | undefined;
 
+	// No state, so Theia's saved layout leaves the tab out and a restart does not reopen it (ADR-086).
+	storeState(): undefined {
+		return undefined;
+	}
+
+	restoreState(): void {}
+
 	@postConstruct()
 	protected init(): void {
 		this.id = MeteQuotaWidget.ID;
