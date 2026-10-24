@@ -111,6 +111,8 @@ export type App = {
 	readonly models: GatewayModule["models"];
 	/** The chain a call for a tier and role would try, from the same listing (ADR-068). */
 	readonly chain: GatewayModule["chain"];
+	/** The listed facts of asked models, from the same listing (ADR-090). */
+	readonly info: GatewayModule["info"];
 	/** The template folders core-engine reads, which mete/templates lists (ADR-058). */
 	readonly templates: TemplateDirs;
 	/** The configuration files as loaded, and when (ADR-081). */
@@ -267,6 +269,7 @@ export const createApp = async (
 		secrets,
 		models: gateway.models,
 		chain: gateway.chain,
+		info: gateway.info,
 		templates: templatesOf(opts),
 		config: { layers, loadedAt },
 		stop: lifecycle.stop,

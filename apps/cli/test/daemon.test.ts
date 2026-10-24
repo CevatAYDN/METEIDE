@@ -208,6 +208,29 @@ describe("mete daemon", () => {
 		);
 		expect(badChain.code).toBe(ErrorCodes.InvalidParams);
 
+		// mete/models gives the listed facts of the asked models, one it lacks left out (ADR-090).
+		const asked = await c.sendRequest(DAEMON_METHODS.models, {
+			models: [
+				{ providerId: "fake", modelId: "gone" },
+				{ providerId: "fake", modelId: "coder-1" },
+			],
+		});
+		expect(asked).toEqual({
+			models: [
+				expect.objectContaining({
+					providerId: "fake",
+					id: "coder-1",
+					contextWindow: expect.any(Number),
+				}),
+			],
+		});
+		const badModels = await failure(
+			c.sendRequest(DAEMON_METHODS.models, {
+				models: [{ providerId: "fake" }],
+			}),
+		);
+		expect(badModels.code).toBe(ErrorCodes.InvalidParams);
+
 		const first = event("network.lost");
 		const second = event("run.resumed");
 		app.value.events.publish(first);

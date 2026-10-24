@@ -7,6 +7,7 @@ import {
 	DaemonCheckpointRestoreParamsSchema,
 	type DaemonErrorData,
 	DaemonEstimateParamsSchema,
+	DaemonModelsParamsSchema,
 	DaemonProviderModelsParamsSchema,
 	DaemonProviderTestParamsSchema,
 	DaemonRunApproveParamsSchema,
@@ -43,7 +44,7 @@ import { customAdapter, endpointModels, probeModels } from "./provider-test.js";
 import { restoreCheckpoint } from "./rollback.js";
 import { settingsOf } from "./settings.js";
 
-// `mete daemon`: protocol version 17 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-087).
+// `mete daemon`: protocol version 18 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-090).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
@@ -262,6 +263,15 @@ const serveChain = (conn: MessageConnection, app: App) =>
 		return { models: await app.chain({ tier }, { needs }, signal) };
 	});
 
+// The listed facts of the models a run's agents use, for the Team view's context share (ADR-090):
+// the gateway's listing only, so no engine is needed.
+const serveModels = (conn: MessageConnection, app: App) =>
+	conn.onRequest(DAEMON_METHODS.models, async (params: unknown) => {
+		const { models } = parsed(DaemonModelsParamsSchema.safeParse(params));
+		const signal = AbortSignal.timeout(LISTING_TIMEOUT_MS);
+		return { models: await app.info(models, signal) };
+	});
+
 // The composer's request estimate per provider (ADR-068): files and the gateway's listing only, so no
 // engine is needed; a template that does not load is not_found.
 const serveEstimate = (
@@ -338,6 +348,7 @@ export const daemonCommand = async (
 	serveTemplates(conn, app);
 	serveTemplateRead(conn, app);
 	serveChain(conn, app);
+	serveModels(conn, app);
 	serveCheckpointRestore(conn, app);
 	serveSettings(conn, app);
 	serveProviders(conn, app);
