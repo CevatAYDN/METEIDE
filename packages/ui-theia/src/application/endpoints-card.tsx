@@ -1,6 +1,6 @@
 import type { ProviderAdapter } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
-import { type EndpointKeysView, KeyField } from "./endpoint-key.js";
+import { customId, type EndpointKeysView, KeyField } from "./endpoint-key.js";
 import { type EndpointTestsView, TestPanel } from "./endpoint-test.js";
 import type { EndpointDraft } from "./endpoints-draft.js";
 import { MUTED, ROW } from "./look.js";
@@ -174,9 +174,9 @@ const Checks = ({
 		{checks.keys ? (
 			<KeyField
 				id={id}
-				slug={slug}
+				name={slug}
 				keys={checks.keys}
-				unsaved={checks.unsaved}
+				locked={checks.unsaved || !customId(slug)}
 			/>
 		) : null}
 		{checks.tests ? <TestPanel slug={slug} tests={checks.tests} /> : null}

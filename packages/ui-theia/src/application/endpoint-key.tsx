@@ -29,26 +29,22 @@ export const customId = (slug: string) => {
 	return CustomProviderIdSchema.safeParse(id).success ? id : undefined;
 };
 
-/** The key field and Set key of one endpoint. */
+/** The key field and Set key of one endpoint, or of a provider on the Welcome screen (ADR-088). */
 export const KeyField = ({
 	id,
-	slug,
+	name,
 	keys,
-	unsaved,
+	locked,
 }: {
 	readonly id: string;
-	readonly slug: string;
+	/** What the keys are kept by: an endpoint's slug, or a provider's id. */
+	readonly name: string;
 	readonly keys: EndpointKeysView;
-	/** The card has edits that are not saved; a restart would drop them. */
-	readonly unsaved: boolean;
+	/** Set key is off for a reason outside the field, such as edits a restart would drop. */
+	readonly locked: boolean;
 }) => {
-	const state = keys.stateOf(slug);
-	const off =
-		unsaved ||
-		!customId(slug) ||
-		!state.key.trim() ||
-		state.busy ||
-		keys.activeRuns > 0;
+	const state = keys.stateOf(name);
+	const off = locked || !state.key.trim() || state.busy || keys.activeRuns > 0;
 	return (
 		<div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
 			<label htmlFor={id}>
@@ -61,13 +57,13 @@ export const KeyField = ({
 					type="password"
 					autoComplete="off"
 					value={state.key}
-					onChange={(e) => keys.onType(slug, e.target.value)}
+					onChange={(e) => keys.onType(name, e.target.value)}
 				/>
 				<button
 					type="button"
 					className="mete-button"
 					disabled={off}
-					onClick={() => keys.onSet(slug)}
+					onClick={() => keys.onSet(name)}
 				>
 					{nls.localize("mete/settings/setEndpointKey", "Set key")}
 				</button>

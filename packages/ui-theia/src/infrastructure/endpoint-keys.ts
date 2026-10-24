@@ -18,6 +18,8 @@ export type KeyDeps = {
 	/** The daemon restarted, so the screen loads what it now loaded. */
 	readonly onSaved: () => void;
 	readonly onChange: () => void;
+	/** The provider id a key is set for: an endpoint's `custom:<slug>` unless told otherwise. */
+	readonly idOf?: (name: string) => string | undefined;
 };
 
 const IDLE: EndpointKey = { key: "", busy: false };
@@ -51,7 +53,7 @@ export class EndpointKeys {
 	}
 
 	async set(slug: string) {
-		const id = customId(slug);
+		const id = (this.deps.idOf ?? customId)(slug);
 		const state = this.stateOf(slug);
 		const key = state.key.trim();
 		if (!id || !key || state.busy) return;

@@ -7,7 +7,13 @@ import { EndpointKeys } from "../src/infrastructure/endpoint-keys.js";
 
 type Done = { ok: true; value: null } | { ok: false; error: DaemonFailure };
 
-const setup = (opts: { runs?: number; saved?: Done } = {}) => {
+const setup = (
+	opts: {
+		runs?: number;
+		saved?: Done;
+		idOf?: (name: string) => string | undefined;
+	} = {},
+) => {
 	const set: [string, string][] = [];
 	let saved = 0;
 	const keys = new EndpointKeys({
@@ -18,6 +24,7 @@ const setup = (opts: { runs?: number; saved?: Done } = {}) => {
 		activeRuns: async () => opts.runs ?? 0,
 		onSaved: () => void saved++,
 		onChange: () => {},
+		...(opts.idOf ? { idOf: opts.idOf } : {}),
 	});
 	return { keys, set, saved: () => saved };
 };
@@ -106,6 +113,14 @@ describe("a custom endpoint's key from the card", () => {
 		keys.type("my-lab", "sk-test");
 		keys.forget("my-lab");
 		expect(keys.stateOf("my-lab").key).toBe("");
+	});
+
+	it("sets a built-in provider's key under its own id on the Welcome screen", async () => {
+		const { keys, set } = setup({ idOf: (id) => id });
+		keys.type("nvidia", "nvapi-x");
+		await keys.set("nvidia");
+		// customId would take "nvidia" as a slug and store the key as custom:nvidia.
+		expect(set).toEqual([["nvidia", "nvapi-x"]]);
 	});
 
 	it("does nothing for a slug that is not one or an empty key", async () => {

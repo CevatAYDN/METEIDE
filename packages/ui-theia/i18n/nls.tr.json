@@ -324,6 +324,22 @@
 			"watches": "Uyandıran çıktılar (gdd@1 gibi)",
 			"which": "Hangi takım?",
 			"workspace": "Bu klasörün takımı, .mete/teams/{0}.yaml dosyasında."
+		},
+		"welcome": {
+			"getKey": "Anahtar al",
+			"keys": "2. Model sağlayıcı anahtarları",
+			"keysLead": "En az birini girin. Anahtar işletim sisteminin anahtar zincirinde kalır, hiçbir dosyaya yazılmaz.",
+			"language": "1. Dil",
+			"languageLead": "METE İngilizce ve Türkçe konuşur; seçtiğiniz dilde yeniden başlar.",
+			"loading": "Sağlayıcı anahtarları okunuyor…",
+			"privacy": "3. Gizlilik",
+			"privacyLead": "İstemlerinizle model eğitebilecek sağlayıcılar, siz izin vermedikçe kullanılmaz.",
+			"privacyNoFolder": "Şu an kapalılar; bunu Ayarlar’da değiştirmek için bir klasör açın.",
+			"search": "4. Web araması",
+			"searchLead": "Exa MCP web’de anahtarsız arama yapar; Tavily anahtarı isteğe bağlıdır.",
+			"start": "Çalıştırma başlat",
+			"startWaits": "Önce bir model sağlayıcısının anahtarını girin.",
+			"title": "METE’ye hoş geldiniz"
 		}
 	}
 }
