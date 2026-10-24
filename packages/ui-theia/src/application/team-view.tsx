@@ -11,7 +11,7 @@ import { Icon, LINE, TONES, type Tone } from "./roster-look.js";
 
 const MONO = "var(--theia-code-font-family, monospace)";
 
-const TIER_ICONS: Readonly<Record<Tier, string>> = {
+export const TIER_ICONS: Readonly<Record<Tier, string>> = {
 	reasoning: "lightbulb",
 	coder: "code",
 	fast: "zap",

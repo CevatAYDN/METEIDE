@@ -38,6 +38,7 @@ import {
 	removeRole,
 	removeTask,
 	renameRole,
+	selectedAfterRemove,
 	teamOf,
 } from "../application/team-draft.js";
 import {
@@ -69,6 +70,8 @@ export class MeteTeamEditorWidget
 
 	protected model: TeamEditorModel = { kind: "none" };
 	protected doc: Draft | undefined;
+	/** The member whose form shows beside the grid (ADR-093). */
+	protected selected = 0;
 	protected root: URI | undefined;
 	/** The folder's pins file; undefined while it does not parse, so it is never written over. */
 	protected pins: PinsDraft | undefined;
@@ -111,6 +114,7 @@ export class MeteTeamEditorWidget
 		const doc = draftOf(r.value.yaml);
 		if (!doc.ok) return this.setModel({ kind: "failed", text: doc.error });
 		this.doc = doc.value;
+		this.selected = 0;
 		await this.readPins();
 		this.setModel(this.readyOf(r.value.source, false));
 	}
@@ -244,6 +248,7 @@ export class MeteTeamEditorWidget
 			issues,
 			busy: false,
 			changed,
+			selected: Math.min(this.selected, team.roles.length - 1),
 			pins: this.pins ? pinsOfTeam(this.pins, team.metadata.id) : {},
 			chains: Object.fromEntries(this.chains),
 		};
@@ -302,6 +307,29 @@ export class MeteTeamEditorWidget
 		await this.save(copyAs(this.doc, id, name));
 	}
 
+	protected select(index: number): void {
+		this.selected = index;
+		if (this.model.kind === "ready")
+			this.setModel({ ...this.model, selected: index });
+	}
+
+	// A new member is selected, so its form is the one to fill in.
+	protected addMember(): void {
+		if (this.model.kind !== "ready") return;
+		this.selected = this.model.team.roles.length;
+		this.change(addRole);
+	}
+
+	protected removeMember(index: number): void {
+		if (this.model.kind !== "ready") return;
+		this.selected = selectedAfterRemove(
+			this.selected,
+			index,
+			this.model.team.roles.length - 1,
+		);
+		this.change((d) => removeRole(d, index));
+	}
+
 	// A refused id is said, as the field shows the member's own id again.
 	protected rename(index: number, id: string): void {
 		const r = this.doc && renameRole(this.doc, index, id);
@@ -330,8 +358,9 @@ export class MeteTeamEditorWidget
 	protected actions(): TeamEditorActions {
 		return {
 			onEdit: (path, value) => this.change((d) => edited(d, path, value)),
-			onAddMember: () => this.change(addRole),
-			onRemoveMember: (i) => this.change((d) => removeRole(d, i)),
+			onSelectMember: (i) => this.select(i),
+			onAddMember: () => this.addMember(),
+			onRemoveMember: (i) => this.removeMember(i),
 			onRenameMember: (i, id) => this.rename(i, id),
 			onPin: (roleId, value) => void this.pin(roleId, value),
 			onAddTask: (roleId) => this.change((d) => addTask(d, roleId)),

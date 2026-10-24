@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { OnEdit } from "./fields.js";
 import { MUTED, PANEL, ROW, TITLE } from "./look.js";
 import { MemberCard } from "./member-card.js";
+import { MemberGrid } from "./member-grid.js";
 import { chainKey } from "./pins-draft.js";
 import { noFolderText } from "./status-text.js";
 import {
@@ -31,6 +32,8 @@ export type TeamEditorModel =
 			readonly issues: readonly string[];
 			readonly busy: boolean;
 			readonly changed: boolean;
+			/** The member whose form shows beside the grid (ADR-093). */
+			readonly selected: number;
 			/** This team's pins in the folder, by member id (ADR-077). */
 			readonly pins: Readonly<Record<string, string>>;
 			/** `<providerId>/<modelId>` of each tier's chain, by chainKey. */
@@ -40,6 +43,7 @@ export type TeamEditorModel =
 /** What the screen's buttons do. */
 export type TeamEditorActions = {
 	readonly onEdit: OnEdit;
+	readonly onSelectMember: (index: number) => void;
 	readonly onAddMember: () => void;
 	readonly onRemoveMember: (index: number) => void;
 	readonly onRenameMember: (index: number, id: string) => void;
@@ -170,40 +174,43 @@ const Members = ({
 	readonly model: Ready;
 	readonly actions: TeamEditorActions;
 }) => {
-	const hints = capabilityHints(model.team);
-	const outputs = guardrailHints(model.team);
+	const i = model.selected;
+	const r = model.team.roles[i];
 	return (
 		<>
 			<h3 style={TITLE}>{nls.localize("mete/team/members", "Members")}</h3>
-			{model.team.roles.map((r, i) => (
-				<MemberCard
-					// biome-ignore lint/suspicious/noArrayIndexKey: two new members may share an id until the schema refuses it
-					key={i}
-					team={model.team}
-					index={i}
-					fixed={model.fixedIds.includes(r.id)}
-					hints={hints}
-					outputs={outputs}
-					onEdit={actions.onEdit}
-					onRemove={() => actions.onRemoveMember(i)}
-					onRename={(id) => actions.onRenameMember(i, id)}
-					pin={{
-						...(model.pins[r.id] ? { value: model.pins[r.id] } : {}),
-						models: model.chains[chainKey(r.tier, r.needs)] ?? [],
-					}}
-					onPin={(v) => actions.onPin(r.id, v)}
-					onAddTask={() => actions.onAddTask(r.id)}
-					onRemoveTask={actions.onRemoveTask}
-				/>
-			))}
-			<div style={ROW}>
-				<button
-					type="button"
-					className="mete-button quiet"
-					onClick={actions.onAddMember}
-				>
-					{nls.localize("mete/team/addMember", "Add member")}
-				</button>
+			<div style={{ ...ROW, alignItems: "flex-start" }}>
+				<div style={{ flex: "1 1 280px", minWidth: 0 }}>
+					<MemberGrid
+						team={model.team}
+						selected={i}
+						onSelect={actions.onSelectMember}
+						onAdd={actions.onAddMember}
+					/>
+				</div>
+				{r ? (
+					<div style={{ flex: "2 1 420px", minWidth: 0 }}>
+						{/* Keyed by place, so a field's half-typed text never moves to another member. */}
+						<MemberCard
+							key={i}
+							team={model.team}
+							index={i}
+							fixed={model.fixedIds.includes(r.id)}
+							hints={capabilityHints(model.team)}
+							outputs={guardrailHints(model.team)}
+							onEdit={actions.onEdit}
+							onRemove={() => actions.onRemoveMember(i)}
+							onRename={(id) => actions.onRenameMember(i, id)}
+							pin={{
+								...(model.pins[r.id] ? { value: model.pins[r.id] } : {}),
+								models: model.chains[chainKey(r.tier, r.needs)] ?? [],
+							}}
+							onPin={(v) => actions.onPin(r.id, v)}
+							onAddTask={() => actions.onAddTask(r.id)}
+							onRemoveTask={actions.onRemoveTask}
+						/>
+					</div>
+				) : null}
 			</div>
 		</>
 	);

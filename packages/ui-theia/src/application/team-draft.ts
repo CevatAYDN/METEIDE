@@ -307,6 +307,14 @@ export const guardrailHints = (team: TeamView): string[] => {
 	return [...new Set(outputs)].filter((t) => artifactSchema(t)).sort();
 };
 
+/** The selected member's index after the member at `removed` left, with `count` members left (ADR-093). */
+export const selectedAfterRemove = (
+	selected: number,
+	removed: number,
+	count: number,
+): number =>
+	Math.max(0, Math.min(count - 1, selected - (removed <= selected ? 1 : 0)));
+
 /** Each member's name by its id, for the Team view (ADR-089); a text that does not parse names none. */
 export const roleNames = (yaml: string): Readonly<Record<string, string>> => {
 	const doc = draftOf(yaml);

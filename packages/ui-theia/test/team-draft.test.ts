@@ -16,6 +16,7 @@ import {
 	renameRole,
 	roleNames,
 	runsOf,
+	selectedAfterRemove,
 	teamOf,
 	withCheckpoint,
 	withRuns,
@@ -279,5 +280,19 @@ describe("roleNames", () => {
 			lead: "Lead",
 		});
 		expect(roleNames("roles: [")).toEqual({});
+	});
+});
+
+describe("selectedAfterRemove (ADR-093)", () => {
+	it("keeps the chosen member when one after it leaves, and moves to the one before when it or one before it leaves", () => {
+		expect(selectedAfterRemove(1, 3, 3)).toBe(1);
+		expect(selectedAfterRemove(2, 0, 3)).toBe(1);
+		expect(selectedAfterRemove(2, 2, 3)).toBe(1);
+	});
+
+	it("stays on the first member, and never past the last", () => {
+		expect(selectedAfterRemove(0, 0, 2)).toBe(0);
+		expect(selectedAfterRemove(0, 0, 0)).toBe(0);
+		expect(selectedAfterRemove(5, 9, 2)).toBe(1);
 	});
 });

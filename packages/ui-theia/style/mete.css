@@ -143,3 +143,11 @@ button.mete-chip {
 		var(--theia-contrastActiveBorder, var(--theia-focusBorder))
 	);
 }
+
+/* A card that is a choice, such as a member's tile in the team editor: the chosen one has the accent border. */
+button.mete-card[aria-pressed="true"] {
+	border-color: var(
+		--accent,
+		var(--theia-contrastActiveBorder, var(--theia-focusBorder))
+	);
+}

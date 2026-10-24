@@ -1,4 +1,4 @@
-import { NeedSchema, TierSchema } from "@mete/contracts";
+import { NeedSchema } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import { useState } from "react";
 import {
@@ -14,37 +14,12 @@ import {
 import { MUTED, ROW } from "./look.js";
 import { PinField } from "./pin-field.js";
 import { type MemberView, type TeamView, toggled } from "./team-draft.js";
+import { TierTiles } from "./tier-tiles.js";
 import { Work } from "./work-fields.js";
 
 // One member of the team editor (ADR-075): its fields, the tasks that name it and the buttons that
 // add or remove them. Every change goes out as a path in the template and a value; a blank optional
 // field goes out as undefined, so the key leaves the file.
-
-const Tier = (props: {
-	readonly value: string;
-	readonly onEdit: (v: string) => void;
-}) => (
-	<label style={FIELD}>
-		{nls.localize("mete/team/tier", "Model tier")}
-		<select
-			className="mete-field"
-			value={props.value}
-			onChange={(e) => props.onEdit(e.target.value)}
-		>
-			{TierSchema.options.map((t) => (
-				<option key={t} value={t}>
-					{t}
-				</option>
-			))}
-		</select>
-		<span style={MUTED}>
-			{nls.localize(
-				"mete/team/tierHint",
-				"A team names a tier, never a provider or model: the providers that serve each tier come from the gateway settings.",
-			)}
-		</span>
-	</label>
-);
 
 type TaskProps = {
 	readonly team: TeamView;
@@ -239,7 +214,7 @@ const Fields = ({
 			value={member.backstory ?? ""}
 			onChange={(v) => onEdit(at("backstory"), orNone(v))}
 		/>
-		<Tier value={member.tier} onEdit={(v) => onEdit(at("tier"), v)} />
+		<TierTiles value={member.tier} onEdit={(v) => onEdit(at("tier"), v)} />
 		<Ticks
 			label={nls.localize("mete/team/needs", "Needs")}
 			options={NeedSchema.options}

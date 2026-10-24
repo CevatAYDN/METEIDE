@@ -31,6 +31,7 @@ const IDS = teamOf(DOC).roles.map((r) => r.id);
 const nothing = () => {};
 const ACTIONS: TeamEditorActions = {
 	onEdit: nothing,
+	onSelectMember: nothing,
 	onAddMember: nothing,
 	onRemoveMember: nothing,
 	onRenameMember: nothing,
@@ -52,18 +53,27 @@ const ready = (
 	issues: issuesOf(doc),
 	busy: false,
 	changed: true,
+	selected: 0,
 	pins: {},
 	chains: {},
 	...more,
 });
+// Each member's form shows when its tile is chosen (ADR-093): this renders the screen once for each.
+const everyMember = (
+	doc: Draft,
+	more: Partial<Extract<TeamEditorModel, { kind: "ready" }>> = {},
+) =>
+	teamOf(doc)
+		.roles.map((_, selected) => html(ready(doc, { ...more, selected })))
+		.join("");
 const html = (model: TeamEditorModel) =>
 	renderToStaticMarkup(
 		createElement(TeamEditorView, { model, actions: ACTIONS }),
 	);
 
 describe("TeamEditorView", () => {
-	it("shows the team, each member with its tier and capabilities, and that a built-in team is saved as a copy", () => {
-		const out = html(ready(DOC));
+	it("shows the team, each member's form with its tier and capabilities, and that a built-in team is saved as a copy", () => {
+		const out = html(ready(DOC, { selected: 1 }));
 		for (const text of [
 			"Web development",
 			"UI designer",
@@ -77,13 +87,61 @@ describe("TeamEditorView", () => {
 		])
 			expect(out).toContain(text);
 		expect(out).not.toContain('role="alert"');
-		// The members that came with the file keep their ids; four members, four fixed id fields.
-		expect(out.match(/disabled=""/g)?.length).toBeGreaterThanOrEqual(4);
+		// A member that came with the file keeps its id: the chosen member's id field is fixed.
+		expect(out).toMatch(
+			/<input class="mete-field" disabled="" value="frontend_developer"/,
+		);
+	});
+
+	it("shows only the chosen member's form beside the grid of every member's tile", () => {
+		const out = html(ready(DOC, { selected: 2 }));
+		// One form: one Remove member button and one Id field, for QA.
+		expect(out.match(/Remove member/g)).toHaveLength(1);
+		expect(out).toMatch(/disabled="" value="qa"/);
+		expect(out).not.toMatch(/<input[^>]*value="frontend_developer"/);
+		// Four tiles, one for each member; the chosen tile is pressed.
+		expect(out.match(/<button type="button" class="mete-card"/g)).toHaveLength(
+			4,
+		);
+		expect(
+			out.match(/class="mete-card"[^>]*aria-pressed="true"/g),
+		).toHaveLength(1);
+	});
+
+	it("says in each tile who the member is, its tier in plain words and whether it has work", () => {
+		const doc = addRole(DOC);
+		const out = html(ready(doc, { selected: 0 }));
+		expect(out).toMatch(
+			/<strong[^>]*>UI designer<\/strong><\/span><span[^>]*>Thinker<\/span><span[^>]*>[^<]*<\/span><span[^>]*>1 task<\/span>/,
+		);
+		expect(out).toMatch(
+			/<strong[^>]*>Frontend developer<\/strong><\/span><span[^>]*>Coder</,
+		);
+		// The member just added has no task and a goal and name still to write: its tile shows its id.
+		expect(out).toMatch(/<strong[^>]*>member<\/strong>/);
+		expect(out).toContain(">No task yet<");
+	});
+
+	it("offers the five tiers as tiles with their plain labels and ids, the member's own pressed", () => {
+		const out = html(ready(DOC, { selected: 0 }));
+		for (const text of [
+			"Thinker",
+			"Coder",
+			"Fast",
+			"Long reads",
+			"Sees images",
+		])
+			expect(out).toContain(text);
+		for (const id of ["reasoning", "coder", "fast", "long-context", "vision"])
+			expect(out).toContain(`>${id}</span>`);
+		// UI designer's tier is reasoning: its tile is pressed and no select is left.
+		expect(out).toMatch(/aria-pressed="true"><span[^>]*><\/span> Thinker/);
+		expect(out).not.toContain('<option value="reasoning"');
 	});
 
 	it("tells a new member with no task how to give it work, and blocks Save on the schema's issues", () => {
 		const doc = addRole(DOC);
-		const out = html(ready(doc));
+		const out = html(ready(doc, { selected: 4 }));
 		expect(out).toContain("No task names this member yet");
 		expect(out).toContain('role="alert"');
 		expect(out).toContain("roles.4.goal");
@@ -121,10 +179,12 @@ describe("the rules of the work", () => {
 		),
 	);
 	if (!GAME.ok) throw new Error(GAME.error);
-	const game = html(ready(GAME.value, { fixedIds: [] }));
+	const game = everyMember(GAME.value, { fixedIds: [] });
 
 	it("shows a task's verify command, and the team's revision limit and budget", () => {
-		expect(html(ready(DOC))).toContain('title="Remove npm run build"');
+		expect(html(ready(DOC, { selected: 1 }))).toContain(
+			'title="Remove npm run build"',
+		);
 		for (const text of [
 			"Revisions per task",
 			"Cloud requests per run",
@@ -152,17 +212,18 @@ describe("the rules of the work", () => {
 describe("a member's pinned model (ADR-077)", () => {
 	it("shows the pin and the tier's models for a member of the file, and asks a new member to wait for Save", () => {
 		const doc = addRole(DOC);
-		const out = html(
-			ready(doc, {
-				pins: { qa: "groq/fast-one" },
-				chains: { "coder|tool_calling": ["groq/fast-one", "nvidia/big"] },
-			}),
-		);
-		expect(out).toContain("Pinned model (optional)");
-		expect(out).toContain('value="groq/fast-one"');
-		expect(out).toContain('<option value="nvidia/big">');
-		expect(out).toContain("not the team file");
-		expect(out.match(/Save the team to pin this member/g)).toHaveLength(1);
+		const more = {
+			pins: { qa: "groq/fast-one" },
+			chains: { "coder|tool_calling": ["groq/fast-one", "nvidia/big"] },
+		};
+		const qa = html(ready(doc, { ...more, selected: IDS.indexOf("qa") }));
+		expect(qa).toContain("Pinned model (optional)");
+		expect(qa).toContain('value="groq/fast-one"');
+		expect(qa).toContain('<option value="nvidia/big">');
+		expect(qa).toContain("not the team file");
+		expect(qa).not.toContain("Save the team to pin this member");
+		const added = html(ready(doc, { ...more, selected: IDS.length }));
+		expect(added.match(/Save the team to pin this member/g)).toHaveLength(1);
 	});
 
 	it("says how to get a list when the tier offers no model", () => {
