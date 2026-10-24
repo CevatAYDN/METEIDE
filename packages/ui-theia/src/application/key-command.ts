@@ -14,7 +14,7 @@ import { MeteDaemonService } from "../domain/status-service.js";
 import { failureText, plain } from "./status-text.js";
 
 // The first onboarding step (ADR-049): a provider key, set through `mete key set` in the backend.
-// shortcut: the wizard of docs/13 (language, privacy choice, vault folder, web search) comes later.
+// The rest of docs/13's wizard is the Welcome screen (ADR-088).
 
 /** The palette entry "METE: Set provider key". */
 export const SET_KEY_COMMAND: Command = Command.toLocalizedCommand(
