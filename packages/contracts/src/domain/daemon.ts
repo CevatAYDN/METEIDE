@@ -8,10 +8,10 @@ import { CustomProviderIdSchema, ModelInfoSchema } from "./provider.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 18 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-090).
+// Daemon protocol version 19 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-100).
 // The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The messages of version 18; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 19; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
@@ -26,6 +26,7 @@ export const DAEMON_METHODS = {
 	templateRead: "mete/template.read",
 	chain: "mete/chain",
 	checkpointRestore: "mete/checkpoint.restore",
+	changes: "mete/changes",
 	settings: "mete/settings",
 	providerModels: "mete/provider.models",
 	providerTest: "mete/provider.test",
@@ -224,6 +225,29 @@ export const DaemonCheckpointRestoreParamsSchema = z.strictObject({
 export const DaemonCheckpointRestoreResultSchema = z.strictObject({
 	ref: z.string().min(1),
 	undo: z.string().min(1),
+});
+
+/** Params of `mete/changes`: the file whose diff to include, or none for the list alone (ADR-100). */
+export const DaemonChangesParamsSchema = z.strictObject({
+	path: z.string().min(1).optional(),
+});
+
+/** How a changed file stands, from `vcs.git@2`'s porcelain letters (ADR-100). */
+export const ChangedFileSchema = z.strictObject({
+	path: z.string().min(1),
+	change: z.enum(["added", "modified", "deleted", "renamed", "untracked"]),
+});
+
+/**
+ * Result of `mete/changes` (ADR-100): the folder's git status as `vcs.git@2` reads it, and the diff
+ * of the asked file. `vcs` is false when the folder is not a git repository or vcs.git@2 is not
+ * active, and `files` is then empty.
+ */
+export const DaemonChangesResultSchema = z.strictObject({
+	vcs: z.boolean(),
+	branch: z.string().min(1).nullable(),
+	files: z.array(ChangedFileSchema),
+	diff: z.string().optional(),
 });
 
 // One file's value of a section as the loader read it; the desktop shows it as text, never parses it.

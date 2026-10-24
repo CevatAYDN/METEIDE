@@ -4,6 +4,7 @@ import {
 	DAEMON_METHODS,
 	DaemonAuditParamsSchema,
 	DaemonChainParamsSchema,
+	DaemonChangesParamsSchema,
 	DaemonCheckpointRestoreParamsSchema,
 	type DaemonErrorData,
 	DaemonEstimateParamsSchema,
@@ -32,6 +33,7 @@ import {
 import { type App, engineOf, notReadyLines } from "../infrastructure/app.js";
 import { runHistory } from "../infrastructure/history.js";
 import { auditEntries } from "./audit.js";
+import { changesOf } from "./changes.js";
 import type { Io } from "./commands.js";
 import { estimateFor } from "./estimate.js";
 import {
@@ -44,7 +46,7 @@ import { customAdapter, endpointModels, probeModels } from "./provider-test.js";
 import { restoreCheckpoint } from "./rollback.js";
 import { settingsOf } from "./settings.js";
 
-// `mete daemon`: protocol version 18 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-090).
+// `mete daemon`: protocol version 19 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-100).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
@@ -166,6 +168,13 @@ const serveCheckpointRestore = (conn: MessageConnection, app: App) =>
 			throw new ResponseError(ErrorCodes.InternalError, r.error.message);
 		const data: DaemonErrorData = { code: r.error.code };
 		throw new ResponseError(DAEMON_ERROR_CODE, r.error.message, data);
+	});
+
+// The Changes panel (ADR-100): the folder's working tree through vcs.git@2; it needs no engine.
+const serveChanges = (conn: MessageConnection, app: App) =>
+	conn.onRequest(DAEMON_METHODS.changes, async (params: unknown) => {
+		const p = parsed(DaemonChangesParamsSchema.safeParse(params ?? {}));
+		return changesOf(app, p.path);
 	});
 
 // The configuration the daemon loaded (ADR-081); it needs no engine, so it answers while METE is not ready.
@@ -350,6 +359,7 @@ export const daemonCommand = async (
 	serveChain(conn, app);
 	serveModels(conn, app);
 	serveCheckpointRestore(conn, app);
+	serveChanges(conn, app);
 	serveSettings(conn, app);
 	serveProviders(conn, app);
 	const spent = trackExhausted(app.events);

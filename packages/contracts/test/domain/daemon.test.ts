@@ -7,6 +7,8 @@ import {
 	DaemonAuditResultSchema,
 	DaemonChainParamsSchema,
 	DaemonChainResultSchema,
+	DaemonChangesParamsSchema,
+	DaemonChangesResultSchema,
 	DaemonCheckpointRestoreParamsSchema,
 	DaemonCheckpointRestoreResultSchema,
 	DaemonDoneResultSchema,
@@ -142,12 +144,48 @@ describe("daemon protocol version 14", () => {
 			templateRead: "mete/template.read",
 			chain: "mete/chain",
 			checkpointRestore: "mete/checkpoint.restore",
+			changes: "mete/changes",
 			settings: "mete/settings",
 			providerModels: "mete/provider.models",
 			providerTest: "mete/provider.test",
 			models: "mete/models",
 			event: "mete/event",
 		});
+	});
+
+	it("takes the file whose diff to include for mete/changes", () => {
+		expect(DaemonChangesParamsSchema.parse({})).toEqual({});
+		expect(DaemonChangesParamsSchema.parse({ path: "src/a.ts" })).toEqual({
+			path: "src/a.ts",
+		});
+		for (const bad of [{ path: "" }, { path: 1 }, { extra: true }])
+			expect(DaemonChangesParamsSchema.safeParse(bad).success).toBe(false);
+	});
+
+	it("reads a working tree, with a diff or without one", () => {
+		expect(
+			DaemonChangesResultSchema.parse({ vcs: true, branch: "main", files: [] }),
+		).toEqual({ vcs: true, branch: "main", files: [] });
+		expect(
+			DaemonChangesResultSchema.parse({
+				vcs: true,
+				branch: null,
+				files: [
+					{ path: "a.ts", change: "added" },
+					{ path: "b.ts", change: "modified" },
+					{ path: "c.ts", change: "deleted" },
+					{ path: "d.ts", change: "renamed" },
+					{ path: "e.ts", change: "untracked" },
+				],
+				diff: "+a",
+			}),
+		).toBeTruthy();
+		for (const bad of [
+			{ vcs: "yes", branch: null, files: [] },
+			{ vcs: true, branch: null, files: [{ path: "a", change: "copied" }] },
+			{ vcs: true, branch: null, files: [], extra: 1 },
+		])
+			expect(DaemonChangesResultSchema.safeParse(bad).success).toBe(false);
 	});
 
 	it("takes an optional run id for mete/status", () => {

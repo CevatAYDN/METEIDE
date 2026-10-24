@@ -20,3 +20,6 @@ export const PROBE_MAX_TOKENS = 16;
 
 /** How long one Test probe may take before it is aborted (04 Decisions, ADR-087). */
 export const PROBE_TIMEOUT_MS = 30_000;
+
+/** How long one `mete/changes` read of the working tree may take before it is aborted (04 Decisions, ADR-100). */
+export const CHANGES_TIMEOUT_MS = 15_000;
