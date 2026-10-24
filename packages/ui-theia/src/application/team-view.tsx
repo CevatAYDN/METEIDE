@@ -205,11 +205,13 @@ const Share = ({
 				{nls.localize(
 					"mete/roster/context",
 					"Context {0}% · {1} of {2}",
-					Math.round(share * 100),
+					// A share that rounds to 0 is still some context used.
+					share > 0 && share < 0.005 ? "<1" : Math.round(share * 100),
 					tokenCount(last.prompt),
 					tokenCount(window),
 				)}
 			</span>
+			<span aria-hidden="true">·</span>
 		</>
 	);
 };

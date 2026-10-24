@@ -88,12 +88,14 @@ describe("the Team view", () => {
 					member(used(61_440), "writer"),
 					member(used(110_000, "nvidia"), "qa"),
 					member(used(5_000, "custom:lab"), "lab"),
+					member(used(500, "tiny"), "tiny"),
 					member(agent, "idle"),
 				],
 				names: {},
 				windows: {
 					"groq/llama-3.3-70b": 128_000,
 					"nvidia/llama-3.3-70b": 128_000,
+					"tiny/llama-3.3-70b": 128_000,
 				},
 			}),
 		);
@@ -104,9 +106,11 @@ describe("the Team view", () => {
 		expect(out).toContain("width:85.9375%;background:var(--warn");
 		expect(out).toContain("width:48%;background:var(--accent");
 		// A model with no listed window shows the tokens alone, and a member with no usage nothing.
-		expect(out.match(/Context /g)).toHaveLength(2);
-		expect(out.match(/Tokens: /g)).toHaveLength(3);
-		expect(out).toContain("run tokens: 750k · calls: 12");
+		expect(out.match(/Context /g)).toHaveLength(3);
+		expect(out.match(/Tokens: /g)).toHaveLength(4);
+		// A share that rounds to 0 still says some context is used.
+		expect(out).toContain("Context &lt;1% · 500 of 128k");
+		expect(out).toContain("run tokens: 1M · calls: 16");
 	});
 
 	it("writes token counts with a fixed suffix", () => {
