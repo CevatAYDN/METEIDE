@@ -128,12 +128,21 @@ const rowsOf = (
 	providers: readonly ProviderKey[],
 	keys: EndpointKeysView,
 	onKeyPage: (url: string) => void,
-) =>
-	providers
-		.filter((p) => p.kind === kind)
-		.map((p) => (
-			<ProviderRow key={p.id} provider={p} keys={keys} onKeyPage={onKeyPage} />
-		));
+) => (
+	// A gap between the rows, so one row's Set key does not sit against the next provider.
+	<div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+		{providers
+			.filter((p) => p.kind === kind)
+			.map((p) => (
+				<ProviderRow
+					key={p.id}
+					provider={p}
+					keys={keys}
+					onKeyPage={onKeyPage}
+				/>
+			))}
+	</div>
+);
 
 const Steps = ({
 	providers,
