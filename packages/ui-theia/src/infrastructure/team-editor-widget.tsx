@@ -1,4 +1,3 @@
-import { NeedSchema, TierSchema } from "@mete/contracts";
 import { MessageService } from "@theia/core";
 import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import type { StatefulWidget } from "@theia/core/lib/browser/shell/shell-layout-restorer";
@@ -17,15 +16,6 @@ import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service
 // The design system of docs/13 on every METE panel (ADR-069); the bundle inlines its font.
 import "../../style/mete.css";
 import { panelRoot } from "../application/panel-root.js";
-import {
-	chainKey,
-	isEmpty,
-	type PinsDraft,
-	pinsIssue,
-	pinsOf,
-	pinsOfTeam,
-	withPin,
-} from "../application/pins-draft.js";
 import { failureText } from "../application/status-text.js";
 import {
 	addRole,
@@ -39,6 +29,7 @@ import {
 	removeTask,
 	renameRole,
 	selectedAfterRemove,
+	type TeamView,
 	teamOf,
 } from "../application/team-draft.js";
 import {
@@ -47,6 +38,7 @@ import {
 	TeamEditorView,
 } from "../application/team-editor-view.js";
 import { MeteDaemonService } from "../domain/status-service.js";
+import { TeamPins } from "./team-pins.js";
 
 // The team editor (docs/13, Settings, Templates; ADR-075) of the first open folder: it reads a
 // template through the daemon and writes the workspace's .mete/teams/<id>.yaml with Theia's file
@@ -73,14 +65,16 @@ export class MeteTeamEditorWidget
 	/** The member whose form shows beside the grid (ADR-093). */
 	protected selected = 0;
 	protected root: URI | undefined;
-	/** The folder's pins file; undefined while it does not parse, so it is never written over. */
-	protected pins: PinsDraft | undefined;
-	protected pinsError: string | undefined;
-	/** Each tier's chain for the pin's suggestions, fetched once per tier and needs. */
-	protected readonly chains = new Map<string, readonly string[]>();
+	/** The folder's pins and the tiers' model lists (ADR-077). */
+	protected pinned!: TeamPins;
 
 	@postConstruct()
 	protected init(): void {
+		this.pinned = new TeamPins({
+			files: this.files,
+			messages: this.messages,
+			daemon: this.daemon,
+		});
 		this.id = MeteTeamEditorWidget.ID;
 		this.title.label = nls.localize("mete/team/title", "Edit team");
 		this.title.caption = nls.localize("mete/team/caption", "METE: edit a team");
@@ -115,96 +109,33 @@ export class MeteTeamEditorWidget
 		if (!doc.ok) return this.setModel({ kind: "failed", text: doc.error });
 		this.doc = doc.value;
 		this.selected = 0;
-		await this.readPins();
+		await this.pinned.read(this.root);
 		this.setModel(this.readyOf(r.value.source, false));
 	}
 
-	protected pinsFile(): URI | undefined {
-		return this.root?.resolve(".mete/pins.yaml");
+	// The models each member's tier would try; the screen shows them once they have come.
+	protected async fetchChains(team: TeamView): Promise<void> {
+		if (this.root && (await this.pinned.fetchChains(this.root, team)))
+			if (this.model.kind === "ready")
+				this.setModel({
+					...this.model,
+					chains: Object.fromEntries(this.pinned.chains),
+				});
 	}
 
-	protected async readPins(): Promise<void> {
-		const file = this.pinsFile();
-		if (!file) return;
-		try {
-			const text = (await this.files.exists(file))
-				? (await this.files.read(file)).value
-				: undefined;
-			const r = pinsOf(text);
-			this.pins = r.ok ? r.value : undefined;
-			this.pinsError = r.ok ? undefined : r.error;
-		} catch (e) {
-			this.pins = undefined;
-			this.pinsError = String(e);
-		}
-	}
-
-	// The models each member's tier would try, asked once per tier and needs; a failed ask offers none.
-	protected async fetchChains(team: ReturnType<typeof teamOf>): Promise<void> {
-		const root = this.root?.path.fsPath();
-		if (!root) return;
-		let fetched = false;
-		for (const r of team.roles) {
-			const key = chainKey(r.tier, r.needs);
-			const tier = TierSchema.safeParse(r.tier);
-			if (this.chains.has(key) || !tier.success) continue;
-			this.chains.set(key, []);
-			const needs = NeedSchema.array().parse(
-				r.needs.filter((n) => NeedSchema.safeParse(n).success),
-			);
-			const got = await this.daemon.chain(root, tier.data, needs);
-			if (!got.ok) continue;
-			this.chains.set(
-				key,
-				got.value.models.map((m) => `${m.providerId}/${m.modelId}`),
-			);
-			fetched = true;
-		}
-		if (fetched && this.model.kind === "ready")
-			this.setModel({ ...this.model, chains: Object.fromEntries(this.chains) });
-	}
-
-	// A pin is the folder's own setting: it is written at once, never with the team's Save, and a file
-	// left with no pin is deleted.
 	protected async pin(
 		roleId: string,
 		value: string | undefined,
 	): Promise<void> {
-		const file = this.pinsFile();
-		if (this.model.kind !== "ready" || !file) return;
-		if (!this.pins)
-			return void this.messages.warn(
-				nls.localize(
-					"mete/team/pinsUnreadable",
-					"METE cannot read .mete/pins.yaml, so it does not change it: {0}",
-					this.pinsError ?? "",
-				),
-			);
-		const teamId = this.model.team.metadata.id;
-		const next = withPin(this.pins, teamId, roleId, value);
-		const issue = pinsIssue(next);
-		if (issue)
-			return void this.messages.warn(
-				nls.localize(
-					"mete/team/pinRefused",
-					"This pin is not saved: {0}",
-					issue,
-				),
-			);
-		try {
-			if (!isEmpty(next)) await this.files.write(file, next.toString());
-			else if (await this.files.exists(file)) await this.files.delete(file);
-		} catch (e) {
-			return void this.messages.error(
-				nls.localize(
-					"mete/team/pinNotSaved",
-					"METE could not save the pin: {0}",
-					String(e),
-				),
-			);
-		}
-		this.pins = next;
-		this.setModel({ ...this.model, pins: pinsOfTeam(next, teamId) });
+		if (this.model.kind !== "ready" || !this.root) return;
+		const pins = await this.pinned.set(
+			this.root,
+			this.model.team.metadata.id,
+			roleId,
+			value,
+		);
+		if (pins && this.model.kind === "ready")
+			this.setModel({ ...this.model, pins });
 	}
 
 	// Opening another team over unsaved changes asks first, since the draft would be lost.
@@ -249,8 +180,8 @@ export class MeteTeamEditorWidget
 			busy: false,
 			changed,
 			selected: Math.min(this.selected, team.roles.length - 1),
-			pins: this.pins ? pinsOfTeam(this.pins, team.metadata.id) : {},
-			chains: Object.fromEntries(this.chains),
+			pins: this.pinned.of(team.metadata.id),
+			chains: Object.fromEntries(this.pinned.chains),
 		};
 	}
 
