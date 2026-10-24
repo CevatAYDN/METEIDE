@@ -6,6 +6,7 @@ import {
 	GatewaySettingsSchema,
 	type LlmChatAdapter,
 	type LlmChatRequest,
+	type ModelInfo,
 	type ModelRef,
 	type ModuleManifest,
 	ok,
@@ -216,6 +217,20 @@ const chainRefs = async (
 	}));
 };
 
+// The listed facts of the asked models, in the order asked, from the cached listing: no model call
+// and no quota reservation (ADR-090, the Team view's context share).
+const infoOf = async (
+	live: Live | undefined,
+	refs: readonly ModelRef[],
+	signal: AbortSignal,
+): Promise<ModelInfo[]> => {
+	if (!live) return [];
+	const found = (await live.discover(signal)).map((d) => d.model);
+	return refs.flatMap((r) =>
+		found.filter((m) => m.providerId === r.providerId && m.id === r.modelId),
+	);
+};
+
 /** The gateway module and the models it offers, for `/v1/models`. */
 export type GatewayModule = MeteModule & {
 	/** Usable discovered models; empty while the module is inactive. */
@@ -226,6 +241,8 @@ export type GatewayModule = MeteModule & {
 		role: Parameters<typeof resolveChain>[3],
 		signal: AbortSignal,
 	): Promise<ModelRef[]>;
+	/** The listed facts of the asked models, in the order asked; empty while inactive. */
+	info(refs: readonly ModelRef[], signal: AbortSignal): Promise<ModelInfo[]>;
 };
 
 /** Creates the gateway module, which provides llm.chat@2. */
@@ -241,6 +258,7 @@ export const createGatewayModule = (
 		manifest: MANIFEST,
 		models: (signal) => usableRefs(live, signal),
 		chain: (...args) => chainRefs(live, args),
+		info: (refs, signal) => infoOf(live, refs, signal),
 		async activate(ctx) {
 			if (!ctx.storage) return err(failed("storage.sql@1 was not provided"));
 			const migrated = ctx.storage.migrate("workspace", MODEL_CALL_MIGRATIONS);

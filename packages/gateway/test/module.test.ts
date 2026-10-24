@@ -324,6 +324,21 @@ describe("gateway module", () => {
 		await s.close();
 	});
 
+	it("gives the listed facts of asked models in the order asked, and none while inactive (ADR-090)", async () => {
+		const s = await setup();
+		const signal = new AbortController().signal;
+		const asked = [
+			{ providerId: "a", modelId: "gone" },
+			{ providerId: "a", modelId: "m" },
+		];
+		expect(await s.gateway.info(asked, signal)).toEqual([]);
+		await s.gateway.activate(s.ctx);
+		// A model the listing does not have is left out.
+		expect(await s.gateway.info(asked, signal)).toEqual([model("a")]);
+		await s.gateway.deactivate();
+		await s.close();
+	});
+
 	it("reports a failed log write and still finishes the call", async () => {
 		const s = await setup();
 		await s.gateway.activate(s.ctx);
