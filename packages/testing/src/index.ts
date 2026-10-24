@@ -1,5 +1,10 @@
 // Public API of this package: types, contracts and the module (CONTRIBUTING.md).
 export {
+	type CheckpointRestoreHarness,
+	checkpointRestoreContract,
+	type RunCheckpoint,
+} from "./checkpoint-restore.contract.js";
+export {
 	type FsTools,
 	type FsToolsHarness,
 	fsToolsContract,

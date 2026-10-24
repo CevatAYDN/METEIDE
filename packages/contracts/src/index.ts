@@ -21,6 +21,12 @@ export {
 	type SeoScores,
 	SeoScoresSchema,
 } from "./domain/browser.js";
+export type {
+	CheckpointRestoreAdapter,
+	CheckpointRestored,
+	CheckpointRestoreError,
+	CheckpointRestoreInput,
+} from "./domain/checkpoint.js";
 export {
 	type AuditEntry,
 	AuditEntrySchema,
