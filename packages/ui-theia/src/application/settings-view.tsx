@@ -1,27 +1,29 @@
 import { nls } from "@theia/core/lib/common/nls";
-import type { CSSProperties, ReactNode } from "react";
-import { stringify } from "yaml";
+import type { CSSProperties } from "react";
 import type { DaemonFailure, Settings } from "../domain/status-service.js";
-import type { EndpointKeysView } from "./endpoint-key.js";
-import type { EndpointTestsView } from "./endpoint-test.js";
+import { MUTED, PANEL, ROW, TITLE } from "./look.js";
 import {
-	type EndpointsActions,
-	EndpointsCard,
-	type EndpointsState,
-} from "./endpoints-card.js";
-import { LINK, MUTED, PANEL, ROW, TITLE } from "./look.js";
-import type { FormSection } from "./section-draft.js";
+	type Group,
+	type GroupId,
+	groupsOf,
+	SETTINGS_LINKS,
+} from "./settings-groups.js";
 import {
-	type FormActions,
-	type FormState,
-	SettingsForm,
-	shortPath,
-} from "./settings-form.js";
+	type Endpoints,
+	type Forms,
+	formOf,
+	SectionCard,
+	withForms,
+} from "./settings-section.js";
 import { failureText, noFolderText } from "./status-text.js";
 
-// The read-only Settings screen (docs/13, Settings; ADR-081): the configuration the daemon loaded,
-// each section merged and per file with the file's path, shown as YAML text. It leads to what
-// Settings has elsewhere: the team editor, provider keys and Theia's preferences and language.
+// The Settings screen (docs/13, Settings; ADR-081 to ADR-087, ADR-095): the configuration the daemon
+// loaded, each section merged and per file with the file's path, grouped in plain words in a list at
+// the left. It leads to what Settings has elsewhere: the team editor, provider keys and Theia's
+// preferences and language.
+
+export { SETTINGS_LINKS } from "./settings-groups.js";
+export type { Endpoints, Forms } from "./settings-section.js";
 
 /** What the screen draws. */
 export type SettingsModel =
@@ -38,208 +40,163 @@ export type SettingsActions = {
 	readonly onRefresh: () => void;
 };
 
-/** The commands the screen leads to: METE's own and Theia's (their ids are Theia's, 1.76). */
-export const SETTINGS_LINKS = [
-	[
-		"mete.team.edit",
-		() => nls.localize("mete/settings/editTeam", "Edit team…"),
-	],
-	[
-		"mete.key.set",
-		() => nls.localize("mete/settings/setKey", "Set provider key…"),
-	],
-	[
-		"preferences:open",
-		() => nls.localize("mete/settings/preferences", "Preferences"),
-	],
-	[
-		"workbench.action.configureLanguage",
-		() => nls.localize("mete/settings/language", "Display language"),
-	],
-] as const;
-
-const CODE: CSSProperties = {
-	margin: "4px 0 0",
-	padding: "8px 10px",
-	whiteSpace: "pre-wrap",
-	overflowWrap: "anywhere",
-	fontFamily: "monospace",
-	fontSize: "0.92em",
+/** The group the screen shows, and the choice of another. */
+export type GroupChoice = {
+	readonly group: GroupId;
+	readonly onGroup: (group: GroupId) => void;
 };
 
-// YAML text of a value; a missing section value reads as an empty mapping.
-const yamlOf = (value: unknown) => stringify(value ?? {}).trimEnd();
-
-type Section = Settings["sections"][number];
-
-/** The forms of the sections that have one (ADR-082), with their state and actions. */
-export type Forms = {
-	readonly [S in FormSection]?: {
-		readonly state: FormState;
-		readonly actions: FormActions;
-	};
+const LAYOUT: CSSProperties = {
+	display: "flex",
+	gap: "16px",
+	alignItems: "flex-start",
+	flexWrap: "wrap",
+};
+const LIST: CSSProperties = {
+	flex: "0 0 240px",
+	display: "flex",
+	flexDirection: "column",
+	gap: "6px",
+};
+const BODY: CSSProperties = {
+	flex: "1 1 480px",
+	// One readable column: the forms' fields need no more width than this.
+	maxWidth: "760px",
+	minWidth: 0,
+	display: "flex",
+	flexDirection: "column",
+	gap: "14px",
+};
+const ITEM: CSSProperties = {
+	display: "flex",
+	flexDirection: "column",
+	gap: "2px",
+	textAlign: "left",
+	cursor: "pointer",
+	font: "inherit",
+	color: "inherit",
 };
 
-/** The custom endpoints card of the providers section (ADR-087): its state, actions and keys. */
-export type Endpoints = {
-	readonly state: EndpointsState;
-	readonly actions: EndpointsActions;
-	readonly keys?: EndpointKeysView | undefined;
-	readonly tests?: EndpointTestsView | undefined;
-};
-
-// The sections with a form or a card always show, also when no file sets them.
-const ALWAYS: readonly string[] = ["gateway", "policy", "privacy", "providers"];
-
-const withForms = (sections: readonly Section[]): readonly Section[] =>
-	[
-		...sections,
-		...ALWAYS.filter((n) => !sections.some((s) => s.name === n)).map(
-			(name) => ({ name, merged: undefined }),
-		),
-	].sort((a, b) => a.name.localeCompare(b.name));
-
-// docs/09: in a sensitive workspace allowTraining changes nothing.
-const sensitiveOf = (sections: readonly Section[]) => {
-	const ws = sections.find((s) => s.name === "workspace")?.merged;
-	return (
-		typeof ws === "object" &&
-		ws !== null &&
-		(ws as Record<string, unknown>).sensitivity === "sensitive"
-	);
-};
-
-const FileValue = ({
-	label,
-	from,
-	onOpen,
+const GroupItem = ({
+	group,
+	chosen,
+	onChoose,
 }: {
-	readonly label: string;
-	readonly from: { readonly file: string; readonly value: unknown };
-	readonly onOpen: (file: string) => void;
+	readonly group: Group<Settings["sections"][number]>;
+	readonly chosen: boolean;
+	readonly onChoose: () => void;
 }) => (
-	<div>
-		<span style={MUTED}>{label} </span>
-		<button
-			type="button"
-			style={LINK}
-			title={from.file}
-			onClick={() => onOpen(from.file)}
-		>
-			{shortPath(from.file)}
-		</button>
-		<pre className="mete-card" style={CODE}>
-			{yamlOf(from.value)}
-		</pre>
-	</div>
-);
-
-const SectionCard = ({
-	section,
-	onOpen,
-	form,
-}: {
-	readonly section: Section;
-	readonly onOpen: (file: string) => void;
-	readonly form?: ReactNode;
-}) => (
-	<section className="mete-card" aria-label={section.name}>
-		<h3 style={TITLE}>{section.name}</h3>
-		{!section.global && !section.workspace ? (
-			<p style={MUTED}>
-				{nls.localize(
-					"mete/settings/unset",
-					"No file sets this section; its defaults apply.",
-				)}
-			</p>
-		) : null}
-		{/* With one file the merged value is that file's; with both, it is what modules read. */}
-		{section.global && section.workspace ? (
-			<div>
-				<span style={MUTED}>
-					{nls.localize("mete/settings/merged", "What METE uses:")}
-				</span>
-				<pre style={CODE}>{yamlOf(section.merged)}</pre>
-			</div>
-		) : null}
-		{section.global ? (
-			<FileValue
-				label={nls.localize("mete/settings/global", "Global:")}
-				from={section.global}
-				onOpen={onOpen}
-			/>
-		) : null}
-		{section.workspace ? (
-			<FileValue
-				label={nls.localize("mete/settings/workspace", "This folder:")}
-				from={section.workspace}
-				onOpen={onOpen}
-			/>
-		) : null}
-		{form}
-	</section>
-);
-
-// A section's form, if it has one, under what METE loaded.
-const formOf = (
-	name: string,
-	forms: Forms,
-	settings: Settings,
-	endpoints?: Endpoints,
-): ReactNode => {
-	if (name === "providers")
-		return endpoints ? <EndpointsCard {...endpoints} /> : undefined;
-	const form = forms[name as FormSection];
-	if (!form) return undefined;
-	return (
-		<>
-			{name === "privacy" && sensitiveOf(settings.sections) ? (
-				<p style={MUTED}>
-					{nls.localize(
-						"mete/settings/sensitive",
-						"This folder is sensitive, so providers that train on prompts stay out whatever this says.",
+	<button
+		type="button"
+		className="mete-card"
+		style={ITEM}
+		aria-pressed={chosen}
+		onClick={onChoose}
+	>
+		<strong>
+			{group.label}
+			{group.changedHere ? (
+				<span
+					role="img"
+					style={{
+						color: "var(--warn, var(--theia-editorWarning-foreground))",
+					}}
+					title={nls.localize(
+						"mete/groups/changedHere",
+						"A value of this group is set for this folder only",
 					)}
-				</p>
+					aria-label={nls.localize(
+						"mete/groups/changedHere",
+						"A value of this group is set for this folder only",
+					)}
+				>
+					{" ●"}
+				</span>
 			) : null}
-			<SettingsForm
-				section={name as FormSection}
-				state={form.state}
-				actions={form.actions}
-				canSaveGlobally={settings.globalFile !== undefined}
-			/>
-		</>
+		</strong>
+		<span style={MUTED}>{group.hint}</span>
+	</button>
+);
+
+// A group's links, for the groups that lead to a command more than to a section.
+const Links = ({
+	ids,
+	onCommand,
+}: {
+	readonly ids: readonly string[];
+	readonly onCommand: (id: string) => void;
+}) =>
+	ids.length === 0 ? null : (
+		<div style={ROW}>
+			{SETTINGS_LINKS.filter(([id]) => ids.includes(id)).map(([id, label]) => (
+				<button
+					type="button"
+					key={id}
+					className="mete-button quiet"
+					onClick={() => onCommand(id)}
+				>
+					{label()}
+				</button>
+			))}
+		</div>
 	);
-};
 
 const Loaded = ({
 	settings,
 	actions,
 	forms,
 	endpoints,
+	choice,
 }: {
 	readonly settings: Settings;
 	readonly actions: SettingsActions;
 	readonly forms: Forms;
 	readonly endpoints?: Endpoints | undefined;
-}) => (
-	<>
-		<p style={MUTED}>
-			{nls.localize(
-				"mete/settings/loaded",
-				"As METE loaded them at {0}. Edits to these files apply when METE starts again or on Apply now, except pins, which apply when the next task starts; a key no file sets takes its module's built-in default.",
-				new Date(settings.loadedAt).toLocaleString(),
-			)}
-		</p>
-		{withForms(settings.sections).map((s) => (
-			<SectionCard
-				key={s.name}
-				section={s}
-				onOpen={actions.onOpen}
-				form={formOf(s.name, forms, settings, endpoints)}
-			/>
-		))}
-	</>
-);
+	readonly choice: GroupChoice;
+}) => {
+	const groups = groupsOf(withForms(settings.sections));
+	const chosen = groups.find((g) => g.id === choice.group) ?? groups[0];
+	return (
+		<>
+			<p style={MUTED}>
+				{nls.localize(
+					"mete/settings/loaded",
+					"As METE loaded them at {0}. Edits to these files apply when METE starts again or on Apply now, except pins, which apply when the next task starts; a key no file sets takes its module's built-in default.",
+					new Date(settings.loadedAt).toLocaleString(),
+				)}
+			</p>
+			<div style={LAYOUT}>
+				<nav
+					style={LIST}
+					aria-label={nls.localize("mete/groups/list", "Settings groups")}
+				>
+					{groups.map((g) => (
+						<GroupItem
+							key={g.id}
+							group={g}
+							chosen={g.id === chosen?.id}
+							onChoose={() => choice.onGroup(g.id)}
+						/>
+					))}
+				</nav>
+				{chosen ? (
+					<div style={BODY}>
+						<h3 style={TITLE}>{chosen.label}</h3>
+						<Links ids={chosen.links} onCommand={actions.onCommand} />
+						{chosen.sections.map((s) => (
+							<SectionCard
+								key={s.name}
+								section={s}
+								onOpen={actions.onOpen}
+								form={formOf(s.name, forms, settings, endpoints)}
+							/>
+						))}
+					</div>
+				) : null}
+			</div>
+		</>
+	);
+};
 
 /** Apply now (ADR-083): in flight, and how many runs of the folder are queued or running. */
 export type ApplyState = {
@@ -284,27 +241,18 @@ export const SettingsView = ({
 	forms = {},
 	endpoints,
 	apply = { busy: false, activeRuns: 0 },
+	choice = { group: "models", onGroup: () => {} },
 }: {
 	readonly model: SettingsModel;
 	readonly actions: SettingsActions;
 	readonly forms?: Forms;
 	readonly endpoints?: Endpoints | undefined;
 	readonly apply?: ApplyState;
+	readonly choice?: GroupChoice;
 }) => (
-	// One readable column: the forms' fields need no more width than this.
-	<section style={{ ...PANEL, maxWidth: "760px" }} aria-live="polite">
+	<section style={{ ...PANEL, maxWidth: "1100px" }} aria-live="polite">
 		<h2 style={TITLE}>{nls.localize("mete/settings/title", "Settings")}</h2>
 		<div style={ROW}>
-			{SETTINGS_LINKS.map(([id, label]) => (
-				<button
-					type="button"
-					key={id}
-					className="mete-button quiet"
-					onClick={() => actions.onCommand(id)}
-				>
-					{label()}
-				</button>
-			))}
 			<ApplyNow apply={apply} onApply={actions.onApply} />
 			<button
 				type="button"
@@ -327,6 +275,7 @@ export const SettingsView = ({
 				actions={actions}
 				forms={forms}
 				endpoints={endpoints}
+				choice={choice}
 			/>
 		) : null}
 	</section>

@@ -433,6 +433,24 @@
 			"tookMinutes": "{0} dk sürdü",
 			"tookShort": "bir dakikadan az sürdü",
 			"usage": "{0} çağrı · {1} token"
+		},
+		"groups": {
+			"changedHere": "Bu grubun bir değeri yalnız bu klasör için ayarlı",
+			"limits": "Takım tek başına neler yapabilir",
+			"limitsHint": "Ne zaman önce size soracağı ve bir çalıştırmanın ne kadar kullanabileceği",
+			"list": "Ayar grupları",
+			"look": "Görünüm ve dil",
+			"lookHint": "Tema, yazı tipleri ve görüntüleme dili",
+			"models": "Modeller ve anahtarlar",
+			"modelsHint": "Sağlayıcılar, uç noktalar ve METE'nin hangi modelleri kullanabileceği",
+			"other": "Diğer dosyalar",
+			"otherHint": "Yukarıdaki hiçbir grubun tutmadığı bölümler",
+			"privacy": "Gizlilik",
+			"privacyHint": "Sağlayıcıların istemlerinizle eğitim yapıp yapamayacağı",
+			"teams": "Takımlar",
+			"teamsHint": "Bir takımı değiştirin ya da yenisini başlatın",
+			"tools": "Araçlar ve web araması",
+			"toolsHint": "Bağdaştırıcılar, MCP sunucuları ve kabuk"
 		}
 	}
 }

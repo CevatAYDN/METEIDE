@@ -433,6 +433,24 @@
 			"tookMinutes": "took {0} min",
 			"tookShort": "took under a minute",
 			"usage": "{0} calls · {1} tokens"
+		},
+		"groups": {
+			"changedHere": "A value of this group is set for this folder only",
+			"limits": "What the team may do alone",
+			"limitsHint": "When to ask you first, and how much a run may use",
+			"list": "Settings groups",
+			"look": "Look and language",
+			"lookHint": "Theme, fonts and display language",
+			"models": "Models and keys",
+			"modelsHint": "Providers, endpoints and which models METE may use",
+			"other": "Other files",
+			"otherHint": "Sections no group above holds",
+			"privacy": "Privacy",
+			"privacyHint": "Whether providers may train on your prompts",
+			"teams": "Teams",
+			"teamsHint": "Change a team or start a new one",
+			"tools": "Tools and web search",
+			"toolsHint": "Adapters, MCP servers and the shell"
 		}
 	}
 }

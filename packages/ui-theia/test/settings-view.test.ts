@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { EndpointTestState } from "../src/application/endpoint-test.js";
 import { SET_KEY_COMMAND } from "../src/application/key-command.js";
 import { shortPath } from "../src/application/settings-form.js";
+import type { GroupId } from "../src/application/settings-groups.js";
 import {
 	SETTINGS_LINKS,
 	type SettingsModel,
@@ -13,7 +14,7 @@ import {
 // The read-only Settings screen (ADR-081) rendered to HTML on Node.
 
 const none = () => {};
-const html = (model: SettingsModel) =>
+const html = (model: SettingsModel, group: GroupId = "models") =>
 	renderToStaticMarkup(
 		createElement(SettingsView, {
 			model,
@@ -23,8 +24,21 @@ const html = (model: SettingsModel) =>
 				onOpen: none,
 				onRefresh: none,
 			},
+			choice: { group, onGroup: none },
 		}),
 	);
+// The screen shows one group at a time (ADR-095): this renders it once for each.
+const GROUP_IDS: readonly GroupId[] = [
+	"models",
+	"limits",
+	"privacy",
+	"tools",
+	"teams",
+	"look",
+	"other",
+];
+const everyGroup = (render: (group: GroupId) => string) =>
+	GROUP_IDS.map(render).join("");
 
 const LOADED: SettingsModel = {
 	kind: "settings",
@@ -48,11 +62,8 @@ const LOADED: SettingsModel = {
 
 describe("the Settings screen", () => {
 	it("shows each section merged and each file's value under its path, as YAML", () => {
-		const out = html(LOADED);
-		const gateway = out.slice(
-			out.indexOf('aria-label="gateway"'),
-			out.indexOf('aria-label="mcp"'),
-		);
+		const out = html(LOADED, "models");
+		const gateway = out.slice(out.indexOf('aria-label="gateway"'));
 		expect(gateway).toContain("models: both");
 		expect(gateway).toContain("models: free");
 		expect(gateway).toContain('title="/g/settings.yaml">/g/settings.yaml<');
@@ -61,7 +72,10 @@ describe("the Settings screen", () => {
 			'title="/w/.mete/gateway.yaml">.mete/gateway.yaml<',
 		);
 		expect(out).toContain("max-width:760px");
-		const mcp = out.slice(out.indexOf('aria-label="mcp"'));
+		// The MCP section sits in the tools group.
+		const tools = html(LOADED, "tools");
+		const mcp = tools.slice(tools.indexOf('aria-label="mcp"'));
+		expect(out).not.toContain('aria-label="mcp"');
 		expect(mcp).toContain("servers: []");
 		expect(mcp).not.toContain("Global:");
 		// One file: its value once, no merged block; two files: the merged value first.
@@ -74,11 +88,23 @@ describe("the Settings screen", () => {
 	});
 
 	it("leads to the team editor, provider keys and Theia's preferences and language", () => {
-		const out = html({ kind: "loading" });
-		for (const [, label] of SETTINGS_LINKS)
-			expect(out).toContain(`>${label()}<`);
+		expect(html({ kind: "loading" })).toContain("Asking the METE daemon…");
+		// Each link sits in the group it belongs to, and every link is in one.
+		const where: Record<string, GroupId> = {
+			"mete.key.set": "models",
+			"mete.team.edit": "teams",
+			"mete.team.new": "teams",
+			"preferences:open": "look",
+			"workbench.action.configureLanguage": "look",
+		};
+		for (const [id, label] of SETTINGS_LINKS) {
+			expect(html(LOADED, where[id])).toContain(`>${label()}<`);
+			expect(html(LOADED, "limits")).not.toContain(`>${label()}<`);
+		}
 		expect(SETTINGS_LINKS.map(([id]) => id)).toContain(SET_KEY_COMMAND.id);
-		expect(out).toContain("Asking the METE daemon…");
+		expect(Object.keys(where).sort()).toEqual(
+			SETTINGS_LINKS.map(([id]) => id).sort(),
+		);
 	});
 
 	it("says why it has nothing to show", () => {
@@ -103,7 +129,7 @@ describe("the Settings forms (ADR-082)", () => {
 		},
 		actions: { onField: none, onTarget: none, onSave: none },
 	};
-	const withForms = (model: SettingsModel) =>
+	const withForms = (model: SettingsModel, group: GroupId = "models") =>
 		renderToStaticMarkup(
 			createElement(SettingsView, {
 				model,
@@ -114,19 +140,17 @@ describe("the Settings forms (ADR-082)", () => {
 					onRefresh: none,
 				},
 				forms: { gateway: gatewayForm },
+				choice: { group, onGroup: none },
 			}),
 		);
 
 	it("always shows the gateway, policy and privacy sections, and a form where it has one", () => {
-		const out = withForms(LOADED);
+		const out = everyGroup((g) => withForms(LOADED, g));
 		for (const name of ["gateway", "policy", "privacy"])
 			expect(out).toContain(`aria-label="${name}"`);
-		const policy = out.slice(out.indexOf('aria-label="policy"'));
+		const policy = withForms(LOADED, "limits");
 		expect(policy).toContain("No file sets this section; its defaults apply.");
-		const gateway = out.slice(
-			out.indexOf('aria-label="gateway"'),
-			out.indexOf('aria-label="mcp"'),
-		);
+		const gateway = withForms(LOADED, "models");
 		expect(gateway).toContain(
 			'<label for="mete-setting-models">Models</label>',
 		);
@@ -326,5 +350,57 @@ describe("the custom endpoints card (ADR-087)", () => {
 		expect(running).toContain(
 			'<button type="button" class="mete-button" disabled="">Testing…</button>',
 		);
+	});
+});
+
+describe("the groups list (ADR-095)", () => {
+	const OTHER: SettingsModel = {
+		kind: "settings",
+		settings: {
+			...LOADED.settings,
+			sections: [
+				...LOADED.settings.sections,
+				{
+					name: "foo",
+					merged: { a: 1 },
+					global: { file: "/g/s.yaml", value: { a: 1 } },
+				},
+			],
+		},
+	};
+
+	it("lists the groups with what each holds, presses the chosen one, and dots the one set for this folder only", () => {
+		const out = html(LOADED, "privacy");
+		for (const text of [
+			"Models and keys",
+			"What the team may do alone",
+			"Privacy",
+			"Tools and web search",
+			"Teams",
+			"Look and language",
+			"Providers, endpoints and which models METE may use",
+		])
+			expect(out).toContain(text);
+		expect(out.match(/aria-pressed="true"/g)).toHaveLength(1);
+		expect(out).toMatch(/aria-pressed="true"><strong>Privacy/);
+		// LOADED sets gateway and mcp in this folder's files: their groups carry the dot, the others not.
+		expect(out.match(/role="img"/g)).toHaveLength(2);
+		expect(out).not.toContain("Other files");
+	});
+
+	it("shows a section no group holds under Other files, and leaves that group out otherwise", () => {
+		expect(html(OTHER, "models")).toContain("Other files");
+		const other = html(OTHER, "other");
+		expect(other).toContain('aria-label="foo"');
+		expect(other).toContain("a: 1");
+		expect(html(OTHER, "tools")).not.toContain('aria-label="foo"');
+	});
+
+	it("shows only the chosen group's sections beside the list", () => {
+		const out = html(LOADED, "limits");
+		expect(out).toContain('aria-label="policy"');
+		expect(out).not.toContain('aria-label="gateway"');
+		expect(out).not.toContain('aria-label="mcp"');
+		expect(out).toContain("<h3");
 	});
 });

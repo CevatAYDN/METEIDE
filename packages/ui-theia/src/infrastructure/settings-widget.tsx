@@ -14,6 +14,7 @@ import { FileService } from "@theia/filesystem/lib/browser/file-service";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import type { EndpointsActions } from "../application/endpoints-card.js";
 import { panelRoot } from "../application/panel-root.js";
+import type { GroupId } from "../application/settings-groups.js";
 import {
 	type ApplyState,
 	type SettingsModel,
@@ -47,6 +48,8 @@ export class MeteSettingsWidget extends ReactWidget {
 	protected keys: EndpointKeys | undefined;
 	protected tests: EndpointTests | undefined;
 	protected apply: ApplyState = { busy: false, activeRuns: 0 };
+	/** The group the screen shows; not kept after a restart (ADR-095, ADR-086). */
+	protected group: GroupId = "models";
 
 	// No state, so Theia's saved layout leaves the tab out and a restart does not reopen it (ADR-086).
 	storeState(): undefined {
@@ -193,6 +196,13 @@ export class MeteSettingsWidget extends ReactWidget {
 					forms={this.forms?.forms() ?? {}}
 					endpoints={this.endpointsView()}
 					apply={this.apply}
+					choice={{
+						group: this.group,
+						onGroup: (group) => {
+							this.group = group;
+							this.update();
+						},
+					}}
 					actions={{
 						onApply: () => void this.applyNow(),
 						onCommand: (id) => void this.commands.executeCommand(id),
