@@ -143,5 +143,6 @@ export const savedText = (
 	const [issue] = checked.success ? [] : checked.error.issues;
 	if (issue)
 		return err(`${[...prefix, ...issue.path].join(".")}: ${issue.message}`);
-	return ok(doc.toString());
+	// An empty document prints as `null`, which the loader would read as the section: write nothing.
+	return ok(doc.contents === null ? "" : doc.toString());
 };

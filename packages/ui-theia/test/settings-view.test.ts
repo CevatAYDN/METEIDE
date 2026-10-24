@@ -88,6 +88,7 @@ describe("the Settings forms (ADR-082)", () => {
 			values: { models: "both", dailySpendUsd: undefined },
 			defaults: { models: "free", dailySpendUsd: 1 },
 			busy: false,
+			dirty: false,
 		},
 		actions: { onField: none, onTarget: none, onSave: none },
 	};
@@ -117,7 +118,10 @@ describe("the Settings forms (ADR-082)", () => {
 			'<option value="both" selected="">Free first, then paid</option>',
 		);
 		expect(gateway).toContain('placeholder="Default (1)"');
-		expect(gateway).toContain(">Save<");
+		// Save waits for a change, so an untouched file is never rewritten.
+		expect(gateway).toMatch(
+			/<button type="button" class="mete-button" disabled="">Save<\/button>/,
+		);
 	});
 
 	it("turns the global save off when the daemon names no global file", () => {

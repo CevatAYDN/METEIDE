@@ -48,7 +48,7 @@ export class SettingsForms {
 					actions: {
 						onField: (key: string, value: FieldValue) =>
 							this.field(section, key, value),
-						onTarget: (target: Target) => void this.read(section, target),
+						onTarget: (target: Target) => void this.retarget(section, target),
 						onSave: () => void this.save(section),
 					},
 				},
@@ -68,10 +68,21 @@ export class SettingsForms {
 			: undefined;
 	}
 
+	// Another target keeps what the user typed, over that file's own values.
+	protected retarget(section: FormSection, target: Target) {
+		const state = this.states.get(section);
+		const keys = [...(this.changed.get(section) ?? [])];
+		const kept: Draft = Object.fromEntries(
+			keys.map((k) => [k, state?.values[k]]),
+		);
+		return this.read(section, target, undefined, kept);
+	}
+
 	protected async read(
 		section: FormSection,
 		target: Target,
 		note?: FormState["note"],
+		kept: Draft = {},
 	) {
 		const file = this.fileOf(section, target);
 		const draft = draftOf(
@@ -82,12 +93,13 @@ export class SettingsForms {
 		this.states.set(section, {
 			target,
 			file: file?.path.fsPath(),
-			values: draft.ok ? draft.value : {},
+			values: { ...(draft.ok ? draft.value : {}), ...kept },
 			defaults: defaultsOf(section),
 			busy: false,
+			dirty: Object.keys(kept).length > 0,
 			note: draft.ok ? note : { kind: "refused", text: draft.error },
 		});
-		this.changed.set(section, new Set());
+		this.changed.set(section, new Set(Object.keys(kept)));
 		this.onChange();
 	}
 
@@ -97,6 +109,7 @@ export class SettingsForms {
 		this.states.set(section, {
 			...state,
 			values: { ...state.values, [key]: value },
+			dirty: true,
 			note: undefined,
 		});
 		this.changed.get(section)?.add(key);

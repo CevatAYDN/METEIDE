@@ -20,6 +20,8 @@ export type FormState = {
 	readonly values: Draft;
 	readonly defaults: Draft;
 	readonly busy: boolean;
+	/** Whether the user changed a field since the file was read; Save waits for a change. */
+	readonly dirty: boolean;
 	readonly note?:
 		| { readonly kind: "saved" | "refused"; readonly text: string }
 		| undefined;
@@ -182,7 +184,7 @@ export const SettingsForm = ({
 			<button
 				type="button"
 				className="mete-button"
-				disabled={state.busy || state.file === undefined}
+				disabled={state.busy || !state.dirty || state.file === undefined}
 				onClick={actions.onSave}
 			>
 				{nls.localize("mete/settings/save", "Save")}

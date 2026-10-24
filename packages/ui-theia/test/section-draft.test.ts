@@ -64,6 +64,13 @@ describe("a section's file as a form edits it", () => {
 		);
 	});
 
+	it("writes nothing for a missing file the form did not change, never a null section", () => {
+		expect(savedText(undefined, "policy", "workspace", {})).toEqual({
+			ok: true,
+			value: "",
+		});
+	});
+
 	it("refuses what the schema refuses, naming where", () => {
 		expect(
 			savedText(undefined, "gateway", "global", { dailySpendUsd: -1 }),
