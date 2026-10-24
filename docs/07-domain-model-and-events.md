@@ -120,7 +120,7 @@ From Phase 2, handoffs go into the workspace `handoffs` table: `id`, `workspace_
 | `task.clarification.requested` | toRoleId, question | core-engine |
 | `agent.created` | roleId, providerId, modelId, tier? (the role's tier, ADR-077) | core-engine |
 | `agent.model.changed` | from, to, reason | core-engine |
-| `agent.thinking.started` / `agent.thinking.ended` | none | core-engine |
+| `agent.thinking.started` / `agent.thinking.ended` | none; `agent.thinking.ended` has usage? `{ prompt, completion }`, the token counts of the model call it closes, when the call finished (ADR-090) | core-engine |
 | `agent.message.sent` | messageId, from, to, kind, summary | core-engine |
 | `agent.tool.called` | capability, adapterId | core-engine |
 | `agent.tool.progress` | capability, progress, total? (an MCP server's progress step, never its message; at most once a second per call, ADR-067) | mcp-client |
