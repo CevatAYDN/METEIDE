@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { stringify } from "yaml";
 import type { DaemonFailure, Settings } from "../domain/status-service.js";
 import type { EndpointKeysView } from "./endpoint-key.js";
+import type { EndpointTestsView } from "./endpoint-test.js";
 import {
 	type EndpointsActions,
 	EndpointsCard,
@@ -84,6 +85,7 @@ export type Endpoints = {
 	readonly state: EndpointsState;
 	readonly actions: EndpointsActions;
 	readonly keys?: EndpointKeysView | undefined;
+	readonly tests?: EndpointTestsView | undefined;
 };
 
 // The sections with a form or a card always show, also when no file sets them.

@@ -1,6 +1,7 @@
 import type { ProviderAdapter } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import { type EndpointKeysView, KeyField } from "./endpoint-key.js";
+import { type EndpointTestsView, TestPanel } from "./endpoint-test.js";
 import type { EndpointDraft } from "./endpoints-draft.js";
 import { MUTED, ROW } from "./look.js";
 import type { Target } from "./section-draft.js";
@@ -152,18 +153,46 @@ const DraftFields = ({
 	</>
 );
 
+/** An endpoint's key and Test, which the widget gives when the daemon service is there. */
+type ChecksView = {
+	readonly keys?: EndpointKeysView | undefined;
+	readonly tests?: EndpointTestsView | undefined;
+	/** The card has edits that are not saved; Set key would restart METE and drop them. */
+	readonly unsaved: boolean;
+};
+
+const Checks = ({
+	id,
+	slug,
+	checks,
+}: {
+	readonly id: string;
+	readonly slug: string;
+	readonly checks: ChecksView;
+}) => (
+	<>
+		{checks.keys ? (
+			<KeyField
+				id={id}
+				slug={slug}
+				keys={checks.keys}
+				unsaved={checks.unsaved}
+			/>
+		) : null}
+		{checks.tests ? <TestPanel slug={slug} tests={checks.tests} /> : null}
+	</>
+);
+
 const EndpointFields = ({
 	index,
 	endpoint,
 	actions,
-	keys,
-	unsaved,
+	checks,
 }: {
 	readonly index: number;
 	readonly endpoint: EndpointDraft;
 	readonly actions: EndpointsActions;
-	readonly keys?: EndpointKeysView | undefined;
-	readonly unsaved: boolean;
+	readonly checks: ChecksView;
 }) => {
 	const id = (field: string) => `mete-endpoint-${index}-${field}`;
 	const edit = (field: keyof EndpointDraft) => (v: string) =>
@@ -171,14 +200,7 @@ const EndpointFields = ({
 	return (
 		<fieldset className="mete-card" style={COLUMN}>
 			<DraftFields id={id} endpoint={endpoint} edit={edit} />
-			{keys ? (
-				<KeyField
-					id={id("key")}
-					slug={endpoint.slug}
-					keys={keys}
-					unsaved={unsaved}
-				/>
-			) : null}
+			<Checks id={id("key")} slug={endpoint.slug} checks={checks} />
 			<div style={ROW}>
 				<button
 					type="button"
@@ -224,10 +246,12 @@ export const EndpointsCard = ({
 	state,
 	actions,
 	keys,
+	tests,
 }: {
 	readonly state: EndpointsState;
 	readonly actions: EndpointsActions;
 	readonly keys?: EndpointKeysView | undefined;
+	readonly tests?: EndpointTestsView | undefined;
 }) => (
 	<div style={{ ...COLUMN, gap: "8px" }}>
 		{state.list.map((endpoint, i) => (
@@ -237,9 +261,7 @@ export const EndpointsCard = ({
 				index={i}
 				endpoint={endpoint}
 				actions={actions}
-				keys={keys}
-				// Set key restarts METE, which reloads the card: save the edits first.
-				unsaved={state.dirty}
+				checks={{ keys, tests, unsaved: state.dirty }}
 			/>
 		))}
 		<SaveTarget state={state} actions={actions} />

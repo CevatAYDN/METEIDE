@@ -20,6 +20,7 @@ import {
 } from "../application/settings-view.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { EndpointKeys } from "./endpoint-keys.js";
+import { EndpointTests } from "./endpoint-tests.js";
 import { EndpointsForm } from "./endpoints-form.js";
 import { SettingsForms } from "./settings-forms.js";
 
@@ -42,6 +43,7 @@ export class MeteSettingsWidget extends ReactWidget {
 	protected forms: SettingsForms | undefined;
 	protected endpoints: EndpointsForm | undefined;
 	protected keys: EndpointKeys | undefined;
+	protected tests: EndpointTests | undefined;
 	protected apply: ApplyState = { busy: false, activeRuns: 0 };
 
 	// No state, so Theia's saved layout leaves the tab out and a restart does not reopen it (ADR-086).
@@ -71,6 +73,13 @@ export class MeteSettingsWidget extends ReactWidget {
 			onSaved: () => void this.refresh(),
 			onChange: () => this.update(),
 		});
+		this.tests = new EndpointTests({
+			models: async (id) =>
+				this.daemon.providerModels(await this.folderDir(), id),
+			probe: async (id, models) =>
+				this.daemon.providerTest(await this.folderDir(), id, models),
+			onChange: () => this.update(),
+		});
 		void this.refresh();
 	}
 
@@ -79,6 +88,8 @@ export class MeteSettingsWidget extends ReactWidget {
 		const [root] = await this.workspace.roots;
 		if (!root) return this.setModel({ kind: "no_folder" });
 		const dir = root.resource.path.fsPath();
+		// A restarted daemon may have loaded other endpoints, so earlier Test answers go.
+		this.tests?.reset();
 		this.apply = { ...this.apply, activeRuns: await this.activeRuns(dir) };
 		const r = await this.daemon.settings(dir);
 		this.setModel(
@@ -120,11 +131,17 @@ export class MeteSettingsWidget extends ReactWidget {
 		return root ? this.activeRuns(root.resource.path.fsPath()) : 0;
 	}
 
+	// The card shows only while a folder is open, so a Test always has one.
+	protected async folderDir(): Promise<string> {
+		const [root] = await this.workspace.roots;
+		return root?.resource.path.fsPath() ?? "";
+	}
+
 	// The endpoints card with each endpoint's key field (ADR-087).
 	protected endpointsView() {
 		const form = this.endpoints?.form();
-		const keys = this.keys;
-		if (!form || !keys) return form;
+		const { keys, tests } = this;
+		if (!form || !keys || !tests) return form;
 		return {
 			...form,
 			keys: {
@@ -132,6 +149,13 @@ export class MeteSettingsWidget extends ReactWidget {
 				onType: (slug: string, key: string) => keys.type(slug, key),
 				onSet: (slug: string) => void keys.set(slug),
 				activeRuns: this.apply.activeRuns,
+			},
+			tests: {
+				stateOf: (slug: string) => tests.stateOf(slug),
+				onList: (slug: string) => void tests.list(slug),
+				onPick: (slug: string, model: string, on: boolean) =>
+					tests.pick(slug, model, on),
+				onProbe: (slug: string) => void tests.probe(slug),
 			},
 		};
 	}

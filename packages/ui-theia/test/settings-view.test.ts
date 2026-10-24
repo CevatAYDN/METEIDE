@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import type { EndpointTestState } from "../src/application/endpoint-test.js";
 import { SET_KEY_COMMAND } from "../src/application/key-command.js";
 import { shortPath } from "../src/application/settings-form.js";
 import {
@@ -193,6 +194,7 @@ describe("the custom endpoints card (ADR-087)", () => {
 		target: "global" | "workspace",
 		activeRuns?: number,
 		dirty = false,
+		test?: EndpointTestState,
 	) =>
 		renderToStaticMarkup(
 			createElement(SettingsView, {
@@ -236,6 +238,16 @@ describe("the custom endpoints card (ADR-087)", () => {
 									activeRuns,
 								},
 							}),
+					...(test === undefined
+						? {}
+						: {
+								tests: {
+									stateOf: () => test,
+									onList: none,
+									onPick: none,
+									onProbe: none,
+								},
+							}),
 				},
 			}),
 		);
@@ -270,6 +282,49 @@ describe("the custom endpoints card (ADR-087)", () => {
 		// A key restarts METE, which reloads the card, so unsaved edits are saved first.
 		expect(withEndpoints("global", 0, true)).toContain(
 			'<button type="button" class="mete-button" disabled="">Set key</button>',
+		);
+	});
+
+	// An endpoint's Test.
+	const listed = (picked: string[], testing: boolean): EndpointTestState => ({
+		kind: "listed",
+		models: ["lab-7b", "lab-70b"],
+		picked,
+		testing,
+		results: [{ modelId: "lab-7b", ok: true, ms: 840 }],
+	});
+
+	it("says when METE has not loaded the endpoint", () => {
+		expect(
+			withEndpoints("global", undefined, false, { kind: "not_loaded" }),
+		).toContain(
+			"METE has not loaded custom:my-lab: save it, set its API key and press Apply now.",
+		);
+	});
+
+	it("tests only picked models, says so while it runs, and shows each result", () => {
+		const none = withEndpoints("global", undefined, false, listed([], false));
+		expect(none).toContain(
+			'<button type="button" class="mete-button" disabled="">Test</button>',
+		);
+		expect(none).toContain("ok, 840 ms");
+		const ready = withEndpoints(
+			"global",
+			undefined,
+			false,
+			listed(["lab-7b"], false),
+		);
+		expect(ready).toContain(
+			'<button type="button" class="mete-button">Test</button>',
+		);
+		const running = withEndpoints(
+			"global",
+			undefined,
+			false,
+			listed(["lab-7b"], true),
+		);
+		expect(running).toContain(
+			'<button type="button" class="mete-button" disabled="">Testing…</button>',
 		);
 	});
 });
