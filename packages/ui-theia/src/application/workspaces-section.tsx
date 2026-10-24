@@ -105,9 +105,11 @@ export const WorkspacesSection = ({
 		style={SECTION}
 		aria-label={nls.localize("mete/home/workspaces", "Workspaces")}
 	>
-		<button type="button" className="mete-button" onClick={actions.onAdd}>
-			{nls.localize("mete/home/openFolder", "Open folder…")}
-		</button>
+		<div style={ROW}>
+			<button type="button" className="mete-button" onClick={actions.onAdd}>
+				{nls.localize("mete/home/openFolder", "Open folder…")}
+			</button>
+		</div>
 		<ul style={LIST}>
 			{workspaces.map((w) => (
 				<Row key={w.uri} w={w} actions={actions} />
