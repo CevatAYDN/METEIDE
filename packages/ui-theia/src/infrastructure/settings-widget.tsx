@@ -19,6 +19,7 @@ import {
 	SettingsView,
 } from "../application/settings-view.js";
 import { MeteDaemonService } from "../domain/status-service.js";
+import { EndpointsForm } from "./endpoints-form.js";
 import { SettingsForms } from "./settings-forms.js";
 
 // The read-only Settings screen (docs/13; ADR-081) of the first open folder: it asks the daemon
@@ -38,6 +39,7 @@ export class MeteSettingsWidget extends ReactWidget {
 
 	protected model: SettingsModel = { kind: "loading" };
 	protected forms: SettingsForms | undefined;
+	protected endpoints: EndpointsForm | undefined;
 	protected apply: ApplyState = { busy: false, activeRuns: 0 };
 
 	// No state, so Theia's saved layout leaves the tab out and a restart does not reopen it (ADR-086).
@@ -60,6 +62,7 @@ export class MeteSettingsWidget extends ReactWidget {
 		// The panel takes the tokens of Theia's theme (ADR-069): draw again on a change.
 		this.toDispose.push(this.themes.onDidColorThemeChange(() => this.update()));
 		this.forms = new SettingsForms(this.files, () => this.update());
+		this.endpoints = new EndpointsForm(this.files, () => this.update());
 		void this.refresh();
 	}
 
@@ -76,7 +79,9 @@ export class MeteSettingsWidget extends ReactWidget {
 				: { kind: "failed", failure: r.error },
 		);
 		// The forms read their files from disk, not the loaded values (ADR-082).
-		if (r.ok) await this.forms?.load(root.resource, r.value.globalFile);
+		if (!r.ok) return;
+		await this.forms?.load(root.resource, r.value.globalFile);
+		await this.endpoints?.load(root.resource, r.value.globalFile);
 	}
 
 	// Runs a restart would pause (ADR-083): queued or running ones; none when the status fails.
@@ -113,6 +118,7 @@ export class MeteSettingsWidget extends ReactWidget {
 				<SettingsView
 					model={this.model}
 					forms={this.forms?.forms() ?? {}}
+					endpoints={this.endpoints?.form()}
 					apply={this.apply}
 					actions={{
 						onApply: () => void this.applyNow(),

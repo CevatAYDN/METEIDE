@@ -2,6 +2,11 @@ import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties, ReactNode } from "react";
 import { stringify } from "yaml";
 import type { DaemonFailure, Settings } from "../domain/status-service.js";
+import {
+	type EndpointsActions,
+	EndpointsCard,
+	type EndpointsState,
+} from "./endpoints-card.js";
 import { LINK, MUTED, PANEL, ROW, TITLE } from "./look.js";
 import type { FormSection } from "./section-draft.js";
 import {
@@ -73,13 +78,19 @@ export type Forms = {
 	};
 };
 
-const FORM_SECTIONS: readonly FormSection[] = ["gateway", "policy", "privacy"];
+/** The custom endpoints card of the providers section (ADR-087), with its state and actions. */
+export type Endpoints = {
+	readonly state: EndpointsState;
+	readonly actions: EndpointsActions;
+};
 
-// The sections with a form always show, also when no file sets them.
+// The sections with a form or a card always show, also when no file sets them.
+const ALWAYS: readonly string[] = ["gateway", "policy", "privacy", "providers"];
+
 const withForms = (sections: readonly Section[]): readonly Section[] =>
 	[
 		...sections,
-		...FORM_SECTIONS.filter((n) => !sections.some((s) => s.name === n)).map(
+		...ALWAYS.filter((n) => !sections.some((s) => s.name === n)).map(
 			(name) => ({ name, merged: undefined }),
 		),
 	].sort((a, b) => a.name.localeCompare(b.name));
@@ -166,7 +177,14 @@ const SectionCard = ({
 );
 
 // A section's form, if it has one, under what METE loaded.
-const formOf = (name: string, forms: Forms, settings: Settings): ReactNode => {
+const formOf = (
+	name: string,
+	forms: Forms,
+	settings: Settings,
+	endpoints?: Endpoints,
+): ReactNode => {
+	if (name === "providers")
+		return endpoints ? <EndpointsCard {...endpoints} /> : undefined;
 	const form = forms[name as FormSection];
 	if (!form) return undefined;
 	return (
@@ -193,10 +211,12 @@ const Loaded = ({
 	settings,
 	actions,
 	forms,
+	endpoints,
 }: {
 	readonly settings: Settings;
 	readonly actions: SettingsActions;
 	readonly forms: Forms;
+	readonly endpoints?: Endpoints | undefined;
 }) => (
 	<>
 		<p style={MUTED}>
@@ -211,7 +231,7 @@ const Loaded = ({
 				key={s.name}
 				section={s}
 				onOpen={actions.onOpen}
-				form={formOf(s.name, forms, settings)}
+				form={formOf(s.name, forms, settings, endpoints)}
 			/>
 		))}
 	</>
@@ -258,11 +278,13 @@ export const SettingsView = ({
 	model,
 	actions,
 	forms = {},
+	endpoints,
 	apply = { busy: false, activeRuns: 0 },
 }: {
 	readonly model: SettingsModel;
 	readonly actions: SettingsActions;
 	readonly forms?: Forms;
+	readonly endpoints?: Endpoints | undefined;
 	readonly apply?: ApplyState;
 }) => (
 	// One readable column: the forms' fields need no more width than this.
@@ -296,7 +318,12 @@ export const SettingsView = ({
 			<p role="alert">{failureText(model.failure)}</p>
 		) : null}
 		{model.kind === "settings" ? (
-			<Loaded settings={model.settings} actions={actions} forms={forms} />
+			<Loaded
+				settings={model.settings}
+				actions={actions}
+				forms={forms}
+				endpoints={endpoints}
+			/>
 		) : null}
 	</section>
 );

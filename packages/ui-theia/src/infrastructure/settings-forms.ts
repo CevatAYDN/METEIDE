@@ -19,6 +19,10 @@ import type { Forms } from "../application/settings-view.js";
 
 const SECTIONS: readonly FormSection[] = ["gateway", "privacy", "policy"];
 
+/** A configuration file's text, or undefined when it does not exist. */
+export const textOf = async (files: FileService, file: URI) =>
+	(await files.exists(file)) ? (await files.read(file)).value : undefined;
+
 export class SettingsForms {
 	protected readonly states = new Map<FormSection, FormState>();
 	protected readonly changed = new Map<FormSection, Set<string>>();
@@ -62,10 +66,8 @@ export class SettingsForms {
 		return this.root?.resolve(`.mete/${section}.yaml`);
 	}
 
-	protected async textOf(file: URI) {
-		return (await this.files.exists(file))
-			? (await this.files.read(file)).value
-			: undefined;
+	protected textOf(file: URI) {
+		return textOf(this.files, file);
 	}
 
 	// Another target keeps what the user typed, over that file's own values.

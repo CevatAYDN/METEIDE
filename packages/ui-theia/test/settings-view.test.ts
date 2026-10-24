@@ -187,3 +187,58 @@ describe("Apply now (ADR-083)", () => {
 		expect(busy).toContain("Apply now waits until it is paused or ends.");
 	});
 });
+
+describe("the custom endpoints card (ADR-087)", () => {
+	const withEndpoints = (target: "global" | "workspace") =>
+		renderToStaticMarkup(
+			createElement(SettingsView, {
+				model: LOADED,
+				actions: {
+					onApply: none,
+					onCommand: none,
+					onOpen: none,
+					onRefresh: none,
+				},
+				endpoints: {
+					state: {
+						target,
+						file: "/g/settings.yaml",
+						list: [
+							{
+								slug: "my-lab",
+								name: "My lab",
+								baseUrl: "https://lab.example/v1",
+								format: "openai-chat",
+								headers: "X-Team: blue",
+							},
+						],
+						busy: false,
+						dirty: false,
+					},
+					actions: {
+						onEdit: none,
+						onAdd: none,
+						onRemove: none,
+						onTarget: none,
+						onSave: none,
+					},
+				},
+			}),
+		);
+
+	it("shows the providers section with each endpoint's fields, saving globally unless asked", () => {
+		const out = withEndpoints("global");
+		const card = out.slice(out.indexOf('aria-label="providers"'));
+		for (const label of ["Name", "Slug", "Base URL", "API format", "Remove"])
+			expect(card).toContain(label);
+		expect(card).toContain('value="https://lab.example/v1"');
+		expect(card).toContain('<option value="openai-chat" selected="">');
+		expect(card).toContain("X-Team: blue</textarea>");
+		expect(card).toMatch(/<input type="checkbox"\/>Save for this folder only/);
+		expect(card).toContain("hides the global endpoints in this folder");
+		expect(card).toContain("Add endpoint");
+		expect(withEndpoints("workspace")).toMatch(
+			/<input type="checkbox" checked=""\/>Save for this folder only/,
+		);
+	});
+});
