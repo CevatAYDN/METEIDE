@@ -2,6 +2,7 @@ import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties, ReactNode } from "react";
 import { stringify } from "yaml";
 import type { DaemonFailure, Settings } from "../domain/status-service.js";
+import type { EndpointKeysView } from "./endpoint-key.js";
 import {
 	type EndpointsActions,
 	EndpointsCard,
@@ -78,10 +79,11 @@ export type Forms = {
 	};
 };
 
-/** The custom endpoints card of the providers section (ADR-087), with its state and actions. */
+/** The custom endpoints card of the providers section (ADR-087): its state, actions and keys. */
 export type Endpoints = {
 	readonly state: EndpointsState;
 	readonly actions: EndpointsActions;
+	readonly keys?: EndpointKeysView | undefined;
 };
 
 // The sections with a form or a card always show, also when no file sets them.

@@ -118,7 +118,7 @@ export class EndpointsForm {
 			await this.files.write(file, r.value);
 			const text = nls.localize(
 				"mete/settings/endpointSaved",
-				"Saved to {0}; set its API key, then Apply now.",
+				"Saved to {0}; set its API key, or press Apply now if it has one.",
 				file.path.fsPath(),
 			);
 			await this.read(state.target, { kind: "saved", text });

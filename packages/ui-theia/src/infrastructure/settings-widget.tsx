@@ -19,6 +19,7 @@ import {
 	SettingsView,
 } from "../application/settings-view.js";
 import { MeteDaemonService } from "../domain/status-service.js";
+import { EndpointKeys } from "./endpoint-keys.js";
 import { EndpointsForm } from "./endpoints-form.js";
 import { SettingsForms } from "./settings-forms.js";
 
@@ -40,6 +41,7 @@ export class MeteSettingsWidget extends ReactWidget {
 	protected model: SettingsModel = { kind: "loading" };
 	protected forms: SettingsForms | undefined;
 	protected endpoints: EndpointsForm | undefined;
+	protected keys: EndpointKeys | undefined;
 	protected apply: ApplyState = { busy: false, activeRuns: 0 };
 
 	// No state, so Theia's saved layout leaves the tab out and a restart does not reopen it (ADR-086).
@@ -63,6 +65,12 @@ export class MeteSettingsWidget extends ReactWidget {
 		this.toDispose.push(this.themes.onDidColorThemeChange(() => this.update()));
 		this.forms = new SettingsForms(this.files, () => this.update());
 		this.endpoints = new EndpointsForm(this.files, () => this.update());
+		this.keys = new EndpointKeys({
+			setKey: (id, key) => this.daemon.setKey(id, key),
+			activeRuns: () => this.folderRuns(),
+			onSaved: () => void this.refresh(),
+			onChange: () => this.update(),
+		});
 		void this.refresh();
 	}
 
@@ -107,6 +115,27 @@ export class MeteSettingsWidget extends ReactWidget {
 		await this.refresh();
 	}
 
+	protected async folderRuns(): Promise<number> {
+		const [root] = await this.workspace.roots;
+		return root ? this.activeRuns(root.resource.path.fsPath()) : 0;
+	}
+
+	// The endpoints card with each endpoint's key field (ADR-087).
+	protected endpointsView() {
+		const form = this.endpoints?.form();
+		const keys = this.keys;
+		if (!form || !keys) return form;
+		return {
+			...form,
+			keys: {
+				stateOf: (slug: string) => keys.stateOf(slug),
+				onType: (slug: string, key: string) => keys.type(slug, key),
+				onSet: (slug: string) => void keys.set(slug),
+				activeRuns: this.apply.activeRuns,
+			},
+		};
+	}
+
 	protected setModel(model: SettingsModel): void {
 		this.model = model;
 		this.update();
@@ -118,7 +147,7 @@ export class MeteSettingsWidget extends ReactWidget {
 				<SettingsView
 					model={this.model}
 					forms={this.forms?.forms() ?? {}}
-					endpoints={this.endpoints?.form()}
+					endpoints={this.endpointsView()}
 					apply={this.apply}
 					actions={{
 						onApply: () => void this.applyNow(),

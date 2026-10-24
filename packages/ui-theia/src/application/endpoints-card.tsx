@@ -1,5 +1,6 @@
 import type { ProviderAdapter } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
+import { type EndpointKeysView, KeyField } from "./endpoint-key.js";
 import type { EndpointDraft } from "./endpoints-draft.js";
 import { MUTED, ROW } from "./look.js";
 import type { Target } from "./section-draft.js";
@@ -101,56 +102,83 @@ const Format = ({
 	</div>
 );
 
+// What the endpoints file holds for one endpoint.
+const DraftFields = ({
+	id,
+	endpoint,
+	edit,
+}: {
+	readonly id: (field: string) => string;
+	readonly endpoint: EndpointDraft;
+	readonly edit: (field: keyof EndpointDraft) => (v: string) => void;
+}) => (
+	<>
+		<Text
+			id={id("name")}
+			label={nls.localize("mete/settings/endpointName", "Name")}
+			value={endpoint.name}
+			onChange={edit("name")}
+		/>
+		<Text
+			id={id("slug")}
+			label={nls.localize("mete/settings/slug", "Slug")}
+			value={endpoint.slug}
+			onChange={edit("slug")}
+		/>
+		<Text
+			id={id("baseUrl")}
+			label={nls.localize("mete/settings/baseUrl", "Base URL")}
+			value={endpoint.baseUrl}
+			onChange={edit("baseUrl")}
+		/>
+		<Format
+			id={id("format")}
+			value={endpoint.format}
+			onChange={edit("format")}
+		/>
+		<label htmlFor={id("headers")}>
+			{nls.localize(
+				"mete/settings/headers",
+				"Extra headers, one Name: value per line",
+			)}
+		</label>
+		<textarea
+			id={id("headers")}
+			className="mete-field"
+			rows={2}
+			value={endpoint.headers}
+			onChange={(e) => edit("headers")(e.target.value)}
+		/>
+	</>
+);
+
 const EndpointFields = ({
 	index,
 	endpoint,
 	actions,
+	keys,
+	unsaved,
 }: {
 	readonly index: number;
 	readonly endpoint: EndpointDraft;
 	readonly actions: EndpointsActions;
+	readonly keys?: EndpointKeysView | undefined;
+	readonly unsaved: boolean;
 }) => {
 	const id = (field: string) => `mete-endpoint-${index}-${field}`;
 	const edit = (field: keyof EndpointDraft) => (v: string) =>
 		actions.onEdit(index, field, v);
 	return (
 		<fieldset className="mete-card" style={COLUMN}>
-			<Text
-				id={id("name")}
-				label={nls.localize("mete/settings/endpointName", "Name")}
-				value={endpoint.name}
-				onChange={edit("name")}
-			/>
-			<Text
-				id={id("slug")}
-				label={nls.localize("mete/settings/slug", "Slug")}
-				value={endpoint.slug}
-				onChange={edit("slug")}
-			/>
-			<Text
-				id={id("baseUrl")}
-				label={nls.localize("mete/settings/baseUrl", "Base URL")}
-				value={endpoint.baseUrl}
-				onChange={edit("baseUrl")}
-			/>
-			<Format
-				id={id("format")}
-				value={endpoint.format}
-				onChange={edit("format")}
-			/>
-			<label htmlFor={id("headers")}>
-				{nls.localize(
-					"mete/settings/headers",
-					"Extra headers, one Name: value per line",
-				)}
-			</label>
-			<textarea
-				id={id("headers")}
-				className="mete-field"
-				rows={2}
-				value={endpoint.headers}
-				onChange={(e) => edit("headers")(e.target.value)}
-			/>
+			<DraftFields id={id} endpoint={endpoint} edit={edit} />
+			{keys ? (
+				<KeyField
+					id={id("key")}
+					slug={endpoint.slug}
+					keys={keys}
+					unsaved={unsaved}
+				/>
+			) : null}
 			<div style={ROW}>
 				<button
 					type="button"
@@ -195,14 +223,24 @@ const SaveTarget = ({
 export const EndpointsCard = ({
 	state,
 	actions,
+	keys,
 }: {
 	readonly state: EndpointsState;
 	readonly actions: EndpointsActions;
+	readonly keys?: EndpointKeysView | undefined;
 }) => (
 	<div style={{ ...COLUMN, gap: "8px" }}>
 		{state.list.map((endpoint, i) => (
-			// biome-ignore lint/suspicious/noArrayIndexKey: an endpoint has no stable id while its slug is typed
-			<EndpointFields key={i} index={i} endpoint={endpoint} actions={actions} />
+			<EndpointFields
+				// biome-ignore lint/suspicious/noArrayIndexKey: an endpoint has no stable id while its slug is typed
+				key={i}
+				index={i}
+				endpoint={endpoint}
+				actions={actions}
+				keys={keys}
+				// Set key restarts METE, which reloads the card: save the edits first.
+				unsaved={state.dirty}
+			/>
 		))}
 		<SaveTarget state={state} actions={actions} />
 		<div style={ROW}>

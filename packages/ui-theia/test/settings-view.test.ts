@@ -189,7 +189,11 @@ describe("Apply now (ADR-083)", () => {
 });
 
 describe("the custom endpoints card (ADR-087)", () => {
-	const withEndpoints = (target: "global" | "workspace") =>
+	const withEndpoints = (
+		target: "global" | "workspace",
+		activeRuns?: number,
+		dirty = false,
+	) =>
 		renderToStaticMarkup(
 			createElement(SettingsView, {
 				model: LOADED,
@@ -213,7 +217,7 @@ describe("the custom endpoints card (ADR-087)", () => {
 							},
 						],
 						busy: false,
-						dirty: false,
+						dirty,
 					},
 					actions: {
 						onEdit: none,
@@ -222,6 +226,16 @@ describe("the custom endpoints card (ADR-087)", () => {
 						onTarget: none,
 						onSave: none,
 					},
+					...(activeRuns === undefined
+						? {}
+						: {
+								keys: {
+									stateOf: () => ({ key: "sk-typed", busy: false }),
+									onType: none,
+									onSet: none,
+									activeRuns,
+								},
+							}),
 				},
 			}),
 		);
@@ -239,6 +253,23 @@ describe("the custom endpoints card (ADR-087)", () => {
 		expect(card).toContain("Add endpoint");
 		expect(withEndpoints("workspace")).toMatch(
 			/<input type="checkbox" checked=""\/>Save for this folder only/,
+		);
+	});
+
+	it("has a masked key field whose Set key waits while a run is queued or running", () => {
+		const idle = withEndpoints("global", 0);
+		expect(idle).toMatch(/<input id="mete-endpoint-0-key"[^>]*type="password"/);
+		expect(idle).toContain(
+			'<button type="button" class="mete-button">Set key</button>',
+		);
+		const busy = withEndpoints("global", 1);
+		expect(busy).toContain(
+			'<button type="button" class="mete-button" disabled="">Set key</button>',
+		);
+		expect(busy).toContain("setting a key restarts METE");
+		// A key restarts METE, which reloads the card, so unsaved edits are saved first.
+		expect(withEndpoints("global", 0, true)).toContain(
+			'<button type="button" class="mete-button" disabled="">Set key</button>',
 		);
 	});
 });
