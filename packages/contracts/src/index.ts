@@ -78,6 +78,7 @@ export {
 	parseEvent,
 } from "./domain/events.js";
 export { type TaskList, TaskListSchema } from "./domain/game-studio.js";
+export { GatewaySettingsSchema } from "./domain/gateway-settings.js";
 export {
 	ArtifactTypeRefSchema,
 	type CapabilityRef,

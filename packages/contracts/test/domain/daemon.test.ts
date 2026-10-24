@@ -399,6 +399,9 @@ describe("daemon protocol version 14", () => {
 			],
 		};
 		expect(DaemonSettingsResultSchema.parse(answer)).toEqual(answer);
+		// The global save target of the forms (ADR-082), optional.
+		const withGlobal = { ...answer, globalFile: "/g/settings.yaml" };
+		expect(DaemonSettingsResultSchema.parse(withGlobal)).toEqual(withGlobal);
 		for (const bad of [
 			{ sections: [] },
 			{ ...answer, sections: [{ name: "", merged: {} }] },

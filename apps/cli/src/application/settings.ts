@@ -51,5 +51,5 @@ export const settingsOf = async (app: App) => {
 			};
 		}),
 	);
-	return { loadedAt, sections };
+	return { loadedAt, sections, globalFile: layers.global.file };
 };

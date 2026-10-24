@@ -232,6 +232,8 @@ export const DaemonSettingsResultSchema = z.strictObject({
 			workspace: SettingsFileSchema.optional(),
 		}),
 	),
+	// The global settings.yaml, the desktop forms' global save target (ADR-082); optional, as ADR-077 adds.
+	globalFile: z.string().min(1).optional(),
 });
 
 /** Result of `mete/run.approve` and `mete/run.resume`: a request that returns nothing sends null. */

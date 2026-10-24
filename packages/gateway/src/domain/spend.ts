@@ -1,20 +1,12 @@
 import {
 	ANY_PROVIDER,
+	type GatewaySettingsSchema,
 	type ModelInfo,
 	type QuotaUnitSpec,
 } from "@mete/contracts";
-import { z } from "zod";
-import { DAILY_SPEND_USD } from "../defaults.js";
+import type { z } from "zod";
 
 // The model mode and the daily spending cap of ADR-042 (docs/09, Gateway). Pure.
-
-/** The `gateway:` settings section; a workspace may set it in .mete/gateway.yaml. */
-export const GatewaySettingsSchema = z
-	.strictObject({
-		models: z.enum(["free", "paid", "both"]).default("free"),
-		dailySpendUsd: z.number().positive().default(DAILY_SPEND_USD),
-	})
-	.prefault({});
 
 /** Which models are candidates: free ones, paid ones, or free first and then paid. */
 export type ModelMode = z.output<typeof GatewaySettingsSchema>["models"];

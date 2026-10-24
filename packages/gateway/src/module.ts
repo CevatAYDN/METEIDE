@@ -3,6 +3,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import {
 	type CapabilityRef,
 	err,
+	GatewaySettingsSchema,
 	type LlmChatAdapter,
 	type LlmChatRequest,
 	type ModelRef,
@@ -28,7 +29,7 @@ import {
 	resolveChain,
 	usableModels,
 } from "./domain/resolve.js";
-import { GatewaySettingsSchema, spendSpec } from "./domain/spend.js";
+import { spendSpec } from "./domain/spend.js";
 import {
 	createModelCallLog,
 	MODEL_CALL_MIGRATIONS,

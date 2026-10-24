@@ -31,6 +31,3 @@ export const MAX_REQUEST_BYTES = 32 * 1024 * 1024;
 
 /** Tab 07, model_calls: rows follow the event retention of 90 days. */
 export const MODEL_CALL_RETENTION_DAYS = 90;
-
-/** Tab 09, Gateway (ADR-042): the daily spending cap over paid models, in US dollars. */
-export const DAILY_SPEND_USD = 1;

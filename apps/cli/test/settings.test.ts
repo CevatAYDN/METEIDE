@@ -83,6 +83,7 @@ describe("mete/settings", () => {
 		expect(text).not.toContain(token());
 		expect(text).toMatch(/\[SECRET:[0-9a-f]{8}\]/);
 		expect(Date.parse(answer.loadedAt)).not.toBeNaN();
+		expect(answer.globalFile).toBe(join(repo.globalDir, "settings.yaml"));
 		toDaemon.end();
 		expect(await serving).toBe(0);
 		c.dispose();

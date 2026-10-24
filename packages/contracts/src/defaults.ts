@@ -59,3 +59,6 @@ export const TIER_MIN_CONTEXT: Readonly<Record<Tier, number>> = {
 
 /** Tab 09, Gateway: the quota estimate counts this many prompt characters as one token. */
 export const CHARS_PER_TOKEN = 4;
+
+/** Tab 09, Gateway (ADR-042): the daily spending cap over paid models, in US dollars. */
+export const DAILY_SPEND_USD = 1;
