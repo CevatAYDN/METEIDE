@@ -104,6 +104,9 @@ describe("chipsOf", () => {
 		expect(of("failed")?.tone).toBe("bad");
 		expect(of("paused")?.tone).toBe("warn");
 		expect(of("completed")?.tone).toBe("good");
+		expect(of("running")?.tone).toBe("accent");
+		expect(of("queued")?.tone).toBe("muted");
+		expect(of("cancelled")?.tone).toBe("muted");
 	});
 
 	it("draws only what the events say while the run's entry has not come, and nothing for an empty run", () => {

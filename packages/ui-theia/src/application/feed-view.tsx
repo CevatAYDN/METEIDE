@@ -5,7 +5,8 @@ import { type CSSProperties, useState } from "react";
 import { roleWords } from "../domain/roster.js";
 import { type Feed, type FeedLine, feedLine, inFeed } from "./feed-rows.js";
 import { LIST, MUTED, ROW } from "./look.js";
-import { Icon, LINE, TONES } from "./roster-look.js";
+import { Icon, LINE } from "./roster-look.js";
+import { TONES } from "./tone.js";
 
 // The Team view's Activity feed (ADR-092), newest first: segments filter it, Follow off keeps the
 // rows it shows, and a row opens to its event's payload.

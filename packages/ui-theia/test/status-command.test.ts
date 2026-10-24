@@ -33,6 +33,10 @@ vi.mock("../src/infrastructure/home-contribution.js", () => ({
 vi.mock("../src/infrastructure/board-contribution.js", () => ({
 	bindBoard: () => {},
 }));
+// The Changes view loads lumino too; test/changes-view.test.ts covers the view.
+vi.mock("../src/infrastructure/changes-contribution.js", () => ({
+	bindChanges: () => {},
+}));
 // The Audit log view loads lumino and the filesystem browser too; test/audit-view.test.ts covers it.
 vi.mock("../src/infrastructure/audit-contribution.js", () => ({
 	bindAudit: () => {},
@@ -206,7 +210,7 @@ describe("METE: Status", () => {
 		});
 		await two.execute();
 		expect(two.info).toEqual([
-			'2 run(s) in this folder: Paused "fix the bug"; Done "write notes"',
+			'2 runs in this folder: Paused "fix the bug"; Done "write notes"',
 		]);
 
 		const seven = setup(["/w"], {
@@ -235,7 +239,7 @@ describe("METE: Status", () => {
 		});
 		await goal.execute();
 		expect(goal.info).toEqual([
-			String.raw`1 run(s) in this folder: Paused "fix \*the\* bug"`,
+			String.raw`1 run in this folder: Paused "fix \*the\* bug"`,
 		]);
 	});
 

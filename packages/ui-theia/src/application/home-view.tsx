@@ -3,8 +3,9 @@ import { nls } from "@theia/core/lib/common/nls";
 import type { HomeModel, HomeRow } from "../domain/home-model.js";
 import { LIST, MUTED, ROW, SECTION } from "./look.js";
 import { stateText } from "./quota-text.js";
-import { type Act, Button, Runs, when } from "./runs-list.js";
+import { type Act, Button, Runs } from "./runs-list.js";
 import { failureText, noFolderText } from "./status-text.js";
+import { when } from "./time-text.js";
 
 // The sections of the METE view (docs/13, Home; ADR-078): Waiting for you (the approvals inbox of
 // ADR-048), Runs, Workspaces and Quota, each a part of Theia's view container with its own header.

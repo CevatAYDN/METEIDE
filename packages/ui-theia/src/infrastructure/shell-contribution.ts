@@ -8,6 +8,7 @@ import { injectable, type interfaces } from "@theia/core/shared/inversify";
 import { STOP_ALL_COMMAND } from "../application/stop-all-command.js";
 import { OPEN_AUDIT_COMMAND } from "./audit-contribution.js";
 import { OPEN_BOARD_COMMAND, START_RUN_COMMAND } from "./board-contribution.js";
+import { OPEN_CHANGES_COMMAND } from "./changes-contribution.js";
 import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
 import { SHOW_SETTINGS_COMMAND } from "./settings-contribution.js";
 import {
@@ -29,6 +30,7 @@ const ITEMS = [
 	[
 		"2_screens",
 		[
+			OPEN_CHANGES_COMMAND,
 			OPEN_QUOTA_COMMAND,
 			OPEN_AUDIT_COMMAND,
 			NEW_TEAM_COMMAND,

@@ -2,7 +2,7 @@ import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties } from "react";
 import type { DaemonFailure, Settings } from "../domain/status-service.js";
 import { MUTED, PANEL, ROW, TITLE } from "./look.js";
-import { SaveBar } from "./save-bar.js";
+import { SaveBar, type SaveEntry } from "./save-bar.js";
 import { ScopeSwitch } from "./scope-switch.js";
 import type { Target } from "./section-draft.js";
 import {
@@ -12,9 +12,12 @@ import {
 	SETTINGS_LINKS,
 } from "./settings-groups.js";
 import {
+	type Bindings,
 	type Endpoints,
 	type Forms,
 	formOf,
+	type Mcp,
+	type Section,
 	SectionCard,
 	withForms,
 } from "./settings-section.js";
@@ -26,7 +29,7 @@ import { failureText, noFolderText } from "./status-text.js";
 // preferences and language.
 
 export { SETTINGS_LINKS } from "./settings-groups.js";
-export type { Endpoints, Forms } from "./settings-section.js";
+export type { Bindings, Endpoints, Forms, Mcp } from "./settings-section.js";
 
 /** What the screen draws. */
 export type SettingsModel =
@@ -125,6 +128,31 @@ const GroupItem = ({
 	</button>
 );
 
+// The list of groups at the left, the chosen one pressed (ADR-095).
+const GroupList = ({
+	groups,
+	chosen,
+	onGroup,
+}: {
+	readonly groups: readonly Group<Section>[];
+	readonly chosen?: Group<Section> | undefined;
+	readonly onGroup: (group: GroupId) => void;
+}) => (
+	<nav
+		style={LIST}
+		aria-label={nls.localize("mete/groups/list", "Settings groups")}
+	>
+		{groups.map((g) => (
+			<GroupItem
+				key={g.id}
+				group={g}
+				chosen={g.id === chosen?.id}
+				onChoose={() => onGroup(g.id)}
+			/>
+		))}
+	</nav>
+);
+
 // A group's links, for the groups that lead to a command more than to a section.
 const Links = ({
 	ids,
@@ -148,23 +176,42 @@ const Links = ({
 		</div>
 	);
 
+// Everything the scope switch moves and the save bar saves (ADR-095, ADR-096): the forms, then the
+// cards that follow them.
+const saveablesOf = (
+	forms: Forms,
+	bindings?: Bindings | undefined,
+	mcp?: Mcp | undefined,
+): readonly SaveEntry[] => [
+	...Object.entries(forms).flatMap(([name, form]) =>
+		form ? [[name, form] as const] : [],
+	),
+	...(bindings ? [["bindings", bindings] as const] : []),
+	...(mcp ? [["mcp", mcp] as const] : []),
+];
+
 const Loaded = ({
 	settings,
 	actions,
 	forms,
 	endpoints,
+	bindings,
+	mcp,
 	choice,
 }: {
 	readonly settings: Settings;
 	readonly actions: SettingsActions;
 	readonly forms: Forms;
 	readonly endpoints?: Endpoints | undefined;
+	readonly bindings?: Bindings | undefined;
+	readonly mcp?: Mcp | undefined;
 	readonly choice: GroupChoice;
 }) => {
 	const groups = groupsOf(withForms(settings.sections));
 	const chosen = groups.find((g) => g.id === choice.group) ?? groups[0];
+	const saveables = saveablesOf(forms, bindings, mcp);
 	// The forms move together, so the first one tells where they all save.
-	const target = Object.values(forms)[0]?.state.target;
+	const target = saveables[0]?.[1].state.target;
 	return (
 		<>
 			<p style={MUTED}>
@@ -182,19 +229,7 @@ const Loaded = ({
 				/>
 			) : null}
 			<div style={LAYOUT}>
-				<nav
-					style={LIST}
-					aria-label={nls.localize("mete/groups/list", "Settings groups")}
-				>
-					{groups.map((g) => (
-						<GroupItem
-							key={g.id}
-							group={g}
-							chosen={g.id === chosen?.id}
-							onChoose={() => choice.onGroup(g.id)}
-						/>
-					))}
-				</nav>
+				<GroupList groups={groups} chosen={chosen} onGroup={choice.onGroup} />
 				{chosen ? (
 					<div style={BODY}>
 						<h3 style={TITLE}>{chosen.label}</h3>
@@ -204,13 +239,22 @@ const Loaded = ({
 								key={s.name}
 								section={s}
 								onOpen={actions.onOpen}
-								form={formOf(s.name, forms, settings, endpoints)}
+								form={formOf({
+									name: s.name,
+									forms,
+									settings,
+									endpoints,
+									bindings,
+									mcp,
+								})}
 							/>
 						))}
 					</div>
 				) : null}
 			</div>
-			{target ? <SaveBar forms={forms} onSave={actions.onSaveAll} /> : null}
+			{target ? (
+				<SaveBar entries={saveables} onSave={actions.onSaveAll} />
+			) : null}
 		</>
 	);
 };
@@ -257,6 +301,8 @@ export const SettingsView = ({
 	actions,
 	forms = {},
 	endpoints,
+	bindings,
+	mcp,
 	apply = { busy: false, activeRuns: 0 },
 	choice = { group: "models", onGroup: () => {} },
 }: {
@@ -264,6 +310,8 @@ export const SettingsView = ({
 	readonly actions: SettingsActions;
 	readonly forms?: Forms;
 	readonly endpoints?: Endpoints | undefined;
+	readonly bindings?: Bindings | undefined;
+	readonly mcp?: Mcp | undefined;
 	readonly apply?: ApplyState;
 	readonly choice?: GroupChoice;
 }) => (
@@ -292,6 +340,8 @@ export const SettingsView = ({
 				actions={actions}
 				forms={forms}
 				endpoints={endpoints}
+				bindings={bindings}
+				mcp={mcp}
 				choice={choice}
 			/>
 		) : null}

@@ -5,6 +5,9 @@ import type { DaemonFailure, StatusRuns } from "./status-service.js";
 // the providers that cannot help under a run paused for quota (ADR-050). The time the answer was
 // taken travels with it.
 
+/** What a button of the Home inbox asks for. */
+export type HomeAction = "approve" | "revise" | "resume" | "open" | "artifact";
+
 /** One run as the panel lists it. */
 export type HomeRow = {
 	readonly id: string;

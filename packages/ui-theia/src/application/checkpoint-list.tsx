@@ -1,12 +1,11 @@
 import type { CheckpointCard } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
 import { LIST, MUTED, ROW, TITLE } from "./look.js";
+import { when } from "./time-text.js";
 
 // The run's checkpoints under the Team panel's view (ADR-079), newest first, each with Restore. A
 // restore records the state before it as a new checkpoint, which then shows at the top, so the
 // list itself is the undo. No event names a checkpoint's step, so a row shows its number and time.
-
-const when = (iso: string) => new Date(iso).toLocaleString();
 
 const numberOf = (ref: string) => ref.slice(ref.lastIndexOf("/") + 1);
 

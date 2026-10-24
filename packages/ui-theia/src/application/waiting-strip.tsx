@@ -4,7 +4,8 @@ import type { CSSProperties } from "react";
 import { roleWords } from "../domain/roster.js";
 import { LINK, LIST, MUTED, ROW } from "./look.js";
 import { openReportLabel, reportPath } from "./results-list.js";
-import { Icon, LINE, TONES } from "./roster-look.js";
+import { Icon, LINE } from "./roster-look.js";
+import { TONES } from "./tone.js";
 
 // The Team panel's Waiting for you strip for the run it shows (ADR-091): a card for each task the
 // human was asked to approve, naming its member, or one card for a run that waits for anything else.

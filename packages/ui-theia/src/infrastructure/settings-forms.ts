@@ -19,11 +19,30 @@ import type { Forms } from "../application/settings-view.js";
 // click only (ADR-072). A form starts from its target file as it is now, keeps which keys the user
 // changed, and Save writes those into the file read again just before, so nothing else is lost.
 
-const SECTIONS: readonly FormSection[] = ["gateway", "privacy", "policy"];
+const SECTIONS: readonly FormSection[] = [
+	"gateway",
+	"privacy",
+	"policy",
+	"shell",
+];
 
 /** A configuration file's text, or undefined when it does not exist. */
 export const textOf = async (files: FileService, file: URI) =>
 	(await files.exists(file)) ? (await files.read(file)).value : undefined;
+
+/**
+ * Writes a file's new text. A file the edit leaves with no key is deleted, since an empty file is
+ * still a layer that sets nothing; a file that held no key is left as it is (ADR-095).
+ */
+export const writeText = async (
+	files: FileService,
+	file: URI,
+	before: string | undefined,
+	after: string,
+) => {
+	if (after !== "") await files.write(file, after);
+	else if (hasKeys(before)) await files.delete(file);
+};
 
 export class SettingsForms {
 	protected readonly states = new Map<FormSection, FormState>();
@@ -73,8 +92,7 @@ export class SettingsForms {
 		return textOf(this.files, file);
 	}
 
-	// The file edited in place (savedText). A file the edit leaves with no key is deleted, since an
-	// empty file is still a layer that sets nothing; a file that held no key is left as it is.
+	// The file edited in place (savedText), written as writeText writes it.
 	protected async edit(
 		file: URI,
 		section: FormSection,
@@ -84,8 +102,7 @@ export class SettingsForms {
 		const before = await this.textOf(file);
 		const r = savedText(before, section, target, changes);
 		if (!r.ok) return r;
-		if (r.value !== "") await this.files.write(file, r.value);
-		else if (hasKeys(before)) await this.files.delete(file);
+		await writeText(this.files, file, before, r.value);
 		return r;
 	}
 

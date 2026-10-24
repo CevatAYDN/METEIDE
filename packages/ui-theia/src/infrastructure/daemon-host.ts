@@ -4,6 +4,7 @@ import {
 	DAEMON_METHODS,
 	DaemonAuditResultSchema,
 	DaemonChainResultSchema,
+	DaemonChangesResultSchema,
 	DaemonCheckpointRestoreResultSchema,
 	DaemonDoneResultSchema,
 	DaemonErrorDataSchema,
@@ -244,6 +245,14 @@ const reads = (send: Send) => ({
 	audit: (dir: string, filter: object) =>
 		send(dir, DAEMON_METHODS.audit, filter, (raw) =>
 			DaemonAuditResultSchema.safeParse(raw),
+		),
+	/** The folder's working tree, for the Changes panel (ADR-100). */
+	changes: (dir: string, path?: string) =>
+		send(
+			dir,
+			DAEMON_METHODS.changes,
+			path === undefined ? {} : { path },
+			(raw) => DaemonChangesResultSchema.safeParse(raw),
 		),
 	/** Each provider's state (ADR-050). */
 	quota: (dir: string) =>

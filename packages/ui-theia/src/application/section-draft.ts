@@ -5,16 +5,18 @@ import {
 	PolicySchema,
 	PrivacyConfigSchema,
 	type Result,
+	ShellConfigSchema,
 } from "@mete/contracts";
 import { isMap, parseDocument } from "yaml";
 import type { ZodType } from "zod";
+import { type Doc, isEmpty } from "./yaml-section.js";
 
 // The Settings forms' files (ADR-082): a section edited in place in its YAML file, this folder's
 // `.mete/<section>.yaml` or the section key of the global settings.yaml, so other keys and comments
 // stay. Only the keys the form changed are set or removed; a key the file does not set stays unset.
 
 /** The sections that have a form. */
-export type FormSection = "gateway" | "privacy" | "policy";
+export type FormSection = "gateway" | "privacy" | "policy" | "shell";
 
 /** One field of a form: where it lives in the section, and what it holds. */
 export type FieldSpec = {
@@ -25,7 +27,8 @@ export type FieldSpec = {
 				readonly options: readonly (string | number)[];
 		  }
 		| { readonly type: "number"; readonly integer?: boolean }
-		| { readonly type: "switch" };
+		| { readonly type: "switch" }
+		| { readonly type: "text" };
 };
 
 /** The fields of each form, in the order the form shows them. */
@@ -48,12 +51,21 @@ export const FORM_FIELDS: {
 		},
 		{ path: ["budget", "max_hours"], kind: { type: "number" } },
 	],
+	// docs/10, Built-in tools: which shell runs a command on Windows, and where Git Bash is.
+	shell: [
+		{
+			path: ["windows"],
+			kind: { type: "choice", options: ["powershell", "git-bash"] },
+		},
+		{ path: ["gitBashPath"], kind: { type: "text" } },
+	],
 };
 
 const SCHEMAS: { readonly [S in FormSection]: ZodType } = {
 	gateway: GatewaySettingsSchema,
 	privacy: PrivacyConfigSchema,
 	policy: PolicySchema,
+	shell: ShellConfigSchema,
 };
 
 /** Where a form saves: this folder's file of the section, or the global settings.yaml. */
@@ -135,8 +147,6 @@ export const draftOf = (
 	);
 };
 
-type Doc = ReturnType<typeof parseDocument>;
-
 /** Whether the text sets any key; a missing, empty or comment-only file sets none. */
 export const hasKeys = (text: string | undefined): boolean => {
 	const { contents } = parseDocument(text ?? "");
@@ -159,11 +169,6 @@ const setOrClear = (doc: Doc, at: readonly string[], value: FieldValue) => {
 	doc.deleteIn(at);
 	prune(doc, at);
 };
-
-// An empty document prints as `null` and an empty map as `{}`: write nothing, as for a file not set.
-const isEmpty = (doc: Doc) =>
-	doc.contents === null ||
-	(isMap(doc.contents) && doc.contents.items.length === 0);
 
 /**
  * The file's new text with the changed fields set, or removed when cleared; refused with the schema's

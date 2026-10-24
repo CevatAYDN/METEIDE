@@ -12,7 +12,11 @@ describe("the inbox badge", () => {
 		const badge = new MeteInboxBadge();
 		badge.set(2);
 		expect(badge.decorate(tab("mete.view"))).toEqual([
-			{ badge: 2, tooltip: "2 run(s) wait for you" },
+			{ badge: 2, tooltip: "2 runs wait for you" },
+		]);
+		badge.set(1);
+		expect(badge.decorate(tab("mete.view"))).toEqual([
+			{ badge: 1, tooltip: "1 run waits for you" },
 		]);
 		expect(badge.decorate(tab("mete.board"))).toEqual([]);
 		badge.set(0);

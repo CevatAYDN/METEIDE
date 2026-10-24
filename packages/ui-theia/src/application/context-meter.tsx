@@ -3,19 +3,12 @@ import type { CSSProperties } from "react";
 import { CONTEXT_WARN_SHARE } from "../defaults.js";
 import type { Member } from "../domain/roster.js";
 import { MUTED } from "./look.js";
-import { Icon, LINE, TONES } from "./roster-look.js";
+import { tokenCount } from "./numbers.js";
+import { Icon, LINE } from "./roster-look.js";
+import { TONES } from "./tone.js";
 
 // A Team view row's context line (ADR-090): the latest call's share of its model's context window,
 // and the tokens and calls of every agent of the role.
-
-/** A token count with a fixed k or M suffix, the same in every language: 61k, 1.2M. */
-export const tokenCount = (n: number): string => {
-	const short = (x: number) =>
-		x < 10 ? x.toFixed(1).replace(/\.0$/, "") : String(Math.round(x));
-	if (n < 1_000) return String(n);
-	// From 999.5k on the k count would round to 1000k, so it is written in M.
-	return n < 999_500 ? `${short(n / 1_000)}k` : `${short(n / 1_000_000)}M`;
-};
 
 /** The listed context window of each model, by `<providerId>/<modelId>` (ADR-090). */
 export type Windows = Readonly<Record<string, number>>;

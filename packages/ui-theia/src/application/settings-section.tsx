@@ -2,6 +2,11 @@ import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties, ReactNode } from "react";
 import { stringify } from "yaml";
 import type { Settings } from "../domain/status-service.js";
+import {
+	type BindingsActions,
+	BindingsCard,
+	type BindingsState,
+} from "./bindings-card.js";
 import type { EndpointKeysView } from "./endpoint-key.js";
 import type { EndpointTestsView } from "./endpoint-test.js";
 import {
@@ -10,6 +15,7 @@ import {
 	type EndpointsState,
 } from "./endpoints-card.js";
 import { LINK, MUTED, TITLE } from "./look.js";
+import { type McpActions, McpCard, type McpState } from "./mcp-card.js";
 import { type FormSection, layerOf } from "./section-draft.js";
 import { SectionForm } from "./section-form.js";
 import {
@@ -52,8 +58,28 @@ export type Endpoints = {
 	readonly tests?: EndpointTestsView | undefined;
 };
 
+/** The bindings card of the tools group (ADR-096): its state and actions. */
+export type Bindings = {
+	readonly state: BindingsState;
+	readonly actions: BindingsActions;
+};
+
+/** The MCP servers card of the tools group (ADR-097): its state and actions. */
+export type Mcp = {
+	readonly state: McpState;
+	readonly actions: McpActions;
+};
+
 // The sections with a form or a card always show, also when no file sets them.
-const ALWAYS: readonly string[] = ["gateway", "policy", "privacy", "providers"];
+const ALWAYS: readonly string[] = [
+	"bindings",
+	"gateway",
+	"mcp",
+	"policy",
+	"privacy",
+	"providers",
+	"shell",
+];
 
 export const withForms = (sections: readonly Section[]): readonly Section[] =>
 	[
@@ -163,15 +189,32 @@ export const SectionCard = ({
 	</section>
 );
 
-// A section's form, if it has one, under what METE loaded.
-export const formOf = (
-	name: string,
-	forms: Forms,
-	settings: Settings,
-	endpoints?: Endpoints,
-): ReactNode => {
-	if (name === "providers")
-		return endpoints ? <EndpointsCard {...endpoints} /> : undefined;
+/** What a section's card needs to draw its form: the loaded settings and the cards' stores. */
+export type FormParts = {
+	readonly name: string;
+	readonly forms: Forms;
+	readonly settings: Settings;
+	readonly endpoints?: Endpoints | undefined;
+	readonly bindings?: Bindings | undefined;
+	readonly mcp?: Mcp | undefined;
+};
+
+// The sections whose card is not one of ADR-082's forms: a card of their own, with its store.
+const CARDS: {
+	readonly [name: string]: (parts: FormParts) => ReactNode;
+} = {
+	providers: ({ endpoints }) =>
+		endpoints ? <EndpointsCard {...endpoints} /> : undefined,
+	bindings: ({ bindings }) =>
+		bindings ? <BindingsCard {...bindings} /> : undefined,
+	mcp: ({ mcp }) => (mcp ? <McpCard {...mcp} /> : undefined),
+};
+
+// A section's form or card, if it has one, under what METE loaded.
+export const formOf = (parts: FormParts): ReactNode => {
+	const { name, forms, settings } = parts;
+	const card = Object.hasOwn(CARDS, name) ? CARDS[name] : undefined;
+	if (card) return card(parts);
 	const form = forms[name as FormSection];
 	if (!form) return undefined;
 	const loaded = settings.sections.find((s) => s.name === name);

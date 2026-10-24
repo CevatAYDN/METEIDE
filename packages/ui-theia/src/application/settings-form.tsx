@@ -1,5 +1,6 @@
 import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties } from "react";
+import { optionLabel } from "./labels.js";
 import { MUTED, ROW } from "./look.js";
 import {
 	type Draft,
@@ -13,6 +14,12 @@ import {
 // A Settings form (ADR-082): the fields of one section of the target file, each empty until the user
 // sets it, with the default as its placeholder; Save writes only what the user changed.
 
+/** What a save said, or why it wrote nothing (ADR-082). */
+export type SaveNote = {
+	readonly kind: "saved" | "refused";
+	readonly text: string;
+};
+
 /** One form's state, which the widget keeps. */
 export type FormState = {
 	readonly target: Target;
@@ -23,9 +30,7 @@ export type FormState = {
 	readonly busy: boolean;
 	/** Whether the user changed a field since the file was read; Save waits for a change. */
 	readonly dirty: boolean;
-	readonly note?:
-		| { readonly kind: "saved" | "refused"; readonly text: string }
-		| undefined;
+	readonly note?: SaveNote | undefined;
 };
 
 /** What a form asks the widget for. */
@@ -71,22 +76,9 @@ const LABELS: Readonly<Record<string, () => string>> = {
 		nls.localize("mete/settings/cloudRequests", "Cloud requests per run"),
 	"budget.max_hours": () =>
 		nls.localize("mete/settings/maxHours", "Hours per run"),
+	windows: () => nls.localize("mete/settings/windowsShell", "Windows shell"),
+	gitBashPath: () => nls.localize("mete/settings/gitBashPath", "Git Bash path"),
 };
-
-const OPTIONS: Readonly<Record<string, () => string>> = {
-	free: () => nls.localize("mete/settings/free", "Free models only"),
-	paid: () => nls.localize("mete/settings/paid", "Paid models only"),
-	both: () => nls.localize("mete/settings/both", "Free first, then paid"),
-	"0": () => nls.localize("mete/settings/level0", "0: suggest only"),
-	"1": () => nls.localize("mete/settings/level1", "1: approve each step"),
-	"2": () => nls.localize("mete/settings/level2", "2: approve risky actions"),
-	"3": () => nls.localize("mete/settings/level3", "3: full autonomy"),
-	true: () => nls.localize("mete/settings/yes", "Yes"),
-	false: () => nls.localize("mete/settings/no", "No"),
-};
-
-export const optionLabel = (v: string | number | boolean | undefined) =>
-	OPTIONS[String(v)]?.() ?? String(v);
 
 // A number shows its default as it is; a choice by its option's name.
 const defaultLabel = (text: string) =>
@@ -124,6 +116,56 @@ const Choice = ({
 	</select>
 );
 
+// The input a field's kind asks for: a number, a line of text, or a choice.
+const Value = ({
+	id,
+	kind,
+	value,
+	fallback,
+	onChange,
+}: {
+	readonly id: string;
+	readonly kind: FieldSpec["kind"];
+	readonly value: FieldValue;
+	readonly fallback: FieldValue;
+	readonly onChange: (v: FieldValue) => void;
+}) => {
+	if (kind.type === "number")
+		return (
+			<input
+				id={id}
+				className="mete-field"
+				type="number"
+				step={kind.integer ? 1 : "any"}
+				value={value === undefined ? "" : String(value)}
+				placeholder={defaultLabel(String(fallback))}
+				onChange={(e) =>
+					onChange(e.target.value === "" ? undefined : Number(e.target.value))
+				}
+			/>
+		);
+	if (kind.type === "text")
+		return (
+			<input
+				id={id}
+				className="mete-field"
+				value={value === undefined ? "" : String(value)}
+				onChange={(e) =>
+					onChange(e.target.value === "" ? undefined : e.target.value)
+				}
+			/>
+		);
+	return (
+		<Choice
+			id={id}
+			options={kind.type === "switch" ? [true, false] : kind.options}
+			value={value}
+			fallback={fallback}
+			onChange={onChange}
+		/>
+	);
+};
+
 const Field = ({
 	spec,
 	state,
@@ -134,35 +176,17 @@ const Field = ({
 	readonly onField: FormActions["onField"];
 }) => {
 	const key = spec.path.join(".");
-	const set = (v: FieldValue) => onField(key, v);
-	const value = state.values[key];
-	const fallback = state.defaults[key];
-	const kind = spec.kind;
 	const id = `mete-setting-${key}`;
 	return (
 		<div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
 			<label htmlFor={id}>{LABELS[key]?.() ?? key}</label>
-			{kind.type === "number" ? (
-				<input
-					id={id}
-					className="mete-field"
-					type="number"
-					step={kind.integer ? 1 : "any"}
-					value={value === undefined ? "" : String(value)}
-					placeholder={defaultLabel(String(fallback))}
-					onChange={(e) =>
-						set(e.target.value === "" ? undefined : Number(e.target.value))
-					}
-				/>
-			) : (
-				<Choice
-					id={id}
-					options={kind.type === "switch" ? [true, false] : kind.options}
-					value={value}
-					fallback={fallback}
-					onChange={set}
-				/>
-			)}
+			<Value
+				id={id}
+				kind={spec.kind}
+				value={state.values[key]}
+				fallback={state.defaults[key]}
+				onChange={(v) => onField(key, v)}
+			/>
 		</div>
 	);
 };
@@ -207,8 +231,14 @@ export const SaveButton = ({
 	</button>
 );
 
+/** What a card shows of a save: where it writes, and what the last one said. */
+export type NoteState = {
+	readonly file?: string | undefined;
+	readonly note?: SaveNote | undefined;
+};
+
 /** The file the form saves to, and what the last save said. */
-export const FormNote = ({ state }: { readonly state: FormState }) => (
+export const FormNote = ({ state }: { readonly state: NoteState }) => (
 	<>
 		{state.file ? (
 			<span style={MUTED} title={state.file}>

@@ -76,7 +76,13 @@ describe("METE: Stop all", () => {
 		});
 		await two.execute();
 		expect(two.asked).toEqual(["/w"]);
-		expect(two.info).toEqual(["Stop all cancelled 2 run(s)."]);
+		expect(two.info).toEqual(["Stop all cancelled 2 runs."]);
+		const one = setup(["/w"], {
+			ok: true,
+			value: { cancelled: [crypto.randomUUID()] },
+		});
+		await one.execute();
+		expect(one.info).toEqual(["Stop all cancelled 1 run."]);
 		const none = setup(["/w"], { ok: true, value: { cancelled: [] } });
 		await none.execute();
 		expect(none.info).toEqual([

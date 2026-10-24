@@ -4,7 +4,8 @@ import type { CSSProperties } from "react";
 import { type Member, type MemberState, roleWords } from "../domain/roster.js";
 import { Context, type Windows } from "./context-meter.js";
 import { LIST, MUTED } from "./look.js";
-import { Icon, LINE, TONES, type Tone } from "./roster-look.js";
+import { Icon, LINE } from "./roster-look.js";
+import { TONES, type Tone } from "./tone.js";
 
 // The Team panel's fourth view (ADR-089): one row per role with its tier, model, state and what it
 // does now. Icons are Theia's codicons; each state is an icon and a word, never a colour alone.

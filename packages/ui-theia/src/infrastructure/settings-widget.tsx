@@ -14,6 +14,7 @@ import { FileService } from "@theia/filesystem/lib/browser/file-service";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import type { EndpointsActions } from "../application/endpoints-card.js";
 import { panelRoot } from "../application/panel-root.js";
+import type { Target } from "../application/section-draft.js";
 import type { GroupId } from "../application/settings-groups.js";
 import {
 	type ApplyState,
@@ -22,9 +23,11 @@ import {
 } from "../application/settings-view.js";
 import { activeRunsOf } from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
+import { BindingsForm } from "./bindings-form.js";
 import { EndpointKeys } from "./endpoint-keys.js";
 import { EndpointTests } from "./endpoint-tests.js";
 import { EndpointsForm } from "./endpoints-form.js";
+import { McpForm } from "./mcp-form.js";
 import { SettingsForms } from "./settings-forms.js";
 
 // The read-only Settings screen (docs/13; ADR-081) of the first open folder: it asks the daemon
@@ -45,6 +48,8 @@ export class MeteSettingsWidget extends ReactWidget {
 	protected model: SettingsModel = { kind: "loading" };
 	protected forms: SettingsForms | undefined;
 	protected endpoints: EndpointsForm | undefined;
+	protected bindings: BindingsForm | undefined;
+	protected mcp: McpForm | undefined;
 	protected keys: EndpointKeys | undefined;
 	protected tests: EndpointTests | undefined;
 	protected apply: ApplyState = { busy: false, activeRuns: 0 };
@@ -72,6 +77,8 @@ export class MeteSettingsWidget extends ReactWidget {
 		this.toDispose.push(this.themes.onDidColorThemeChange(() => this.update()));
 		this.forms = new SettingsForms(this.files, () => this.update());
 		this.endpoints = new EndpointsForm(this.files, () => this.update());
+		this.bindings = new BindingsForm(this.files, () => this.update());
+		this.mcp = new McpForm(this.files, () => this.update());
 		this.keys = new EndpointKeys({
 			setKey: (id, key) => this.daemon.setKey(id, key),
 			activeRuns: () => this.folderRuns(),
@@ -106,6 +113,8 @@ export class MeteSettingsWidget extends ReactWidget {
 		if (!r.ok) return;
 		await this.forms?.load(root.resource, r.value.globalFile);
 		await this.endpoints?.load(root.resource, r.value.globalFile);
+		await this.bindings?.load(root.resource, r.value.globalFile);
+		await this.mcp?.load(root.resource, r.value.globalFile);
 	}
 
 	// Runs a restart would pause (ADR-083): queued or running ones; none when the status fails.
@@ -183,6 +192,22 @@ export class MeteSettingsWidget extends ReactWidget {
 		};
 	}
 
+	// The scope switch (ADR-095) moves every form and the two cards that follow it (ADR-096, ADR-097).
+	protected async scope(target: Target): Promise<void> {
+		await Promise.all([
+			this.forms?.retargetAll(target),
+			this.bindings?.retarget(target),
+			this.mcp?.retarget(target),
+		]);
+	}
+
+	// The save bar (ADR-095) saves every changed form and the two cards (ADR-096, ADR-097).
+	protected async saveAll(): Promise<void> {
+		await this.forms?.saveAll();
+		await this.bindings?.save();
+		await this.mcp?.save();
+	}
+
 	protected setModel(model: SettingsModel): void {
 		this.model = model;
 		this.update();
@@ -195,6 +220,8 @@ export class MeteSettingsWidget extends ReactWidget {
 					model={this.model}
 					forms={this.forms?.forms() ?? {}}
 					endpoints={this.endpointsView()}
+					bindings={this.bindings?.form()}
+					mcp={this.mcp?.form()}
 					apply={this.apply}
 					choice={{
 						group: this.group,
@@ -208,8 +235,8 @@ export class MeteSettingsWidget extends ReactWidget {
 						onCommand: (id) => void this.commands.executeCommand(id),
 						onOpen: (file) => void open(this.openers, URI.fromFilePath(file)),
 						onRefresh: () => void this.refresh(),
-						onScope: (target) => void this.forms?.retargetAll(target),
-						onSaveAll: () => void this.forms?.saveAll(),
+						onScope: (target) => void this.scope(target),
+						onSaveAll: () => void this.saveAll(),
 					}}
 				/>
 			</div>

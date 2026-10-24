@@ -89,6 +89,10 @@ export class MeteDaemonBackend
 		return this.host.audit(workspaceDir, filter);
 	}
 
+	changes(workspaceDir: string, path?: string) {
+		return this.host.changes(workspaceDir, path);
+	}
+
 	quota(workspaceDir: string) {
 		return this.host.quota(workspaceDir);
 	}

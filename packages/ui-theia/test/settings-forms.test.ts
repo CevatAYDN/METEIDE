@@ -65,8 +65,13 @@ describe("the scope switch and Reset (ADR-095)", () => {
 		forms.forms().gateway?.actions.onField("dailySpendUsd", 2);
 		await forms.retargetAll("global");
 		const states = Object.values(forms.forms()).map((f) => f.state);
-		expect(states).toHaveLength(3);
-		expect(states.map((s) => s.target)).toEqual(["global", "global", "global"]);
+		expect(states).toHaveLength(4);
+		expect(states.map((s) => s.target)).toEqual([
+			"global",
+			"global",
+			"global",
+			"global",
+		]);
 		expect(forms.forms().privacy?.state.values.allowTraining).toBe(true);
 		expect(forms.forms().policy?.state.values.autonomy).toBe(1);
 		expect(forms.forms().gateway?.state.values.dailySpendUsd).toBe(2);
@@ -122,6 +127,43 @@ describe("the scope switch and Reset (ADR-095)", () => {
 	});
 });
 
+describe("the shell form (ADR-098)", () => {
+	const settle = () => new Promise((r) => setTimeout(r, 0));
+
+	it("reads which shell runs a command on Windows, and saves the choice it changed", async () => {
+		const shell = WORK.resolve(".mete/shell.yaml").path.fsPath();
+		const { files, disk } = fakeFiles({
+			[shell]:
+				"windows: git-bash\ngitBashPath: C:/Program Files/Git/bin/bash.exe\n",
+		});
+		const forms = new SettingsForms(files, () => {});
+		await forms.load(WORK, GLOBAL);
+		expect(forms.forms().shell?.state.values).toEqual({
+			windows: "git-bash",
+			gitBashPath: "C:/Program Files/Git/bin/bash.exe",
+		});
+		forms.forms().shell?.actions.onField("windows", "powershell");
+		await forms.saveAll();
+		// The path stays: it is the form's to clear, and the schema takes it with any shell.
+		expect(disk.get(shell)).toBe(
+			"windows: powershell\ngitBashPath: C:/Program Files/Git/bin/bash.exe\n",
+		);
+	});
+
+	it("refuses git-bash without its path, as the schema does", async () => {
+		const shell = WORK.resolve(".mete/shell.yaml").path.fsPath();
+		const { files, disk } = fakeFiles({});
+		const forms = new SettingsForms(files, () => {});
+		await forms.load(WORK, GLOBAL);
+		forms.forms().shell?.actions.onField("windows", "git-bash");
+		await forms.saveAll();
+		await settle();
+		expect(disk.has(shell)).toBe(false);
+		expect(forms.forms().shell?.state.note?.kind).toBe("refused");
+		expect(forms.forms().shell?.state.dirty).toBe(true);
+	});
+});
+
 describe("the one save bar (ADR-095)", () => {
 	const settle = () => new Promise((r) => setTimeout(r, 0));
 	const fileOf = (s: string) => WORK.resolve(`.mete/${s}.yaml`).path.fsPath();
@@ -137,7 +179,7 @@ describe("the one save bar (ADR-095)", () => {
 		expect(disk.get(fileOf("policy"))).toBe("autonomy: 3\n");
 		expect(disk.has(fileOf("privacy"))).toBe(false);
 		const states = Object.values(forms.forms()).map((f) => f.state.dirty);
-		expect(states).toEqual([false, false, false]);
+		expect(states).toEqual([false, false, false, false]);
 	});
 
 	it("keeps a refused form changed, with its note, and still saves the others", async () => {

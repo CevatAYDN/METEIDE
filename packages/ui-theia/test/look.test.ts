@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { SHAPE, TOKEN_NAMES } from "@mete/ui-kit";
 import { describe, expect, it } from "vitest";
 import * as look from "../src/application/look.js";
+import { TONES } from "../src/application/tone.js";
 
 // The design system of docs/13 as the panels use it (ADR-069): every colour names a METE token with
 // a Theia colour as its fallback, so a high-contrast theme keeps Theia's look; the stylesheet carries
@@ -18,13 +19,21 @@ const vars = (text: string) =>
 
 describe("the panels' look", () => {
 	it("gives every METE token a Theia fallback, in the shared styles and the stylesheet", () => {
-		const styles = JSON.stringify(Object.values(look));
+		const styles = JSON.stringify([
+			...Object.values(look),
+			...Object.values(TONES),
+		]);
 		const tokens = new Set<string>(TOKEN_NAMES);
 		const used = [...vars(styles), ...vars(CSS)].filter((v) =>
 			tokens.has(v.name),
 		);
 		expect(used.length).toBeGreaterThan(0);
 		for (const v of used) expect(v.fallback).toContain("var(--theia-");
+	});
+
+	it("colours every chip tone the status map uses", () => {
+		for (const tone of ["accent", "warn", "good", "bad", "muted"])
+			expect(CSS).toContain(`.mete-chip.${tone}`);
 	});
 
 	it("leaves no Theia colour in a view except as a METE token's fallback", () => {

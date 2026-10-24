@@ -8,6 +8,7 @@ import type { ViewContainer } from "@theia/core/lib/browser/view-container";
 import { nls } from "@theia/core/lib/common/nls";
 import type { Widget } from "@theia/core/shared/@lumino/widgets";
 import { inject, injectable } from "@theia/core/shared/inversify";
+import { waitingBadgeText } from "../application/status-text.js";
 import { waitingCount } from "../domain/home-model.js";
 import { MeteHomeStore } from "./home-store.js";
 
@@ -46,11 +47,7 @@ export class MeteWaitingStatusBar implements FrontendApplicationContribution {
 		if (count === 0) return this.statusBar.removeElement(WAITING_ID);
 		await this.statusBar.setElement(WAITING_ID, {
 			text: `$(bell-dot) ${nls.localize("mete/home/waitingCount", "{0} waiting for you", count)}`,
-			tooltip: nls.localize(
-				"mete/home/waitingBadge",
-				"{0} run(s) wait for you",
-				count,
-			),
+			tooltip: waitingBadgeText(count),
 			alignment: StatusBarAlignment.LEFT,
 			priority: 999,
 			command: SHOW_WAITING_COMMAND.id,

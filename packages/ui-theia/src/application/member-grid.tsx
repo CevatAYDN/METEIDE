@@ -1,9 +1,9 @@
 import { TierSchema } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import { MUTED } from "./look.js";
-import { TONES } from "./roster-look.js";
 import type { MemberView, TeamView } from "./team-draft.js";
 import { tierLabel } from "./team-view.js";
+import { TONES } from "./tone.js";
 
 // The members of the team editor as tiles (ADR-093): one per member, the chosen one pressed; its form
 // shows beside the grid. A tile says who the member is and whether it has work, never its fields.

@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { tokenCount } from "../src/application/context-meter.js";
+import { tokenCount } from "../src/application/numbers.js";
 import {
 	stateLook,
 	TeamView,

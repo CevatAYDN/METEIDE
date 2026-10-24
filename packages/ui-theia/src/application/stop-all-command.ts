@@ -30,17 +30,20 @@ export const STOP_ALL_COMMAND: Command = Command.toLocalizedCommand(
 );
 
 /** Says how many runs Stop all cancelled. */
-export const stopAllText = (cancelled: number) =>
-	cancelled === 0
-		? nls.localize(
-				"mete/stopAll/none",
-				"No run was going on; Stop all cancelled none.",
-			)
+export const stopAllText = (cancelled: number) => {
+	if (cancelled === 0)
+		return nls.localize(
+			"mete/stopAll/none",
+			"No run was going on; Stop all cancelled none.",
+		);
+	return cancelled === 1
+		? nls.localize("mete/stopAll/oneCancelled", "Stop all cancelled 1 run.")
 		: nls.localize(
 				"mete/stopAll/cancelled",
-				"Stop all cancelled {0} run(s).",
+				"Stop all cancelled {0} runs.",
 				cancelled,
 			);
+};
 
 @injectable()
 export class MeteStopAllContribution

@@ -1,3 +1,4 @@
+import { EMPTY_TEAM_VIEW } from "@mete/ui-studio";
 import { createElement, Fragment } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -6,7 +7,8 @@ import {
 	RunsSection,
 	WaitingSection,
 } from "../src/application/home-view.js";
-import { shortWhen } from "../src/application/runs-list.js";
+import { chipsOf } from "../src/application/run-strip.js";
+import { shortWhen } from "../src/application/time-text.js";
 import {
 	parentTail,
 	type Workspace,
@@ -94,7 +96,7 @@ describe("the Home view", () => {
 				{
 					ok: true,
 					value: [
-						run("paused", "fix <the> bug", "research"),
+						run("paused", "fix <the> bug", "web-dev"),
 						run("completed", "notes", null),
 					],
 				},
@@ -103,13 +105,32 @@ describe("the Home view", () => {
 		);
 		expect(out).toContain('<span class="mete-chip warn">Paused</span>');
 		expect(out).toContain("fix &lt;the&gt; bug");
-		expect(out).toContain(" · research");
-		expect(out).toContain('<span class="mete-chip ">Done</span>');
+		expect(out).toContain(" · Web dev");
+		expect(out).toContain('<span class="mete-chip good">Done</span>');
 		// The snapshot's time is Refresh's tooltip, beside New run, above the list.
 		expect(out).toMatch(
 			/<button type="button" class="mete-button quiet" title="As of [^"]+">Refresh</,
 		);
 		expect(out.indexOf(">Refresh<")).toBeLessThan(out.indexOf("notes"));
+	});
+
+	it("gives a run's status the same tone in the list as in the run strip (ADR-094)", () => {
+		const statuses = [
+			"queued",
+			"running",
+			"paused",
+			"completed",
+			"failed",
+			"cancelled",
+		] as const;
+		for (const status of statuses) {
+			const entry = run(status, "a goal", null);
+			const chip = chipsOf({ run: entry }, EMPTY_TEAM_VIEW, new Date(AT))[0];
+			const out = html(homeModel({ ok: true, value: [entry] }, AT));
+			expect(out).toContain(
+				`<span class="mete-chip ${chip?.tone}">${chip?.text}</span>`,
+			);
+		}
 	});
 
 	it("shows a run of today by its hour and an older one with its day, the whole time in the tooltip", () => {

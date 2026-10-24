@@ -191,6 +191,58 @@ describe("the Settings forms (ADR-082)", () => {
 		expect(gateway).not.toMatch(/>Save<\/button>/);
 	});
 
+	it("shows the shell form: a choice of shell, and the Git Bash path", () => {
+		const page = renderToStaticMarkup(
+			createElement(SettingsView, {
+				model: LOADED,
+				actions: {
+					onApply: none,
+					onCommand: none,
+					onOpen: none,
+					onRefresh: none,
+					onScope: none,
+					onSaveAll: none,
+				},
+				forms: {
+					shell: {
+						state: {
+							target: "workspace",
+							file: "/w/.mete/shell.yaml",
+							values: {
+								windows: "git-bash",
+								gitBashPath: "C:/Program Files/Git/bin/bash.exe",
+							},
+							defaults: { windows: "powershell", gitBashPath: undefined },
+							busy: false,
+							dirty: false,
+						},
+						actions: {
+							onField: none,
+							onTarget: none,
+							onSave: none,
+							onClear: none,
+						},
+					},
+				},
+				choice: { group: "tools", onGroup: none },
+			}),
+		);
+		const card = page.slice(page.indexOf('aria-label="Which shell"'));
+		expect(card).toContain(
+			'<label for="mete-setting-windows">Windows shell</label>',
+		);
+		expect(card).toContain(
+			'<option value="git-bash" selected="">Git Bash</option>',
+		);
+		expect(card).toContain(
+			'<option value="">Default (Windows PowerShell)</option>',
+		);
+		expect(card).toContain(
+			'<label for="mete-setting-gitBashPath">Git Bash path</label>',
+		);
+		expect(card).toContain('value="C:/Program Files/Git/bin/bash.exe"');
+	});
+
 	it("leaves the target to the switch at the top, which is off for All folders without a global file", () => {
 		const out = withForms(LOADED);
 		expect(out).not.toContain("Save for every folder");
@@ -469,6 +521,187 @@ describe("the custom endpoints card (ADR-087)", () => {
 		expect(running).toContain(
 			'<button type="button" class="mete-button" disabled="">Testing…</button>',
 		);
+	});
+});
+
+describe("the bindings card (ADR-096)", () => {
+	const withBindings = (
+		rows: { capability: string; adapters: string }[],
+		state: Partial<{ dirty: boolean; busy: boolean }> = {},
+	) =>
+		renderToStaticMarkup(
+			createElement(SettingsView, {
+				model: LOADED,
+				actions: {
+					onApply: none,
+					onCommand: none,
+					onOpen: none,
+					onRefresh: none,
+					onScope: none,
+					onSaveAll: none,
+				},
+				bindings: {
+					state: {
+						target: "workspace",
+						file: "/w/.mete/bindings.yaml",
+						rows,
+						busy: false,
+						dirty: false,
+						...state,
+					},
+					actions: { onRow: none, onAdd: none, onRemove: none },
+				},
+				choice: { group: "tools", onGroup: none },
+			}),
+		);
+
+	it("shows a row per capability with its hint, Add and the file it saves to", () => {
+		const out = withBindings([
+			{ capability: "web.search@1", adapters: "exa-mcp, tavily" },
+		]);
+		const card = out.slice(out.indexOf('aria-label="Tool adapters"'));
+		expect(card).toContain('value="web.search@1"');
+		expect(card).toContain('value="exa-mcp, tavily"');
+		expect(card).toContain("One row per capability");
+		expect(card).toContain("web.search@1 → exa-mcp, tavily");
+		expect(card).toContain("Add capability");
+		expect(card).toContain(
+			'title="/w/.mete/bindings.yaml">Saves to .mete/bindings.yaml<',
+		);
+		expect(card).toMatch(/<button[^>]*>Remove<\/button>/);
+		// The switch and the bar own the target and the save: the card has neither.
+		expect(card).not.toMatch(/>Save<\/button>/);
+		expect(card).not.toContain("Save for this folder only");
+	});
+
+	it("shows the card also when no file sets the section", () => {
+		const out = withBindings([]);
+		expect(out).toContain('aria-label="Tool adapters"');
+		expect(out).toContain("No file sets this section; its defaults apply.");
+		expect(out).not.toContain("mete-binding-0-capability");
+	});
+
+	it("is one of the forms the save bar saves", () => {
+		const out = withBindings([{ capability: "web.search@1", adapters: "" }], {
+			dirty: true,
+		});
+		expect(out).toContain("Unsaved changes: bindings");
+		expect(out).toMatch(/>Save changes</);
+	});
+});
+
+describe("the MCP servers card (ADR-097)", () => {
+	const server = (fields: Record<string, unknown>) => ({
+		id: "",
+		transport: "",
+		runtime: "",
+		command: "",
+		args: "",
+		env: "",
+		url: "",
+		sha256: "",
+		auth: "",
+		permissions: [] as string[],
+		...fields,
+	});
+	const withMcp = (
+		servers: ReturnType<typeof server>[],
+		state: Partial<{ dirty: boolean; busy: boolean }> = {},
+	) =>
+		renderToStaticMarkup(
+			createElement(SettingsView, {
+				model: LOADED,
+				actions: {
+					onApply: none,
+					onCommand: none,
+					onOpen: none,
+					onRefresh: none,
+					onScope: none,
+					onSaveAll: none,
+				},
+				mcp: {
+					state: {
+						target: "workspace",
+						file: "/w/.mete/mcp.yaml",
+						servers,
+						busy: false,
+						dirty: false,
+						...state,
+					},
+					actions: {
+						onField: none,
+						onPermission: none,
+						onAdd: none,
+						onRemove: none,
+					},
+				},
+				choice: { group: "tools", onGroup: none },
+			}),
+		);
+
+	it("shows a local server's command, arguments, environment and permissions", () => {
+		const out = withMcp([
+			server({
+				id: "blender",
+				transport: "stdio",
+				runtime: "python",
+				command: "uvx",
+				args: "blender-mcp==1.2.0",
+				env: "BLENDER_HOST=127.0.0.1",
+				permissions: ["fs.read"],
+			}),
+		]);
+		const card = out.slice(out.indexOf('aria-label="MCP servers"'));
+		expect(card).toContain('value="blender"');
+		expect(card).toContain('<option value="stdio" selected="">');
+		expect(card).toContain('<option value="python" selected="">');
+		expect(card).toContain('value="uvx"');
+		expect(card).toContain("blender-mcp==1.2.0</textarea>");
+		expect(card).toContain("BLENDER_HOST=127.0.0.1</textarea>");
+		expect(card).toContain(
+			'<input id="mete-mcp-0-permissions-fs.read" type="checkbox" checked=""/>',
+		);
+		expect(card).toContain("Add server");
+		expect(card).toContain(
+			'title="/w/.mete/mcp.yaml">Saves to .mete/mcp.yaml<',
+		);
+		// The download belongs to a binary server only.
+		expect(card).not.toContain("SHA-256");
+	});
+
+	it("shows a remote server's URL and sign-in, and a binary server's download", () => {
+		const remote = withMcp([
+			server({
+				id: "hf-spaces",
+				transport: "streamable-http",
+				url: "https://huggingface.co/mcp",
+				auth: "oauth",
+			}),
+		]);
+		const card = remote.slice(remote.indexOf('aria-label="MCP servers"'));
+		expect(card).toContain('<option value="streamable-http" selected="">');
+		expect(card).toContain('value="https://huggingface.co/mcp"');
+		expect(card).toContain('<option value="oauth" selected="">');
+		expect(card).not.toContain('id="mete-mcp-0-command"');
+		expect(card).not.toContain('id="mete-mcp-0-runtime"');
+		const binary = withMcp([
+			server({
+				id: "native",
+				transport: "stdio",
+				runtime: "binary",
+				command: "native-server",
+				url: "https://example.test/server.zip",
+				sha256: "a".repeat(64),
+			}),
+		]);
+		expect(binary).toContain('id="mete-mcp-0-sha256"');
+		expect(binary).toContain('value="https://example.test/server.zip"');
+	});
+
+	it("is one of the forms the save bar saves", () => {
+		const out = withMcp([server({ id: "blender" })], { dirty: true });
+		expect(out).toContain("Unsaved changes: mcp");
+		expect(out).toMatch(/>Save changes</);
 	});
 });
 

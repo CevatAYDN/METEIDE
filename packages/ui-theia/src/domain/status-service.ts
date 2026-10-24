@@ -2,6 +2,7 @@ import type {
 	ApprovalInput,
 	AuditEntry,
 	DaemonChainResultSchema,
+	DaemonChangesResultSchema,
 	DaemonCheckpointRestoreResultSchema,
 	DaemonEstimateResultSchema,
 	DaemonModelsResultSchema,
@@ -48,6 +49,9 @@ export type ModelFacts = ReturnType<typeof DaemonModelsResultSchema.parse>;
 export type Restored = ReturnType<
 	typeof DaemonCheckpointRestoreResultSchema.parse
 >;
+
+/** What `mete/changes` answers (ADR-100): the folder's working tree and one file's diff. */
+export type Changes = ReturnType<typeof DaemonChangesResultSchema.parse>;
 
 /** What `mete/settings` answers (ADR-081): the loaded configuration, merged and per file. */
 export type Settings = ReturnType<typeof DaemonSettingsResultSchema.parse>;
@@ -189,6 +193,11 @@ export interface MeteDaemonService {
 		providerId: string,
 		models: readonly string[],
 	): Promise<Result<EndpointTest, DaemonFailure>>;
+	/** The open folder's working tree, and one file's diff when `path` names it (ADR-100). */
+	changes(
+		workspaceDir: string,
+		path?: string,
+	): Promise<Result<Changes, DaemonFailure>>;
 	/** Restores a paused or ended run's checkpoint by the id of its checkpoint.created event (ADR-079). */
 	checkpointRestore(
 		workspaceDir: string,

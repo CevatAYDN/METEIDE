@@ -20,3 +20,6 @@ export const FEED_EVENTS = 200;
 
 /** The context share from which the Team view's bar takes the warning colour: 80% (04 Decisions, ADR-090). */
 export const CONTEXT_WARN_SHARE = 0.8;
+
+/** Lines of one file's diff the Changes panel draws, the rest left out: 500 (04 Decisions, ADR-100). */
+export const DIFF_LINES = 500;

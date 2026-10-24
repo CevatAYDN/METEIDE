@@ -1,11 +1,25 @@
 import { nls } from "@theia/core/lib/common/nls";
 import { MUTED, ROW } from "./look.js";
-import { shortPath } from "./settings-form.js";
-import type { Forms } from "./settings-section.js";
+import type { Target } from "./section-draft.js";
+import { type SaveNote, shortPath } from "./settings-form.js";
 
 // The Settings screen's one save bar (ADR-095): it saves every changed form, each to its own file,
 // whichever group shows them. A form that has a problem is named by its file, since its own message is
 // in a group that may not be on screen.
+
+/** What the bar needs of a form or a card that saves to a file (ADR-095, ADR-096). */
+export type Saveable = {
+	readonly state: {
+		readonly target: Target;
+		readonly file?: string | undefined;
+		readonly busy: boolean;
+		readonly dirty: boolean;
+		readonly note?: SaveNote | undefined;
+	};
+};
+
+/** A form with the name the bar prints for it: its section's id. */
+export type SaveEntry = readonly [name: string, form: Saveable];
 
 const BAR = {
 	position: "sticky",
@@ -17,17 +31,16 @@ const BAR = {
 
 /** The save bar; Save changes waits for a change and for a save in flight. */
 export const SaveBar = ({
-	forms,
+	entries,
 	onSave,
 }: {
-	readonly forms: Forms;
+	readonly entries: readonly SaveEntry[];
 	readonly onSave: () => void;
 }) => {
-	const all = Object.entries(forms).flatMap(([name, f]) =>
-		f ? [{ name, state: f.state }] : [],
-	);
-	const changed = all.filter((f) => f.state.dirty).map((f) => f.name);
-	const problems = all.flatMap((f) =>
+	const changed = entries
+		.filter(([, f]) => f.state.dirty)
+		.map(([name]) => name);
+	const problems = entries.flatMap(([, f]) =>
 		f.state.note?.kind === "refused" && f.state.file
 			? [shortPath(f.state.file)]
 			: [],
@@ -39,7 +52,9 @@ export const SaveBar = ({
 				<button
 					type="button"
 					className="mete-button"
-					disabled={changed.length === 0 || all.some((f) => f.state.busy)}
+					disabled={
+						changed.length === 0 || entries.some(([, f]) => f.state.busy)
+					}
 					onClick={onSave}
 				>
 					{label}

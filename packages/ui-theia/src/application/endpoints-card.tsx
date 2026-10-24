@@ -5,7 +5,7 @@ import { type EndpointTestsView, TestPanel } from "./endpoint-test.js";
 import type { EndpointDraft } from "./endpoints-draft.js";
 import { MUTED, ROW } from "./look.js";
 import type { Target } from "./section-draft.js";
-import { shortPath } from "./settings-form.js";
+import { FormNote, type SaveNote } from "./settings-form.js";
 
 // The custom endpoints card of the providers section (ADR-087): one set of fields per endpoint, Add
 // and Remove, and Save to the global settings.yaml or, on request, this folder's providers.yaml.
@@ -18,9 +18,7 @@ export type EndpointsState = {
 	readonly list: readonly EndpointDraft[];
 	readonly busy: boolean;
 	readonly dirty: boolean;
-	readonly note?:
-		| { readonly kind: "saved" | "refused"; readonly text: string }
-		| undefined;
+	readonly note?: SaveNote | undefined;
 };
 
 /** What the card asks the widget for. */
@@ -282,19 +280,6 @@ export const EndpointsCard = ({
 				{nls.localize("mete/settings/save", "Save")}
 			</button>
 		</div>
-		{state.file ? (
-			<span style={MUTED} title={state.file}>
-				{nls.localize(
-					"mete/settings/savesTo",
-					"Saves to {0}",
-					shortPath(state.file),
-				)}
-			</span>
-		) : null}
-		{state.note ? (
-			<p role={state.note.kind === "refused" ? "alert" : undefined}>
-				{state.note.text}
-			</p>
-		) : null}
+		<FormNote state={state} />
 	</div>
 );

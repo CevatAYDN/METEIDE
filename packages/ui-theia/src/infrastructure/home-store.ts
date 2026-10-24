@@ -16,9 +16,9 @@ import {
 } from "../application/approval-commands.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { SET_KEY_COMMAND } from "../application/key-command.js";
-import type { HomeAction } from "../application/runs-list.js";
 import type { Workspace } from "../application/workspaces-section.js";
 import {
+	type HomeAction,
 	type HomeModel,
 	homeModel,
 	runsHere,

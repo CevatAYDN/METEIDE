@@ -2,11 +2,11 @@ import type { TeamView } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
 import { roleWords } from "../domain/roster.js";
 import type { StatusRuns } from "../domain/status-service.js";
-import { tokenCount } from "./context-meter.js";
-import type { Tone } from "./roster-look.js";
-import { shortWhen } from "./runs-list.js";
-import { optionLabel } from "./settings-form.js";
-import { statusWord } from "./status-text.js";
+import { optionLabel } from "./labels.js";
+import { tokenCount } from "./numbers.js";
+import { statusTone, statusWord } from "./status-text.js";
+import { shortWhen } from "./time-text.js";
+import type { Tone } from "./tone.js";
 
 // The run strip's chips (ADR-094): facts the run already has, as an icon, a word and a tone. The run's
 // own entry of `mete/status` gives its status, team, times, autonomy and limits; the fold of its events
@@ -34,13 +34,13 @@ export type RunEntry = StatusRuns[number];
 
 type Status = RunEntry["status"];
 
-const STATUS: Readonly<Record<Status, Pick<Chip, "icon" | "tone">>> = {
-	queued: { icon: "clock", tone: "muted" },
-	running: { icon: "play", tone: "accent" },
-	paused: { icon: "debug-pause", tone: "warn" },
-	completed: { icon: "pass", tone: "good" },
-	failed: { icon: "error", tone: "bad" },
-	cancelled: { icon: "circle-slash", tone: "muted" },
+const STATUS_ICON: Readonly<Record<Status, string>> = {
+	queued: "clock",
+	running: "play",
+	paused: "debug-pause",
+	completed: "pass",
+	failed: "error",
+	cancelled: "circle-slash",
 };
 
 /** How long a run took, in minutes and hours; a still reading, since the run is over. */
@@ -166,7 +166,8 @@ export const chipsOf = (
 			? [
 					{
 						key: "status",
-						...STATUS[run.status],
+						icon: STATUS_ICON[run.status],
+						tone: statusTone(run.status),
 						text: statusWord(run.status),
 					},
 					teamChip(facts, run),

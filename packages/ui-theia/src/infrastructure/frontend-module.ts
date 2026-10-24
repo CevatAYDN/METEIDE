@@ -12,6 +12,7 @@ import {
 import { MeteArtifactContribution } from "./artifact-command.js";
 import { bindAudit } from "./audit-contribution.js";
 import { bindBoard } from "./board-contribution.js";
+import { bindChanges } from "./changes-contribution.js";
 import { bindHome } from "./home-contribution.js";
 import { bindQuota } from "./quota-contribution.js";
 import { bindSettings } from "./settings-contribution.js";
@@ -40,6 +41,7 @@ export default new ContainerModule((bind) => {
 	bind(CommandContribution).to(MeteArtifactContribution).inSingletonScope();
 	bindHome(bind);
 	bindBoard(bind);
+	bindChanges(bind);
 	bindAudit(bind);
 	bindQuota(bind);
 	bindStopAll(bind);

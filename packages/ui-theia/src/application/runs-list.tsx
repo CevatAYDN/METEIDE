@@ -1,33 +1,18 @@
 import type { ProviderState } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties } from "react";
-import type { HomeRow } from "../domain/home-model.js";
+import type { HomeAction, HomeRow } from "../domain/home-model.js";
+import { roleWords } from "../domain/roster.js";
 import { LINK, LIST, MUTED, ROW } from "./look.js";
 import { stateText } from "./quota-text.js";
-import { runsText, statusWord } from "./status-text.js";
+import { runsText, statusTone, statusWord } from "./status-text.js";
+import { shortWhen, when } from "./time-text.js";
 
 // The run list of the METE view's Runs section (docs/13, Home; ADR-078), and the pieces the other
 // sections share with it: the inbox actions and the button.
 
-/** What a button of the inbox asks for. */
-export type HomeAction = "approve" | "revise" | "resume" | "open" | "artifact";
-
+/** What a section asks the store to do with a run. */
 export type Act = (action: HomeAction, runId: string) => void;
-
-export const when = (iso: string) => new Date(iso).toLocaleString();
-
-const HOUR = { hour: "2-digit", minute: "2-digit" } as const;
-
-/**
- * A run's time as the narrow list shows it: the hour and minute for a run of today, with the day and
- * month for an older one; the tooltip keeps the whole time. Absolute, so it never goes stale.
- */
-export const shortWhen = (iso: string, now = new Date()) => {
-	const at = new Date(iso);
-	return at.toDateString() === now.toDateString()
-		? at.toLocaleTimeString(undefined, HOUR)
-		: at.toLocaleString(undefined, { day: "numeric", month: "short", ...HOUR });
-};
 
 export const Button = ({
 	label,
@@ -72,12 +57,9 @@ const OpenGoal = ({
 	</button>
 );
 
-// A run's state as a chip: waiting and paused ask for a look, a failure stands out.
-const toneOf = (row: HomeRow) => {
-	if (row.waiting || row.status === "paused") return "warn";
-	if (row.status === "failed") return "bad";
-	return row.status === "running" ? "good" : "";
-};
+// A run's state as a chip: a waiting run asks for a look, the rest takes its status's tone.
+const toneOf = (row: HomeRow) =>
+	row.waiting ? "warn" : statusTone(row.status);
 
 // A long goal takes two lines in the narrow side bar; the tooltip keeps it whole.
 const CLAMP: CSSProperties = {
@@ -126,7 +108,7 @@ const RunItem = ({
 			<span className={`mete-chip ${toneOf(row)}`}>
 				{statusWord(row.status)}
 			</span>
-			{row.templateId ? ` · ${row.templateId}` : ""} ·{" "}
+			{row.templateId ? ` · ${roleWords(row.templateId)}` : ""} ·{" "}
 			<span title={when(row.createdAt)}>{shortWhen(row.createdAt)}</span>
 		</span>
 		{row.quotaPaused && blocked.length > 0 ? (

@@ -1,5 +1,6 @@
 import { nls } from "@theia/core/lib/common/nls";
 import type { DaemonFailure, StatusRuns } from "../domain/status-service.js";
+import type { Tone } from "./tone.js";
 
 // The words of "METE: Status"; every string goes through Theia's localization (docs/05).
 
@@ -70,24 +71,49 @@ const STATUS_WORD: Record<StatusRuns[number]["status"], () => string> = {
 	cancelled: () => nls.localize("mete/strip/cancelled", "Cancelled"),
 };
 
+// The tone of a run's status, shared by the Runs list and the run strip (ADR-094).
+const STATUS_TONE: Record<StatusRuns[number]["status"], Tone> = {
+	queued: "muted",
+	running: "accent",
+	paused: "warn",
+	completed: "good",
+	failed: "bad",
+	cancelled: "muted",
+};
+
 /** A run's status as a word. */
 export const statusWord = (status: StatusRuns[number]["status"]) =>
 	STATUS_WORD[status]();
+
+/** A run's status as a tone, the same in every list that shows it. */
+export const statusTone = (status: StatusRuns[number]["status"]): Tone =>
+	STATUS_TONE[status];
 
 /** Says why the daemon gave no runs, with what it reported; `prepare` readies outside text. */
 export const failureText = ({ code, detail }: DaemonFailure, prepare = asIs) =>
 	FAILURE[code](prepare(detail));
 
+/** The tooltip of the count of runs that wait for the user. */
+export const waitingBadgeText = (count: number) =>
+	count === 1
+		? nls.localize("mete/home/oneWaitingBadge", "1 run waits for you")
+		: nls.localize("mete/home/waitingBadge", "{0} runs wait for you", count);
+
 /** Counts the runs of the folder and names the newest ones by status and goal. */
-export const runsText = (runs: StatusRuns, prepare = asIs) =>
-	runs.length === 0
-		? nls.localize("mete/status/none", "No runs in this folder yet.")
+export const runsText = (runs: StatusRuns, prepare = asIs) => {
+	if (runs.length === 0)
+		return nls.localize("mete/status/none", "No runs in this folder yet.");
+	const shown =
+		runs
+			.slice(0, SHOWN_RUNS)
+			.map((r) => `${statusWord(r.status)} "${prepare(r.goal)}"`)
+			.join("; ") + moreText(runs.length - SHOWN_RUNS);
+	return runs.length === 1
+		? nls.localize("mete/status/oneRun", "1 run in this folder: {0}", shown)
 		: nls.localize(
 				"mete/status/runs",
-				"{0} run(s) in this folder: {1}",
+				"{0} runs in this folder: {1}",
 				runs.length,
-				runs
-					.slice(0, SHOWN_RUNS)
-					.map((r) => `${statusWord(r.status)} "${prepare(r.goal)}"`)
-					.join("; ") + moreText(runs.length - SHOWN_RUNS),
+				shown,
 			);
+};

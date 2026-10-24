@@ -1,6 +1,7 @@
 import type { TeamView } from "@mete/ui-studio";
-import { Icon, LINE, TONES } from "./roster-look.js";
+import { Icon, LINE } from "./roster-look.js";
 import { type Chip, chipsOf, type RunFacts } from "./run-strip.js";
+import { TONES } from "./tone.js";
 
 // The run strip (ADR-094): the run's facts as chips under its goal, in every view of the Team panel.
 

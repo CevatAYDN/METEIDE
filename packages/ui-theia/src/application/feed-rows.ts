@@ -1,7 +1,7 @@
 import type { MeteEvent } from "@mete/contracts";
 import type { TeamView } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
-import type { Tone } from "./roster-look.js";
+import type { Tone } from "./tone.js";
 
 // The Team view's Activity feed (ADR-092): one row per event that says who did what or who asked
 // whom, in the words of the Team view. One literal nls.localize call per sentence, so Theia's

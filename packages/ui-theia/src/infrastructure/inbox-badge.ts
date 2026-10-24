@@ -1,9 +1,9 @@
 import type { TabBarDecorator } from "@theia/core/lib/browser/shell/tab-bar-decorator";
 import type { WidgetDecoration } from "@theia/core/lib/browser/widget-decoration";
 import { Emitter } from "@theia/core/lib/common/event";
-import { nls } from "@theia/core/lib/common/nls";
 import type { Title, Widget } from "@theia/core/shared/@lumino/widgets";
 import { injectable } from "@theia/core/shared/inversify";
+import { waitingBadgeText } from "../application/status-text.js";
 
 // The Approvals inbox badge (docs/13): the count of runs that wait for the human, on the METE view's
 // icon in the side bar (ADR-078). The view's store sets it on every answer it draws, so it is as fresh as the inbox under it.
@@ -30,11 +30,7 @@ export class MeteInboxBadge implements TabBarDecorator {
 		return [
 			{
 				badge: this.count,
-				tooltip: nls.localize(
-					"mete/home/waitingBadge",
-					"{0} run(s) wait for you",
-					this.count,
-				),
+				tooltip: waitingBadgeText(this.count),
 			},
 		];
 	}
