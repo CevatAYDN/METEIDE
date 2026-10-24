@@ -40,10 +40,6 @@ vi.mock("../src/infrastructure/audit-contribution.js", () => ({
 vi.mock("../src/infrastructure/quota-contribution.js", () => ({
 	bindQuota: () => {},
 }));
-// The run composer's screen loads lumino too; test/composer-view.test.ts covers the screen.
-vi.mock("../src/infrastructure/composer-contribution.js", () => ({
-	bindComposer: () => {},
-}));
 // Stop all's keybinding and status bar types load lumino too; test/stop-all-command.test.ts covers it.
 vi.mock("../src/infrastructure/stop-all-contribution.js", () => ({
 	bindStopAll: () => {},

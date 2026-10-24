@@ -27,7 +27,6 @@
 			"inProgress": "In progress",
 			"inReview": "In review",
 			"loading": "Reading the run's events…",
-			"noRun": "Choose a run with METE: Open team panel.",
 			"noTasks": "This run has no tasks: a single agent works without a board.",
 			"open": "Open team panel",
 			"recent": "Latest events",
@@ -38,8 +37,7 @@
 		},
 		"category": "METE",
 		"composer": {
-			"title": "Start a run",
-			"caption": "METE: start a run"
+			"title": "Start a run"
 		},
 		"home": {
 			"approve": "Approve",

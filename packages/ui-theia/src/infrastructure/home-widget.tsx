@@ -17,7 +17,7 @@ import {
 import { SET_KEY_COMMAND } from "../application/key-command.js";
 import { panelRoot } from "../application/panel-root.js";
 import { WorkspacesSection } from "../application/workspaces-section.js";
-import { START_RUN_COMMAND } from "./composer-contribution.js";
+import { START_RUN_COMMAND } from "./board-contribution.js";
 import { MeteHomeStore } from "./home-store.js";
 import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
 

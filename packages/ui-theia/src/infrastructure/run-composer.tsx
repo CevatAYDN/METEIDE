@@ -1,17 +1,8 @@
 import { CommandService, MessageService } from "@theia/core";
-import { ThemeService } from "@theia/core/lib/browser/theming";
-import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
-import { codicon } from "@theia/core/lib/browser/widgets/widget";
+import { Emitter } from "@theia/core/lib/common/event";
 import { nls } from "@theia/core/lib/common/nls";
-import type { Message } from "@theia/core/shared/@lumino/messaging";
-import {
-	inject,
-	injectable,
-	postConstruct,
-} from "@theia/core/shared/inversify";
+import { inject, injectable } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
-// The design system of docs/13 on every METE panel (ADR-069); the bundle inlines its font.
-import "../../style/mete.css";
 import {
 	type ComposerOption,
 	narrowedTo,
@@ -22,25 +13,35 @@ import {
 	type ComposerModel,
 	ComposerView,
 } from "../application/composer-view.js";
-import { panelRoot } from "../application/panel-root.js";
 import { failureText } from "../application/status-text.js";
 import { MeteDaemonService } from "../domain/status-service.js";
-import { OPEN_BOARD_COMMAND } from "./board-contribution.js";
 import { EDIT_TEAM_COMMAND } from "./team-editor-contribution.js";
 
-// The run composer (docs/13, Run composer; ADR-071) of the first open folder: it asks the daemon for
-// the templates and each one's estimate every time it opens, so a new `.mete/teams/` file shows.
+// The run composer (docs/13, Run composer; ADR-071) of the first open folder, shown by the Team panel
+// while it shows no run (ADR-078): it asks the daemon for the templates and each one's estimate every
+// time it is shown, so a new `.mete/teams/` file shows, and a started run takes the panel's place.
 
-/** The METE run composer in Theia's main area. */
+/** A run the composer started, in its folder. */
+export type StartedRun = {
+	readonly dir: string;
+	readonly runId: string;
+	readonly goal: string;
+};
+
+/** The METE run composer: its state and requests; the Team panel draws it. */
 @injectable()
-export class MeteComposerWidget extends ReactWidget {
-	static readonly ID = "mete.composer";
-
+export class MeteRunComposer {
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;
 	@inject(WorkspaceService) protected readonly workspace!: WorkspaceService;
-	@inject(ThemeService) protected readonly themes!: ThemeService;
 	@inject(CommandService) protected readonly commands!: CommandService;
 	@inject(MessageService) protected readonly messages!: MessageService;
+
+	protected readonly changed = new Emitter<void>();
+	/** Fires when the composer needs drawing again. */
+	readonly onDidChange = this.changed.event;
+	protected readonly startedRun = new Emitter<StartedRun>();
+	/** Fires with a run the composer started. */
+	readonly onDidStart = this.startedRun.event;
 
 	protected model: ComposerModel = { kind: "loading" };
 	protected dir: string | undefined;
@@ -52,28 +53,11 @@ export class MeteComposerWidget extends ReactWidget {
 	protected error: string | undefined;
 	protected pending: Promise<void> | undefined;
 
-	@postConstruct()
-	protected init(): void {
-		this.id = MeteComposerWidget.ID;
-		this.title.label = nls.localize("mete/composer/title", "Start a run");
-		this.title.caption = nls.localize(
-			"mete/composer/caption",
-			"METE: start a run",
-		);
-		this.title.iconClass = codicon("play");
-		this.title.closable = true;
-		// The panel takes the tokens of Theia's theme (ADR-069): draw again on a change.
-		this.toDispose.push(this.themes.onDidColorThemeChange(() => this.update()));
-		void this.refresh();
-	}
-
-	// Opening the screen puts the cursor in the goal field (docs/13: keyboard-first), and coming back
-	// to it asks for the teams again (ADR-071), so a team saved meanwhile shows; the first open's
-	// refresh is still loading then, so it is not asked twice.
-	protected override onActivateRequest(msg: Message): void {
-		super.onActivateRequest(msg);
-		this.node.querySelector("textarea")?.focus();
-		if (this.model.kind === "ready" && !this.busy) void this.refresh();
+	// Coming back to the composer asks for the teams again (ADR-071), so a team saved meanwhile
+	// shows; a refresh still loading or a start in flight is not asked twice.
+	/** Asks again unless a start is in flight; the panel calls it whenever it shows the composer. */
+	reopen(): Promise<void> {
+		return this.busy ? Promise.resolve() : this.refresh();
 	}
 
 	/** Asks the daemon of the first open folder for its templates and their estimates. */
@@ -107,19 +91,20 @@ export class MeteComposerWidget extends ReactWidget {
 	}
 
 	// Start sends the goal and the pick; an unsure router narrows the list in place (ADR-047), and a
-	// started run opens in the Team panel.
+	// started run takes the composer's place in the Team panel.
 	protected async start(): Promise<void> {
 		const option = this.options().find((o) => o.key === this.selected);
-		if (!this.dir || !option || this.busy || !this.goal.trim()) return;
+		const dir = this.dir;
+		if (!dir || !option || this.busy || !this.goal.trim()) return;
 		this.busy = true;
 		this.error = undefined;
-		this.update();
-		const r = await this.daemon.startRun(this.dir, startOf(this.goal, option));
+		this.changed.fire();
+		const r = await this.daemon.startRun(dir, startOf(this.goal, option));
 		this.busy = false;
-		if (r.ok) return this.started(r.value.runId);
+		if (r.ok) return this.started(dir, r.value.runId);
 		if (r.error.code === "choose_template") this.narrow(r.error.suggestions);
 		else this.error = failureText(r.error);
-		this.update();
+		this.changed.fire();
 	}
 
 	protected options(): readonly ComposerOption[] {
@@ -132,44 +117,44 @@ export class MeteComposerWidget extends ReactWidget {
 		this.setModel({ kind: "ready", options, unsure: true });
 	}
 
-	protected started(runId: string): void {
+	protected started(dir: string, runId: string): void {
+		const goal = this.goal;
 		void this.messages.info(
 			nls.localize("mete/run/started", "Run started: {0}", runId),
 		);
 		this.goal = "";
 		this.selected = "choose";
 		this.setModel({ kind: "ready", options: this.all, unsure: false });
-		void this.commands.executeCommand(OPEN_BOARD_COMMAND.id, runId);
+		this.startedRun.fire({ dir, runId, goal });
 	}
 
 	protected setModel(model: ComposerModel): void {
 		this.model = model;
-		this.update();
+		this.changed.fire();
 	}
 
-	protected override render() {
+	/** The composer's screen. */
+	render() {
 		return (
-			<div {...panelRoot(this.themes.getCurrentTheme().type)}>
-				<ComposerView
-					model={this.model}
-					goal={this.goal}
-					selected={this.selected}
-					busy={this.busy}
-					error={this.error}
-					onGoal={(goal) => {
-						this.goal = goal;
-						this.update();
-					}}
-					onSelect={(key) => {
-						this.selected = key;
-						this.update();
-					}}
-					onStart={() => void this.start()}
-					onEdit={(id) =>
-						void this.commands.executeCommand(EDIT_TEAM_COMMAND.id, id)
-					}
-				/>
-			</div>
+			<ComposerView
+				model={this.model}
+				goal={this.goal}
+				selected={this.selected}
+				busy={this.busy}
+				error={this.error}
+				onGoal={(goal) => {
+					this.goal = goal;
+					this.changed.fire();
+				}}
+				onSelect={(key) => {
+					this.selected = key;
+					this.changed.fire();
+				}}
+				onStart={() => void this.start()}
+				onEdit={(id) =>
+					void this.commands.executeCommand(EDIT_TEAM_COMMAND.id, id)
+				}
+			/>
 		);
 	}
 }

@@ -168,8 +168,8 @@ describe("the Board view", () => {
 		expect(out).not.toContain('aria-label="To do"');
 	});
 
-	it("asks for a run, says it is reading, or shows why it failed", () => {
-		expect(html({ kind: "no_run" })).toContain("METE: Open team panel");
+	it("says it is reading, or shows why it failed; with no run the widget shows the composer (ADR-078)", () => {
+		expect(html({ kind: "no_run" })).not.toContain("<p>");
 		expect(html({ kind: "loading" })).toContain("Reading the run");
 		const failed = html({
 			kind: "failed",

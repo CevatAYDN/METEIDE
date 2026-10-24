@@ -14,6 +14,8 @@ export default defineConfig({
 				"src/infrastructure/*-widget.tsx",
 				// The Home widget's Theia glue, moved out so the METE view's sections share it (ADR-078).
 				"src/infrastructure/home-store.ts",
+				// The composer widget's Theia glue, now held by the Team panel (ADR-078).
+				"src/infrastructure/run-composer.tsx",
 				"src/infrastructure/*-view.tsx",
 				"src/infrastructure/backend-module.ts",
 				"src/infrastructure/daemon-service.ts",

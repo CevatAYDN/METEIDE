@@ -22,11 +22,13 @@ import { panelRoot } from "../application/panel-root.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { FlowView } from "./flow-view.js";
 import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
+import { MeteRunComposer } from "./run-composer.js";
 import { StudioView } from "./studio-view.js";
 
-// The Team panel (docs/13; ADR-051): one chosen run on the Board or as the Flow graph. The order of
-// history and live events is the session's (application/board-session.ts); the widget listens, asks
-// and draws. Its id stays mete.board from when the Board was its only view (ids are not shown).
+// The Team panel (docs/13; ADR-051): one chosen run on the Board, as the Flow graph or in the Studio,
+// and the run composer while it shows no run (ADR-078), so a started run takes the composer's place.
+// The order of history and live events is the session's (application/board-session.ts); the widget
+// listens, asks and draws. Its id stays mete.board from when the Board was its only view.
 
 /** The METE Team panel in Theia's main area. */
 @injectable()
@@ -37,11 +39,14 @@ export class MeteBoardWidget extends ReactWidget {
 	@inject(MeteDaemonEvents) protected readonly events!: MeteDaemonEvents;
 	@inject(ThemeService) protected readonly themes!: ThemeService;
 	@inject(CommandService) protected readonly commands!: CommandService;
+	@inject(MeteRunComposer) protected readonly composer!: MeteRunComposer;
 
 	protected session: BoardSession = IDLE_BOARD;
 	/** False while the panel is hidden, so the Studio's stage stops (docs/13, Performance and access). */
 	protected shown = true;
 	protected mode: TeamMode = "board";
+	/** True while the panel shows the composer, which it also shows before any run. */
+	protected composing = true;
 
 	@postConstruct()
 	protected init(): void {
@@ -60,15 +65,43 @@ export class MeteBoardWidget extends ReactWidget {
 				this.setSession(receiveBoard(this.session, workspaceDir, event)),
 			),
 		);
+		this.toDispose.push(this.composer.onDidChange(() => this.update()));
+		this.toDispose.push(
+			this.composer.onDidStart(
+				({ dir, runId, goal }) => void this.showRun(dir, runId, goal),
+			),
+		);
+		void this.composer.reopen();
 		this.update();
+	}
+
+	/** Shows the run composer in place of the run. */
+	showComposer(): Promise<void> {
+		this.composing = true;
+		this.update();
+		return this.composer.reopen();
 	}
 
 	/** Shows the run: its history first, then its live events. */
 	async showRun(dir: string, runId: string, goal: string): Promise<void> {
+		this.composing = false;
 		const shown = { dir, runId, goal };
 		this.setSession(startBoard(shown));
 		const r = await this.daemon.events(dir, runId);
 		this.setSession(loadedBoard(this.session, shown, r));
+	}
+
+	// Coming to the composer puts the cursor in the goal field (docs/13: keyboard-first) and asks for
+	// the teams again (ADR-071).
+	protected override onActivateRequest(msg: Message): void {
+		super.onActivateRequest(msg);
+		if (!this.showsComposer()) return;
+		this.node.querySelector("textarea")?.focus();
+		void this.composer.reopen();
+	}
+
+	protected showsComposer() {
+		return this.composing || this.session.model.kind === "no_run";
 	}
 
 	protected override onAfterShow(msg: Message): void {
@@ -92,28 +125,34 @@ export class MeteBoardWidget extends ReactWidget {
 	protected override render() {
 		return (
 			<div {...panelRoot(this.themes.getCurrentTheme().type)}>
-				<BoardView
-					model={this.session.model}
-					controls={{
-						mode: this.mode,
-						onMode: (mode) => {
-							this.mode = mode;
-							this.update();
-						},
-						flow: (view) => <FlowView view={view} />,
-						studio: (view, pulse) => (
-							<StudioView
-								view={view}
-								active={this.shown}
-								onCoffee={() =>
-									void this.commands.executeCommand(OPEN_QUOTA_COMMAND.id)
-								}
-								{...(pulse ? { pulse } : {})}
-							/>
-						),
-					}}
-				/>
+				{this.showsComposer() ? this.composer.render() : this.board()}
 			</div>
+		);
+	}
+
+	protected board() {
+		return (
+			<BoardView
+				model={this.session.model}
+				controls={{
+					mode: this.mode,
+					onMode: (mode) => {
+						this.mode = mode;
+						this.update();
+					},
+					flow: (view) => <FlowView view={view} />,
+					studio: (view, pulse) => (
+						<StudioView
+							view={view}
+							active={this.shown}
+							onCoffee={() =>
+								void this.commands.executeCommand(OPEN_QUOTA_COMMAND.id)
+							}
+							{...(pulse ? { pulse } : {})}
+						/>
+					),
+				}}
+			/>
 		);
 	}
 }

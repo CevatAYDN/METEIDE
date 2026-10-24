@@ -245,14 +245,6 @@ export const BoardView = ({
 	readonly controls: TeamControls;
 }) => (
 	<section style={BOARD} aria-live="polite">
-		{model.kind === "no_run" ? (
-			<p>
-				{nls.localize(
-					"mete/board/noRun",
-					"Choose a run with METE: Open team panel.",
-				)}
-			</p>
-		) : null}
 		{model.kind === "loading" ? (
 			<p>{nls.localize("mete/board/loading", "Reading the run's events…")}</p>
 		) : null}

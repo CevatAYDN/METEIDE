@@ -27,7 +27,6 @@
 			"inProgress": "Sürüyor",
 			"inReview": "İncelemede",
 			"loading": "Çalıştırmanın olayları okunuyor…",
-			"noRun": "METE: Ekip panelini aç ile bir çalıştırma seç.",
 			"noTasks": "Bu çalıştırmanın görevi yok: tek bir ajan panosuz çalışır.",
 			"open": "Ekip panelini aç",
 			"recent": "Son olaylar",
@@ -38,8 +37,7 @@
 		},
 		"category": "METE",
 		"composer": {
-			"title": "Çalıştırma başlat",
-			"caption": "METE: çalıştırma başlat"
+			"title": "Çalıştırma başlat"
 		},
 		"home": {
 			"approve": "Onayla",
