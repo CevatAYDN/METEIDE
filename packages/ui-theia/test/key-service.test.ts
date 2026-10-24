@@ -13,7 +13,7 @@ const SCRIPT = `
 const fs = require("node:fs");
 const [, , record, , , action, id] = process.argv; // node, script, record, "--", "key", action, id
 if (action === "list") {
-	process.stdout.write("nvidia         key set\\nopenrouter     no key\\n");
+	process.stdout.write("nvidia         key set  model   https://n.example/keys\\ntavily         no key   search  https://t.example\\n");
 	process.exit(0);
 }
 if (id === "bad") {
@@ -51,13 +51,23 @@ const setup = async () => {
 };
 
 describe("provider keys through mete key", () => {
-	it("lists the providers mete key list names, with whether each has a key", async () => {
+	it("lists the providers mete key list names, with their key state, kind and key page", async () => {
 		const { keys } = await setup();
 		expect(await keys.keys()).toEqual({
 			ok: true,
 			value: [
-				{ id: "nvidia", set: true },
-				{ id: "openrouter", set: false },
+				{
+					id: "nvidia",
+					set: true,
+					kind: "model",
+					keyPage: "https://n.example/keys",
+				},
+				{
+					id: "tavily",
+					set: false,
+					kind: "search",
+					keyPage: "https://t.example",
+				},
 			],
 		});
 	});
@@ -86,9 +96,12 @@ describe("provider keys through mete key", () => {
 	});
 
 	it("does not take output that is not mete key list's", () => {
-		expect(parseKeyList("nvidia key set\n\n")).toEqual([
-			{ id: "nvidia", set: true },
+		expect(parseKeyList("nvidia key set model https://n.example\n\n")).toEqual([
+			{ id: "nvidia", set: true, kind: "model", keyPage: "https://n.example" },
 		]);
 		expect(parseKeyList("Error: keychain locked")).toBeUndefined();
+		// The page opens in the system browser, so only an https address is taken.
+		expect(parseKeyList("nvidia key set model file:///etc")).toBeUndefined();
+		expect(parseKeyList("nvidia key set")).toBeUndefined();
 	});
 });

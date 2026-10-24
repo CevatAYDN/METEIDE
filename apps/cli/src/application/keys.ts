@@ -7,14 +7,15 @@ import type { Io } from "./commands.js";
 
 const PROVIDER =
 	/^(nvidia|openrouter|opencode-zen|groq|google|tavily|custom:[a-z0-9]+(-[a-z0-9]+)*)$/;
+// Each provider's kind and the page where the user gets a key (docs/09, Key pages; ADR-088).
 const BUILT_IN = [
-	"nvidia",
-	"openrouter",
-	"opencode-zen",
-	"groq",
-	"google",
-	"tavily",
-];
+	["nvidia", "model", "https://build.nvidia.com/settings/api-keys"],
+	["openrouter", "model", "https://openrouter.ai/keys"],
+	["opencode-zen", "model", "https://opencode.ai/console"],
+	["groq", "model", "https://console.groq.com/keys"],
+	["google", "model", "https://aistudio.google.com/app/apikey"],
+	["tavily", "search", "https://app.tavily.com"],
+] as const;
 const SEARCH = new Set(["tavily"]);
 
 // Model providers keep providers/<id>/apiKey, search providers search/<id>/apiKey (docs/09, docs/10).
@@ -22,13 +23,14 @@ const accountOf = (id: string) =>
 	SEARCH.has(id) ? searchKeyName(id) : apiKeyName(id);
 
 const listKeys = async (secrets: SecretStore, io: Io) => {
-	for (const id of BUILT_IN) {
+	for (const [id, kind, page] of BUILT_IN) {
 		const r = await secrets.get(accountOf(id));
 		if (!r.ok) {
 			io.err(r.error.message);
 			return 1;
 		}
-		io.out(`${id.padEnd(14)} ${r.value ? "key set" : "no key"}`);
+		const state = r.value ? "key set" : "no key";
+		io.out(`${id.padEnd(14)} ${state.padEnd(8)} ${kind.padEnd(7)} ${page}`);
 	}
 	return 0;
 };

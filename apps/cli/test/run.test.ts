@@ -338,7 +338,12 @@ describe("mete stop and mete key", () => {
 		});
 		const l = recordingIo();
 		expect(await keyCommand(secrets, l.io, "list", undefined)).toBe(0);
-		expect(l.out).toContain("openrouter     key set");
+		expect(l.out).toContain(
+			"openrouter     key set  model   https://openrouter.ai/keys",
+		);
+		expect(l.out).toContain(
+			"nvidia         no key   model   https://build.nvidia.com/settings/api-keys",
+		);
 		expect(l.out.join("\n")).not.toContain("sk-test");
 		expect(
 			await keyCommand(secrets, recordingIo().io, "delete", "openrouter"),
@@ -362,6 +367,8 @@ describe("mete stop and mete key", () => {
 		});
 		const l = recordingIo();
 		await keyCommand(secrets, l.io, "list", undefined);
-		expect(l.out).toContain("tavily         key set");
+		expect(l.out).toContain(
+			"tavily         key set  search  https://app.tavily.com",
+		);
 	});
 });

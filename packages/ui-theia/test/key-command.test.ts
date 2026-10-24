@@ -26,8 +26,13 @@ const setup = (opts: { key?: string; pick?: number; saved?: Done }) => {
 	const inputs: unknown[] = [];
 	const set: [string, string][] = [];
 	const providers: ProviderKey[] = [
-		{ id: "nvidia", set: true },
-		{ id: "openrouter", set: false },
+		{ id: "nvidia", set: true, kind: "model", keyPage: "https://n.example" },
+		{
+			id: "openrouter",
+			set: false,
+			kind: "model",
+			keyPage: "https://o.example",
+		},
 	];
 	const c = new Container();
 	c.bind(MessageService).toConstantValue({
