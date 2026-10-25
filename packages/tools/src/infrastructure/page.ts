@@ -1,14 +1,18 @@
-import { Readability } from "@mozilla/readability";
-import { parseHTML } from "linkedom";
-import TurndownService from "turndown";
-
 // A page to clean Markdown (docs/05, Web reading): linkedom parses it, Readability keeps the
-// article, turndown writes Markdown. A page Readability finds no article in keeps its body.
+// article, turndown writes Markdown. A page Readability finds no article in keeps its body. The
+// three parsers load on the first page fetched, not with the package: a CLI start loads this file
+// for every command, and a status run reads no page (docs/15, cold start).
 
 /** The title and the Markdown of an HTML page. */
-export const pageMarkdown = (
+export const pageMarkdown = async (
 	html: string,
-): { title: string; markdown: string } => {
+): Promise<{ title: string; markdown: string }> => {
+	const [{ Readability }, { parseHTML }, { default: TurndownService }] =
+		await Promise.all([
+			import("@mozilla/readability"),
+			import("linkedom"),
+			import("turndown"),
+		]);
 	const { document } = parseHTML(html);
 	const title = document.title.trim();
 	// Readability changes the document it reads, so the body is taken first.

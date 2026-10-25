@@ -113,12 +113,14 @@ const download = async (
 	return err(io(`more than ${WEB_FETCH_MAX_REDIRECTS} redirects`));
 };
 
-const toOutput = (page: Page): Result<WebFetchOutput, ToolError> => {
+const toOutput = async (
+	page: Page,
+): Promise<Result<WebFetchOutput, ToolError>> => {
 	const html = /text\/html|application\/xhtml/i.test(page.type);
 	if (!html && !/^text\//i.test(page.type))
 		return err(bad(`${page.type} is not a text page`));
 	const { title, markdown } = html
-		? pageMarkdown(page.text)
+		? await pageMarkdown(page.text)
 		: { title: "", markdown: page.text };
 	return ok({
 		markdown: markdown.slice(0, WEB_FETCH_MAX_CHARS),
@@ -147,5 +149,5 @@ export const fetchTool = async (
 		AbortSignal.timeout(WEB_FETCH_TIMEOUT_MS),
 	]);
 	const page = await download(deps, new URL(i.value.url), signal);
-	return page.ok ? toOutput(page.value) : page;
+	return page.ok ? await toOutput(page.value) : page;
 };
