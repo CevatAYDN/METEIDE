@@ -10,6 +10,7 @@ import {
 	MeteDaemonService,
 } from "../domain/status-service.js";
 import { MeteArtifactContribution } from "./artifact-command.js";
+import { bindAssets } from "./assets-contribution.js";
 import { bindAudit } from "./audit-contribution.js";
 import { bindBoard } from "./board-contribution.js";
 import { bindChanges } from "./changes-contribution.js";
@@ -43,6 +44,7 @@ export default new ContainerModule((bind) => {
 	bindBoard(bind);
 	bindChanges(bind);
 	bindAudit(bind);
+	bindAssets(bind);
 	bindQuota(bind);
 	bindStopAll(bind);
 	bindTeamEditor(bind);

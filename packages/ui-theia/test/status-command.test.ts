@@ -41,6 +41,10 @@ vi.mock("../src/infrastructure/changes-contribution.js", () => ({
 vi.mock("../src/infrastructure/audit-contribution.js", () => ({
 	bindAudit: () => {},
 }));
+// The Assets view loads lumino and the filesystem browser too; test/assets-view.test.ts covers it.
+vi.mock("../src/infrastructure/assets-contribution.js", () => ({
+	bindAssets: () => {},
+}));
 vi.mock("../src/infrastructure/quota-contribution.js", () => ({
 	bindQuota: () => {},
 }));

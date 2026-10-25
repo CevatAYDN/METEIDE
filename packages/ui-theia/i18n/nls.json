@@ -1,5 +1,19 @@
 {
 	"mete": {
+		"assets": {
+			"caption": "METE: the files tools saved",
+			"from": "From",
+			"loading": "Reading the assets…",
+			"name": "Name",
+			"none": "No assets yet: a tool that saves a file, and every screenshot, appears here.",
+			"open": "Open assets",
+			"openFile": "Open",
+			"preview": "Preview",
+			"size": "Size",
+			"title": "Assets",
+			"type": "Type",
+			"when": "When"
+		},
 		"audit": {
 			"action": "Action",
 			"any": "Any",

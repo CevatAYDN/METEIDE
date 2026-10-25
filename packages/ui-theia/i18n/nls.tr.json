@@ -1,5 +1,19 @@
 {
 	"mete": {
+		"assets": {
+			"caption": "METE: araçların kaydettiği dosyalar",
+			"from": "Kaynak",
+			"loading": "Varlıklar okunuyor…",
+			"name": "Ad",
+			"none": "Henüz varlık yok: dosya kaydeden bir araç ve her ekran görüntüsü burada görünür.",
+			"open": "Varlıkları aç",
+			"openFile": "Aç",
+			"preview": "Önizleme",
+			"size": "Boyut",
+			"title": "Varlıklar",
+			"type": "Tür",
+			"when": "Ne zaman"
+		},
 		"audit": {
 			"action": "Eylem",
 			"any": "Hepsi",
