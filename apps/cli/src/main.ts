@@ -24,7 +24,12 @@ import { keyCommand } from "./application/keys.js";
 import { registryAddCommand, registryCommand } from "./application/registry.js";
 import { rollbackCommand } from "./application/rollback.js";
 import { templateValidate } from "./application/templates.js";
-import { SCRIPTED_CHAT_ENV } from "./defaults.js";
+import {
+	ADAPTERS_DIR_ENV,
+	SCRIPTED_CHAT_ENV,
+	SCRIPTED_WEB_ENV,
+	TEMPLATES_DIR_ENV,
+} from "./defaults.js";
 import { type App, type AppOptions, createApp } from "./infrastructure/app.js";
 import { fileLogger } from "./infrastructure/log.js";
 import {
@@ -33,6 +38,8 @@ import {
 	runLockFile,
 	takeRunLock,
 } from "./infrastructure/run-lock.js";
+import { browserOf } from "./infrastructure/scripted-browser.js";
+import { scriptedSecrets, scriptedWeb } from "./infrastructure/scripted-web.js";
 
 // Entry of the mete binary (ARCHITECTURE.md, CLI): parses arguments and runs one command.
 
@@ -303,10 +310,67 @@ export type Env = {
 	readonly secrets?: SecretStore;
 	/** A chat script the daemon answers from instead of every provider; docs/15, ADR-111. */
 	readonly scriptedChat?: string;
+	/** A web script the daemon answers search and page calls from; docs/15, ADR-116. */
+	readonly scriptedWeb?: string;
+	/** A browser script the daemon answers screenshots and audits from; docs/15, ADR-117. */
+	readonly scriptedBrowser?: string;
+	/** The built-in templates folder a packaged desktop ships beside the app; docs/15, ADR-115. */
+	readonly templatesDir?: string;
+	/** The level 2 mapping files folder a packaged desktop ships beside the app; docs/15, ADR-115. */
+	readonly adaptersDir?: string;
 	/** The transport `mete mcp` answers on; stdio by default. */
 	readonly serve?: Serve;
 	/** The streams `mete daemon` speaks on; stdio by default. */
 	readonly daemon?: () => DaemonStreams;
+};
+
+/**
+ * The folders a packaged desktop ships beside the app (ADR-115): an explicit Env value wins, then the
+ * environment variable the desktop sets, then the repository-relative folder app.ts defaults to.
+ */
+export const foldersOf = (
+	env: Pick<Env, "templatesDir" | "adaptersDir">,
+	read: (name: string) => string | undefined = (name) => process.env[name],
+) => ({
+	templatesDir: env.templatesDir ?? read(TEMPLATES_DIR_ENV),
+	adaptersDir: env.adaptersDir ?? read(ADAPTERS_DIR_ENV),
+});
+
+/**
+ * The web answers and the keychain of a scripted app (ADR-116): an explicit Env value wins, then the
+ * environment variable the desktop sets; unset, the tools reach the network with the keychain.
+ */
+export const webOf = (
+	env: Pick<Env, "scriptedWeb">,
+	read: (name: string) => string | undefined = (name) => process.env[name],
+): { readonly fetch?: typeof fetch; readonly secrets?: SecretStore } => {
+	const file = env.scriptedWeb ?? read(SCRIPTED_WEB_ENV);
+	return file ? { fetch: scriptedWeb(file), secrets: scriptedSecrets() } : {};
+};
+
+// What the composition is built from for one command: the chat script (ADR-111), the web script
+// (ADR-116), the browser script (ADR-117) and the packaged folders (ADR-115) replace their defaults
+// only when they are set.
+const appOptions = (
+	env: Env,
+	globalDir: string,
+	logger: Logger,
+): AppOptions => {
+	const scripted = env.scriptedChat ?? process.env[SCRIPTED_CHAT_ENV];
+	const folders = foldersOf(env);
+	const web = webOf(env);
+	const secrets = env.secrets ?? web.secrets;
+	return {
+		workspaceDir: env.cwd,
+		globalDir,
+		logger,
+		...(secrets ? { secrets } : {}),
+		...(scripted ? { providers: [createScriptedModule(scripted)] } : {}),
+		...(web.fetch ? { fetch: web.fetch } : {}),
+		...browserOf(env),
+		...(folders.templatesDir ? { templatesDir: folders.templatesDir } : {}),
+		...(folders.adaptersDir ? { adaptersDir: folders.adaptersDir } : {}),
+	};
 };
 
 /** Runs one command for `argv` (without node and the script) and returns the exit code. */
@@ -329,15 +393,8 @@ export const main = async (
 	const globalDir =
 		env.globalDir ?? globalDataDir(process.env, process.platform, homedir());
 	const logger = env.logger ?? fileLogger(globalDir);
-	const secrets = env.secrets ? { secrets: env.secrets } : {};
-	const scripted = env.scriptedChat ?? process.env[SCRIPTED_CHAT_ENV];
-	const providers = scripted
-		? { providers: [createScriptedModule(scripted)] }
-		: {};
-	return dispatch(
-		parsed,
-		{ workspaceDir: env.cwd, globalDir, logger, ...secrets, ...providers },
-		io,
-		{ serve: env.serve ?? serveStdio, daemon: env.daemon ?? stdio },
-	);
+	return dispatch(parsed, appOptions(env, globalDir, logger), io, {
+		serve: env.serve ?? serveStdio,
+		daemon: env.daemon ?? stdio,
+	});
 };

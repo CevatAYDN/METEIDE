@@ -1,0 +1,10 @@
+diff --git a/binding.gyp b/binding.gyp
+--- a/binding.gyp
++++ b/binding.gyp
+@@ -7,6 +7,5 @@
+       ['OS=="win"', {
+         'msvs_configuration_attributes': {
+-          'SpectreMitigation': 'Spectre'
+         },
+         'msvs_settings': {
+           'VCCLCompilerTool': {

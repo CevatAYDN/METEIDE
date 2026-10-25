@@ -3,6 +3,7 @@ import {
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
+	readdirSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
@@ -36,10 +37,31 @@ export type Launch = {
 	readonly close: () => Promise<void>;
 };
 
+/** The web answers a test app sees instead of the network (ADR-116). */
+export type ScriptedWeb = {
+	readonly results?: readonly {
+		readonly title: string;
+		readonly url: string;
+		readonly snippet: string;
+	}[];
+	readonly pages?: Record<string, string>;
+};
+
+/** The browser answers a test app sees instead of Chromium (ADR-117). */
+export type ScriptedBrowser = {
+	readonly screenshots?: readonly {
+		readonly width: number;
+		readonly height: number;
+	}[];
+	readonly audits?: readonly object[];
+};
+
 /** What a test gives its app before launch (ADR-111): the workspace's files and the model's answers. */
 export type MeteOptions = {
 	/** Files the fresh workspace starts with, by relative path; a folder is made for each. */
 	readonly files: Record<string, string>;
+	/** Whether those files become a first commit, which a task's worktree starts from (docs/08). */
+	readonly commit: boolean;
 	/** The scripted model's turns, one array of chunks per call, the last repeating; an empty list means no scripted provider, and a quota narrows its unit so a flow can pause (ADR-113). */
 	readonly script: {
 		readonly turns: readonly (readonly object[])[];
@@ -48,6 +70,10 @@ export type MeteOptions = {
 			readonly reset?: "sliding" | "fixed_daily" | "fixed_monthly";
 		};
 	};
+	/** The web answers the app's tools get instead of the network; empty means the real tools (ADR-116). */
+	readonly web: ScriptedWeb;
+	/** The browser answers the app's tools get instead of Chromium; empty means the real tools (ADR-117). */
+	readonly browserScript: ScriptedBrowser;
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -180,6 +206,26 @@ const writeFiles = (root: string, files: Record<string, string>) => {
 	}
 };
 
+// A task's worktree starts from a commit (docs/08), so a flow that uses one needs a first one; the
+// identity is the run's own, which the repository may not have configured for the test's user.
+const commitFiles = (root: string) => {
+	spawnSync("git", ["add", "-A"], { cwd: root });
+	spawnSync(
+		"git",
+		[
+			"-c",
+			"user.name=METE",
+			"-c",
+			"user.email=mete@example.invalid",
+			"commit",
+			"--quiet",
+			"-m",
+			"the test's first files",
+		],
+		{ cwd: root },
+	);
+};
+
 // The scripted provider reads its answers from a file outside the workspace (ADR-111), so the app's
 // own changes stay out of the run's checkpoints; the file goes when the app does.
 // The turns travel in an object: Playwright unwraps an array-shaped option one level. The file keeps
@@ -207,10 +253,55 @@ const globalEnv = (dir: string): NodeJS.ProcessEnv => {
 	return {};
 };
 
+// The web answers travel the same way as the chat script (ADR-116): a file outside the workspace, so
+// they join no checkpoint. An empty script means the app keeps the real web tools.
+const webScriptOf = (web: ScriptedWeb) => {
+	const empty =
+		(web.results?.length ?? 0) === 0 &&
+		Object.keys(web.pages ?? {}).length === 0;
+	if (empty) return undefined;
+	const dir = mkdtempSync(join(tmpdir(), "mete-e2e-web-"));
+	const file = join(dir, "web.json");
+	writeFileSync(file, JSON.stringify(web));
+	return { dir, file };
+};
+
+// The browser answers too (ADR-117): a file outside the workspace, so they join no checkpoint.
+const browserScriptOf = (browser: ScriptedBrowser) => {
+	const empty =
+		(browser.screenshots?.length ?? 0) === 0 &&
+		(browser.audits?.length ?? 0) === 0;
+	if (empty) return undefined;
+	const dir = mkdtempSync(join(tmpdir(), "mete-e2e-browser-"));
+	const file = join(dir, "browser.json");
+	writeFileSync(file, JSON.stringify(browser));
+	return { dir, file };
+};
+
+// The app's environment: its own global folder and the scripts, which live outside the workspace
+// (ADR-111, ADR-116, ADR-117).
+const envOf = (
+	global: string,
+	scripts: {
+		readonly chat?: { readonly file: string };
+		readonly web?: { readonly file: string };
+		readonly browser?: { readonly file: string };
+	},
+): NodeJS.ProcessEnv => ({
+	...process.env,
+	...globalEnv(global),
+	...(scripts.chat ? { METE_SCRIPTED_CHAT: scripts.chat.file } : {}),
+	...(scripts.web ? { METE_SCRIPTED_WEB: scripts.web.file } : {}),
+	...(scripts.browser ? { METE_SCRIPTED_BROWSER: scripts.browser.file } : {}),
+});
+
 export const test = base.extend<MeteOptions & { mete: Launch }>({
 	files: [{}, { option: true }],
+	commit: [false, { option: true }],
 	script: [{ turns: [] }, { option: true }],
-	mete: async ({ files, script }, use) => {
+	web: [{}, { option: true }],
+	browserScript: [{}, { option: true }],
+	mete: async ({ files, commit, script, web, browserScript }, use) => {
 		if (!existsSync(MAIN))
 			throw new Error(
 				"the app is not built: run pnpm build, pnpm --filter @mete/desktop bundle and download:plugins first",
@@ -218,13 +309,16 @@ export const test = base.extend<MeteOptions & { mete: Launch }>({
 		const workspace = mkdtempSync(join(tmpdir(), "mete-e2e-"));
 		spawnSync("git", ["init", "--quiet"], { cwd: workspace });
 		writeFiles(workspace, files);
+		if (commit) commitFiles(workspace);
 		const chat = scriptOf(script);
+		const webScript = webScriptOf(web);
+		const browserFile = browserScriptOf(browserScript);
 		const global = mkdtempSync(join(tmpdir(), "mete-e2e-home-"));
-		const env = {
-			...process.env,
-			...globalEnv(global),
-			...(chat ? { METE_SCRIPTED_CHAT: chat.file } : {}),
-		};
+		const env = envOf(global, {
+			...(chat ? { chat } : {}),
+			...(webScript ? { web: webScript } : {}),
+			...(browserFile ? { browser: browserFile } : {}),
+		});
 		const { port, child, tail } = await startApp(workspace, env);
 		const stop = async (browser?: Browser) => {
 			await browser?.close().catch(() => undefined);
@@ -232,6 +326,8 @@ export const test = base.extend<MeteOptions & { mete: Launch }>({
 			await removeDir(workspace);
 			await removeDir(global);
 			if (chat) await removeDir(chat.dir);
+			if (webScript) await removeDir(webScript.dir);
+			if (browserFile) await removeDir(browserFile.dir);
 		};
 		const front = await waitForFrontend(port);
 		if (!front) {
@@ -252,6 +348,17 @@ export const test = base.extend<MeteOptions & { mete: Launch }>({
 });
 
 export { expect };
+
+/** The file a run's artifact landed in, under `.mete/artifacts/`, once a task wrote it. */
+export const artifactPath = (dir: string, name: string): string | undefined => {
+	const artifacts = join(dir, ".mete", "artifacts");
+	if (!existsSync(artifacts)) return undefined;
+	for (const runId of readdirSync(artifacts)) {
+		const file = join(artifacts, runId, name);
+		if (existsSync(file)) return file;
+	}
+	return undefined;
+};
 
 /** Runs a command from Theia's palette, the keyboard-first way docs/13 asks every METE action to be reachable. */
 export const runCommand = async (page: Page, label: string) => {

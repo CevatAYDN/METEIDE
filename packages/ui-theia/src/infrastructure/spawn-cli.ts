@@ -1,9 +1,28 @@
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { z } from "zod";
 
 const CliManifest = z.object({ bin: z.object({ mete: z.string().min(1) }) });
+
+// A packaged desktop ships templates/ and adapters/ as extra resources beside the app (ADR-115);
+// the daemon then reads those instead of the repository's folders, which a packaged app lacks.
+// The names match the CLI's defaults.ts constants.
+const resourcesOf = () =>
+	(process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+
+/** The daemon's environment entries for a packaged app, from the folder its resources live in. */
+export const packagedFolders = (
+	resourcesPath: string | undefined = resourcesOf(),
+): NodeJS.ProcessEnv => {
+	if (!resourcesPath) return {};
+	const templates = join(resourcesPath, "templates");
+	const adapters = join(resourcesPath, "adapters");
+	return {
+		...(existsSync(templates) ? { METE_TEMPLATES_DIR: templates } : {}),
+		...(existsSync(adapters) ? { METE_ADAPTERS_DIR: adapters } : {}),
+	};
+};
 
 // The `mete` entry file of the installed @mete/cli package. The backend is bundled into
 // apps/desktop/lib/backend, so the lookup starts there and apps/desktop depends on @mete/cli too.
@@ -17,7 +36,11 @@ const cliBin = () => {
 // ELECTRON_RUN_AS_NODE asks for (ARCHITECTURE.md, Daemon protocol). Arguments stay an array.
 const spawnNode = (script: string, args: readonly string[], detached = false) =>
 	spawn(process.execPath, [script, ...args], {
-		env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
+		env: {
+			...process.env,
+			...packagedFolders(),
+			ELECTRON_RUN_AS_NODE: "1",
+		},
 		stdio: ["pipe", "pipe", "pipe"],
 		windowsHide: true,
 		detached,

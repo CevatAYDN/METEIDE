@@ -9,6 +9,18 @@ export const BUILT_IN_BINDINGS = {
 /** Tab 15, LLM replay (ADR-111): the env var a chat script's path comes from; unset outside the desktop's end-to-end tests. */
 export const SCRIPTED_CHAT_ENV = "METE_SCRIPTED_CHAT";
 
+/** Tab 15, LLM replay (ADR-116): the env var a web script's path comes from; unset outside the desktop's end-to-end tests. */
+export const SCRIPTED_WEB_ENV = "METE_SCRIPTED_WEB";
+
+/** Tab 15, LLM replay (ADR-117): the env var a browser script's path comes from; unset outside the desktop's end-to-end tests. */
+export const SCRIPTED_BROWSER_ENV = "METE_SCRIPTED_BROWSER";
+
+/** Tab 15, builds (ADR-115): the folders a packaged desktop ships beside the app; unset in development, where the repository's folders are used. */
+export const TEMPLATES_DIR_ENV = "METE_TEMPLATES_DIR";
+
+/** Tab 15, builds (ADR-115): the level 2 mapping files of a packaged desktop; unset in development. */
+export const ADAPTERS_DIR_ENV = "METE_ADAPTERS_DIR";
+
 /** Tab 10, MCP client (Elicitation): how many times the terminal asks one field before it declines the request. */
 export const ELICIT_TRIES = 2;
 

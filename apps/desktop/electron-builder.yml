@@ -1,0 +1,36 @@
+# The Windows installer (docs/15, builds; ADR-115): electron-builder over a staging folder that
+# `pnpm deploy` fills, so the app ships a real node_modules tree instead of pnpm's links.
+# Build it with `pnpm --filter @mete/desktop package:win`.
+appId: ide.mete.app
+productName: METE IDE
+# The staged package.json carries production dependencies only, so the Electron version is named here.
+electronVersion: 42.11.12
+directories:
+  output: dist/installer
+# Theia loads native modules and spawns from the app folder, so nothing is archived.
+asar: false
+# better-sqlite3, node-pty, native-keymap, drivelist and @vscode/windows-ca-certs are rebuilt for
+# Electron's ABI (docs/15, builds).
+npmRebuild: true
+files:
+  - lib/**
+  - plugins/**
+  - package.json
+  - "!**/*.map"
+# The CLI finds these beside the app in a packaged build (ADR-115): extraResources land in
+# resources/. package-win.mjs copies the repository's folders into the staging project root, which
+# is what electron-builder resolves these paths against.
+extraResources:
+  - from: templates
+    to: templates
+  - from: adapters
+    to: adapters
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: ${productName}-${version}-${arch}.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

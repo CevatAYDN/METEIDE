@@ -1,13 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { MeteEvent, RunView } from "@mete/contracts";
 import { afterEach, describe, expect, it } from "vitest";
 import { endOf } from "../src/application/commands.js";
+import { ADAPTERS_DIR_ENV, TEMPLATES_DIR_ENV } from "../src/defaults.js";
 import { eventLine, exitCode, statusLines } from "../src/domain/format.js";
 import { fileLogger, moduleLogger } from "../src/infrastructure/log.js";
 import { runLockFile, takeRunLock } from "../src/infrastructure/run-lock.js";
-import { main } from "../src/main.js";
+import { foldersOf, main } from "../src/main.js";
 import { memorySecrets, recordingIo, silent, tempRepo } from "./helpers.js";
 
 /** What the scripted chat answers instead of a provider (docs/15; ADR-111). */
@@ -21,6 +22,17 @@ const CHAT = [
 		},
 	],
 ];
+
+/** One valid template, for a packaged templates folder (ADR-115). */
+const PROBE = `apiVersion: mete/v1
+kind: TeamTemplate
+metadata: { id: probe, name: Probe, version: 1.0.0 }
+pattern: single
+roles:
+  - { id: writer, name: Writer, goal: Write a note, tier: fast, capabilities: [] }
+tasks:
+  - { id: notes, role: writer, title: Take notes }
+`;
 
 let close: (() => Promise<void>) | undefined;
 afterEach(async () => {
@@ -88,6 +100,58 @@ describe("mete main", () => {
 		expect(code).toBe(0);
 		expect(t.err).toEqual([]);
 		expect(t.out).toEqual(["no runs"]);
+	});
+
+	it("takes the packaged folders from an Env value first, then the environment (ADR-115)", () => {
+		const read = (name: string) =>
+			({
+				[ADAPTERS_DIR_ENV]: "/env/adapters",
+				[TEMPLATES_DIR_ENV]: "/env/templates",
+			})[name];
+		expect(foldersOf({}, read)).toEqual({
+			templatesDir: "/env/templates",
+			adaptersDir: "/env/adapters",
+		});
+		expect(foldersOf({ templatesDir: "/mine" }, read)).toEqual({
+			templatesDir: "/mine",
+			adaptersDir: "/env/adapters",
+		});
+		expect(foldersOf({}, () => undefined)).toEqual({
+			templatesDir: undefined,
+			adaptersDir: undefined,
+		});
+	});
+
+	it("validates a template from the packaged folder an Env value or the environment names (ADR-115)", async () => {
+		const repo = await tempRepo({ "a.txt": "a\n" });
+		close = repo.close;
+		const teams = join(repo.globalDir, "templates");
+		await mkdir(teams, { recursive: true });
+		await writeFile(join(teams, "probe.yaml"), PROBE);
+		const env = {
+			cwd: repo.workspaceDir,
+			globalDir: repo.globalDir,
+			logger: silent,
+			secrets: memorySecrets(),
+		};
+		const explicit = recordingIo();
+		expect(
+			await main(["template", "validate", "probe"], explicit.io, {
+				...env,
+				templatesDir: teams,
+			}),
+		).toBe(0);
+		expect(explicit.out).toEqual(["probe  ok"]);
+		process.env[TEMPLATES_DIR_ENV] = teams;
+		try {
+			const fromEnv = recordingIo();
+			expect(
+				await main(["template", "validate", "probe"], fromEnv.io, env),
+			).toBe(0);
+			expect(fromEnv.out).toEqual(["probe  ok"]);
+		} finally {
+			delete process.env[TEMPLATES_DIR_ENV];
+		}
 	});
 
 	it("refuses run and stop while another mete run holds the workspace", async () => {

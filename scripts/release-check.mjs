@@ -3,7 +3,7 @@
 // check; nothing is skipped silently. Run it with `pnpm release:check`; it downloads tools.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -189,10 +189,18 @@ const osvScanner = () => {
 	return { status: "fail", reason: total?.trim() ?? tail(out) };
 };
 
-const notBuilt = (what) => () => ({
-	status: "not built",
-	reason: `${what} is not built yet (docs/15)`,
-});
+// The Windows installer (docs/15, builds; ADR-115): package:win deploys the app, rebuilds its native
+// modules for Electron's ABI and packs the NSIS installer; the step fails when the build does, or
+// when it leaves no installer behind.
+const installer = () => {
+	const built = viaPnpm(["--filter", "@mete/desktop", "package:win"], 25);
+	if (built.status !== "pass") return built;
+	const out = join(ROOT, "apps", "desktop", "dist", "installer");
+	const files = readdirSync(out).filter((name) => name.endsWith(".exe"));
+	return files.length > 0
+		? { status: "pass", reason: files.join(", ") }
+		: { status: "fail", reason: `no .exe in ${out}` };
+};
 
 const STEPS = [
 	["pnpm check", () => viaPnpm(["check"], 20)],
@@ -222,10 +230,7 @@ const STEPS = [
 				15,
 			),
 	],
-	[
-		"Windows installer",
-		notBuilt("the electron-builder configuration (a maintainer's decision)"),
-	],
+	["Windows installer", installer],
 ];
 
 const results = [];

@@ -15,3 +15,9 @@ apps/desktop/plugins/
 # Playwright's run artifacts (apps/desktop, `pnpm --filter @mete/desktop test:e2e`).
 apps/desktop/test-results/
 apps/desktop/playwright-report/
+# Local probes and the store a probe leaves behind: never project data.
+.pnpm-store/
+.probe-*/
+.probe-*.log
+.workbuddy-ai/
+.vscode/settings.json

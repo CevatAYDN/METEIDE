@@ -8,10 +8,10 @@ import { CustomProviderIdSchema, ModelInfoSchema } from "./provider.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 19 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-100).
+// Daemon protocol version 20 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-108).
 // The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The messages of version 19; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 20; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",

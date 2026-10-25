@@ -14,6 +14,9 @@ allowBuilds:
   better-sqlite3: false
   drivelist: true
   electron: false
+  # electron-builder pulls Squirrel's installer helper for a target METE does not build (NSIS only);
+  # its postinstall is not needed (docs/15, builds; ADR-115).
+  electron-winstaller: false
   esbuild: false
   keytar: false
   lefthook: true
@@ -52,3 +55,7 @@ overrides:
 # VS C++ Build Tools the Theia build already requires (ADR-103).
 patchedDependencies:
   '@vscode/windows-ca-certs@0.3.4': patches/@vscode__windows-ca-certs@0.3.4.patch
+  # node-pty's binding.gyp asks for Spectre-mitigated libraries the plain VS C++ Build Tools lack;
+  # @electron/rebuild compiles it for Electron's ABI during packaging, so the attribute goes as in
+  # the proxy agent's patch (ADR-103, ADR-115).
+  'node-pty@1.2.0-beta.12': patches/node-pty@1.2.0-beta.12.patch

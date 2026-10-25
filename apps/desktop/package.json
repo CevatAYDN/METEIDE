@@ -3,6 +3,7 @@
 	"version": "0.0.0",
 	"private": true,
 	"license": "Apache-2.0",
+	"packageManager": "pnpm@11.20.0",
 	"main": "lib/backend/electron-main.js",
 	"exports": {
 		".": {
@@ -15,6 +16,7 @@
 		"test": "vitest run --passWithNoTests",
 		"bundle": "theia build --mode development",
 		"download:plugins": "theia download:plugins",
+		"package:win": "node scripts/package-win.mjs",
 		"test:e2e": "playwright test",
 		"test:perf": "node e2e/perf.mjs",
 		"start": "theia start --plugins=local-dir:plugins"
@@ -59,13 +61,15 @@
 		"react-dom": "19.3.0"
 	},
 	"devDependencies": {
+		"@mete/contracts": "workspace:*",
 		"@playwright/test": "1.64.0",
-		"axe-core": "4.13.0",
 		"@theia/bundle-plugin": "1.76.0",
 		"@theia/cli": "1.76.0",
 		"@types/react": "19.3.0",
 		"@types/react-dom": "19.3.0",
+		"axe-core": "4.13.0",
 		"electron": "42.11.12",
+		"electron-builder": "26.17.0",
 		"esbuild": "0.28.2",
 		"esbuild-plugin-copy": "2.1.1",
 		"esbuild-plugins-node-modules-polyfill": "1.8.3",

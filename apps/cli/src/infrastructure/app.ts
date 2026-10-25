@@ -81,6 +81,8 @@ export type AppOptions = {
 	readonly recover?: boolean;
 	/** The built-in templates folder; the repository's templates/ by default. */
 	readonly templatesDir?: string;
+	/** The level 2 mapping files folder; the repository's adapters/ by default (ADR-115). */
+	readonly adaptersDir?: string;
 	/** The fetch tools-web and remote MCP servers use; tests pass a fake, so nothing reaches the network. */
 	readonly fetch?: typeof fetch;
 	/** The browser runner and Chromium; tests pass fakes, so no browser starts. */
@@ -179,7 +181,7 @@ const modulesFor = (
 		createMcpClientModule({
 			workspaceDir: opts.workspaceDir,
 			workspaceId,
-			adaptersDir: BUILT_IN_ADAPTERS,
+			adaptersDir: opts.adaptersDir ?? BUILT_IN_ADAPTERS,
 			globalDir: opts.globalDir,
 			...(opts.fetch ? { fetch: opts.fetch } : {}),
 			...(opts.elicit ? { elicit: opts.elicit } : {}),
