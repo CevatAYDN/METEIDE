@@ -12,3 +12,6 @@ apps/desktop/src-gen/
 apps/desktop/esbuild.mjs
 apps/desktop/gen-esbuild*.mjs
 apps/desktop/plugins/
+# Playwright's run artifacts (apps/desktop, `pnpm --filter @mete/desktop test:e2e`).
+apps/desktop/test-results/
+apps/desktop/playwright-report/

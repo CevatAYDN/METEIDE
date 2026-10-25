@@ -15,6 +15,7 @@
 		"test": "vitest run --passWithNoTests",
 		"bundle": "theia build --mode development",
 		"download:plugins": "theia download:plugins",
+		"test:e2e": "playwright test",
 		"start": "theia start --plugins=local-dir:plugins"
 	},
 	"theia": {
@@ -57,6 +58,8 @@
 		"react-dom": "19.3.0"
 	},
 	"devDependencies": {
+		"@playwright/test": "1.64.0",
+		"axe-core": "4.13.0",
 		"@theia/bundle-plugin": "1.76.0",
 		"@theia/cli": "1.76.0",
 		"@types/react": "19.3.0",

@@ -211,13 +211,20 @@ const STEPS = [
 		() => viaPnpm(["--filter", "@mete/desktop", "bundle"], 15),
 	],
 	[
-		"Windows installer",
-		notBuilt("the electron-builder configuration (a maintainer's decision)"),
+		"end-to-end (Playwright for Electron)",
+		() => viaPnpm(["--filter", "@mete/desktop", "test:e2e"], 15),
 	],
-	["end-to-end (Playwright for Electron)", notBuilt("Playwright for Electron")],
 	[
 		"accessibility (axe-core in end-to-end)",
-		notBuilt("axe-core inside the end-to-end tests"),
+		() =>
+			viaPnpm(
+				["--filter", "@mete/desktop", "test:e2e", "--", "--grep", "@a11y"],
+				15,
+			),
+	],
+	[
+		"Windows installer",
+		notBuilt("the electron-builder configuration (a maintainer's decision)"),
 	],
 ];
 

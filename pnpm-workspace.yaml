@@ -21,6 +21,9 @@ allowBuilds:
   native-keymap: true
   node-pty: true
   puppeteer: false
+  # @playwright/test's postinstall would download browsers we do not use: the end-to-end tests drive
+  # the app's own Electron, never a Playwright browser (docs/15).
+  "@playwright/test": false
 # The generated Theia application imports every Theia extension by name and expects them hoisted;
 # pnpm's strict layout hides the ones that are only dependencies of other extensions (apps/desktop).
 publicHoistPattern:
