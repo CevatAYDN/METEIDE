@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, runCommand, test } from "./launch.js";
+import { expect, inboxLink, runCommand, startRun, test } from "./launch.js";
 
 // docs/15's desktop flows with the real daemon and the real panels, and a model that answers from a
 // file (ADR-111): what a user sees when a task waits for approval, blocks, and goes on. No provider
@@ -53,29 +53,9 @@ tasks:
   - { id: summary, role: writer, title: Write the summary, context: [notes] }
 `;
 
-/** Starts a run from the composer with the team's radio and the test's goal. */
-const startRun = async (page: Page, team: RegExp) => {
-	await runCommand(page, "METE: Start run");
-	const goal = page.locator("textarea.mete-field");
-	await expect(goal).toBeVisible({ timeout: 60_000 });
-	const radio = page.getByRole("radio", { name: team });
-	await expect(radio).toBeVisible({ timeout: 60_000 });
-	await goal.fill(GOAL);
-	await radio.check();
-	await page.getByRole("button", { name: "Start run" }).click();
-};
-
 /** The Team panel that holds the phrase, so a Home button of the same name is never clicked. */
 const board = (page: Page, phrase: RegExp) =>
 	page.locator(".mete-panel").filter({ hasText: phrase });
-
-/** The Home inbox's row for this run, whose goal opens it in the Team panel (ADR-110). */
-const inboxLink = (page: Page) =>
-	page
-		.locator('section[aria-label="Waiting for you"]')
-		.filter({ has: page.getByTitle("Open in the team panel") })
-		.getByTitle("Open in the team panel")
-		.filter({ hasText: GOAL });
 
 /** Opens the Quota dashboard and checks the scripted provider's spent unit: one request of one. */
 const expectSpentUnit = async (page: Page) => {
@@ -101,7 +81,7 @@ test.describe("a run that waits for approval", () => {
 
 	test("is answered from the Home inbox and completes", async ({ mete }) => {
 		const { page } = mete;
-		await startRun(page, /duo/i);
+		await startRun(page, { goal: GOAL, team: /duo/i });
 		const asks = /asks you to approve “Write the summary”/;
 		await expect(page.getByText(asks)).toBeVisible({ timeout: 90_000 });
 
@@ -110,8 +90,8 @@ test.describe("a run that waits for approval", () => {
 		await expect(page.getByText("1 waiting for you")).toBeVisible({
 			timeout: 60_000,
 		});
-		await expect(inboxLink(page)).toBeVisible({ timeout: 60_000 });
-		await inboxLink(page).click();
+		await expect(inboxLink(page, GOAL)).toBeVisible({ timeout: 60_000 });
+		await inboxLink(page, GOAL).click();
 		await expect(page.getByText(asks)).toBeVisible({ timeout: 60_000 });
 
 		// The goal's link opened the Team panel; its own Approve answers the run (ADR-048), and the
@@ -139,14 +119,14 @@ test.describe("a run blocked by its guardrail", () => {
 		mete,
 	}) => {
 		const { page } = mete;
-		await startRun(page, /triage/i);
+		await startRun(page, { goal: GOAL, team: /triage/i });
 		const blocked = /is blocked on “Write the report”/;
 		await expect(page.getByText(blocked)).toBeVisible({ timeout: 90_000 });
 
 		// The inbox names the same run; its goal opens the panel where the block is answered.
 		await runCommand(page, "METE: Show what waits for you");
-		await expect(inboxLink(page)).toBeVisible({ timeout: 60_000 });
-		await inboxLink(page).click();
+		await expect(inboxLink(page, GOAL)).toBeVisible({ timeout: 60_000 });
+		await inboxLink(page, GOAL).click();
 		await expect(page.getByText(blocked)).toBeVisible({ timeout: 60_000 });
 
 		await page.getByText("Give an instruction…").click();
@@ -179,7 +159,7 @@ test.describe("a run whose provider quota is spent", () => {
 		mete,
 	}) => {
 		const { page } = mete;
-		await startRun(page, /pair/i);
+		await startRun(page, { goal: GOAL, team: /pair/i });
 
 		// Home's Runs row says why each provider cannot help (ADR-050) and offers ADR-059's resume.
 		const runs = page.locator('section[aria-label="Runs"]');

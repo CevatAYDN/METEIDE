@@ -226,10 +226,8 @@ const commitFiles = (root: string) => {
 	);
 };
 
-// The scripted provider reads its answers from a file outside the workspace (ADR-111), so the app's
-// own changes stay out of the run's checkpoints; the file goes when the app does.
-// The turns travel in an object: Playwright unwraps an array-shaped option one level. The file keeps
-// the turns alone unless the flow narrows the provider's quota (ADR-113).
+// The chat answers live in a file outside the workspace (ADR-111), so they join no checkpoint; the
+// turns travel in an object because Playwright unwraps an array-shaped option one level (ADR-113).
 const scriptOf = (script: MeteOptions["script"]) => {
 	if (script.turns.length === 0) return undefined;
 	const dir = mkdtempSync(join(tmpdir(), "mete-e2e-chat-"));
@@ -348,6 +346,29 @@ export const test = base.extend<MeteOptions & { mete: Launch }>({
 });
 
 export { expect };
+
+/** Starts a run from the composer, the keyboard-first way docs/13 asks every METE action to be reachable. */
+export const startRun = async (
+	page: Page,
+	{ goal, team }: { readonly goal: string; readonly team: RegExp },
+) => {
+	await runCommand(page, "METE: Start run");
+	const field = page.locator("textarea.mete-field");
+	await expect(field).toBeVisible({ timeout: 60_000 });
+	const radio = page.getByRole("radio", { name: team });
+	await expect(radio).toBeVisible({ timeout: 60_000 });
+	await field.fill(goal);
+	await radio.check();
+	await page.getByRole("button", { name: "Start run" }).click();
+};
+
+/** The Home inbox's row whose goal opens the run in the Team panel (ADR-110). */
+export const inboxLink = (page: Page, goal: string) =>
+	page
+		.locator('section[aria-label="Waiting for you"]')
+		.filter({ has: page.getByTitle("Open in the team panel") })
+		.getByTitle("Open in the team panel")
+		.filter({ hasText: goal });
 
 /** The file a run's artifact landed in, under `.mete/artifacts/`, once a task wrote it. */
 export const artifactPath = (dir: string, name: string): string | undefined => {
