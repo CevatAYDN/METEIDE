@@ -1,16 +1,10 @@
 import { createHash } from "node:crypto";
 import type { MaskResult } from "@mete/contracts";
-import { lintSource } from "@secretlint/core";
-import { creator as recommended } from "@secretlint/secretlint-rule-preset-recommend";
 import { MASK_TAG_HEX } from "../defaults.js";
 
 // secrets.mask@1 from docs/09 (Privacy): secretlint rules, `[SECRET:<first 8 hex of sha256>]`.
-
-const CONFIG = {
-	rules: [
-		{ id: "@secretlint/secretlint-rule-preset-recommend", rule: recommended },
-	],
-};
+// The rules load on the first mask, not with the package: a CLI start that masks nothing (mete
+// status, events, audit) must not read the secretlint graph (docs/15, cold start).
 
 const tag = (secret: string) =>
 	`[SECRET:${createHash("sha256").update(secret).digest("hex").slice(0, MASK_TAG_HEX)}]`;
@@ -28,6 +22,10 @@ const merge = (ranges: ReadonlyArray<readonly [number, number]>) => {
 
 /** Replaces every secret secretlint finds; the text is never written anywhere. */
 export const maskSecrets = async (text: string): Promise<MaskResult> => {
+	const [{ lintSource }, { creator: recommended }] = await Promise.all([
+		import("@secretlint/core"),
+		import("@secretlint/secretlint-rule-preset-recommend"),
+	]);
 	const result = await lintSource({
 		source: {
 			content: text,
@@ -35,7 +33,17 @@ export const maskSecrets = async (text: string): Promise<MaskResult> => {
 			ext: ".txt",
 			contentType: "text",
 		},
-		options: { config: CONFIG, noPhysicFilePath: true },
+		options: {
+			config: {
+				rules: [
+					{
+						id: "@secretlint/secretlint-rule-preset-recommend",
+						rule: recommended,
+					},
+				],
+			},
+			noPhysicFilePath: true,
+		},
 	});
 	const spans = merge(result.messages.map((m) => m.range));
 	let out = "";
