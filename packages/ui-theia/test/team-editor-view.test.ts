@@ -41,6 +41,7 @@ const ACTIONS: TeamEditorActions = {
 	onPin: nothing,
 	onAddTask: nothing,
 	onRemoveTask: nothing,
+	onDraft: nothing,
 	onSave: nothing,
 	onSaveAs: nothing,
 	onOpenYaml: nothing,
@@ -59,6 +60,7 @@ const ready = (
 	selected: 0,
 	pins: {},
 	chains: {},
+	draft: { busy: false, filled: "none", sources: [] },
 	...more,
 });
 // Each member's form shows when its tile is chosen (ADR-093): this renders the screen once for each.

@@ -144,6 +144,14 @@ type MemberProps = {
 	readonly onRemove: () => void;
 	readonly onAddTask: () => void;
 	readonly onRemoveTask: (index: number) => void;
+	/** The member's model draft: busy while it runs, what it filled, a note when it failed (ADR-108). */
+	readonly draft: {
+		readonly busy: boolean;
+		readonly filled: "both" | "goal" | "none";
+		readonly note?: string;
+		readonly sources: readonly string[];
+	};
+	readonly onDraft: () => void;
 };
 
 // The id is renamed when the field is left or Enter is pressed, so a half-typed id never takes over
@@ -278,6 +286,54 @@ const IdleNote = () => (
 	</p>
 );
 
+// The Draft row (ADR-108): one button asks a model for this member's fields, and the answer lands
+// in the form for review; nothing is written until Save. The note says which fields the draft
+// filled, and the pages it read show beside it.
+const DraftRow = (props: {
+	readonly draft: MemberProps["draft"];
+	readonly onDraft: () => void;
+}) => (
+	<div style={{ ...ROW, flexWrap: "wrap", gap: "8px" }}>
+		<button
+			type="button"
+			className="mete-button quiet"
+			disabled={props.draft.busy}
+			onClick={props.onDraft}
+		>
+			{nls.localize("mete/team/draft", "Draft with a model")}
+		</button>
+		{props.draft.busy ? (
+			<span style={MUTED}>
+				{nls.localize("mete/team/drafting", "Drafting…")}
+			</span>
+		) : null}
+		{props.draft.filled === "both" ? (
+			<span style={MUTED} role="status">
+				{nls.localize(
+					"mete/team/draftDoneBoth",
+					"Goal and backstory drafted — review them, then save.",
+				)}
+			</span>
+		) : null}
+		{props.draft.filled === "goal" ? (
+			<span style={MUTED} role="status">
+				{nls.localize(
+					"mete/team/draftDoneGoal",
+					"Goal drafted — review it, then save.",
+				)}
+			</span>
+		) : null}
+		{props.draft.note ? (
+			<span style={MUTED} role="alert">
+				{props.draft.note}
+			</span>
+		) : null}
+		{props.draft.sources.length > 0 ? (
+			<span style={MUTED}>{props.draft.sources.join(" · ")}</span>
+		) : null}
+	</div>
+);
+
 const Head = (props: {
 	readonly name: string;
 	readonly onRemove: () => void;
@@ -312,6 +368,7 @@ export const MemberCard = (props: MemberProps) => {
 				fixed={props.fixed}
 				onRename={props.onRename}
 			/>
+			<DraftRow draft={props.draft} onDraft={props.onDraft} />
 			<PinField fixed={props.fixed} {...props.pin} onPin={props.onPin} />
 			<Reach
 				member={member}

@@ -10,6 +10,7 @@ import {
 	DaemonErrorDataSchema,
 	DaemonEstimateResultSchema,
 	DaemonEventsResultSchema,
+	DaemonMemberDraftResultSchema,
 	DaemonModelsResultSchema,
 	DaemonProviderModelsResultSchema,
 	DaemonProviderTestResultSchema,
@@ -261,6 +262,22 @@ const reads = (send: Send) => ({
 		),
 });
 
+/** One member drafted from the user's idea, for the team editor (ADR-108). */
+const draftRead = (send: Send) => ({
+	memberDraft: (
+		dir: string,
+		idea: string,
+		language: "en" | "tr",
+		teamGoal?: string,
+	) =>
+		send(
+			dir,
+			DAEMON_METHODS.memberDraft,
+			{ idea, language, ...(teamGoal === undefined ? {} : { teamGoal }) },
+			(raw) => DaemonMemberDraftResultSchema.safeParse(raw),
+		),
+});
+
 // What the run composer asks before Start: the team templates (ADR-058) and each one's request
 // estimate (ADR-068); and the text of one template and a tier's models for the team editor
 // (ADR-075, ADR-077); and Settings: what was loaded, and a custom endpoint's models and Test (ADR-087).
@@ -317,6 +334,7 @@ export const createDaemonHost = (deps: HostDeps) => {
 	const done = (raw: unknown) => DaemonDoneResultSchema.safeParse(raw);
 	return {
 		...reads(send),
+		...draftRead(send),
 		...composing(send),
 		/** Starts a run in the folder (ADR-047); its events arrive through onEvent. */
 		startRun: (dir: string, req: RunStart) =>

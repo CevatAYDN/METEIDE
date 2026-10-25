@@ -5,6 +5,7 @@ import type {
 	DaemonChangesResultSchema,
 	DaemonCheckpointRestoreResultSchema,
 	DaemonEstimateResultSchema,
+	DaemonMemberDraftResult,
 	DaemonModelsResultSchema,
 	DaemonProviderModelsResultSchema,
 	DaemonProviderTestResultSchema,
@@ -52,6 +53,9 @@ export type Restored = ReturnType<
 
 /** What `mete/changes` answers (ADR-100): the folder's working tree and one file's diff. */
 export type Changes = ReturnType<typeof DaemonChangesResultSchema.parse>;
+
+/** What `mete/member.draft` answers (ADR-108): drafted member fields and the pages the draft read. */
+export type MemberDraft = DaemonMemberDraftResult;
 
 /** What `mete/settings` answers (ADR-081): the loaded configuration, merged and per file. */
 export type Settings = ReturnType<typeof DaemonSettingsResultSchema.parse>;
@@ -198,6 +202,13 @@ export interface MeteDaemonService {
 		workspaceDir: string,
 		path?: string,
 	): Promise<Result<Changes, DaemonFailure>>;
+	/** One member drafted from the user's idea (ADR-108): every field a suggestion for review. */
+	memberDraft(
+		workspaceDir: string,
+		idea: string,
+		language: "en" | "tr",
+		teamGoal?: string,
+	): Promise<Result<MemberDraft, DaemonFailure>>;
 	/** Restores a paused or ended run's checkpoint by the id of its checkpoint.created event (ADR-079). */
 	checkpointRestore(
 		workspaceDir: string,

@@ -15,6 +15,7 @@ import { FileService } from "@theia/filesystem/lib/browser/file-service";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 // The design system of docs/13 on every METE panel (ADR-069); the bundle inlines its font.
 import "../../style/mete.css";
+import { draftIdea, withDraft } from "../application/member-draft.js";
 import { panelRoot } from "../application/panel-root.js";
 import { failureText } from "../application/status-text.js";
 import {
@@ -68,6 +69,11 @@ export class MeteTeamEditorWidget
 	protected root: URI | undefined;
 	/** The folder's pins and the tiers' model lists (ADR-077). */
 	protected pinned!: TeamPins;
+	/** The selected member's model draft (ADR-108): busy while it runs, what it filled, a note when it failed. */
+	protected drafting = false;
+	protected draftFilled: "both" | "goal" | "none" = "none";
+	protected draftNote: string | undefined;
+	protected draftSources: readonly string[] = [];
 
 	@postConstruct()
 	protected init(): void {
@@ -199,6 +205,12 @@ export class MeteTeamEditorWidget
 			selected: Math.min(this.selected, team.roles.length - 1),
 			pins: this.pinned.of(team.metadata.id),
 			chains: Object.fromEntries(this.pinned.chains),
+			draft: {
+				busy: this.drafting,
+				filled: this.draftFilled,
+				...(this.draftNote === undefined ? {} : { note: this.draftNote }),
+				sources: this.draftSources,
+			},
 		};
 	}
 
@@ -257,6 +269,10 @@ export class MeteTeamEditorWidget
 
 	protected select(index: number): void {
 		this.selected = index;
+		// The draft note and its sources belong to the member it drafted (ADR-108).
+		this.draftFilled = "none";
+		this.draftNote = undefined;
+		this.draftSources = [];
 		if (this.model.kind === "ready")
 			this.setModel({ ...this.model, selected: index });
 	}
@@ -313,10 +329,42 @@ export class MeteTeamEditorWidget
 			onPin: (roleId, value) => void this.pin(roleId, value),
 			onAddTask: (roleId) => this.change((d) => addTask(d, roleId)),
 			onRemoveTask: (i) => this.change((d) => removeTask(d, i)),
+			onDraft: () => void this.draft(),
 			onSave: () => void (this.doc && this.save(this.doc)),
 			onSaveAs: (id, name) => void this.saveAs(id, name),
 			onOpenYaml: () => void this.openYaml(),
 		};
+	}
+
+	/** Drafts the selected member's fields with a model (ADR-108); the answer lands in the form for review. */
+	protected async draft(): Promise<void> {
+		if (this.model.kind !== "ready" || !this.root || this.drafting) return;
+		const index = this.model.selected;
+		const member = this.model.team.roles[index];
+		if (!member) return;
+		this.drafting = true;
+		this.draftFilled = "none";
+		this.draftNote = undefined;
+		this.draftSources = [];
+		this.setModel({
+			...this.model,
+			draft: { busy: true, filled: "none", sources: [] },
+		});
+		const r = await this.daemon.memberDraft(
+			this.root.path.fsPath(),
+			draftIdea(member),
+			// The language of the shell, so the drafted words read like the rest of the UI (ADR-108).
+			(nls.locale ?? "en").startsWith("tr") ? "tr" : "en",
+			this.model.team.metadata.description,
+		);
+		this.drafting = false;
+		if (!r.ok) {
+			this.draftNote = failureText(r.error);
+			return this.setModel(this.readyOf(this.model.source, this.model.changed));
+		}
+		this.draftFilled = r.value.backstory === undefined ? "goal" : "both";
+		this.draftSources = r.value.sources;
+		this.change((d) => withDraft(d, index, r.value));
 	}
 
 	protected override render() {

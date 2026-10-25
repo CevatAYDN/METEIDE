@@ -40,6 +40,13 @@ export type TeamEditorModel =
 			readonly pins: Readonly<Record<string, string>>;
 			/** `<providerId>/<modelId>` of each tier's chain, by chainKey. */
 			readonly chains: Readonly<Record<string, readonly string[]>>;
+			/** The selected member's model draft: busy while it runs, what it filled, a note when it failed (ADR-108). */
+			readonly draft: {
+				readonly busy: boolean;
+				readonly filled: "both" | "goal" | "none";
+				readonly note?: string;
+				readonly sources: readonly string[];
+			};
 	  };
 
 /** What the screen's buttons do. */
@@ -53,6 +60,8 @@ export type TeamEditorActions = {
 	readonly onPin: (roleId: string, value: string | undefined) => void;
 	readonly onAddTask: (roleId: string) => void;
 	readonly onRemoveTask: (index: number) => void;
+	/** Drafts the selected member's fields with a model (ADR-108); the answer lands for review. */
+	readonly onDraft: () => void;
 	readonly onSave: () => void;
 	readonly onSaveAs: (id: string, name: string) => void;
 	readonly onOpenYaml: () => void;
@@ -225,6 +234,8 @@ const Members = ({
 							onPin={(v) => actions.onPin(r.id, v)}
 							onAddTask={() => actions.onAddTask(r.id)}
 							onRemoveTask={actions.onRemoveTask}
+							draft={model.draft}
+							onDraft={actions.onDraft}
 						/>
 					</div>
 				) : null}

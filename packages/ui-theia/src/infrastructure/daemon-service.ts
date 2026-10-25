@@ -93,6 +93,15 @@ export class MeteDaemonBackend
 		return this.host.changes(workspaceDir, path);
 	}
 
+	memberDraft(
+		workspaceDir: string,
+		idea: string,
+		language: "en" | "tr",
+		teamGoal?: string,
+	) {
+		return this.host.memberDraft(workspaceDir, idea, language, teamGoal);
+	}
+
 	quota(workspaceDir: string) {
 		return this.host.quota(workspaceDir);
 	}
