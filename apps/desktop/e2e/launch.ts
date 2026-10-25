@@ -40,8 +40,14 @@ export type Launch = {
 export type MeteOptions = {
 	/** Files the fresh workspace starts with, by relative path; a folder is made for each. */
 	readonly files: Record<string, string>;
-	/** The scripted model's turns, one array of chunks per call, the last repeating; an empty list means no scripted provider. */
-	readonly script: { readonly turns: readonly (readonly object[])[] };
+	/** The scripted model's turns, one array of chunks per call, the last repeating; an empty list means no scripted provider, and a quota narrows its unit so a flow can pause (ADR-113). */
+	readonly script: {
+		readonly turns: readonly (readonly object[])[];
+		readonly quota?: {
+			readonly limit?: number;
+			readonly reset?: "sliding" | "fixed_daily" | "fixed_monthly";
+		};
+	};
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -74,19 +80,46 @@ const trustWorkspace = async (page: Page) => {
 	if (yes) await yes.click();
 };
 
-/** Waits for the app's remote-debugging endpoint, then for the frontend page inside it. */
-const waitForFrontend = async (
-	port: number,
-): Promise<{ browser: Browser; page: Page } | undefined> => {
-	let browser: Browser | undefined;
-	for (let i = 0; i < 120 && !browser; i++) {
+/** Whether the debugging endpoint lists the shell's page; a browser connected before it is blind to it. */
+const frontendListed = async (port: number) => {
+	try {
+		const reply = await fetch(`http://127.0.0.1:${port}/json/list`, {
+			signal: AbortSignal.timeout(2_000),
+		});
+		const targets = (await reply.json()) as { type?: string; url?: string }[];
+		return targets.some(
+			(t) => t.type === "page" && (t.url ?? "").startsWith("file:"),
+		);
+	} catch {
+		return false;
+	}
+};
+
+// The connection, once the endpoint answers; a failed attempt waits a second and tries again.
+const connectOver = async (port: number): Promise<Browser | undefined> => {
+	for (let i = 0; i < 60; i++) {
 		try {
-			browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
+			return await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
 		} catch {
 			await sleep(1000);
 		}
 	}
-	for (let i = 0; i < 120 && browser; i++) {
+	return undefined;
+};
+
+// The debugging endpoint answers as soon as Chromium runs, before the backend creates the window;
+// a session connected that early stays blind to the page it creates, so the page's target comes
+// first and only then the connection.
+const waitForFrontend = async (
+	port: number,
+): Promise<{ browser: Browser; page: Page } | undefined> => {
+	for (let i = 0; i < 120; i++) {
+		if (await frontendListed(port)) break;
+		await sleep(1000);
+	}
+	const browser = await connectOver(port);
+	if (!browser) return undefined;
+	for (let i = 0; i < 30; i++) {
 		const page = frontendPage(browser);
 		if (page) return { browser, page };
 		await sleep(1000);
@@ -149,13 +182,29 @@ const writeFiles = (root: string, files: Record<string, string>) => {
 
 // The scripted provider reads its answers from a file outside the workspace (ADR-111), so the app's
 // own changes stay out of the run's checkpoints; the file goes when the app does.
-// The turns travel in an object: Playwright unwraps an array-shaped option one level.
-const scriptOf = (turns: MeteOptions["script"]["turns"]) => {
-	if (turns.length === 0) return undefined;
+// The turns travel in an object: Playwright unwraps an array-shaped option one level. The file keeps
+// the turns alone unless the flow narrows the provider's quota (ADR-113).
+const scriptOf = (script: MeteOptions["script"]) => {
+	if (script.turns.length === 0) return undefined;
 	const dir = mkdtempSync(join(tmpdir(), "mete-e2e-chat-"));
 	const file = join(dir, "chat.json");
-	writeFileSync(file, JSON.stringify(turns));
+	const body = script.quota
+		? { turns: script.turns, quota: script.quota }
+		: script.turns;
+	writeFileSync(file, JSON.stringify(body));
 	return { dir, file };
+};
+
+// The app's own global folder: the daemon keeps quota usage, logs and settings under %APPDATA%\METE
+// (XDG_DATA_HOME on Linux), and a test must never read or write the developer's (ADR-113).
+const globalEnv = (dir: string): NodeJS.ProcessEnv => {
+	if (process.platform === "win32") return { APPDATA: join(dir, "appdata") };
+	if (process.platform === "linux")
+		return {
+			XDG_DATA_HOME: join(dir, "data"),
+			XDG_CONFIG_HOME: join(dir, "config"),
+		};
+	return {};
 };
 
 export const test = base.extend<MeteOptions & { mete: Launch }>({
@@ -169,9 +218,11 @@ export const test = base.extend<MeteOptions & { mete: Launch }>({
 		const workspace = mkdtempSync(join(tmpdir(), "mete-e2e-"));
 		spawnSync("git", ["init", "--quiet"], { cwd: workspace });
 		writeFiles(workspace, files);
-		const chat = scriptOf(script.turns);
+		const chat = scriptOf(script);
+		const global = mkdtempSync(join(tmpdir(), "mete-e2e-home-"));
 		const env = {
 			...process.env,
+			...globalEnv(global),
 			...(chat ? { METE_SCRIPTED_CHAT: chat.file } : {}),
 		};
 		const { port, child, tail } = await startApp(workspace, env);
@@ -179,6 +230,7 @@ export const test = base.extend<MeteOptions & { mete: Launch }>({
 			await browser?.close().catch(() => undefined);
 			killTree(child.pid);
 			await removeDir(workspace);
+			await removeDir(global);
 			if (chat) await removeDir(chat.dir);
 		};
 		const front = await waitForFrontend(port);

@@ -41,6 +41,18 @@ policies: { human_checkpoints: [report] }
 const REPORT =
 	'{"title":"Release notes","summary":"The release ships.","findings":[{"claim":"It ships.","sourceIds":["s1"]}],"sources":[{"id":"s1","url":"https://example.com/release","title":"Release"}]}';
 
+// Two tasks and no checkpoint, so the only thing that stops the run is the provider's quota.
+const PAIR = `apiVersion: mete/v1
+kind: TeamTemplate
+metadata: { id: pair, name: Pair, version: 1.0.0, description: Two notes }
+pattern: pipeline
+roles:
+  - { id: writer, name: Writer, goal: Write short notes, tier: fast, capabilities: [] }
+tasks:
+  - { id: notes, role: writer, title: Take notes }
+  - { id: summary, role: writer, title: Write the summary, context: [notes] }
+`;
+
 /** Starts a run from the composer with the team's radio and the test's goal. */
 const startRun = async (page: Page, team: RegExp) => {
 	await runCommand(page, "METE: Start run");
@@ -64,6 +76,22 @@ const inboxLink = (page: Page) =>
 		.filter({ has: page.getByTitle("Open in the team panel") })
 		.getByTitle("Open in the team panel")
 		.filter({ hasText: GOAL });
+
+/** Opens the Quota dashboard and checks the scripted provider's spent unit: one request of one. */
+const expectSpentUnit = async (page: Page) => {
+	await runCommand(page, "METE: Open quota dashboard");
+	const unit = page
+		.locator(".mete-panel")
+		.filter({ hasText: "requests_per_minute" })
+		.locator("tr")
+		.filter({ hasText: "scripted" });
+	await expect(unit).toBeVisible({ timeout: 60_000 });
+	await expect(unit).toContainText("scripted");
+	await expect(unit).toContainText("requests_per_minute");
+	await expect(unit.getByRole("cell", { name: "1", exact: true })).toHaveCount(
+		2,
+	);
+};
 
 test.describe("a run that waits for approval", () => {
 	test.use({
@@ -133,5 +161,43 @@ test.describe("a run blocked by its guardrail", () => {
 		await expect(
 			page.locator('section[aria-label="Runs"]').getByText("Done"),
 		).toBeVisible({ timeout: 60_000 });
+	});
+});
+
+test.describe("a run whose provider quota is spent", () => {
+	test.use({
+		files: { ".mete/teams/pair.yaml": PAIR },
+		// One request a day: the second call finds the unit spent until the fixed reset, so the run
+		// pauses (a sliding minute would make the reservation wait instead, docs/09 Scheduler).
+		script: {
+			turns: [say("three notes"), say("one summary")],
+			quota: { limit: 1, reset: "fixed_daily" },
+		},
+	});
+
+	test("pauses, names the spent provider and takes a resume", async ({
+		mete,
+	}) => {
+		const { page } = mete;
+		await startRun(page, /pair/i);
+
+		// Home's Runs row says why each provider cannot help (ADR-050) and offers ADR-059's resume.
+		const runs = page.locator('section[aria-label="Runs"]');
+		await expect(
+			runs.getByText(/scripted: its free quota is used up until/),
+		).toBeVisible({ timeout: 90_000 });
+		await expect(runs.getByText("Paused")).toBeVisible({ timeout: 60_000 });
+		const resume = runs.getByRole("button", { name: "Resume now" });
+		await expect(resume).toBeVisible({ timeout: 60_000 });
+
+		// The resume goes on at once (ADR-059) and pauses again while the unit is still spent.
+		await resume.click();
+		// Theia puts a notification's text in a toast and in a live region for screen readers.
+		await expect(page.getByText("Resumed.").first()).toBeVisible({
+			timeout: 60_000,
+		});
+		await expect(runs.getByText("Paused")).toBeVisible({ timeout: 60_000 });
+
+		await expectSpentUnit(page);
 	});
 });

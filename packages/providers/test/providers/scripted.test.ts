@@ -12,7 +12,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createScriptedModule } from "../../src/providers/scripted.js";
 
 // The scripted provider of the desktop's end-to-end tests (docs/15; ADR-111): its calls answer from
-// a file, one turn each in order, the last repeating; no key and no network.
+// a file, one turn each in order, the last repeating; no key and no network. The file may also
+// narrow the provider's quota unit, so a flow can pause for quota (ADR-113).
 
 const say = (text: string): ChatChunk[] => [
 	{ type: "text", text },
@@ -112,6 +113,50 @@ describe("the scripted provider", () => {
 		]);
 		await module.deactivate();
 		expect(adapterOf(s)).toBeUndefined();
+	});
+
+	it("takes the quota a script names, with the reset that makes a pause", async () => {
+		const file = await fileWith({
+			turns: [say("one")],
+			quota: { limit: 1, reset: "fixed_daily" },
+		});
+		const s = setup();
+		await createScriptedModule(file).activate(s.ctx);
+		const adapter = adapterOf(s);
+		if (!adapter) throw new Error("no adapter");
+		expect(adapter.quotaUnits()).toEqual([
+			{
+				providerId: "scripted",
+				unit: "requests_per_minute",
+				limit: 1,
+				scope: "account",
+				reset: "fixed_daily",
+			},
+		]);
+	});
+
+	it("keeps the unit's other facts when a script names only its limit", async () => {
+		const file = await fileWith({ turns: [say("one")], quota: { limit: 3 } });
+		const s = setup();
+		await createScriptedModule(file).activate(s.ctx);
+		const adapter = adapterOf(s);
+		if (!adapter) throw new Error("no adapter");
+		expect(adapter.quotaUnits()).toEqual([
+			{
+				providerId: "scripted",
+				unit: "requests_per_minute",
+				limit: 3,
+				scope: "account",
+				reset: "sliding",
+			},
+		]);
+	});
+
+	it("fails activation on a quota limit that is not positive", async () => {
+		const file = await fileWith({ turns: [say("one")], quota: { limit: 0 } });
+		const r = await createScriptedModule(file).activate(setup().ctx);
+		expect(!r.ok && r.error.code).toBe("activation_failed");
+		expect(!r.ok && r.error.message).toContain("quota.limit");
 	});
 
 	it("answers an aborted call with one error chunk", async () => {

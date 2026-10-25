@@ -88,3 +88,12 @@ export const customQuota = (providerId: string): QuotaUnitSpec[] => [
 		reset: "sliding",
 	},
 ];
+
+/** The scripted provider's unit: generous, so an end-to-end flow never waits for quota (15; ADR-111); a script may narrow it (ADR-113). */
+export const SCRIPTED_QUOTA: QuotaUnitSpec = {
+	providerId: "scripted",
+	unit: "requests_per_minute",
+	limit: 10_000,
+	scope: "account",
+	reset: "sliding",
+};
