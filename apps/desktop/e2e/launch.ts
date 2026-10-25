@@ -1,9 +1,15 @@
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import {
 	type Browser,
 	test as base,
@@ -22,10 +28,20 @@ const APP = resolve(process.cwd());
 const MAIN = join(APP, "lib", "backend", "electron-main.js");
 const REQUIRE = createRequire(join(APP, "package.json"));
 
-/** The app under test: its page and how to stop it. */
+/** The app under test: its page, the fresh workspace it opened, and how to stop it. */
 export type Launch = {
 	readonly page: Page;
+	/** The fresh git workspace the app opened. */
+	readonly dir: string;
 	readonly close: () => Promise<void>;
+};
+
+/** What a test gives its app before launch (ADR-111): the workspace's files and the model's answers. */
+export type MeteOptions = {
+	/** Files the fresh workspace starts with, by relative path; a folder is made for each. */
+	readonly files: Record<string, string>;
+	/** The scripted model's turns, one array of chunks per call, the last repeating; an empty list means no scripted provider. */
+	readonly script: { readonly turns: readonly (readonly object[])[] };
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -63,14 +79,14 @@ const waitForFrontend = async (
 	port: number,
 ): Promise<{ browser: Browser; page: Page } | undefined> => {
 	let browser: Browser | undefined;
-	for (let i = 0; i < 60 && !browser; i++) {
+	for (let i = 0; i < 120 && !browser; i++) {
 		try {
 			browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
 		} catch {
 			await sleep(1000);
 		}
 	}
-	for (let i = 0; i < 60 && browser; i++) {
+	for (let i = 0; i < 120 && browser; i++) {
 		const page = frontendPage(browser);
 		if (page) return { browser, page };
 		await sleep(1000);
@@ -89,7 +105,21 @@ const killTree = (pid: number | undefined) => {
 	);
 };
 
-const startApp = async (workspace: string) => {
+// Windows may keep a file of a killed app's workspace locked for a moment (its daemon's database),
+// so the folder is removed with a few retries instead of failing the test after it passed.
+const removeDir = async (dir: string) => {
+	for (let i = 0; i < 10; i++) {
+		try {
+			rmSync(dir, { recursive: true, force: true });
+			return;
+		} catch {
+			await sleep(300);
+		}
+	}
+	rmSync(dir, { recursive: true, force: true });
+};
+
+const startApp = async (workspace: string, env: NodeJS.ProcessEnv) => {
 	const port = await freePort();
 	const child = spawn(
 		String(REQUIRE("electron")),
@@ -99,32 +129,62 @@ const startApp = async (workspace: string) => {
 			`--plugins=local-dir:${join(APP, "plugins")}`,
 			workspace,
 		],
-		{ stdio: ["ignore", "ignore", "pipe"] },
+		{ stdio: ["ignore", "ignore", "pipe"], env },
 	);
-	// shortcut: the app's own output is not asserted here; a failure shows up as no page below.
-	child.stderr.on("data", () => undefined);
-	return { port, child };
+	// The output is not asserted; it answers why a launch that opens no window ended.
+	let tail = "";
+	child.stderr.on("data", (chunk: Buffer | string) => {
+		tail = `${tail}${chunk}`.slice(-2000);
+	});
+	return { port, child, tail: () => tail };
 };
 
-export const test = base.extend<{ mete: Launch }>({
-	// biome-ignore lint/correctness/noEmptyPattern: Playwright insists on the destructured fixtures argument, and this fixture uses none of them.
-	mete: async ({}, use) => {
+const writeFiles = (root: string, files: Record<string, string>) => {
+	for (const [name, text] of Object.entries(files)) {
+		const path = join(root, name);
+		mkdirSync(dirname(path), { recursive: true });
+		writeFileSync(path, text);
+	}
+};
+
+// The scripted provider reads its answers from a file outside the workspace (ADR-111), so the app's
+// own changes stay out of the run's checkpoints; the file goes when the app does.
+// The turns travel in an object: Playwright unwraps an array-shaped option one level.
+const scriptOf = (turns: MeteOptions["script"]["turns"]) => {
+	if (turns.length === 0) return undefined;
+	const dir = mkdtempSync(join(tmpdir(), "mete-e2e-chat-"));
+	const file = join(dir, "chat.json");
+	writeFileSync(file, JSON.stringify(turns));
+	return { dir, file };
+};
+
+export const test = base.extend<MeteOptions & { mete: Launch }>({
+	files: [{}, { option: true }],
+	script: [{ turns: [] }, { option: true }],
+	mete: async ({ files, script }, use) => {
 		if (!existsSync(MAIN))
 			throw new Error(
 				"the app is not built: run pnpm build, pnpm --filter @mete/desktop bundle and download:plugins first",
 			);
 		const workspace = mkdtempSync(join(tmpdir(), "mete-e2e-"));
 		spawnSync("git", ["init", "--quiet"], { cwd: workspace });
-		const { port, child } = await startApp(workspace);
+		writeFiles(workspace, files);
+		const chat = scriptOf(script.turns);
+		const env = {
+			...process.env,
+			...(chat ? { METE_SCRIPTED_CHAT: chat.file } : {}),
+		};
+		const { port, child, tail } = await startApp(workspace, env);
 		const stop = async (browser?: Browser) => {
 			await browser?.close().catch(() => undefined);
 			killTree(child.pid);
-			rmSync(workspace, { recursive: true, force: true });
+			await removeDir(workspace);
+			if (chat) await removeDir(chat.dir);
 		};
 		const front = await waitForFrontend(port);
 		if (!front) {
 			await stop();
-			throw new Error("the app did not open its window");
+			throw new Error(`the app did not open its window: ${tail()}`);
 		}
 		const { browser, page } = front;
 		await page.bringToFront();
@@ -134,7 +194,7 @@ export const test = base.extend<{ mete: Launch }>({
 		await page.click("body");
 		await sleep(2000);
 		await trustWorkspace(page);
-		await use({ page, close: () => stop(browser) });
+		await use({ page, dir: workspace, close: () => stop(browser) });
 		await stop(browser);
 	},
 });

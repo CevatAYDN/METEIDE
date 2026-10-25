@@ -10,6 +10,8 @@ export default defineConfig({
 	testMatch: /.*\.e2e\.ts/,
 	fullyParallel: false,
 	workers: 1,
-	timeout: 120_000,
+	// A launch waits for the shell and, on a cold start, the Welcome screen's own checks; a run
+	// started by a test adds its model turns. The release tier can afford the wait.
+	timeout: 240_000,
 	reporter: [["list"]],
 });

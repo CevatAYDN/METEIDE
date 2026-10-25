@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { MeteEvent, RunView } from "@mete/contracts";
 import { afterEach, describe, expect, it } from "vitest";
@@ -9,6 +9,18 @@ import { fileLogger, moduleLogger } from "../src/infrastructure/log.js";
 import { runLockFile, takeRunLock } from "../src/infrastructure/run-lock.js";
 import { main } from "../src/main.js";
 import { memorySecrets, recordingIo, silent, tempRepo } from "./helpers.js";
+
+/** What the scripted chat answers instead of a provider (docs/15; ADR-111). */
+const CHAT = [
+	[
+		{ type: "text", text: "hello" },
+		{
+			type: "finish",
+			reason: "stop",
+			usage: { prompt: 1, completion: 1 },
+		},
+	],
+];
 
 let close: (() => Promise<void>) | undefined;
 afterEach(async () => {
@@ -58,6 +70,24 @@ describe("mete main", () => {
 		const keys = recordingIo();
 		expect(await main(["key", "list"], keys.io, env)).toBe(0);
 		expect(keys.out).toHaveLength(6); // the five model providers and tavily
+	});
+
+	it("runs status on a scripted chat instead of the providers when one is named (docs/15, ADR-111)", async () => {
+		const repo = await tempRepo({ "a.txt": "a\n" });
+		close = repo.close;
+		const script = join(repo.workspaceDir, "chat.json");
+		await writeFile(script, JSON.stringify(CHAT));
+		const t = recordingIo();
+		const code = await main(["status"], t.io, {
+			cwd: repo.workspaceDir,
+			globalDir: repo.globalDir,
+			logger: silent,
+			secrets: memorySecrets(),
+			scriptedChat: script,
+		});
+		expect(code).toBe(0);
+		expect(t.err).toEqual([]);
+		expect(t.out).toEqual(["no runs"]);
 	});
 
 	it("refuses run and stop while another mete run holds the workspace", async () => {

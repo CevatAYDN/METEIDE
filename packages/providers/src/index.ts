@@ -6,3 +6,4 @@ export { createGroqModule } from "./providers/groq.js";
 export { createNvidiaModule } from "./providers/nvidia.js";
 export { createOpenCodeZenModule } from "./providers/opencode-zen.js";
 export { createOpenRouterModule } from "./providers/openrouter.js";
+export { createScriptedModule } from "./providers/scripted.js";

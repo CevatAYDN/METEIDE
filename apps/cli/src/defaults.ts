@@ -6,6 +6,9 @@ export const BUILT_IN_BINDINGS = {
 	"registry.search@1": ["official-mcp-registry", "local-registry"],
 } as const;
 
+/** Tab 15, LLM replay (ADR-111): the env var a chat script's path comes from; unset outside the desktop's end-to-end tests. */
+export const SCRIPTED_CHAT_ENV = "METE_SCRIPTED_CHAT";
+
 /** Tab 10, MCP client (Elicitation): how many times the terminal asks one field before it declines the request. */
 export const ELICIT_TRIES = 2;
 

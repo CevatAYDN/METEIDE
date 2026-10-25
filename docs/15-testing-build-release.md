@@ -12,7 +12,7 @@ All checks run on the developer's machine through lefthook and package scripts; 
 | Integration | Vitest, real SQLite in a temp folder, in-process kernel | Package boundaries | pre-push, affected packages |
 | Contract | Kits in `@mete/testing` | Every adapter of every capability | pre-push for touched capabilities; full at release |
 | LLM replay | Hand-written fetch fakes and scripted adapters now; MSW cassettes once `pnpm test:record` exists | Agent flows with recorded or scripted model responses | pre-push |
-| End-to-end | Playwright for Electron | Desktop flows: onboarding, run, approval, replay | release |
+| End-to-end | Playwright for Electron | Desktop flows: onboarding, run, approval, blocked task, replay | release |
 | Chaos | Seeded script | Disable optional modules one by one and in random sets; the app must start and finish the single-agent fixture task. `pnpm test:chaos` leaves each optional module of the CLI's composition out, then five sets drawn from `CHAOS_SEED`, then all of them, and finishes the typo-fix fixture with a scripted provider each time \[D\] | release |
 | MCP conformance | MCP Inspector, scripted | METE as server; METE as client against a Node, a Python and an HTTP reference server \[D\] | release |
 | Accessibility | axe-core inside E2E | No serious or critical violations \[D\] | release |
@@ -21,6 +21,7 @@ All checks run on the developer's machine through lefthook and package scripts; 
 Rules:
 
 - Tests MUST NOT call real model providers. Cassettes are recorded only by `pnpm test:record` with the developer's own keys and committed with secrets masked \[C\]. `pnpm test:record` is not built yet; until it is, provider and gateway tests answer through hand-written fetch fakes and agent flows through scripted `provider.chat@2` adapters, and MSW stays the planned replay tool (tab 05).
+- The desktop's end-to-end tests answer the real daemon with the same kind of script: `METE_SCRIPTED_CHAT` names a JSON file of chat turns (one array of chunks per model call, the last repeating), and the CLI's composition then uses the `provider-scripted` module instead of every provider (ADR-111). A test's app therefore needs no provider key, leaves the developer's keychain untouched and reaches no network, while the daemon, the gateway, the engine, the tools and the panels stay the real ones; `apps/desktop/e2e/run-flow.e2e.ts` drives a task that waits for approval and one that a guardrail blocks and the human's instruction lifts.
 - Coverage targets: 90% of lines in `domain/` folders, 75% per package overall; `ui-theia`'s Theia bindings (widgets, contributions, modules, its RPC service and the commands that need Theia's services) run only inside Theia, so they are outside the unit measure and the desktop end-to-end tests cover them \[D\].
 
 ## Performance budgets

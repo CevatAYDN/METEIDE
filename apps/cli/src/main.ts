@@ -4,6 +4,7 @@ import { parseArgs } from "node:util";
 import type { SecretStore } from "@mete/contracts";
 import { globalDataDir, type Logger } from "@mete/kernel";
 import { serveStdio, type Transport } from "@mete/mcp";
+import { createScriptedModule } from "@mete/providers";
 import { createKeychainStore } from "@mete/security";
 import { auditCommand } from "./application/audit.js";
 import { terminalAuthorize } from "./application/authorize.js";
@@ -23,6 +24,7 @@ import { keyCommand } from "./application/keys.js";
 import { registryAddCommand, registryCommand } from "./application/registry.js";
 import { rollbackCommand } from "./application/rollback.js";
 import { templateValidate } from "./application/templates.js";
+import { SCRIPTED_CHAT_ENV } from "./defaults.js";
 import { type App, type AppOptions, createApp } from "./infrastructure/app.js";
 import { fileLogger } from "./infrastructure/log.js";
 import {
@@ -299,6 +301,8 @@ export type Env = {
 	readonly globalDir?: string;
 	readonly logger?: Logger;
 	readonly secrets?: SecretStore;
+	/** A chat script the daemon answers from instead of every provider; docs/15, ADR-111. */
+	readonly scriptedChat?: string;
 	/** The transport `mete mcp` answers on; stdio by default. */
 	readonly serve?: Serve;
 	/** The streams `mete daemon` speaks on; stdio by default. */
@@ -326,9 +330,13 @@ export const main = async (
 		env.globalDir ?? globalDataDir(process.env, process.platform, homedir());
 	const logger = env.logger ?? fileLogger(globalDir);
 	const secrets = env.secrets ? { secrets: env.secrets } : {};
+	const scripted = env.scriptedChat ?? process.env[SCRIPTED_CHAT_ENV];
+	const providers = scripted
+		? { providers: [createScriptedModule(scripted)] }
+		: {};
 	return dispatch(
 		parsed,
-		{ workspaceDir: env.cwd, globalDir, logger, ...secrets },
+		{ workspaceDir: env.cwd, globalDir, logger, ...secrets, ...providers },
 		io,
 		{ serve: env.serve ?? serveStdio, daemon: env.daemon ?? stdio },
 	);
