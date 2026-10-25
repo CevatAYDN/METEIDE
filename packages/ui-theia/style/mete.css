@@ -88,24 +88,48 @@ button.mete-chip {
 	cursor: pointer;
 }
 
-.mete-chip.good {
-	color: var(--good, var(--theia-testing-iconPassed));
-}
-
-.mete-chip.accent {
-	color: var(--accent, var(--theia-focusBorder));
-}
-
-.mete-chip.muted {
-	color: var(--muted, var(--theia-descriptionForeground));
-}
-
-.mete-chip.warn {
-	color: var(--warn, var(--theia-editorWarning-foreground));
-}
-
+/* A state chip keeps its word in ink and carries the state as a coloured dot (ADR-106): the state
+   token as text on the chip background does not meet WCAG AA (docs/15); ink does in both themes. */
+.mete-chip.good,
+.mete-chip.accent,
+.mete-chip.muted,
+.mete-chip.warn,
 .mete-chip.bad {
-	color: var(--bad, var(--theia-errorForeground));
+	color: var(--ink, var(--theia-badge-foreground));
+}
+
+.mete-chip.good::before,
+.mete-chip.accent::before,
+.mete-chip.muted::before,
+.mete-chip.warn::before,
+.mete-chip.bad::before {
+	content: "";
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	margin-right: 6px;
+	vertical-align: baseline;
+}
+
+.mete-chip.good::before {
+	background: var(--good, var(--theia-testing-iconPassed));
+}
+
+.mete-chip.accent::before {
+	background: var(--accent, var(--theia-focusBorder));
+}
+
+.mete-chip.muted::before {
+	background: var(--muted, var(--theia-descriptionForeground));
+}
+
+.mete-chip.warn::before {
+	background: var(--warn, var(--theia-editorWarning-foreground));
+}
+
+.mete-chip.bad::before {
+	background: var(--bad, var(--theia-errorForeground));
 }
 
 /* The studio stage keeps its own radius. */
