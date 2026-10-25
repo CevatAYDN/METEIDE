@@ -5,7 +5,7 @@ import {
 	type TeamEngineAdapter,
 } from "@mete/contracts";
 import type { MeteModule } from "@mete/kernel";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
 	type RunHistory,
@@ -38,6 +38,11 @@ export const createMcpServerModule = (opts: McpServerOptions): MeteModule => {
 	return {
 		manifest: MANIFEST,
 		async activate(ctx) {
+			// Only `mete mcp` provides a transport, and only then does the SDK's server load: every other
+			// start would otherwise read the whole server graph for a module that never activates (docs/15, cold start).
+			const { McpServer } = await import(
+				"@modelcontextprotocol/sdk/server/mcp.js"
+			);
 			// Resolved per call: the engine module may activate after this one.
 			const engine = () => {
 				const r = ctx.capabilities.resolve<TeamEngineAdapter>("team.engine@2");

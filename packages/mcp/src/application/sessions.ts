@@ -12,17 +12,13 @@ import {
 	type ToolError,
 } from "@mete/contracts";
 import type { Logger } from "@mete/kernel";
-import { UnauthorizedError } from "@modelcontextprotocol/sdk/client/auth.js";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import {
-	CreateMessageRequestSchema,
-	type ElicitRequestFormParams,
-	ElicitRequestSchema,
-	type ElicitResult,
-	type ListChangedCallback,
-	ListRootsRequestSchema,
-	type Progress,
-	type Tool,
+import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import type {
+	ElicitRequestFormParams,
+	ElicitResult,
+	ListChangedCallback,
+	Progress,
+	Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 import { PROGRESS_EVERY_MS } from "../defaults.js";
 import { oauthSignIn, type SignInFlow } from "../infrastructure/oauth.js";
@@ -33,6 +29,32 @@ import { type Authorize, signIn } from "./sign-in.js";
 
 // One connection per configured server, opened on first use so a run pays only for the
 // servers it calls; a closed connection is dropped and the next call reconnects (docs/10).
+
+// The SDK client loads on the first connection, not with the package: a `mete status` run talks to
+// no server, and the client's graph is the largest this package would otherwise read at start
+// (docs/15, cold start).
+type ClientSdk = {
+	readonly Client: typeof import("@modelcontextprotocol/sdk/client/index.js").Client;
+	readonly UnauthorizedError: typeof import("@modelcontextprotocol/sdk/client/auth.js").UnauthorizedError;
+	readonly ListRootsRequestSchema: typeof import("@modelcontextprotocol/sdk/types.js").ListRootsRequestSchema;
+	readonly CreateMessageRequestSchema: typeof import("@modelcontextprotocol/sdk/types.js").CreateMessageRequestSchema;
+	readonly ElicitRequestSchema: typeof import("@modelcontextprotocol/sdk/types.js").ElicitRequestSchema;
+};
+
+let loading: Promise<ClientSdk> | undefined;
+
+const clientSdk = () =>
+	(loading ??= Promise.all([
+		import("@modelcontextprotocol/sdk/client/index.js"),
+		import("@modelcontextprotocol/sdk/client/auth.js"),
+		import("@modelcontextprotocol/sdk/types.js"),
+	]).then(([client, auth, types]) => ({
+		Client: client.Client,
+		UnauthorizedError: auth.UnauthorizedError,
+		ListRootsRequestSchema: types.ListRootsRequestSchema,
+		CreateMessageRequestSchema: types.CreateMessageRequestSchema,
+		ElicitRequestSchema: types.ElicitRequestSchema,
+	})));
 
 /** A connected server and the tools it listed when it connected. */
 export type Session = {
@@ -134,6 +156,12 @@ const newClient = (
 	deps: SessionDeps,
 	server: McpServer,
 	state: { tools: readonly Tool[] },
+	{
+		Client,
+		ListRootsRequestSchema,
+		CreateMessageRequestSchema,
+		ElicitRequestSchema,
+	}: ClientSdk,
 ) => {
 	const { elicit, sample } = deps;
 	const client = new Client(
@@ -210,7 +238,8 @@ const attempt = async (
 		...(flow ? { auth: flow.provider } : {}),
 	});
 	const state: { tools: readonly Tool[] } = { tools: [] };
-	const client = newClient(deps, server, state);
+	const sdk = await clientSdk();
+	const client = newClient(deps, server, state, sdk);
 	try {
 		await client.connect(opened.transport, { signal });
 		state.tools = (await client.listTools(undefined, { signal })).tools;
@@ -227,7 +256,7 @@ const attempt = async (
 	} catch (e) {
 		await client.close().catch(() => {});
 		const result = err(io(server.id, e, opened.stderr()));
-		return flow && e instanceof UnauthorizedError
+		return flow && e instanceof sdk.UnauthorizedError
 			? { result, refused: opened }
 			: { result };
 	}
