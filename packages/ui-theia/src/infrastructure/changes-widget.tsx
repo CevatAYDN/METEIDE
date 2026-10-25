@@ -1,6 +1,5 @@
 import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import { ThemeService } from "@theia/core/lib/browser/theming";
-import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { nls } from "@theia/core/lib/common/nls";
 import {
@@ -14,6 +13,7 @@ import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { panelRoot } from "../application/panel-root.js";
 import { failureText } from "../application/status-text.js";
 import { type Changes, MeteDaemonService } from "../domain/status-service.js";
+import { MetePanelWidget } from "./panel-widget.js";
 
 // The Changes view (docs/13; ADR-100) of the first open folder: it asks the daemon for the working
 // tree when it opens, on Refresh, when a tool call of its folder completes while it is visible, and
@@ -21,7 +21,7 @@ import { type Changes, MeteDaemonService } from "../domain/status-service.js";
 
 /** The METE Changes view in Theia's main area. */
 @injectable()
-export class MeteChangesWidget extends ReactWidget {
+export class MeteChangesWidget extends MetePanelWidget {
 	static readonly ID = "mete.changes";
 
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;

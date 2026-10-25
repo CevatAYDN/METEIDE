@@ -1,6 +1,5 @@
 import { CommandService } from "@theia/core";
 import { ThemeService } from "@theia/core/lib/browser/theming";
-import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { WindowService } from "@theia/core/lib/browser/window/window-service";
 import { nls } from "@theia/core/lib/common/nls";
@@ -22,6 +21,7 @@ import { activeRunsOf } from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { START_RUN_COMMAND } from "./board-contribution.js";
 import { EndpointKeys } from "./endpoint-keys.js";
+import { MetePanelWidget } from "./panel-widget.js";
 import { SettingsForms } from "./settings-forms.js";
 
 // The Welcome screen (docs/13 Onboarding wizard; ADR-088) in Theia's main area: the providers of
@@ -31,7 +31,7 @@ const LANGUAGE_COMMAND = "workbench.action.configureLanguage";
 
 /** The METE Welcome screen in Theia's main area. */
 @injectable()
-export class MeteWelcomeWidget extends ReactWidget {
+export class MeteWelcomeWidget extends MetePanelWidget {
 	static readonly ID = "mete.welcome";
 
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;

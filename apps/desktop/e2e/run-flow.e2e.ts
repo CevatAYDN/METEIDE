@@ -57,17 +57,6 @@ const startRun = async (page: Page, team: RegExp) => {
 const board = (page: Page, phrase: RegExp) =>
 	page.locator(".mete-panel").filter({ hasText: phrase });
 
-/**
- * Clicks into the Team panel before a strip button: the first click on an inactive Theia widget
- * activates it and is not delivered to the button, so the button's click comes second.
- */
-const enterBoard = async (page: Page) => {
-	await page.getByRole("heading", { name: GOAL }).click();
-	// The shell waits two seconds for the newly active widget to take focus and holds its input
-	// until then; a fast test click would land inside that window and be swallowed.
-	await page.waitForTimeout(2_500);
-};
-
 /** The Home inbox's row for this run, whose goal opens it in the Team panel (ADR-110). */
 const inboxLink = (page: Page) =>
 	page
@@ -97,8 +86,8 @@ test.describe("a run that waits for approval", () => {
 		await inboxLink(page).click();
 		await expect(page.getByText(asks)).toBeVisible({ timeout: 60_000 });
 
-		// The goal's link opened the Team panel; its own Approve answers the run (ADR-048).
-		await enterBoard(page);
+		// The goal's link opened the Team panel; its own Approve answers the run (ADR-048), and the
+		// panel took focus when it opened, so the first click on the button is delivered (ADR-112).
 		await board(page, asks).getByRole("button", { name: "Approve" }).click();
 		await expect(page.getByText("1 waiting for you")).toHaveCount(0, {
 			timeout: 60_000,
@@ -131,7 +120,6 @@ test.describe("a run blocked by its guardrail", () => {
 		await expect(inboxLink(page)).toBeVisible({ timeout: 60_000 });
 		await inboxLink(page).click();
 		await expect(page.getByText(blocked)).toBeVisible({ timeout: 60_000 });
-		await enterBoard(page);
 
 		await page.getByText("Give an instruction…").click();
 		await page

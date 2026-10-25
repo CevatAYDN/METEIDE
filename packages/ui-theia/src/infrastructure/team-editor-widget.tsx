@@ -2,7 +2,6 @@ import { MessageService } from "@theia/core";
 import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import type { StatefulWidget } from "@theia/core/lib/browser/shell/shell-layout-restorer";
 import { ThemeService } from "@theia/core/lib/browser/theming";
-import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { nls } from "@theia/core/lib/common/nls";
 import type URI from "@theia/core/lib/common/uri";
@@ -13,6 +12,7 @@ import {
 } from "@theia/core/shared/inversify";
 import { FileService } from "@theia/filesystem/lib/browser/file-service";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
+import { MetePanelWidget } from "./panel-widget.js";
 // The design system of docs/13 on every METE panel (ADR-069); the bundle inlines its font.
 import "../../style/mete.css";
 import { draftIdea, withDraft } from "../application/member-draft.js";
@@ -50,7 +50,7 @@ import { TeamPins } from "./team-pins.js";
 /** The METE team editor in Theia's main area. */
 @injectable()
 export class MeteTeamEditorWidget
-	extends ReactWidget
+	extends MetePanelWidget
 	implements StatefulWidget
 {
 	static readonly ID = "mete.team-editor";

@@ -2,7 +2,6 @@ import type { ModelRef } from "@mete/contracts";
 import { CommandService, MessageService } from "@theia/core";
 import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import { ThemeService } from "@theia/core/lib/browser/theming";
-import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { nls } from "@theia/core/lib/common/nls";
 import URI from "@theia/core/lib/common/uri";
@@ -33,6 +32,7 @@ import { failureText, plain } from "../application/status-text.js";
 import { roleNames, teamName } from "../application/team-draft.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { FlowView } from "./flow-view.js";
+import { MetePanelWidget } from "./panel-widget.js";
 import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
 import { MeteRunComposer } from "./run-composer.js";
 import { MeteShownRun } from "./shown-run.js";
@@ -45,7 +45,7 @@ import { StudioView } from "./studio-view.js";
 
 /** The METE Team panel in Theia's main area. */
 @injectable()
-export class MeteBoardWidget extends ReactWidget {
+export class MeteBoardWidget extends MetePanelWidget {
 	static readonly ID = "mete.board";
 
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;
@@ -172,7 +172,7 @@ export class MeteBoardWidget extends ReactWidget {
 	}
 
 	// Coming to the composer puts the cursor in the goal field (docs/13: keyboard-first) and asks for
-	// the teams again (ADR-071).
+	// the teams again (ADR-071); every other activation leaves the keyboard on the panel itself.
 	protected override onActivateRequest(msg: Message): void {
 		super.onActivateRequest(msg);
 		if (!this.showsComposer()) return;

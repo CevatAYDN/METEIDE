@@ -1,6 +1,5 @@
 import { MessageService } from "@theia/core";
 import { ThemeService } from "@theia/core/lib/browser/theming";
-import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { nls } from "@theia/core/lib/common/nls";
 import {
@@ -22,6 +21,7 @@ import {
 	type AuditFilter,
 	MeteDaemonService,
 } from "../domain/status-service.js";
+import { MetePanelWidget } from "./panel-widget.js";
 
 // The Audit log view (docs/13; ADR-053) of the first open folder: it asks the daemon again when it
 // opens, on Refresh, on a filter change and on every run.* event of its folder. Export writes the
@@ -29,7 +29,7 @@ import {
 
 /** The METE Audit log view in Theia's main area. */
 @injectable()
-export class MeteAuditWidget extends ReactWidget {
+export class MeteAuditWidget extends MetePanelWidget {
 	static readonly ID = "mete.audit";
 
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;

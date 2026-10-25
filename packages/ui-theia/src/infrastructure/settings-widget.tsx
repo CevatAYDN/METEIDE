@@ -1,7 +1,6 @@
 import { CommandService } from "@theia/core";
 import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import { ThemeService } from "@theia/core/lib/browser/theming";
-import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { nls } from "@theia/core/lib/common/nls";
 import URI from "@theia/core/lib/common/uri";
@@ -28,6 +27,7 @@ import { EndpointKeys } from "./endpoint-keys.js";
 import { EndpointTests } from "./endpoint-tests.js";
 import { EndpointsForm } from "./endpoints-form.js";
 import { McpForm } from "./mcp-form.js";
+import { MetePanelWidget } from "./panel-widget.js";
 import { SettingsForms } from "./settings-forms.js";
 
 // The read-only Settings screen (docs/13; ADR-081) of the first open folder: it asks the daemon
@@ -35,7 +35,7 @@ import { SettingsForms } from "./settings-forms.js";
 
 /** The METE Settings screen in Theia's main area. */
 @injectable()
-export class MeteSettingsWidget extends ReactWidget {
+export class MeteSettingsWidget extends MetePanelWidget {
 	static readonly ID = "mete.settings";
 
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;

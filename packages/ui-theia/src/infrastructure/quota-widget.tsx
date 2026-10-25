@@ -1,5 +1,4 @@
 import { ThemeService } from "@theia/core/lib/browser/theming";
-import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { nls } from "@theia/core/lib/common/nls";
 import {
@@ -12,6 +11,7 @@ import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { panelRoot } from "../application/panel-root.js";
 import { type QuotaModel, QuotaView } from "../application/quota-view.js";
 import { MeteDaemonService } from "../domain/status-service.js";
+import { MetePanelWidget } from "./panel-widget.js";
 
 // The Quota dashboard (docs/13; ADR-054) of the first open folder: it asks the daemon again when
 // it opens, on Refresh and on every quota.* event of its folder (quota events of a call carry no
@@ -19,7 +19,7 @@ import { MeteDaemonService } from "../domain/status-service.js";
 
 /** The METE Quota dashboard in Theia's main area. */
 @injectable()
-export class MeteQuotaWidget extends ReactWidget {
+export class MeteQuotaWidget extends MetePanelWidget {
 	static readonly ID = "mete.quota.dashboard";
 
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;

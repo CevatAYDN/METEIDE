@@ -1,12 +1,12 @@
 import { CommandService } from "@theia/core";
 import { ThemeService } from "@theia/core/lib/browser/theming";
-import { ReactWidget } from "@theia/core/lib/browser/widgets/react-widget";
 import { nls } from "@theia/core/lib/common/nls";
 import {
 	inject,
 	injectable,
 	postConstruct,
 } from "@theia/core/shared/inversify";
+import { MetePanelWidget } from "./panel-widget.js";
 // The design system of docs/13 on every METE panel (ADR-069); the bundle inlines its font.
 import "../../style/mete.css";
 import "../../style/mete-side.css";
@@ -42,7 +42,7 @@ const labelOf = (section: HomeSection) =>
 	})[section];
 
 @injectable()
-export class MeteHomeSectionWidget extends ReactWidget {
+export class MeteHomeSectionWidget extends MetePanelWidget {
 	@inject(MeteHomeStore) protected readonly store!: MeteHomeStore;
 	@inject(MeteShownRun) protected readonly shownRun!: MeteShownRun;
 	@inject(CommandService) protected readonly commands!: CommandService;
