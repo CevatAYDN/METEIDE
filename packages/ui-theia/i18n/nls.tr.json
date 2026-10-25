@@ -250,6 +250,13 @@
 			"unassigned": "{0} atanmamış",
 			"which": "Hangi çalıştırma?"
 		},
+		"screens": {
+			"audit": "Denetim",
+			"changes": "Değişiklikler",
+			"quota": "Kota",
+			"settings": "Ayarlar",
+			"team": "Ekip paneli"
+		},
 		"section": {
 			"bindings": "Araç bağdaştırıcıları",
 			"gateway": "Modeller ve günlük harcama",

@@ -19,6 +19,32 @@ test("the Changes panel reads an empty working tree", async ({ mete }) => {
 	});
 });
 
+// The screens row (docs/13): every main panel is one click away in the status bar, not only from the
+// command palette, and each button runs the same command its METE menu entry does.
+test("the status bar opens the main screens", async ({ mete }) => {
+	const { page } = mete;
+	for (const screen of ["run", "team", "changes", "quota", "audit", "settings"])
+		await expect(
+			page.locator(`[id="status-bar-mete-screens-${screen}"]`),
+		).toBeVisible();
+
+	// New run opens the composer, the screen a run starts from (docs/13, Run composer).
+	await page.locator('[id="status-bar-mete-screens-run"]').click();
+	await expect(page.locator("textarea.mete-field")).toBeVisible({
+		timeout: 60_000,
+	});
+
+	await page.locator('[id="status-bar-mete-screens-changes"]').click();
+	await expect(page.getByText("No changes.")).toBeVisible({
+		timeout: 60_000,
+	});
+
+	await page.locator('[id="status-bar-mete-screens-settings"]').click();
+	await expect(
+		page.locator(".mete-panel").filter({ hasText: "As METE loaded them at" }),
+	).toBeVisible({ timeout: 60_000 });
+});
+
 // A tool that saves an image under .mete/assets/ notes it in the manifest (packages/mcp); the
 // Assets view (docs/13; ADR-114) lists it with its picture and the call that saved it.
 const SHOT =
@@ -42,7 +68,13 @@ test.describe("the Assets panel", () => {
 
 	test("lists a saved image with its origin", async ({ mete }) => {
 		const { page } = mete;
-		await runCommand(page, "METE: Open assets");
+		// The METE menu lists the Assets screen (docs/13), so the panel is not reachable only from
+		// the palette: open it the way a person does.
+		await page.locator(".lm-MenuBar-item").filter({ hasText: "METE" }).click();
+		await page
+			.locator(".lm-Menu-item")
+			.filter({ hasText: "Open assets" })
+			.click();
 		const panel = page.locator(".mete-panel").filter({ hasText: "shot.svg" });
 		await expect(panel).toBeVisible({ timeout: 60_000 });
 		await expect(panel).toContainText("image/svg+xml");

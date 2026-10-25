@@ -250,6 +250,13 @@
 			"unassigned": "{0} unassigned",
 			"which": "Which run?"
 		},
+		"screens": {
+			"audit": "Audit",
+			"changes": "Changes",
+			"quota": "Quota",
+			"settings": "Settings",
+			"team": "Team panel"
+		},
 		"section": {
 			"bindings": "Tool adapters",
 			"gateway": "Models and daily spend",

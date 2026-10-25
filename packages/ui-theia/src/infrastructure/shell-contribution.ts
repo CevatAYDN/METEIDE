@@ -6,10 +6,12 @@ import {
 import { FrontendApplicationContribution } from "@theia/core/lib/browser/frontend-application-contribution";
 import { injectable, type interfaces } from "@theia/core/shared/inversify";
 import { STOP_ALL_COMMAND } from "../application/stop-all-command.js";
+import { OPEN_ASSETS_COMMAND } from "./assets-contribution.js";
 import { OPEN_AUDIT_COMMAND } from "./audit-contribution.js";
 import { OPEN_BOARD_COMMAND, START_RUN_COMMAND } from "./board-contribution.js";
 import { OPEN_CHANGES_COMMAND } from "./changes-contribution.js";
 import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
+import { MeteScreensStatusBar } from "./screens-status-bar.js";
 import { SHOW_SETTINGS_COMMAND } from "./settings-contribution.js";
 import {
 	EDIT_TEAM_COMMAND,
@@ -33,6 +35,7 @@ const ITEMS = [
 			OPEN_CHANGES_COMMAND,
 			OPEN_QUOTA_COMMAND,
 			OPEN_AUDIT_COMMAND,
+			OPEN_ASSETS_COMMAND,
 			NEW_TEAM_COMMAND,
 			EDIT_TEAM_COMMAND,
 			SHOW_SETTINGS_COMMAND,
@@ -55,9 +58,11 @@ export class MeteMenuContribution implements MenuContribution {
 	}
 }
 
-/** Binds the METE menu and the waiting count into the frontend container. */
+/** Binds the METE menu, the screens row and the waiting count into the frontend container. */
 export const bindShell = (bind: interfaces.Bind) => {
 	bind(MenuContribution).to(MeteMenuContribution).inSingletonScope();
+	bind(MeteScreensStatusBar).toSelf().inSingletonScope();
+	bind(FrontendApplicationContribution).toService(MeteScreensStatusBar);
 	bind(MeteWaitingStatusBar).toSelf().inSingletonScope();
 	bind(FrontendApplicationContribution).toService(MeteWaitingStatusBar);
 };
