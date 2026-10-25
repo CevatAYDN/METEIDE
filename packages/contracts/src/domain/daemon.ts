@@ -31,6 +31,7 @@ export const DAEMON_METHODS = {
 	providerModels: "mete/provider.models",
 	providerTest: "mete/provider.test",
 	models: "mete/models",
+	memberDraft: "mete/member.draft",
 	event: "mete/event",
 } as const;
 
@@ -232,6 +233,35 @@ export const DaemonChangesParamsSchema = z.strictObject({
 	path: z.string().min(1).optional(),
 });
 
+/**
+ * Params of `mete/member.draft` (ADR-108): the member the user is describing, in their own words
+ * (an idea such as "backend developer", or a fuller sentence), the language the draft's words are
+ * for, and the team's goal when the editor knows it.
+ */
+export const DaemonMemberDraftParamsSchema = z.strictObject({
+	idea: z.string().trim().min(1).max(200),
+	language: z.enum(["en", "tr"]).optional(),
+	teamGoal: z.string().trim().max(600).optional(),
+});
+
+/**
+ * Result of `mete/member.draft` (ADR-108): a drafted member for the team editor to offer for
+ * review — what the member does, its backstory, the task it would own — and the pages the draft
+ * read, empty when the model answered without the web. Every field is a suggestion: the user
+ * edits or refuses it, and nothing is written until they save.
+ */
+export const DaemonMemberDraftResultSchema = z.strictObject({
+	goal: z.string().min(1),
+	backstory: z.string().optional(),
+	task: z.strictObject({ title: z.string().min(1) }).optional(),
+	sources: z.array(z.string().url()).default([]).readonly(),
+});
+
+/** What `mete/member.draft` answers (ADR-108). */
+export type DaemonMemberDraftResult = z.infer<
+	typeof DaemonMemberDraftResultSchema
+>;
+
 /** How a changed file stands, from `vcs.git@2`'s porcelain letters (ADR-100). */
 export const ChangedFileSchema = z.strictObject({
 	path: z.string().min(1),
@@ -343,6 +373,9 @@ export const DaemonErrorDataSchema = z.discriminatedUnion("code", [
 			"no_vcs",
 			"invalid",
 			"failed",
+			// A refused member draft (ADR-108).
+			"no_model",
+			"bad_answer",
 		]),
 	}),
 	z.strictObject({

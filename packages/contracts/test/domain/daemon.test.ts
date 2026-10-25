@@ -54,7 +54,7 @@ const run: RunView = {
 	endedAt: "2026-10-23T11:00:00.000Z",
 };
 
-describe("daemon protocol version 14", () => {
+describe("daemon protocol version 20", () => {
 	it("answers mete/events with the run's events in order and the count of unreadable rows", () => {
 		const event = {
 			id: crypto.randomUUID(),
@@ -149,6 +149,7 @@ describe("daemon protocol version 14", () => {
 			providerModels: "mete/provider.models",
 			providerTest: "mete/provider.test",
 			models: "mete/models",
+			memberDraft: "mete/member.draft",
 			event: "mete/event",
 		});
 	});
@@ -232,13 +233,19 @@ describe("daemon protocol version 14", () => {
 			"not_found",
 			"not_supported",
 			"invalid_state",
+			// A refused member draft (ADR-108).
+			"no_model",
+			"bad_answer",
 		])
 			expect(DaemonErrorDataSchema.parse({ code })).toEqual({ code });
 		expect(DaemonErrorDataSchema.safeParse({ code: "oops" }).success).toBe(
 			false,
 		);
 		expectTypeOf<Exclude<DaemonErrorData["code"], "not_ready">>().toEqualTypeOf<
-			EngineError["code"] | CheckpointRestoreError["code"]
+			| EngineError["code"]
+			| CheckpointRestoreError["code"]
+			| "no_model"
+			| "bad_answer"
 		>();
 	});
 

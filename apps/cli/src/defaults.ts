@@ -23,3 +23,12 @@ export const PROBE_TIMEOUT_MS = 30_000;
 
 /** How long one `mete/changes` read of the working tree may take before it is aborted (04 Decisions, ADR-100). */
 export const CHANGES_TIMEOUT_MS = 15_000;
+
+/** The most tokens a member draft asks its model for (04 Decisions, ADR-108). */
+export const DRAFT_MAX_TOKENS = 700;
+
+/** How long a whole member draft — the web search and the one model call — may take (04 Decisions, ADR-108). */
+export const DRAFT_TIMEOUT_MS = 90_000;
+
+/** How many web results a member draft reads (04 Decisions, ADR-108). */
+export const DRAFT_SEARCH_RESULTS = 5;

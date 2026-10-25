@@ -8,6 +8,7 @@ import {
 	DaemonCheckpointRestoreParamsSchema,
 	type DaemonErrorData,
 	DaemonEstimateParamsSchema,
+	DaemonMemberDraftParamsSchema,
 	DaemonModelsParamsSchema,
 	DaemonProviderModelsParamsSchema,
 	DaemonProviderTestParamsSchema,
@@ -36,6 +37,7 @@ import { auditEntries } from "./audit.js";
 import { changesOf } from "./changes.js";
 import type { Io } from "./commands.js";
 import { estimateFor } from "./estimate.js";
+import { draftMember } from "./member-draft.js";
 import {
 	LISTING_TIMEOUT_MS,
 	providerStates,
@@ -175,6 +177,22 @@ const serveChanges = (conn: MessageConnection, app: App) =>
 	conn.onRequest(DAEMON_METHODS.changes, async (params: unknown) => {
 		const p = parsed(DaemonChangesParamsSchema.safeParse(params ?? {}));
 		return changesOf(app, p.path);
+	});
+
+// The team editor's member draft (ADR-108): the web's and one model's suggestions for a member the
+// user is describing; it needs no engine, and a refusal keeps its code.
+const serveMemberDraft = (conn: MessageConnection, app: App) =>
+	conn.onRequest(DAEMON_METHODS.memberDraft, async (params: unknown) => {
+		const p = parsed(DaemonMemberDraftParamsSchema.safeParse(params ?? {}));
+		const draft = await draftMember(
+			app,
+			p.idea,
+			p.language ?? "en",
+			p.teamGoal,
+		);
+		if (draft.ok) return draft.value;
+		const data: DaemonErrorData = { code: draft.error.code };
+		throw new ResponseError(DAEMON_ERROR_CODE, draft.error.message, data);
 	});
 
 // The configuration the daemon loaded (ADR-081); it needs no engine, so it answers while METE is not ready.
@@ -360,6 +378,7 @@ export const daemonCommand = async (
 	serveModels(conn, app);
 	serveCheckpointRestore(conn, app);
 	serveChanges(conn, app);
+	serveMemberDraft(conn, app);
 	serveSettings(conn, app);
 	serveProviders(conn, app);
 	const spent = trackExhausted(app.events);
