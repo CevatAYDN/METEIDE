@@ -27,7 +27,7 @@ export type TaskCard = {
 	readonly agentId?: string;
 	/** The role that approves the task, once it asked (not the human). */
 	readonly approver?: string;
-	/** The human was asked to approve the current submission and has not decided yet (ADR-091). */
+	/** The human's answer is what the task waits for: an approval it was asked for, or a block only the human can lift (ADR-091, docs/07). */
 	readonly waitsForHuman?: true;
 	/** The task's latest report, relative to the workspace (docs/07, Artifact). */
 	readonly artifactPath?: string;
@@ -97,7 +97,7 @@ const tasksAfter = (
 			agentId: e.payload.agentId,
 		}));
 	if (e.type === "task.status.changed")
-		return update(tasks, e.taskId, (t) => ({ ...t, status: e.payload.to }));
+		return update(tasks, e.taskId, (t) => statusAfter(t, e.payload.to));
 	if (e.type === "artifact.created" || e.type === "artifact.updated")
 		return update(tasks, e.taskId, (t) => ({
 			...t,
@@ -106,6 +106,16 @@ const tasksAfter = (
 	if (e.type === "approval.requested" || e.type === "approval.resolved")
 		return update(tasks, e.taskId, (t) => approvalAfter(t, e));
 	return tasks;
+};
+
+// A blocked task waits for the human (docs/07, Task state machine): the run pauses for approval,
+// and only the human's instruction sends the task back to work (docs/08). Going back to work
+// clears the mark; every other status leaves the approval mark alone, since it is the human's.
+const statusAfter = (t: TaskCard, to: TaskStatus): TaskCard => {
+	if (to === "blocked") return { ...t, status: to, waitsForHuman: true };
+	if (t.status !== "blocked") return { ...t, status: to };
+	const { waitsForHuman: _, ...rest } = t;
+	return { ...rest, status: to };
 };
 
 // The approver role is kept for the Studio's bell (ADR-052); the human's turn is marked from its

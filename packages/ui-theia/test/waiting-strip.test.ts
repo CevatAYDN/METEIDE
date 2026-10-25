@@ -69,6 +69,25 @@ describe("the Waiting for you strip", () => {
 		expect(out).not.toContain("The run waits for you.");
 	});
 
+	it("names a blocked task and offers the instruction that lifts it (docs/07)", () => {
+		const out = strip([
+			created,
+			event(
+				"task.status.changed",
+				{ from: "in_progress", to: "blocked" },
+				TASK,
+			),
+			paused,
+		]);
+		expect(out).toContain("QA is blocked on “Audit it”");
+		expect(out).toContain("It goes on when you answer");
+		expect(out).toContain(">Go on<");
+		expect(out).toContain("Give an instruction…");
+		expect(out).toContain('name="feedback" required=""');
+		expect(out).not.toContain("asks you to approve");
+		expect(out).not.toContain("The run waits for you.");
+	});
+
 	it("says the run waits, with Resume, when no task asks the human", () => {
 		const out = strip([created, paused]);
 		expect(out).toContain("The run waits for you.");

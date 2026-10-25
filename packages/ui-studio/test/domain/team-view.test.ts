@@ -127,6 +127,36 @@ describe("the team view fold", () => {
 		expect(decided.tasks[0]?.approver).toBe("lead");
 	});
 
+	it("marks a blocked task as waiting for the human, and clears it when the task goes back to work", () => {
+		const working = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			created(NOTES, "Take notes"),
+			moved(NOTES, "todo", "in_progress"),
+		]);
+		expect(working.tasks[0]?.waitsForHuman).toBeUndefined();
+		const blocked = applyAll(RUN, working, [
+			moved(NOTES, "in_progress", "blocked"),
+		]);
+		expect(blocked.tasks[0]).toMatchObject({
+			status: "blocked",
+			waitsForHuman: true,
+		});
+		// The human's instruction unblocks it: the answer, then the task going back to work.
+		const again = applyAll(RUN, blocked, [
+			event(
+				"approval.resolved",
+				{
+					approver: "human",
+					decision: "revise",
+					feedback: "install the tool",
+				},
+				NOTES,
+			),
+			moved(NOTES, "blocked", "in_progress"),
+		]);
+		expect(again.tasks[0]?.waitsForHuman).toBeUndefined();
+		expect(again.tasks[0]?.status).toBe("in_progress");
+	});
+
 	it("keeps each task's latest artifact path", () => {
 		const art = (type: string, path: string) =>
 			event(

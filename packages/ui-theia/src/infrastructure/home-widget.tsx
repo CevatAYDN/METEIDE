@@ -9,6 +9,7 @@ import {
 } from "@theia/core/shared/inversify";
 // The design system of docs/13 on every METE panel (ADR-069); the bundle inlines its font.
 import "../../style/mete.css";
+import "../../style/mete-side.css";
 import {
 	QuotaSection,
 	RunsSection,
@@ -17,25 +18,20 @@ import {
 import { SET_KEY_COMMAND } from "../application/key-command.js";
 import { panelRoot } from "../application/panel-root.js";
 import { WorkspacesSection } from "../application/workspaces-section.js";
+import {
+	type HomeSection,
+	sectionCount,
+	sectionId,
+} from "../domain/home-sections.js";
 import { START_RUN_COMMAND } from "./board-contribution.js";
 import { MeteHomeStore } from "./home-store.js";
 import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
 import { MeteShownRun } from "./shown-run.js";
 
 // One section of the METE view (docs/13, Home; ADR-078), a part of its view container. Every
-// section draws from the one store, so they show the same answer.
-
-/** The sections, in the order the METE view stacks them. */
-export const HOME_SECTIONS = [
-	"waiting",
-	"runs",
-	"workspaces",
-	"quota",
-] as const;
-export type HomeSection = (typeof HOME_SECTIONS)[number];
-
-/** The widget id of a section. */
-export const sectionId = (section: HomeSection) => `mete.home.${section}`;
+// section draws from the one store, so they show the same answer. The sections themselves, and
+// what each one counts, are the view's domain (domain/home-sections.ts); this file binds them to
+// Theia.
 
 const labelOf = (section: HomeSection) =>
 	({
@@ -58,15 +54,34 @@ export class MeteHomeSectionWidget extends ReactWidget {
 	protected init(): void {
 		// The panel takes the tokens of Theia's theme (ADR-069): draw again on a change.
 		this.toDispose.push(this.themes.onDidColorThemeChange(() => this.update()));
-		this.toDispose.push(this.store.onDidChange(() => this.update()));
+		this.toDispose.push(
+			this.store.onDidChange(() => {
+				this.refreshTitle();
+				this.update();
+			}),
+		);
 		this.toDispose.push(this.shownRun.onDidChange(() => this.update()));
 	}
 
-	/** Makes this widget the given section; the factory calls it once, right after creating it. */
+	// The section's title carries its count (ADR-109): "Waiting for you (2)", "Runs (5)" — a number
+	// beside the words, as the side view of the redesign shows, and none while it cannot count.
+	protected refreshTitle(): void {
+		const { model, workspaces } = this.store;
+		const n = sectionCount(this.section, model, workspaces.length);
+		this.title.label =
+			n === undefined
+				? labelOf(this.section)
+				: `${labelOf(this.section)} (${n})`;
+	}
+
+	/**
+	 * Makes this widget the given section; the factory calls it once, right after creating it, so
+	 * the title carries its count from the first paint, not from the store's first change.
+	 */
 	asSection(section: HomeSection): this {
 		this.section = section;
 		this.id = sectionId(section);
-		this.title.label = labelOf(section);
+		this.refreshTitle();
 		this.update();
 		return this;
 	}

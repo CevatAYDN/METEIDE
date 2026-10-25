@@ -7,8 +7,9 @@ import { openReportLabel, reportPath } from "./results-list.js";
 import { Icon, LINE } from "./roster-look.js";
 import { TONES } from "./tone.js";
 
-// The Team panel's Waiting for you strip for the run it shows (ADR-091): a card for each task the
-// human was asked to approve, naming its member, or one card for a run that waits for anything else.
+// The Team panel's Waiting for you strip for the run it shows (ADR-091): a card for each task that
+// waits for the human — one asking to be approved, or one blocked until the human answers (docs/07)
+// — naming its member, or one card for a run that waits for anything else.
 
 /** What the strip's buttons do: ADR-048's commands, for the run the panel shows. */
 export type WaitingControls = {
@@ -28,26 +29,37 @@ const STRIP: CSSProperties = {
 	borderColor: TONES.warn,
 };
 
-// The feedback field is required, so an empty revision is never sent (docs/08).
-const Revise = ({ onRevise }: { readonly onRevise: (f: string) => void }) => (
+// The answer field is required, so an empty answer is never sent (docs/08). One form for both
+// answers — the words that should change, and the instruction that lifts a block.
+const Feedback = ({
+	open,
+	placeholder,
+	send,
+	onSend,
+}: {
+	readonly open: string;
+	readonly placeholder: string;
+	readonly send: string;
+	readonly onSend: (feedback: string) => void;
+}) => (
 	<details>
 		<summary className="mete-button quiet" style={{ display: "inline-flex" }}>
-			{nls.localize("mete/home/revise", "Revise…")}
+			{open}
 		</summary>
 		<form
 			style={{ ...ROW, marginTop: "8px" }}
 			onSubmit={(e) => {
 				e.preventDefault();
 				const text = String(new FormData(e.currentTarget).get("feedback"));
-				if (text.trim()) onRevise(text.trim());
+				if (text.trim()) onSend(text.trim());
 			}}
 		>
 			<textarea
 				name="feedback"
 				required
 				rows={2}
-				aria-label={nls.localize("mete/run/feedback", "What should change?")}
-				placeholder={nls.localize("mete/run/feedback", "What should change?")}
+				aria-label={placeholder}
+				placeholder={placeholder}
 				style={{
 					flex: "1 1 320px",
 					minWidth: 0,
@@ -56,10 +68,31 @@ const Revise = ({ onRevise }: { readonly onRevise: (f: string) => void }) => (
 				}}
 			/>
 			<button type="submit" className="mete-button">
-				{nls.localize("mete/waiting/send", "Send back")}
+				{send}
 			</button>
 		</form>
 	</details>
+);
+
+// Sends a submission back with the words that should change (docs/08, revision limit).
+const Revise = ({ onRevise }: { readonly onRevise: (f: string) => void }) => (
+	<Feedback
+		open={nls.localize("mete/home/revise", "Revise…")}
+		placeholder={nls.localize("mete/run/feedback", "What should change?")}
+		send={nls.localize("mete/waiting/send", "Send back")}
+		onSend={onRevise}
+	/>
+);
+
+// A blocked task goes on with the human's instruction as its next attempt (docs/07, Task state
+// machine; docs/08).
+const Instruct = ({ onRevise }: { readonly onRevise: (f: string) => void }) => (
+	<Feedback
+		open={nls.localize("mete/waiting/instruct", "Give an instruction…")}
+		placeholder={nls.localize("mete/waiting/instruction", "What should it do?")}
+		send={nls.localize("mete/waiting/sendInstruction", "Send the instruction")}
+		onSend={onRevise}
+	/>
 );
 
 const Asked = ({
@@ -109,8 +142,50 @@ const Asked = ({
 	);
 };
 
-// Paused for approval with no task asking the human: a policy ask, a task only the human can
-// unblock, or a merge to settle. The events say no more, so the card names nothing else.
+// A blocked task (docs/07, Task state machine): a guardrail's retries ran out or a capability is
+// missing, and the run paused for the human. It goes on as it is, or with the human's instruction.
+const Blocked = ({
+	task,
+	name,
+	controls,
+}: {
+	readonly task: TaskCard;
+	readonly name: string;
+	readonly controls: WaitingControls;
+}) => (
+	<li style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+		<div style={LINE}>
+			<Icon name="alert" />
+			<strong>
+				{nls.localize(
+					"mete/waiting/blocked",
+					"{0} is blocked on “{1}”",
+					name,
+					task.title,
+				)}
+			</strong>
+		</div>
+		<span style={MUTED}>
+			{nls.localize(
+				"mete/waiting/blockedHint",
+				"It goes on when you answer: send an instruction, or let it go on as it is.",
+			)}
+		</span>
+		<div style={{ ...ROW, alignItems: "flex-start" }}>
+			<button
+				type="button"
+				className="mete-button"
+				onClick={controls.onApprove}
+			>
+				{nls.localize("mete/waiting/goOn", "Go on")}
+			</button>
+			<Instruct onRevise={controls.onRevise} />
+		</div>
+	</li>
+);
+
+// Paused for approval with no task asking the human: a policy ask, or a merge to settle. The
+// events say no more, so the card names nothing else.
 const RunWaits = ({ onResume }: { readonly onResume: () => void }) => (
 	<div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
 		<div style={ROW}>
@@ -148,14 +223,23 @@ export const WaitingStrip = ({
 		>
 			{asked.length > 0 ? (
 				<ul style={LIST}>
-					{asked.map((t) => (
-						<Asked
-							key={t.id}
-							task={t}
-							name={names[t.roleId] ?? roleWords(t.roleId)}
-							controls={controls}
-						/>
-					))}
+					{asked.map((t) =>
+						t.status === "blocked" ? (
+							<Blocked
+								key={t.id}
+								task={t}
+								name={names[t.roleId] ?? roleWords(t.roleId)}
+								controls={controls}
+							/>
+						) : (
+							<Asked
+								key={t.id}
+								task={t}
+								name={names[t.roleId] ?? roleWords(t.roleId)}
+								controls={controls}
+							/>
+						),
+					)}
 				</ul>
 			) : (
 				<RunWaits onResume={controls.onResume} />

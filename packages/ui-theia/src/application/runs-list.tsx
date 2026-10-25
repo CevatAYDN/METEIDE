@@ -3,7 +3,7 @@ import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties } from "react";
 import type { HomeAction, HomeRow } from "../domain/home-model.js";
 import { roleWords } from "../domain/roster.js";
-import { LINK, LIST, MUTED, ROW } from "./look.js";
+import { iconClass, LINK, LIST, MUTED, ROW } from "./look.js";
 import { stateText } from "./quota-text.js";
 import { runsText, statusTone, statusWord } from "./status-text.js";
 import { shortWhen, when } from "./time-text.js";
@@ -61,29 +61,24 @@ const OpenGoal = ({
 const toneOf = (row: HomeRow) =>
 	row.waiting ? "warn" : statusTone(row.status);
 
+// The side view's row icon (ADR-109): the state as a glyph, a waiting run as the bell that asks.
+const ICON: Record<string, string> = {
+	queued: "clock",
+	running: "loading",
+	paused: "pulse",
+	completed: "check",
+	failed: "error",
+	cancelled: "circle-slash",
+};
+const iconOf = (row: HomeRow) =>
+	row.waiting ? "bell" : (ICON[row.status] ?? "circle-outline");
+
 // A long goal takes two lines in the narrow side bar; the tooltip keeps it whole.
 const CLAMP: CSSProperties = {
 	display: "-webkit-box",
 	WebkitLineClamp: 2,
 	WebkitBoxOrient: "vertical",
 	overflow: "hidden",
-};
-
-const ITEM: CSSProperties = {
-	display: "flex",
-	flexDirection: "column",
-	gap: "2px",
-	padding: "4px 6px",
-	margin: "0 -6px",
-	borderRadius: "10px",
-};
-
-// The run the Team panel shows stands out, as a selected row does in a list.
-const CURRENT: CSSProperties = {
-	...ITEM,
-	background: "var(--chip, var(--theia-list-activeSelectionBackground))",
-	outline:
-		"1.5px solid var(--line, var(--theia-contrastActiveBorder, transparent))",
 };
 
 const RunItem = ({
@@ -97,35 +92,42 @@ const RunItem = ({
 	readonly act: Act;
 	readonly current: boolean;
 }) => (
+	// The side view's row (ADR-109): the state's tile, the goal as the title, the chip and the when
+	// as the subtitle; the run the Team panel shows stands out as a selected row does.
 	<li
-		style={current ? CURRENT : ITEM}
+		className="mete-item"
 		{...(current ? { "aria-current": "true" as const } : {})}
 	>
-		<span style={CLAMP} title={row.goal}>
-			<OpenGoal row={row} act={act} />
+		<span className={`mete-tile ${toneOf(row)}`} aria-hidden="true">
+			<span className={iconClass(iconOf(row))} />
 		</span>
-		<span style={MUTED}>
-			<span className={`mete-chip ${toneOf(row)}`}>
-				{statusWord(row.status)}
+		<span style={{ display: "grid", gap: "2px", minWidth: 0 }}>
+			<span style={CLAMP} title={row.goal}>
+				<OpenGoal row={row} act={act} />
 			</span>
-			{row.templateId ? ` · ${roleWords(row.templateId)}` : ""} ·{" "}
-			<span title={when(row.createdAt)}>{shortWhen(row.createdAt)}</span>
+			<span className="mete-sub">
+				<span className={`mete-chip ${toneOf(row)}`}>
+					{statusWord(row.status)}
+				</span>
+				{row.templateId ? ` · ${roleWords(row.templateId)}` : ""} ·{" "}
+				<span title={when(row.createdAt)}>{shortWhen(row.createdAt)}</span>
+			</span>
+			{row.quotaPaused && blocked.length > 0 ? (
+				<Blocked providers={blocked} />
+			) : null}
+			{row.userPaused || row.quotaPaused ? (
+				<div style={ROW}>
+					<Button
+						label={
+							row.userPaused
+								? nls.localize("mete/home/resume", "Resume")
+								: nls.localize("mete/home/resumeNow", "Resume now")
+						}
+						onClick={() => act("resume", row.id)}
+					/>
+				</div>
+			) : null}
 		</span>
-		{row.quotaPaused && blocked.length > 0 ? (
-			<Blocked providers={blocked} />
-		) : null}
-		{row.userPaused || row.quotaPaused ? (
-			<div style={ROW}>
-				<Button
-					label={
-						row.userPaused
-							? nls.localize("mete/home/resume", "Resume")
-							: nls.localize("mete/home/resumeNow", "Resume now")
-					}
-					onClick={() => act("resume", row.id)}
-				/>
-			</div>
-		) : null}
 	</li>
 );
 

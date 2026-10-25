@@ -4,6 +4,10 @@ import {
 	bindViewContribution,
 	WidgetFactory,
 } from "@theia/core/lib/browser";
+import {
+	KeybindingContribution,
+	type KeybindingRegistry,
+} from "@theia/core/lib/browser/keybinding";
 import { nls } from "@theia/core/lib/common/nls";
 import { injectable, type interfaces } from "@theia/core/shared/inversify";
 import { MeteQuotaWidget } from "./quota-widget.js";
@@ -19,7 +23,10 @@ export const OPEN_QUOTA_COMMAND: Command = Command.toLocalizedCommand(
 );
 
 @injectable()
-export class MeteQuotaContribution extends AbstractViewContribution<MeteQuotaWidget> {
+export class MeteQuotaContribution
+	extends AbstractViewContribution<MeteQuotaWidget>
+	implements KeybindingContribution
+{
 	constructor() {
 		super({
 			widgetId: MeteQuotaWidget.ID,
@@ -34,11 +41,19 @@ export class MeteQuotaContribution extends AbstractViewContribution<MeteQuotaWid
 				(await this.openView({ activate: true, reveal: true })).refresh(),
 		});
 	}
+
+	override registerKeybindings(keybindings: KeybindingRegistry): void {
+		keybindings.registerKeybinding({
+			command: OPEN_QUOTA_COMMAND.id,
+			keybinding: "ctrlcmd+shift+q",
+		});
+	}
 }
 
 /** Binds the Quota dashboard, its factory and its contribution into the frontend container. */
 export const bindQuota = (bind: interfaces.Bind) => {
 	bindViewContribution(bind, MeteQuotaContribution);
+	bind(KeybindingContribution).toService(MeteQuotaContribution);
 	bind(MeteQuotaWidget).toSelf();
 	bind(WidgetFactory)
 		.toDynamicValue((ctx) => ({

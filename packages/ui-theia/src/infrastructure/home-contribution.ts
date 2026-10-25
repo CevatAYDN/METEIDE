@@ -9,6 +9,10 @@ import {
 	WidgetFactory,
 	WidgetManager,
 } from "@theia/core/lib/browser";
+import {
+	KeybindingContribution,
+	type KeybindingRegistry,
+} from "@theia/core/lib/browser/keybinding";
 import { TabBarDecorator } from "@theia/core/lib/browser/shell/tab-bar-decorator";
 import { StorageService } from "@theia/core/lib/browser/storage-service";
 import { nls } from "@theia/core/lib/common/nls";
@@ -17,13 +21,13 @@ import {
 	injectable,
 	type interfaces,
 } from "@theia/core/shared/inversify";
-import { MeteHomeStore } from "./home-store.js";
 import {
 	HOME_SECTIONS,
 	type HomeSection,
-	MeteHomeSectionWidget,
 	sectionId,
-} from "./home-widget.js";
+} from "../domain/home-sections.js";
+import { MeteHomeStore } from "./home-store.js";
+import { MeteHomeSectionWidget } from "./home-widget.js";
 import { METE_VIEW_ID, MeteInboxBadge } from "./inbox-badge.js";
 import { followWaiting, SHOW_WAITING_COMMAND } from "./waiting.js";
 
@@ -61,7 +65,7 @@ const PARTS: {
 @injectable()
 export class MeteHomeContribution
 	extends AbstractViewContribution<MeteHomeSectionWidget>
-	implements FrontendApplicationContribution
+	implements FrontendApplicationContribution, KeybindingContribution
 {
 	@inject(MeteHomeStore) protected readonly store!: MeteHomeStore;
 	@inject(StorageService) protected readonly storage!: StorageService;
@@ -88,6 +92,18 @@ export class MeteHomeContribution
 		});
 		commands.registerCommand(SHOW_WAITING_COMMAND, {
 			execute: () => this.showWaiting(),
+		});
+	}
+
+	// Keyboard-first: every METE action is a command and reachable by keyboard (docs/13).
+	override registerKeybindings(keybindings: KeybindingRegistry): void {
+		keybindings.registerKeybinding({
+			command: OPEN_HOME_COMMAND.id,
+			keybinding: "ctrlcmd+shift+m",
+		});
+		keybindings.registerKeybinding({
+			command: SHOW_WAITING_COMMAND.id,
+			keybinding: "ctrlcmd+shift+a",
 		});
 	}
 
@@ -144,6 +160,7 @@ const containerFactory = (ctx: interfaces.Context): WidgetFactory => ({
 export const bindHome = (bind: interfaces.Bind) => {
 	bindViewContribution(bind, MeteHomeContribution);
 	bind(FrontendApplicationContributionId).toService(MeteHomeContribution);
+	bind(KeybindingContribution).toService(MeteHomeContribution);
 	bind(MeteHomeStore).toSelf().inSingletonScope();
 	bind(MeteHomeSectionWidget).toSelf();
 	bind(MeteInboxBadge).toSelf().inSingletonScope();

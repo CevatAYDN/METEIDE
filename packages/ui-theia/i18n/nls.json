@@ -505,8 +505,14 @@
 		},
 		"waiting": {
 			"asks": "{0} asks you to approve “{1}”",
+			"blocked": "{0} is blocked on “{1}”",
+			"blockedHint": "It goes on when you answer: send an instruction, or let it go on as it is.",
+			"goOn": "Go on",
+			"instruct": "Give an instruction…",
+			"instruction": "What should it do?",
 			"run": "The run waits for you.",
-			"send": "Send back"
+			"send": "Send back",
+			"sendInstruction": "Send the instruction"
 		},
 		"welcome": {
 			"caption": "METE: keys, privacy and web search to start with",

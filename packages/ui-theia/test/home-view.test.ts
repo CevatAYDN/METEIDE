@@ -216,11 +216,16 @@ describe("the Home view", () => {
 		expect(inbox).toContain("team goal");
 		expect(inbox).toContain("single goal");
 		expect(inbox).not.toContain("quota goal");
+		expect(inbox).toContain('title="Open in the team panel"');
 		expect(inbox.match(/>Approve</g)).toHaveLength(1);
 		expect(inbox.match(/>Revise…</g)).toHaveLength(1);
 		expect(inbox.match(/>Open artifact</g)).toHaveLength(1);
 		expect(inbox.match(/>Resume</g)).toHaveLength(2);
 		expect(inbox).toContain("unless .mete/policy.yaml allows it");
+		// A long goal ends in an ellipsis, so the row's tooltip keeps it whole (ADR-109).
+		expect(inbox).toContain('class="mete-title" title="team goal"');
+		// The hint explains why Resume may stop again, so it wraps instead of being cut.
+		expect(inbox).toContain('class="mete-note"');
 	});
 
 	it("says under a run paused for quota why each provider cannot carry it on, and only there", () => {
@@ -304,9 +309,12 @@ describe("the Home view", () => {
 		expect(quota).toContain(
 			'class="mete-chip warn" title="nvidia: no key (METE: Set provider key)">nvidia<',
 		);
-		expect(html(homeModel({ ok: true, value: [] }, AT))).toContain(
+		const empty = html(homeModel({ ok: true, value: [] }, AT));
+		expect(empty).toContain(
 			"The providers&#x27; states show once the daemon answers.",
 		);
+		// A sentence, not a label: it wraps rather than ending in an ellipsis.
+		expect(empty).toContain('class="mete-note"');
 	});
 
 	it("lists the folders opened before, newest first, the open one marked and the others as links", () => {
@@ -331,9 +339,10 @@ describe("the Home view", () => {
 		expect(list).toContain("site <span");
 		expect(list).toContain("(open)");
 		expect(list).toMatch(/<button type="button"[^>]*>game<\/button>/);
-		// Each path takes one line that ends in an ellipsis; the tooltip keeps it whole.
-		expect(list).toContain('<li title="/w/game">');
-		expect(list).toContain("text-overflow:ellipsis");
+		// Each path takes one line that ends in an ellipsis (the mete-sub rule); the tooltip keeps
+		// the whole path.
+		expect(list).toContain('<li class="mete-item" title="/w/game">');
+		expect(list).toContain('class="mete-sub mete-mono"');
 		// The open folder cannot be forgotten; the others can, and a folder can be added.
 		expect(list.match(/>Forget</g)).toHaveLength(1);
 		expect(list).toContain('aria-label="Forget game"');

@@ -7,6 +7,10 @@ import {
 	FrontendApplicationContribution as FrontendApplicationContributionId,
 	WidgetFactory,
 } from "@theia/core/lib/browser";
+import {
+	KeybindingContribution,
+	type KeybindingRegistry,
+} from "@theia/core/lib/browser/keybinding";
 import { nls } from "@theia/core/lib/common/nls";
 import {
 	QuickInputService,
@@ -72,7 +76,7 @@ type RunPick = QuickPickItem & {
 @injectable()
 export class MeteBoardContribution
 	extends AbstractViewContribution<MeteBoardWidget>
-	implements FrontendApplicationContribution
+	implements FrontendApplicationContribution, KeybindingContribution
 {
 	@inject(MessageService) protected readonly messages!: MessageService;
 	@inject(WorkspaceService) protected readonly workspace!: WorkspaceService;
@@ -103,6 +107,13 @@ export class MeteBoardContribution
 		commands.registerCommand(START_RUN_COMMAND, {
 			execute: async () =>
 				(await this.openView({ activate: true, reveal: true })).showComposer(),
+		});
+	}
+
+	override registerKeybindings(keybindings: KeybindingRegistry): void {
+		keybindings.registerKeybinding({
+			command: START_RUN_COMMAND.id,
+			keybinding: "ctrlcmd+shift+enter",
 		});
 	}
 
@@ -185,6 +196,7 @@ export class MeteBoardContribution
 export const bindBoard = (bind: interfaces.Bind) => {
 	bindViewContribution(bind, MeteBoardContribution);
 	bind(FrontendApplicationContributionId).toService(MeteBoardContribution);
+	bind(KeybindingContribution).toService(MeteBoardContribution);
 	bind(MeteBoardWidget).toSelf();
 	bind(MeteRunComposer).toSelf();
 	bind(MeteShownRun).toSelf().inSingletonScope();

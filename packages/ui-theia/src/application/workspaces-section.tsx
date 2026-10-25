@@ -1,6 +1,5 @@
 import { nls } from "@theia/core/lib/common/nls";
-import type { CSSProperties } from "react";
-import { LINK, LIST, MUTED, ROW, SECTION } from "./look.js";
+import { iconClass, LINK, LIST, MUTED, ROW, SECTION } from "./look.js";
 
 // The Workspaces section of the METE view (docs/13, Home; ADR-078).
 
@@ -19,15 +18,8 @@ export type WorkspaceActions = {
 	readonly onAdd: () => void;
 };
 
-// One line that ends in an ellipsis; the tooltip holds the whole path.
-const ONE_LINE: CSSProperties = {
-	...MUTED,
-	display: "block",
-	whiteSpace: "nowrap",
-	overflow: "hidden",
-	textOverflow: "ellipsis",
-};
-
+// The subtitle carries the folder that holds the workspace in one ellipsised line; the row's
+// tooltip keeps the whole path.
 const TAIL = 32;
 
 /**
@@ -53,40 +45,50 @@ const Row = ({
 	readonly w: Workspace;
 	readonly actions: WorkspaceActions;
 }) => (
-	<li title={w.path}>
-		<span style={{ ...ROW, justifyContent: "space-between" }}>
-			{w.current ? (
-				<span>
-					{w.name}{" "}
-					<span style={MUTED}>
-						{nls.localize("mete/home/currentWorkspace", "(open)")}
-					</span>
-				</span>
-			) : (
-				<button
-					type="button"
-					style={LINK}
-					onClick={() => actions.onOpen(w.uri)}
-				>
-					{w.name}
-				</button>
-			)}
-			{w.current ? null : (
-				<button
-					type="button"
-					style={{ ...LINK, ...MUTED, fontWeight: 400 }}
-					aria-label={nls.localize(
-						"mete/home/forgetWorkspace",
-						"Forget {0}",
-						w.name,
-					)}
-					onClick={() => actions.onForget(w.uri)}
-				>
-					{nls.localize("mete/home/forget", "Forget")}
-				</button>
-			)}
+	// The side view's row (ADR-109): a folder tile, the name as the title, the folder that holds it
+	// in mono as the subtitle; the whole row's tooltip keeps the path.
+	<li className="mete-item" title={w.path}>
+		<span
+			className={`mete-tile${w.current ? " accent" : ""}`}
+			aria-hidden="true"
+		>
+			<span className={iconClass(w.current ? "folder-active" : "folder")} />
 		</span>
-		<span style={ONE_LINE}>{parentTail(w)}</span>
+		<span style={{ display: "grid", gap: "2px", minWidth: 0 }}>
+			<span className="mete-title">
+				{w.current ? (
+					<span>
+						{w.name}{" "}
+						<span style={MUTED}>
+							{nls.localize("mete/home/currentWorkspace", "(open)")}
+						</span>
+					</span>
+				) : (
+					<button
+						type="button"
+						style={LINK}
+						onClick={() => actions.onOpen(w.uri)}
+					>
+						{w.name}
+					</button>
+				)}
+				{w.current ? null : (
+					<button
+						type="button"
+						style={{ ...LINK, ...MUTED, fontWeight: 400, marginLeft: 8 }}
+						aria-label={nls.localize(
+							"mete/home/forgetWorkspace",
+							"Forget {0}",
+							w.name,
+						)}
+						onClick={() => actions.onForget(w.uri)}
+					>
+						{nls.localize("mete/home/forget", "Forget")}
+					</button>
+				)}
+			</span>
+			<span className="mete-sub mete-mono">{parentTail(w)}</span>
+		</span>
 	</li>
 );
 

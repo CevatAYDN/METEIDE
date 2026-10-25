@@ -1,7 +1,7 @@
 import type { ProviderState } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import type { HomeModel, HomeRow } from "../domain/home-model.js";
-import { LIST, MUTED, ROW, SECTION } from "./look.js";
+import { iconClass, LINK, LIST, MUTED, ROW, SECTION } from "./look.js";
 import { stateText } from "./quota-text.js";
 import { type Act, Button, Runs } from "./runs-list.js";
 import { failureText, noFolderText } from "./status-text.js";
@@ -20,8 +20,27 @@ const Goal = ({ row }: { readonly row: HomeRow }) => (
 	</>
 );
 
-// A team run waits for a decision; a single-agent run waits only for a policy ask, which Resume
-// repeats (docs/08), so it gets Resume and the hint.
+// A waiting run's goal opens it in the Team panel, so the human sees the task before deciding
+// (ADR-091, ADR-110): the same link the Runs list uses (runs-list.tsx), reused here.
+const OpenGoal = ({
+	row,
+	act,
+}: {
+	readonly row: HomeRow;
+	readonly act: Act;
+}) => (
+	<button
+		type="button"
+		style={LINK}
+		title={nls.localize("mete/home/openRun", "Open in the team panel")}
+		onClick={() => act("open", row.id)}
+	>
+		<Goal row={row} />
+	</button>
+);
+
+// A team run waits for a decision (the check: an approval); a single-agent run waits only for a
+// policy ask, which Resume repeats (docs/08), so it gets Resume and the hint — and the terminal tile.
 const Waiting = ({
 	row,
 	act,
@@ -29,40 +48,48 @@ const Waiting = ({
 	readonly row: HomeRow;
 	readonly act: Act;
 }) => (
-	<li style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-		<span>
-			<Goal row={row} />
+	<li className="mete-item">
+		<span
+			className={`mete-tile${row.templateId ? " warn" : ""}`}
+			aria-hidden="true"
+		>
+			<span className={iconClass(row.templateId ? "check" : "terminal")} />
 		</span>
-		<div style={ROW}>
-			{row.templateId ? (
-				<>
-					<Button
-						label={nls.localize("mete/home/approve", "Approve")}
-						onClick={() => act("approve", row.id)}
-					/>
-					<Button
-						label={nls.localize("mete/home/revise", "Revise…")}
-						onClick={() => act("revise", row.id)}
-					/>
-					<Button
-						label={nls.localize("mete/run/openArtifact", "Open artifact")}
-						onClick={() => act("artifact", row.id)}
-					/>
-				</>
-			) : null}
-			<Button
-				label={nls.localize("mete/home/resume", "Resume")}
-				onClick={() => act("resume", row.id)}
-			/>
-		</div>
-		{row.templateId ? null : (
-			<span style={MUTED}>
-				{nls.localize(
-					"mete/home/resumeHint",
-					"Resume repeats the tool call the policy asked about, so the run stops again unless .mete/policy.yaml allows it.",
-				)}
+		<span style={{ display: "grid", gap: "4px", minWidth: 0 }}>
+			<span className="mete-title" title={row.goal}>
+				<OpenGoal row={row} act={act} />
 			</span>
-		)}
+			<div style={ROW}>
+				{row.templateId ? (
+					<>
+						<Button
+							label={nls.localize("mete/home/approve", "Approve")}
+							onClick={() => act("approve", row.id)}
+						/>
+						<Button
+							label={nls.localize("mete/home/revise", "Revise…")}
+							onClick={() => act("revise", row.id)}
+						/>
+						<Button
+							label={nls.localize("mete/run/openArtifact", "Open artifact")}
+							onClick={() => act("artifact", row.id)}
+						/>
+					</>
+				) : null}
+				<Button
+					label={nls.localize("mete/home/resume", "Resume")}
+					onClick={() => act("resume", row.id)}
+				/>
+			</div>
+			{row.templateId ? null : (
+				<span className="mete-note">
+					{nls.localize(
+						"mete/home/resumeHint",
+						"Resume repeats the tool call the policy asked about, so the run stops again unless .mete/policy.yaml allows it.",
+					)}
+				</span>
+			)}
+		</span>
 	</li>
 );
 
@@ -203,7 +230,7 @@ const QUOTA_TONE: { readonly [S in ProviderState["state"]]: string } = {
 	unusable: "bad",
 };
 
-/** The Quota section: a chip per provider; a click opens the Quota dashboard. */
+/** The Quota section (ADR-109): the providers' chips in the side view's card; a click opens the dashboard. */
 export const QuotaSection = ({
 	model,
 	onOpenQuota,
@@ -218,25 +245,27 @@ export const QuotaSection = ({
 			aria-label={nls.localize("mete/home/quota", "Quota")}
 		>
 			{providers.length === 0 ? (
-				<p style={MUTED}>
+				<p className="mete-note">
 					{nls.localize(
 						"mete/home/quotaUnknown",
 						"The providers' states show once the daemon answers.",
 					)}
 				</p>
 			) : (
-				<div style={ROW}>
-					{providers.map((p) => (
-						<button
-							type="button"
-							key={p.id}
-							className={`mete-chip ${QUOTA_TONE[p.state]}`}
-							title={stateText(p)}
-							onClick={onOpenQuota}
-						>
-							{p.id}
-						</button>
-					))}
+				<div className="mete-quota-card">
+					<div style={ROW}>
+						{providers.map((p) => (
+							<button
+								type="button"
+								key={p.id}
+								className={`mete-chip ${QUOTA_TONE[p.state]}`}
+								title={stateText(p)}
+								onClick={onOpenQuota}
+							>
+								{p.id}
+							</button>
+						))}
+					</div>
 				</div>
 			)}
 		</section>
