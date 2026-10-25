@@ -8,7 +8,8 @@ const DOC = readFileSync(
 	new URL("../../../docs/13-ui-and-studio-view.md", import.meta.url),
 	"utf8",
 );
-const ROW = /^\| `--([a-z]+)` \| `(#[0-9A-F]{6})` \| `(#[0-9A-F]{6})` \|$/gm;
+const ROW =
+	/^\| `--([a-z0-9-]+)` \| `(#[0-9A-F]{6})` \| `(#[0-9A-F]{6})` \|$/gm;
 
 describe("the design tokens", () => {
 	it("hold exactly the light and dark colours of docs/13", () => {

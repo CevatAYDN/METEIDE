@@ -39,3 +39,10 @@ SOFTWARE.
 - License: SIL Open Font License 1.1. Copyright 2019 The Baloo 2 Project Authors. The full license text is `packages/ui-theia/fonts/Baloo2-OFL.txt`, shipped beside the font.
 - Files: `packages/ui-theia/fonts/Baloo2-latin.woff`
 - Changes: subset to the Latin, Latin-1, Latin Extended A and B, general punctuation, currency, letterlike and arrow ranges (Turkish included) and saved as WOFF with fontTools; the variable weight axis (400 to 800) is kept. The font is not renamed and keeps no Reserved Font Name.
+
+## JetBrains Mono
+
+- Project: JetBrains Mono by JetBrains, https://github.com/JetBrains/JetBrainsMono, taken from Google Fonts (`jetbrainsmono`, served as the latin subset WOFF2 of the variable weight 100 to 800 file, v24) on 2026-10-25.
+- License: SIL Open Font License 1.1. Copyright 2020 The JetBrains Mono Project Authors. The full license text is `packages/ui-theia/fonts/JetBrainsMono-OFL.txt`, shipped beside the font.
+- Files: `packages/ui-theia/fonts/JetBrainsMono-latin.woff2`
+- Changes: the latin subset file as served, unchanged; the variable weight axis is kept and METE uses weights 400 to 700 (ADR-107). The font is not renamed and keeps no Reserved Font Name.

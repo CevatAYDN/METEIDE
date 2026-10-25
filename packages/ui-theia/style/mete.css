@@ -10,6 +10,14 @@
 	font-display: swap;
 }
 
+/* JetBrains Mono, bundled beside it (ADR-107): paths, diffs and measured numbers. */
+@font-face {
+	font-family: "JetBrains Mono";
+	src: url(../fonts/JetBrainsMono-latin.woff2) format("woff2");
+	font-weight: 400 700;
+	font-display: swap;
+}
+
 .mete-panel {
 	font-family: "Baloo 2", var(--theia-ui-font-family);
 	/* docs/13: Baloo 2 in weights 500 to 800. */
@@ -36,10 +44,11 @@
 	padding: 12px 14px;
 }
 
-/* Controls: control radius. A primary button is accent, a quiet one is a chip. */
+/* Controls: control radius. The accent button is the primary act (ADR-107's redesign); a quiet one
+   is the redesign's outline button; a danger one names a destructive act. */
 .mete-button {
 	font: inherit;
-	font-weight: 600;
+	font-weight: 700;
 	/* A high-contrast theme marks controls with its contrast border; the accent hides it elsewhere. */
 	border: 1.5px solid var(--accent, var(--theia-contrastBorder, transparent));
 	border-radius: 10px;
@@ -47,26 +56,86 @@
 	cursor: pointer;
 	color: var(--panel, var(--theia-button-foreground));
 	background: var(--accent, var(--theia-button-background));
+	white-space: nowrap;
+}
+
+.mete-button:not(:disabled):hover {
+	/* Toward the ink of the theme: lighter in dark, darker in light (ADR-107). */
+	background: color-mix(
+		in srgb,
+		var(--accent, var(--theia-button-background)) 85%,
+		var(--ink, var(--theia-foreground))
+	);
+	border-color: color-mix(
+		in srgb,
+		var(--accent, var(--theia-button-background)) 85%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-button:not(:disabled):active {
+	transform: translateY(1px);
 }
 
 .mete-button.quiet {
-	color: var(--ink, var(--theia-foreground));
-	background: var(--chip, var(--theia-button-secondaryBackground));
+	font-weight: 600;
+	color: var(--ink, var(--theia-button-foreground));
+	background: transparent;
 	border-color: var(
 		--line,
 		var(--theia-contrastBorder, var(--theia-panel-border))
 	);
 }
 
-.mete-button[aria-pressed="true"] {
-	color: var(--panel, var(--theia-button-foreground));
-	background: var(--accent, var(--theia-button-background));
-	/* A high-contrast theme marks the chosen one with its active border. */
-	border-color: var(--accent, var(--theia-contrastActiveBorder));
+.mete-button.quiet:not(:disabled):hover {
+	background: color-mix(
+		in srgb,
+		var(--ink, var(--theia-foreground)) 7%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	border-color: color-mix(
+		in srgb,
+		var(--line, var(--theia-panel-border)) 55%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-button.danger {
+	color: var(--bad, var(--theia-errorForeground));
+	background: transparent;
+	border-color: color-mix(
+		in srgb,
+		var(--bad, var(--theia-errorForeground)) 65%,
+		var(--theia-contrastBorder, transparent)
+	);
+}
+
+.mete-button.danger:not(:disabled):hover {
+	background: color-mix(
+		in srgb,
+		var(--bad, var(--theia-errorForeground)) 10%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	border-color: var(--bad, var(--theia-errorForeground));
+}
+
+/* The chosen one of quiet toggles is the redesign's selected segment: an accent wash, not a fill. */
+.mete-button.quiet[aria-pressed="true"] {
+	color: var(--ink, var(--theia-button-foreground));
+	background: color-mix(
+		in srgb,
+		var(--accent, var(--theia-button-background)) 12%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	border-color: color-mix(
+		in srgb,
+		var(--accent, var(--theia-button-background)) 45%,
+		var(--theia-contrastBorder, transparent)
+	);
 }
 
 .mete-button:disabled {
-	opacity: 0.55;
+	opacity: 0.45;
 	cursor: default;
 }
 
@@ -88,19 +157,69 @@ button.mete-chip {
 	cursor: pointer;
 }
 
-/* A state chip keeps its word in ink and carries the state as a coloured dot (ADR-106): the state
-   token as text on the chip background does not meet WCAG AA (docs/15); ink does in both themes. */
+/* A state pill is the redesign's wash (ADR-107, refining ADR-106): the state token at a low share
+   of the panel behind, its text the same token mixed toward the ink of the theme, and the pure
+   state token as a dot before the word. Each tone names its token and its text share (`--share`,
+   measured to clear WCAG AA in light, the tighter theme; dark clears at every share), and one rule
+   draws every pill from them, so no colour value exists besides the tokens. */
 .mete-chip.good,
 .mete-chip.accent,
 .mete-chip.muted,
 .mete-chip.warn,
 .mete-chip.bad {
-	color: var(--ink, var(--theia-badge-foreground));
+	border-radius: 7px;
+	border: 1px solid transparent;
+}
+
+.mete-chip.good {
+	--st: var(--good, var(--theia-testing-iconPassed));
+	--share: 60%;
+}
+
+.mete-chip.accent {
+	--st: var(--accent, var(--theia-focusBorder));
+	--share: 70%;
+}
+
+.mete-chip.warn {
+	--st: var(--warn, var(--theia-editorWarning-foreground));
+	--share: 45%;
+}
+
+.mete-chip.bad {
+	--st: var(--bad, var(--theia-errorForeground));
+	--share: 65%;
+}
+
+.mete-chip.good,
+.mete-chip.accent,
+.mete-chip.warn,
+.mete-chip.bad {
+	color: color-mix(
+		in srgb,
+		var(--st) var(--share),
+		var(--ink, var(--theia-badge-foreground))
+	);
+	background: color-mix(
+		in srgb,
+		var(--st) 12%,
+		var(--panel, var(--theia-badge-background))
+	);
+	border-color: color-mix(in srgb, var(--st) 33%, transparent);
+}
+
+.mete-chip.muted {
+	color: var(--muted-2, var(--ink, var(--theia-badge-foreground)));
+	background: var(--chip, var(--theia-badge-background));
+	border-color: color-mix(
+		in srgb,
+		var(--ink, var(--theia-foreground)) 14%,
+		transparent
+	);
 }
 
 .mete-chip.good::before,
 .mete-chip.accent::before,
-.mete-chip.muted::before,
 .mete-chip.warn::before,
 .mete-chip.bad::before {
 	content: "";
@@ -110,26 +229,40 @@ button.mete-chip {
 	border-radius: 50%;
 	margin-right: 6px;
 	vertical-align: baseline;
+	background: var(--st);
 }
 
-.mete-chip.good::before {
-	background: var(--good, var(--theia-testing-iconPassed));
+/* A meter: a share as a slim bar (ADR-107), the track a quiet share of the ink; `--p` sets the
+   fill's width, a tone class its colour. */
+.mete-meter {
+	display: inline-block;
+	position: relative;
+	height: 6px;
+	border-radius: 3px;
+	overflow: hidden;
+	background: color-mix(
+		in srgb,
+		var(--ink, var(--theia-foreground)) 13%,
+		var(--bg, var(--theia-editor-background))
+	);
 }
 
-.mete-chip.accent::before {
+.mete-meter > i {
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: var(--p, 0%);
+	border-radius: 3px;
 	background: var(--accent, var(--theia-focusBorder));
 }
 
-.mete-chip.muted::before {
-	background: var(--muted, var(--theia-descriptionForeground));
-}
-
-.mete-chip.warn::before {
+.mete-meter.warn > i {
 	background: var(--warn, var(--theia-editorWarning-foreground));
 }
 
-.mete-chip.bad::before {
-	background: var(--bad, var(--theia-errorForeground));
+.mete-meter.good > i {
+	background: var(--good, var(--theia-testing-iconPassed));
 }
 
 /* The studio stage keeps its own radius. */
@@ -229,7 +362,7 @@ button.mete-card[aria-pressed="true"] {
 }
 
 .mete-changes-path {
-	font-family: var(--theia-code-font-family, monospace);
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
 	word-break: break-all;
 }
 
@@ -241,7 +374,7 @@ button.mete-card[aria-pressed="true"] {
 	background: var(--panel, var(--theia-editor-background));
 	border: 1.5px solid var(--line, var(--theia-panel-border));
 	border-radius: 10px;
-	font-family: var(--theia-code-font-family, monospace);
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
 	font-size: 12px;
 	line-height: 1.45;
 }

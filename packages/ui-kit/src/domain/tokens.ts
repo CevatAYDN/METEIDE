@@ -14,6 +14,11 @@ export const TOKEN_NAMES = [
 	"warn",
 	"bad",
 	"chip",
+	"chrome",
+	"side",
+	"raised",
+	"line-soft",
+	"muted-2",
 ] as const;
 
 /** One colour token. */
@@ -37,6 +42,11 @@ export const TOKENS: Readonly<
 		warn: "#E3A13A",
 		bad: "#D9544A",
 		chip: "#E4E0F3",
+		chrome: "#DCD8EC",
+		side: "#E6E3F2",
+		raised: "#EFEDF8",
+		"line-soft": "#E2DEF0",
+		"muted-2": "#524E6E",
 	},
 	dark: {
 		bg: "#17162A",
@@ -49,6 +59,11 @@ export const TOKENS: Readonly<
 		warn: "#F0B75A",
 		bad: "#EE7368",
 		chip: "#2D2A4D",
+		chrome: "#121122",
+		side: "#1A192F",
+		raised: "#1C1B32",
+		"line-soft": "#2A2848",
+		"muted-2": "#B9B5D6",
 	},
 };
 

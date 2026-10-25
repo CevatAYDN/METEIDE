@@ -103,8 +103,11 @@ describe("the Team view", () => {
 		expect(out).toContain("Tokens: 250k · calls: 4");
 		// From 80% the bar takes the warning colour; the text still says the number.
 		expect(out).toContain("Context 86% · 110k of 128k");
-		expect(out).toContain("width:85.9375%;background:var(--warn");
-		expect(out).toContain("width:48%;background:var(--accent");
+		// From 80% the meter takes the warning tone (ADR-107); the text still says the number.
+		expect(out).toContain('class="mete-meter warn"');
+		expect(out).toContain("--p:85.9375%");
+		expect(out).toContain('class="mete-meter"');
+		expect(out).toContain("--p:48%");
 		// A model with no listed window shows the tokens alone, and a member with no usage nothing.
 		expect(out.match(/Context /g)).toHaveLength(3);
 		expect(out.match(/Tokens: /g)).toHaveLength(4);

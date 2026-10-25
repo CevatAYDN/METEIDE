@@ -71,7 +71,7 @@ Themes are modules. The default theme is the cozy office of the demo; community 
 
 ## Design system
 
-The tokens below come from the approved demo \[D\].
+The tokens below come from the approved demo \[D\]; the derived tones and the component vocabulary (wash state pills, the button family, meters, JetBrains Mono) come from the founder's desktop redesign of 2026-10-25 (ADR-107).
 
 | Token | Light | Dark |
 | --- | --- | --- |
@@ -85,8 +85,15 @@ The tokens below come from the approved demo \[D\].
 | `--warn` | `#E3A13A` | `#F0B75A` |
 | `--bad` | `#D9544A` | `#EE7368` |
 | `--chip` | `#E4E0F3` | `#2D2A4D` |
+| `--chrome` | `#DCD8EC` | `#121122` |
+| `--side` | `#E6E3F2` | `#1A192F` |
+| `--raised` | `#EFEDF8` | `#1C1B32` |
+| `--line-soft` | `#E2DEF0` | `#2A2848` |
+| `--muted-2` | `#524E6E` | `#B9B5D6` |
 
-- Typeface: Baloo 2 (weights 500 to 800) for METE panels and the studio; the editor and terminal keep Theia's monospace font. Font files are bundled, never loaded from the internet \[D\].
+`--chrome` (the app's own bars), `--side` (a side view), `--raised` (a surface one step above the background) and `--line-soft` (a quiet divider) are the redesign's depth tones; `--muted-2` is the redesign's secondary text, one step clearer than `--muted` \[D\]. A wash — a state's colour at a low share over the panel, made with CSS `color-mix` from the state token, never a separate value — fills a state pill, and the pill's text mixes the same state token toward `--ink` so it meets WCAG AA in both themes (the rule of ADR-106, kept); a small dot of the pure state token can sit before the word \[D\].
+
+- Typeface: Baloo 2 (weights 500 to 800) for METE panels and the studio; JetBrains Mono (weights 400 to 700, tabular numbers) for file paths, diffs, ids and every measured number in METE panels; the editor and terminal keep Theia's monospace font. Both font files are bundled, never loaded from the internet \[D\].
 - METE's panels and the studio's frame use these tokens and this shape in Theia's light and dark themes, while the studio canvas keeps the demo's own colours (ADR-070); in a high-contrast theme the panels keep Theia's colours, since no high-contrast tokens are defined, and Theia's own chrome, editor and terminal always keep Theia's look (ADR-069) \[D\].
 - Shape: 1.5 px borders; radius 10 px for controls, 14 to 16 px for panels, 20 px for the studio stage \[D\].
 - Keyboard-first: every METE action is a command in Theia's command palette (for example "METE: Start run", "METE: Stop all", "METE: Open approvals") and reachable by keyboard with a visible focus ring \[C\].
