@@ -51,7 +51,7 @@ import { customAdapter, endpointModels, probeModels } from "./provider-test.js";
 import { restoreCheckpoint } from "./rollback.js";
 import { settingsOf } from "./settings.js";
 
-// `mete daemon`: protocol version 21 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-121).
+// `mete daemon`: protocol version 22 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-122).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
