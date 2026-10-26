@@ -8,7 +8,7 @@ import { jsonOf } from "./guardrail.js";
 
 const RouteSchema = z.object({
 	mode: z.enum(["single", "team"]),
-	templateId: z.string().optional(),
+	templateId: z.string().nullish(),
 	confidence: z.number().min(0).max(1),
 });
 
@@ -55,7 +55,8 @@ export const routeOf = (
 		return { kind: "fallback", why: "the router's reply is no route" };
 	const ids = templates.map((t) => t.metadata.id);
 	const { mode, templateId, confidence } = parsed.data;
-	const known = templateId !== undefined && ids.includes(templateId);
+	const known =
+		templateId !== undefined && templateId !== null && ids.includes(templateId);
 	if (confidence < ROUTER_MIN_CONFIDENCE)
 		return { kind: "choose", suggestions: known ? [templateId] : ids };
 	if (mode === "single") return { kind: "single" };

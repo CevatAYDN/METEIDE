@@ -30,6 +30,18 @@ describe("router", () => {
 		});
 	});
 
+	it("takes a null templateId, as models often send it", () => {
+		expect(
+			route({ mode: "single", templateId: null, confidence: 0.95 }),
+		).toEqual({ kind: "single" });
+		expect(
+			route({ mode: "single", templateId: null, confidence: 0.2 }),
+		).toEqual({ kind: "choose", suggestions: ["research"] });
+		expect(
+			route({ mode: "team", templateId: null, confidence: 0.9 }).kind,
+		).toBe("fallback");
+	});
+
 	it("lets the user choose below 0.7", () => {
 		expect(
 			route({ mode: "team", templateId: "research", confidence: 0.5 }),
