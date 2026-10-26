@@ -15,6 +15,7 @@ export const MASK_TAG_HEX = 8;
 export const PROTECTED_PATHS: readonly string[] = [
 	".mete/*.yaml",
 	".mete/teams/**",
+	".mete/adapters/**", // ADR-120: a mapping decides what a capability runs
 	".meteignore",
 ];
 

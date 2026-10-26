@@ -107,7 +107,8 @@ describe("decide: input and hard rules", () => {
 		);
 	});
 
-	// ADR-072: every settings section a workspace may carry, the team templates and .meteignore.
+	// ADR-072: every settings section a workspace may carry, the team templates and .meteignore;
+	// ADR-120: the mapping files.
 	it("denies writes and deletes of every .mete yaml file and team template at every level", () => {
 		const files = [
 			".mete/privacy.yaml",
@@ -117,6 +118,7 @@ describe("decide: input and hard rules", () => {
 			".mete/models.yaml",
 			".mete/teams/evil.yaml",
 			".mete/teams/sub/deeper.yaml",
+			".mete/adapters/browser-game.yaml",
 		];
 		for (const level of [1, 2, 3] as const)
 			for (const f of files)
@@ -338,6 +340,7 @@ describe("decide: a task's worktree is judged as the workspace it merges into", 
 				".mete/mcp.yaml",
 				".mete/privacy.yaml",
 				".mete/teams/x.yaml",
+				".mete/adapters/x.yaml",
 				".meteignore",
 			])
 				expect(decide(write(`${wt}/${f}`), at(level)).rule, f).toBe(

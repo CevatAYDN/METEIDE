@@ -21,7 +21,8 @@ const ZERO = "0".repeat(40);
 const isProtected = (p: string) =>
 	p === ".meteignore" ||
 	/^\.mete\/[^/]+\.yaml$/.test(p) ||
-	p.startsWith(".mete/teams/");
+	p.startsWith(".mete/teams/") ||
+	p.startsWith(".mete/adapters/");
 // Exact bytes both ways: no line-ending conversion into the checkpoint or out of it.
 const RAW = ["-c", "core.autocrlf=false"];
 export const IDENTITY = {

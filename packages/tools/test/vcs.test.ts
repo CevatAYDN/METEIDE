@@ -104,12 +104,13 @@ describe("vcs-git beyond the kit", () => {
 		expect(await read(".meteignore")).toBe("!.env\n");
 	});
 
-	// ADR-072: every .mete yaml file and team template is kept like the policy, and an agent's own
-	// output under .mete is restored like any other file.
-	it("keeps every .mete yaml file and team template as it is, and still undoes artifacts", async () => {
+	// ADR-072: every .mete yaml file, team template and mapping file (ADR-120) is kept like the
+	// policy, and an agent's own output under .mete is restored like any other file.
+	it("keeps every .mete yaml file, team template and mapping file as it is, and still undoes artifacts", async () => {
 		const { w, git, run } = await setup();
 		await w.put(".mete/privacy.yaml", "allowTraining: false\n");
 		await w.put(".mete/teams/kept.yaml", "id: kept\n");
+		await w.put(".mete/adapters/m.yaml", "type: cli\n");
 		await w.put("a.txt", "a\n");
 		await git("add", "-A");
 		await git("commit", "-q", "-m", "base");
@@ -117,6 +118,7 @@ describe("vcs-git beyond the kit", () => {
 		await w.put(".mete/privacy.yaml", "allowTraining: true\n");
 		await w.put(".mete/teams/kept.yaml", "id: changed\n");
 		await w.put(".mete/teams/new.yaml", "id: new\n");
+		await w.put(".mete/adapters/m.yaml", "type: mcp\n");
 		await w.put(".mete/artifacts/out.md", "out\n");
 		await w.put("a.txt", "changed\n");
 		expect((await run({ op: "checkpoint.restore", ref })).ok).toBe(true);
@@ -124,6 +126,7 @@ describe("vcs-git beyond the kit", () => {
 		expect(await read(".mete/privacy.yaml")).toBe("allowTraining: true\n");
 		expect(await read(".mete/teams/kept.yaml")).toBe("id: changed\n");
 		expect(await read(".mete/teams/new.yaml")).toBe("id: new\n");
+		expect(await read(".mete/adapters/m.yaml")).toBe("type: mcp\n");
 		expect(await read("a.txt")).toBe("a\n");
 		await expect(read(".mete/artifacts/out.md")).rejects.toThrow();
 	});
