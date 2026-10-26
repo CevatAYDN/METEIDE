@@ -53,8 +53,10 @@ afterEach(async () => {
 	close = undefined;
 });
 
-const setup = async (b: Behaviour) => {
-	const repo = await tempRepo({ "a.txt": "a\n" });
+type Repo = Awaited<ReturnType<typeof tempRepo>>;
+
+// One process's app on the folder; a second one on the same folder is the next mete command.
+const appIn = async (repo: Repo, b: Behaviour) => {
 	const app = await createApp({
 		workspaceDir: repo.workspaceDir,
 		globalDir: repo.globalDir,
@@ -65,11 +67,17 @@ const setup = async (b: Behaviour) => {
 		providers: [scriptedProvider(b)],
 	});
 	if (!app.ok) throw new Error(JSON.stringify(app.error));
+	return app.value;
+};
+
+const setup = async (b: Behaviour) => {
+	const repo = await tempRepo({ "a.txt": "a\n" });
+	const app = await appIn(repo, b);
 	close = async () => {
-		await app.value.stop();
+		await app.stop();
 		await repo.close();
 	};
-	return { repo, app: app.value };
+	return { repo, app };
 };
 
 const paused = async (app: Awaited<ReturnType<typeof setup>>["app"]) => {
@@ -103,6 +111,30 @@ describe("answering a policy ask", { timeout: 30_000 }, () => {
 		const runId = await paused(app);
 		const t = recordingIo();
 		expect(await runCommand(app, t.io, { allow: runId, scope: "run" })).toBe(0);
+		expect(t.out.at(-1)).toBe("completed\nIt ran.");
+	});
+
+	// The flow ADR-121 is for: mete run has exited at the pause, and mete allow starts a new process
+	// that reads the ask from the history, recovers the run as paused, grants and resumes it.
+	it("answers in a new process, as mete allow does after mete run has exited", async () => {
+		const repo = await tempRepo({ "a.txt": "a\n" });
+		close = () => repo.close();
+		const first = await appIn(repo, { script: runs(NODE) });
+		const runId = await paused(first);
+		await first.stop();
+		const done: ChatChunk[] = [
+			{ type: "text", text: "It ran." },
+			finish("stop"),
+		];
+		const next = await appIn(repo, { script: [done] });
+		close = async () => {
+			await next.stop();
+			await repo.close();
+		};
+		const t = recordingIo();
+		expect(await runCommand(next, t.io, { allow: runId, scope: "run" })).toBe(
+			0,
+		);
 		expect(t.out.at(-1)).toBe("completed\nIt ran.");
 	});
 

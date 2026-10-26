@@ -35,6 +35,8 @@ export const pendingAsk = (events: readonly MeteEvent[]) => {
 };
 
 /** Whether Always may be offered: a command whose text the event did not mask. */
+// The `[SECRET:` form is secrets.mask@1's (SecretsMaskAdapter in @mete/contracts); the masked-command
+// test of allow.test.ts runs the real masker, so a new form fails there.
 export const canAlways = (ask: PolicyAsk) =>
 	ask.action === "shell.exec" &&
 	ask.command !== undefined &&
