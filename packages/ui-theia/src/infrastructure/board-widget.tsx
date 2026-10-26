@@ -73,8 +73,10 @@ export class MeteBoardWidget extends MetePanelWidget {
 	protected candidateModels: Readonly<Record<string, readonly string[]>> = {};
 	protected preferredModels: Readonly<Record<string, string>> = {};
 	protected chainCache = new Map<string, readonly string[]>();
+	protected templateId: string | null | undefined;
 	protected run: RunFacts = {};
 	protected asked = new Set<string>();
+	protected askedChains = new Set<string>();
 	protected composing = true;
 
 	@postConstruct()
@@ -92,16 +94,16 @@ export class MeteBoardWidget extends MetePanelWidget {
 			this.events.onDidReceive(({ workspaceDir, event }) => {
 				this.setSession(receiveBoard(this.session, workspaceDir, event));
 				const shown = this.session.shown;
-				if (
-					shown &&
-					event.runId === shown.runId &&
-					event.type.startsWith("run.")
-				)
-					void this.loadRun(shown.dir, shown.runId);
+				if (shown && event.runId === shown.runId) {
+					if (event.type === "run.created")
+						this.templateId = event.payload.templateId;
+					if (event.type.startsWith("run."))
+						void this.loadRun(shown.dir, shown.runId);
+				}
 			}),
 			this.composer.onDidChange(() => this.update()),
 			this.composer.onDidStart(
-				({ dir, runId, goal }) => void this.showRun(dir, runId, goal),
+				(s) => void this.showRun(s.dir, s.runId, s.goal),
 			),
 			{ dispose: () => this.shownRun.set(undefined) },
 		]);
@@ -121,7 +123,6 @@ export class MeteBoardWidget extends MetePanelWidget {
 	async showRun(dir: string, runId: string, goal: string): Promise<void> {
 		this.composing = false;
 		this.shownRun.set(runId);
-		// The previous run's names never show on this one, also when its team file cannot be read.
 		this.names = {};
 		this.run = {};
 		this.windows = {};
@@ -129,6 +130,8 @@ export class MeteBoardWidget extends MetePanelWidget {
 		this.preferredModels = {};
 		this.chainCache = new Map();
 		this.asked = new Set();
+		this.askedChains = new Set();
+		this.templateId = undefined;
 		const shown = { dir, runId, goal };
 		this.setSession(startBoard(shown));
 		const r = await this.daemon.events(dir, runId);
@@ -137,8 +140,11 @@ export class MeteBoardWidget extends MetePanelWidget {
 		const created = r.ok
 			? r.value.events.find((e) => e.type === "run.created")
 			: undefined;
-		if (created?.type === "run.created" && created.payload.templateId)
-			void this.loadNames(dir, runId, created.payload.templateId);
+		if (created?.type === "run.created") {
+			this.templateId = created.payload.templateId;
+			if (created.payload.templateId)
+				void this.loadNames(dir, runId, created.payload.templateId);
+		}
 	}
 
 	// The run's entry of mete/status; a run another panel state replaced meanwhile is not drawn.
@@ -146,19 +152,18 @@ export class MeteBoardWidget extends MetePanelWidget {
 		const r = await this.daemon.status(dir, runId);
 		if (!r.ok || this.shownRun.runId !== runId) return;
 		const run = r.value.find((x) => x.id === runId);
-		if (run) this.run = { ...this.run, run };
+		if (!run) return;
+		this.run = { ...this.run, run };
+		if (run.templateId !== undefined) this.templateId = run.templateId;
 		this.update();
 	}
 
 	// The names the team file gives now; a run of an edited or removed team keeps its role ids in words.
 	protected async loadNames(dir: string, runId: string, templateId: string) {
 		const t = await this.daemon.readTemplate(dir, templateId);
-		if (
-			!t.ok ||
-			this.session.model.kind !== "board" ||
-			this.shownRun.runId !== runId
-		)
-			return;
+		const stale =
+			this.session.model.kind !== "board" || this.shownRun.runId !== runId;
+		if (!t.ok || stale) return;
 		this.names = roleNames(t.value.yaml);
 		const name = teamName(t.value.yaml);
 		this.run = { ...this.run, ...(name ? { teamName: name } : {}) };
@@ -166,15 +171,16 @@ export class MeteBoardWidget extends MetePanelWidget {
 		void this.loadTemplateChains(dir, runId, t.value.yaml);
 	}
 
+	protected chainCtx(dir: string): ChainContext {
+		return { daemon: this.daemon, dir, cache: this.chainCache };
+	}
+
 	protected async loadTemplateChains(dir: string, runId: string, yaml: string) {
 		const draft = draftOf(yaml);
 		if (!draft.ok) return;
-		const ctx: ChainContext = {
-			daemon: this.daemon,
-			dir,
-			cache: this.chainCache,
-		};
+		const ctx = this.chainCtx(dir);
 		for (const r of teamOf(draft.value).roles) {
+			this.askedChains.add(r.id);
 			const models = await fetchChain(ctx, r.tier, r.needs);
 			if (this.shownRun.runId !== runId) return;
 			this.candidateModels = { ...this.candidateModels, [r.id]: models };
@@ -255,13 +261,15 @@ export class MeteBoardWidget extends MetePanelWidget {
 		const { shown, view } = this.session;
 		if (!shown) return;
 		for (const a of view.agents) {
-			if (!this.candidateModels[a.roleId])
+			if (!this.candidateModels[a.roleId] && !this.askedChains.has(a.roleId)) {
+				this.askedChains.add(a.roleId);
 				void this.loadRoleChain(
 					shown.dir,
 					shown.runId,
 					a.roleId,
 					a.tier ?? "coder",
 				);
+			}
 		}
 	}
 
@@ -271,10 +279,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 		roleId: string,
 		tier: string,
 	) {
-		const models = await fetchChain(
-			{ daemon: this.daemon, dir, cache: this.chainCache },
-			tier,
-		);
+		const models = await fetchChain(this.chainCtx(dir), tier);
 		if (this.shownRun.runId !== runId) return;
 		this.candidateModels = { ...this.candidateModels, [roleId]: models };
 		this.update();
@@ -287,8 +292,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 		const shown = this.session.shown;
 		if (!shown) return;
 		const isSingle =
-			this.run.run?.templateId === null ||
-			(!this.run.run?.templateId && this.session.view.tasks.length === 0);
+			this.templateId === null || this.run.run?.templateId === null;
 		const r = await this.daemon.model(
 			shown.dir,
 			shown.runId,
@@ -296,10 +300,10 @@ export class MeteBoardWidget extends MetePanelWidget {
 			isSingle ? undefined : roleId,
 		);
 		if (!r.ok) return void this.messages.warn(failureText(r.error, plain));
-		this.preferredModels = {
-			...this.preferredModels,
-			[roleId]: model ? `${model.providerId}/${model.modelId}` : "",
-		};
+		const next = { ...this.preferredModels };
+		if (model) next[roleId] = `${model.providerId}/${model.modelId}`;
+		else delete next[roleId];
+		this.preferredModels = next;
 		this.update();
 	}
 
@@ -308,19 +312,16 @@ export class MeteBoardWidget extends MetePanelWidget {
 	protected askWindows(): void {
 		const { shown, view } = this.session;
 		if (!shown) return;
-		const key = (r: ModelRef) => `${r.providerId}/${r.modelId}`;
-		const refs = new Map<string, ModelRef>();
+		const refs: ModelRef[] = [];
 		for (const a of view.agents) {
-			const last = a.usage?.last;
-			if (last && !this.asked.has(key(last)))
-				refs.set(key(last), {
-					providerId: last.providerId,
-					modelId: last.modelId,
-				});
+			const l = a.usage?.last;
+			const k = l ? `${l.providerId}/${l.modelId}` : "";
+			if (l && !this.asked.has(k)) {
+				this.asked.add(k);
+				refs.push({ providerId: l.providerId, modelId: l.modelId });
+			}
 		}
-		if (refs.size === 0) return;
-		for (const k of refs.keys()) this.asked.add(k);
-		void this.loadWindows(shown.dir, shown.runId, [...refs.values()]);
+		if (refs.length > 0) void this.loadWindows(shown.dir, shown.runId, refs);
 	}
 
 	protected async loadWindows(dir: string, runId: string, refs: ModelRef[]) {
@@ -334,28 +335,11 @@ export class MeteBoardWidget extends MetePanelWidget {
 		this.update();
 	}
 
-	protected override render() {
-		return (
-			<div {...panelRoot(this.themes.getCurrentTheme().type)}>
-				{this.showsComposer() ? this.composer.render() : this.board()}
-			</div>
-		);
-	}
-
 	protected async allowShown(scope: AllowScope): Promise<string | undefined> {
 		const shown = this.session.shown;
 		if (!shown) return;
 		const r = await this.daemon.allow(shown.dir, shown.runId, scope);
 		if (!r.ok) return r.error.detail;
-	}
-
-	protected waitingControls(): TeamControls["waiting"] {
-		return {
-			onApprove: () => void this.decide(APPROVE_RUN_COMMAND.id),
-			onRevise: (feedback) => void this.decide(REVISE_RUN_COMMAND.id, feedback),
-			onResume: () => void this.decide(RESUME_RUN_COMMAND.id),
-			onAllow: (scope) => this.allowShown(scope),
-		};
 	}
 
 	protected teamControls(): TeamControls {
@@ -387,13 +371,28 @@ export class MeteBoardWidget extends MetePanelWidget {
 			onModel: (roleId, model) => void this.setModel(roleId, model),
 			candidateModels: this.candidateModels,
 			preferredModels: this.preferredModels,
-			waiting: this.waitingControls(),
+			waiting: {
+				onApprove: () => void this.decide(APPROVE_RUN_COMMAND.id),
+				onRevise: (feedback) =>
+					void this.decide(REVISE_RUN_COMMAND.id, feedback),
+				onResume: () => void this.decide(RESUME_RUN_COMMAND.id),
+				onAllow: (scope) => this.allowShown(scope),
+			},
 		};
 	}
 
-	protected board() {
+	protected override render() {
 		return (
-			<BoardView model={this.session.model} controls={this.teamControls()} />
+			<div {...panelRoot(this.themes.getCurrentTheme().type)}>
+				{this.showsComposer() ? (
+					this.composer.render()
+				) : (
+					<BoardView
+						model={this.session.model}
+						controls={this.teamControls()}
+					/>
+				)}
+			</div>
 		);
 	}
 }

@@ -8,11 +8,21 @@ import { Icon, LINE } from "./roster-look.js";
 import {
 	commitModel,
 	ModelChoice,
+	ModelChoiceField,
+	ModelChoiceInput,
 	type ModelChoiceProps,
+	RevertButton,
 } from "./team-model-choice.js";
 import { TONES, type Tone } from "./tone.js";
 
-export { commitModel, ModelChoice, type ModelChoiceProps };
+export {
+	commitModel,
+	ModelChoice,
+	ModelChoiceField,
+	ModelChoiceInput,
+	type ModelChoiceProps,
+	RevertButton,
+};
 
 // The Team panel's fourth view (ADR-089): one row per role with its tier, model, state and what it
 // does now. Icons are Theia's codicons; each state is an icon and a word, never a colour alone.

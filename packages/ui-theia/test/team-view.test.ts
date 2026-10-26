@@ -4,6 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 import { tokenCount } from "../src/application/numbers.js";
 import {
 	commitModel,
+	ModelChoice,
+	ModelChoiceField,
+	RevertButton,
 	stateLook,
 	TeamView,
 	tierLabel,
@@ -227,5 +230,126 @@ describe("team-view model selection (ADR-122)", () => {
 		);
 		expect(out).not.toContain("Preferred model (optional)");
 		expect(out).not.toContain("Revert to default");
+	});
+
+	it("falls back to member agent tier candidate models when role candidateModels is missing", () => {
+		const members: Member[] = [
+			{
+				roleId: "specialist",
+				agent, // tier is "coder"
+				state: { kind: "idle" },
+				done: 0,
+				total: 1,
+			},
+		];
+		const onModel = vi.fn();
+		const out = renderToStaticMarkup(
+			createElement(TeamView, {
+				members,
+				names: { specialist: "Specialist" },
+				windows: {},
+				candidateModels: { coder: ["groq/llama-3.3-70b"] },
+				onModel,
+			}),
+		);
+		expect(out).toContain('<option value="groq/llama-3.3-70b"');
+		expect(out).not.toContain("Revert to default");
+	});
+
+	it("renders single-agent member with model selection and preferred model", () => {
+		const members: Member[] = [
+			{
+				roleId: "assistant",
+				agent: { ...agent, roleId: "assistant" },
+				state: { kind: "working", tool: "fs.read" },
+				done: 0,
+				total: 0,
+			},
+		];
+		const onModel = vi.fn();
+		const out = renderToStaticMarkup(
+			createElement(TeamView, {
+				members,
+				names: {},
+				windows: {},
+				candidateModels: { assistant: ["openrouter/auto"] },
+				preferredModels: { assistant: "openrouter/auto" },
+				onModel,
+			}),
+		);
+		expect(out).toContain("Assistant");
+		expect(out).toContain('value="openrouter/auto"');
+		expect(out).toContain("Revert to default");
+	});
+
+	it("invokes ModelChoiceField events: onChange, onKeyDown, onBlur", () => {
+		const onDraft = vi.fn();
+		const onCommit = vi.fn();
+		const field = ModelChoiceField({
+			roleId: "developer",
+			draft: "groq/llama",
+			models: ["groq/llama-3.3-70b"],
+			onDraft,
+			onCommit,
+		});
+
+		const input = field.props.children[1];
+		// 1. onChange with non-candidate model updates draft only
+		input.props.onChange({ target: { value: "gemini/flash" } });
+		expect(onDraft).toHaveBeenCalledWith("gemini/flash");
+		expect(onCommit).not.toHaveBeenCalled();
+
+		// 2. onChange with candidate model updates draft and commits
+		input.props.onChange({ target: { value: "groq/llama-3.3-70b" } });
+		expect(onDraft).toHaveBeenCalledWith("groq/llama-3.3-70b");
+		expect(onCommit).toHaveBeenCalledWith("groq/llama-3.3-70b");
+
+		// 3. onKeyDown with Enter commits draft
+		onCommit.mockClear();
+		input.props.onKeyDown({ key: "Enter" });
+		expect(onCommit).toHaveBeenCalledWith("groq/llama");
+
+		// 4. onKeyDown with other keys does not commit
+		onCommit.mockClear();
+		input.props.onKeyDown({ key: "Escape" });
+		expect(onCommit).not.toHaveBeenCalled();
+
+		// 5. onBlur commits draft
+		onCommit.mockClear();
+		input.props.onBlur();
+		expect(onCommit).toHaveBeenCalledWith("groq/llama");
+	});
+
+	it("invokes RevertButton onClick and prevents default on mouseDown", () => {
+		const onRevert = vi.fn();
+		const button = RevertButton({ onRevert });
+		const preventDefault = vi.fn();
+		button.props.onMouseDown({ preventDefault });
+		expect(preventDefault).toHaveBeenCalled();
+		button.props.onClick();
+		expect(onRevert).toHaveBeenCalled();
+	});
+
+	it("ModelChoice renders revert button when model is set and omits it when empty", () => {
+		const onModel = vi.fn();
+		const withModel = renderToStaticMarkup(
+			createElement(ModelChoice, {
+				roleId: "writer",
+				value: "groq/llama-3.3-70b",
+				models: ["groq/llama-3.3-70b"],
+				onModel,
+			}),
+		);
+		expect(withModel).toContain("Revert to default");
+
+		const withoutModel = renderToStaticMarkup(
+			createElement(ModelChoice, {
+				roleId: "writer",
+				value: undefined,
+				models: ["groq/llama-3.3-70b"],
+				onModel,
+			}),
+		);
+		expect(withoutModel).not.toContain("Revert to default");
 	});
 });

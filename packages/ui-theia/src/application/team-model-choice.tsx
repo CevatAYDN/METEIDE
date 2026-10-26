@@ -28,7 +28,7 @@ export type ModelChoiceProps = {
 		| undefined;
 };
 
-const ModelList = ({
+export const ModelList = ({
 	id,
 	models,
 }: {
@@ -42,7 +42,7 @@ const ModelList = ({
 	</datalist>
 );
 
-const ModelChoiceField = ({
+export const ModelChoiceField = ({
 	roleId,
 	draft,
 	models,
@@ -84,26 +84,30 @@ const ModelChoiceField = ({
 	);
 };
 
-const RevertButton = ({ onRevert }: { readonly onRevert: () => void }) => (
+export const RevertButton = ({
+	onRevert,
+}: {
+	readonly onRevert: () => void;
+}) => (
 	<button
 		type="button"
 		className="mete-button quiet"
 		style={{ padding: "1px 6px", fontSize: "0.85em" }}
 		title={nls.localize("mete/roster/revertModel", "Revert to default")}
+		onMouseDown={(e) => e.preventDefault()}
 		onClick={onRevert}
 	>
 		{nls.localize("mete/roster/revertModel", "Revert to default")}
 	</button>
 );
 
-const ModelChoiceInput = ({
+export const ModelChoiceInput = ({
 	roleId,
 	value,
 	models,
 	onModel,
 }: ModelChoiceProps) => {
 	const [draft, setDraft] = useState(value ?? "");
-	const current = draft || value || "";
 	return (
 		<div
 			style={{
@@ -120,7 +124,7 @@ const ModelChoiceInput = ({
 				onDraft={setDraft}
 				onCommit={(v) => commitModel(roleId, v, onModel)}
 			/>
-			{current ? (
+			{draft ? (
 				<RevertButton
 					onRevert={() => {
 						setDraft("");
