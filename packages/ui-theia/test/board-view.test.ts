@@ -357,6 +357,47 @@ describe("the Board view", () => {
 		expect(out).not.toContain('aria-label="To do"');
 	});
 
+	it("passes candidateModels and onModel to the Team view in team mode (ADR-122)", () => {
+		const notes = task("Notes");
+		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [notes.created]);
+		const onModel = () => {};
+		const out = renderToStaticMarkup(
+			createElement(BoardView, {
+				model: {
+					kind: "board",
+					goal: "g",
+					view,
+					unreadable: 0,
+					recent: [],
+					feed: [],
+				},
+				controls: {
+					mode: "team",
+					onMode: () => {},
+					flow: () => null,
+					studio: () => null,
+					restore: { onRestore: () => {} },
+					onOpenReport: () => {},
+					names: { writer: "Copy writer" },
+					windows: {},
+					run: {},
+					onModel,
+					candidateModels: { writer: ["groq/llama-3.3-70b"] },
+					preferredModels: { writer: "groq/llama-3.3-70b" },
+					waiting: {
+						onApprove: () => {},
+						onRevise: () => {},
+						onResume: () => {},
+					},
+				},
+			}),
+		);
+		expect(out).toContain("Preferred model (optional)");
+		expect(out).toContain('value="groq/llama-3.3-70b"');
+		expect(out).toContain('<option value="groq/llama-3.3-70b"');
+		expect(out).toContain("Revert to default");
+	});
+
 	it("draws the Studio with a list of the latest events, each with its task", () => {
 		const notes = task("Notes");
 		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [notes.created]);

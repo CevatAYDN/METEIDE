@@ -1,4 +1,4 @@
-import type { MeteEvent } from "@mete/contracts";
+import type { MeteEvent, ModelRef } from "@mete/contracts";
 import {
 	type Place,
 	placeOf,
@@ -145,6 +145,14 @@ export type TeamControls = {
 	readonly waiting: Omit<WaitingControls, "onOpen">;
 	/** What the daemon says of the shown run, for the run strip (ADR-094). */
 	readonly run: RunFacts;
+	/** Sets or clears role preferred model mid-run (ADR-122). */
+	readonly onModel?: (roleId: string, model: ModelRef | null) => void;
+	/** Candidate models for selection per role or tier (ADR-122). */
+	readonly candidateModels?:
+		| Readonly<Record<string, readonly string[]>>
+		| undefined;
+	/** Preferred models per role (ADR-122). */
+	readonly preferredModels?: Readonly<Record<string, string>> | undefined;
 };
 
 const modeName = (mode: TeamMode) =>
@@ -225,6 +233,9 @@ const Shown = ({
 				members={rosterOf(model.view)}
 				names={controls.names}
 				windows={controls.windows}
+				candidateModels={controls.candidateModels}
+				preferredModels={controls.preferredModels}
+				onModel={controls.onModel}
 			/>
 		);
 	if (controls.mode === "flow")

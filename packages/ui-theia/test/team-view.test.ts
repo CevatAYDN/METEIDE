@@ -1,8 +1,9 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { tokenCount } from "../src/application/numbers.js";
 import {
+	commitModel,
 	stateLook,
 	TeamView,
 	tierLabel,
@@ -147,5 +148,84 @@ describe("the Team view", () => {
 				tierLabel,
 			),
 		).toEqual(["Thinker", "Coder", "Fast", "Long reads", "Sees images"]);
+	});
+});
+
+describe("team-view model selection (ADR-122)", () => {
+	it("commits valid ModelRef or null on clear", () => {
+		const spy = vi.fn();
+		commitModel("developer", "groq/llama-3.3-70b", spy);
+		expect(spy).toHaveBeenCalledWith("developer", {
+			providerId: "groq",
+			modelId: "llama-3.3-70b",
+		});
+
+		spy.mockClear();
+		commitModel("developer", "", spy);
+		expect(spy).toHaveBeenCalledWith("developer", null);
+
+		spy.mockClear();
+		commitModel("developer", "   ", spy);
+		expect(spy).toHaveBeenCalledWith("developer", null);
+
+		spy.mockClear();
+		commitModel("developer", "invalid-model", spy);
+		expect(spy).not.toHaveBeenCalled();
+
+		expect(() =>
+			commitModel("developer", "groq/llama-3.3-70b", undefined),
+		).not.toThrow();
+	});
+
+	it("renders model input with datalist candidates and revert button when preferredModel is set", () => {
+		const members: Member[] = [
+			{
+				roleId: "developer",
+				agent,
+				state: { kind: "idle" },
+				done: 0,
+				total: 1,
+			},
+		];
+		const onModel = vi.fn();
+		const out = renderToStaticMarkup(
+			createElement(TeamView, {
+				members,
+				names: { developer: "Developer" },
+				windows: {},
+				candidateModels: {
+					developer: ["groq/llama-3.3-70b", "gemini/gemini-2.0-flash"],
+				},
+				preferredModels: { developer: "groq/llama-3.3-70b" },
+				onModel,
+			}),
+		);
+		expect(out).toContain("Preferred model (optional)");
+		expect(out).toContain('value="groq/llama-3.3-70b"');
+		expect(out).toContain('<option value="gemini/gemini-2.0-flash"');
+		expect(out).toContain("Revert to default");
+		expect(out).toContain('title="Change model"');
+	});
+
+	it("omits model input when onModel is not provided", () => {
+		const members: Member[] = [
+			{
+				roleId: "developer",
+				agent,
+				state: { kind: "idle" },
+				done: 0,
+				total: 1,
+			},
+		];
+		const out = renderToStaticMarkup(
+			createElement(TeamView, {
+				members,
+				names: { developer: "Developer" },
+				windows: {},
+				candidateModels: { developer: ["groq/llama-3.3-70b"] },
+			}),
+		);
+		expect(out).not.toContain("Preferred model (optional)");
+		expect(out).not.toContain("Revert to default");
 	});
 });

@@ -23,13 +23,23 @@ import {
 	receiveBoard,
 	startBoard,
 } from "../application/board-session.js";
-import { BoardView, type TeamMode } from "../application/board-view.js";
+import {
+	BoardView,
+	type TeamControls,
+	type TeamMode,
+} from "../application/board-view.js";
 import { restoredText } from "../application/checkpoint-list.js";
+import { type ChainContext, fetchChain } from "../application/composer.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { panelRoot } from "../application/panel-root.js";
 import type { RunFacts } from "../application/run-strip.js";
 import { failureText, plain } from "../application/status-text.js";
-import { roleNames, teamName } from "../application/team-draft.js";
+import {
+	draftOf,
+	roleNames,
+	teamName,
+	teamOf,
+} from "../application/team-draft.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { FlowView } from "./flow-view.js";
 import { MetePanelWidget } from "./panel-widget.js";
@@ -40,12 +50,7 @@ import { StudioView } from "./studio-view.js";
 import "../../style/mete-run.css";
 import "../../style/mete-side.css";
 
-// The Team panel (docs/13; ADR-051): one chosen run on the Board, as the Flow graph or in the Studio,
-// and the run composer while it shows no run (ADR-078), so a started run takes the composer's place.
-// The order of history and live events is the session's (application/board-session.ts); the widget
-// listens, asks and draws. Its id stays mete.board from when the Board was its only view.
-
-/** The METE Team panel in Theia's main area. */
+// The Team panel (docs/13; ADR-051; ADR-078; ADR-122).
 @injectable()
 export class MeteBoardWidget extends MetePanelWidget {
 	static readonly ID = "mete.board";
@@ -60,20 +65,16 @@ export class MeteBoardWidget extends MetePanelWidget {
 	@inject(OpenerService) protected readonly openers!: OpenerService;
 
 	protected session: BoardSession = IDLE_BOARD;
-	/** False while the panel is hidden, so the Studio's stage stops (docs/13, Performance and access). */
 	protected shown = true;
 	protected mode: TeamMode = "board";
-	/** The checkpoint a restore is in flight for (ADR-079). */
 	protected restoring: string | undefined;
-	/** The shown run's member names by role id, from its team file (ADR-089). */
 	protected names: Readonly<Record<string, string>> = {};
-	/** Each model's listed context window by `<providerId>/<modelId>`, for the Team view (ADR-090). */
 	protected windows: Readonly<Record<string, number>> = {};
-	/** What the daemon says of the shown run, and its team's name, for the run strip (ADR-094). */
+	protected candidateModels: Readonly<Record<string, readonly string[]>> = {};
+	protected preferredModels: Readonly<Record<string, string>> = {};
+	protected chainCache = new Map<string, readonly string[]>();
 	protected run: RunFacts = {};
-	/** The models asked for already, so each is asked once per shown run. */
 	protected asked = new Set<string>();
-	/** True while the panel shows the composer, which it also shows before any run. */
 	protected composing = true;
 
 	@postConstruct()
@@ -86,12 +87,10 @@ export class MeteBoardWidget extends MetePanelWidget {
 		);
 		this.title.iconClass = codicon("project");
 		this.title.closable = true;
-		// The panel and the Studio's stage take the tokens of Theia's theme (ADR-052, ADR-069): draw again on a change.
-		this.toDispose.push(this.themes.onDidColorThemeChange(() => this.update()));
-		this.toDispose.push(
+		this.toDispose.pushAll([
+			this.themes.onDidColorThemeChange(() => this.update()),
 			this.events.onDidReceive(({ workspaceDir, event }) => {
 				this.setSession(receiveBoard(this.session, workspaceDir, event));
-				// A run's status, times and end come from the daemon, so each run.* event asks again.
 				const shown = this.session.shown;
 				if (
 					shown &&
@@ -100,15 +99,12 @@ export class MeteBoardWidget extends MetePanelWidget {
 				)
 					void this.loadRun(shown.dir, shown.runId);
 			}),
-		);
-		this.toDispose.push(this.composer.onDidChange(() => this.update()));
-		this.toDispose.push(
+			this.composer.onDidChange(() => this.update()),
 			this.composer.onDidStart(
 				({ dir, runId, goal }) => void this.showRun(dir, runId, goal),
 			),
-		);
-		// A closed panel shows no run, so Runs marks none.
-		this.toDispose.push({ dispose: () => this.shownRun.set(undefined) });
+			{ dispose: () => this.shownRun.set(undefined) },
+		]);
 		void this.composer.reopen();
 		this.update();
 	}
@@ -129,6 +125,9 @@ export class MeteBoardWidget extends MetePanelWidget {
 		this.names = {};
 		this.run = {};
 		this.windows = {};
+		this.candidateModels = {};
+		this.preferredModels = {};
+		this.chainCache = new Map();
 		this.asked = new Set();
 		const shown = { dir, runId, goal };
 		this.setSession(startBoard(shown));
@@ -163,6 +162,23 @@ export class MeteBoardWidget extends MetePanelWidget {
 		this.names = roleNames(t.value.yaml);
 		const name = teamName(t.value.yaml);
 		this.run = { ...this.run, ...(name ? { teamName: name } : {}) };
+		this.update();
+		void this.loadTemplateChains(dir, runId, t.value.yaml);
+	}
+
+	protected async loadTemplateChains(dir: string, runId: string, yaml: string) {
+		const draft = draftOf(yaml);
+		if (!draft.ok) return;
+		const ctx: ChainContext = {
+			daemon: this.daemon,
+			dir,
+			cache: this.chainCache,
+		};
+		for (const r of teamOf(draft.value).roles) {
+			const models = await fetchChain(ctx, r.tier, r.needs);
+			if (this.shownRun.runId !== runId) return;
+			this.candidateModels = { ...this.candidateModels, [r.id]: models };
+		}
 		this.update();
 	}
 
@@ -232,6 +248,59 @@ export class MeteBoardWidget extends MetePanelWidget {
 		this.session = next;
 		if (drawn) this.update();
 		this.askWindows();
+		this.askChains();
+	}
+
+	protected askChains(): void {
+		const { shown, view } = this.session;
+		if (!shown) return;
+		for (const a of view.agents) {
+			if (!this.candidateModels[a.roleId])
+				void this.loadRoleChain(
+					shown.dir,
+					shown.runId,
+					a.roleId,
+					a.tier ?? "coder",
+				);
+		}
+	}
+
+	protected async loadRoleChain(
+		dir: string,
+		runId: string,
+		roleId: string,
+		tier: string,
+	) {
+		const models = await fetchChain(
+			{ daemon: this.daemon, dir, cache: this.chainCache },
+			tier,
+		);
+		if (this.shownRun.runId !== runId) return;
+		this.candidateModels = { ...this.candidateModels, [roleId]: models };
+		this.update();
+	}
+
+	protected async setModel(
+		roleId: string,
+		model: ModelRef | null,
+	): Promise<void> {
+		const shown = this.session.shown;
+		if (!shown) return;
+		const isSingle =
+			this.run.run?.templateId === null ||
+			(!this.run.run?.templateId && this.session.view.tasks.length === 0);
+		const r = await this.daemon.model(
+			shown.dir,
+			shown.runId,
+			model,
+			isSingle ? undefined : roleId,
+		);
+		if (!r.ok) return void this.messages.warn(failureText(r.error, plain));
+		this.preferredModels = {
+			...this.preferredModels,
+			[roleId]: model ? `${model.providerId}/${model.modelId}` : "",
+		};
+		this.update();
 	}
 
 	// The context windows of the models the shown run's calls used, each asked once (ADR-090); a
@@ -280,44 +349,51 @@ export class MeteBoardWidget extends MetePanelWidget {
 		if (!r.ok) return r.error.detail;
 	}
 
+	protected waitingControls(): TeamControls["waiting"] {
+		return {
+			onApprove: () => void this.decide(APPROVE_RUN_COMMAND.id),
+			onRevise: (feedback) => void this.decide(REVISE_RUN_COMMAND.id, feedback),
+			onResume: () => void this.decide(RESUME_RUN_COMMAND.id),
+			onAllow: (scope) => this.allowShown(scope),
+		};
+	}
+
+	protected teamControls(): TeamControls {
+		return {
+			mode: this.mode,
+			onMode: (mode) => {
+				this.mode = mode;
+				this.update();
+			},
+			flow: (view) => <FlowView view={view} />,
+			studio: (view, pulse) => (
+				<StudioView
+					view={view}
+					active={this.shown}
+					onCoffee={() =>
+						void this.commands.executeCommand(OPEN_QUOTA_COMMAND.id)
+					}
+					{...(pulse ? { pulse } : {})}
+				/>
+			),
+			restore: {
+				onRestore: (id) => void this.restore(id),
+				restoring: this.restoring,
+			},
+			onOpenReport: (path) => void this.openReport(path),
+			names: this.names,
+			windows: this.windows,
+			run: this.run,
+			onModel: (roleId, model) => void this.setModel(roleId, model),
+			candidateModels: this.candidateModels,
+			preferredModels: this.preferredModels,
+			waiting: this.waitingControls(),
+		};
+	}
+
 	protected board() {
 		return (
-			<BoardView
-				model={this.session.model}
-				controls={{
-					mode: this.mode,
-					onMode: (mode) => {
-						this.mode = mode;
-						this.update();
-					},
-					flow: (view) => <FlowView view={view} />,
-					studio: (view, pulse) => (
-						<StudioView
-							view={view}
-							active={this.shown}
-							onCoffee={() =>
-								void this.commands.executeCommand(OPEN_QUOTA_COMMAND.id)
-							}
-							{...(pulse ? { pulse } : {})}
-						/>
-					),
-					restore: {
-						onRestore: (id) => void this.restore(id),
-						restoring: this.restoring,
-					},
-					onOpenReport: (path) => void this.openReport(path),
-					names: this.names,
-					windows: this.windows,
-					run: this.run,
-					waiting: {
-						onApprove: () => void this.decide(APPROVE_RUN_COMMAND.id),
-						onRevise: (feedback) =>
-							void this.decide(REVISE_RUN_COMMAND.id, feedback),
-						onResume: () => void this.decide(RESUME_RUN_COMMAND.id),
-						onAllow: (scope) => this.allowShown(scope),
-					},
-				}}
-			/>
+			<BoardView model={this.session.model} controls={this.teamControls()} />
 		);
 	}
 }

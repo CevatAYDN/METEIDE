@@ -1,11 +1,18 @@
-import type { Tier } from "@mete/contracts";
+import type { ModelRef, Tier } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties } from "react";
 import { type Member, type MemberState, roleWords } from "../domain/roster.js";
 import { Context, type Windows } from "./context-meter.js";
 import { LIST, MUTED } from "./look.js";
 import { Icon, LINE } from "./roster-look.js";
+import {
+	commitModel,
+	ModelChoice,
+	type ModelChoiceProps,
+} from "./team-model-choice.js";
 import { TONES, type Tone } from "./tone.js";
+
+export { commitModel, ModelChoice, type ModelChoiceProps };
 
 // The Team panel's fourth view (ADR-089): one row per role with its tier, model, state and what it
 // does now. Icons are Theia's codicons; each state is an icon and a word, never a colour alone.
@@ -140,70 +147,98 @@ const TierChip = ({ tier }: { readonly tier: Tier }) => (
 		</span>
 	</span>
 );
-
-const Row = ({
-	member,
-	name,
-	windows,
-}: {
+type MemberRowProps = {
 	readonly member: Member;
 	readonly name: string;
 	readonly windows: Windows;
-}) => {
-	const look = stateLook(member.state);
+	readonly models: readonly string[];
+	readonly value?: string | undefined;
+	readonly onModel?:
+		| ((roleId: string, model: ModelRef | null) => void)
+		| undefined;
+};
+
+const MemberDetails = ({
+	member,
+	name,
+	windows,
+	models,
+	value,
+	onModel,
+}: MemberRowProps) => (
+	<div
+		style={{
+			display: "flex",
+			flexDirection: "column",
+			gap: "3px",
+			minWidth: 0,
+		}}
+	>
+		<div style={LINE}>
+			<strong style={{ fontSize: "1.1em" }}>{name}</strong>
+			{member.agent?.tier ? <TierChip tier={member.agent.tier} /> : null}
+		</div>
+		<Model member={member} />
+		<Context member={member} windows={windows} />
+		{onModel ? (
+			<ModelChoice
+				roleId={member.roleId}
+				value={value}
+				models={models}
+				onModel={onModel}
+			/>
+		) : null}
+		{member.now ? <Now now={member.now} /> : null}
+	</div>
+);
+
+const MemberStatus = ({
+	member,
+	look,
+}: {
+	readonly member: Member;
+	readonly look: Look;
+}) => (
+	<div
+		style={{
+			display: "flex",
+			flexDirection: "column",
+			alignItems: "flex-end",
+			gap: "4px",
+		}}
+	>
+		<span className="mete-chip" style={{ ...PILL, color: TONES[look.tone] }}>
+			<Icon name={look.icon} {...(look.spin ? { spin: true } : {})} />
+			{look.text}
+		</span>
+		{member.total > 0 ? (
+			<span style={{ ...PILL, ...MUTED }}>
+				<Icon name="checklist" />
+				{nls.localize(
+					"mete/roster/tasks",
+					"{0} of {1} tasks done",
+					member.done,
+					member.total,
+				)}
+			</span>
+		) : null}
+	</div>
+);
+
+const Row = (props: MemberRowProps) => {
+	const look = stateLook(props.member.state);
 	const ring = look.tone === "muted" ? undefined : TONES[look.tone];
 	return (
 		<li
 			className="mete-card"
-			aria-label={name}
+			aria-label={props.name}
 			style={{ ...ROW, ...(ring ? { borderColor: ring } : {}) }}
 		>
 			<span aria-hidden="true" style={AVATAR}>
-				{name.charAt(0).toUpperCase()}
+				{props.name.charAt(0).toUpperCase()}
 			</span>
-			<div
-				style={{
-					display: "flex",
-					flexDirection: "column",
-					gap: "3px",
-					minWidth: 0,
-				}}
-			>
-				<div style={LINE}>
-					<strong style={{ fontSize: "1.1em" }}>{name}</strong>
-					{member.agent?.tier ? <TierChip tier={member.agent.tier} /> : null}
-				</div>
-				<Model member={member} />
-				<Context member={member} windows={windows} />
-				{member.now ? <Now now={member.now} /> : null}
-			</div>
-			<div
-				style={{
-					display: "flex",
-					flexDirection: "column",
-					alignItems: "flex-end",
-					gap: "4px",
-				}}
-			>
-				<span
-					className="mete-chip"
-					style={{ ...PILL, color: TONES[look.tone] }}
-				>
-					<Icon name={look.icon} {...(look.spin ? { spin: true } : {})} />
-					{look.text}
-				</span>
-				{member.total > 0 ? (
-					<span style={{ ...PILL, ...MUTED }}>
-						<Icon name="checklist" />
-						{nls.localize(
-							"mete/roster/tasks",
-							"{0} of {1} tasks done",
-							member.done,
-							member.total,
-						)}
-					</span>
-				) : null}
-			</div>
+			<MemberDetails {...props} />
+			<MemberStatus member={props.member} look={look} />
 		</li>
 	);
 };
@@ -226,16 +261,28 @@ const Summary = ({ members }: { readonly members: readonly Member[] }) => (
 	</p>
 );
 
+export type TeamViewProps = {
+	readonly members: readonly Member[];
+	readonly names: Readonly<Record<string, string>>;
+	readonly windows: Windows;
+	readonly candidateModels?:
+		| Readonly<Record<string, readonly string[]>>
+		| undefined;
+	readonly preferredModels?: Readonly<Record<string, string>> | undefined;
+	readonly onModel?:
+		| ((roleId: string, model: ModelRef | null) => void)
+		| undefined;
+};
+
 /** The Team view: the run's members, each named as the team file names it or else by its id in words. */
 export const TeamView = ({
 	members,
 	names,
 	windows,
-}: {
-	readonly members: readonly Member[];
-	readonly names: Readonly<Record<string, string>>;
-	readonly windows: Windows;
-}) => (
+	candidateModels,
+	preferredModels,
+	onModel,
+}: TeamViewProps) => (
 	<section
 		aria-label={nls.localize("mete/roster/title", "Team")}
 		style={{ maxWidth: "960px" }}
@@ -248,6 +295,13 @@ export const TeamView = ({
 					member={m}
 					name={names[m.roleId] ?? roleWords(m.roleId)}
 					windows={windows}
+					models={
+						candidateModels?.[m.roleId] ??
+						(m.agent?.tier ? candidateModels?.[m.agent.tier] : undefined) ??
+						[]
+					}
+					value={preferredModels?.[m.roleId]}
+					onModel={onModel}
 				/>
 			))}
 		</ul>
