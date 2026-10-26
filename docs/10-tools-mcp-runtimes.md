@@ -114,19 +114,30 @@ implements:
     features: [decimate, uv_unwrap]
 ```
 
-A CLI mapping, for example a game engine build:
+A CLI mapping, for example a browser game prototype whose own npm scripts build and test it (ADR-120):
 
 ```yaml
+# .mete/adapters/browser-game.yaml, written by the user
+apiVersion: mete/v1
+kind: AdapterMapping
+metadata: { id: browser-game, version: 1.0.0 }
 type: cli
 implements:
   gameengine.build@1:
-    command: "{{config.enginePath}}"
-    args: ["-batchmode", "-quit", "-projectPath", "{{workspace.path}}", "-executeMethod", "{{config.buildMethod}}", "-logFile", "-"]
+    command: npm
+    args: ["run", "build"]
     success: { exitCode: 0 }
-    output: { log: "{{stdout}}" }
+    output: { log: "{{result.stdout}}" }
+  gameengine.test@1:
+    command: npm
+    args: ["test"]
+    success: { exitCode: 0 }
+    output: { log: "{{result.stdout}}" }
 ```
 
-Template expressions use `{{path}}` with the filters `join` and `json` only \[D\]. A path starts from `input` (the capability input), `result` (what the tool returned), `workspace` (`workspace.path`) or `item` (inside `each`). For an MCP tool, `result` is the structured content when the server sends it, otherwise the text blocks parsed as JSON when they parse to an object, otherwise an object with only `text`; `result.text` always holds the joined text blocks. A string that is exactly one expression keeps the value's type (a list stays a list); expressions inside longer text become text. `{ each: "{{result.results}}", as: { title: "{{item.title}}" } }` maps a list item by item. The mapped output MUST pass the capability's output schema in `@mete/contracts` (`MAPPABLE_OUTPUTS`), or the call fails with an error naming the mapping, the capability and the field; a capability with no output schema there cannot be mapped yet. Each `implements` entry names the policy `action` its calls ask (`mcp.call` when unset), and `AdapterMappingSchema` in `@mete/contracts` checks the file \[D\]. The mcp-client module reads the built-in `adapters/` folder when it starts and provides each entry under its mapping id; a file that fails the schema, a `cli` or `http` mapping (not run yet), an id used twice, a server missing from `mcp.yaml` or a capability with no output schema is skipped with a warning naming the file and the reason \[D\]. Bindings choose among adapters:
+A CLI entry renders as an MCP entry does, with `result` the command's `{ exitCode, stdout, stderr }`; its command and arguments become one command line that runs through `shell.exec@1` in the task's folder, so the policy is asked for `shell.exec` with that line, and an exit code other than `success.exitCode` fails the call with the command's output \[D\]. A game engine works the same way with its own program and arguments, for example Unity's `-batchmode -quit -projectPath "{{workspace.path}}" -executeMethod <build method>`; a mapping has no `config` of its own yet, so it names the program and its arguments \[D\].
+
+Template expressions use `{{path}}` with the filters `join` and `json` only \[D\]. A path starts from `input` (the capability input), `result` (what the tool returned), `workspace` (`workspace.path`) or `item` (inside `each`). For an MCP tool, `result` is the structured content when the server sends it, otherwise the text blocks parsed as JSON when they parse to an object, otherwise an object with only `text`; `result.text` always holds the joined text blocks. A string that is exactly one expression keeps the value's type (a list stays a list); expressions inside longer text become text. `{ each: "{{result.results}}", as: { title: "{{item.title}}" } }` maps a list item by item. The mapped output MUST pass the capability's output schema in `@mete/contracts` (`MAPPABLE_OUTPUTS`), or the call fails with an error naming the mapping, the capability and the field; a capability with no output schema there cannot be mapped yet. Each `implements` entry names the policy `action` its calls ask (`mcp.call` when unset), and `AdapterMappingSchema` in `@mete/contracts` checks the file \[D\]. The mcp-client module reads the built-in `adapters/` folder and then the workspace's `.mete/adapters/` (a protected path, SECURITY.md) when it starts and provides each entry under its mapping id; a file that fails the schema, an `http` mapping (not run yet), an id used twice, a server missing from `mcp.yaml` or a capability with no output schema is skipped with a warning naming the file and the reason \[D\]. Bindings choose among adapters:
 
 ```yaml
 # .mete/bindings.yaml
