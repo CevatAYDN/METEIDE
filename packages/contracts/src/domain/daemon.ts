@@ -8,14 +8,15 @@ import { CustomProviderIdSchema, ModelInfoSchema } from "./provider.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol v21 (ARCHITECTURE.md, ADR-045..ADR-121); mete/event checked with MeteEventSchema.
-/** The messages of version 21; the params of mete/run.start are RunStartSchema (engine.ts). */
+// Daemon protocol v22 (ARCHITECTURE.md, ADR-045..ADR-122); mete/event checked with MeteEventSchema.
+/** The messages of version 22; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
 	runApprove: "mete/run.approve",
 	runResume: "mete/run.resume",
 	runAllow: "mete/run.allow",
+	runModel: "mete/run.model",
 	quota: "mete/quota",
 	events: "mete/events",
 	audit: "mete/audit",
@@ -91,6 +92,14 @@ export const DaemonRunApproveParamsSchema = z.strictObject({
 	runId: z.string().min(1),
 	input: ApprovalInputSchema,
 });
+
+/** Params of `mete/run.model`: the run, an optional role id and the preferred model (null clears) (ADR-122). */
+export const DaemonRunModelParamsSchema = z.strictObject({
+	runId: z.string().min(1),
+	roleId: z.string().min(1).optional(),
+	model: ModelRefSchema.nullable(),
+});
+export type DaemonRunModelParams = z.infer<typeof DaemonRunModelParamsSchema>;
 
 /** Whether a provider can carry a run on now (ADR-050). */
 export const ProviderStateSchema = z.discriminatedUnion("state", [
@@ -358,7 +367,7 @@ export const DaemonProviderTestResultSchema = z.strictObject({
 	),
 });
 
-/** Result of `mete/run.approve`, `mete/run.resume` and `mete/run.allow`: a request that returns nothing sends null. */
+/** Result of `mete/run.approve`, `mete/run.resume`, `mete/run.allow` and `mete/run.model`: a request that returns nothing sends null. */
 export const DaemonDoneResultSchema = z.null();
 
 /** `data` of an error answer: the `EngineError` code, `choose_template` or `not_ready` (ADR-046, ADR-047). */

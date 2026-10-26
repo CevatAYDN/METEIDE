@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { type ModelRef, ModelRefSchema } from "./llm.js";
 import type { Result } from "./result.js";
 import {
 	DecisionSchema,
@@ -11,6 +12,13 @@ import {
 /** A run's state (docs/07, Run state machine). */
 export type RunStatus = z.infer<typeof RunStatusSchema>;
 
+/** A preferred model per role (team run) or for the single agent (ADR-122). */
+export const RunPreferSchema = z.union([
+	ModelRefSchema,
+	z.record(z.string().min(1), ModelRefSchema),
+]);
+export type RunPrefer = z.infer<typeof RunPreferSchema>;
+
 /** What starts a run; a templateId is refused until the team engine (Phase 2). */
 export const RunStartSchema = z
 	.strictObject({
@@ -19,6 +27,8 @@ export const RunStartSchema = z
 		priority: z.union([z.literal(0), z.literal(1), z.literal(2)]).default(1),
 		// Take the newest open handoff (docs/08, Run memory); the goal then defaults to its goal.
 		continue: z.literal(true).optional(),
+		// Per-run model preference: single agent or per role (ADR-122).
+		prefer: RunPreferSchema.optional(),
 	})
 	.refine((r) => r.goal !== undefined || r.continue === true, {
 		message: "a goal is needed unless the run continues a handoff",
@@ -94,4 +104,10 @@ export interface TeamEngineAdapter {
 		input: ApprovalInput,
 	): Promise<Result<void, EngineError>>;
 	status(runId?: string): Result<RunView[], EngineError>;
+	/** Sets or clears a run-specific model preference (null clears) (ADR-122). */
+	model?(
+		runId: string,
+		model: ModelRef | null,
+		roleId?: string,
+	): Promise<Result<void, EngineError>>;
 }

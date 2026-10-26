@@ -27,6 +27,7 @@ import {
 	DaemonRunAllowParamsSchema,
 	DaemonRunApproveParamsSchema,
 	DaemonRunIdParamsSchema,
+	DaemonRunModelParamsSchema,
 	DaemonRunStartResultSchema,
 	DaemonSettingsResultSchema,
 	DaemonStatusParamsSchema,
@@ -55,7 +56,7 @@ const run: RunView = {
 	endedAt: "2026-10-23T11:00:00.000Z",
 };
 
-describe("daemon protocol version 21", () => {
+describe("daemon protocol version 22", () => {
 	it("answers mete/events with the run's events in order and the count of unreadable rows", () => {
 		const event = {
 			id: crypto.randomUUID(),
@@ -137,6 +138,7 @@ describe("daemon protocol version 21", () => {
 			runApprove: "mete/run.approve",
 			runResume: "mete/run.resume",
 			runAllow: "mete/run.allow",
+			runModel: "mete/run.model",
 			quota: "mete/quota",
 			events: "mete/events",
 			audit: "mete/audit",
@@ -322,6 +324,30 @@ describe("daemon protocol version 21", () => {
 			expect(DaemonRunAllowParamsSchema.safeParse(bad).success).toBe(false);
 		expect(DaemonDoneResultSchema.parse(null)).toBeNull();
 		expect(DaemonDoneResultSchema.safeParse({}).success).toBe(false);
+	});
+
+	it("takes a run, an optional role and a model or null for mete/run.model (ADR-122)", () => {
+		const single = {
+			runId: "r1",
+			model: { providerId: "groq", modelId: "m1" },
+		};
+		expect(DaemonRunModelParamsSchema.parse(single)).toEqual(single);
+		const role = {
+			runId: "r1",
+			roleId: "coder",
+			model: { providerId: "nvidia", modelId: "m2" },
+		};
+		expect(DaemonRunModelParamsSchema.parse(role)).toEqual(role);
+		const clear = { runId: "r1", roleId: "coder", model: null };
+		expect(DaemonRunModelParamsSchema.parse(clear)).toEqual(clear);
+		for (const bad of [
+			{ runId: "" },
+			{ runId: "r1" },
+			{ runId: "r1", model: { providerId: "" } },
+			{ runId: "r1", roleId: "", model: null },
+			{ runId: "r1", model: null, extra: true },
+		])
+			expect(DaemonRunModelParamsSchema.safeParse(bad).success).toBe(false);
 	});
 
 	it("answers mete/quota with a state per provider, and a reset time only when exhausted", () => {

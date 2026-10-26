@@ -34,6 +34,29 @@ describe("team.engine@2 input", () => {
 		])
 			expect(RunStartSchema.safeParse(bad).success).toBe(false);
 	});
+
+	it("takes an optional preferred model for single agent or per role (ADR-122)", () => {
+		const single = {
+			goal: "fix",
+			prefer: { providerId: "nvidia", modelId: "deepseek-r1" },
+		};
+		expect(RunStartSchema.parse(single)).toEqual({ ...single, priority: 1 });
+		const team = {
+			goal: "fix",
+			templateId: "dev",
+			prefer: {
+				coder: { providerId: "groq", modelId: "llama-3" },
+				reviewer: { providerId: "openrouter", modelId: "claude-3.5-sonnet" },
+			},
+		};
+		expect(RunStartSchema.parse(team)).toEqual({ ...team, priority: 1 });
+		for (const bad of [
+			{ goal: "g", prefer: "bad" },
+			{ goal: "g", prefer: { coder: { providerId: "" } } },
+			{ goal: "g", prefer: { providerId: "a" } },
+		])
+			expect(RunStartSchema.safeParse(bad).success).toBe(false);
+	});
 });
 
 describe("team.engine@2 approval input", () => {
