@@ -64,4 +64,84 @@ describe("the Studio's signals", () => {
 		expect(view.signals.exhausted).toEqual({ groq: resetsAt });
 		expect(view.signals.pausedFor).toBeUndefined();
 	});
+
+	it("records a policy ask when one arrives, stripping the rule", () => {
+		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			event("policy.asked", {
+				action: "shell.exec",
+				capability: "shell.exec@1",
+				adapterId: "tools",
+				command: "npm test",
+				rule: "shell_allow",
+			}),
+		]);
+		expect(view.signals.asked).toEqual({
+			action: "shell.exec",
+			capability: "shell.exec@1",
+			adapterId: "tools",
+			command: "npm test",
+		});
+	});
+
+	it("replaces an earlier policy ask when a newer one arrives", () => {
+		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			event("policy.asked", {
+				action: "shell.exec",
+				capability: "shell.exec@1",
+				adapterId: "tools",
+				command: "npm test",
+				rule: "shell_allow",
+			}),
+			event("policy.asked", {
+				action: "git.push",
+				capability: "vcs.git@2",
+				adapterId: "tools",
+				rule: "git_push",
+			}),
+		]);
+		expect(view.signals.asked).toEqual({
+			action: "git.push",
+			capability: "vcs.git@2",
+			adapterId: "tools",
+		});
+	});
+
+	it("clears the policy ask when the run resumes or ends", () => {
+		const asked = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			event("policy.asked", {
+				action: "shell.exec",
+				capability: "shell.exec@1",
+				adapterId: "tools",
+				command: "npm test",
+				rule: "shell_allow",
+			}),
+		]);
+		expect(asked.signals.asked).toBeDefined();
+		const resumed = applyAll(RUN, asked, [event("run.resumed", {})]);
+		expect(resumed.signals.asked).toBeUndefined();
+		const ended = applyAll(RUN, asked, [
+			event("run.completed", { summary: "done" }),
+		]);
+		expect(ended.signals.asked).toBeUndefined();
+	});
+
+	it("catches a policy ask that arrives after the run paused", () => {
+		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			event("run.paused", { reason: "approval" }),
+			event("policy.asked", {
+				action: "shell.exec",
+				capability: "shell.exec@1",
+				adapterId: "tools",
+				command: "npm test",
+				rule: "shell_allow",
+			}),
+		]);
+		expect(view.signals.pausedFor).toBe("approval");
+		expect(view.signals.asked).toEqual({
+			action: "shell.exec",
+			capability: "shell.exec@1",
+			adapterId: "tools",
+			command: "npm test",
+		});
+	});
 });

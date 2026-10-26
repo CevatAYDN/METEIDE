@@ -1,4 +1,4 @@
-import type { MeteEvent } from "@mete/contracts";
+import type { MeteEvent, PolicyAsk } from "@mete/contracts";
 
 // What the Studio needs beyond tasks and agents (ADR-052): the roles seen approving or reviewing
 // (they sit in the top row), why the run is paused, and the providers whose quota is spent. The
@@ -18,6 +18,8 @@ export type RunSignals = {
 	readonly pausedFor?: PauseReason;
 	/** Provider id to the time its spent quota opens again. */
 	readonly exhausted: Readonly<Record<string, string>>;
+	/** The newest policy ask of the run, cleared when the run goes on or ends (ADR-121). */
+	readonly asked?: PolicyAsk;
 };
 
 /** Before the first event. */
@@ -29,6 +31,7 @@ const lead = (s: RunSignals, roleId: string): RunSignals =>
 		: { ...s, leadRoles: [...s.leadRoles, roleId] };
 
 const ENDS = new Set([
+	"run.started",
 	"run.resumed",
 	"run.completed",
 	"run.failed",
@@ -54,8 +57,12 @@ export const signalsAfter = (s: RunSignals, e: MeteEvent): RunSignals => {
 		return lead(s, e.payload.approver);
 	if (e.type === "review.requested") return lead(s, e.payload.reviewerRoleId);
 	if (e.type === "run.paused") return { ...s, pausedFor: e.payload.reason };
+	if (e.type === "policy.asked") {
+		const { rule: _, ...asked } = e.payload;
+		return { ...s, asked };
+	}
 	if (ENDS.has(e.type)) {
-		const { pausedFor: _, ...rest } = s;
+		const { pausedFor: _, asked: __, ...rest } = s;
 		return rest;
 	}
 	return quotaAfter(s, e);
