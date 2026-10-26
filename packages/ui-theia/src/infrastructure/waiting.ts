@@ -1,10 +1,13 @@
-import { Command } from "@theia/core";
+import { Command, Disposable } from "@theia/core";
 import type { FrontendApplicationContribution } from "@theia/core/lib/browser/frontend-application-contribution";
 import {
 	StatusBar,
 	StatusBarAlignment,
 } from "@theia/core/lib/browser/status-bar/status-bar-types";
-import type { ViewContainer } from "@theia/core/lib/browser/view-container";
+import type {
+	ViewContainer,
+	ViewContainerPart,
+} from "@theia/core/lib/browser/view-container";
 import { nls } from "@theia/core/lib/common/nls";
 import type { Widget } from "@theia/core/shared/@lumino/widgets";
 import { inject, injectable } from "@theia/core/shared/inversify";
@@ -55,23 +58,72 @@ export class MeteWaitingStatusBar implements FrontendApplicationContribution {
 	}
 }
 
+type View = Pick<
+	ViewContainer,
+	| "getPartFor"
+	| "disposed"
+	| "containerLayout"
+	| "isVisible"
+	| "onDidChangeVisibility"
+>;
+
+// A part shown again comes back at its minimum height, too short for one row, since Theia kept no
+// size for it: it gets its share of the open parts' height, and they keep their proportions.
+const giveShare = (view: View, part: ViewContainerPart, share: number) => {
+	if (part.isHidden || part.collapsed) return;
+	const layout = view.containerLayout;
+	const sizes = layout.widgets.map((p) =>
+		p === part || p.isHidden || p.collapsed ? undefined : layout.getPartSize(p),
+	);
+	const rest = sizes.reduce<number>((sum, s) => sum + (s ?? 0), 0);
+	layout.setPartSizes(
+		sizes.map((s, i) =>
+			layout.widgets[i] === part ? (rest * share) / (1 - share) : s,
+		),
+	);
+};
+
+// Sizes need the view on screen: a view in a hidden side bar measures nothing.
+const whenVisible = (view: View, act: () => void): Disposable => {
+	if (view.isVisible) {
+		act();
+		return Disposable.NULL;
+	}
+	const once = view.onDidChangeVisibility((visible) => {
+		if (!visible) return;
+		once.dispose();
+		act();
+	});
+	return once;
+};
+
 /**
- * Shows the Waiting for you part only while a run waits, so an empty inbox takes no height; it
- * changes only when the count crosses zero, so a user who hides it meanwhile keeps it hidden.
+ * Shows the Waiting for you part only while a run waits, so an empty inbox takes no height, with
+ * `share` of the view's height; it changes only when the count crosses zero, so a user who hides
+ * it meanwhile keeps it hidden.
  */
 export const followWaiting = (
-	container: Pick<ViewContainer, "getPartFor" | "disposed">,
+	container: View,
 	waiting: Widget,
 	store: Pick<MeteHomeStore, "model" | "onDidChange">,
+	share: number,
 ) => {
 	let shown: boolean | undefined;
+	let sizing = Disposable.NULL;
 	const follow = () => {
 		const now = waitingCount(store.model) > 0;
 		if (now === shown) return;
 		shown = now;
-		container.getPartFor(waiting)?.setHidden(!now);
+		const part = container.getPartFor(waiting);
+		part?.setHidden(!now);
+		sizing.dispose();
+		if (now && part)
+			sizing = whenVisible(container, () => giveShare(container, part, share));
 	};
 	follow();
 	const listening = store.onDidChange(follow);
-	container.disposed.connect(() => listening.dispose());
+	container.disposed.connect(() => {
+		listening.dispose();
+		sizing.dispose();
+	});
 };

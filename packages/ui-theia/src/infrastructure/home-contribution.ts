@@ -52,11 +52,13 @@ export const REFRESH_HOME_COMMAND: Command = Command.toLocalizedCommand(
 /** Set once the METE view has been put in a restored layout. */
 const PLACED_KEY = "mete.view.placed";
 
-// Each part's share of the side bar's height; Runs gets the most, as the list people steer from.
+// Each part's share of the side bar's height, out of 100; Runs gets the most, as the list people
+// steer from. Waiting for you shows only while a run waits and takes its share back each time.
+const WAITING_WEIGHT = 20;
 const PARTS: {
 	readonly [S in HomeSection]: ViewContainer.Factory.WidgetOptions;
 } = {
-	waiting: { order: 0, weight: 20, canHide: true },
+	waiting: { order: 0, weight: WAITING_WEIGHT, canHide: true },
 	runs: { order: 1, weight: 45, canHide: false },
 	workspaces: { order: 2, weight: 20, canHide: true },
 	quota: { order: 3, weight: 15, canHide: true },
@@ -151,7 +153,12 @@ const containerFactory = (ctx: interfaces.Context): WidgetFactory => ({
 				PARTS[s],
 			);
 		const waiting = await widgets.getOrCreateWidget(sectionId("waiting"));
-		followWaiting(container, waiting, ctx.container.get(MeteHomeStore));
+		followWaiting(
+			container,
+			waiting,
+			ctx.container.get(MeteHomeStore),
+			WAITING_WEIGHT / 100,
+		);
 		return container;
 	},
 });

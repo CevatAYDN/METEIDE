@@ -90,33 +90,98 @@ describe("the status bar's waiting count", () => {
 	});
 });
 
+// The METE view as followWaiting sees it: the Waiting for you part, Runs, a collapsed Workspaces and
+// Quota, each with its height, and the sizes the view was given.
+const fakeView = (visible: boolean) => {
+	const store = fakeStore();
+	const shown = new Emitter<boolean>();
+	const hidden: boolean[] = [];
+	const sized: (number | undefined)[][] = [];
+	const part = {
+		isHidden: false,
+		collapsed: false,
+		setHidden: (h: boolean) => {
+			part.isHidden = h;
+			hidden.push(h);
+		},
+	};
+	const runs = { isHidden: false, collapsed: false };
+	const folders = { isHidden: false, collapsed: true };
+	const quota = { isHidden: false, collapsed: false };
+	const heights = new Map<object, number>([
+		[part, 72],
+		[runs, 450],
+		[folders, 22],
+		[quota, 150],
+	]);
+	let closed: (() => void) | undefined;
+	const container = {
+		isVisible: visible,
+		onDidChangeVisibility: shown.event,
+		getPartFor: () => part,
+		disposed: {
+			connect: (f: () => void) => {
+				closed = f;
+			},
+		},
+		containerLayout: {
+			widgets: [part, runs, folders, quota],
+			getPartSize: (p: object) => heights.get(p),
+			setPartSizes: (w: (number | undefined)[]) => void sized.push(w),
+		},
+	};
+	followWaiting(
+		container as unknown as Parameters<typeof followWaiting>[0],
+		{} as Widget,
+		store,
+		0.2,
+	);
+	const show = () => {
+		container.isVisible = true;
+		shown.fire(true);
+	};
+	return { store, part, hidden, sized, show, close: () => closed?.() };
+};
+
 describe("the Waiting for you part", () => {
 	it("hides while nothing waits and shows when a run starts waiting, only when the count crosses zero", () => {
-		const store = fakeStore();
-		const hidden: boolean[] = [];
-		const part = { setHidden: (h: boolean) => void hidden.push(h) };
-		let disposedListener: (() => void) | undefined;
-		const container = {
-			getPartFor: () => part,
-			disposed: {
-				connect: (f: () => void) => {
-					disposedListener = f;
-				},
-			},
-		};
-		followWaiting(
-			container as unknown as Parameters<typeof followWaiting>[0],
-			{} as Widget,
-			store,
-		);
+		const { store, hidden, close } = fakeView(true);
 		store.set(waiting(0));
 		store.set(waiting(1));
 		store.set(waiting(3));
 		store.set(waiting(0));
 		expect(hidden).toEqual([true, false, true]);
 		// A closed view stops following the store.
-		disposedListener?.();
+		close();
 		store.set(waiting(2));
 		expect(hidden).toEqual([true, false, true]);
+	});
+
+	it("comes back with its share of the height, the open parts keeping theirs", () => {
+		const { store, sized } = fakeView(true);
+		store.set(waiting(0));
+		store.set(waiting(2));
+		// Runs and Quota hold 600 px: a fifth of the whole is 150 px; collapsed Workspaces keeps its size.
+		expect(sized).toEqual([[150, 450, undefined, 150]]);
+	});
+
+	it("takes its share when the view shows, since a hidden side bar measures nothing", () => {
+		const { store, sized, show } = fakeView(false);
+		store.set(waiting(0));
+		store.set(waiting(1));
+		store.set(waiting(0));
+		store.set(waiting(1));
+		expect(sized).toEqual([]);
+		show();
+		show();
+		expect(sized).toEqual([[150, 450, undefined, 150]]);
+	});
+
+	it("leaves a part the user collapsed at its header", () => {
+		const { store, part, sized } = fakeView(true);
+		store.set(waiting(0));
+		part.collapsed = true;
+		store.set(waiting(1));
+		expect(sized).toEqual([]);
 	});
 });
