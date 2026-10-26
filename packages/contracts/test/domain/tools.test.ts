@@ -86,21 +86,30 @@ describe("WorktreeConfigSchema", () => {
 		});
 	});
 
-	it("rejects empty setup string and unknown keys", () => {
-		expect(WorktreeConfigSchema.safeParse({ setup: "" }).success).toBe(false);
-		expect(WorktreeConfigSchema.safeParse({ setup: "   " }).success).toBe(
-			false,
-		);
-		expect(WorktreeConfigSchema.safeParse({ unknownKey: "val" }).success).toBe(
-			false,
-		);
+	it("rejects empty setup string, non-strings, non-objects, and unknown keys", () => {
+		for (const bad of [
+			{ setup: "" },
+			{ setup: "   " },
+			{ setup: 123 },
+			{ setup: null },
+			{ setup: true },
+			{ setup: [] },
+			{ unknownKey: "val" },
+			null,
+			"string",
+			123,
+			[],
+		]) {
+			expect(WorktreeConfigSchema.safeParse(bad).success).toBe(false);
+		}
 	});
 });
 
 describe("VcsGitInputSchema", () => {
 	const RUN = "7f3c2a1e-4b5d-4c6e-8f9a-0b1c2d3e4f5a";
+	const TASK = "1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e";
 
-	it("accepts the Phase 1 operations", () => {
+	it("accepts operations including worktree and merge operations", () => {
 		for (const good of [
 			{ op: "status" },
 			{ op: "diff", staged: true, path: "src" },
@@ -108,19 +117,25 @@ describe("VcsGitInputSchema", () => {
 			{ op: "checkpoint.create", runId: RUN },
 			{ op: "checkpoint.restore", ref: `refs/mete/checkpoints/${RUN}/2` },
 			{ op: "checkpoint.prune", runId: RUN },
+			{ op: "worktree.create", runId: RUN, taskId: TASK },
+			{ op: "worktree.remove", runId: RUN, taskId: TASK },
+			{ op: "merge", runId: RUN, taskId: TASK, message: "merge task" },
 		])
 			expect(VcsGitInputSchema.parse(good)).toEqual(good);
 	});
 
-	it("rejects merge, push, empty messages and other refs", () => {
+	it("rejects invalid worktree operations, merge without message, push, and bad refs", () => {
 		for (const bad of [
 			{ op: "merge", branch: "x" },
+			{ op: "merge", runId: RUN, taskId: TASK, message: "" },
 			{ op: "push" },
 			{ op: "commit", message: "  " },
 			{ op: "commit", message: "m", paths: [] },
 			{ op: "checkpoint.restore", ref: "refs/heads/main" },
 			{ op: "checkpoint.restore", ref: `refs/mete/checkpoints/${RUN}/0` },
 			{ op: "checkpoint.create", runId: "x" },
+			{ op: "worktree.create", runId: "invalid-id", taskId: TASK },
+			{ op: "worktree.remove", runId: RUN, taskId: "" },
 		])
 			expect(VcsGitInputSchema.safeParse(bad).success).toBe(false);
 	});

@@ -1,4 +1,4 @@
-import { access, mkdir, writeFile } from "node:fs/promises";
+import { access, mkdir, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ok } from "@mete/contracts";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -11,8 +11,8 @@ import { initRepo, isolateGit } from "../helpers/repo.js";
 import { tempWorkspace } from "../infrastructure/workspace.js";
 
 const RUN = "7f3c2a1e-4b5d-4c6e-8f9a-0b1c2d3e4f5a";
-const TASK1 = "task-1";
-const TASK2 = "task-2";
+const TASK1 = "1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e";
+const TASK2 = "2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f";
 
 beforeAll(isolateGit);
 
@@ -129,5 +129,41 @@ describe("vcs-worktree cleanup", () => {
 
 		expect(await exists(wt2.value.path)).toBe(false);
 		expect(await exists(join(deps.worktreesDir, RUN))).toBe(false);
+	});
+
+	it("removes worktree with symlinks/junctions in node_modules without removing link targets", async () => {
+		const { w, git, deps } = await setup();
+		const created = await createWorktree(deps, git, {
+			runId: RUN,
+			taskId: TASK1,
+		});
+		expect(created.ok).toBe(true);
+		if (!created.ok || created.value.op !== "worktree.create")
+			throw new Error("worktree not created");
+
+		const wtDir = created.value.path;
+		const externalStore = join(w.globalDir, "external-store");
+		await mkdir(externalStore, { recursive: true });
+		await writeFile(
+			join(externalStore, "target-pkg.js"),
+			"module.exports = 'real';\n",
+		);
+
+		const nmDir = join(wtDir, "node_modules");
+		await mkdir(nmDir, { recursive: true });
+		const linkType = process.platform === "win32" ? "junction" : "dir";
+		await symlink(externalStore, join(nmDir, "linked-pkg"), linkType);
+
+		expect(await exists(join(nmDir, "linked-pkg", "target-pkg.js"))).toBe(true);
+
+		const removed = await removeWorktree(deps, git, {
+			runId: RUN,
+			taskId: TASK1,
+		});
+		expect(removed).toEqual(ok({ op: "worktree.remove", removed: true }));
+
+		expect(await exists(wtDir)).toBe(false);
+		expect(await exists(join(deps.worktreesDir, RUN))).toBe(false);
+		expect(await exists(join(externalStore, "target-pkg.js"))).toBe(true);
 	});
 });
