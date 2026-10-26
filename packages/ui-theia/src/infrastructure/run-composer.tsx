@@ -6,11 +6,11 @@ import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service
 import {
 	type ChainContext,
 	type ComposerOption,
-	fetchChain,
 	loadRoles,
 	narrowedTo,
 	optionsOf,
 	preferOf,
+	singleAgentModels,
 	startOf,
 } from "../application/composer.js";
 import {
@@ -95,7 +95,7 @@ export class MeteRunComposer {
 		};
 		const [templates, singleModels, ...estimates] = await Promise.all([
 			loadRoles(ctx, raw),
-			fetchChain(ctx, "coder", []),
+			singleAgentModels(ctx),
 			...[...raw.map((t) => t.id), null].map((id) =>
 				this.daemon.estimate(dir, id),
 			),

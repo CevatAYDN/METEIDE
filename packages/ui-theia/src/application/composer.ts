@@ -87,6 +87,10 @@ export const fetchChain = async (
 	}
 };
 
+/** The models a single-agent run can use: the coder tier, which needs tool calling (docs/08). */
+export const singleAgentModels = (ctx: ChainContext) =>
+	fetchChain(ctx, "coder", ["tool_calling"]);
+
 /** Loads template files and populates their roles with chain models. */
 export const loadRoles = async (
 	ctx: ChainContext,

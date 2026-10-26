@@ -9,6 +9,7 @@ import {
 	narrowedTo,
 	optionsOf,
 	preferOf,
+	singleAgentModels,
 	startOf,
 } from "../src/application/composer.js";
 import type { MeteDaemonService } from "../src/domain/status-service.js";
@@ -350,6 +351,16 @@ describe("fetchChain", () => {
 			cache: new Map(),
 		};
 		expect(await fetchChain(ctx, "coder", undefined)).toHaveLength(2);
+	});
+});
+
+describe("singleAgentModels", () => {
+	it("asks the coder chain for tool calling, as the single agent needs it", async () => {
+		const daemon = fakeDaemon();
+		await singleAgentModels({ daemon, dir: "/workspace", cache: new Map() });
+		expect(daemon.chain).toHaveBeenCalledWith("/workspace", "coder", [
+			"tool_calling",
+		]);
 	});
 });
 
