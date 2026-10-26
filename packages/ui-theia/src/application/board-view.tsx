@@ -5,6 +5,7 @@ import {
 	type TaskCard,
 	type TeamView,
 } from "@mete/ui-studio";
+import type { MarkdownRenderer } from "@theia/core/lib/browser/markdown-rendering/markdown-renderer";
 import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties, ReactNode } from "react";
 import { rosterOf } from "../domain/roster.js";
@@ -12,6 +13,7 @@ import type { DaemonFailure } from "../domain/status-service.js";
 import { CheckpointList, type RestoreControls } from "./checkpoint-list.js";
 import type { Windows } from "./context-meter.js";
 import { LINK, LIST, MUTED, PANEL, TITLE } from "./look.js";
+import { MarkdownView } from "./markdown-view.js";
 import { openReportLabel, reportPath } from "./results-list.js";
 import { RunRail } from "./run-rail.js";
 import type { RunFacts } from "./run-strip.js";
@@ -41,6 +43,8 @@ export type BoardModel =
 			readonly recent: readonly MeteEvent[];
 			/** The run's latest events of the Team view's Activity feed (ADR-092). */
 			readonly feed: readonly MeteEvent[];
+			/** A finished run's summary: the single agent's answer or the team's last report. */
+			readonly answer?: string;
 			/** The last live event and the view before it, for the Studio's effects. */
 			readonly pulse?: { readonly event: MeteEvent; readonly before: TeamView };
 	  };
@@ -133,6 +137,8 @@ export type TeamControls = {
 		view: TeamView,
 		pulse?: { readonly event: MeteEvent; readonly before: TeamView },
 	) => ReactNode;
+	/** Draws model text as sanitized Markdown, through Theia's renderer. */
+	readonly markdown: MarkdownRenderer;
 	/** Restoring one of the run's checkpoints (ADR-079). */
 	readonly restore: RestoreControls;
 	/** Opens a report, by its path relative to the workspace (ADR-085). */
@@ -220,6 +226,28 @@ const NoTasks = () => (
 	</p>
 );
 
+// A finished single-agent run shows what the agent answered, not an empty board (docs/13).
+const Answer = ({
+	text,
+	markdown,
+}: {
+	readonly text: string;
+	readonly markdown: MarkdownRenderer;
+}) => (
+	<section aria-label={nls.localize("mete/board/answer", "Answer")}>
+		<h3 style={TITLE}>{nls.localize("mete/board/answer", "Answer")}</h3>
+		<MarkdownView text={text} renderer={markdown} />
+	</section>
+);
+
+const NoBoard = ({
+	answer,
+	markdown,
+}: {
+	readonly answer?: string | undefined;
+	readonly markdown: MarkdownRenderer;
+}) => (answer ? <Answer text={answer} markdown={markdown} /> : <NoTasks />);
+
 const Shown = ({
 	model,
 	controls,
@@ -240,13 +268,13 @@ const Shown = ({
 		);
 	if (controls.mode === "flow")
 		return model.view.tasks.length === 0 ? (
-			<NoTasks />
+			<NoBoard answer={model.answer} markdown={controls.markdown} />
 		) : (
 			controls.flow(model.view)
 		);
 	if (controls.mode === "board")
 		return model.view.tasks.length === 0 ? (
-			<NoTasks />
+			<NoBoard answer={model.answer} markdown={controls.markdown} />
 		) : (
 			<Columns view={model.view} onOpen={controls.onOpenReport} />
 		);
@@ -299,7 +327,7 @@ const Board = ({
 		<div className="mete-run-body">
 			<div className="mete-run-center">
 				{model.view.tasks.length === 0 && model.view.agents.length === 0 ? (
-					<NoTasks />
+					<NoBoard answer={model.answer} markdown={controls.markdown} />
 				) : (
 					<>
 						<WaitingStrip
@@ -320,6 +348,7 @@ const Board = ({
 				view={model.view}
 				feed={model.feed}
 				names={controls.names}
+				markdown={controls.markdown}
 				status={controls.run.run?.status}
 				onOpenReport={controls.onOpenReport}
 			/>

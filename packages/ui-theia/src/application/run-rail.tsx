@@ -1,5 +1,6 @@
 import type { MeteEvent } from "@mete/contracts";
 import type { TeamView } from "@mete/ui-studio";
+import type { MarkdownRenderer } from "@theia/core/lib/browser/markdown-rendering/markdown-renderer";
 import { nls } from "@theia/core/lib/common/nls";
 import { type KeyboardEvent, type ReactNode, useId, useState } from "react";
 import { FeedView } from "./feed-view.js";
@@ -125,19 +126,23 @@ export const RunRail = ({
 	names,
 	status,
 	onOpenReport,
+	markdown,
 }: {
 	readonly view: TeamView;
 	readonly feed: readonly MeteEvent[];
 	readonly names: Readonly<Record<string, string>>;
 	readonly status: RunEntry["status"] | undefined;
 	readonly onOpenReport: (path: string) => void;
+	readonly markdown: MarkdownRenderer;
 }) => {
 	const id = useId();
 	const [picked, setPicked] = useState<RailTab>();
 	const reports = view.tasks.filter((t) => reportPath(t)).length;
 	const shown = picked ?? openingTab(status, reports);
 	const panels: Readonly<Record<RailTab, ReactNode>> = {
-		activity: <FeedView view={view} feed={feed} names={names} />,
+		activity: (
+			<FeedView view={view} feed={feed} names={names} markdown={markdown} />
+		),
 		artifacts: <Reports view={view} count={reports} onOpen={onOpenReport} />,
 		tasks: <RailTasks tasks={view.tasks} names={names} />,
 	};

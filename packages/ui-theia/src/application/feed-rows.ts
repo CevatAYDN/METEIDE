@@ -22,6 +22,8 @@ export type FeedLine = {
 	readonly text: string;
 	/** The words an approver sent back with its answer. */
 	readonly quote?: string;
+	/** The model's own text for a finished or failed run, drawn as Markdown. */
+	readonly detail?: string;
 };
 
 /** An event the feed shows. */
@@ -242,11 +244,12 @@ const run: Omit<
 		icon: "debug-start",
 		text: nls.localize("mete/feed/resumed", "The run resumes."),
 	}),
-	"run.completed": () => ({
+	"run.completed": (_, e) => ({
 		segment: "run",
 		icon: "pass",
 		tone: "good",
 		text: nls.localize("mete/feed/completed", "The run is complete."),
+		detail: e.payload.summary,
 	}),
 	"run.failed": (_, e) => ({
 		segment: "run",
@@ -257,6 +260,7 @@ const run: Omit<
 			"The run fails: {0}.",
 			e.payload.code,
 		),
+		detail: e.payload.message,
 	}),
 	"run.cancelled": () => ({
 		segment: "run",

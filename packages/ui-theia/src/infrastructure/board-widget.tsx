@@ -349,6 +349,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 				this.mode = mode;
 				this.update();
 			},
+			markdown: this.markdown,
 			flow: (view) => <FlowView view={view} />,
 			studio: (view, pulse) => (
 				<StudioView

@@ -32,6 +32,7 @@
 			"verdict": "Karar"
 		},
 		"board": {
+			"answer": "Yanıt",
 			"blocked": "Engellendi",
 			"boardMode": "Pano",
 			"caption": "METE: bir çalıştırmanın görevleri",

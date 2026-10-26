@@ -29,6 +29,11 @@ const html = (
 				onMode: () => {},
 				flow: (v) => `flow of ${v.tasks.length} task(s)`,
 				studio: (v) => `studio of ${v.tasks.length} task(s)`,
+				markdown: {
+					render: () => {
+						throw new Error("markdown is drawn in the browser");
+					},
+				},
 				restore: { onRestore: () => {}, restoring },
 				onOpenReport: () => {},
 				names: { writer: "Copy writer" },
@@ -376,6 +381,11 @@ describe("the Board view", () => {
 					onMode: () => {},
 					flow: () => null,
 					studio: () => null,
+					markdown: {
+						render: () => {
+							throw new Error("markdown is drawn in the browser");
+						},
+					},
 					restore: { onRestore: () => {} },
 					onOpenReport: () => {},
 					names: { writer: "Copy writer" },
@@ -453,6 +463,35 @@ describe("the Board view", () => {
 			"a single agent works without a board",
 		);
 		expect(html(model, "flow")).not.toContain("flow of");
+	});
+
+	it("shows a finished single-agent run's answer instead of the empty-board note", () => {
+		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			{
+				...task("x").created,
+				taskId: undefined,
+				type: "agent.created",
+				agentId: crypto.randomUUID(),
+				payload: { roleId: "agent", providerId: "groq", modelId: "m" },
+			} as MeteEvent,
+		]);
+		const base: BoardModel = {
+			kind: "board",
+			goal: "g",
+			view,
+			unreadable: 0,
+			recent: [],
+			feed: [],
+		};
+		const out = html({ ...base, answer: "# Done\n\nTwo files changed." });
+		expect(out).toContain('aria-label="Answer"');
+		expect(out).toContain(">Answer<");
+		const center = (page: string) =>
+			page.slice(0, page.indexOf('class="mete-run-rail"'));
+		expect(center(out)).not.toContain("a single agent works without a board");
+		expect(center(html(base))).toContain(
+			"a single agent works without a board",
+		);
 	});
 
 	it("says how many events could not be read, and that a single agent has no board", () => {

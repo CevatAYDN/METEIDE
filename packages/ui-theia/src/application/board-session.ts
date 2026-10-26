@@ -113,15 +113,25 @@ const feedAfter = (
 ) =>
 	keptAfter(feed, events, (e) => e.runId === runId && inFeed(e), FEED_EVENTS);
 
-const drawn = (s: BoardSession, shown: Shown, view: TeamView): BoardModel => ({
-	kind: "board",
-	goal: shown.goal,
-	view,
-	unreadable: s.unreadable,
-	recent: s.recent,
-	feed: s.feed,
-	...(s.pulse ? { pulse: s.pulse } : {}),
-});
+// A finished run's summary: the single agent's answer, or the team's last report.
+const answerOf = (feed: readonly MeteEvent[]) => {
+	const done = feed.findLast((e) => e.type === "run.completed");
+	return done?.type === "run.completed" ? done.payload.summary : undefined;
+};
+
+const drawn = (s: BoardSession, shown: Shown, view: TeamView): BoardModel => {
+	const answer = answerOf(s.feed);
+	return {
+		kind: "board",
+		goal: shown.goal,
+		view,
+		unreadable: s.unreadable,
+		recent: s.recent,
+		feed: s.feed,
+		...(answer ? { answer } : {}),
+		...(s.pulse ? { pulse: s.pulse } : {}),
+	};
+};
 
 /** A live event of a folder's daemon; one the fold does not take, or already folded, changes nothing. */
 export const receiveBoard = (

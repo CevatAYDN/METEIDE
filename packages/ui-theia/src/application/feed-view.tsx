@@ -1,10 +1,12 @@
 import type { MeteEvent } from "@mete/contracts";
 import type { TeamView } from "@mete/ui-studio";
+import type { MarkdownRenderer } from "@theia/core/lib/browser/markdown-rendering/markdown-renderer";
 import { nls } from "@theia/core/lib/common/nls";
 import { type CSSProperties, useState } from "react";
 import { roleWords } from "../domain/roster.js";
 import { type Feed, type FeedLine, feedLine, inFeed } from "./feed-rows.js";
 import { LIST, MUTED, ROW } from "./look.js";
+import { MarkdownView } from "./markdown-view.js";
 import { Icon, LINE } from "./roster-look.js";
 import { TONES } from "./tone.js";
 
@@ -68,10 +70,12 @@ const Row = ({
 	event,
 	line,
 	names,
+	markdown,
 }: {
 	readonly event: Feed;
 	readonly line: FeedLine;
 	readonly names: Names;
+	readonly markdown: MarkdownRenderer;
 }) => (
 	<li
 		style={{ borderBottom: "1px solid var(--line, var(--theia-panel-border))" }}
@@ -94,6 +98,9 @@ const Row = ({
 					</span>
 					{line.quote ? (
 						<q style={{ ...MUTED, fontStyle: "italic" }}>{line.quote}</q>
+					) : null}
+					{line.detail ? (
+						<MarkdownView text={line.detail} renderer={markdown} />
 					) : null}
 				</span>
 				<time dateTime={event.ts} style={{ ...MUTED, fontFamily: MONO }}>
@@ -190,10 +197,12 @@ export const FeedView = ({
 	view,
 	feed,
 	names,
+	markdown,
 }: {
 	readonly view: TeamView;
 	readonly feed: readonly MeteEvent[];
 	readonly names: Names;
+	readonly markdown: MarkdownRenderer;
 }) => {
 	const [segment, setSegment] = useState<Segment>("all");
 	const [held, setHeld] = useState<string>();
@@ -224,7 +233,7 @@ export const FeedView = ({
 			{rows.length > 0 ? (
 				<ol style={{ ...LIST, gap: 0 }}>
 					{rows.map((r) => (
-						<Row key={r.event.id} {...r} names={names} />
+						<Row key={r.event.id} {...r} names={names} markdown={markdown} />
 					))}
 				</ol>
 			) : (

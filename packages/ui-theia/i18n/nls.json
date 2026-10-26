@@ -32,6 +32,7 @@
 			"verdict": "Verdict"
 		},
 		"board": {
+			"answer": "Answer",
 			"blocked": "Blocked",
 			"boardMode": "Board",
 			"caption": "METE: a run's tasks",

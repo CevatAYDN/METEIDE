@@ -72,6 +72,20 @@ describe("the Activity feed", () => {
 		]);
 	});
 
+	it("carries the run's answer and a failure's message as the row's detail", () => {
+		const failed = event("run.failed", {
+			code: "unauthorized",
+			message: "The key was refused.",
+		});
+		const rows = feedRows(view, [...feed, failed], "run").rows;
+		expect(
+			rows.find((r) => r.event.type === "run.completed")?.line.detail,
+		).toBe("ok");
+		expect(rows.find((r) => r.event.type === "run.failed")?.line.detail).toBe(
+			"The key was refused.",
+		);
+	});
+
 	it("filters by segment", () => {
 		const of = (segment: "asks" | "work" | "run") =>
 			feedRows(view, feed, segment).rows.map((r) => r.event.type);
@@ -110,6 +124,11 @@ describe("the Activity feed", () => {
 				view,
 				feed: [...feed, human],
 				names: { dev: "Developer" },
+				markdown: {
+					render: () => {
+						throw new Error("markdown is drawn in the browser");
+					},
+				},
 			}),
 		);
 		expect(out).toContain("<strong>Developer</strong>");
@@ -123,7 +142,16 @@ describe("the Activity feed", () => {
 
 	it("says so when the run has no activity yet", () => {
 		const out = renderToStaticMarkup(
-			createElement(FeedView, { view, feed: [], names: {} }),
+			createElement(FeedView, {
+				view,
+				feed: [],
+				names: {},
+				markdown: {
+					render: () => {
+						throw new Error("markdown is drawn in the browser");
+					},
+				},
+			}),
 		);
 		expect(out).toContain("Nothing here yet.");
 		expect(out).not.toContain("Show all");

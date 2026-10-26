@@ -143,4 +143,16 @@ describe("the Board session", () => {
 		expect(next.view.tasks[0]?.status).toBe("in_progress");
 		expect(receiveBoard(IDLE_BOARD, "/w", started)).toBe(IDLE_BOARD);
 	});
+
+	it("carries a finished run's summary as the answer, and none while it runs", () => {
+		const running = loadedBoard(startBoard(shown), shown, ok([created]));
+		expect(running.model).not.toHaveProperty("answer");
+		const done = event("run.completed", {
+			summary: "# Done\n\nAll tests pass.",
+		});
+		const finished = loadedBoard(startBoard(shown), shown, ok([created, done]));
+		expect(finished.model).toMatchObject({
+			answer: "# Done\n\nAll tests pass.",
+		});
+	});
 });
