@@ -1,22 +1,25 @@
 import type { ModelRef } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { modelRefOf } from "./composer.js";
 import { MUTED } from "./look.js";
 
-/** Commits a model preference change: null when empty, ModelRef when valid (ADR-122). */
+/**
+ * Commits a model the run does not already prefer and answers the preference now in force: empty
+ * text commits nothing, since only Revert clears it (ADR-122).
+ */
 export const commitModel = (
 	roleId: string,
 	text: string,
+	current: string | undefined,
 	onModel?: ((roleId: string, model: ModelRef | null) => void) | undefined,
-): void => {
-	const trimmed = text.trim();
-	if (!trimmed) {
-		onModel?.(roleId, null);
-		return;
-	}
-	const ref = modelRefOf(trimmed);
-	if (ref) onModel?.(roleId, ref);
+): string | undefined => {
+	const ref = modelRefOf(text.trim());
+	if (!ref) return current;
+	const key = `${ref.providerId}/${ref.modelId}`;
+	if (key === current) return current;
+	onModel?.(roleId, ref);
+	return key;
 };
 
 export type ModelChoiceProps = {
@@ -108,6 +111,14 @@ export const ModelChoiceInput = ({
 	onModel,
 }: ModelChoiceProps) => {
 	const [draft, setDraft] = useState(value ?? "");
+	// What the field last sent: a blur after a pick would otherwise send the same model again.
+	const sent = useRef<string | undefined>(value ?? "");
+	const revert = () => {
+		setDraft("");
+		if (!sent.current) return;
+		sent.current = "";
+		onModel?.(roleId, null);
+	};
 	return (
 		<div
 			style={{
@@ -122,16 +133,11 @@ export const ModelChoiceInput = ({
 				draft={draft}
 				models={models}
 				onDraft={setDraft}
-				onCommit={(v) => commitModel(roleId, v, onModel)}
+				onCommit={(v) => {
+					sent.current = commitModel(roleId, v, sent.current, onModel);
+				}}
 			/>
-			{draft ? (
-				<RevertButton
-					onRevert={() => {
-						setDraft("");
-						onModel?.(roleId, null);
-					}}
-				/>
-			) : null}
+			{draft ? <RevertButton onRevert={revert} /> : null}
 		</div>
 	);
 };

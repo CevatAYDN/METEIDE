@@ -125,6 +125,13 @@ const COLUMN_ORDER: readonly Place["column"][] = [
 	"done",
 ];
 
+// The statuses in which a run's model can still be changed (ADR-122).
+const STEERABLE: ReadonlySet<string> = new Set(["queued", "running", "paused"]);
+
+/** The panel's model setter while the run has not ended, and nothing once it has (ADR-122). */
+const steerOf = (controls: TeamControls) =>
+	STEERABLE.has(controls.run.run?.status ?? "") ? controls.onModel : undefined;
+
 /** Which of the Team panel's views draws the run: the Board, the Flow graph or the Studio. */
 export type TeamMode = "board" | "flow" | "studio" | "team";
 
@@ -255,6 +262,7 @@ const Shown = ({
 	readonly model: Extract<BoardModel, { kind: "board" }>;
 	readonly controls: TeamControls;
 }) => {
+	const steer = steerOf(controls);
 	if (controls.mode === "team")
 		return (
 			<Roster
@@ -263,7 +271,7 @@ const Shown = ({
 				windows={controls.windows}
 				candidateModels={controls.candidateModels}
 				preferredModels={controls.preferredModels}
-				onModel={controls.onModel}
+				{...(steer ? { onModel: steer } : {})}
 			/>
 		);
 	if (controls.mode === "flow")

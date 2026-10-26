@@ -64,6 +64,18 @@ const event = (type: string, payload: object, taskId: string): MeteEvent =>
 		payload,
 	}) as MeteEvent;
 
+// A run as `mete/status` answers it, for the strip and the model choice (ADR-094, ADR-122).
+const runEntry = (status: "running" | "completed") => ({
+	id: RUN,
+	workspaceId: crypto.randomUUID(),
+	templateId: "team",
+	goal: "g",
+	status,
+	autonomyLevel: 1 as const,
+	budget: { cloudRequests: 0, maxHours: 1 },
+	createdAt: "2026-10-23T10:00:00.000Z",
+});
+
 const task = (title: string) => {
 	const id = crypto.randomUUID();
 	return {
@@ -362,11 +374,11 @@ describe("the Board view", () => {
 		expect(out).not.toContain('aria-label="To do"');
 	});
 
-	it("passes candidateModels and onModel to the Team view in team mode (ADR-122)", () => {
+	// The Team view of a one-task run, with the model choice the panel passes (ADR-122).
+	const teamMarkup = (run: RunFacts) => {
 		const notes = task("Notes");
 		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [notes.created]);
-		const onModel = () => {};
-		const out = renderToStaticMarkup(
+		return renderToStaticMarkup(
 			createElement(BoardView, {
 				model: {
 					kind: "board",
@@ -390,8 +402,8 @@ describe("the Board view", () => {
 					onOpenReport: () => {},
 					names: { writer: "Copy writer" },
 					windows: {},
-					run: {},
-					onModel,
+					run,
+					onModel: () => {},
 					candidateModels: { writer: ["groq/llama-3.3-70b"] },
 					preferredModels: { writer: "groq/llama-3.3-70b" },
 					waiting: {
@@ -402,10 +414,20 @@ describe("the Board view", () => {
 				},
 			}),
 		);
+	};
+
+	it("passes candidateModels and onModel to the Team view while the run can still be steered (ADR-122)", () => {
+		const out = teamMarkup({ run: runEntry("running") });
 		expect(out).toContain("Preferred model (optional)");
 		expect(out).toContain('value="groq/llama-3.3-70b"');
 		expect(out).toContain('<option value="groq/llama-3.3-70b"');
 		expect(out).toContain("Revert to default");
+	});
+
+	it("hides the model choice once the run has ended (ADR-122)", () => {
+		const out = teamMarkup({ run: runEntry("completed") });
+		expect(out).toContain("Copy writer");
+		expect(out).not.toContain("Preferred model (optional)");
 	});
 
 	it("draws the Studio with a list of the latest events, each with its task", () => {

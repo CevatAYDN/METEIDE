@@ -155,28 +155,39 @@ describe("the Team view", () => {
 });
 
 describe("team-view model selection (ADR-122)", () => {
-	it("commits valid ModelRef or null on clear", () => {
+	it("commits a model the run does not already prefer, and never null on blur", () => {
 		const spy = vi.fn();
-		commitModel("developer", "groq/llama-3.3-70b", spy);
+		const committed = commitModel(
+			"developer",
+			"groq/llama-3.3-70b",
+			undefined,
+			spy,
+		);
 		expect(spy).toHaveBeenCalledWith("developer", {
 			providerId: "groq",
 			modelId: "llama-3.3-70b",
 		});
+		expect(committed).toBe("groq/llama-3.3-70b");
+
+		// An empty field sends nothing: only Revert clears the run's preference (ADR-122).
+		spy.mockClear();
+		expect(commitModel("developer", "", "groq/llama-3.3-70b", spy)).toBe(
+			"groq/llama-3.3-70b",
+		);
+		expect(commitModel("developer", "   ", undefined, spy)).toBeUndefined();
+		expect(spy).not.toHaveBeenCalled();
 
 		spy.mockClear();
-		commitModel("developer", "", spy);
-		expect(spy).toHaveBeenCalledWith("developer", null);
+		commitModel("developer", "invalid-model", undefined, spy);
+		expect(spy).not.toHaveBeenCalled();
 
+		// The model the run already prefers is a no-op request.
 		spy.mockClear();
-		commitModel("developer", "   ", spy);
-		expect(spy).toHaveBeenCalledWith("developer", null);
-
-		spy.mockClear();
-		commitModel("developer", "invalid-model", spy);
+		commitModel("developer", "groq/llama-3.3-70b", "groq/llama-3.3-70b", spy);
 		expect(spy).not.toHaveBeenCalled();
 
 		expect(() =>
-			commitModel("developer", "groq/llama-3.3-70b", undefined),
+			commitModel("developer", "groq/llama-3.3-70b", undefined, undefined),
 		).not.toThrow();
 	});
 
