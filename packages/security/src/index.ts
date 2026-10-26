@@ -4,4 +4,5 @@ export {
 	readAuditLog,
 } from "./infrastructure/audit-log.js";
 export { createKeychainStore } from "./infrastructure/keychain.js";
+export { allowCommandForGood } from "./infrastructure/policy-file.js";
 export { createSecurityModule, type SecurityOptions } from "./module.js";
