@@ -324,6 +324,39 @@ const composing = (send: Send) => ({
 		),
 });
 
+// Runs in flight: start (ADR-047), human decisions (ADR-048, ADR-121) and model steering (ADR-122).
+const steering = (
+	send: Send,
+	done: (raw: unknown) => ReturnType<typeof DaemonDoneResultSchema.safeParse>,
+) => ({
+	/** Starts a run in the folder (ADR-047); its events arrive through onEvent. */
+	startRun: (dir: string, req: RunStart) =>
+		send(dir, DAEMON_METHODS.runStart, req, (raw) =>
+			DaemonRunStartResultSchema.safeParse(raw),
+		),
+	/** The human's decision on a paused run (ADR-048). */
+	approve: (dir: string, runId: string, input: ApprovalInput) =>
+		send(dir, DAEMON_METHODS.runApprove, { runId, input }, done),
+	resume: (dir: string, runId: string) =>
+		send(dir, DAEMON_METHODS.runResume, { runId }, done),
+	/** Grants a policy ask and resumes (ADR-121). */
+	allow: (dir: string, runId: string, scope: AllowScope) =>
+		send(dir, DAEMON_METHODS.runAllow, { runId, scope }, done),
+	/** Sets or clears a run-specific model preference (null clears) (ADR-122). */
+	model: (
+		dir: string,
+		runId: string,
+		model: ModelRef | null,
+		roleId?: string,
+	) =>
+		send(
+			dir,
+			DAEMON_METHODS.runModel,
+			{ runId, model, ...(roleId === undefined ? {} : { roleId }) },
+			done,
+		),
+});
+
 /** Serves the daemon's requests for one folder at a time; another folder replaces the daemon. */
 export const createDaemonHost = (deps: HostDeps) => {
 	const slot: Slot = {};
@@ -337,19 +370,7 @@ export const createDaemonHost = (deps: HostDeps) => {
 		...reads(send),
 		...draftRead(send),
 		...composing(send),
-		/** Starts a run in the folder (ADR-047); its events arrive through onEvent. */
-		startRun: (dir: string, req: RunStart) =>
-			send(dir, DAEMON_METHODS.runStart, req, (raw) =>
-				DaemonRunStartResultSchema.safeParse(raw),
-			),
-		/** The human's decision on a paused run (ADR-048). */
-		approve: (dir: string, runId: string, input: ApprovalInput) =>
-			send(dir, DAEMON_METHODS.runApprove, { runId, input }, done),
-		resume: (dir: string, runId: string) =>
-			send(dir, DAEMON_METHODS.runResume, { runId }, done),
-		/** Grants a policy ask and resumes (ADR-121). */
-		allow: (dir: string, runId: string, scope: AllowScope) =>
-			send(dir, DAEMON_METHODS.runAllow, { runId, scope }, done),
+		...steering(send, done),
 		/** Cancels every run of the folder that has not ended (ADR-065). */
 		stopAll: (dir: string) =>
 			send(dir, DAEMON_METHODS.stopAll, {}, (raw) =>

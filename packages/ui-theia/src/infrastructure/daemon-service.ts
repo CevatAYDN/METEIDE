@@ -87,6 +87,15 @@ export class MeteDaemonBackend
 		return this.host.allow(workspaceDir, runId, scope);
 	}
 
+	model(
+		workspaceDir: string,
+		runId: string,
+		model: ModelRef | null,
+		roleId?: string,
+	) {
+		return this.host.model(workspaceDir, runId, model, roleId);
+	}
+
 	stopAll(workspaceDir: string) {
 		return this.host.stopAll(workspaceDir);
 	}

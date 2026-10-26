@@ -139,6 +139,13 @@ export interface MeteDaemonService {
 		runId: string,
 		scope: AllowScope,
 	): Promise<Result<null, DaemonFailure>>;
+	/** Sets or clears a run-specific model preference mid-run (null clears) (ADR-122). */
+	model(
+		workspaceDir: string,
+		runId: string,
+		model: ModelRef | null,
+		roleId?: string,
+	): Promise<Result<null, DaemonFailure>>;
 	/** The kill switch (ADR-065): cancels every run of the folder that has not ended. */
 	stopAll(
 		workspaceDir: string,

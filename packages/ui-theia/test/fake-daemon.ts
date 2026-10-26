@@ -48,6 +48,12 @@ conn.onRequest("mete/run.allow", (p) => {
 		throw new ResponseError(-32000, "Always allow takes a command whose text was not masked; allow it once or for the run", { code: "bad_input" });
 	return null;
 });
+conn.onRequest("mete/run.model", (p) => {
+	if (p.runId === "late") return "odd";
+	if (p.runId === "refuse")
+		throw new ResponseError(-32000, "run not found", { code: "not_found" });
+	return null;
+});
 conn.onRequest("mete/events", (p) => {
 	if (mode === "badevents") return { events: [], unreadable: -1 };
 	if (p.runId !== run.id) throw new ResponseError(-32000, "run not found", { code: "not_found" });

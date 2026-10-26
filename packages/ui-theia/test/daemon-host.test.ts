@@ -130,6 +130,29 @@ describe("the daemon host", () => {
 		expect(!oddAllow.ok && oddAllow.error.code).toBe("protocol");
 	});
 
+	it("sets and clears a run model preference (ADR-122)", async () => {
+		const { host } = await setup();
+		const model = { providerId: "groq", modelId: "llama-3.3-70b" };
+		expect(await host.model("/w", "r1", model)).toEqual({
+			ok: true,
+			value: null,
+		});
+		expect(await host.model("/w", "r1", model, "coder")).toEqual({
+			ok: true,
+			value: null,
+		});
+		expect(await host.model("/w", "r1", null)).toEqual({
+			ok: true,
+			value: null,
+		});
+		expect(await host.model("/w", "refuse", model)).toEqual({
+			ok: false,
+			error: { code: "refused", detail: "run not found" },
+		});
+		const odd = await host.model("/w", "late", model);
+		expect(!odd.ok && odd.error.code).toBe("protocol");
+	});
+
 	it("asks a run's events with the count of unreadable rows, and refuses a bad answer", async () => {
 		const { fake, host } = await setup();
 		const runId = "6f1c3d52-9b7e-4a52-8d5f-0a1b2c3d4e5f";

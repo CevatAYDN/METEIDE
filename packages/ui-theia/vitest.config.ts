@@ -5,6 +5,8 @@ import { defineConfig } from "vitest/config";
 // desktop end-to-end tests measure them (docs/15); the logic they call lives in application/.
 export default defineConfig({
 	test: {
+		// Under a fully parallel test on Windows, spawning detached processes can outlast 5 s.
+		testTimeout: 20_000,
 		coverage: {
 			provider: "v8",
 			include: ["src/**"],
