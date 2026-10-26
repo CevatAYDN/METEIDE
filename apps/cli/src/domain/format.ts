@@ -114,6 +114,45 @@ export const namesOf = (events: readonly MeteEvent[]) => {
 	return { titles, roles };
 };
 
+// What one event does to a task's wait for the human: the mark it sets (true) or clears (false).
+const markOf = (e: MeteEvent): [string, boolean] | undefined => {
+	switch (e.type) {
+		case "approval.requested":
+		case "approval.resolved":
+			return e.payload.approver === "human"
+				? ["approval", e.type === "approval.requested"]
+				: undefined;
+		case "task.status.changed":
+			return ["blocked", e.payload.to === "blocked"];
+		case "task.merge.failed":
+			return ["merge", true];
+		default:
+			return undefined;
+	}
+};
+
+// A pending merge is the first step after any resume, and a merge that fails again says so again.
+const dropMerges = (waiting: Set<string>) => {
+	for (const k of [...waiting]) if (k.startsWith("merge:")) waiting.delete(k);
+};
+
+/**
+ * Whether a team run's tasks wait for the human (docs/08), which `mete approve` answers: an approval
+ * asked of the human and not given, a blocked task, or a merge that failed. A run paused for approval
+ * with none of these waits for a policy ask, which resume clears.
+ */
+export const waitsForHuman = (events: readonly MeteEvent[]) => {
+	const waiting = new Set<string>();
+	for (const e of events) {
+		if (e.type === "run.resumed") dropMerges(waiting);
+		const mark = markOf(e);
+		const key = mark && `${mark[0]}:${e.taskId ?? ""}`;
+		if (key && mark[1]) waiting.add(key);
+		else if (key) waiting.delete(key);
+	}
+	return waiting.size > 0;
+};
+
 /**
  * One `mete events` line: when, which event, the module that published it, the task and the
  * agent's role, and what happened. An event mete run does not show keeps its payload as JSON.

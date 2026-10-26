@@ -13,6 +13,7 @@ import {
 	historyLine,
 	namesOf,
 	statusLines,
+	waitsForHuman,
 } from "../domain/format.js";
 import { type App, engineOf, notReadyLines } from "../infrastructure/app.js";
 import { runHistory } from "../infrastructure/history.js";
@@ -203,9 +204,10 @@ export const runCommand = (app: App, io: Io, what: RunWhat) =>
 		await hints.printed();
 		hints.stop();
 		const runId = run.runId();
-		const view = runId ? engine.status(runId) : undefined;
-		const team = view?.ok === true && view.value[0]?.templateId != null;
-		explain(io, status, { runId, why: run.why(), team });
+		// A single agent has no tasks, so its history never waits for the human.
+		const history = runId ? runHistory(app.registry, runId) : undefined;
+		const human = waitsForHuman(history?.events ?? []);
+		explain(io, status, { runId, why: run.why(), human });
 		return exitCode(status);
 	});
 
@@ -234,12 +236,12 @@ const explain = (
 	{
 		runId,
 		why,
-		team,
-	}: { runId?: string | undefined; why?: string | undefined; team: boolean },
+		human,
+	}: { runId?: string | undefined; why?: string | undefined; human: boolean },
 ) => {
 	if (status === "failed" && why === "unauthorized") io.err(KEY_HINT);
 	if (status !== "paused") return;
-	const answer = why === "approval" && team;
+	const answer = why === "approval" && human;
 	const lines = answer
 		? teamHint(runId)
 		: why === "approval"

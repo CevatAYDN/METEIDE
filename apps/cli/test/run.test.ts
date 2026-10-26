@@ -209,6 +209,34 @@ describe("mete run --template and mete approve", () => {
 		);
 		expect(await readFile(artifact, "utf8")).toBe("one summary");
 	});
+
+	it("points a team run that a policy ask paused at resume, not at approve", async () => {
+		const { repo, app } = await setup({
+			script: [
+				[
+					{
+						type: "tool-call",
+						id: "c1",
+						name: "shell_exec",
+						args: { command: "pnpm test" },
+					},
+					finish("tool-calls"),
+				],
+			],
+		});
+		await mkdir(join(repo.workspaceDir, ".mete", "teams"), { recursive: true });
+		await writeFile(
+			join(repo.workspaceDir, ".mete", "teams", "duo.yaml"),
+			DUO.replace("capabilities: []", "capabilities: [shell.exec@1]"),
+		);
+		const t = recordingIo();
+		expect(
+			await runCommand(app, t.io, { goal: "run the tests", templateId: "duo" }),
+		).toBe(2);
+		expect(t.out.at(-1)).toBe("paused: approval");
+		expect(t.err[0]).toBe("The agent needs an approval for a tool call.");
+		expect(t.err.at(-1)).toMatch(/^Resume it with: mete run --resume \S+$/);
+	});
 });
 
 describe("mete run with an engine that throws", () => {
