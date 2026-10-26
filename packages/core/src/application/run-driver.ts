@@ -3,7 +3,7 @@ import { foldable, toSummarize } from "../domain/compact.js";
 import { type NextStep, nextStep } from "../domain/next-step.js";
 import { afterModelError } from "../domain/run-events.js";
 import { activeRole, activeSeat } from "../domain/team-run.js";
-import { pinnedSeat } from "./pinned.js";
+import { pinnedSeat, runPreferOf } from "./pinned.js";
 import {
 	apply,
 	type EngineState,
@@ -45,7 +45,13 @@ const onModel = (s: EngineState, l: Live, c: ModelChunk) => {
 			taskId,
 		);
 	const from = { providerId: agent.providerId, modelId: agent.modelId };
-	const payload = { from, to, reason: c.reason };
+	const reason =
+		c.reason === "first" &&
+		(runPreferOf(l.snapshot.context, roleId) !== undefined ||
+			(l.snapshot.context.preferRevision ?? 0) > 0)
+			? "user"
+			: c.reason;
+	const payload = { from, to, reason };
 	emit(s, l, { type: "agent.model.changed", payload }, taskId);
 };
 

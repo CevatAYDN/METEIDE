@@ -163,4 +163,27 @@ describe("run store", () => {
 		expect(() => loadSnapshot('{"value":"running","context":{}}')).toThrow();
 		expect(() => loadSnapshot('{"value":"lost","context":{}}')).toThrow();
 	});
+
+	it("persists and restores prefer and preferRevision across snapshots", () => {
+		const { store } = open();
+		const prefer = { providerId: "prov-a", modelId: "mod-a" };
+		const s = initialTransition(runMachine, {
+			goal: "fix it",
+			priority: 1,
+			messages: [],
+			prefer,
+		})[0];
+		const updated = transition(runMachine, s, {
+			type: "PREFER",
+			prefer: { providerId: "prov-b", modelId: "mod-b" },
+		})[0];
+		store.save(meta("r1"), updated);
+
+		const loaded = store.load("r1");
+		expect(loaded?.snapshot.context.prefer).toEqual({
+			providerId: "prov-b",
+			modelId: "mod-b",
+		});
+		expect(loaded?.snapshot.context.preferRevision).toBe(1);
+	});
 });

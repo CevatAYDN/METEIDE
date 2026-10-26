@@ -2,12 +2,14 @@ import {
 	type EngineError,
 	err,
 	type ModelRef,
+	ModelRefSchema,
 	ok,
 	pinOf,
 	type Result,
 	type RunPrefer,
 } from "@mete/contracts";
 import type { RunContext } from "../domain/run-machine.js";
+import type { TeamState } from "../domain/team.js";
 import { activeRole, activeSeat } from "../domain/team-run.js";
 import type { Seat } from "../domain/tools.js";
 import { readPins } from "../infrastructure/pins-store.js";
@@ -17,13 +19,8 @@ import type { EngineState, Live } from "./run-state.js";
 // over workspace pin (.mete/pins.yaml), which takes precedence over tier chain default.
 // Invalidation uses preferRevision counter so mid-run changes apply on the next model call.
 
-export const isModelRef = (p: RunPrefer): p is ModelRef =>
-	typeof p === "object" &&
-	p !== null &&
-	"providerId" in p &&
-	typeof (p as ModelRef).providerId === "string" &&
-	"modelId" in p &&
-	typeof (p as ModelRef).modelId === "string";
+export const isModelRef = (p: unknown): p is ModelRef =>
+	ModelRefSchema.safeParse(p).success;
 
 export const runPreferOf = (
 	c: RunContext,
@@ -52,20 +49,71 @@ const updateRolePrefer = (
 	return { ...current, [target]: model };
 };
 
-export const nextPrefer = (
+const nextTeamPrefer = (
+	team: TeamState,
 	c: RunContext,
 	model: ModelRef | null,
 	roleId?: string,
 ): Result<RunPrefer | undefined, EngineError> => {
-	if (!c.team) return ok(model ?? undefined);
 	const target = targetRole(c, roleId);
 	if (!target || target === "assistant")
 		return err({
 			code: "bad_input",
 			message: "roleId is required for team runs",
 		});
+	if (!team.template.roles.some((r) => r.id === target))
+		return err({
+			code: "bad_input",
+			message: `unknown role ${target} in team`,
+		});
 	const current = c.prefer && !isModelRef(c.prefer) ? { ...c.prefer } : {};
 	return ok(updateRolePrefer(current, target, model));
+};
+
+export const nextPrefer = (
+	c: RunContext,
+	model: ModelRef | null,
+	roleId?: string,
+): Result<RunPrefer | undefined, EngineError> => {
+	const parsed = ModelRefSchema.nullable().safeParse(model);
+	if (!parsed.success)
+		return err({ code: "bad_input", message: "invalid model reference" });
+	if (c.team) return nextTeamPrefer(c.team, c, model, roleId);
+	if (roleId && roleId !== "assistant")
+		return err({
+			code: "bad_input",
+			message: "single agent runs do not accept roleId",
+		});
+	return ok(model ?? undefined);
+};
+
+export const validateStartPrefer = (
+	team: TeamState | undefined,
+	prefer: RunPrefer | undefined,
+): Result<void, EngineError> => {
+	if (!prefer) return ok(undefined);
+	if (!team) {
+		if (!isModelRef(prefer))
+			return err({
+				code: "bad_input",
+				message: "prefer must be a ModelRef for single agent runs",
+			});
+		return ok(undefined);
+	}
+	if (isModelRef(prefer))
+		return err({
+			code: "bad_input",
+			message:
+				"prefer must be a record mapping roleId to ModelRef for team runs",
+		});
+	for (const roleId of Object.keys(prefer)) {
+		if (!team.template.roles.some((r) => r.id === roleId))
+			return err({
+				code: "bad_input",
+				message: `unknown role ${roleId} in prefer`,
+			});
+	}
+	return ok(undefined);
 };
 
 const pinFor = async (s: EngineState, templateId: string, roleId: string) => {

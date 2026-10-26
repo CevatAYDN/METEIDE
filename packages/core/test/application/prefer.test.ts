@@ -234,20 +234,25 @@ describe("model selection at start and run time (ADR-122)", () => {
 		// Wait for first tool call to execute
 		await toolPromise;
 
-		// Mid-run change: set model to MODEL_B
-		const modelRes = await h.engine.model?.(runId, MODEL_B);
+		// Mid-run change: set model to targetModel
+		const targetModel: ModelRef = { providerId: "p", modelId: "mod-b" };
+		const modelRes = await h.engine.model?.(runId, targetModel);
 		expect(modelRes?.ok).toBe(true);
 
 		await settled(h, runId, "completed");
 
 		// First request had no prefer
 		expect(h.requests[0]?.prefer).toBeUndefined();
-		// Second request immediately had MODEL_B
-		expect(h.requests[1]?.prefer).toEqual(MODEL_B);
+		// Second request immediately had targetModel
+		expect(h.requests[1]?.prefer).toEqual(targetModel);
 
-		// Verify agent.model.changed was emitted
+		// Verify agent.model.changed was emitted with reason user (ADR-122)
 		const changed = h.events.find((e) => e.type === "agent.model.changed");
-		expect(changed).toBeDefined();
+		expect(changed?.payload).toEqual({
+			from: { providerId: "p", modelId: "mod-initial" },
+			to: targetModel,
+			reason: "user",
+		});
 	});
 
 	it("mid-run engine.model clears preference when passed null", async () => {
@@ -323,5 +328,55 @@ describe("model selection at start and run time (ADR-122)", () => {
 		expect(completedRes?.ok).toBe(false);
 		if (completedRes && !completedRes.ok)
 			expect(completedRes.error.code).toBe("invalid_state");
+	});
+
+	it("validates prefer format at run start", async () => {
+		const h = engineHarness({ scripts: [reply("Done.")], templates });
+
+		// Reject single agent start with record prefer
+		const badSingle = await h.engine.start({
+			goal: "bad",
+			prefer: { coder: MODEL_A },
+		});
+		expect(badSingle.ok).toBe(false);
+		if (!badSingle.ok) expect(badSingle.error.code).toBe("bad_input");
+
+		// Reject team start with single ModelRef
+		const badTeam = await h.engine.start({
+			goal: "bad team",
+			templateId: "duo",
+			prefer: MODEL_A,
+		});
+		expect(badTeam.ok).toBe(false);
+		if (!badTeam.ok) expect(badTeam.error.code).toBe("bad_input");
+
+		// Reject team start with unknown role
+		const badRole = await h.engine.start({
+			goal: "bad role",
+			templateId: "duo",
+			prefer: { unknown_role: MODEL_A },
+		});
+		expect(badRole.ok).toBe(false);
+		if (!badRole.ok) expect(badRole.error.code).toBe("bad_input");
+	});
+
+	it("validates prefer arguments on engine.model calls", async () => {
+		const h = engineHarness({ scripts: [reply("Done.")], templates });
+		const startRes = await h.engine.start({ goal: "valid single" });
+		if (!startRes.ok) return;
+		const rId = startRes.value.runId;
+
+		// Reject invalid model payload on engine.model
+		const badModel = await h.engine.model?.(rId, {
+			providerId: "",
+		} as ModelRef);
+		expect(badModel?.ok).toBe(false);
+		if (badModel && !badModel.ok) expect(badModel.error.code).toBe("bad_input");
+
+		// Reject roleId on single agent run
+		const badSingleRole = await h.engine.model?.(rId, MODEL_A, "coder");
+		expect(badSingleRole?.ok).toBe(false);
+		if (badSingleRole && !badSingleRole.ok)
+			expect(badSingleRole.error.code).toBe("bad_input");
 	});
 });

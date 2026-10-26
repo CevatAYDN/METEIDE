@@ -24,7 +24,7 @@ import {
 } from "../infrastructure/template-store.js";
 import { recordDecision } from "./approvals.js";
 import { type Opening, offerBrief, takeHandoff } from "./continue.js";
-import { nextPrefer } from "./pinned.js";
+import { nextPrefer, validateStartPrefer } from "./pinned.js";
 import { createCheckpointRestore } from "./restore.js";
 import { pruneOldCheckpoints } from "./retention.js";
 import { routeFor } from "./route.js";
@@ -183,6 +183,8 @@ const start = async (s: EngineState, req: RunStart): Out<{ runId: string }> => {
 	if (!routed.ok) return routed;
 	const team = await teamFor(s, routed.value);
 	if (!team.ok) return team;
+	const validPrefer = validateStartPrefer(team.value, r.data.prefer);
+	if (!validPrefer.ok) return validPrefer;
 	// The template is checked first, so a bad one never uses up a handoff.
 	const opening = r.data.continue ? takeHandoff(s, id) : ok(offerBrief(s));
 	if (!opening.ok) return opening;

@@ -8,6 +8,7 @@ import {
 	nextPrefer,
 	pinnedSeat,
 	runPreferOf,
+	validateStartPrefer,
 } from "../../src/application/pinned.js";
 import type { EngineState, Live } from "../../src/application/run-state.js";
 import type { RunContext, RunSnapshot } from "../../src/domain/run-machine.js";
@@ -78,6 +79,7 @@ describe("pinned helper functions", () => {
 		expect(isModelRef({ lead: MODEL_A })).toBe(false);
 		expect(isModelRef(null as unknown as RunPrefer)).toBe(false);
 		expect(isModelRef(undefined as unknown as RunPrefer)).toBe(false);
+		expect(isModelRef({ providerId: "", modelId: "m" })).toBe(false);
 	});
 
 	it("extracts runPreferOf correctly for single agent and team runs", () => {
@@ -145,6 +147,49 @@ describe("pinned helper functions", () => {
 		const r = nextPrefer(teamQueued, MODEL_A);
 		expect(r.ok).toBe(false);
 		if (!r.ok) expect(r.error.code).toBe("bad_input");
+	});
+
+	it("fails nextPrefer on invalid model, unknown team role or single agent roleId", () => {
+		const single = fakeLive({}).snapshot.context;
+		const team = fakeLive({ team: dummyTeam, task: "t1" }).snapshot.context;
+
+		// Invalid model reference
+		const badModel = nextPrefer(single, { providerId: "" } as ModelRef);
+		expect(badModel.ok).toBe(false);
+		if (!badModel.ok) expect(badModel.error.code).toBe("bad_input");
+
+		// Single agent with roleId
+		const singleRole = nextPrefer(single, MODEL_A, "coder");
+		expect(singleRole.ok).toBe(false);
+		if (!singleRole.ok) expect(singleRole.error.code).toBe("bad_input");
+
+		// Team with unknown roleId
+		const unknownRole = nextPrefer(team, MODEL_A, "unknown_role");
+		expect(unknownRole.ok).toBe(false);
+		if (!unknownRole.ok) expect(unknownRole.error.code).toBe("bad_input");
+	});
+
+	it("validates start prefer with validateStartPrefer", () => {
+		expect(validateStartPrefer(undefined, undefined)).toEqual({
+			ok: true,
+			value: undefined,
+		});
+		expect(validateStartPrefer(undefined, MODEL_A)).toEqual({
+			ok: true,
+			value: undefined,
+		});
+		expect(validateStartPrefer(undefined, { coder: MODEL_A }).ok).toBe(false);
+
+		expect(validateStartPrefer(dummyTeam, undefined)).toEqual({
+			ok: true,
+			value: undefined,
+		});
+		expect(validateStartPrefer(dummyTeam, { lead: MODEL_A })).toEqual({
+			ok: true,
+			value: undefined,
+		});
+		expect(validateStartPrefer(dummyTeam, MODEL_A).ok).toBe(false);
+		expect(validateStartPrefer(dummyTeam, { ghost: MODEL_A }).ok).toBe(false);
 	});
 });
 

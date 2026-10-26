@@ -120,4 +120,25 @@ describe("run machine", () => {
 		expect(back.value).toBe("running");
 		expect(back.context).toEqual(s.context);
 	});
+
+	it("updates preference and increments preferRevision on PREFER event", () => {
+		const modelA = { providerId: "prov-a", modelId: "mod-a" };
+		const modelB = { providerId: "prov-b", modelId: "mod-b" };
+		const initial = initialTransition(runMachine, {
+			goal: "fix it",
+			priority: 1,
+			messages: [],
+			prefer: modelA,
+		})[0];
+		expect(initial.context.prefer).toEqual(modelA);
+		expect(initial.context.preferRevision).toBe(0);
+
+		const next = apply(initial, { type: "PREFER", prefer: modelB });
+		expect(next.context.prefer).toEqual(modelB);
+		expect(next.context.preferRevision).toBe(1);
+
+		const cleared = apply(next, { type: "PREFER", prefer: undefined });
+		expect(cleared.context.prefer).toBeUndefined();
+		expect(cleared.context.preferRevision).toBe(2);
+	});
 });
