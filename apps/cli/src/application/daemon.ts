@@ -15,6 +15,7 @@ import {
 	DaemonRunAllowParamsSchema,
 	DaemonRunApproveParamsSchema,
 	DaemonRunIdParamsSchema,
+	DaemonRunModelParamsSchema,
 	DaemonStatusParamsSchema,
 	DaemonTemplateReadParamsSchema,
 	EVENT_TYPES,
@@ -98,6 +99,21 @@ const serveApproveAndResume = (conn: MessageConnection, app: App) => {
 		return null;
 	});
 };
+
+// Steers the model of a single agent or a team role while the run is active or paused (ADR-122).
+const serveRunModel = (conn: MessageConnection, app: App) =>
+	conn.onRequest(DAEMON_METHODS.runModel, async (params: unknown) => {
+		const p = parsed(DaemonRunModelParamsSchema.safeParse(params ?? {}));
+		const engine = readyEngine(app);
+		if (!engine.model)
+			throw refused({
+				code: "not_supported",
+				message: "model steering is not supported",
+			});
+		const r = await engine.model(p.runId, p.model, p.roleId);
+		if (!r.ok) throw refused(r.error);
+		return null;
+	});
 
 const UNENDED = new Set(["queued", "running", "paused"]);
 
@@ -346,6 +362,7 @@ export const daemonCommand = async (
 	serveStatus(conn, app);
 	serveRunStart(conn, app);
 	serveApproveAndResume(conn, app);
+	serveRunModel(conn, app);
 	serveStopAll(conn, app, io);
 	serveEvents(conn, app);
 	serveAudit(conn, app);
