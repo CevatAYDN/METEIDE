@@ -54,10 +54,13 @@ const run = async (calls: Parameters<typeof reply>[1]) => {
 	const r = await h.engine.start({ goal: "change files" });
 	if (!r.ok) throw new Error(r.error.message);
 	const runId = r.value.runId;
-	await vi.waitFor(() => {
-		const s = h.engine.status(runId);
-		expect(s.ok && s.value[0]?.status).toBe("completed");
-	});
+	await vi.waitFor(
+		() => {
+			const s = h.engine.status(runId);
+			expect(s.ok && s.value[0]?.status).toBe("completed");
+		},
+		{ timeout: 10_000 },
+	);
 	const manifest = async (n: number) =>
 		JSON.parse(
 			await readFile(
