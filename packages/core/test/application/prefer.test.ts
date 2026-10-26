@@ -25,6 +25,16 @@ tasks:
 budget: { cloud_requests: 10 }
 `;
 
+const PINNED = `apiVersion: mete/v1
+kind: TeamTemplate
+metadata: { id: pinned, name: Pinned, version: 1.0.0 }
+pattern: single
+roles:
+  - { id: dev, name: Dev, goal: Build, tier: coder, capabilities: [fs.*@1] }
+tasks:
+  - { id: build, role: dev, title: Build }
+`;
+
 type H = ReturnType<typeof engineHarness>;
 
 const view = (h: H, runId: string): RunView | undefined => {
@@ -293,6 +303,54 @@ describe("model selection at start and run time (ADR-122)", () => {
 		expect(changed?.payload).toEqual({
 			from: { providerId: "p", modelId: "mod-initial" },
 			to: { providerId: "p", modelId: "mod-b" },
+			reason: "first",
+		});
+	});
+
+	it("keeps reason first when only a workspace pin chose the model", async () => {
+		// A pin is a folder setting (ADR-077), not the user's choice for this run (ADR-122).
+		await writeFile(join(tmpDir, "templates", "pinned.yaml"), PINNED);
+		await mkdir(join(tmpDir, "workspace", ".mete"), { recursive: true });
+		await writeFile(
+			join(tmpDir, "workspace", ".mete", "pins.yaml"),
+			"pinned:\n  dev: p/mod-pin\n",
+		);
+		const fakeTool: Tool = vi.fn(async () => ok({ replacements: 1 }));
+		const vcs: Tool = vi.fn(async () =>
+			ok({ op: "checkpoint.create", ref: "r", sha: "s" }),
+		);
+		const h = engineHarness({
+			scripts: [
+				reply(
+					"",
+					[
+						{
+							name: "fs_edit",
+							args: { path: "a.ts", oldStr: "foo", newStr: "bar" },
+						},
+					],
+					"mod-initial",
+				),
+				reply("Finished.", [], "mod-pin"),
+			],
+			tools: [
+				["fs.edit@1", fakeTool],
+				["vcs.git@2", vcs],
+			],
+			templates,
+		});
+		const started = await h.engine.start({
+			goal: "pinned run",
+			templateId: "pinned",
+		});
+		expect(started.ok).toBe(true);
+		if (!started.ok) return;
+		await settled(h, started.value.runId, "completed");
+
+		const changed = h.events.find((e) => e.type === "agent.model.changed");
+		expect(changed?.payload).toEqual({
+			from: { providerId: "p", modelId: "mod-initial" },
+			to: { providerId: "p", modelId: "mod-pin" },
 			reason: "first",
 		});
 	});

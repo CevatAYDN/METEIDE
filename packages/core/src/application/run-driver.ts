@@ -3,7 +3,7 @@ import { foldable, toSummarize } from "../domain/compact.js";
 import { type NextStep, nextStep } from "../domain/next-step.js";
 import { afterModelError } from "../domain/run-events.js";
 import { activeRole, activeSeat } from "../domain/team-run.js";
-import { pinnedSeat } from "./pinned.js";
+import { pinnedSeat, runPreferOf } from "./pinned.js";
 import {
 	apply,
 	type EngineState,
@@ -46,8 +46,8 @@ const onModel = (s: EngineState, l: Live, c: ModelChunk) => {
 		);
 	const from = { providerId: agent.providerId, modelId: agent.modelId };
 	// A user's preference is the reason only when this call used it (ADR-122); a chain that fell
-	// past it keeps the gateway's own reason.
-	const prefer = l.pin?.prefer;
+	// past it keeps the gateway's own reason, and a workspace pin (ADR-077) is no user choice here.
+	const prefer = runPreferOf(l.snapshot.context, roleId);
 	const reason =
 		c.reason === "first" &&
 		prefer?.providerId === to.providerId &&
