@@ -37,6 +37,11 @@ const GAME = `  gameengine.build@1:
     command: C:/Program Files/engine.exe
     success: { exitCode: 0 }
     output: { log: "{{result.stdout}}" }
+  media.image.generate@1:
+    command: gen
+    args: ["{{input.prompt}}", "{{input.path}}"]
+    success: { exitCode: 0 }
+    output: { file: out.png }
   3d.export@1:
     command: blender
     args: ["{{input}}"]
@@ -111,11 +116,25 @@ describe("level 2 CLI mappings", () => {
 		await rm(workspace, { recursive: true, force: true });
 	});
 
-	it("runs the program with each argument quoted, in the task's folder, and maps its output", async () => {
+	it("runs the program as a person would type it, in the task's folder, and maps its output", async () => {
 		const ctx = { signal, cwd: "/wt/t1", runId: "r1" };
 		const r = await found("gameengine.build@1", "game")({}, ctx);
 		expect(r).toEqual({ ok: true, value: { log: "built\n" } });
-		expect(ran).toEqual([{ input: { command: 'npm "run" "build"' }, ctx }]);
+		expect(ran).toEqual([{ input: { command: "npm run build" }, ctx }]);
+	});
+
+	it("quotes an argument with a space, one that starts with a digit, and a missing one", async () => {
+		for (const file of ["my file.png", "2.0"])
+			await found("gameengine.importAsset@1", "game")({ file }, { signal });
+		await found("media.image.generate@1", "game")(
+			{ prompt: "red" },
+			{ signal },
+		);
+		expect(ran.map((r) => r.input.command)).toEqual([
+			'engine import "my file.png"',
+			'engine import "2.0"',
+			'gen red ""',
+		]);
 	});
 
 	it("fails with the command's output when the exit code is not the expected one", async () => {
@@ -132,7 +151,7 @@ describe("level 2 CLI mappings", () => {
 		expect(r.ok === false && r.error).toEqual({
 			code: "io",
 			message:
-				'mapping game for gameengine.build@1: npm "run" "build" exited with 2\nmissing script',
+				"mapping game for gameengine.build@1: npm run build exited with 2\nmissing script",
 		});
 	});
 

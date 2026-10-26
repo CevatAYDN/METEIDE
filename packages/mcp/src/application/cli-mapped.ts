@@ -33,6 +33,9 @@ type Target = {
 };
 
 const PROGRAM = /^[\w.\-/:\\]+$/;
+// A word a person would type bare stays bare, so `npm run build` meets the allow list's `npm run *`;
+// it starts with a letter, _ or -, since PowerShell reads a bare 2.0 or 1gb as a number.
+const BARE = /^[A-Za-z_-][\w\-./:=+]*$/;
 // What PowerShell or sh read inside double quotes: a quote (“ ” „ are quotes to PowerShell), an
 // expansion, a line break, or a trailing \ that escapes sh's closing quote.
 const UNSAFE = /["$`\r\n“”„]|\\$/;
@@ -57,11 +60,12 @@ const commandLine = (
 	for (const [i, a] of args.entries()) {
 		const word = text(a);
 		if (word === undefined) return err(`argument ${i + 1} is not text`);
-		if (UNSAFE.test(word))
+		if (BARE.test(word)) words.push(word);
+		else if (UNSAFE.test(word))
 			return err(
 				`argument ${JSON.stringify(word)} holds a quote, $, a backtick, a line break or a trailing \\`,
 			);
-		words.push(`"${word}"`);
+		else words.push(`"${word}"`);
 	}
 	return ok(words.join(" "));
 };
