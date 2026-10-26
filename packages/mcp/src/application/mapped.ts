@@ -7,6 +7,7 @@ import {
 	ok,
 	type PolicyCheckAdapter,
 	type Result,
+	type TemplateValue,
 	TOOL_CATALOG,
 	type ToolAdapter,
 	type ToolContext,
@@ -34,15 +35,21 @@ type Target = {
 
 const why = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-const failed =
-	(t: Target) =>
+/** What names a mapped call in its errors. */
+type Named = {
+	readonly mapping: { readonly metadata: { readonly id: string } };
+	readonly ref: CapabilityRef;
+};
+
+export const failed =
+	(t: Named) =>
 	(message: string): ToolError => ({
 		code: "io",
 		message: `mapping ${t.mapping.metadata.id} for ${t.ref}: ${message}`,
 	});
 
-// The capability's own input schema fills defaults (web.search@1 maxResults) before rendering.
-const inputOf = (
+/** The capability's own input schema fills defaults (web.search@1 maxResults) before rendering. */
+export const inputOf = (
 	ref: CapabilityRef,
 	raw: unknown,
 ): Result<unknown, ToolError> => {
@@ -87,10 +94,15 @@ const callTool = async (
 	}
 };
 
-const outputOf = (t: Target, scope: Scope): Result<unknown, string> => {
-	const rendered = render(t.entry.output, scope);
+/** The rendered output, checked with the capability's output schema. */
+export const outputOf = (
+	ref: CapabilityRef,
+	output: TemplateValue,
+	scope: Scope,
+): Result<unknown, string> => {
+	const rendered = render(output, scope);
 	if (!rendered.ok) return rendered;
-	const schema = MAPPABLE_OUTPUTS[t.ref];
+	const schema = MAPPABLE_OUTPUTS[ref];
 	const r = schema?.safeParse(rendered.value);
 	if (!r) return err("the capability has no output schema to check against");
 	if (r.success) return ok(r.data);
@@ -123,7 +135,10 @@ const run = async (
 	if (!allowed.ok) return allowed;
 	const result = await callTool(deps, t, args.value, ctx);
 	if (!result.ok) return err(failed(t)(result.error));
-	const out = outputOf(t, { ...base, result: result.value });
+	const out = outputOf(t.ref, t.entry.output, {
+		...base,
+		result: result.value,
+	});
 	return out.ok ? out : err(failed(t)(out.error));
 };
 

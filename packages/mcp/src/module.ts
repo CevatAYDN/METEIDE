@@ -1,5 +1,7 @@
 // MeteModule entry (docs/06-kernel-and-modules.md). Modules in this package: mcp-client (here),
 // mcp-server (server-module.ts); registry follows in a later Phase 3 slice.
+
+import { join } from "node:path";
 import {
 	err,
 	type LlmChatAdapter,
@@ -16,6 +18,7 @@ import type {
 	ModuleContext,
 } from "@mete/kernel";
 import { type Calls, createCalls } from "./application/calls.js";
+import type { ShellExec } from "./application/cli-mapped.js";
 import { mcpTools } from "./application/mcp-tools.js";
 import { provideMappings } from "./application/provide-mappings.js";
 import { createRuntimeEnsure } from "./application/runtime-ensure.js";
@@ -44,7 +47,7 @@ export type McpClientOptions = {
 	readonly workspaceId?: string;
 	/** The clock of the progress throttle (ADR-067); tests pass a fixed one. */
 	readonly now?: () => number;
-	/** The built-in adapters/ folder of level 2 mapping files (docs/10). */
+	/** The built-in adapters/ folder of level 2 mapping files (docs/10); the workspace's .mete/adapters/ follows. */
 	readonly adaptersDir?: string;
 	readonly open?: OpenTransport;
 	/** The fetch remote servers use; tests pass a fake, so nothing reaches the network. */
@@ -80,7 +83,7 @@ const MANIFEST: ModuleManifest = {
 	trust: "core",
 	provides: ["mcp.tools@1", "runtime.ensure@1"],
 	requires: ["policy.check@1"],
-	optional: ["registry.search@1", "llm.chat@2"],
+	optional: ["registry.search@1", "llm.chat@2", "shell.exec@1"],
 	activation: ["onStartup"],
 	isolation: "in-process",
 	permissions: ["shell", "net", "fs.write", "secrets"],
@@ -97,6 +100,12 @@ const policyOf =
 		const r = registry.resolve<PolicyCheckAdapter>("policy.check@1");
 		return r.ok ? r.value[0].impl : undefined;
 	};
+
+// cli mappings run their command lines through shell.exec@1 (ADR-120).
+const shellOf = (registry: CapabilityRegistry) => (): ShellExec | undefined => {
+	const r = registry.resolve<ShellExec>("shell.exec@1");
+	return r.ok ? r.value[0].impl : undefined;
+};
 
 // Sampling is offered only when the host can ask the user (docs/10, MCP client).
 const samplingOf = (
@@ -138,15 +147,18 @@ const provideAll = async (
 			impl,
 		}),
 	);
-	if (!opts.adaptersDir) return;
 	const deps = {
 		moduleId: MANIFEST.id,
 		workspaceDir,
 		sessions,
 		policy,
 		servers,
+		shell: shellOf(ctx.capabilities),
 	};
-	await provideMappings(ctx, deps, opts.adaptersDir);
+	// The built-in folder first, then the workspace's own (ADR-120).
+	const own = join(workspaceDir, ".mete", "adapters");
+	const dirs = opts.adaptersDir ? [opts.adaptersDir, own] : [own];
+	await provideMappings(ctx, deps, dirs);
 };
 
 // runtime.ensure@1 for this module's stdio servers and for other modules (docs/10, Managed runtimes).

@@ -49,8 +49,8 @@ describe("level 2 MCP mappings", () => {
 		);
 		await writeFile(join(dir, "bad.yaml"), mapping("bad-search", `other: "x"`));
 		await writeFile(
-			join(dir, "cli.yaml"),
-			"apiVersion: mete/v1\nkind: AdapterMapping\nmetadata: { id: a-cli, version: 1.0.0 }\ntype: cli\nimplements: {}\n",
+			join(dir, "http.yaml"),
+			"apiVersion: mete/v1\nkind: AdapterMapping\nmetadata: { id: an-http, version: 1.0.0 }\ntype: http\nimplements: {}\n",
 		);
 		await writeFile(join(dir, "broken.yaml"), "kind: [");
 		module = createMcpClientModule({
@@ -113,7 +113,7 @@ describe("level 2 MCP mappings", () => {
 	it("logs every file it cannot run", () => {
 		expect(warnings).toEqual([
 			expect.stringMatching(/kind|apiVersion|Flow|YAML|expected/i),
-			"type cli is not supported yet",
+			"type http is not supported yet",
 		]);
 	});
 });

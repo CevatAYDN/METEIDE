@@ -338,7 +338,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | tools-shell | `@mete/tools` | essential | `shell.exec@1` | `policy.check@1` | none | in-process |
 | tools-web | `@mete/tools` | optional | `web.fetch@1`, `web.search@1` (HTTP adapters) | `policy.check@1` | `mcp.tools@1` | in-process |
 | vcs-git | `@mete/tools` | optional | `vcs.git@2` | `policy.check@1` | none | in-process |
-| mcp-client | `@mete/mcp` | optional | `mcp.tools@1`, `runtime.ensure@1`, mapping adapters for any capability | `policy.check@1` | `registry.search@1`, `llm.chat@2` | in-process; servers in child processes |
+| mcp-client | `@mete/mcp` | optional | `mcp.tools@1`, `runtime.ensure@1`, mapping adapters for any capability | `policy.check@1` | `registry.search@1`, `llm.chat@2`, `shell.exec@1` (cli mappings, ADR-120) | in-process; servers in child processes |
 | mcp-server | `@mete/mcp` | optional | METE as an MCP server | `team.engine@2` | `knowledge.search@1` | in-process |
 | registry | `@mete/mcp` | optional | `registry.search@1` | `policy.check@1` | none | in-process |
 | knowledge-graph | `@mete/knowledge` | optional | `code.graph@1` | `fs.read@1` | `llm.chat@2` | worker |
