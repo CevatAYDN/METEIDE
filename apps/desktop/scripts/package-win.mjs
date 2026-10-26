@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import {
 	cpSync,
 	existsSync,
+	lstatSync,
 	mkdtempSync,
 	readFileSync,
 	rmSync,
@@ -49,6 +50,19 @@ for (const [needed, first] of [
 // which every pnpm command here asks to reinstall without devDependencies; the file is put back.
 const STATE = join(root, "node_modules", ".pnpm-workspace-state-v1.json");
 const state = existsSync(STATE) ? readFileSync(STATE) : undefined;
+
+// Deletes the staging folder, and only a real folder: `pnpm deploy --legacy` links the workspace
+// packages into node_modules/@mete/ as junctions on Windows, so a recursive delete through one of
+// those links deletes the repository's own sources. Never delete a path outside the repository
+// without checking with lstat that it is a plain folder.
+const removeStage = (dir) => {
+	const st = lstatSync(dir);
+	if (!st.isDirectory() || st.isSymbolicLink()) {
+		console.error(`${dir} is not a real folder; refusing to delete it`);
+		process.exit(1);
+	}
+	rmSync(dir, { recursive: true, force: true });
+};
 
 const stage = mkdtempSync(join(tmpdir(), "mete-stage-"));
 try {
@@ -103,5 +117,5 @@ try {
 	);
 } finally {
 	if (state) writeFileSync(STATE, state);
-	rmSync(stage, { recursive: true, force: true });
+	removeStage(stage);
 }

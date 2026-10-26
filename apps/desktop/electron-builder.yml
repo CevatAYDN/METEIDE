@@ -25,7 +25,7 @@ files:
   - "!**/node_modules/@mete/*/.turbo/**"
   - "!**/node_modules/@mete/*/tsconfig*.json"
   - "!**/node_modules/@mete/*/tsconfig.tsbuildinfo"
-  - "!**/node_modules/@mete/*/vitest.config.ts"
+  - "!**/node_modules/@mete/*/vitest*.config.ts"
 # The CLI finds these beside the app in a packaged build (ADR-115): extraResources land in
 # resources/. package-win.mjs copies the repository's folders into the staging project root, which
 # is what electron-builder resolves these paths against.
