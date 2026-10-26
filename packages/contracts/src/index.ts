@@ -127,6 +127,8 @@ export {
 export {
 	type AdapterMapping,
 	AdapterMappingSchema,
+	type CliMapping,
+	type CliMappingEntry,
 	type EachValue,
 	EXPRESSION_ROOTS,
 	type Filter,

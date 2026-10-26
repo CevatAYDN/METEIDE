@@ -4,6 +4,11 @@ import {
 	CapabilityRefSchema,
 	SemverSchema,
 } from "./ids.js";
+import {
+	Cleanup3dOutputSchema,
+	GameEngineLogOutputSchema,
+	MediaFileOutputSchema,
+} from "./media.js";
 import { PolicyActionSchema } from "./policy.js";
 import { err, ok, type Result } from "./result.js";
 import { WebSearchOutputSchema } from "./web.js";
@@ -144,25 +149,57 @@ const McpMappingSchema = z.strictObject({
 		.refine(capabilityKeys, "implements keys are capability ids"),
 });
 
-// shortcut: cli and http entries are not checked yet, mcp-client refuses them; upgrade when a slice runs them.
-const OtherMappingSchema = z.looseObject({
+// A program and its arguments; the arguments render with `result` absent, the output with
+// `result` = { exitCode, stdout, stderr } (ADR-120).
+const CliEntrySchema = z.strictObject({
+	command: z.string().min(1),
+	args: z
+		.array(TemplateStringSchema)
+		.readonly()
+		.default(() => []),
+	success: z.strictObject({ exitCode: z.number().int() }),
+	output: TemplateValueSchema,
+});
+
+const CliMappingSchema = z.strictObject({
 	...header,
-	type: z.enum(["cli", "http"]),
+	type: z.literal("cli"),
+	implements: z
+		.record(z.string(), CliEntrySchema)
+		.refine(capabilityKeys, "implements keys are capability ids"),
+});
+
+// shortcut: http entries are not checked yet, mcp-client refuses them; upgrade when a slice runs them.
+const HttpMappingSchema = z.looseObject({
+	...header,
+	type: z.literal("http"),
 	implements: z.record(z.string(), z.unknown()),
 });
 
 /** A level 2 mapping file (docs/10). */
 export const AdapterMappingSchema = z.discriminatedUnion("type", [
 	McpMappingSchema,
-	OtherMappingSchema,
+	CliMappingSchema,
+	HttpMappingSchema,
 ]);
 export type AdapterMapping = z.output<typeof AdapterMappingSchema>;
 export type McpMapping = z.output<typeof McpMappingSchema>;
 export type McpMappingEntry = z.output<typeof McpEntrySchema>;
+export type CliMapping = z.output<typeof CliMappingSchema>;
+export type CliMappingEntry = z.output<typeof CliEntrySchema>;
 
 /** The output schemas a mapped answer is checked against; a capability missing here cannot be mapped. */
 export const MAPPABLE_OUTPUTS: Readonly<
 	Partial<Record<CapabilityRef, z.ZodType>>
 > = {
 	"web.search@1": WebSearchOutputSchema,
+	"media.image.generate@1": MediaFileOutputSchema,
+	"media.image.edit@1": MediaFileOutputSchema,
+	"media.3d.fromText@1": MediaFileOutputSchema,
+	"media.3d.fromImage@1": MediaFileOutputSchema,
+	"3d.export@1": MediaFileOutputSchema,
+	"3d.cleanup@1": Cleanup3dOutputSchema,
+	"gameengine.build@1": GameEngineLogOutputSchema,
+	"gameengine.test@1": GameEngineLogOutputSchema,
+	"gameengine.importAsset@1": GameEngineLogOutputSchema,
 };

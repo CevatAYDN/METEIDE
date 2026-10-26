@@ -3,6 +3,7 @@ import {
 	capabilityOf,
 	isWrite,
 	TOOL_CATALOG,
+	toolEntry,
 	toolName,
 	toolSpec,
 	VcsForModelSchema,
@@ -62,5 +63,35 @@ describe("tool catalog", () => {
 			expect(isWrite(call(name))).toBe(false);
 		expect(isWrite(call("vcs_git", { op: "commit", message: "m" }))).toBe(true);
 		expect(isWrite(call("vcs_git", { op: "status" }))).toBe(false);
+	});
+
+	it("offers the media, 3d and game engine capabilities as writes, the media and 3d ones as external", () => {
+		const media = [
+			"media_image_generate",
+			"media_image_edit",
+			"media_3d_fromText",
+			"media_3d_fromImage",
+			"3d_cleanup",
+			"3d_export",
+		];
+		const engine = [
+			"gameengine_build",
+			"gameengine_test",
+			"gameengine_importAsset",
+		];
+		for (const name of [...media, ...engine]) {
+			expect(isWrite(call(name))).toBe(true);
+			expect(toolEntry(name)?.external === true).toBe(media.includes(name));
+		}
+		const build = toolEntry("gameengine_build")?.schema;
+		expect(build?.safeParse({}).success).toBe(true);
+		expect(build?.safeParse({ target: "web" }).success).toBe(false);
+		const edit = toolEntry("media_image_edit")?.schema;
+		expect(edit?.safeParse({ file: "a.png", prompt: "red" }).success).toBe(
+			true,
+		);
+		expect(edit?.safeParse({ prompt: "red" }).success).toBe(false);
+		const cleanup = toolEntry("3d_cleanup")?.schema;
+		expect(cleanup?.safeParse({ file: "a.glb", ops: [] }).success).toBe(false);
 	});
 });

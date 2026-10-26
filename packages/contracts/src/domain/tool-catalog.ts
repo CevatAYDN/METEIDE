@@ -4,6 +4,15 @@ import {
 	SeoAuditInputSchema,
 } from "./browser.js";
 import type { CapabilityRef } from "./ids.js";
+import {
+	Cleanup3dInputSchema,
+	Export3dInputSchema,
+	GameEngineImportInputSchema,
+	GameEngineRunInputSchema,
+	Media3dFromImageInputSchema,
+	MediaFromTextInputSchema,
+	MediaImageEditInputSchema,
+} from "./media.js";
 import type { ToolCall, ToolSpec } from "./provider.js";
 import {
 	FsEditInputSchema,
@@ -115,6 +124,74 @@ export const TOOL_CATALOG: readonly ToolCatalogEntry[] = [
 		description:
 			"Run a Lighthouse audit of a public web page or of a built site folder (one with an index.html); returns category scores 0-100 and every audit.",
 		external: true,
+	},
+	// ADR-120: each may change the workspace; the media and 3d answers come from a server.
+	{
+		ref: "media.image.generate@1",
+		write: true,
+		external: true,
+		schema: MediaFromTextInputSchema,
+		description:
+			"Generate an image from a prompt, optionally at a workspace path; returns the path of the file written.",
+	},
+	{
+		ref: "media.image.edit@1",
+		write: true,
+		external: true,
+		schema: MediaImageEditInputSchema,
+		description:
+			"Edit an image file as a prompt describes; returns the path of the file written.",
+	},
+	{
+		ref: "media.3d.fromText@1",
+		write: true,
+		external: true,
+		schema: MediaFromTextInputSchema,
+		description:
+			"Generate a 3D model from a prompt, optionally at a workspace path; returns the path of the file written.",
+	},
+	{
+		ref: "media.3d.fromImage@1",
+		write: true,
+		external: true,
+		schema: Media3dFromImageInputSchema,
+		description:
+			"Generate a 3D model from an image file; returns the path of the file written.",
+	},
+	{
+		ref: "3d.cleanup@1",
+		write: true,
+		external: true,
+		schema: Cleanup3dInputSchema,
+		description:
+			"Clean up a 3D model file with operations such as decimate or uv_unwrap; returns the cleaned file's path and a report.",
+	},
+	{
+		ref: "3d.export@1",
+		write: true,
+		external: true,
+		schema: Export3dInputSchema,
+		description:
+			"Export a 3D model file to a format such as glb; returns the path of the exported file.",
+	},
+	{
+		ref: "gameengine.build@1",
+		write: true,
+		schema: GameEngineRunInputSchema,
+		description: "Build the game project; returns the build log.",
+	},
+	{
+		ref: "gameengine.test@1",
+		write: true,
+		schema: GameEngineRunInputSchema,
+		description: "Run the game project's tests; returns the test log.",
+	},
+	{
+		ref: "gameengine.importAsset@1",
+		write: true,
+		schema: GameEngineImportInputSchema,
+		description:
+			"Import an asset file into the game project; returns the engine's log.",
 	},
 ];
 
