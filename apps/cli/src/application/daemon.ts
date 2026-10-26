@@ -77,9 +77,8 @@ const serveRunStart = (conn: MessageConnection, app: App) =>
 		return r.value;
 	});
 
-// The human's decision on a run paused for approval, resume (ADR-048), and the answer to a policy
-// ask (ADR-121), which grants it and resumes; all answer null.
-const serveApproveAndResume = (conn: MessageConnection, app: App) => {
+// Human decisions on runs (ADR-048, ADR-121) and model steering (ADR-122); all answer null.
+const serveSteering = (conn: MessageConnection, app: App) => {
 	conn.onRequest(DAEMON_METHODS.runApprove, async (params: unknown) => {
 		const p = parsed(DaemonRunApproveParamsSchema.safeParse(params ?? {}));
 		const r = await readyEngine(app).approve(p.runId, p.input);
@@ -98,10 +97,6 @@ const serveApproveAndResume = (conn: MessageConnection, app: App) => {
 		if (!r.ok) throw refused(r.error);
 		return null;
 	});
-};
-
-// Steers the model of a single agent or a team role while the run is active or paused (ADR-122).
-const serveRunModel = (conn: MessageConnection, app: App) =>
 	conn.onRequest(DAEMON_METHODS.runModel, async (params: unknown) => {
 		const p = parsed(DaemonRunModelParamsSchema.safeParse(params ?? {}));
 		const engine = readyEngine(app);
@@ -114,6 +109,7 @@ const serveRunModel = (conn: MessageConnection, app: App) =>
 		if (!r.ok) throw refused(r.error);
 		return null;
 	});
+};
 
 const UNENDED = new Set(["queued", "running", "paused"]);
 
@@ -341,6 +337,24 @@ const forwardEvents = (events: EventBus, conn: MessageConnection, io: Io) => {
 	};
 };
 
+const serveMethods = (conn: MessageConnection, app: App, io: Io) => {
+	serveStatus(conn, app);
+	serveRunStart(conn, app);
+	serveSteering(conn, app);
+	serveStopAll(conn, app, io);
+	serveEvents(conn, app);
+	serveAudit(conn, app);
+	serveTemplates(conn, app);
+	serveTemplateRead(conn, app);
+	serveChain(conn, app);
+	serveModels(conn, app);
+	serveCheckpointRestore(conn, app);
+	serveChanges(conn, app);
+	serveMemberDraft(conn, app);
+	serveSettings(conn, app);
+	serveProviders(conn, app);
+};
+
 /**
  * `mete daemon`: serves the workspace to one desktop client until it closes the input or Ctrl+C.
  * stdout carries only the protocol, so every line here goes to stderr.
@@ -359,22 +373,7 @@ export const daemonCommand = async (
 		new StreamMessageReader(streams.input),
 		new StreamMessageWriter(streams.output),
 	);
-	serveStatus(conn, app);
-	serveRunStart(conn, app);
-	serveApproveAndResume(conn, app);
-	serveRunModel(conn, app);
-	serveStopAll(conn, app, io);
-	serveEvents(conn, app);
-	serveAudit(conn, app);
-	serveTemplates(conn, app);
-	serveTemplateRead(conn, app);
-	serveChain(conn, app);
-	serveModels(conn, app);
-	serveCheckpointRestore(conn, app);
-	serveChanges(conn, app);
-	serveMemberDraft(conn, app);
-	serveSettings(conn, app);
-	serveProviders(conn, app);
+	serveMethods(conn, app, io);
 	const spent = trackExhausted(app.events);
 	serveQuota(conn, app, spent.until);
 	serveEstimate(conn, app, spent.until);

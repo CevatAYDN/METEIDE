@@ -145,6 +145,10 @@ describe("the daemon host", () => {
 			ok: true,
 			value: null,
 		});
+		expect(await host.model("/w", "r1", null, "coder")).toEqual({
+			ok: true,
+			value: null,
+		});
 		expect(await host.model("/w", "refuse", model)).toEqual({
 			ok: false,
 			error: { code: "refused", detail: "run not found" },

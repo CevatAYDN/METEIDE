@@ -8,6 +8,7 @@ import {
 	DaemonErrorDataSchema,
 	DaemonRunStartResultSchema,
 	type ModelRef,
+	type TeamEngineAdapter,
 } from "@mete/contracts";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -175,6 +176,16 @@ describe("mete daemon run.model (ADR-122)", () => {
 		);
 		expect(missingModel.code).toBe(ErrorCodes.InvalidParams);
 
+		// Empty roleId string is rejected at boundary
+		const emptyRole = await failure(
+			c.sendRequest(DAEMON_METHODS.runModel, {
+				runId,
+				roleId: "",
+				model: MODEL_A,
+			}),
+		);
+		expect(emptyRole.code).toBe(ErrorCodes.InvalidParams);
+
 		// 5. Error handling: unknown runId refuses with not_found
 		const unknown = await failure(
 			c.sendRequest(DAEMON_METHODS.runModel, {
@@ -284,6 +295,49 @@ describe("mete daemon run.model (ADR-122)", () => {
 			}),
 		).toBeNull();
 
+		toDaemon.end();
+		expect(await serving).toBe(0);
+		c.dispose();
+	});
+
+	it("refuses with not_supported when engine does not implement model", async () => {
+		const repo = await tempRepo({ "a.txt": "a\n" });
+		const app = await createApp({
+			workspaceDir: repo.workspaceDir,
+			globalDir: repo.globalDir,
+			templatesDir: join(repo.globalDir, "no-templates"),
+			logger: silent,
+			secrets: memorySecrets(),
+			providers: [scriptedProvider({ script: [DONE] })],
+		});
+		if (!app.ok) throw new Error(JSON.stringify(app.error));
+		close = async () => {
+			await app.value.stop();
+			await repo.close();
+		};
+		const engine =
+			app.value.registry.resolve<TeamEngineAdapter>("team.engine@2");
+		if (!engine.ok) throw new Error("no engine");
+		delete (engine.value[0].impl as { model?: unknown }).model;
+		const [toDaemon, toClient] = [new PassThrough(), new PassThrough()];
+		const t = recordingIo();
+		const serving = daemonCommand(app.value, t.io, repo.workspaceDir, {
+			input: toDaemon,
+			output: toClient,
+		});
+		const c = createMessageConnection(
+			new StreamMessageReader(toClient),
+			new StreamMessageWriter(toDaemon),
+		);
+		c.listen();
+		const err = await failure(
+			c.sendRequest(DAEMON_METHODS.runModel, {
+				runId: crypto.randomUUID(),
+				model: MODEL_A,
+			}),
+		);
+		expect(err.code).toBe(DAEMON_ERROR_CODE);
+		expect(DaemonErrorDataSchema.parse(err.data).code).toBe("not_supported");
 		toDaemon.end();
 		expect(await serving).toBe(0);
 		c.dispose();
