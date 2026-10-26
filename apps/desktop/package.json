@@ -5,6 +5,9 @@
 	"author": "Fifty Three Studio <fiftythreestudio@gmail.com>",
 	"private": true,
 	"license": "Apache-2.0",
+	"files": [
+		"lib"
+	],
 	"packageManager": "pnpm@11.20.0",
 	"main": "lib/backend/electron-main.js",
 	"exports": {
@@ -16,7 +19,7 @@
 	"scripts": {
 		"build": "tsc -b",
 		"test": "vitest run --passWithNoTests",
-		"bundle": "theia build --mode development",
+		"bundle": "theia build --mode production",
 		"download:plugins": "theia download:plugins",
 		"package:win": "node scripts/package-win.mjs",
 		"test:e2e": "playwright test",

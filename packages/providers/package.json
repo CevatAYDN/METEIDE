@@ -4,6 +4,10 @@
 	"private": true,
 	"type": "module",
 	"license": "Apache-2.0",
+	"files": [
+		"dist",
+		"data"
+	],
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",

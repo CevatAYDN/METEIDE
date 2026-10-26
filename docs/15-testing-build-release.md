@@ -72,7 +72,7 @@ Phase 5 exit gate, as of 2026-10-23: not passed. `apps/cli/test/game-studio.test
 
 - Installs use `pnpm install --frozen-lockfile`.
 - Native modules MUST have prebuilt binaries. Desktop builds rebuild them for Electron's ABI with `@electron/rebuild`; the CLI uses Node.js ABI prebuilds \[C\].
-- The installer is packed over a `pnpm deploy` staging folder, not over the repository (ADR-115): the app ships a real, flattened `node_modules` tree, `asar` stays off because Theia loads native modules and spawns executables from the app folder, and `templates/` and `adapters/` land in `resources/`, which the daemon the app starts reads through `METE_TEMPLATES_DIR` and `METE_ADAPTERS_DIR`. When `lib/`, `plugins/` or electron-builder is missing, the script names the command to run first.
+- The installer is packed over a `pnpm deploy` staging folder, not over the repository (ADR-115): the app ships a real, flattened `node_modules` tree, `asar` stays off because Theia loads native modules and spawns executables from the app folder, and `templates/` and `adapters/` land in `resources/`, which the daemon the app starts reads through `METE_TEMPLATES_DIR` and `METE_ADAPTERS_DIR`. When `lib/`, `plugins/` or electron-builder is missing, the script names the command to run first. `bundle` builds the frontend in production mode, and each package's `files` field ships only its `dist` (plus `data/` for providers and `fonts/`, `i18n/` and `style/` for the Theia extension), so sources, tests and coverage stay out of the installer.
 
 ## Release process
 
