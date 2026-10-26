@@ -1,0 +1,24 @@
+// What `mete --help` prints (ARCHITECTURE.md, CLI).
+
+export const USAGE = [
+	"usage:",
+	'  mete run "<goal>"            run the goal in this folder; the router picks a single agent or a team',
+	'  mete run --single "<goal>"   run a single agent without asking the router',
+	'  mete run --template <id> "<goal>"   run a team template on the goal',
+	"  mete run --resume <run id>   resume a paused run",
+	'  mete run --continue ["<goal>"]   go on from the last run\'s handoff',
+	"  mete approve <run id> [<task id>]   approve a team task that waits for you",
+	"  mete allow <run id> [--run | --always]   allow what the policy asked about, once, for the run or for good",
+	'  mete revise <run id> <task id> "<feedback>"   send it back with feedback',
+	"  mete status [<run id>] [--json]   list the runs of this folder",
+	"  mete events <run id> [--json]   show a run's history: time, event, module, task, agent",
+	"  mete audit [<run id>] [--json]   show the audit log, newest first: action, verdict, policy rule",
+	"  mete template validate [<id>]   check the team templates a run may use, and name each issue",
+	"  mete stop <run id> | --all   cancel paused runs",
+	"  mete rollback <run id> <n>   restore a paused or ended run's checkpoint n; prints how to undo it",
+	"  mete mcp [<folder>]          serve this folder's teams to an MCP host (Claude Code, Cursor, Cline)",
+	"  mete daemon [<folder>]       serve this folder to the METE desktop over stdio (JSON-RPC)",
+	'  mete registry search "<words>"   find MCP servers in the official MCP registry; installs nothing',
+	"  mete registry add <name>     add a registry server's newest version to .mete/mcp.yaml",
+	"  mete key set|delete <provider id>, mete key list",
+].join("\n");

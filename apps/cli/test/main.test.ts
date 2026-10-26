@@ -58,7 +58,15 @@ describe("mete main", () => {
 			0,
 		);
 		expect(help.out[0]).toMatch(/^usage:/);
-		for (const argv of [["dance"], ["run"], ["stop"], ["--nope"]]) {
+		const allowBoth = ["allow", "r", "--run", "--always"];
+		for (const argv of [
+			["dance"],
+			["run"],
+			["stop"],
+			["--nope"],
+			["allow"],
+			allowBoth,
+		]) {
 			const t = recordingIo();
 			expect(await main(argv, t.io, { cwd: ".", logger: silent })).toBe(1);
 			expect(t.err.join("\n")).toContain("usage:");
@@ -241,6 +249,37 @@ describe("output lines", () => {
 		expect(
 			eventLine(event("module.activated", { moduleId: "x" })),
 		).toBeUndefined();
+	});
+
+	it("names what a policy ask is about: the command, the path, or else the capability (ADR-121)", () => {
+		const ask = {
+			action: "shell.exec",
+			capability: "shell.exec@1",
+			adapterId: "tools-shell",
+			rule: "autonomy:1",
+		};
+		expect(
+			eventLine(event("policy.asked", { ...ask, command: "node --version" })),
+		).toBe("asks  shell.exec: node --version");
+		expect(
+			eventLine(
+				event("policy.asked", {
+					...ask,
+					action: "fs.write.outside",
+					capability: "fs.write@1",
+					path: "/tmp/a.txt",
+				}),
+			),
+		).toBe("asks  fs.write.outside: /tmp/a.txt");
+		expect(
+			eventLine(
+				event("policy.asked", {
+					...ask,
+					action: "mcp.call",
+					capability: "mcp.tools@1",
+				}),
+			),
+		).toBe("asks  mcp.call: mcp.tools@1");
 	});
 
 	it("keeps following a run that waits on its own, and stops at a pause only a person clears", () => {

@@ -210,7 +210,10 @@ describe("mete run --template and mete approve", () => {
 		expect(await readFile(artifact, "utf8")).toBe("one summary");
 	});
 
-	it("points a team run that a policy ask paused at resume, not at approve", async () => {
+	// Masking the ask loads secretlint the first time, which may take seconds (ADR-121).
+	it("points a team run that a policy ask paused at mete allow, not at approve", {
+		timeout: 30_000,
+	}, async () => {
 		const { repo, app } = await setup({
 			script: [
 				[
@@ -233,9 +236,14 @@ describe("mete run --template and mete approve", () => {
 		expect(
 			await runCommand(app, t.io, { goal: "run the tests", templateId: "duo" }),
 		).toBe(2);
-		expect(t.out.at(-1)).toBe("paused: approval");
-		expect(t.err[0]).toBe("The agent needs an approval for a tool call.");
-		expect(t.err.at(-1)).toMatch(/^Resume it with: mete run --resume \S+$/);
+		expect(t.out.slice(-2)).toEqual([
+			"paused: approval",
+			"asks  shell.exec: pnpm test",
+		]);
+		expect(t.err[0]).toBe(
+			"The policy asks before this call. Allow it once with:",
+		);
+		expect(t.err.at(-1)).toMatch(/^ {2}mete allow \S+ --always$/);
 	});
 });
 
@@ -313,7 +321,9 @@ describe("mete stop and mete key", () => {
 		expect(unknown.err[0]).toMatch(/^no run /);
 	});
 
-	it("explains an approval pause under the built-in policy", async () => {
+	it("points an approval pause under the built-in policy at mete allow", {
+		timeout: 30_000,
+	}, async () => {
 		const { app } = await setup({
 			script: [
 				[
@@ -329,8 +339,19 @@ describe("mete stop and mete key", () => {
 		});
 		const t = recordingIo();
 		expect(await runCommand(app, t.io, { goal: "run the tests" })).toBe(2);
-		expect(t.out.at(-1)).toBe("paused: approval");
-		expect(t.err.join("\n")).toContain('overrides: { "shell.exec@1": 2 }');
+		const runId = t.out[0]?.split(" ")[1] ?? "";
+		expect(t.out.slice(-2)).toEqual([
+			"paused: approval",
+			"asks  shell.exec: pnpm test",
+		]);
+		expect(t.err).toEqual([
+			"The policy asks before this call. Allow it once with:",
+			`  mete allow ${runId}`,
+			"or for the rest of the run with:",
+			`  mete allow ${runId} --run`,
+			"or for good with:",
+			`  mete allow ${runId} --always`,
+		]);
 	});
 
 	it("leaves a run another process drives alone and points at Ctrl+C", async () => {

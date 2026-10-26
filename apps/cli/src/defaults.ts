@@ -21,6 +21,9 @@ export const TEMPLATES_DIR_ENV = "METE_TEMPLATES_DIR";
 /** Tab 15, builds (ADR-115): the level 2 mapping files of a packaged desktop; unset in development. */
 export const ADAPTERS_DIR_ENV = "METE_ADAPTERS_DIR";
 
+/** How long a command that follows a run waits for a policy-ask pause's policy.asked, which masking may publish after the pause (ARCHITECTURE.md, CLI; ADR-121). */
+export const ASK_WAIT_MS = 10_000;
+
 /** Tab 10, MCP client (Elicitation): how many times the terminal asks one field before it declines the request. */
 export const ELICIT_TRIES = 2;
 

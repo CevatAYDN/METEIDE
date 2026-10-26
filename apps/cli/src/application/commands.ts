@@ -17,6 +17,13 @@ import {
 } from "../domain/format.js";
 import { type App, engineOf, notReadyLines } from "../infrastructure/app.js";
 import { runHistory } from "../infrastructure/history.js";
+import {
+	type AllowScope,
+	allowAndResume,
+	askScope,
+	canAlways,
+	waitForAsk,
+} from "./allow.js";
 import { hintAt, noteStart, watchPauses } from "./run-hints.js";
 
 // The mete commands (ARCHITECTURE.md, CLI). Each returns the process exit code.
@@ -112,12 +119,14 @@ export const endOf = (e: MeteEvent): Ended | undefined => {
 	return undefined;
 };
 
-// A tool call the policy asks about clears through resume; the user can widen the policy
-// (ARCHITECTURE.md, CLI). A team task that waits for the human is answered with approve or revise.
-const APPROVAL_HINT = [
-	"The agent needs an approval for a tool call.",
-	"The built-in policy keeps shell.exec@1 at level 1. To let it run allow-listed commands,",
-	'add  overrides: { "shell.exec@1": 2 }  to .mete/policy.yaml.',
+// A tool call the policy asks about is answered with mete allow (ARCHITECTURE.md, CLI; ADR-121);
+// resume would repeat the call, which asks again.
+const allowHint = (runId: string, always: boolean) => [
+	"The policy asks before this call. Allow it once with:",
+	`  mete allow ${runId}`,
+	"or for the rest of the run with:",
+	`  mete allow ${runId} --run`,
+	...(always ? ["or for good with:", `  mete allow ${runId} --always`] : []),
 ];
 
 export const withEngine = async (
@@ -138,18 +147,24 @@ const teamHint = (runId: string | undefined) => [
 	`  mete revise ${runId} <task id> "<feedback>"`,
 ];
 
-/** What a run command does: start a run, resume one, or answer a team task and go on. */
+/** What a run command does: start a run, resume one, answer a team task or a policy ask and go on. */
 export type RunWhat =
 	| { goal: string; templateId?: string | null; continue?: true }
 	| { resume: string }
-	| { approve: string; input: ApprovalInput };
+	| { approve: string; input: ApprovalInput }
+	| { allow: string; scope: AllowScope };
 
-const targetOf = (what: RunWhat) =>
-	"resume" in what ? what.resume : "approve" in what ? what.approve : undefined;
+const targetOf = (what: RunWhat) => {
+	if ("resume" in what) return what.resume;
+	if ("approve" in what) return what.approve;
+	return "allow" in what ? what.allow : undefined;
+};
 
-const begin = (engine: TeamEngineAdapter, what: RunWhat) => {
+const begin = (app: App, engine: TeamEngineAdapter, what: RunWhat) => {
 	if ("resume" in what) return engine.resume(what.resume);
 	if ("approve" in what) return engine.approve(what.approve, what.input);
+	if ("allow" in what)
+		return allowAndResume(app, engine, what.allow, what.scope);
 	// null asks for a single agent; no templateId lets the router decide (docs/08, Router).
 	const template =
 		what.templateId !== undefined ? { templateId: what.templateId } : {};
@@ -186,15 +201,15 @@ const noteLevelThree = (
 	if (run?.autonomyLevel === 3 && !inWorktree) io.err(LEVEL_THREE_NOTE);
 };
 
-/** `mete run` (a goal, --template, --resume), `mete approve` and `mete revise`. */
-export const runCommand = (app: App, io: Io, what: RunWhat) =>
+/** `mete run` (a goal, --template, --resume), `mete approve`, `mete revise` and `mete allow`. */
+export const runCommand = (app: App, io: Io, what: RunWhat): Promise<number> =>
 	withEngine(app, io, async (engine) => {
 		const target = targetOf(what);
 		const seen = target ? runHistory(app.registry, target) : undefined;
 		const titles = namesOf(seen?.events ?? []).titles;
 		const run = follow(app.events, io, target, titles);
 		if ("goal" in what) noteStart(app, io);
-		const r = await begin(engine, what);
+		const r = await begin(app, engine, what);
 		if (!r.ok) return refused(io, r.error);
 		const hints = watchPauses(app, io, run.runId);
 		noteLevelThree(io, app.registry, engine, run.runId());
@@ -203,13 +218,39 @@ export const runCommand = (app: App, io: Io, what: RunWhat) =>
 		stopWatching();
 		await hints.printed();
 		hints.stop();
-		const runId = run.runId();
-		// A single agent has no tasks, so its history never waits for the human.
-		const history = runId ? runHistory(app.registry, runId) : undefined;
-		const human = waitsForHuman(history?.events ?? []);
-		explain(io, status, { runId, why: run.why(), human });
-		return exitCode(status);
+		return settle(app, io, status, { runId: run.runId(), why: run.why() });
 	});
+
+// After the run stopped: a policy-ask pause is answered, any other end explained.
+const settle = async (
+	app: App,
+	io: Io,
+	status: Ended,
+	{ runId, why }: { runId: string | undefined; why: string | undefined },
+) => {
+	// A single agent has no tasks, so its history never waits for the human.
+	const history = runId ? runHistory(app.registry, runId) : undefined;
+	const human = waitsForHuman(history?.events ?? []);
+	const asks = status === "paused" && why === "approval" && !human;
+	if (asks && runId) return answerAsk(app, io, runId);
+	explain(io, status, { runId, why, human });
+	return exitCode(status);
+};
+
+// A policy-ask pause: the ask is printed, which masking may publish after the pause; a terminal is
+// asked, and an answer allows and follows the run again, while anything else leaves it paused.
+const answerAsk = async (app: App, io: Io, runId: string): Promise<number> => {
+	const asked = await waitForAsk(app, runId);
+	if (asked) io.out(eventLine(asked) ?? "");
+	const scope =
+		asked && io.readLine
+			? await askScope(io.readLine, asked.payload)
+			: undefined;
+	if (scope) return runCommand(app, io, { allow: runId, scope });
+	const always = asked !== undefined && canAlways(asked.payload);
+	for (const line of allowHint(runId, always)) io.err(line);
+	return exitCode("paused");
+};
 
 // Nothing awaits the handler, so a throwing cancel is reported; Ctrl+C again retries it.
 const cancelOnInterrupt = (
@@ -241,14 +282,10 @@ const explain = (
 ) => {
 	if (status === "failed" && why === "unauthorized") io.err(KEY_HINT);
 	if (status !== "paused") return;
-	const answer = why === "approval" && human;
-	const lines = answer
-		? teamHint(runId)
-		: why === "approval"
-			? APPROVAL_HINT
-			: [];
-	for (const line of lines) io.err(line);
-	if (!answer) io.err(`Resume it with: mete run --resume ${runId}`);
+	// A policy ask, the other approval pause, is answered before this (answerAsk).
+	if (why === "approval" && human)
+		for (const line of teamHint(runId)) io.err(line);
+	else io.err(`Resume it with: mete run --resume ${runId}`);
 };
 
 /**

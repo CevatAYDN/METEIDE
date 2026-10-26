@@ -12,11 +12,11 @@ import {
 	DaemonModelsParamsSchema,
 	DaemonProviderModelsParamsSchema,
 	DaemonProviderTestParamsSchema,
+	DaemonRunAllowParamsSchema,
 	DaemonRunApproveParamsSchema,
 	DaemonRunIdParamsSchema,
 	DaemonStatusParamsSchema,
 	DaemonTemplateReadParamsSchema,
-	type EngineError,
 	EVENT_TYPES,
 	RunStartSchema,
 	type SecretsMaskAdapter,
@@ -33,9 +33,11 @@ import {
 } from "vscode-jsonrpc/node";
 import { type App, engineOf, notReadyLines } from "../infrastructure/app.js";
 import { runHistory } from "../infrastructure/history.js";
+import { allowAndResume } from "./allow.js";
 import { auditEntries } from "./audit.js";
 import { changesOf } from "./changes.js";
 import type { Io } from "./commands.js";
+import { parsed, readyEngine, refused } from "./daemon-errors.js";
 import { estimateFor } from "./estimate.js";
 import { draftMember } from "./member-draft.js";
 import {
@@ -48,44 +50,12 @@ import { customAdapter, endpointModels, probeModels } from "./provider-test.js";
 import { restoreCheckpoint } from "./rollback.js";
 import { settingsOf } from "./settings.js";
 
-// `mete daemon`: protocol version 20 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-108).
+// `mete daemon`: protocol version 21 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-121).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
 	readonly input: Readable;
 	readonly output: Writable;
-};
-
-// The error data of a refused engine call (ADR-047: choose_template keeps the router's suggestions).
-const refusedData = (e: EngineError): DaemonErrorData =>
-	e.code === "choose_template"
-		? { code: e.code, suggestions: [...e.suggestions] }
-		: { code: e.code };
-
-const refused = (e: EngineError) =>
-	new ResponseError(DAEMON_ERROR_CODE, e.message, refusedData(e));
-
-// The engine is looked up per request: while it is not active the answer is not_ready with the
-// reasons (ADR-046), so the daemon stays up for the desktop to explain.
-const readyEngine = (app: App) => {
-	const engine = engineOf(app);
-	if (engine.ok) return engine.value;
-	const data: DaemonErrorData = {
-		code: "not_ready",
-		reasons: notReadyLines(app, engine.error),
-	};
-	throw new ResponseError(DAEMON_ERROR_CODE, "core-engine is not active", data);
-};
-
-// Params are checked before the engine, so a bad request says so even while METE is not ready.
-const parsed = <T>(
-	r:
-		| { success: true; data: T }
-		| { success: false; error: { message: string } },
-) => {
-	if (!r.success)
-		throw new ResponseError(ErrorCodes.InvalidParams, r.error.message);
-	return r.data;
 };
 
 // A refused call keeps the EngineError code in data, so the desktop can tell not_found from a bug.
@@ -106,7 +76,8 @@ const serveRunStart = (conn: MessageConnection, app: App) =>
 		return r.value;
 	});
 
-// The human's decision on a run paused for approval, and resume (ADR-048); both answer null.
+// The human's decision on a run paused for approval, resume (ADR-048), and the answer to a policy
+// ask (ADR-121), which grants it and resumes; all answer null.
 const serveApproveAndResume = (conn: MessageConnection, app: App) => {
 	conn.onRequest(DAEMON_METHODS.runApprove, async (params: unknown) => {
 		const p = parsed(DaemonRunApproveParamsSchema.safeParse(params ?? {}));
@@ -117,6 +88,12 @@ const serveApproveAndResume = (conn: MessageConnection, app: App) => {
 	conn.onRequest(DAEMON_METHODS.runResume, async (params: unknown) => {
 		const p = parsed(DaemonRunIdParamsSchema.safeParse(params ?? {}));
 		const r = await readyEngine(app).resume(p.runId);
+		if (!r.ok) throw refused(r.error);
+		return null;
+	});
+	conn.onRequest(DAEMON_METHODS.runAllow, async (params: unknown) => {
+		const p = parsed(DaemonRunAllowParamsSchema.safeParse(params ?? {}));
+		const r = await allowAndResume(app, readyEngine(app), p.runId, p.scope);
 		if (!r.ok) throw refused(r.error);
 		return null;
 	});

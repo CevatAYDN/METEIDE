@@ -40,36 +40,17 @@ import {
 } from "./infrastructure/run-lock.js";
 import { browserOf } from "./infrastructure/scripted-browser.js";
 import { scriptedSecrets, scriptedWeb } from "./infrastructure/scripted-web.js";
+import { USAGE } from "./usage.js";
 
 // Entry of the mete binary (ARCHITECTURE.md, CLI): parses arguments and runs one command.
-
-const USAGE = [
-	"usage:",
-	'  mete run "<goal>"            run the goal in this folder; the router picks a single agent or a team',
-	'  mete run --single "<goal>"   run a single agent without asking the router',
-	'  mete run --template <id> "<goal>"   run a team template on the goal',
-	"  mete run --resume <run id>   resume a paused run",
-	'  mete run --continue ["<goal>"]   go on from the last run\'s handoff',
-	"  mete approve <run id> [<task id>]   approve a team task that waits for you",
-	'  mete revise <run id> <task id> "<feedback>"   send it back with feedback',
-	"  mete status [<run id>] [--json]   list the runs of this folder",
-	"  mete events <run id> [--json]   show a run's history: time, event, module, task, agent",
-	"  mete audit [<run id>] [--json]   show the audit log, newest first: action, verdict, policy rule",
-	"  mete template validate [<id>]   check the team templates a run may use, and name each issue",
-	"  mete stop <run id> | --all   cancel paused runs",
-	"  mete rollback <run id> <n>   restore a paused or ended run's checkpoint n; prints how to undo it",
-	"  mete mcp [<folder>]          serve this folder's teams to an MCP host (Claude Code, Cursor, Cline)",
-	"  mete daemon [<folder>]       serve this folder to the METE desktop over stdio (JSON-RPC)",
-	'  mete registry search "<words>"   find MCP servers in the official MCP registry; installs nothing',
-	"  mete registry add <name>     add a registry server's newest version to .mete/mcp.yaml",
-	"  mete key set|delete <provider id>, mete key list",
-].join("\n");
 
 const OPTIONS = {
 	resume: { type: "string" },
 	template: { type: "string" },
 	continue: { type: "boolean" },
 	single: { type: "boolean" },
+	run: { type: "boolean" },
+	always: { type: "boolean" },
 	all: { type: "boolean" },
 	json: { type: "boolean" },
 	help: { type: "boolean", short: "h" },
@@ -154,6 +135,14 @@ const answer = (
 		...(feedback ? { feedback } : {}),
 	};
 	return run(opts, io, { approve: runId, input });
+};
+
+// mete allow <run id> [--run | --always] (ADR-121): once by default.
+const allow = (opts: AppOptions, io: Io, p: Parsed, runId?: string) => {
+	const { run: forRun, always } = p.values;
+	if (!runId || (forRun && always)) return usage(io);
+	const scope = always ? "always" : forRun ? "run" : "once";
+	return run(opts, io, { allow: runId, scope });
 };
 
 const goalOf = (p: Parsed, goal: string): RunWhat => {
@@ -260,6 +249,8 @@ const dispatch = (
 		case "approve":
 		case "revise":
 			return answer(opts, io, rest, command);
+		case "allow":
+			return allow(opts, io, p, rest[0]);
 		case "events":
 		case "status":
 		case "template":

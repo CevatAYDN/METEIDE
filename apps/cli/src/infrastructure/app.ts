@@ -101,6 +101,8 @@ export type AppOptions = {
 
 /** A started app. */
 export type App = {
+	/** The folder this app serves; Always allow writes its .mete/policy.yaml (ADR-121). */
+	readonly workspaceDir: string;
 	readonly registry: CapabilityRegistry;
 	readonly events: EventBus;
 	readonly lifecycle: Lifecycle;
@@ -263,6 +265,7 @@ export const createApp = async (
 	await lifecycle.start();
 	await lifecycle.openWorkspace();
 	return ok({
+		workspaceDir: opts.workspaceDir,
 		registry,
 		events,
 		lifecycle,

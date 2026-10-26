@@ -41,6 +41,10 @@ const agentLine = (e: MeteEvent): string | undefined => {
 		}
 		case "checkpoint.created":
 			return `checkpoint ${e.payload.ref}`;
+		case "policy.asked": {
+			const { action, capability, command, path } = e.payload;
+			return `asks  ${action}: ${command ?? path ?? capability}`;
+		}
 		default:
 			return undefined;
 	}
@@ -139,7 +143,7 @@ const dropMerges = (waiting: Set<string>) => {
 /**
  * Whether a team run's tasks wait for the human (docs/08), which `mete approve` answers: an approval
  * asked of the human and not given, a blocked task, or a merge that failed. A run paused for approval
- * with none of these waits for a policy ask, which resume clears.
+ * with none of these waits for a policy ask, which `mete allow` answers (ADR-121).
  */
 export const waitsForHuman = (events: readonly MeteEvent[]) => {
 	const waiting = new Set<string>();
