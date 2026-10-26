@@ -3,6 +3,7 @@
 	"private": true,
 	"type": "module",
 	"license": "Apache-2.0",
+	"author": "Fifty Three Studio <fiftythreestudio@gmail.com>",
 	"packageManager": "pnpm@11.20.0",
 	"engines": {
 		"node": ">=24"

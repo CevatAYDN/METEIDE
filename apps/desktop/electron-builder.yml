@@ -26,6 +26,8 @@ extraResources:
   - from: adapters
     to: adapters
 win:
+  # The METE IDE icon (a 1024 px PNG); electron-builder turns it into the .ico it embeds.
+  icon: build/icon.png
   target:
     - target: nsis
       arch:

@@ -1,0 +1,5 @@
+---
+"@mete/desktop": patch
+---
+
+The Windows installer and the app carry the METE IDE icon (`apps/desktop/build/icon.png`, which electron-builder turns into the embedded `.ico`), and the desktop package names its author and description, so the installer's file properties say who made it. `package:win` runs node without a shell (no DEP0190 warning on Node 24), prints why a command could not start, and names the exact command to run first when the built shell, the plugins or electron-builder is missing. It also puts back the repository's pnpm install state that `pnpm deploy --prod` rewrites, so `pnpm check` and every other pnpm command no longer ask to reinstall without devDependencies after a build. The end-to-end tests keep Theia's own user folder in each test's temp folder (`THEIA_CONFIG_DIR`, ADR-113), so a test run no longer leaves its workspaces in the developer's `~/.theia` as recent and trusted folders. The README explains the SmartScreen warning of the unsigned installer step by step (docs/15).

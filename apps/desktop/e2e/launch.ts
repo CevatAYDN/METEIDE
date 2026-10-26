@@ -240,16 +240,15 @@ const scriptOf = (script: MeteOptions["script"]) => {
 };
 
 // The app's own global folder: the daemon keeps quota usage, logs and settings under %APPDATA%\METE
-// (XDG_DATA_HOME on Linux), and a test must never read or write the developer's (ADR-113).
-const globalEnv = (dir: string): NodeJS.ProcessEnv => {
-	if (process.platform === "win32") return { APPDATA: join(dir, "appdata") };
-	if (process.platform === "linux")
-		return {
-			XDG_DATA_HOME: join(dir, "data"),
-			XDG_CONFIG_HOME: join(dir, "config"),
-		};
-	return {};
-};
+// (XDG_DATA_HOME on Linux), and a test must never read or write the developer's (ADR-113); nor
+// Theia's ~/.theia, where each test's workspace would stay as a recent and a trusted folder.
+const globalEnv = (dir: string): NodeJS.ProcessEnv => ({
+	THEIA_CONFIG_DIR: join(dir, "theia"),
+	...(process.platform === "win32" ? { APPDATA: join(dir, "appdata") } : {}),
+	...(process.platform === "linux"
+		? { XDG_DATA_HOME: join(dir, "data"), XDG_CONFIG_HOME: join(dir, "config") }
+		: {}),
+});
 
 // The web answers travel the same way as the chat script (ADR-116): a file outside the workspace, so
 // they join no checkpoint. An empty script means the app keeps the real web tools.

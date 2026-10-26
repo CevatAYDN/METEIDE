@@ -3,6 +3,7 @@ import {
 	cpSync,
 	existsSync,
 	mkdtempSync,
+	readFileSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
@@ -24,23 +25,30 @@ const run = (command, args, cwd) => {
 	const r = spawnSync(command, args, {
 		cwd,
 		stdio: "inherit",
-		// pnpm is a .cmd shim on Windows; the arguments still travel as an array.
-		shell: process.platform === "win32",
+		// Only a bare `pnpm` (a .cmd shim on Windows) needs a shell; node runs directly, which keeps
+		// Node 24's DEP0190 warning about shell arguments away. The arguments travel as an array.
+		shell: process.platform === "win32" && command === "pnpm",
 	});
+	if (r.error) console.error(r.error.message);
 	if (r.status !== 0) process.exit(r.status ?? 1);
 };
 
 // The packaged app needs the built shell and the downloaded plugins; say what is missing instead of
 // shipping a folder without them.
-for (const needed of [
-	"lib/backend/electron-main.js",
-	"plugins",
-	"node_modules/electron-builder",
+for (const [needed, first] of [
+	["lib/backend/electron-main.js", "pnpm --filter @mete/desktop bundle"],
+	["plugins", "pnpm --filter @mete/desktop download:plugins"],
+	["node_modules/electron-builder", "pnpm install --frozen-lockfile"],
 ])
-	if (!existsSync(join(app, needed)))
-		process.exit(
-			`${needed} is missing: run pnpm --filter @mete/desktop bundle and download:plugins first`,
-		);
+	if (!existsSync(join(app, needed))) {
+		console.error(`${needed} is missing: run ${first} first`);
+		process.exit(1);
+	}
+
+// `pnpm deploy --prod` records production-only settings in the repository's install state, after
+// which every pnpm command here asks to reinstall without devDependencies; the file is put back.
+const STATE = join(root, "node_modules", ".pnpm-workspace-state-v1.json");
+const state = existsSync(STATE) ? readFileSync(STATE) : undefined;
 
 const stage = mkdtempSync(join(tmpdir(), "mete-stage-"));
 try {
@@ -65,7 +73,8 @@ try {
 
 	// The staging folder is electron-builder's project root, so everything the app ships lives in
 	// it: the deploy's package.json and node_modules, the built shell, the plugins and the folders
-	// the CLI finds beside a packaged app (the `extraResources` of electron-builder.yml).
+	// the CLI finds beside a packaged app (the `extraResources` of electron-builder.yml), and
+	// `build/`, electron-builder's build resources folder that holds the application icon.
 	// The workspace file keeps pnpm's collectors on this folder instead of an enclosing workspace.
 	writeFileSync(join(stage, "pnpm-workspace.yaml"), "packages: []\n");
 	for (const [from, to] of [
@@ -73,6 +82,7 @@ try {
 		[join(app, "plugins"), join(stage, "plugins")],
 		[join(root, "templates"), join(stage, "templates")],
 		[join(root, "adapters"), join(stage, "adapters")],
+		[join(app, "build"), join(stage, "build")],
 	])
 		cpSync(from, to, { recursive: true });
 
@@ -92,5 +102,6 @@ try {
 		app,
 	);
 } finally {
+	if (state) writeFileSync(STATE, state);
 	rmSync(stage, { recursive: true, force: true });
 }

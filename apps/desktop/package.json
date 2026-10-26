@@ -1,6 +1,8 @@
 {
 	"name": "@mete/desktop",
 	"version": "0.0.0",
+	"description": "Desktop agent workspace that runs teams of AI agents on free cloud models",
+	"author": "Fifty Three Studio <fiftythreestudio@gmail.com>",
 	"private": true,
 	"license": "Apache-2.0",
 	"packageManager": "pnpm@11.20.0",

@@ -30,7 +30,15 @@ pnpm --filter @mete/desktop start
 
 ## Windows SmartScreen
 
-Windows builds will ship unsigned first (docs/15), so Windows SmartScreen will warn before the first start. This section will explain the steps once the first installer is published.
+Windows builds ship unsigned first (docs/15; free code signing through SignPath Foundation is part of Phase 7), so Windows SmartScreen will warn before the first start ("Windows protected your PC"):
+
+1. Click **More info** in the SmartScreen warning dialog.
+2. Click **Run anyway** to launch the installer.
+
+If Windows Defender or your browser blocks the downloaded installer:
+1. Right-click the downloaded `.exe` file and select **Properties**.
+2. On the **General** tab, check the **Unblock** box near the bottom.
+3. Click **OK**, then run the installer again.
 
 ## Documentation
 
