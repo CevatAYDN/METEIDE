@@ -19,8 +19,11 @@ describe("tool catalog", () => {
 		expect(capabilityOf("vcs_git")).toBe("vcs.git@2");
 		expect(capabilityOf("web_fetch")).toBe("web.fetch@1");
 		expect(capabilityOf("mcp_call")).toBeUndefined();
+		// Gemini's function names start with a letter or _ (ADR-120).
+		expect(toolName("3d.cleanup@1")).toBe("_3d_cleanup");
+		expect(capabilityOf("_3d_cleanup")).toBe("3d.cleanup@1");
 		for (const t of TOOL_CATALOG)
-			expect(toolName(t.ref)).toMatch(/^[a-zA-Z0-9_-]{1,64}$/);
+			expect(toolName(t.ref)).toMatch(/^[a-zA-Z_][a-zA-Z0-9_-]{0,63}$/);
 	});
 
 	it("gives every tool a JSON Schema for an object", () => {
@@ -71,8 +74,8 @@ describe("tool catalog", () => {
 			"media_image_edit",
 			"media_3d_fromText",
 			"media_3d_fromImage",
-			"3d_cleanup",
-			"3d_export",
+			"_3d_cleanup",
+			"_3d_export",
 		];
 		const engine = [
 			"gameengine_build",
@@ -91,7 +94,7 @@ describe("tool catalog", () => {
 			true,
 		);
 		expect(edit?.safeParse({ prompt: "red" }).success).toBe(false);
-		const cleanup = toolEntry("3d_cleanup")?.schema;
+		const cleanup = toolEntry("_3d_cleanup")?.schema;
 		expect(cleanup?.safeParse({ file: "a.glb", ops: [] }).success).toBe(false);
 	});
 });
