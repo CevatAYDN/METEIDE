@@ -88,7 +88,13 @@ const warnSetupFailure = (
 	reason: string,
 ) => {
 	deps.logger.warn(
-		{ runId: target.runId, taskId: target.taskId, command, reason },
+		{
+			runId: target.runId,
+			taskId: target.taskId,
+			...(target.agentId ? { agentId: target.agentId } : {}),
+			command,
+			reason,
+		},
 		"worktree setup command failed; continuing task",
 	);
 };
@@ -97,6 +103,7 @@ const setupFailureReason = (val: unknown): string | undefined => {
 	const shell = ShellRunSchema.safeParse(val);
 	if (!shell.success) return "unexpected result from shell.exec@1";
 	if (shell.data.timedOut) return "timed out";
+	if (shell.data.exitCode === null) return "terminated without exit code";
 	if (shell.data.exitCode !== 0)
 		return `exited with code ${shell.data.exitCode}`;
 	return undefined;

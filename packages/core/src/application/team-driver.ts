@@ -244,7 +244,7 @@ const worktreeOf = async (
 	if (entry.context.worktree) return entry.context.worktree;
 	const ids = { runId: l.meta.id, taskId: entry.id };
 	const tree = await startWorktree(s.deps, ids, l.all.signal);
-	if (!tree) return undefined;
+	if (!tree || l.snapshot.value !== "running") return tree;
 	const res = await runWorktreeSetup(
 		s.deps,
 		{
@@ -256,6 +256,7 @@ const worktreeOf = async (
 		l.all.signal,
 		(body) => emit(s, l, body, entry.id),
 	);
+	if (l.snapshot.value !== "running") return tree;
 	if (res === "approval")
 		apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
 	return tree;

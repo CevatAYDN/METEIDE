@@ -236,6 +236,42 @@ describe("worktree setup command execution (ADR-123)", () => {
 
 		expect(shellCalled).toBe(false);
 	});
+
+	it("does not run setup command if run is cancelled while starting worktree", async () => {
+		let shellCalled = false;
+		const calls: { op: string }[] = [];
+		const vcs: Tool = async (input, ctx) => {
+			const i = input as { op: string };
+			calls.push({ op: i.op });
+			if (i.op === "worktree.create") {
+				if (ctx.runId) await h.engine.cancel(ctx.runId);
+				return ok({
+					op: "worktree.create",
+					path: "/mock/wt",
+					branch: "mete/r/t",
+					sha: "s",
+				});
+			}
+			return ok({ op: "checkpoint.create", ref: "refs/mete/1", sha: "s" });
+		};
+		const shell: Tool = async () => {
+			shellCalled = true;
+			return shellResult(0);
+		};
+		const h = engineHarness({
+			scripts: [reply("built")],
+			tools: [
+				["vcs.git@2", vcs],
+				["shell.exec@1", shell],
+			],
+			worktrees: { setup: "pnpm install" },
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "cancelled");
+
+		expect(shellCalled).toBe(false);
+	});
 });
 
 describe("worktreeSetupCommand unit tests", () => {
@@ -267,34 +303,42 @@ describe("worktreeSetupCommand unit tests", () => {
 		} as unknown as Parameters<typeof worktreeSetupCommand>[0];
 		expect(worktreeSetupCommand(deps)).toBe("npm install");
 	});
+
+	it("returns undefined when setup is a whitespace-only string", () => {
+		const deps = {
+			config: {
+				get: () => err({ file: "f", path: ["setup"], reason: "invalid" }),
+			},
+		} as unknown as Parameters<typeof worktreeSetupCommand>[0];
+		expect(worktreeSetupCommand(deps)).toBeUndefined();
+	});
 });
 
-describe("runWorktreeSetup unit tests", () => {
-	it("handles timedOut process and logs warning without throwing", async () => {
-		const warned: { fields: unknown; msg: string }[] = [];
-		const deps = {
-			config: { get: () => ok({ setup: "pnpm install" }) },
-			registry: {
-				resolve: () =>
-					ok([
-						{
-							id: "fake-shell",
-							impl: { run: async () => shellResult(null, "", true) },
-						},
-					]),
-			},
-			logger: {
-				warn: (fields: unknown, msg: string) => warned.push({ fields, msg }),
-			},
-			now: () => 100,
-		} as unknown as Parameters<typeof runWorktreeSetup>[0];
+const mockSetupDeps = (run: () => Promise<unknown>) => {
+	const warned: { fields: unknown; msg: string }[] = [];
+	const deps = {
+		config: { get: () => ok({ setup: "pnpm install" }) },
+		registry: { resolve: () => ok([{ id: "fake-shell", impl: { run } }]) },
+		logger: {
+			warn: (fields: unknown, msg: string) => warned.push({ fields, msg }),
+		},
+		now: () => 100,
+	} as unknown as Parameters<typeof runWorktreeSetup>[0];
+	return { deps, warned };
+};
 
-		const target = {
-			worktree: "/mock/wt",
-			runId: "r1",
-			taskId: "t1",
-			agentId: "a1",
-		};
+describe("runWorktreeSetup unit tests", () => {
+	const target = {
+		worktree: "/mock/wt",
+		runId: "r1",
+		taskId: "t1",
+		agentId: "a1",
+	};
+
+	it("handles timedOut process and logs warning without throwing", async () => {
+		const { deps, warned } = mockSetupDeps(async () =>
+			shellResult(null, "", true),
+		);
 		const res = await runWorktreeSetup(
 			deps,
 			target,
@@ -309,6 +353,27 @@ describe("runWorktreeSetup unit tests", () => {
 		expect(warned[0]?.fields).toMatchObject({
 			command: "pnpm install",
 			reason: "timed out",
+		});
+	});
+
+	it("handles process killed without exit code and logs terminated reason with agentId", async () => {
+		const { deps, warned } = mockSetupDeps(async () =>
+			shellResult(null, "SIGKILL", false),
+		);
+		const res = await runWorktreeSetup(
+			deps,
+			target,
+			new AbortController().signal,
+			() => {},
+		);
+		expect(res).toBe("ok");
+		expect(warned).toHaveLength(1);
+		expect(warned[0]?.fields).toMatchObject({
+			runId: "r1",
+			taskId: "t1",
+			agentId: "a1",
+			command: "pnpm install",
+			reason: "terminated without exit code",
 		});
 	});
 });
