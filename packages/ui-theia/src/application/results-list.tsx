@@ -1,9 +1,10 @@
 import type { TaskCard } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
-import { LIST, MUTED, ROW, TITLE } from "./look.js";
+import { LIST, MUTED, ROW } from "./look.js";
 
-// The Team panel's Results (ADR-085): each task's latest report, as the fold keeps it from
-// artifact.created and artifact.updated, with Open. Nothing shows while no task has a report.
+// The Team panel's Results (ADR-085), the rail's Artifacts tab that names them (ADR-119): each
+// task's latest report, as the fold keeps it from artifact.created and artifact.updated, with Open.
+// Nothing shows while no task has a report.
 
 /** A report's path relative to the workspace, with forward slashes. */
 export const reportPath = (task: TaskCard) =>
@@ -29,8 +30,7 @@ export const ResultsList = ({
 	if (reports.length === 0) return null;
 	return (
 		<section aria-label={nls.localize("mete/board/results", "Results")}>
-			<h3 style={TITLE}>{nls.localize("mete/board/results", "Results")}</h3>
-			<ul style={LIST}>
+			<ul style={{ ...LIST, margin: 0 }}>
 				{reports.map(({ task, path }) => (
 					<li key={task.id} style={ROW} title={path}>
 						<span>{task.title}</span>

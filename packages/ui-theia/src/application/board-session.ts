@@ -73,16 +73,20 @@ const STUDIO_EVENTS = new Set<string>([
 	"run.completed",
 ]);
 
-// The latest events a list keeps, each once; the same list when none is added.
+// The latest events a list keeps, each once, even when the history and the live events it was read
+// beside both hold one; the same list when none is added.
 const keptAfter = (
 	kept: readonly MeteEvent[],
 	events: readonly MeteEvent[],
 	keep: (e: MeteEvent) => boolean,
 	most: number,
 ) => {
-	const added = events.filter(
-		(e) => keep(e) && !kept.some((x) => x.id === e.id),
-	);
+	const seen = new Set(kept.map((e) => e.id));
+	const added = events.filter((e) => {
+		if (!keep(e) || seen.has(e.id)) return false;
+		seen.add(e.id);
+		return true;
+	});
 	return added.length === 0 ? kept : [...kept, ...added].slice(-most);
 };
 

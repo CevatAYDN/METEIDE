@@ -37,6 +37,8 @@ import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
 import { MeteRunComposer } from "./run-composer.js";
 import { MeteShownRun } from "./shown-run.js";
 import { StudioView } from "./studio-view.js";
+import "../../style/mete-run.css";
+import "../../style/mete-side.css";
 
 // The Team panel (docs/13; ADR-051): one chosen run on the Board, as the Flow graph or in the Studio,
 // and the run composer while it shows no run (ADR-078), so a started run takes the composer's place.

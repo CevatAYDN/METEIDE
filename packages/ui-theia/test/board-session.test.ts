@@ -97,6 +97,14 @@ describe("the Board session", () => {
 		expect(next.model).toMatchObject({ feed: next.feed });
 	});
 
+	it("keeps an event once when it came live while the history that holds it was read", () => {
+		const assigned = event("task.assigned", { agentId: TASK });
+		const waiting = receiveBoard(startBoard(shown), "/w", assigned);
+		const s = loadedBoard(waiting, shown, ok([created, assigned]));
+		expect(s.feed).toEqual([assigned]);
+		expect(s.recent).toEqual([created, assigned]);
+	});
+
 	it("keeps the last live event and the view before it for the Studio, never one from history", () => {
 		const loaded = loadedBoard(
 			receiveBoard(startBoard(shown), "/w", started),

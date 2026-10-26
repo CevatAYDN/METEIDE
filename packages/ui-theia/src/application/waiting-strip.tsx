@@ -1,15 +1,15 @@
 import type { TaskCard, TeamView } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
-import type { CSSProperties } from "react";
+import { useId } from "react";
 import { roleWords } from "../domain/roster.js";
-import { LINK, LIST, MUTED, ROW } from "./look.js";
+import { ROW } from "./look.js";
 import { openReportLabel, reportPath } from "./results-list.js";
-import { Icon, LINE } from "./roster-look.js";
-import { TONES } from "./tone.js";
+import { Icon } from "./roster-look.js";
 
 // The Team panel's Waiting for you strip for the run it shows (ADR-091): a card for each task that
 // waits for the human — one asking to be approved, or one blocked until the human answers (docs/07)
-// — naming its member, or one card for a run that waits for anything else.
+// — naming its member, or one card for a run that waits for anything else. The cards wear the
+// redesign's look, laid out by style/mete-run.css (ADR-119).
 
 /** What the strip's buttons do: ADR-048's commands, for the run the panel shows. */
 export type WaitingControls = {
@@ -17,16 +17,6 @@ export type WaitingControls = {
 	readonly onRevise: (feedback: string) => void;
 	readonly onResume: () => void;
 	readonly onOpen: (path: string) => void;
-};
-
-const STRIP: CSSProperties = {
-	display: "flex",
-	flexDirection: "column",
-	gap: "10px",
-	maxWidth: "960px",
-	// The width the Team view's rows take, its padding and border inside it.
-	boxSizing: "border-box",
-	borderColor: TONES.warn,
 };
 
 // The answer field is required, so an empty answer is never sent (docs/08). One form for both
@@ -95,6 +85,54 @@ const Instruct = ({ onRevise }: { readonly onRevise: (f: string) => void }) => (
 	/>
 );
 
+// A card's head: a tile in the wait's tone, the sentence that names the member, and the kind of
+// wait when the events tell it.
+const Head = ({
+	tone,
+	icon,
+	title,
+	kind,
+}: {
+	readonly tone: "warn" | "bad";
+	readonly icon: string;
+	readonly title: string;
+	readonly kind?: string;
+}) => (
+	<div className="mete-wait-head">
+		<span className={`mete-tile ${tone}`} aria-hidden="true">
+			<Icon name={icon} />
+		</span>
+		<span style={{ display: "grid", gap: "2px", minWidth: 0 }}>
+			<strong>{title}</strong>
+			{kind ? <span className="mete-sub">{kind}</span> : null}
+		</span>
+	</div>
+);
+
+// The task's report as a file chip that opens it (ADR-085); none before the task wrote one.
+const ReportChip = ({
+	task,
+	onOpen,
+}: {
+	readonly task: TaskCard;
+	readonly onOpen: (path: string) => void;
+}) => {
+	const path = reportPath(task);
+	return path ? (
+		<button
+			type="button"
+			className="mete-file-chip"
+			title={path}
+			aria-label={openReportLabel(task)}
+			onClick={() => onOpen(path)}
+		>
+			<Icon name="file" />
+			<span className="mete-mono">{path.slice(path.lastIndexOf("/") + 1)}</span>
+			<Icon name="link-external" />
+		</button>
+	) : null;
+};
+
 const Asked = ({
 	task,
 	name,
@@ -103,44 +141,32 @@ const Asked = ({
 	readonly task: TaskCard;
 	readonly name: string;
 	readonly controls: WaitingControls;
-}) => {
-	const path = reportPath(task);
-	return (
-		<li style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-			<div style={LINE}>
-				<Icon name="bell" />
-				<strong>
-					{nls.localize(
-						"mete/waiting/asks",
-						"{0} asks you to approve “{1}”",
-						name,
-						task.title,
-					)}
-				</strong>
-				{path ? (
-					<button
-						type="button"
-						style={LINK}
-						aria-label={openReportLabel(task)}
-						onClick={() => controls.onOpen(path)}
-					>
-						{path.slice(path.lastIndexOf("/") + 1)}
-					</button>
-				) : null}
-			</div>
-			<div style={{ ...ROW, alignItems: "flex-start" }}>
-				<button
-					type="button"
-					className="mete-button"
-					onClick={controls.onApprove}
-				>
-					{nls.localize("mete/home/approve", "Approve")}
-				</button>
-				<Revise onRevise={controls.onRevise} />
-			</div>
-		</li>
-	);
-};
+}) => (
+	<li className="mete-wait-card">
+		<Head
+			tone="warn"
+			icon="eye"
+			title={nls.localize(
+				"mete/waiting/asks",
+				"{0} asks you to approve “{1}”",
+				name,
+				task.title,
+			)}
+			kind={nls.localize("mete/waiting/review", "Review")}
+		/>
+		<ReportChip task={task} onOpen={controls.onOpen} />
+		<div style={{ ...ROW, alignItems: "flex-start" }}>
+			<button
+				type="button"
+				className="mete-button"
+				onClick={controls.onApprove}
+			>
+				{nls.localize("mete/home/approve", "Approve")}
+			</button>
+			<Revise onRevise={controls.onRevise} />
+		</div>
+	</li>
+);
 
 // A blocked task (docs/07, Task state machine): a guardrail's retries ran out or a capability is
 // missing, and the run paused for the human. It goes on as it is, or with the human's instruction.
@@ -153,19 +179,19 @@ const Blocked = ({
 	readonly name: string;
 	readonly controls: WaitingControls;
 }) => (
-	<li style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-		<div style={LINE}>
-			<Icon name="alert" />
-			<strong>
-				{nls.localize(
-					"mete/waiting/blocked",
-					"{0} is blocked on “{1}”",
-					name,
-					task.title,
-				)}
-			</strong>
-		</div>
-		<span style={MUTED}>
+	<li className="mete-wait-card">
+		<Head
+			tone="bad"
+			icon="error"
+			title={nls.localize(
+				"mete/waiting/blocked",
+				"{0} is blocked on “{1}”",
+				name,
+				task.title,
+			)}
+			kind={nls.localize("mete/board/blocked", "Blocked")}
+		/>
+		<span className="mete-note">
 			{nls.localize(
 				"mete/waiting/blockedHint",
 				"It goes on when you answer: send an instruction, or let it go on as it is.",
@@ -187,20 +213,24 @@ const Blocked = ({
 // Paused for approval with no task asking the human: a policy ask, or a merge to settle. The
 // events say no more, so the card names nothing else.
 const RunWaits = ({ onResume }: { readonly onResume: () => void }) => (
-	<div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-		<div style={ROW}>
-			<span>{nls.localize("mete/waiting/run", "The run waits for you.")}</span>
-			<button type="button" className="mete-button" onClick={onResume}>
-				{nls.localize("mete/home/resume", "Resume")}
-			</button>
-		</div>
-		<span style={MUTED}>
+	<li className="mete-wait-card">
+		<Head
+			tone="warn"
+			icon="debug-pause"
+			title={nls.localize("mete/waiting/run", "The run waits for you.")}
+		/>
+		<span className="mete-note">
 			{nls.localize(
 				"mete/home/resumeHint",
 				"Resume repeats the tool call the policy asked about, so the run stops again unless .mete/policy.yaml allows it.",
 			)}
 		</span>
-	</div>
+		<div style={ROW}>
+			<button type="button" className="mete-button" onClick={onResume}>
+				{nls.localize("mete/home/resume", "Resume")}
+			</button>
+		</div>
+	</li>
 );
 
 /** The strip, while the run is paused for approval; nothing otherwise. */
@@ -213,17 +243,21 @@ export const WaitingStrip = ({
 	readonly names: Readonly<Record<string, string>>;
 	readonly controls: WaitingControls;
 }) => {
+	const title = useId();
 	if (view.signals.pausedFor !== "approval") return null;
 	const asked = view.tasks.filter((t) => t.waitsForHuman);
 	return (
-		<section
-			className="mete-card"
-			aria-label={nls.localize("mete/home/waiting", "Waiting for you")}
-			style={STRIP}
-		>
-			{asked.length > 0 ? (
-				<ul style={LIST}>
-					{asked.map((t) =>
+		<section className="mete-wait" aria-labelledby={title}>
+			<h3 className="mete-wait-title" id={title}>
+				<Icon name="bell" />
+				{nls.localize("mete/home/waiting", "Waiting for you")}
+				{asked.length > 0 ? (
+					<span className="mete-count">{asked.length}</span>
+				) : null}
+			</h3>
+			<ul className="mete-wait-cards">
+				{asked.length > 0 ? (
+					asked.map((t) =>
 						t.status === "blocked" ? (
 							<Blocked
 								key={t.id}
@@ -239,11 +273,11 @@ export const WaitingStrip = ({
 								controls={controls}
 							/>
 						),
-					)}
-				</ul>
-			) : (
-				<RunWaits onResume={controls.onResume} />
-			)}
+					)
+				) : (
+					<RunWaits onResume={controls.onResume} />
+				)}
+			</ul>
 		</section>
 	);
 };

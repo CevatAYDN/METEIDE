@@ -11,19 +11,21 @@ import { rosterOf } from "../domain/roster.js";
 import type { DaemonFailure } from "../domain/status-service.js";
 import { CheckpointList, type RestoreControls } from "./checkpoint-list.js";
 import type { Windows } from "./context-meter.js";
-import { FeedView } from "./feed-view.js";
 import { LINK, LIST, MUTED, PANEL, TITLE } from "./look.js";
-import { openReportLabel, ResultsList, reportPath } from "./results-list.js";
+import { openReportLabel, reportPath } from "./results-list.js";
+import { RunRail } from "./run-rail.js";
 import type { RunFacts } from "./run-strip.js";
 import { RunStrip } from "./run-strip-view.js";
 import { failureText } from "./status-text.js";
 import { studioText } from "./studio-text.js";
+import { columnName, markerText } from "./task-words.js";
 import { TeamView as Roster } from "./team-view.js";
 import { type WaitingControls, WaitingStrip } from "./waiting-strip.js";
 
 // The Team panel (docs/13, ADR-051): one run's tasks on the Board (To do, In progress and Done),
 // its members in the Team view (ADR-089) or as the Flow graph, both from the view model the fold of @mete/ui-studio keeps. Text is shown as it is: React escapes it.
 // Inline styles on Theia's CSS variables, as the Home view: the DOM panels keep Theia's colours (ADR-052).
+// Under the goal and the strip, a center column and the right rail (ADR-119), laid out by style/mete-run.css.
 
 /** What the Board draws: no run chosen yet, waiting for the history, why it failed, or the run. */
 export type BoardModel =
@@ -60,20 +62,6 @@ const CARD: CSSProperties = {
 	gap: "2px",
 	padding: "8px 12px",
 };
-
-const columnName = (column: Place["column"]) =>
-	({
-		todo: nls.localize("mete/board/todo", "To do"),
-		in_progress: nls.localize("mete/board/inProgress", "In progress"),
-		done: nls.localize("mete/board/done", "Done"),
-	})[column];
-
-const markerText = (marker: NonNullable<Place["marker"]>) =>
-	({
-		in_review: nls.localize("mete/board/inReview", "In review"),
-		changes_asked: nls.localize("mete/board/changesAsked", "Changes asked"),
-		blocked: nls.localize("mete/board/blocked", "Blocked"),
-	})[marker];
 
 // A Done card opens its report; another column's report may still change (ADR-085).
 const Card = ({
@@ -233,14 +221,11 @@ const Shown = ({
 }) => {
 	if (controls.mode === "team")
 		return (
-			<>
-				<Roster
-					members={rosterOf(model.view)}
-					names={controls.names}
-					windows={controls.windows}
-				/>
-				<FeedView view={model.view} feed={model.feed} names={controls.names} />
-			</>
+			<Roster
+				members={rosterOf(model.view)}
+				names={controls.names}
+				windows={controls.windows}
+			/>
 		);
 	if (controls.mode === "flow")
 		return model.view.tasks.length === 0 ? (
@@ -300,24 +285,34 @@ const Board = ({
 				)}
 			</p>
 		) : null}
-		{model.view.tasks.length === 0 && model.view.agents.length === 0 ? (
-			<NoTasks />
-		) : (
-			<>
-				<WaitingStrip
-					view={model.view}
-					names={controls.names}
-					controls={{ ...controls.waiting, onOpen: controls.onOpenReport }}
+		<div className="mete-run-body">
+			<div className="mete-run-center">
+				{model.view.tasks.length === 0 && model.view.agents.length === 0 ? (
+					<NoTasks />
+				) : (
+					<>
+						<WaitingStrip
+							view={model.view}
+							names={controls.names}
+							controls={{ ...controls.waiting, onOpen: controls.onOpenReport }}
+						/>
+						<ModeSwitch controls={controls} />
+						<Shown model={model} controls={controls} />
+					</>
+				)}
+				<CheckpointList
+					checkpoints={model.view.checkpoints}
+					restore={controls.restore}
 				/>
-				<ResultsList tasks={model.view.tasks} onOpen={controls.onOpenReport} />
-				<ModeSwitch controls={controls} />
-				<Shown model={model} controls={controls} />
-			</>
-		)}
-		<CheckpointList
-			checkpoints={model.view.checkpoints}
-			restore={controls.restore}
-		/>
+			</div>
+			<RunRail
+				view={model.view}
+				feed={model.feed}
+				names={controls.names}
+				status={controls.run.run?.status}
+				onOpenReport={controls.onOpenReport}
+			/>
+		</div>
 	</>
 );
 
@@ -329,9 +324,13 @@ export const BoardView = ({
 	readonly model: BoardModel;
 	readonly controls: TeamControls;
 }) => (
-	<section style={BOARD} aria-live="polite">
+	// Not a live region as a whole: the rail's feed changes with every event (ADR-119), and the
+	// Studio's list, the one event-by-event announcement, has its own.
+	<section className="mete-run" style={BOARD}>
 		{model.kind === "loading" ? (
-			<p>{nls.localize("mete/board/loading", "Reading the run's events…")}</p>
+			<p aria-live="polite">
+				{nls.localize("mete/board/loading", "Reading the run's events…")}
+			</p>
 		) : null}
 		{model.kind === "failed" ? (
 			<p role="alert">{failureText(model.failure)}</p>

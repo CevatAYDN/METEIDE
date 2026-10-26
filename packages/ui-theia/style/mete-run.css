@@ -1,0 +1,186 @@
+/* The Team panel's run (ADR-119), from the founder's redesign: under the goal and the run strip, a
+   center column and a 380 px right rail, each scrolling on its own. The tokens come from the panel
+   root's style, each with a Theia fallback for a high-contrast theme. */
+
+/* The panel is the container the narrow rule below measures. */
+.mete-run {
+	container: mete-run / inline-size;
+}
+
+.mete-run-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 380px;
+	gap: 16px;
+}
+
+/* A definite height for each column, so the Flow canvas fills the center as it filled the panel. */
+.mete-run-center,
+.mete-run-rail {
+	min-height: 0;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+}
+
+.mete-run-center {
+	gap: 14px;
+}
+
+.mete-run-rail {
+	gap: 10px;
+	padding-left: 16px;
+	border-left: 1.5px solid var(--line-soft, var(--theia-panel-border));
+}
+
+/* docs/13, Team panel: a panel narrower than 900 px puts the rail under the center, and the
+   panel scrolls as one. */
+@container mete-run (max-width: 899px) {
+	.mete-run-body {
+		display: flex;
+		flex-direction: column;
+		flex: none;
+	}
+
+	.mete-run-center,
+	.mete-run-rail {
+		overflow-y: visible;
+	}
+
+	.mete-run-rail {
+		padding-left: 0;
+		border-left: 0;
+	}
+}
+
+/* The rail's tabs stay at its top while its panel scrolls. */
+.mete-rail-tabs {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	display: flex;
+	gap: 4px;
+	background: var(--bg, var(--theia-editor-background));
+	border-bottom: 1.5px solid var(--line-soft, var(--theia-panel-border));
+}
+
+.mete-rail-tabs > [role="tab"] {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-bottom: -1.5px;
+	padding: 6px 10px;
+	font: inherit;
+	color: var(--muted, var(--theia-descriptionForeground));
+	background: none;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	cursor: pointer;
+}
+
+.mete-rail-tabs > [role="tab"]:hover {
+	color: var(--ink, var(--theia-foreground));
+}
+
+.mete-rail-tabs > [role="tab"][aria-selected="true"] {
+	font-weight: 700;
+	color: var(--ink, var(--theia-foreground));
+	border-bottom-color: var(--accent, var(--theia-focusBorder));
+}
+
+/* The Waiting for you strip (ADR-119): a title with the count of waiting tasks over cards that sit
+   side by side while the center is wide enough, each a warn wash with a 1.5 px border. */
+.mete-wait {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.mete-wait-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	font-size: 1.05em;
+	font-weight: 700;
+}
+
+.mete-wait-title > .codicon {
+	color: var(--warn, var(--theia-editorWarning-foreground));
+}
+
+.mete-wait-cards {
+	display: grid;
+	/* auto-fill keeps the empty tracks, so one card takes one column instead of the whole width. */
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	gap: 12px;
+	align-items: start;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.mete-wait-card {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px 14px;
+	border-radius: 14px;
+	background: color-mix(
+		in srgb,
+		var(--warn, var(--theia-editorWarning-foreground)) 7%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	border: 1.5px solid
+		color-mix(
+			in srgb,
+			var(--warn, var(--theia-editorWarning-foreground)) 36%,
+			var(--line, var(--theia-panel-border))
+		);
+}
+
+.mete-wait-head {
+	display: grid;
+	grid-template-columns: 24px minmax(0, 1fr);
+	gap: 10px;
+	align-items: start;
+}
+
+/* A report as a file chip: its name in JetBrains Mono, cut with an ellipsis, the path in its tooltip. */
+.mete-file-chip {
+	align-self: flex-start;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	max-width: 100%;
+	padding: 4px 10px;
+	font: inherit;
+	color: inherit;
+	background: var(--raised, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 10px;
+	cursor: pointer;
+}
+
+.mete-file-chip:hover {
+	border-color: var(--accent, var(--theia-focusBorder));
+}
+
+.mete-file-chip > .mete-mono {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* The count beside a tab's or a title's words: a measured number, so JetBrains Mono (docs/13). */
+.mete-count {
+	min-width: 18px;
+	padding: 0 5px;
+	border-radius: 6px;
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-size: 11px;
+	text-align: center;
+	color: var(--muted-2, var(--theia-badge-foreground));
+	background: var(--chip, var(--theia-badge-background));
+}

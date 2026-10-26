@@ -9,6 +9,7 @@ import {
 	type TeamMode,
 } from "../src/application/board-view.js";
 import { restoredText } from "../src/application/checkpoint-list.js";
+import { stepTab } from "../src/application/run-rail.js";
 import type { RunFacts } from "../src/application/run-strip.js";
 
 // The Board rendered to HTML on Node from a view the real fold built.
@@ -151,15 +152,103 @@ describe("the Board view", () => {
 			'aria-label="Open the report of Draft the notes"',
 		);
 		expect(results).not.toContain("Skeleton");
-		// Results come before the view switch.
-		expect(out.indexOf('aria-label="Results"')).toBeLessThan(
+		// Results are the rail's Artifacts tab, after the view switch and the view (ADR-119).
+		expect(out.indexOf('aria-label="Results"')).toBeGreaterThan(
+			out.indexOf('aria-label="Run details"'),
+		);
+		expect(out.indexOf('aria-label="Run details"')).toBeGreaterThan(
 			out.indexOf(">Board<"),
+		);
+		expect(out).toMatch(
+			/data-tab="artifacts"[^>]*>.*?<span class="mete-count">2</,
 		);
 		const done = section(out, "Done");
 		expect(done.match(/>Open report</g)).toHaveLength(1);
 		expect(done).toContain('aria-label="Open the report of Write the design"');
 		expect(section(out, "In progress")).not.toContain("Open report");
 		expect(html(board([plain.created]))).not.toContain('aria-label="Results"');
+	});
+
+	it("puts the feed and the reports in the rail beside every view, opening on the reports once the run is finished (ADR-119)", () => {
+		const doc = task("Write the notes");
+		const created = event(
+			"artifact.created",
+			{ artifactId: crypto.randomUUID(), type: "report@1", path: "n.md" },
+			doc.id,
+		);
+		const model = (events: MeteEvent[]): BoardModel => ({
+			kind: "board",
+			goal: "g",
+			view: applyAll(RUN, EMPTY_TEAM_VIEW, events),
+			unreadable: 0,
+			recent: [],
+			feed: events,
+		});
+		const facts = (status: "running" | "completed"): RunFacts => ({
+			run: {
+				id: RUN,
+				workspaceId: "w",
+				templateId: null,
+				goal: "g",
+				status,
+				autonomyLevel: 1,
+				budget: { cloudRequests: 12, maxHours: 2 },
+				createdAt: "2026-10-24T15:00:00",
+			},
+		});
+		const selected = (out: string) =>
+			/data-tab="(\w+)" aria-selected="true"/.exec(out)?.[1];
+		const withReport = model([doc.created, created]);
+		for (const mode of ["board", "flow", "studio", "team"] as const) {
+			const out = html(withReport, mode, undefined, facts("running"));
+			expect(out.split("Activity · newest first")).toHaveLength(2);
+			expect(out.match(/role="tabpanel"/g)).toHaveLength(3);
+			expect(out.match(/role="tabpanel"[^>]*hidden=""/g)).toHaveLength(2);
+			expect(selected(out)).toBe("activity");
+		}
+		expect(
+			selected(html(withReport, "board", undefined, facts("completed"))),
+		).toBe("artifacts");
+		const noReport = html(
+			model([doc.created]),
+			"board",
+			undefined,
+			facts("completed"),
+		);
+		expect(selected(noReport)).toBe("activity");
+		expect(noReport).toContain("No reports yet");
+	});
+
+	it("moves between the rail's tabs with the arrow keys, Home and End, wrapping at the ends", () => {
+		expect(stepTab("activity", "ArrowRight")).toBe("artifacts");
+		expect(stepTab("tasks", "ArrowRight")).toBe("activity");
+		expect(stepTab("activity", "ArrowLeft")).toBe("tasks");
+		expect(stepTab("tasks", "Home")).toBe("activity");
+		expect(stepTab("activity", "End")).toBe("tasks");
+		expect(stepTab("activity", "Enter")).toBeUndefined();
+	});
+
+	it("lists every task in the rail's Tasks tab with where it stands and its member, in the Board's words (ADR-119)", () => {
+		const notes = task("Take notes");
+		const summary = task("Write the summary");
+		const out = html({
+			kind: "board",
+			goal: "g",
+			view: applyAll(RUN, EMPTY_TEAM_VIEW, [
+				notes.created,
+				summary.created,
+				notes.to("in_progress", "blocked"),
+			]),
+			unreadable: 0,
+			recent: [],
+			feed: [],
+		});
+		const tasks = out.slice(out.indexOf('data-tab="tasks"'));
+		expect(tasks).toContain("Blocked · Copy writer");
+		expect(tasks).toContain("To do · Copy writer");
+		expect(tasks.indexOf("Take notes")).toBeLessThan(
+			tasks.indexOf("Write the summary"),
+		);
 	});
 
 	it("lists the run's checkpoints newest first with Restore, a restored one marked, and none without checkpoints (ADR-079)", () => {

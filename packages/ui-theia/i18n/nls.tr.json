@@ -204,6 +204,13 @@
 			"unusable": "{0}: modellerinden hiçbiri burada kullanılamıyor (gizlilik kuralları onları dışarıda bırakabilir: privacy.yaml içindeki allowTraining; model modu bırakabilir: gateway.yaml içindeki models; ya da anahtarı reddedildi)",
 			"used": "Kullanılan"
 		},
+		"rail": {
+			"activity": "Etkinlik",
+			"artifacts": "Çıktılar",
+			"label": "Çalışma ayrıntıları",
+			"noReports": "Henüz rapor yok: bir görevin raporu yazıldığında burada görünür.",
+			"tasks": "Görevler"
+		},
 		"roster": {
 			"blocked": "Engellendi",
 			"coder": "Kodcu",
@@ -531,6 +538,7 @@
 			"goOn": "Devam et",
 			"instruct": "Talimat ver…",
 			"instruction": "Ne yapmalı?",
+			"review": "İnceleme",
 			"run": "Çalıştırma seni bekliyor.",
 			"send": "Geri gönder",
 			"sendInstruction": "Talimatı gönder"

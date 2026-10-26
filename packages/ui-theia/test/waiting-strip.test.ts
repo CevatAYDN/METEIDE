@@ -95,6 +95,34 @@ describe("the Waiting for you strip", () => {
 		expect(out).not.toContain(">Approve<");
 	});
 
+	it("counts the waiting tasks in its title and tones each card by its wait, the run's own card uncounted (ADR-119)", () => {
+		const other = crypto.randomUUID();
+		const out = strip([
+			created,
+			event(
+				"task.created",
+				{ title: "Fix it", roleId: "qa", dependsOn: [] },
+				other,
+			),
+			event("approval.requested", { approver: "human" }, TASK),
+			event(
+				"task.status.changed",
+				{ from: "in_progress", to: "blocked" },
+				other,
+			),
+			paused,
+		]);
+		expect(out).toContain('<span class="mete-count">2</span>');
+		expect(out.match(/class="mete-wait-card"/g)).toHaveLength(2);
+		expect(out).toMatch(
+			/mete-tile warn"[\s\S]*?asks you to approve[\s\S]*?Review</,
+		);
+		expect(out).toMatch(/mete-tile bad"[\s\S]*?is blocked on[\s\S]*?Blocked</);
+		const run = strip([created, paused]);
+		expect(run).toContain("Waiting for you");
+		expect(run).not.toContain("mete-count");
+	});
+
 	it("draws nothing while the run is not paused for approval", () => {
 		const asked = event("approval.requested", { approver: "human" }, TASK);
 		expect(strip([created, asked])).toBe("");

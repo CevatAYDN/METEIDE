@@ -204,6 +204,13 @@
 			"unusable": "{0}: none of its models can be used here (the privacy rules may leave them out: allowTraining in privacy.yaml; the model mode may: models in gateway.yaml; or its key was refused)",
 			"used": "Used"
 		},
+		"rail": {
+			"activity": "Activity",
+			"artifacts": "Artifacts",
+			"label": "Run details",
+			"noReports": "No reports yet: a task's report shows here once it is written.",
+			"tasks": "Tasks"
+		},
 		"roster": {
 			"blocked": "Blocked",
 			"coder": "Coder",
@@ -531,6 +538,7 @@
 			"goOn": "Go on",
 			"instruct": "Give an instruction…",
 			"instruction": "What should it do?",
+			"review": "Review",
 			"run": "The run waits for you.",
 			"send": "Send back",
 			"sendInstruction": "Send the instruction"

@@ -57,6 +57,9 @@ tasks:
 const board = (page: Page, phrase: RegExp) =>
 	page.locator(".mete-panel").filter({ hasText: phrase });
 
+/** The Team panel's center column, whose strip names a wait; the rail's feed says it too (ADR-119). */
+const center = (page: Page) => page.locator(".mete-run-center");
+
 /** Opens the Quota dashboard and checks the scripted provider's spent unit: one request of one. */
 const expectSpentUnit = async (page: Page) => {
 	await runCommand(page, "METE: Open quota dashboard");
@@ -121,13 +124,17 @@ test.describe("a run blocked by its guardrail", () => {
 		const { page } = mete;
 		await startRun(page, { goal: GOAL, team: /triage/i });
 		const blocked = /is blocked on “Write the report”/;
-		await expect(page.getByText(blocked)).toBeVisible({ timeout: 90_000 });
+		await expect(center(page).getByText(blocked)).toBeVisible({
+			timeout: 90_000,
+		});
 
 		// The inbox names the same run; its goal opens the panel where the block is answered.
 		await runCommand(page, "METE: Show what waits for you");
 		await expect(inboxLink(page, GOAL)).toBeVisible({ timeout: 60_000 });
 		await inboxLink(page, GOAL).click();
-		await expect(page.getByText(blocked)).toBeVisible({ timeout: 60_000 });
+		await expect(center(page).getByText(blocked)).toBeVisible({
+			timeout: 60_000,
+		});
 
 		await page.getByText("Give an instruction…").click();
 		await page
