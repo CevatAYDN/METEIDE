@@ -159,6 +159,49 @@ const ModelChoice = ({
 	);
 };
 
+const SinglePreference = ({
+	singleModel,
+	models,
+	onSingleModel,
+}: {
+	readonly singleModel?: string | undefined;
+	readonly models: readonly string[];
+	readonly onSingleModel?: ((model: string) => void) | undefined;
+}) => (
+	<ModelChoice
+		label={nls.localize("mete/run/preferModel", "Preferred model (optional)")}
+		value={singleModel}
+		models={models}
+		onChange={(v) => onSingleModel?.(v)}
+	/>
+);
+
+const TeamPreferences = ({
+	roles,
+	roleModels,
+	onRoleModel,
+}: {
+	readonly roles: NonNullable<ComposerOption["roles"]>;
+	readonly roleModels?: Readonly<Record<string, string>> | undefined;
+	readonly onRoleModel?: ((roleId: string, model: string) => void) | undefined;
+}) => (
+	<div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+		{roles.map((r) => (
+			<ModelChoice
+				key={r.id}
+				label={
+					r.name
+						? `${r.name} · ${nls.localize("mete/run/preferModel", "Preferred model (optional)")}`
+						: nls.localize("mete/run/preferModel", "Preferred model (optional)")
+				}
+				value={roleModels?.[r.id]}
+				models={r.models ?? []}
+				onChange={(v) => onRoleModel?.(r.id, v)}
+			/>
+		))}
+	</div>
+);
+
 const Preferences = ({
 	chosen,
 	singleModel,
@@ -175,38 +218,20 @@ const Preferences = ({
 	if (!chosen || chosen.templateId === undefined) return null;
 	if (chosen.templateId === null) {
 		return (
-			<ModelChoice
-				label={nls.localize(
-					"mete/run/preferModel",
-					"Preferred model (optional)",
-				)}
-				value={singleModel}
+			<SinglePreference
+				singleModel={singleModel}
 				models={chosen.models ?? []}
-				onChange={(v) => onSingleModel?.(v)}
+				onSingleModel={onSingleModel}
 			/>
 		);
 	}
-	if (!chosen.roles?.length) return null;
-	return (
-		<div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-			{chosen.roles.map((r) => (
-				<ModelChoice
-					key={r.id}
-					label={
-						r.name
-							? `${r.name} · ${nls.localize("mete/run/preferModel", "Preferred model (optional)")}`
-							: nls.localize(
-									"mete/run/preferModel",
-									"Preferred model (optional)",
-								)
-					}
-					value={roleModels?.[r.id]}
-					models={r.models ?? []}
-					onChange={(v) => onRoleModel?.(r.id, v)}
-				/>
-			))}
-		</div>
-	);
+	return chosen.roles?.length ? (
+		<TeamPreferences
+			roles={chosen.roles}
+			roleModels={roleModels}
+			onRoleModel={onRoleModel}
+		/>
+	) : null;
 };
 
 const GoalField = ({
@@ -232,6 +257,41 @@ const GoalField = ({
 			}}
 		/>
 	</label>
+);
+
+const ComposerActions = ({
+	ready,
+	busy,
+	onNewTeam,
+	onStart,
+}: {
+	readonly ready: boolean;
+	readonly busy: boolean;
+	readonly onNewTeam: () => void;
+	readonly onStart: () => void;
+}) => (
+	<>
+		<div style={ROW}>
+			<button type="button" className="mete-button quiet" onClick={onNewTeam}>
+				{nls.localize("mete/team/new", "New team")}
+			</button>
+		</div>
+		<div style={ROW}>
+			<button
+				type="button"
+				className="mete-button"
+				disabled={!ready}
+				onClick={onStart}
+			>
+				{nls.localize("mete/run/start", "Start run")}
+			</button>
+			{busy ? (
+				<span style={MUTED} role="status">
+					{nls.localize("mete/run/starting", "METE is starting the run…")}
+				</span>
+			) : null}
+		</div>
+	</>
 );
 
 /** The composer for a model and the user's input; Ctrl+Enter in the goal starts the run. */
@@ -272,30 +332,12 @@ export const ComposerView = (props: Props) => {
 				onSingleModel={props.onSingleModel}
 				onRoleModel={props.onRoleModel}
 			/>
-			<div style={ROW}>
-				<button
-					type="button"
-					className="mete-button quiet"
-					onClick={props.onNewTeam}
-				>
-					{nls.localize("mete/team/new", "New team")}
-				</button>
-			</div>
-			<div style={ROW}>
-				<button
-					type="button"
-					className="mete-button"
-					disabled={!ready}
-					onClick={props.onStart}
-				>
-					{nls.localize("mete/run/start", "Start run")}
-				</button>
-				{busy ? (
-					<span style={MUTED} role="status">
-						{nls.localize("mete/run/starting", "METE is starting the run…")}
-					</span>
-				) : null}
-			</div>
+			<ComposerActions
+				ready={ready}
+				busy={busy}
+				onNewTeam={props.onNewTeam}
+				onStart={props.onStart}
+			/>
 			{error ? <p role="alert">{error}</p> : null}
 		</section>
 	);

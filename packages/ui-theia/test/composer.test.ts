@@ -1,12 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { err, type ModelRef, ok } from "@mete/contracts";
+import { describe, expect, it, vi } from "vitest";
 import {
+	type ChainContext,
 	type EstimateReply,
+	fetchChain,
+	loadRoles,
 	modelRefOf,
 	narrowedTo,
 	optionsOf,
 	preferOf,
 	startOf,
 } from "../src/application/composer.js";
+import type { MeteDaemonService } from "../src/domain/status-service.js";
 
 // The composer's list and the request Start sends, without Theia (ADR-058, ADR-068, ADR-071).
 
@@ -154,7 +159,27 @@ describe("startOf", () => {
 			}),
 		).toEqual({
 			goal: "g",
-			prefer: { lead: { providerId: "groq", modelId: "llama" } },
+		});
+	});
+
+	it("omits prefer if prefer type mismatches the option kind", () => {
+		const single = option("single");
+		const team = option("game-studio");
+		// Single agent given a team record prefer: omitted
+		expect(
+			startOf("g", single, {
+				lead: { providerId: "groq", modelId: "llama" },
+			}),
+		).toEqual({
+			goal: "g",
+			templateId: null,
+		});
+		// Team given a single ModelRef prefer: omitted
+		expect(
+			startOf("g", team, { providerId: "groq", modelId: "llama" }),
+		).toEqual({
+			goal: "g",
+			templateId: "game-studio",
 		});
 	});
 });
@@ -218,9 +243,148 @@ describe("preferOf", () => {
 		expect(preferOf("web-dev", undefined, { lead: "" })).toBeUndefined();
 	});
 
+	it("filters out roles not present in allowedRoles", () => {
+		expect(
+			preferOf(
+				"web-dev",
+				undefined,
+				{
+					lead: "groq/llama",
+					dev: "gemini/flash",
+					stale_role: "groq/llama",
+				},
+				["lead", "dev"],
+			),
+		).toEqual({
+			lead: { providerId: "groq", modelId: "llama" },
+			dev: { providerId: "gemini", modelId: "flash" },
+		});
+		expect(
+			preferOf("web-dev", undefined, { stale_role: "groq/llama" }, [
+				"lead",
+				"dev",
+			]),
+		).toBeUndefined();
+	});
+
 	it("returns undefined when METE chooses", () => {
 		expect(
 			preferOf(undefined, "groq/llama", { lead: "groq/llama" }),
 		).toBeUndefined();
+	});
+});
+
+const fakeDaemon = (
+	overrides?: Partial<MeteDaemonService>,
+): MeteDaemonService =>
+	({
+		chain: vi.fn(async () =>
+			ok({
+				models: [
+					{ providerId: "groq", modelId: "llama-3.3-70b-versatile" },
+					{ providerId: "gemini", modelId: "gemini-2.0-flash" },
+				] as readonly ModelRef[],
+			}),
+		),
+		readTemplate: vi.fn(async (_dir: string, id: string) =>
+			ok({
+				id,
+				source: "workspace" as const,
+				yaml: `metadata:\n  id: ${id}\n  name: ${id}\nroles:\n  - id: lead\n    name: Lead\n    tier: coder\n  - id: dev\n    name: Developer\n    tier: fast\n`,
+			}),
+		),
+		...overrides,
+	}) as unknown as MeteDaemonService;
+
+describe("fetchChain", () => {
+	it("fetches and caches models for a valid tier", async () => {
+		const daemon = fakeDaemon();
+		const ctx: ChainContext = {
+			daemon,
+			dir: "/workspace",
+			cache: new Map(),
+		};
+		const models = await fetchChain(ctx, "coder", []);
+		expect(models).toEqual([
+			"groq/llama-3.3-70b-versatile",
+			"gemini/gemini-2.0-flash",
+		]);
+		expect(daemon.chain).toHaveBeenCalledTimes(1);
+
+		// Second call uses cache
+		const cached = await fetchChain(ctx, "coder", []);
+		expect(cached).toEqual(models);
+		expect(daemon.chain).toHaveBeenCalledTimes(1);
+	});
+
+	it("returns empty array for invalid tier without calling daemon", async () => {
+		const daemon = fakeDaemon();
+		const ctx: ChainContext = {
+			daemon,
+			dir: "/workspace",
+			cache: new Map(),
+		};
+		expect(await fetchChain(ctx, "invalid_tier", [])).toEqual([]);
+		expect(daemon.chain).not.toHaveBeenCalled();
+	});
+
+	it("handles daemon failure gracefully", async () => {
+		const daemon = fakeDaemon({
+			chain: vi.fn(async () =>
+				err({ code: "refused" as const, detail: "no chain" }),
+			),
+		});
+		const ctx: ChainContext = {
+			daemon,
+			dir: "/workspace",
+			cache: new Map(),
+		};
+		expect(await fetchChain(ctx, "coder", [])).toEqual([]);
+	});
+
+	it("handles undefined needsList safely", async () => {
+		const daemon = fakeDaemon();
+		const ctx: ChainContext = {
+			daemon,
+			dir: "/workspace",
+			cache: new Map(),
+		};
+		expect(await fetchChain(ctx, "coder", undefined)).toHaveLength(2);
+	});
+});
+
+describe("loadRoles", () => {
+	it("enriches templates with roles and models from chain", async () => {
+		const daemon = fakeDaemon();
+		const ctx: ChainContext = {
+			daemon,
+			dir: "/workspace",
+			cache: new Map(),
+		};
+		const enriched = await loadRoles(ctx, [
+			{ id: "game-studio", name: "Game Studio" },
+		]);
+		expect(enriched).toHaveLength(1);
+		expect(enriched[0]?.roles).toHaveLength(2);
+		expect(enriched[0]?.roles?.[0]?.id).toBe("lead");
+		expect(enriched[0]?.roles?.[0]?.models).toEqual([
+			"groq/llama-3.3-70b-versatile",
+			"gemini/gemini-2.0-flash",
+		]);
+	});
+
+	it("returns template unchanged when readTemplate fails", async () => {
+		const daemon = fakeDaemon({
+			readTemplate: vi.fn(async () =>
+				err({ code: "refused" as const, detail: "missing" }),
+			),
+		});
+		const ctx: ChainContext = {
+			daemon,
+			dir: "/workspace",
+			cache: new Map(),
+		};
+		const enriched = await loadRoles(ctx, [{ id: "missing", name: "Missing" }]);
+		expect(enriched[0]?.roles).toBeUndefined();
 	});
 });

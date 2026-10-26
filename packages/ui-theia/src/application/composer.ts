@@ -1,8 +1,20 @@
-import type { ModelRef, RunPrefer, RunStart } from "@mete/contracts";
-import { ModelRefSchema } from "@mete/contracts";
+import {
+	type ModelRef,
+	ModelRefSchema,
+	NeedSchema,
+	type RunPrefer,
+	type RunStart,
+	TierSchema,
+} from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
-import type { DaemonFailure, Estimate } from "../domain/status-service.js";
+import type {
+	DaemonFailure,
+	Estimate,
+	MeteDaemonService,
+} from "../domain/status-service.js";
 import { estimateText } from "./estimate-text.js";
+import { chainKey } from "./pins-draft.js";
+import { draftOf, teamOf } from "./team-draft.js";
 
 // What the run composer's screen lists and what Start sends (ADR-058, ADR-068, ADR-071, ADR-122),
 // as plain values, so the order, the estimate lines and the narrowing are tested without Theia.
@@ -40,6 +52,68 @@ export type TemplateListing = {
 export type EstimateReply =
 	| { readonly ok: true; readonly value: Estimate }
 	| { readonly ok: false; readonly error: DaemonFailure };
+
+/** Context for fetching model chains from the daemon. */
+export type ChainContext = {
+	readonly daemon: MeteDaemonService;
+	readonly dir: string;
+	readonly cache: Map<string, readonly string[]>;
+};
+
+/** Fetches models for a tier and needs, returning strings formatted as providerId/modelId. */
+export const fetchChain = async (
+	ctx: ChainContext,
+	tierName: string,
+	needsList: readonly string[] = [],
+): Promise<readonly string[]> => {
+	const tier = TierSchema.safeParse(tierName);
+	if (!tier.success) return [];
+	const validNeeds = (needsList ?? []).filter(
+		(n) => NeedSchema.safeParse(n).success,
+	);
+	const needs = NeedSchema.array().parse(validNeeds);
+	const key = chainKey(tier.data, needs);
+	const hit = ctx.cache.get(key);
+	if (hit) return hit;
+	try {
+		const res = await ctx.daemon.chain(ctx.dir, tier.data, needs);
+		const models = res.ok
+			? res.value.models.map((m) => `${m.providerId}/${m.modelId}`)
+			: [];
+		ctx.cache.set(key, models);
+		return models;
+	} catch {
+		return [];
+	}
+};
+
+/** Loads template files and populates their roles with chain models. */
+export const loadRoles = async (
+	ctx: ChainContext,
+	templates: readonly TemplateListing[],
+): Promise<TemplateListing[]> =>
+	Promise.all(
+		templates.map(async (t) => {
+			try {
+				const read = await ctx.daemon.readTemplate(ctx.dir, t.id);
+				if (!read.ok) return t;
+				const draft = draftOf(read.value.yaml);
+				if (!draft.ok) return t;
+				const roles = await Promise.all(
+					teamOf(draft.value)
+						.roles.filter((r) => r.id.trim().length > 0)
+						.map(async (r) => ({
+							id: r.id,
+							name: r.name || r.id,
+							models: await fetchChain(ctx, r.tier, r.needs),
+						})),
+				);
+				return { ...t, roles };
+			} catch {
+				return t;
+			}
+		}),
+	);
 
 const lineOf = (reply: EstimateReply | undefined, team: boolean) =>
 	reply?.ok ? { estimate: estimateText(reply.value, team) } : {};
@@ -104,26 +178,34 @@ export const modelRefOf = (value?: string): ModelRef | undefined => {
 	return r.success ? r.data : undefined;
 };
 
+const teamPreferOf = (
+	roleModels: Readonly<Record<string, string>>,
+	allowedRoles?: readonly string[],
+): Record<string, ModelRef> | undefined => {
+	const allowed = allowedRoles ? new Set(allowedRoles) : undefined;
+	const out: Record<string, ModelRef> = {};
+	for (const [roleId, str] of Object.entries(roleModels)) {
+		if (allowed && !allowed.has(roleId)) continue;
+		const ref = modelRefOf(str);
+		if (ref) out[roleId] = ref;
+	}
+	return Object.keys(out).length > 0 ? out : undefined;
+};
+
 /**
  * Resolves the run model preference (ADR-122):
  * - single agent: ModelRef or undefined
- * - team run: Record<string, ModelRef> or undefined
+ * - team run: Record<string, ModelRef> or undefined (filtered to allowed roles if given)
  */
 export const preferOf = (
 	templateId: string | null | undefined,
 	singleModel?: string | undefined,
 	roleModels?: Readonly<Record<string, string>> | undefined,
+	allowedRoles?: readonly string[],
 ): RunPrefer | undefined => {
-	if (templateId === null) {
-		return modelRefOf(singleModel);
-	}
+	if (templateId === null) return modelRefOf(singleModel);
 	if (typeof templateId === "string" && roleModels) {
-		const out: Record<string, ModelRef> = {};
-		for (const [roleId, str] of Object.entries(roleModels)) {
-			const ref = modelRefOf(str);
-			if (ref) out[roleId] = ref;
-		}
-		return Object.keys(out).length > 0 ? out : undefined;
+		return teamPreferOf(roleModels, allowedRoles);
 	}
 	return undefined;
 };
@@ -140,7 +222,11 @@ export const startOf = (
 			? {}
 			: { templateId: option.templateId }),
 	};
-	if (!prefer) return base;
-	if ("providerId" in prefer) return { ...base, prefer };
-	return Object.keys(prefer).length > 0 ? { ...base, prefer } : base;
+	if (option.templateId === undefined || !prefer) return base;
+	if (option.templateId === null) {
+		return "providerId" in prefer ? { ...base, prefer } : base;
+	}
+	return !("providerId" in prefer) && Object.keys(prefer).length > 0
+		? { ...base, prefer }
+		: base;
 };

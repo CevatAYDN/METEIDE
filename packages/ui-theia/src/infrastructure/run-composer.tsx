@@ -1,24 +1,23 @@
-import { NeedSchema, TierSchema } from "@mete/contracts";
 import { CommandService, MessageService } from "@theia/core";
 import { Emitter } from "@theia/core/lib/common/event";
 import { nls } from "@theia/core/lib/common/nls";
 import { inject, injectable } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import {
+	type ChainContext,
 	type ComposerOption,
+	fetchChain,
+	loadRoles,
 	narrowedTo,
 	optionsOf,
 	preferOf,
 	startOf,
-	type TemplateListing,
 } from "../application/composer.js";
 import {
 	type ComposerModel,
 	ComposerView,
 } from "../application/composer-view.js";
-import { chainKey } from "../application/pins-draft.js";
 import { failureText } from "../application/status-text.js";
-import { draftOf, teamOf } from "../application/team-draft.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import {
 	EDIT_TEAM_COMMAND,
@@ -35,62 +34,6 @@ export type StartedRun = {
 	readonly runId: string;
 	readonly goal: string;
 };
-
-type ChainContext = {
-	readonly daemon: MeteDaemonService;
-	readonly dir: string;
-	readonly cache: Map<string, readonly string[]>;
-};
-
-const fetchChain = async (
-	ctx: ChainContext,
-	tierName: string,
-	needsList: readonly string[],
-): Promise<readonly string[]> => {
-	const tier = TierSchema.safeParse(tierName);
-	if (!tier.success) return [];
-	const needs = NeedSchema.array().parse(
-		needsList.filter((n) => NeedSchema.safeParse(n).success),
-	);
-	const key = chainKey(tier.data, needs);
-	const hit = ctx.cache.get(key);
-	if (hit) return hit;
-	try {
-		const res = await ctx.daemon.chain(ctx.dir, tier.data, needs);
-		const models = res.ok
-			? res.value.models.map((m) => `${m.providerId}/${m.modelId}`)
-			: [];
-		ctx.cache.set(key, models);
-		return models;
-	} catch {
-		return [];
-	}
-};
-
-const loadRoles = async (
-	ctx: ChainContext,
-	templates: readonly TemplateListing[],
-): Promise<TemplateListing[]> =>
-	Promise.all(
-		templates.map(async (t) => {
-			try {
-				const read = await ctx.daemon.readTemplate(ctx.dir, t.id);
-				if (!read.ok) return t;
-				const draft = draftOf(read.value.yaml);
-				if (!draft.ok) return t;
-				const roles = await Promise.all(
-					teamOf(draft.value).roles.map(async (r) => ({
-						id: r.id,
-						name: r.name || r.id,
-						models: await fetchChain(ctx, r.tier, r.needs),
-					})),
-				);
-				return { ...t, roles };
-			} catch {
-				return t;
-			}
-		}),
-	);
 
 /** The METE run composer: its state and requests; the Team panel draws it. */
 @injectable()
@@ -114,7 +57,7 @@ export class MeteRunComposer {
 	protected goal = "";
 	protected selected = "choose";
 	protected singleModel: string | undefined;
-	protected roleModels: Record<string, string> = {};
+	protected roleModels: Record<string, Record<string, string>> = {};
 	protected readonly chainCache = new Map<string, readonly string[]>();
 	protected busy = false;
 	protected error: string | undefined;
@@ -140,6 +83,7 @@ export class MeteRunComposer {
 		const [root] = await this.workspace.roots;
 		if (!root) return this.setModel({ kind: "no_folder" });
 		this.dir = root.resource.path.fsPath();
+		this.chainCache.clear();
 		if (this.model.kind !== "ready") this.setModel({ kind: "loading" });
 		const listed = await this.daemon.templates(this.dir);
 		const raw = listed.ok ? listed.value.templates : [];
@@ -172,10 +116,15 @@ export class MeteRunComposer {
 		this.busy = true;
 		this.error = undefined;
 		this.changed.fire();
+		const rolePrefs =
+			typeof option.templateId === "string"
+				? this.roleModels[option.key]
+				: undefined;
 		const prefer = preferOf(
 			option.templateId,
 			this.singleModel,
-			this.roleModels,
+			rolePrefs,
+			option.roles?.map((r) => r.id),
 		);
 		const r = await this.daemon.startRun(
 			dir,
@@ -226,7 +175,7 @@ export class MeteRunComposer {
 				busy={this.busy}
 				error={this.error}
 				singleModel={this.singleModel}
-				roleModels={this.roleModels}
+				roleModels={this.selected ? this.roleModels[this.selected] : undefined}
 				onGoal={(goal) => {
 					this.goal = goal;
 					this.changed.fire();
@@ -240,7 +189,11 @@ export class MeteRunComposer {
 					this.changed.fire();
 				}}
 				onRoleModel={(roleId, model) => {
-					this.roleModels = { ...this.roleModels, [roleId]: model };
+					const current = this.roleModels[this.selected] ?? {};
+					this.roleModels = {
+						...this.roleModels,
+						[this.selected]: { ...current, [roleId]: model },
+					};
 					this.changed.fire();
 				}}
 				onStart={() => void this.start()}
