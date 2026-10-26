@@ -8,15 +8,16 @@ import { CustomProviderIdSchema, ModelInfoSchema } from "./provider.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 20 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-108).
+// Daemon protocol version 21 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-121).
 // The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
 
-/** The messages of version 20; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 21; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
 	runApprove: "mete/run.approve",
 	runResume: "mete/run.resume",
+	runAllow: "mete/run.allow",
 	quota: "mete/quota",
 	events: "mete/events",
 	audit: "mete/audit",
@@ -75,6 +76,12 @@ export const DaemonRunStartResultSchema = z.strictObject({ runId: IdSchema });
 /** Params of `mete/run.resume`: the run to go on with. */
 export const DaemonRunIdParamsSchema = z.strictObject({
 	runId: z.string().min(1),
+});
+
+/** Params of `mete/run.allow`: the run and how far its policy ask is allowed (ADR-121). */
+export const DaemonRunAllowParamsSchema = z.strictObject({
+	runId: z.string().min(1),
+	scope: z.enum(["once", "run", "always"]),
 });
 
 /** Params of `mete/run.approve`: the run and the human's decision (ADR-048). */
@@ -353,7 +360,7 @@ export const DaemonProviderTestResultSchema = z.strictObject({
 	),
 });
 
-/** Result of `mete/run.approve` and `mete/run.resume`: a request that returns nothing sends null. */
+/** Result of `mete/run.approve`, `mete/run.resume` and `mete/run.allow`: a request that returns nothing sends null. */
 export const DaemonDoneResultSchema = z.null();
 
 /**

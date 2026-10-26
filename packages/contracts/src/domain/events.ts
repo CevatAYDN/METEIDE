@@ -6,6 +6,7 @@ import {
 	TimestampSchema,
 } from "./ids.js";
 import { TierSchema } from "./llm.js";
+import { PolicyAskSchema } from "./policy.js";
 import { err, ok, type Result } from "./result.js";
 import {
 	CheckpointKindSchema,
@@ -157,6 +158,8 @@ const PAYLOADS = {
 	"rollback.performed": z.strictObject({ checkpointId: IdSchema }),
 	"vault.note.saved": z.strictObject({ path: text, noteType: text }),
 	"policy.blocked": z.strictObject({ action: text, rule: text }),
+	// The policy asked about a call (ADR-121); masked, so it may follow the run.paused it caused.
+	"policy.asked": PolicyAskSchema.extend({ rule: text }),
 	"module.activated": moduleChange,
 	"module.deactivated": moduleChange,
 	"module.crashed": moduleChange,

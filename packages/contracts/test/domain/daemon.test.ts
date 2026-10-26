@@ -24,6 +24,7 @@ import {
 	DaemonProviderTestParamsSchema,
 	DaemonProviderTestResultSchema,
 	DaemonQuotaResultSchema,
+	DaemonRunAllowParamsSchema,
 	DaemonRunApproveParamsSchema,
 	DaemonRunIdParamsSchema,
 	DaemonRunStartResultSchema,
@@ -54,7 +55,7 @@ const run: RunView = {
 	endedAt: "2026-10-23T11:00:00.000Z",
 };
 
-describe("daemon protocol version 20", () => {
+describe("daemon protocol version 21", () => {
 	it("answers mete/events with the run's events in order and the count of unreadable rows", () => {
 		const event = {
 			id: crypto.randomUUID(),
@@ -135,6 +136,7 @@ describe("daemon protocol version 20", () => {
 			runStart: "mete/run.start",
 			runApprove: "mete/run.approve",
 			runResume: "mete/run.resume",
+			runAllow: "mete/run.allow",
 			quota: "mete/quota",
 			events: "mete/events",
 			audit: "mete/audit",
@@ -307,6 +309,17 @@ describe("daemon protocol version 20", () => {
 			runId: "r1",
 		});
 		expect(DaemonRunIdParamsSchema.safeParse({}).success).toBe(false);
+		for (const scope of ["once", "run", "always"])
+			expect(DaemonRunAllowParamsSchema.parse({ runId: "r1", scope })).toEqual({
+				runId: "r1",
+				scope,
+			});
+		for (const bad of [
+			{ runId: "r1" },
+			{ runId: "r1", scope: "ever" },
+			{ scope: "once" },
+		])
+			expect(DaemonRunAllowParamsSchema.safeParse(bad).success).toBe(false);
 		expect(DaemonDoneResultSchema.parse(null)).toBeNull();
 		expect(DaemonDoneResultSchema.safeParse({}).success).toBe(false);
 	});

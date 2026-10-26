@@ -29,6 +29,8 @@ export const DEFAULT_POLICY = {
 		{ action: "shell.exec", command: "*.Kill*" },
 	],
 	shellAllow: ["pnpm *", "npm test", "npm run *", "git status", "git diff *"],
+	// Exact commands the user allowed for good with Always allow (ADR-121); none built in.
+	shellAlways: [],
 	cloudRequestsPerRun: 150,
 	maxHours: 6,
 	approvalTimeoutHours: 24,

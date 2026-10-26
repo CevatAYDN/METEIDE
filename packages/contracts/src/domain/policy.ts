@@ -62,6 +62,10 @@ export const PolicySchema = z
 					.array(text)
 					.readonly()
 					.default(() => [...D.shellAllow]),
+				always: z
+					.array(text)
+					.readonly()
+					.default(() => [...D.shellAlways]),
 			})
 			.prefault({}),
 		budget: z
@@ -132,6 +136,33 @@ export type AuditFailed = {
 /** The policy.check@1 adapter: decides and writes the audit row in one call. */
 export interface PolicyCheckAdapter {
 	check(input: PolicyCheckInput): Result<PolicyVerdict, AuditFailed>;
+}
+
+/** What the policy asked about (ADR-121): a `policy.asked` payload without its rule, masked. */
+export const PolicyAskSchema = z.strictObject({
+	action: PolicyActionSchema,
+	capability: CapabilityRefSchema,
+	adapterId: text,
+	command: text.optional(),
+	path: text.optional(),
+});
+
+/** An ask the human answered; a later check of the run may match it (SECURITY.md, Answering an ask). */
+export type PolicyAsk = z.infer<typeof PolicyAskSchema>;
+
+/** Input of policy.grant@1: once (used up by the first match) or for the rest of the run. */
+export const PolicyGrantInputSchema = z.strictObject({
+	runId: IdSchema,
+	scope: z.enum(["once", "run"]),
+	ask: PolicyAskSchema,
+});
+
+/** The human's answer to an ask of one run. */
+export type PolicyGrantInput = z.infer<typeof PolicyGrantInputSchema>;
+
+/** The policy.grant@1 adapter: turns a later matching ask of the run into allow, never a deny. */
+export interface PolicyGrantAdapter {
+	grant(input: PolicyGrantInput): void;
 }
 
 /** Output of secrets.mask@1: the text with each secret replaced, and how many were. */

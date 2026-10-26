@@ -25,6 +25,19 @@ describe("parseEvent", () => {
 			expect(r.value.payload.reason).toBe("quota");
 	});
 
+	it("accepts a policy ask with its command, and refuses one without its adapter (ADR-121)", () => {
+		const asked = {
+			action: "shell.exec",
+			capability: "shell.exec@1",
+			adapterId: "tools-shell",
+			rule: "autonomy:1",
+			command: "npm install",
+		};
+		expect(parseEvent(envelope("policy.asked", asked)).ok).toBe(true);
+		const { adapterId: _, ...bare } = asked;
+		expect(parseEvent(envelope("policy.asked", bare)).ok).toBe(false);
+	});
+
 	it("accepts events whose payload is none", () => {
 		expect(parseEvent(envelope("network.lost", {})).ok).toBe(true);
 	});
@@ -134,8 +147,8 @@ describe("parseEvent", () => {
 });
 
 describe("EVENT_TYPES", () => {
-	it("covers the 43 types of the catalog in tab 07, all well formed", () => {
-		expect(EVENT_TYPES).toHaveLength(43);
+	it("covers the 44 types of the catalog in tab 07, all well formed", () => {
+		expect(EVENT_TYPES).toHaveLength(44);
 		for (const t of EVENT_TYPES) expect(EventTypeSchema.parse(t)).toBe(t);
 	});
 });
