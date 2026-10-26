@@ -40,6 +40,7 @@ import {
 	createCheckpoint,
 	dropWorktree,
 	landWorktree,
+	runWorktreeSetup,
 	startWorktree,
 } from "./vcs-steps.js";
 import { verifyGates } from "./verify.js";
@@ -236,17 +237,33 @@ const worktreeOf = async (
 	s: EngineState,
 	l: Live,
 	team: TeamState,
-	id: string,
+	target: { readonly id: string; readonly agentId: string },
 ) => {
-	const entry = team.tasks[id];
-	if (!entry || !isWriter(team, id)) return undefined;
+	const entry = team.tasks[target.id];
+	if (!entry || !isWriter(team, target.id)) return undefined;
+	if (entry.context.worktree) return entry.context.worktree;
 	const ids = { runId: l.meta.id, taskId: entry.id };
-	return entry.context.worktree ?? startWorktree(s.deps, ids, l.all.signal);
+	const tree = await startWorktree(s.deps, ids, l.all.signal);
+	if (!tree) return undefined;
+	const res = await runWorktreeSetup(
+		s.deps,
+		{
+			worktree: tree,
+			runId: l.meta.id,
+			taskId: entry.id,
+			agentId: target.agentId,
+		},
+		l.all.signal,
+		(body) => emit(s, l, body, entry.id),
+	);
+	if (res === "approval")
+		apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
+	return tree;
 };
 
 const start = async (s: EngineState, l: Live, team: TeamState, id: string) => {
 	const agentId = team.tasks[id]?.context.agentId ?? s.deps.newId();
-	const worktree = await worktreeOf(s, l, team, id);
+	const worktree = await worktreeOf(s, l, team, { id, agentId });
 	// Paused or cancelled while git worked: the next start finds the worktree it made.
 	if (l.snapshot.value !== "running") return;
 	const event = {

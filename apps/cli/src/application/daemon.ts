@@ -216,7 +216,7 @@ const serveProviders = (conn: MessageConnection, app: App) => {
 	conn.onRequest(DAEMON_METHODS.providerModels, async (params: unknown) => {
 		const p = parsed(DaemonProviderModelsParamsSchema.safeParse(params));
 		const { adapter, mask } = endpointOf(app, p.providerId);
-		return endpointModels(adapter, mask);
+		return endpointModels(adapter, mask) as Promise<unknown>;
 	});
 	conn.onRequest(DAEMON_METHODS.providerTest, async (params: unknown) => {
 		const p = parsed(DaemonProviderTestParamsSchema.safeParse(params));

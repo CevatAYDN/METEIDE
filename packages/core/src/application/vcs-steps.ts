@@ -4,8 +4,11 @@ import {
 	type Result,
 	type ToolContext,
 	type VcsGitAdapter,
+	WorktreeConfigSchema,
 } from "@mete/contracts";
-import type { StepDeps } from "./steps.js";
+import type { ConfigReader } from "@mete/kernel";
+import { ShellRunSchema } from "../domain/verify.js";
+import { type Emit, runCapability, type StepDeps } from "./steps.js";
 
 // The checkpoint and the worktree steps of a run through vcs.git@2 (docs/08, Single agent; Teams).
 
@@ -53,6 +56,84 @@ export const startWorktree = async (
 		"worktree not created; the task works in the workspace",
 	);
 	return undefined;
+};
+
+/** Dependencies for reading worktree configuration and executing setup commands. */
+export type WorktreeSetupDeps = StepDeps & { readonly config: ConfigReader };
+
+/** Reads the configured worktree setup command, if any (ADR-123). */
+export const worktreeSetupCommand = (
+	deps: WorktreeSetupDeps,
+): string | undefined => {
+	const plural = deps.config.get("worktrees", WorktreeConfigSchema);
+	const fromPlural = plural.ok ? plural.value.setup : undefined;
+	if (fromPlural) return fromPlural;
+	const singular = deps.config.get("worktree", WorktreeConfigSchema);
+	return singular.ok ? singular.value.setup : undefined;
+};
+
+export type WorktreeSetupResult = "ok" | "approval";
+
+export type WorktreeSetupTarget = {
+	readonly worktree: string;
+	readonly runId: string;
+	readonly taskId: string;
+	readonly agentId?: string;
+};
+
+const warnSetupFailure = (
+	deps: StepDeps,
+	target: WorktreeSetupTarget,
+	command: string,
+	reason: string,
+) => {
+	deps.logger.warn(
+		{ runId: target.runId, taskId: target.taskId, command, reason },
+		"worktree setup command failed; continuing task",
+	);
+};
+
+const setupFailureReason = (val: unknown): string | undefined => {
+	const shell = ShellRunSchema.safeParse(val);
+	if (!shell.success) return "unexpected result from shell.exec@1";
+	if (shell.data.timedOut) return "timed out";
+	if (shell.data.exitCode !== 0)
+		return `exited with code ${shell.data.exitCode}`;
+	return undefined;
+};
+
+/**
+ * Runs the configured setup command in a newly created worktree through shell.exec@1 (ADR-123).
+ * A policy ask pauses the run for approval; command failures are logged and do not abort the task.
+ */
+export const runWorktreeSetup = async (
+	deps: WorktreeSetupDeps,
+	target: WorktreeSetupTarget,
+	signal: AbortSignal,
+	emit: Emit,
+): Promise<WorktreeSetupResult> => {
+	const setup = worktreeSetupCommand(deps);
+	if (!setup) return "ok";
+	const ctx: ToolContext = {
+		cwd: target.worktree,
+		runId: target.runId,
+		...(target.agentId ? { agentId: target.agentId } : {}),
+		signal,
+	};
+	const out = await runCapability(
+		deps,
+		{ ref: "shell.exec@1", input: { command: setup } },
+		ctx,
+		emit,
+	);
+	if (!out.ok) {
+		if (out.error.code === "approval_required") return "approval";
+		warnSetupFailure(deps, target, setup, out.error.message);
+		return "ok";
+	}
+	const fail = setupFailureReason(out.value);
+	if (fail) warnSetupFailure(deps, target, setup, fail);
+	return "ok";
 };
 
 /** How landing a task's worktree ended: merged and removed, or why the merge did not happen. */

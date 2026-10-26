@@ -98,6 +98,8 @@ export const engineHarness = (opts: {
 	scripts: Script[];
 	tools?: ReadonlyArray<readonly [CapabilityRef, Tool]>;
 	policy?: unknown;
+	worktrees?: unknown;
+	worktree?: unknown;
 	llm?: boolean;
 	/** A database an earlier engine used, as after a restart. */
 	db?: Database.Database;
@@ -151,9 +153,17 @@ export const engineHarness = (opts: {
 	const timers: { fn: () => void; ms: number }[] = [];
 	const config = createConfigReader({
 		global: { file: "settings.yaml", sections: {} },
-		workspace: opts.policy
-			? { policy: { file: ".mete/policy.yaml", value: opts.policy } }
-			: {},
+		workspace: {
+			...(opts.policy
+				? { policy: { file: ".mete/policy.yaml", value: opts.policy } }
+				: {}),
+			...(opts.worktrees
+				? { worktrees: { file: ".mete/worktrees.yaml", value: opts.worktrees } }
+				: {}),
+			...(opts.worktree
+				? { worktree: { file: ".mete/worktree.yaml", value: opts.worktree } }
+				: {}),
+		},
 	});
 	const { logged, logger } = recordingLogger();
 	const plain = createRunStore(db);
