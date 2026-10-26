@@ -255,6 +255,48 @@ describe("model selection at start and run time (ADR-122)", () => {
 		});
 	});
 
+	it("keeps reason first when the call did not use the preferred model", async () => {
+		const fakeTool: Tool = vi.fn(async () => ok({ replacements: 1 }));
+		const vcs: Tool = vi.fn(async () =>
+			ok({ op: "checkpoint.create", ref: "r", sha: "s" }),
+		);
+		const h = engineHarness({
+			scripts: [
+				reply(
+					"",
+					[
+						{
+							name: "fs_edit",
+							args: { path: "a.ts", oldStr: "foo", newStr: "bar" },
+						},
+					],
+					"mod-initial",
+				),
+				// The gateway answered with another model, so the preference was not used.
+				reply("Finished.", [], "mod-b"),
+			],
+			tools: [
+				["fs.edit@1", fakeTool],
+				["vcs.git@2", vcs],
+			],
+		});
+		const started = await h.engine.start({
+			goal: "unused prefer",
+			prefer: MODEL_A,
+		});
+		expect(started.ok).toBe(true);
+		if (!started.ok) return;
+		await settled(h, started.value.runId, "completed");
+
+		expect(h.requests[0]?.prefer).toEqual(MODEL_A);
+		const changed = h.events.find((e) => e.type === "agent.model.changed");
+		expect(changed?.payload).toEqual({
+			from: { providerId: "p", modelId: "mod-initial" },
+			to: { providerId: "p", modelId: "mod-b" },
+			reason: "first",
+		});
+	});
+
 	it("mid-run engine.model clears preference when passed null", async () => {
 		let ranTool: () => void = () => {};
 		const toolPromise = new Promise<void>((resolve) => {
