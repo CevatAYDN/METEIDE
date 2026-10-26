@@ -9,6 +9,8 @@ import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
 // Daemon protocol v22 (ARCHITECTURE.md, ADR-045..ADR-122); mete/event checked with MeteEventSchema.
+const text = z.string().min(1);
+
 /** The messages of version 22; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
@@ -73,9 +75,7 @@ export const DaemonStatusResultSchema = z.array(RunViewSchema);
 export const DaemonRunStartResultSchema = z.strictObject({ runId: IdSchema });
 
 /** Params of `mete/run.resume`: the run to go on with. */
-export const DaemonRunIdParamsSchema = z.strictObject({
-	runId: z.string().min(1),
-});
+export const DaemonRunIdParamsSchema = z.strictObject({ runId: text });
 
 /** How far a policy ask is allowed: once, for the run, or a command for good (ADR-121). */
 export const AllowScopeSchema = z.enum(["once", "run", "always"]);
@@ -83,20 +83,20 @@ export type AllowScope = z.infer<typeof AllowScopeSchema>;
 
 /** Params of `mete/run.allow`: the run and how far its policy ask is allowed (ADR-121). */
 export const DaemonRunAllowParamsSchema = z.strictObject({
-	runId: z.string().min(1),
+	runId: text,
 	scope: AllowScopeSchema,
 });
 
 /** Params of `mete/run.approve`: the run and the human's decision (ADR-048). */
 export const DaemonRunApproveParamsSchema = z.strictObject({
-	runId: z.string().min(1),
+	runId: text,
 	input: ApprovalInputSchema,
 });
 
 /** Params of `mete/run.model`: the run, an optional role id and the preferred model (null clears) (ADR-122). */
 export const DaemonRunModelParamsSchema = z.strictObject({
-	runId: z.string().min(1),
-	roleId: z.string().min(1).optional(),
+	runId: text,
+	roleId: text.optional(),
 	model: ModelRefSchema.nullable(),
 });
 export type DaemonRunModelParams = z.infer<typeof DaemonRunModelParamsSchema>;
@@ -183,14 +183,14 @@ export const DaemonStopAllResultSchema = z.strictObject({
 
 /** Params of `mete/estimate`: a template by id, or null for a single agent (ADR-068). */
 export const DaemonEstimateParamsSchema = z.strictObject({
-	templateId: z.string().min(1).nullable(),
+	templateId: text.nullable(),
 });
 
 /** Result of `mete/estimate`: requests per provider, in the order mete/quota lists them, and those no ready provider takes. */
 export const DaemonEstimateResultSchema = z.strictObject({
 	providers: z.array(
 		z.strictObject({
-			providerId: z.string().min(1),
+			providerId: text,
 			requests: z.number().int().nonnegative(),
 		}),
 	),
@@ -198,9 +198,7 @@ export const DaemonEstimateResultSchema = z.strictObject({
 });
 
 /** Params of `mete/template.read`: a template by id, for the team editor (ADR-075). */
-export const DaemonTemplateReadParamsSchema = z.strictObject({
-	id: z.string().min(1),
-});
+export const DaemonTemplateReadParamsSchema = z.strictObject({ id: text });
 
 /** Result of `mete/template.read`: the text of the file `mete/templates` would load, and its folder. */
 export const DaemonTemplateReadResultSchema = z.strictObject({

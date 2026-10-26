@@ -71,7 +71,7 @@ export type LlmChunk =
 			readonly type: "model";
 			readonly providerId: string;
 			readonly modelId: string;
-			readonly reason: "first" | "quota" | "failed" | "user";
+			readonly reason: "first" | "quota" | "failed";
 	  }
 	| { readonly type: "error"; readonly error: LlmError };
 

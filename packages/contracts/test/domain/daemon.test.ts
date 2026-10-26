@@ -340,9 +340,13 @@ describe("daemon protocol version 22", () => {
 		expect(DaemonRunModelParamsSchema.parse(role)).toEqual(role);
 		const clear = { runId: "r1", roleId: "coder", model: null };
 		expect(DaemonRunModelParamsSchema.parse(clear)).toEqual(clear);
+		const clearSingle = { runId: "r1", model: null };
+		expect(DaemonRunModelParamsSchema.parse(clearSingle)).toEqual(clearSingle);
 		for (const bad of [
 			{ runId: "" },
 			{ runId: "r1" },
+			{ runId: "r1", model: "invalid" },
+			{ runId: "r1", model: undefined },
 			{ runId: "r1", model: { providerId: "" } },
 			{ runId: "r1", roleId: "", model: null },
 			{ runId: "r1", model: null, extra: true },

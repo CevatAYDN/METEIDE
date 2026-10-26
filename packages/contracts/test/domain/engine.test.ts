@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
 	ApprovalInputSchema,
+	RunPreferSchema,
 	RunStartSchema,
+	type TeamEngineAdapter,
 } from "../../src/domain/engine.js";
 import { shellName } from "../../src/domain/tools.js";
 
@@ -50,12 +52,61 @@ describe("team.engine@2 input", () => {
 			},
 		};
 		expect(RunStartSchema.parse(team)).toEqual({ ...team, priority: 1 });
+		const cont = {
+			continue: true,
+			prefer: { providerId: "nvidia", modelId: "deepseek-r1" },
+		};
+		expect(RunStartSchema.parse(cont)).toEqual({ ...cont, priority: 1 });
 		for (const bad of [
 			{ goal: "g", prefer: "bad" },
+			{ goal: "g", prefer: null },
 			{ goal: "g", prefer: { coder: { providerId: "" } } },
 			{ goal: "g", prefer: { providerId: "a" } },
+			{ goal: "g", prefer: { coder: null } },
 		])
 			expect(RunStartSchema.safeParse(bad).success).toBe(false);
+	});
+});
+
+describe("RunPreferSchema (ADR-122)", () => {
+	it("parses a single agent ModelRef or per-role ModelRef map", () => {
+		const single = { providerId: "nvidia", modelId: "deepseek-r1" };
+		expect(RunPreferSchema.parse(single)).toEqual(single);
+		const team = {
+			coder: { providerId: "groq", modelId: "llama-3" },
+			reviewer: { providerId: "openrouter", modelId: "claude-3.5-sonnet" },
+		};
+		expect(RunPreferSchema.parse(team)).toEqual(team);
+	});
+
+	it("refuses invalid prefer payloads", () => {
+		for (const bad of [
+			"",
+			null,
+			123,
+			{ providerId: "" },
+			{ "": { providerId: "groq", modelId: "llama-3" } },
+			{ coder: null },
+			{ coder: { providerId: "" } },
+		])
+			expect(RunPreferSchema.safeParse(bad).success).toBe(false);
+	});
+
+	it("lets TeamEngineAdapter implementations leave model optional (ADR-122)", () => {
+		const minimal: TeamEngineAdapter = {
+			start: async () => ({ ok: true, value: { runId: "r1" } }),
+			pause: async () => ({ ok: true, value: undefined }),
+			resume: async () => ({ ok: true, value: undefined }),
+			cancel: async () => ({ ok: true, value: undefined }),
+			approve: async () => ({ ok: true, value: undefined }),
+			status: () => ({ ok: true, value: [] }),
+		};
+		expect(minimal.model).toBeUndefined();
+		const withModel: TeamEngineAdapter = {
+			...minimal,
+			model: async () => ({ ok: true, value: undefined }),
+		};
+		expect(typeof withModel.model).toBe("function");
 	});
 });
 
