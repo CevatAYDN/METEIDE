@@ -147,6 +147,14 @@ export const shellName = (config: ShellConfig, platform: string) => {
 		: "Windows PowerShell";
 };
 
+/** The `worktrees:` section of settings.yaml (ADR-123). */
+export const WorktreeConfigSchema = z
+	.strictObject({
+		setup: z.string().trim().min(1).optional(),
+	})
+	.prefault({});
+export type WorktreeConfig = z.infer<typeof WorktreeConfigSchema>;
+
 const CHECKPOINT_REF = /^refs\/mete\/checkpoints\/[^/]+\/[1-9]\d*$/;
 
 /**

@@ -1,0 +1,133 @@
+import { access, mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { ok } from "@mete/contracts";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import {
+	createWorktree,
+	removeWorktree,
+} from "../../src/application/vcs-worktree.js";
+import { gitAt } from "../../src/infrastructure/git.js";
+import { initRepo, isolateGit } from "../helpers/repo.js";
+import { tempWorkspace } from "../infrastructure/workspace.js";
+
+const RUN = "7f3c2a1e-4b5d-4c6e-8f9a-0b1c2d3e4f5a";
+const TASK1 = "task-1";
+const TASK2 = "task-2";
+
+beforeAll(isolateGit);
+
+let ws: Awaited<ReturnType<typeof tempWorkspace>> | undefined;
+afterEach(async () => {
+	await ws?.close();
+	ws = undefined;
+});
+
+const exists = (p: string) =>
+	access(p).then(
+		() => true,
+		() => false,
+	);
+
+const setup = async () => {
+	const w = await tempWorkspace();
+	ws = w;
+	await initRepo(w.workspaceDir);
+	const git = gitAt(w.workspaceDir);
+	await w.put("README.md", "# test\n");
+	await git(["add", "README.md"]);
+	await git([
+		"-c",
+		"user.name=Test",
+		"-c",
+		"user.email=test@example.com",
+		"commit",
+		"-m",
+		"initial commit",
+	]);
+	const deps = { worktreesDir: join(w.globalDir, "worktrees") };
+	return { w, git, deps };
+};
+
+describe("vcs-worktree cleanup", () => {
+	it("removes worktree completely including nested ignored subdirectories like node_modules", async () => {
+		const { git, deps } = await setup();
+		const created = await createWorktree(deps, git, {
+			runId: RUN,
+			taskId: TASK1,
+		});
+		expect(created.ok).toBe(true);
+		if (!created.ok || created.value.op !== "worktree.create")
+			throw new Error("worktree not created");
+
+		const wtDir = created.value.path;
+		const nmDir = join(wtDir, "node_modules", "some-package");
+		await mkdir(nmDir, { recursive: true });
+		await writeFile(join(nmDir, "index.js"), "module.exports = 42;\n");
+		await writeFile(join(wtDir, ".gitignore"), "node_modules/\n");
+		await writeFile(join(wtDir, "src.js"), "console.log(1);\n");
+
+		expect(await exists(join(nmDir, "index.js"))).toBe(true);
+		expect(await exists(wtDir)).toBe(true);
+
+		const removed = await removeWorktree(deps, git, {
+			runId: RUN,
+			taskId: TASK1,
+		});
+		expect(removed).toEqual(ok({ op: "worktree.remove", removed: true }));
+
+		expect(await exists(wtDir)).toBe(false);
+		expect(await exists(join(deps.worktreesDir, RUN))).toBe(false);
+
+		const again = await removeWorktree(deps, git, {
+			runId: RUN,
+			taskId: TASK1,
+		});
+		expect(again).toEqual(ok({ op: "worktree.remove", removed: false }));
+	});
+
+	it("removes one task worktree with node_modules while keeping sibling task worktrees", async () => {
+		const { git, deps } = await setup();
+		const wt1 = await createWorktree(deps, git, {
+			runId: RUN,
+			taskId: TASK1,
+		});
+		const wt2 = await createWorktree(deps, git, {
+			runId: RUN,
+			taskId: TASK2,
+		});
+		expect(wt1.ok && wt2.ok).toBe(true);
+		if (!wt1.ok || !wt2.ok) throw new Error("worktrees not created");
+		if (
+			wt1.value.op !== "worktree.create" ||
+			wt2.value.op !== "worktree.create"
+		)
+			throw new Error("invalid op");
+
+		const nm1 = join(wt1.value.path, "node_modules", "pkg-a");
+		const nm2 = join(wt2.value.path, "node_modules", "pkg-b");
+		await mkdir(nm1, { recursive: true });
+		await mkdir(nm2, { recursive: true });
+		await writeFile(join(nm1, "a.js"), "1");
+		await writeFile(join(nm2, "b.js"), "2");
+
+		const res1 = await removeWorktree(deps, git, {
+			runId: RUN,
+			taskId: TASK1,
+		});
+		expect(res1).toEqual(ok({ op: "worktree.remove", removed: true }));
+
+		expect(await exists(wt1.value.path)).toBe(false);
+		expect(await exists(wt2.value.path)).toBe(true);
+		expect(await exists(join(nm2, "b.js"))).toBe(true);
+		expect(await exists(join(deps.worktreesDir, RUN))).toBe(true);
+
+		const res2 = await removeWorktree(deps, git, {
+			runId: RUN,
+			taskId: TASK2,
+		});
+		expect(res2).toEqual(ok({ op: "worktree.remove", removed: true }));
+
+		expect(await exists(wt2.value.path)).toBe(false);
+		expect(await exists(join(deps.worktreesDir, RUN))).toBe(false);
+	});
+});

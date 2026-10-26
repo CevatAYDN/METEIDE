@@ -1,4 +1,4 @@
-import { access, rmdir } from "node:fs/promises";
+import { access, rm, rmdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
 	err,
@@ -72,6 +72,7 @@ export const removeWorktree = async (deps: Where, git: Git, t: Task): Out => {
 	if (there) {
 		const gone = await git(["worktree", "remove", "--force", dir]);
 		if (!gone.ok) return gone;
+		await rm(dir, { recursive: true, force: true }).catch(() => undefined);
 	}
 	await git(["worktree", "prune"]);
 	// The run's folder goes with its last worktree; rmdir refuses one that still holds another.

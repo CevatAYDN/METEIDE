@@ -6,6 +6,7 @@ import {
 	ShellConfigSchema,
 	ShellExecInputSchema,
 	VcsGitInputSchema,
+	WorktreeConfigSchema,
 } from "../../src/domain/tools.js";
 
 describe("tool input schemas", () => {
@@ -68,6 +69,29 @@ describe("ShellConfigSchema", () => {
 			ShellConfigSchema.parse({ windows: "git-bash", gitBashPath: "C:/bash" }),
 		).toEqual({ windows: "git-bash", gitBashPath: "C:/bash" });
 		expect(ShellConfigSchema.safeParse({ windows: "git-bash" }).success).toBe(
+			false,
+		);
+	});
+});
+
+describe("WorktreeConfigSchema", () => {
+	it("defaults to empty object and accepts optional trimmed non-empty setup command", () => {
+		expect(WorktreeConfigSchema.parse(undefined)).toEqual({});
+		expect(WorktreeConfigSchema.parse({})).toEqual({});
+		expect(WorktreeConfigSchema.parse({ setup: "pnpm install" })).toEqual({
+			setup: "pnpm install",
+		});
+		expect(WorktreeConfigSchema.parse({ setup: "  pnpm test  " })).toEqual({
+			setup: "pnpm test",
+		});
+	});
+
+	it("rejects empty setup string and unknown keys", () => {
+		expect(WorktreeConfigSchema.safeParse({ setup: "" }).success).toBe(false);
+		expect(WorktreeConfigSchema.safeParse({ setup: "   " }).success).toBe(
+			false,
+		);
+		expect(WorktreeConfigSchema.safeParse({ unknownKey: "val" }).success).toBe(
 			false,
 		);
 	});

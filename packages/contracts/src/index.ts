@@ -302,6 +302,8 @@ export {
 	type VcsGitInput,
 	VcsGitInputSchema,
 	type VcsGitOutput,
+	type WorktreeConfig,
+	WorktreeConfigSchema,
 } from "./domain/tools.js";
 export {
 	type WebFetchInput,
