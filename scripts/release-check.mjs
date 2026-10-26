@@ -231,6 +231,10 @@ const STEPS = [
 			),
 	],
 	["Windows installer", installer],
+	[
+		"packaged app (onboarding and run flow)",
+		() => viaPnpm(["--filter", "@mete/desktop", "test:e2e:packaged"], 10),
+	],
 ];
 
 const results = [];
