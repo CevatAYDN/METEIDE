@@ -79,7 +79,7 @@ export type PolicyVerdict = { verdict: "allow" | "ask" | "deny"; rule: string };
 export type AuditFailed = { code: "audit_failed"; message: string };            // callers treat it as deny
 export interface PolicyCheckAdapter { check(input: PolicyCheckInput): Result<PolicyVerdict, AuditFailed> }
 export type GrantScope = "once" | "run";                                         // policy.grant@1 (ADR-121)
-export type PolicyAsk = { action: PolicyAction; capability: CapabilityRef; command?: string; path?: string };   // a policy.asked payload, masked
+export type PolicyAsk = { action: PolicyAction; capability: CapabilityRef; adapterId: string; command?: string; path?: string };   // a policy.asked payload, masked
 export interface PolicyGrantAdapter { grant(input: { runId: string; scope: GrantScope; ask: PolicyAsk }): void }
 export interface SecretsMaskAdapter { mask(text: string): Promise<{ text: string; masked: number }> }   // tab 09 replacement format
 
