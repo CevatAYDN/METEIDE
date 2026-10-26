@@ -32,7 +32,11 @@ import { restoredText } from "../application/checkpoint-list.js";
 import { type ChainContext, fetchChain } from "../application/composer.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { panelRoot } from "../application/panel-root.js";
-import { chainsOfRoles } from "../application/role-chains.js";
+import {
+	chainsOfRoles,
+	needsFor,
+	needsOfRoles,
+} from "../application/role-chains.js";
 import type { RunFacts } from "../application/run-strip.js";
 import { failureText, plain } from "../application/status-text.js";
 import { roleNames, teamName } from "../application/team-draft.js";
@@ -67,6 +71,8 @@ export class MeteBoardWidget extends MetePanelWidget {
 	protected names: Readonly<Record<string, string>> = {};
 	protected windows: Readonly<Record<string, number>> = {};
 	protected candidateModels: Readonly<Record<string, readonly string[]>> = {};
+	/** The needs each of the team file's roles names, for the chains asked before it was read. */
+	protected roleNeeds: Readonly<Record<string, readonly string[]>> = {};
 	protected preferredModels: Readonly<Record<string, string>> = {};
 	protected chainCache = new Map<string, readonly string[]>();
 	protected templateId: string | null | undefined;
@@ -131,16 +137,16 @@ export class MeteBoardWidget extends MetePanelWidget {
 		const shown = { dir, runId, goal };
 		this.setSession(startBoard(shown));
 		const r = await this.daemon.events(dir, runId);
-		this.setSession(loadedBoard(this.session, shown, r));
-		void this.loadRun(dir, runId);
 		const created = r.ok
 			? r.value.events.find((e) => e.type === "run.created")
 			: undefined;
-		if (created?.type === "run.created") {
+		// Before the first agents reach the view: a single-agent run asks its chain for tool calling.
+		if (created?.type === "run.created")
 			this.templateId = created.payload.templateId;
-			if (created.payload.templateId)
-				void this.loadNames(dir, runId, created.payload.templateId);
-		}
+		this.setSession(loadedBoard(this.session, shown, r));
+		void this.loadRun(dir, runId);
+		if (created?.type === "run.created" && created.payload.templateId)
+			void this.loadNames(dir, runId, created.payload.templateId);
 	}
 
 	// The run's entry of mete/status; a run another panel state replaced meanwhile is not drawn.
@@ -172,6 +178,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 	}
 
 	protected async loadTemplateChains(dir: string, runId: string, yaml: string) {
+		this.roleNeeds = needsOfRoles(yaml);
 		const models = await chainsOfRoles(this.chainCtx(dir), yaml);
 		if (this.shownRun.runId !== runId) return;
 		for (const id of Object.keys(models)) this.askedChains.add(id);
@@ -245,35 +252,26 @@ export class MeteBoardWidget extends MetePanelWidget {
 		this.session = next;
 		if (drawn) this.update();
 		this.askWindows();
-		this.askChains();
+		void this.askChains();
 	}
 
-	protected askChains(): void {
+	// Each member's chain, asked for the needs its role names, or the single agent's tool calling.
+	protected async askChains(): Promise<void> {
 		const { shown, view } = this.session;
 		if (!shown) return;
 		for (const a of view.agents) {
-			if (!this.candidateModels[a.roleId] && !this.askedChains.has(a.roleId)) {
-				this.askedChains.add(a.roleId);
-				void this.loadRoleChain(
-					shown.dir,
-					shown.runId,
-					a.roleId,
-					a.tier ?? "coder",
-				);
-			}
+			if (this.candidateModels[a.roleId] || this.askedChains.has(a.roleId))
+				continue;
+			this.askedChains.add(a.roleId);
+			const models = await fetchChain(
+				this.chainCtx(shown.dir),
+				a.tier ?? "coder",
+				needsFor(this.templateId, this.roleNeeds, a.roleId),
+			);
+			if (this.shownRun.runId !== shown.runId) return;
+			this.candidateModels = { ...this.candidateModels, [a.roleId]: models };
+			this.update();
 		}
-	}
-
-	protected async loadRoleChain(
-		dir: string,
-		runId: string,
-		roleId: string,
-		tier: string,
-	) {
-		const models = await fetchChain(this.chainCtx(dir), tier);
-		if (this.shownRun.runId !== runId) return;
-		this.candidateModels = { ...this.candidateModels, [roleId]: models };
-		this.update();
 	}
 
 	protected async setModel(
