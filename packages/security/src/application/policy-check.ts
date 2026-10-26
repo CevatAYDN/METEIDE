@@ -3,9 +3,12 @@ import {
 	err,
 	ok,
 	type PolicyCheckAdapter,
+	type PolicyCheckInput,
 	PolicyCheckInputSchema,
+	type PolicyVerdict,
 } from "@mete/contracts";
 import { type CheckerEnv, decide } from "../domain/checker.js";
+import type { Grants } from "./grants.js";
 
 // policy.check@1 from SECURITY.md: decide, then write the audit row in the same call.
 
@@ -34,17 +37,37 @@ const hashArgs = (args: unknown) => {
 	return createHash("sha256").update(text).digest("hex");
 };
 
+/** What a check does besides deciding: the clock, the human's grants and who hears of an ask. */
+export type CheckHooks = {
+	readonly now?: () => number;
+	readonly grants?: Grants;
+	/** Called after the audit row of a check that still asks is written (ADR-121). */
+	readonly asked?: (input: PolicyCheckInput, v: PolicyVerdict) => void;
+};
+
+// The last decision step (SECURITY.md): a grant of the run turns an ask into allow, never a deny.
+const granted = (
+	v: PolicyVerdict,
+	input: PolicyCheckInput,
+	env: CheckerEnv,
+	grants: Grants | undefined,
+): PolicyVerdict => {
+	const scope = v.verdict === "ask" ? grants?.take(input, env) : undefined;
+	return scope ? { verdict: "allow", rule: `granted:${scope}` } : v;
+};
+
 /** Creates the adapter; an audit write that fails returns `audit_failed`, which callers treat as deny. */
 export const createPolicyCheck = (
 	/** The environment of each check: the policy in it may change between two calls (ADR-073). */
 	env: () => CheckerEnv,
 	writeAudit: AuditWriter,
-	now: () => number = Date.now,
+	{ now = Date.now, grants, asked }: CheckHooks = {},
 ): PolicyCheckAdapter => ({
 	check(raw) {
 		// Typed in-process callers cannot normally fail this, so a failure is a bug (ADR-034).
 		const input = PolicyCheckInputSchema.parse(raw);
-		const v = decide(input, env());
+		const e = env();
+		const v = granted(decide(input, e), input, e, grants);
 		try {
 			writeAudit({
 				ts: new Date(now()).toISOString(),
@@ -64,6 +87,7 @@ export const createPolicyCheck = (
 				message: e instanceof Error ? e.message : String(e),
 			});
 		}
+		if (v.verdict === "ask") asked?.(input, v);
 		return ok(v);
 	},
 });

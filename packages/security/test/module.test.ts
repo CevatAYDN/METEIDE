@@ -51,10 +51,10 @@ describe("security module", () => {
 		await s.storage.deactivate();
 	});
 
-	it("publishes policy.blocked for each denial, after its audit row, and nothing for allow or ask", async () => {
+	it("publishes policy.blocked for each denial, after its audit row, and nothing for allow", async () => {
 		const s = await setup({ autonomy: 1 });
 		const blocked: MeteEvent[] = [];
-		s.ctx.events.subscribe("policy.*", (e) => void blocked.push(e));
+		s.ctx.events.subscribe("policy.blocked", (e) => void blocked.push(e));
 		await s.security.activate(s.ctx);
 		const policy = s.impl<PolicyCheckAdapter>("policy.check@1");
 		const runId = crypto.randomUUID();
@@ -72,6 +72,47 @@ describe("security module", () => {
 				runId,
 				source: "security",
 				payload: { action: "fs.write", rule },
+			}),
+		]);
+		await s.storage.deactivate();
+	});
+
+	it("publishes policy.asked for each ask, masked, before it stops (ADR-121)", async () => {
+		const s = await setup();
+		const asked: MeteEvent[] = [];
+		s.ctx.events.subscribe("policy.asked", (e) => void asked.push(e));
+		await s.security.activate(s.ctx);
+		const policy = s.impl<PolicyCheckAdapter>("policy.check@1");
+		const runId = crypto.randomUUID();
+		const token = `ghp_${"A1b2C3d4E5".repeat(3)}aBcDeF`;
+		const command = `gh auth login --with-token ${token}`;
+		const r = policy.check({
+			action: "shell.exec",
+			capability: "shell.exec@1",
+			adapterId: "tools-shell",
+			args: { command },
+			runId,
+			command,
+		});
+		expect(r.ok && r.value).toEqual({ verdict: "ask", rule: "autonomy:1" });
+		policy.check(write(join(s.dirs.workspaceDir, "a.ts")));
+		// Masking takes time; stopping waits for what is still being masked.
+		await s.security.deactivate();
+		expect(asked).toEqual([
+			expect.objectContaining({
+				type: "policy.asked",
+				workspaceId: s.workspaceId,
+				runId,
+				source: "security",
+				payload: {
+					action: "shell.exec",
+					capability: "shell.exec@1",
+					adapterId: "tools-shell",
+					rule: "autonomy:1",
+					command: expect.stringMatching(
+						/^gh auth login --with-token \[SECRET:[0-9a-f]{8}\]$/,
+					),
+				},
 			}),
 		]);
 		await s.storage.deactivate();

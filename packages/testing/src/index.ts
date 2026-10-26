@@ -21,6 +21,10 @@ export {
 	policyCheckContract,
 } from "./policy-check.contract.js";
 export {
+	type PolicyGrantHarness,
+	policyGrantContract,
+} from "./policy-grant.contract.js";
+export {
 	type ProviderChatHarness,
 	type ProviderScenario,
 	providerChatContract,

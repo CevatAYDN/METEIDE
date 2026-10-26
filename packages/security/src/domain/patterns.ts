@@ -12,7 +12,8 @@ export type PathEnv = {
 
 const REGEX_SPECIAL = /[.*+?^${}()|[\]\\]/g;
 const escapeRegex = (s: string) => s.replace(REGEX_SPECIAL, "\\$&");
-const collapse = (s: string) => s.trim().replace(/\s+/g, " ");
+/** A command as the rules compare it: trimmed, each run of spaces one space. */
+export const collapse = (s: string) => s.trim().replace(/\s+/g, " ");
 
 /** Whole-command match after trimming and collapsing spaces; `*` matches any text; deny rules ignore case. */
 export const commandMatches = (

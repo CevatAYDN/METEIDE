@@ -5,6 +5,8 @@ import {
 	type ModuleManifest,
 	ok,
 	type Policy,
+	type PolicyCheckInput,
+	type PolicyGrantAdapter,
 	PolicySchema,
 	type SecretsMaskAdapter,
 } from "@mete/contracts";
@@ -14,6 +16,7 @@ import type {
 	ModuleContext,
 	ModuleError,
 } from "@mete/kernel";
+import { createGrants } from "./application/grants.js";
 import {
 	type AuditWriter,
 	createPolicyCheck,
@@ -61,13 +64,69 @@ const announcingDenials =
 		});
 	};
 
+// policy.asked (ADR-121) follows each ask once its audit row is written, with its time; masking is
+// asynchronous and the check is not, so the event may come after the run.paused the ask caused, and
+// the module waits for every pending one before it stops, while storage is still active.
+const announcingAsks = (
+	ctx: ModuleContext,
+	workspaceId: string,
+	now: () => number,
+) => {
+	const pending = new Set<Promise<void>>();
+	const masked = async (text: string | undefined) =>
+		text === undefined ? undefined : (await maskSecrets(text)).text;
+	const announce = async (
+		input: PolicyCheckInput,
+		rule: string,
+		ts: string,
+	) => {
+		const [command, path] = await Promise.all([
+			masked(input.command),
+			masked(input.path),
+		]);
+		const { action, capability, adapterId, runId, agentId } = input;
+		ctx.events.publish({
+			id: crypto.randomUUID(),
+			ts,
+			schema: 1,
+			workspaceId,
+			...(runId ? { runId } : {}),
+			...(agentId ? { agentId } : {}),
+			source: MANIFEST.id,
+			type: "policy.asked",
+			payload: {
+				action,
+				capability,
+				adapterId,
+				rule,
+				...(command ? { command } : {}),
+				...(path ? { path } : {}),
+			},
+		});
+	};
+	return {
+		asked(input: PolicyCheckInput, v: { rule: string }) {
+			const ts = new Date(now()).toISOString();
+			const p: Promise<void> = announce(input, v.rule, ts)
+				.catch((e: unknown) =>
+					ctx.logger.warn({ error: String(e) }, "policy.asked not published"),
+				)
+				.finally(() => pending.delete(p));
+			pending.add(p);
+		},
+		settled: async () => {
+			await Promise.all([...pending]);
+		},
+	};
+};
+
 const MANIFEST: ModuleManifest = {
 	id: "security",
 	version: "0.0.0",
 	displayName: "Security",
 	class: "essential",
 	trust: "core",
-	provides: ["policy.check@1", "secrets.mask@1"],
+	provides: ["policy.check@1", "policy.grant@1", "secrets.mask@1"],
 	requires: ["storage.sql@1"],
 	optional: [],
 	activation: ["onStartup"],
@@ -123,12 +182,21 @@ const checkerOf = (
 		opts.workspaceId,
 		now,
 	);
-	return createPolicyCheck(env, write, now);
+	const grants = createGrants();
+	const asks = announcingAsks(ctx, opts.workspaceId, now);
+	const check = createPolicyCheck(env, write, {
+		now,
+		grants,
+		asked: asks.asked,
+	});
+	const grant: PolicyGrantAdapter = { grant: (input) => grants.grant(input) };
+	return { check, grant, settled: asks.settled };
 };
 
-/** Creates the security module, which provides policy.check@1 and secrets.mask@1. */
+/** Creates the security module, which provides policy.check@1, policy.grant@1 and secrets.mask@1. */
 export const createSecurityModule = (opts: SecurityOptions): MeteModule => {
 	let created: Disposable[] = [];
+	let settled = async () => {};
 	return {
 		manifest: MANIFEST,
 		async activate(ctx) {
@@ -142,16 +210,25 @@ export const createSecurityModule = (opts: SecurityOptions): MeteModule => {
 				return err(failed(`${file} ${path}: ${reason}`));
 			}
 			const current = currentPolicy(opts, ctx, policy.value, since);
-			const check = checkerOf(opts, ctx, current, ctx.storage.workspace);
+			const policies = checkerOf(opts, ctx, current, ctx.storage.workspace);
+			settled = policies.settled;
 			const core = { id: MANIFEST.id, trust: "core", features: [] } as const;
 			created = [
-				ctx.capabilities.provide("policy.check@1", { ...core, impl: check }),
+				ctx.capabilities.provide("policy.check@1", {
+					...core,
+					impl: policies.check,
+				}),
+				ctx.capabilities.provide("policy.grant@1", {
+					...core,
+					impl: policies.grant,
+				}),
 				ctx.capabilities.provide("secrets.mask@1", { ...core, impl: masker }),
 			];
 			for (const d of created) ctx.disposables.add(d);
 			return ok(undefined);
 		},
 		async deactivate() {
+			await settled();
 			for (const d of created.splice(0)) d.dispose();
 		},
 	};

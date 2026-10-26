@@ -6,6 +6,7 @@ import type {
 } from "@mete/contracts";
 import { PROTECTED_PATHS, SCRIPT_MANIFESTS } from "../defaults.js";
 import {
+	collapse,
 	commandMatches,
 	commandParts,
 	hasShellOperator,
@@ -116,7 +117,13 @@ const hardDeny = (s: Subject, env: CheckerEnv): PolicyVerdict | undefined => {
 const isScriptManifest = (path: string, env: CheckerEnv) =>
 	SCRIPT_MANIFESTS.some((p) => pathMatches(p, path, env));
 
-// Step 9: level 2 allowances; anything else asks.
+// Step 8: a command the user allowed for good (ADR-121), matched exactly and not on a tainted step.
+const allowedForGood = (s: Subject, tainted: boolean, env: CheckerEnv) =>
+	s.action === "shell.exec" &&
+	!tainted &&
+	env.policy.shell.always.some((c) => collapse(c) === collapse(s.command));
+
+// Step 10: level 2 allowances; anything else asks.
 const levelTwo = (s: Subject, env: CheckerEnv) => {
 	if (s.action === "fs.write")
 		return isScriptManifest(s.path, env)
@@ -131,6 +138,20 @@ const levelTwo = (s: Subject, env: CheckerEnv) => {
 	if (LEVEL2_ALLOWED.has(s.action))
 		return verdict("allow", "autonomy:2:action");
 	return verdict("ask", "autonomy:2");
+};
+
+// Steps 7 to 10, at levels 1 and 2.
+const levelOneOrTwo = (
+	s: Subject,
+	tainted: boolean,
+	level: number,
+	env: CheckerEnv,
+) => {
+	if (env.policy.always_ask.includes(s.action))
+		return verdict("ask", "always_ask");
+	if (allowedForGood(s, tainted, env)) return verdict("allow", "shell.always");
+	if (level === 1) return verdict("ask", "autonomy:1");
+	return levelTwo(s, env);
 };
 
 /** Decides one side-effect action; pure, so the audit row is the caller's job. */
@@ -149,8 +170,5 @@ export const decide = (
 		return WRITES.has(s.action) && !s.safeWrite
 			? verdict("deny", "autonomy:3:outside")
 			: verdict("allow", "autonomy:3");
-	if (env.policy.always_ask.includes(s.action))
-		return verdict("ask", "always_ask");
-	if (level === 1) return verdict("ask", "autonomy:1");
-	return levelTwo(s, env);
+	return levelOneOrTwo(s, input.tainted === true, level, env);
 };

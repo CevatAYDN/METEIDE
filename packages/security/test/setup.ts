@@ -59,7 +59,9 @@ export const setup = async (policy: unknown = {}) => {
 		workspaceId,
 		now: () => 0,
 	});
-	const impl = <C>(ref: "policy.check@1" | "secrets.mask@1") => {
+	const impl = <C>(
+		ref: "policy.check@1" | "policy.grant@1" | "secrets.mask@1",
+	) => {
 		const r = registry.resolve<C>(ref);
 		if (!r.ok) throw new Error(`${ref} missing`);
 		return r.value[0].impl;
