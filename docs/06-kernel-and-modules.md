@@ -78,6 +78,9 @@ export type PolicyCheckInput = { action: PolicyAction; capability: CapabilityRef
 export type PolicyVerdict = { verdict: "allow" | "ask" | "deny"; rule: string };   // rule names the step that fired
 export type AuditFailed = { code: "audit_failed"; message: string };            // callers treat it as deny
 export interface PolicyCheckAdapter { check(input: PolicyCheckInput): Result<PolicyVerdict, AuditFailed> }
+export type GrantScope = "once" | "run";                                         // policy.grant@1 (ADR-121)
+export type PolicyAsk = { action: PolicyAction; capability: CapabilityRef; command?: string; path?: string };   // a policy.asked payload, masked
+export interface PolicyGrantAdapter { grant(input: { runId: string; scope: GrantScope; ask: PolicyAsk }): void }
 export interface SecretsMaskAdapter { mask(text: string): Promise<{ text: string; masked: number }> }   // tab 09 replacement format
 
 // provider.chat@2, provider.embed@1 and provider.rerank@1, defined in @mete/contracts; ProviderAdapter and ModelInfo
@@ -325,7 +328,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | Module | Package | Class | Provides | Requires | Optional | Isolation |
 | --- | --- | --- | --- | --- | --- | --- |
 | storage | `@mete/storage` | essential | `storage.sql@1` | none | none | in-process |
-| security | `@mete/security` | essential | `policy.check@1`, `secrets.mask@1` | `storage.sql@1` | none | in-process |
+| security | `@mete/security` | essential | `policy.check@1`, `policy.grant@1` (ADR-121), `secrets.mask@1` | `storage.sql@1` | none | in-process |
 | quota | `@mete/quota` | essential | `quota.reserve@4` | `storage.sql@1` | none | in-process |
 | gateway | `@mete/gateway` | essential | `llm.chat@2` (routed), `llm.embed@1` (routed), `llm.rerank@1` (routed) | `storage.sql@1`, `quota.reserve@4`, `secrets.mask@1`, at least one `provider.chat@2` | `provider.embed@1`, `provider.rerank@1` | in-process |
 | provider-nvidia | `@mete/providers` | optional | `provider.chat@2`, `provider.embed@1`, `provider.rerank@1` | none | none | in-process |
@@ -362,6 +365,7 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 | --- | --- | --- | --- |
 | `storage.sql@1` | The workspace and global SQLite databases, with per-module migrations | Native (storage module) | Never empty (essential) |
 | `policy.check@1` | Allow, ask or deny a side-effect action, and write its audit row | Native (security module) | Never empty (essential) |
+| `policy.grant@1` | Let a run do what the policy asked about, once or for the rest of the run (ADR-121) | Native (security module) | Never empty (essential) |
 | `secrets.mask@1` | Replace secrets in outbound text | Native (security module, secretlint) | Never empty (essential) |
 | `quota.reserve@4` | Reserve and settle provider quota for a model call, and read the pool | Native (quota module) | Never empty (essential) |
 | `llm.chat@2` | Chat with tools and streaming | Gateway → tier chain of discovered models the model mode allows (free by default, ADR-042) | Run pauses with reason `quota` or `no_model` |

@@ -138,6 +138,7 @@ From Phase 2, handoffs go into the workspace `handoffs` table: `id`, `workspace_
 | `rollback.performed` | checkpointId | core-engine |
 | `vault.note.saved` | path, noteType | vault |
 | `policy.blocked` | action, rule | security |
+| `policy.asked` | action, capability, rule, command? or path? (masked by `secrets.mask@1`; the ask a `policy.grant@1` would grant, ADR-121) | security |
 | `module.activated` / `module.deactivated` / `module.crashed` / `module.disabled` | moduleId, reason? | kernel |
 | `network.lost` / `network.restored` | none | kernel |
 
