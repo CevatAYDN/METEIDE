@@ -1,4 +1,5 @@
 import type {
+	AllowScope,
 	ApprovalInput,
 	AuditEntry,
 	DaemonChainResultSchema,
@@ -131,6 +132,12 @@ export interface MeteDaemonService {
 	resume(
 		workspaceDir: string,
 		runId: string,
+	): Promise<Result<null, DaemonFailure>>;
+	/** Grants the run's pending ask (once, run, or a command always) and resumes (ADR-121). */
+	allow(
+		workspaceDir: string,
+		runId: string,
+		scope: AllowScope,
 	): Promise<Result<null, DaemonFailure>>;
 	/** The kill switch (ADR-065): cancels every run of the folder that has not ended. */
 	stopAll(

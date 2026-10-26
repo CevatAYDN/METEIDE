@@ -114,6 +114,20 @@ describe("the daemon host", () => {
 		expect(await host.resume("/w", "r1")).toEqual({ ok: true, value: null });
 		const odd = await host.resume("/w", "late");
 		expect(!odd.ok && odd.error.code).toBe("protocol");
+		expect(await host.allow("/w", "r1", "once")).toEqual({
+			ok: true,
+			value: null,
+		});
+		expect(await host.allow("/w", "masked", "always")).toEqual({
+			ok: false,
+			error: {
+				code: "refused",
+				detail:
+					"Always allow takes a command whose text was not masked; allow it once or for the run",
+			},
+		});
+		const oddAllow = await host.allow("/w", "late", "run");
+		expect(!oddAllow.ok && oddAllow.error.code).toBe("protocol");
 	});
 
 	it("asks a run's events with the count of unreadable rows, and refuses a bad answer", async () => {

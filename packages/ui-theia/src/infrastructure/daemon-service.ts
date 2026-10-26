@@ -1,4 +1,10 @@
-import type { ApprovalInput, ModelRef, RunStart, Tier } from "@mete/contracts";
+import type {
+	AllowScope,
+	ApprovalInput,
+	ModelRef,
+	RunStart,
+	Tier,
+} from "@mete/contracts";
 import { ILogger } from "@theia/core/lib/common/logger";
 import type { BackendApplicationContribution } from "@theia/core/lib/node";
 import { inject, injectable } from "@theia/core/shared/inversify";
@@ -75,6 +81,10 @@ export class MeteDaemonBackend
 
 	resume(workspaceDir: string, runId: string) {
 		return this.host.resume(workspaceDir, runId);
+	}
+
+	allow(workspaceDir: string, runId: string, scope: AllowScope) {
+		return this.host.allow(workspaceDir, runId, scope);
 	}
 
 	stopAll(workspaceDir: string) {

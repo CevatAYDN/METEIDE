@@ -150,6 +150,12 @@ export const PolicyAskSchema = z.strictObject({
 /** An ask the human answered; a later check of the run may match it (SECURITY.md, Answering an ask). */
 export type PolicyAsk = z.infer<typeof PolicyAskSchema>;
 
+/** Whether Always may be offered (ADR-121): a command whose text the event did not mask. */
+export const canAlways = (ask: PolicyAsk) =>
+	ask.action === "shell.exec" &&
+	ask.command !== undefined &&
+	!ask.command.includes("[SECRET:");
+
 /** Input of policy.grant@1: once (used up by the first match) or for the rest of the run. */
 export const PolicyGrantInputSchema = z.strictObject({
 	runId: IdSchema,

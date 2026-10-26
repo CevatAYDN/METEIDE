@@ -8,9 +8,7 @@ import { CustomProviderIdSchema, ModelInfoSchema } from "./provider.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol version 21 from ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-121).
-// The notification `mete/event` carries a MeteEvent, so it is checked with MeteEventSchema (events.ts).
-
+// Daemon protocol v21 (ARCHITECTURE.md, ADR-045..ADR-121); mete/event checked with MeteEventSchema.
 /** The messages of version 21; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
@@ -78,10 +76,14 @@ export const DaemonRunIdParamsSchema = z.strictObject({
 	runId: z.string().min(1),
 });
 
+/** How far a policy ask is allowed: once, for the run, or a command for good (ADR-121). */
+export const AllowScopeSchema = z.enum(["once", "run", "always"]);
+export type AllowScope = z.infer<typeof AllowScopeSchema>;
+
 /** Params of `mete/run.allow`: the run and how far its policy ask is allowed (ADR-121). */
 export const DaemonRunAllowParamsSchema = z.strictObject({
 	runId: z.string().min(1),
-	scope: z.enum(["once", "run", "always"]),
+	scope: AllowScopeSchema,
 });
 
 /** Params of `mete/run.approve`: the run and the human's decision (ADR-048). */
@@ -90,11 +92,7 @@ export const DaemonRunApproveParamsSchema = z.strictObject({
 	input: ApprovalInputSchema,
 });
 
-/**
- * Whether a provider can carry a run on now (ADR-050): ready, no key, not active for another
- * reason, its quota spent until `resetsAt`, or no usable model (privacy rules, model mode, a
- * refused key).
- */
+/** Whether a provider can carry a run on now (ADR-050). */
 export const ProviderStateSchema = z.discriminatedUnion("state", [
 	z.strictObject({
 		id: z.string().min(1),
@@ -363,11 +361,7 @@ export const DaemonProviderTestResultSchema = z.strictObject({
 /** Result of `mete/run.approve`, `mete/run.resume` and `mete/run.allow`: a request that returns nothing sends null. */
 export const DaemonDoneResultSchema = z.null();
 
-/**
- * `data` of an error answer: the `EngineError` code of the refused call (`choose_template` with the
- * router's suggestions, ADR-047), or `not_ready` with the lines `mete status` prints while
- * core-engine is not active (ADR-046).
- */
+/** `data` of an error answer: the `EngineError` code, `choose_template` or `not_ready` (ADR-046, ADR-047). */
 export const DaemonErrorDataSchema = z.discriminatedUnion("code", [
 	z.strictObject({
 		code: z.enum([
@@ -375,12 +369,10 @@ export const DaemonErrorDataSchema = z.discriminatedUnion("code", [
 			"not_found",
 			"not_supported",
 			"invalid_state",
-			// A refused checkpoint.restore@1 (ADR-079).
 			"run_active",
 			"no_vcs",
 			"invalid",
 			"failed",
-			// A refused member draft (ADR-108).
 			"no_model",
 			"bad_answer",
 		]),

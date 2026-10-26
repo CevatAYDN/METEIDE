@@ -28,6 +28,8 @@ export type {
 	CheckpointRestoreInput,
 } from "./domain/checkpoint.js";
 export {
+	type AllowScope,
+	AllowScopeSchema,
 	type AuditEntry,
 	AuditEntrySchema,
 	ChangedFileSchema,
@@ -156,6 +158,7 @@ export {
 export { type Pins, PinsSchema, pinOf } from "./domain/pins.js";
 export {
 	type AuditFailed,
+	canAlways,
 	type MaskResult,
 	type Policy,
 	type PolicyAction,

@@ -83,10 +83,7 @@ const Waiting = ({
 			</div>
 			{row.templateId ? null : (
 				<span className="mete-note">
-					{nls.localize(
-						"mete/home/resumeHint",
-						"Resume repeats the tool call the policy asked about, so the run stops again unless .mete/policy.yaml allows it.",
-					)}
+					{nls.localize("mete/home/openToAnswer", "Open the run to answer.")}
 				</span>
 			)}
 		</span>

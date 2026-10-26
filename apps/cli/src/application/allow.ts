@@ -1,4 +1,6 @@
 import {
+	type AllowScope,
+	canAlways,
 	type EngineError,
 	err,
 	type MeteEvent,
@@ -16,8 +18,7 @@ import { runHistory } from "../infrastructure/history.js";
 // The human's answer to a policy ask (ARCHITECTURE.md, CLI; SECURITY.md, Answering an ask; ADR-121):
 // mete allow, the terminal's question at a policy-ask pause, and mete/run.allow.
 
-/** Once, for the rest of the run, or a command for good. */
-export type AllowScope = "once" | "run" | "always";
+export { type AllowScope, canAlways };
 
 /** A policy.asked event of the run's history or the bus. */
 export type Asked = Extract<MeteEvent, { type: "policy.asked" }>;
@@ -33,14 +34,6 @@ export const pendingAsk = (events: readonly MeteEvent[]) => {
 	}
 	return asked;
 };
-
-/** Whether Always may be offered: a command whose text the event did not mask. */
-// The `[SECRET:` form is secrets.mask@1's (SecretsMaskAdapter in @mete/contracts); the masked-command
-// test of allow.test.ts runs the real masker, so a new form fails there.
-export const canAlways = (ask: PolicyAsk) =>
-	ask.action === "shell.exec" &&
-	ask.command !== undefined &&
-	!ask.command.includes("[SECRET:");
 
 /**
  * The pause's ask from the history, or the policy.asked masking publishes after the pause, waited

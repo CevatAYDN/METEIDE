@@ -3,7 +3,11 @@ import { applyAll, EMPTY_TEAM_VIEW } from "@mete/ui-studio";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { WaitingStrip } from "../src/application/waiting-strip.js";
+import {
+	AllowActions,
+	RunWaits,
+	WaitingStrip,
+} from "../src/application/waiting-strip.js";
 
 // The Team panel's Waiting for you strip (ADR-091) over a view the real fold built.
 
@@ -88,11 +92,109 @@ describe("the Waiting for you strip", () => {
 		expect(out).not.toContain("The run waits for you.");
 	});
 
-	it("says the run waits, with Resume, when no task asks the human", () => {
+	it("says the run waits, with Resume and the 3-answer hint, when no task asks the human and no ask has arrived", () => {
 		const out = strip([created, paused]);
 		expect(out).toContain("The run waits for you.");
 		expect(out).toContain(">Resume<");
+		expect(out).toContain(
+			"Allow the action once, for the rest of this run, or always in .mete/policy.yaml.",
+		);
 		expect(out).not.toContain(">Approve<");
+		expect(out).not.toContain("Allow once");
+	});
+
+	it("shows the policy ask line and three buttons when asked has an unmasked command", () => {
+		const out = strip([
+			created,
+			paused,
+			event("policy.asked", {
+				action: "shell.exec",
+				capability: "shell.exec@1",
+				adapterId: "tools",
+				command: "npm test",
+				rule: "shell_allow",
+			}),
+		]);
+		expect(out).toContain("The run waits for you.");
+		expect(out).toContain("asks shell.exec: npm test");
+		expect(out).toContain(">Allow once<");
+		expect(out).toContain(">Allow for this run<");
+		expect(out).toContain(">Always allow<");
+		expect(out).toContain(
+			"Allow the action once, for the rest of this run, or always in .mete/policy.yaml.",
+		);
+		expect(out).not.toContain(">Resume<");
+	});
+
+	it("hides Always allow when the command was masked by secrets", () => {
+		const out = strip([
+			created,
+			paused,
+			event("policy.asked", {
+				action: "shell.exec",
+				capability: "shell.exec@1",
+				adapterId: "tools",
+				command: "npm test --token=[SECRET:abcd1234]",
+				rule: "shell_allow",
+			}),
+		]);
+		expect(out).toContain("The run waits for you.");
+		expect(out).toContain(
+			"asks shell.exec: npm test --token=[SECRET:abcd1234]",
+		);
+		expect(out).toContain(">Allow once<");
+		expect(out).toContain(">Allow for this run<");
+		expect(out).not.toContain("Always allow");
+		expect(out).not.toContain(">Resume<");
+	});
+
+	it("renders the engine error message on the card for a refused allow", () => {
+		const out = renderToStaticMarkup(
+			createElement(RunWaits, {
+				asked: {
+					action: "shell.exec",
+					capability: "shell.exec@1",
+					adapterId: "tools",
+					command: "npm test",
+				},
+				onResume: () => {},
+				initialError:
+					"Always allow takes a command whose text was not masked; allow it once or for the run",
+			}),
+		);
+		expect(out).toContain(
+			"Always allow takes a command whose text was not masked; allow it once or for the run",
+		);
+		expect(out).toContain('style="color:var(--theia-errorForeground)"');
+	});
+
+	it("dispatches allow actions when scope buttons are clicked", () => {
+		const scopes: string[] = [];
+		const resumed: boolean[] = [];
+		const tree = AllowActions({
+			asked: {
+				action: "shell.exec",
+				capability: "shell.exec@1",
+				adapterId: "tools",
+				command: "npm test",
+			},
+			onAct: (s) => scopes.push(s),
+			onResume: () => resumed.push(true),
+		});
+		const buttons = tree.props.children.props.children;
+		expect(buttons).toHaveLength(3);
+		buttons[0].props.onClick();
+		buttons[1].props.onClick();
+		buttons[2].props.onClick();
+		expect(scopes).toEqual(["once", "run", "always"]);
+		expect(resumed).toHaveLength(0);
+
+		const resumeTree = AllowActions({
+			onAct: (s) => scopes.push(s),
+			onResume: () => resumed.push(true),
+		});
+		resumeTree.props.children.props.onClick();
+		expect(resumed).toEqual([true]);
 	});
 
 	it("counts the waiting tasks in its title and tones each card by its wait, the run's own card uncounted (ADR-119)", () => {

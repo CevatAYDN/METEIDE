@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+	canAlways,
 	PolicyCheckInputSchema,
 	PolicyGrantInputSchema,
 	PolicySchema,
@@ -144,5 +145,28 @@ describe("PolicyGrantInputSchema", () => {
 			{ runId: "r1", scope: "once", ask },
 		])
 			expect(PolicyGrantInputSchema.safeParse(bad).success).toBe(false);
+	});
+});
+
+describe("canAlways", () => {
+	it("offers Always for a shell command whose text is not masked, never for other actions or masked text", () => {
+		const base = {
+			capability: "shell.exec@1",
+			adapterId: "tools-shell",
+		} as const;
+		expect(
+			canAlways({ ...base, action: "shell.exec", command: "npm test" }),
+		).toBe(true);
+		expect(
+			canAlways({
+				...base,
+				action: "shell.exec",
+				command: "npm test [SECRET:abcd1234]",
+			}),
+		).toBe(false);
+		expect(canAlways({ ...base, action: "shell.exec" })).toBe(false);
+		expect(canAlways({ ...base, action: "fs.write", path: "a.txt" })).toBe(
+			false,
+		);
 	});
 });

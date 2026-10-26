@@ -1,6 +1,7 @@
+import { type AllowScope, canAlways, type PolicyAsk } from "@mete/contracts";
 import type { TaskCard, TeamView } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
-import { useId } from "react";
+import { useId, useState } from "react";
 import { roleWords } from "../domain/roster.js";
 import { ROW } from "./look.js";
 import { openReportLabel, reportPath } from "./results-list.js";
@@ -17,6 +18,9 @@ export type WaitingControls = {
 	readonly onRevise: (feedback: string) => void;
 	readonly onResume: () => void;
 	readonly onOpen: (path: string) => void;
+	readonly onAllow?:
+		| ((scope: AllowScope) => Promise<string | undefined>)
+		| undefined;
 };
 
 // The answer field is required, so an empty answer is never sent (docs/08). One form for both
@@ -210,28 +214,124 @@ const Blocked = ({
 	</li>
 );
 
-// Paused for approval with no task asking the human: a policy ask, or a merge to settle. The
-// events say no more, so the card names nothing else.
-const RunWaits = ({ onResume }: { readonly onResume: () => void }) => (
-	<li className="mete-wait-card">
-		<Head
-			tone="warn"
-			icon="debug-pause"
-			title={nls.localize("mete/waiting/run", "The run waits for you.")}
-		/>
-		<span className="mete-note">
-			{nls.localize(
-				"mete/home/resumeHint",
-				"Resume repeats the tool call the policy asked about, so the run stops again unless .mete/policy.yaml allows it.",
-			)}
-		</span>
-		<div style={ROW}>
+const askLine = (ask: PolicyAsk) => {
+	const target = ask.command ?? ask.path ?? ask.capability;
+	return `asks ${ask.action}: ${target}`;
+};
+
+const askKey = (ask?: PolicyAsk) =>
+	ask ? `${ask.action}:${ask.command ?? ask.path ?? ask.capability}` : "none";
+
+/** The action buttons of the run wait card: three allow buttons or Resume (ADR-121). */
+export const AllowActions = ({
+	asked,
+	onAct,
+	onResume,
+}: {
+	readonly asked?: PolicyAsk | undefined;
+	readonly onAct: (scope: AllowScope) => void;
+	readonly onResume: () => void;
+}) => (
+	<div style={ROW}>
+		{asked ? (
+			<>
+				<button
+					type="button"
+					className="mete-button"
+					onClick={() => onAct("once")}
+				>
+					{nls.localize("mete/waiting/allowOnce", "Allow once")}
+				</button>
+				<button
+					type="button"
+					className="mete-button"
+					onClick={() => onAct("run")}
+				>
+					{nls.localize("mete/waiting/allowRun", "Allow for this run")}
+				</button>
+				{canAlways(asked) ? (
+					<button
+						type="button"
+						className="mete-button"
+						onClick={() => onAct("always")}
+					>
+						{nls.localize("mete/waiting/allowAlways", "Always allow")}
+					</button>
+				) : null}
+			</>
+		) : (
 			<button type="button" className="mete-button" onClick={onResume}>
 				{nls.localize("mete/home/resume", "Resume")}
 			</button>
-		</div>
-	</li>
+		)}
+	</div>
 );
+
+// Paused for approval with no task asking the human: a policy ask, or a merge to settle (ADR-121).
+export const RunWaits = ({
+	asked,
+	onResume,
+	onAllow,
+	initialError,
+}: {
+	readonly asked?: PolicyAsk | undefined;
+	readonly onResume: () => void;
+	readonly onAllow?:
+		| ((scope: AllowScope) => Promise<string | undefined>)
+		| undefined;
+	readonly initialError?: string | undefined;
+}) => {
+	const [error, setError] = useState<string | undefined>(initialError);
+	const act = async (scope: AllowScope) => {
+		setError(undefined);
+		const failed = await onAllow?.(scope);
+		if (failed) setError(failed);
+	};
+	return (
+		<li className="mete-wait-card">
+			<Head
+				tone="warn"
+				icon="debug-pause"
+				title={nls.localize("mete/waiting/run", "The run waits for you.")}
+			/>
+			{asked ? <span className="mete-mono">{askLine(asked)}</span> : null}
+			<span className="mete-note">
+				{nls.localize(
+					"mete/waiting/allowHint",
+					"Allow the action once, for the rest of this run, or always in .mete/policy.yaml.",
+				)}
+			</span>
+			{error ? (
+				<span
+					className="mete-note"
+					style={{ color: "var(--theia-errorForeground)" }}
+				>
+					{error}
+				</span>
+			) : null}
+			<AllowActions
+				asked={asked}
+				onAct={(s) => void act(s)}
+				onResume={onResume}
+			/>
+		</li>
+	);
+};
+
+const TaskCardItem = ({
+	task,
+	name,
+	controls,
+}: {
+	readonly task: TaskCard;
+	readonly name: string;
+	readonly controls: WaitingControls;
+}) =>
+	task.status === "blocked" ? (
+		<Blocked task={task} name={name} controls={controls} />
+	) : (
+		<Asked task={task} name={name} controls={controls} />
+	);
 
 /** The strip, while the run is paused for approval; nothing otherwise. */
 export const WaitingStrip = ({
@@ -245,37 +345,33 @@ export const WaitingStrip = ({
 }) => {
 	const title = useId();
 	if (view.signals.pausedFor !== "approval") return null;
-	const asked = view.tasks.filter((t) => t.waitsForHuman);
+	const waiting = view.tasks.filter((t) => t.waitsForHuman);
 	return (
 		<section className="mete-wait" aria-labelledby={title}>
 			<h3 className="mete-wait-title" id={title}>
 				<Icon name="bell" />
 				{nls.localize("mete/home/waiting", "Waiting for you")}
-				{asked.length > 0 ? (
-					<span className="mete-count">{asked.length}</span>
+				{waiting.length > 0 ? (
+					<span className="mete-count">{waiting.length}</span>
 				) : null}
 			</h3>
 			<ul className="mete-wait-cards">
-				{asked.length > 0 ? (
-					asked.map((t) =>
-						t.status === "blocked" ? (
-							<Blocked
-								key={t.id}
-								task={t}
-								name={names[t.roleId] ?? roleWords(t.roleId)}
-								controls={controls}
-							/>
-						) : (
-							<Asked
-								key={t.id}
-								task={t}
-								name={names[t.roleId] ?? roleWords(t.roleId)}
-								controls={controls}
-							/>
-						),
-					)
+				{waiting.length > 0 ? (
+					waiting.map((t) => (
+						<TaskCardItem
+							key={t.id}
+							task={t}
+							name={names[t.roleId] ?? roleWords(t.roleId)}
+							controls={controls}
+						/>
+					))
 				) : (
-					<RunWaits onResume={controls.onResume} />
+					<RunWaits
+						key={askKey(view.signals.asked)}
+						asked={view.signals.asked}
+						onResume={controls.onResume}
+						onAllow={controls.onAllow}
+					/>
 				)}
 			</ul>
 		</section>

@@ -1,5 +1,6 @@
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import {
+	type AllowScope,
 	type ApprovalInput,
 	DAEMON_METHODS,
 	DaemonAuditResultSchema,
@@ -346,6 +347,9 @@ export const createDaemonHost = (deps: HostDeps) => {
 			send(dir, DAEMON_METHODS.runApprove, { runId, input }, done),
 		resume: (dir: string, runId: string) =>
 			send(dir, DAEMON_METHODS.runResume, { runId }, done),
+		/** Grants a policy ask and resumes (ADR-121). */
+		allow: (dir: string, runId: string, scope: AllowScope) =>
+			send(dir, DAEMON_METHODS.runAllow, { runId, scope }, done),
 		/** Cancels every run of the folder that has not ended (ADR-065). */
 		stopAll: (dir: string) =>
 			send(dir, DAEMON_METHODS.stopAll, {}, (raw) =>

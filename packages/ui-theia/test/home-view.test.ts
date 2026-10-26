@@ -221,10 +221,10 @@ describe("the Home view", () => {
 		expect(inbox.match(/>Revise…</g)).toHaveLength(1);
 		expect(inbox.match(/>Open artifact</g)).toHaveLength(1);
 		expect(inbox.match(/>Resume</g)).toHaveLength(2);
-		expect(inbox).toContain("unless .mete/policy.yaml allows it");
+		expect(inbox).toContain("Open the run to answer.");
 		// A long goal ends in an ellipsis, so the row's tooltip keeps it whole (ADR-109).
 		expect(inbox).toContain('class="mete-title" title="team goal"');
-		// The hint explains why Resume may stop again, so it wraps instead of being cut.
+		// The hint explains that answering happens in the run, so it wraps instead of being cut.
 		expect(inbox).toContain('class="mete-note"');
 	});
 

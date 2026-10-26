@@ -1,4 +1,4 @@
-import type { ModelRef } from "@mete/contracts";
+import type { AllowScope, ModelRef } from "@mete/contracts";
 import { CommandService, MessageService } from "@theia/core";
 import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import { ThemeService } from "@theia/core/lib/browser/theming";
@@ -273,6 +273,13 @@ export class MeteBoardWidget extends MetePanelWidget {
 		);
 	}
 
+	protected async allowShown(scope: AllowScope): Promise<string | undefined> {
+		const shown = this.session.shown;
+		if (!shown) return;
+		const r = await this.daemon.allow(shown.dir, shown.runId, scope);
+		if (!r.ok) return r.error.detail;
+	}
+
 	protected board() {
 		return (
 			<BoardView
@@ -307,6 +314,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 						onRevise: (feedback) =>
 							void this.decide(REVISE_RUN_COMMAND.id, feedback),
 						onResume: () => void this.decide(RESUME_RUN_COMMAND.id),
+						onAllow: (scope) => this.allowShown(scope),
 					},
 				}}
 			/>
