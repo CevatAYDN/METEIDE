@@ -46,14 +46,18 @@ export type CheckHooks = {
 };
 
 // The last decision step (SECURITY.md): a grant of the run turns an ask into allow, never a deny.
+// The first matching check uses a once grant up whatever it decides, so a once grant that
+// shell.always made needless cannot let a later tainted call through.
 const granted = (
 	v: PolicyVerdict,
 	input: PolicyCheckInput,
 	env: CheckerEnv,
 	grants: Grants | undefined,
 ): PolicyVerdict => {
-	const scope = v.verdict === "ask" ? grants?.take(input, env) : undefined;
-	return scope ? { verdict: "allow", rule: `granted:${scope}` } : v;
+	const scope = grants?.take(input, env);
+	return scope && v.verdict === "ask"
+		? { verdict: "allow", rule: `granted:${scope}` }
+		: v;
 };
 
 /** Creates the adapter; an audit write that fails returns `audit_failed`, which callers treat as deny. */

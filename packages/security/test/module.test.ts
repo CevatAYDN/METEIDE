@@ -4,6 +4,7 @@ import type {
 	MeteEvent,
 	PolicyCheckAdapter,
 	PolicyCheckInput,
+	PolicyGrantAdapter,
 	SecretsMaskAdapter,
 } from "@mete/contracts";
 import { describe, expect, it } from "vitest";
@@ -115,6 +116,41 @@ describe("security module", () => {
 				},
 			}),
 		]);
+		await s.storage.deactivate();
+	});
+
+	// Always allow writes shell.always and grants once for the waiting call (ADR-121); when the
+	// untainted retry is allowed by shell.always, the once grant must not outlive it.
+	it("uses a once grant up on the first matching check, also when shell.always allowed it", async () => {
+		const s = await setup({ shell: { always: ["npm install"] } });
+		await s.security.activate(s.ctx);
+		const policy = s.impl<PolicyCheckAdapter>("policy.check@1");
+		const runId = crypto.randomUUID();
+		const call = (tainted: boolean): PolicyCheckInput => ({
+			action: "shell.exec",
+			capability: "shell.exec@1",
+			adapterId: "tools-shell",
+			args: { command: "npm install" },
+			runId,
+			command: "npm install",
+			tainted,
+		});
+		s.impl<PolicyGrantAdapter>("policy.grant@1").grant({
+			runId,
+			scope: "once",
+			ask: {
+				action: "shell.exec",
+				capability: "shell.exec@1",
+				adapterId: "tools-shell",
+				command: "npm install",
+			},
+		});
+		const rule = (tainted: boolean) => {
+			const r = policy.check(call(tainted));
+			return r.ok ? r.value.rule : r.error.code;
+		};
+		expect(rule(false)).toBe("shell.always");
+		expect(rule(true)).toBe("autonomy:1");
 		await s.storage.deactivate();
 	});
 
