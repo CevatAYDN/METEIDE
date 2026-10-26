@@ -1,12 +1,12 @@
 import { access, mkdir, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { ok } from "@mete/contracts";
+import { err, ok } from "@mete/contracts";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
 	createWorktree,
 	removeWorktree,
 } from "../../src/application/vcs-worktree.js";
-import { gitAt } from "../../src/infrastructure/git.js";
+import { type Git, gitAt } from "../../src/infrastructure/git.js";
 import { initRepo, isolateGit } from "../helpers/repo.js";
 import { tempWorkspace } from "../infrastructure/workspace.js";
 
@@ -83,6 +83,36 @@ describe("vcs-worktree cleanup", () => {
 			taskId: TASK1,
 		});
 		expect(again).toEqual(ok({ op: "worktree.remove", removed: false }));
+	});
+
+	it("removes the folder and the branch when git refuses to remove the worktree", async () => {
+		// Windows git fails a removal whose path is longer than MAX_PATH (ADR-123).
+		const { git, deps } = await setup();
+		const created = await createWorktree(deps, git, {
+			runId: RUN,
+			taskId: TASK1,
+		});
+		expect(created.ok).toBe(true);
+		if (!created.ok || created.value.op !== "worktree.create")
+			throw new Error("worktree not created");
+
+		const wtDir = created.value.path;
+		await writeFile(join(wtDir, "src.js"), "console.log(1);\n");
+		const refusing: Git = async (args, env) =>
+			args.includes("worktree") && args.includes("remove")
+				? err({ code: "io", message: "fatal: could not remove worktree" })
+				: git(args, env);
+
+		const removed = await removeWorktree(deps, refusing, {
+			runId: RUN,
+			taskId: TASK1,
+		});
+		expect(removed).toEqual(ok({ op: "worktree.remove", removed: true }));
+
+		expect(await exists(wtDir)).toBe(false);
+		expect(await exists(join(deps.worktreesDir, RUN))).toBe(false);
+		const branch = await git(["branch", "--list", `mete/${RUN}/${TASK1}`]);
+		expect(branch.ok && branch.value.trim()).toBe("");
 	});
 
 	it("removes one task worktree with node_modules while keeping sibling task worktrees", async () => {

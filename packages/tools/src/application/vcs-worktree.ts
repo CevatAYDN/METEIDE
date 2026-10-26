@@ -70,9 +70,22 @@ export const removeWorktree = async (deps: Where, git: Git, t: Task): Out => {
 	const { dir, branch } = place(deps, t);
 	const there = await exists(dir);
 	if (there) {
-		const gone = await git(["worktree", "remove", "--force", dir]);
-		if (!gone.ok) return gone;
+		// Windows git refuses a worktree whose path is longer than MAX_PATH (ADR-123), so the
+		// folder is deleted here and git's own records are pruned below.
+		await git([
+			"-c",
+			"core.longpaths=true",
+			"worktree",
+			"remove",
+			"--force",
+			dir,
+		]);
 		await rm(dir, { recursive: true, force: true }).catch(() => undefined);
+		if (await exists(dir))
+			return err({
+				code: "io",
+				message: `the worktree ${dir} could not be removed`,
+			});
 	}
 	await git(["worktree", "prune"]);
 	// The run's folder goes with its last worktree; rmdir refuses one that still holds another.
