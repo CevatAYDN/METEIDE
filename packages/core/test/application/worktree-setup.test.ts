@@ -137,18 +137,17 @@ describe("worktree setup command execution (ADR-123)", () => {
 		expect(commands[0]?.cwd).toBe("/mock/wt");
 	});
 
-	it("pauses the run for approval when policy returns approval_required", async () => {
+	it("pauses the run for approval, then runs the setup command again on resume", async () => {
 		const vcs = fakeVcs("/mock/wt");
-		let asked = false;
-		const shell: Tool = async () => {
-			if (!asked) {
-				asked = true;
+		const commands: unknown[] = [];
+		const shell: Tool = async (input) => {
+			commands.push(input);
+			if (commands.length === 1)
 				return err<ToolError>({
 					code: "approval_required",
 					rule: "shell.exec",
 					message: "ask",
 				});
-			}
 			return shellResult(0);
 		};
 		const h = engineHarness({
@@ -163,13 +162,19 @@ describe("worktree setup command execution (ADR-123)", () => {
 		const runId = await start(h);
 		await settled(h, runId, "paused");
 		expect(view(h, runId)?.status).toBe("paused");
+		expect(commands).toHaveLength(1);
 
 		const pauseEvent = h.events.find((e) => e.type === "run.paused");
 		expect(pauseEvent?.payload).toMatchObject({ reason: "approval" });
 
-		// Resuming allows setup to run and the run to complete
+		// The pause came before the task started, so the resume starts it again and the setup
+		// command runs a second time rather than leaving the worktree without its dependencies.
 		await h.engine.resume(runId);
 		await settled(h, runId, "completed");
+		expect(commands).toEqual([
+			{ command: "pnpm install" },
+			{ command: "pnpm install" },
+		]);
 	});
 
 	it("gracefully continues and logs warning when setup command fails with non-zero exit code", async () => {
