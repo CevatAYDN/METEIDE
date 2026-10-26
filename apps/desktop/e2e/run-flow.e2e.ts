@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { Page } from "@playwright/test";
 import { expect, inboxLink, runCommand, startRun, test } from "./launch.js";
 
@@ -52,6 +54,9 @@ tasks:
   - { id: notes, role: writer, title: Take notes }
   - { id: summary, role: writer, title: Write the summary, context: [notes] }
 `;
+
+/** The panel's answer, so a phrase the Activity feed also prints is read once. */
+const answer = (page: Page) => page.getByRole("region", { name: "Answer" });
 
 /** The Team panel that holds the phrase, so a Home button of the same name is never clicked. */
 const board = (page: Page, phrase: RegExp) =>
@@ -148,6 +153,76 @@ test.describe("a run blocked by its guardrail", () => {
 		await expect(
 			page.locator('section[aria-label="Runs"]').getByText("Done"),
 		).toBeVisible({ timeout: 60_000 });
+	});
+});
+
+// The workspace-reading flow: a single agent reads a file and greps the folder, so a packaged run
+// proves the daemon, its SQLite database and the ripgrep the tools carry all work from the package
+// (ADR-124).
+const TOKEN = "METE_E2E_TOKEN";
+
+// The calls a packaged run makes: read one file, then grep the folder for the token (ADR-124).
+const READ_SCRIPT = {
+	turns: [
+		[
+			{
+				type: "tool-call",
+				id: "read",
+				name: "fs_read",
+				args: { path: "README.md" },
+			},
+			{
+				type: "tool-call",
+				id: "grep",
+				name: "fs_grep",
+				args: { pattern: TOKEN },
+			},
+			{
+				type: "finish",
+				reason: "tool-calls",
+				usage: { prompt: 12, completion: 4 },
+			},
+		],
+		say(`The workspace mentions ${TOKEN}.`),
+	],
+};
+
+test.describe("a run that reads and searches the workspace", () => {
+	test.use({
+		files: {
+			"README.md": `# Release notes\n\nThe token is ${TOKEN}.\n`,
+			"notes/guide.md": `${TOKEN} appears here too.\n`,
+		},
+		script: READ_SCRIPT,
+	});
+
+	test("runs fs_read and fs_grep, writes SQLite and answers", async ({
+		mete,
+	}) => {
+		const { page, dir } = mete;
+		await startRun(page, { goal: "find the token", team: /single agent/i });
+
+		// The Activity feed names the capability of every finished call.
+		await expect(page.getByText(/uses fs\.read@1/)).toBeVisible({
+			timeout: 90_000,
+		});
+		await expect(page.getByText(/uses fs\.grep@1/)).toBeVisible({
+			timeout: 60_000,
+		});
+		await expect(
+			answer(page).getByText(`The workspace mentions ${TOKEN}.`),
+		).toBeVisible({ timeout: 60_000 });
+
+		// The daemon wrote the run to the workspace's database, which starts as a bare schema.
+		const db = join(dir, ".mete", "mete.db");
+		await expect.poll(() => existsSync(db), { timeout: 30_000 }).toBe(true);
+		expect(readFileSync(db).subarray(0, 15).toString("latin1")).toBe(
+			"SQLite format 3",
+		);
+		const written = [db, `${db}-wal`]
+			.filter((file) => existsSync(file))
+			.some((file) => readFileSync(file).includes("find the token"));
+		expect(written).toBe(true);
 	});
 });
 

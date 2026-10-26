@@ -23,6 +23,7 @@
 		"download:plugins": "theia download:plugins",
 		"package:win": "node scripts/package-win.mjs",
 		"test:e2e": "playwright test",
+		"test:e2e:packaged": "node scripts/e2e-packaged.mjs",
 		"test:perf": "node e2e/perf.mjs",
 		"start": "theia start --plugins=local-dir:plugins"
 	},

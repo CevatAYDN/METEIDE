@@ -7,10 +7,9 @@ import {
 	rmSync,
 	writeFileSync,
 } from "node:fs";
-import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
 import {
 	type Browser,
 	test as base,
@@ -18,6 +17,7 @@ import {
 	expect,
 	type Page,
 } from "@playwright/test";
+import { appCommand, missingApp } from "./app.js";
 
 // One launched app: the built Electron main, the downloaded plugins and a fresh git workspace,
 // so a test sees the daemon, the panels and the extension host as a user does (docs/15).
@@ -25,9 +25,9 @@ import {
 // config's folder, this package's root. The app is driven over its own remote-debugging port:
 // @playwright/test's _electron wrapper does not see this app's window, connectOverCDP does.
 
-const APP = resolve(process.cwd());
-const MAIN = join(APP, "lib", "backend", "electron-main.js");
-const REQUIRE = createRequire(join(APP, "package.json"));
+// The packaged app (ADR-124): `METE_E2E_APP=packaged` drives the installer's win-unpacked folder
+// instead of the repository's build, so the daemon, the plugins and the native modules are the ones
+// an installed app has. Everything else — the workspace, the global folder, the scripts — is the same.
 
 /** The app under test: its page, the fresh workspace it opened, and how to stop it. */
 export type Launch = {
@@ -106,6 +106,15 @@ const trustWorkspace = async (page: Page) => {
 	if (yes) await yes.click();
 };
 
+// The shell must be up and focused before any keyboard shortcut reaches it; the first shortcut
+// right after the shell appears is lost while keybindings still arm.
+const settle = async (page: Page) => {
+	await page.waitForSelector("#theia-app-shell", { timeout: 60_000 });
+	await page.click("body");
+	await sleep(2000);
+	await trustWorkspace(page);
+};
+
 /** Whether the debugging endpoint lists the shell's page; a browser connected before it is blind to it. */
 const frontendListed = async (port: number) => {
 	try {
@@ -180,16 +189,11 @@ const removeDir = async (dir: string) => {
 
 const startApp = async (workspace: string, env: NodeJS.ProcessEnv) => {
 	const port = await freePort();
-	const child = spawn(
-		String(REQUIRE("electron")),
-		[
-			MAIN,
-			`--remote-debugging-port=${port}`,
-			`--plugins=local-dir:${join(APP, "plugins")}`,
-			workspace,
-		],
-		{ stdio: ["ignore", "ignore", "pipe"], env },
-	);
+	const [command, args] = appCommand(port, workspace);
+	const child = spawn(command, args, {
+		stdio: ["ignore", "ignore", "pipe"],
+		env,
+	});
 	// The output is not asserted; it answers why a launch that opens no window ended.
 	let tail = "";
 	child.stderr.on("data", (chunk: Buffer | string) => {
@@ -299,10 +303,8 @@ export const test = base.extend<MeteOptions & { mete: Launch }>({
 	web: [{}, { option: true }],
 	browserScript: [{}, { option: true }],
 	mete: async ({ files, commit, script, web, browserScript }, use) => {
-		if (!existsSync(MAIN))
-			throw new Error(
-				"the app is not built: run pnpm build, pnpm --filter @mete/desktop bundle and download:plugins first",
-			);
+		const missing = missingApp();
+		if (missing) throw new Error(missing);
 		const workspace = mkdtempSync(join(tmpdir(), "mete-e2e-"));
 		spawnSync("git", ["init", "--quiet"], { cwd: workspace });
 		writeFiles(workspace, files);
@@ -333,12 +335,7 @@ export const test = base.extend<MeteOptions & { mete: Launch }>({
 		}
 		const { browser, page } = front;
 		await page.bringToFront();
-		// The shell must be up and focused before any keyboard shortcut reaches it; the first
-		// shortcut right after the shell appears is lost while keybindings still arm.
-		await page.waitForSelector("#theia-app-shell", { timeout: 60_000 });
-		await page.click("body");
-		await sleep(2000);
-		await trustWorkspace(page);
+		await settle(page);
 		await use({ page, dir: workspace, close: () => stop(browser) });
 		await stop(browser);
 	},
