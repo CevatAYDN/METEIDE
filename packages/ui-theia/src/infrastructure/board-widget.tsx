@@ -32,14 +32,10 @@ import { restoredText } from "../application/checkpoint-list.js";
 import { type ChainContext, fetchChain } from "../application/composer.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { panelRoot } from "../application/panel-root.js";
+import { chainsOfRoles } from "../application/role-chains.js";
 import type { RunFacts } from "../application/run-strip.js";
 import { failureText, plain } from "../application/status-text.js";
-import {
-	draftOf,
-	roleNames,
-	teamName,
-	teamOf,
-} from "../application/team-draft.js";
+import { roleNames, teamName } from "../application/team-draft.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { FlowView } from "./flow-view.js";
 import { MetePanelWidget } from "./panel-widget.js";
@@ -176,15 +172,10 @@ export class MeteBoardWidget extends MetePanelWidget {
 	}
 
 	protected async loadTemplateChains(dir: string, runId: string, yaml: string) {
-		const draft = draftOf(yaml);
-		if (!draft.ok) return;
-		const ctx = this.chainCtx(dir);
-		for (const r of teamOf(draft.value).roles) {
-			this.askedChains.add(r.id);
-			const models = await fetchChain(ctx, r.tier, r.needs);
-			if (this.shownRun.runId !== runId) return;
-			this.candidateModels = { ...this.candidateModels, [r.id]: models };
-		}
+		const models = await chainsOfRoles(this.chainCtx(dir), yaml);
+		if (this.shownRun.runId !== runId) return;
+		for (const id of Object.keys(models)) this.askedChains.add(id);
+		this.candidateModels = { ...this.candidateModels, ...models };
 		this.update();
 	}
 
