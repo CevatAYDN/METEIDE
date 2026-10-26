@@ -42,7 +42,7 @@
 			"inProgress": "Sürüyor",
 			"inReview": "İncelemede",
 			"loading": "Çalıştırmanın olayları okunuyor…",
-			"noTasks": "Bu çalıştırmanın görevi yok: tek bir ajan panosuz çalışır.",
+			"noTasks": "Bu çalıştırmanın görevi yok: tek bir ajan panosuz çalışır ve yanıtı çalıştırma bitince burada görünür.",
 			"open": "Ekip panelini aç",
 			"openReport": "Raporu aç",
 			"openReportOf": "{0} görevinin raporunu aç",

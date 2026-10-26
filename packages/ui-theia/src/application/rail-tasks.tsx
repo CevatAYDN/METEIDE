@@ -61,7 +61,7 @@ export const RailTasks = ({
 		<p style={{ ...MUTED, margin: 0 }}>
 			{nls.localize(
 				"mete/board/noTasks",
-				"This run has no tasks: a single agent works without a board.",
+				"This run has no tasks: a single agent works without a board, and its answer appears here when the run finishes.",
 			)}
 		</p>
 	) : (
