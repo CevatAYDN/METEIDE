@@ -1,5 +1,7 @@
 import { nls } from "@theia/core/lib/common/nls";
+import { useId } from "react";
 import type { ComposerOption } from "./composer.js";
+import { FIELD } from "./fields.js";
 import { MUTED, PANEL, ROW, TITLE } from "./look.js";
 import { noFolderText } from "./status-text.js";
 
@@ -24,6 +26,8 @@ export type ComposerInput = {
 	readonly selected: string;
 	readonly busy: boolean;
 	readonly error?: string | undefined;
+	readonly singleModel?: string | undefined;
+	readonly roleModels?: Readonly<Record<string, string>> | undefined;
 };
 
 type Props = ComposerInput & {
@@ -35,6 +39,8 @@ type Props = ComposerInput & {
 	readonly onEdit: (templateId: string) => void;
 	/** Starts a blank team in the team editor (ADR-093). */
 	readonly onNewTeam: () => void;
+	readonly onSingleModel?: (model: string) => void;
+	readonly onRoleModel?: (roleId: string, model: string) => void;
 };
 
 // A team's option carries an Edit button beside it, which opens the team editor (ADR-075).
@@ -122,6 +128,112 @@ const Message = ({ children }: { readonly children: string }) => (
 	</section>
 );
 
+const ModelChoice = ({
+	label,
+	value,
+	models,
+	onChange,
+}: {
+	readonly label: string;
+	readonly value?: string | undefined;
+	readonly models: readonly string[];
+	readonly onChange: (value: string) => void;
+}) => {
+	const list = useId();
+	return (
+		<label style={FIELD}>
+			<span>{label}</span>
+			<input
+				className="mete-field"
+				list={list}
+				value={value ?? ""}
+				placeholder="providerId/modelId"
+				onChange={(e) => onChange(e.target.value)}
+			/>
+			<datalist id={list}>
+				{models.map((m) => (
+					<option key={m} value={m} />
+				))}
+			</datalist>
+		</label>
+	);
+};
+
+const Preferences = ({
+	chosen,
+	singleModel,
+	roleModels,
+	onSingleModel,
+	onRoleModel,
+}: {
+	readonly chosen: ComposerOption | undefined;
+	readonly singleModel?: string | undefined;
+	readonly roleModels?: Readonly<Record<string, string>> | undefined;
+	readonly onSingleModel?: ((model: string) => void) | undefined;
+	readonly onRoleModel?: ((roleId: string, model: string) => void) | undefined;
+}) => {
+	if (!chosen || chosen.templateId === undefined) return null;
+	if (chosen.templateId === null) {
+		return (
+			<ModelChoice
+				label={nls.localize(
+					"mete/run/preferModel",
+					"Preferred model (optional)",
+				)}
+				value={singleModel}
+				models={chosen.models ?? []}
+				onChange={(v) => onSingleModel?.(v)}
+			/>
+		);
+	}
+	if (!chosen.roles?.length) return null;
+	return (
+		<div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+			{chosen.roles.map((r) => (
+				<ModelChoice
+					key={r.id}
+					label={
+						r.name
+							? `${r.name} · ${nls.localize("mete/run/preferModel", "Preferred model (optional)")}`
+							: nls.localize(
+									"mete/run/preferModel",
+									"Preferred model (optional)",
+								)
+					}
+					value={roleModels?.[r.id]}
+					models={r.models ?? []}
+					onChange={(v) => onRoleModel?.(r.id, v)}
+				/>
+			))}
+		</div>
+	);
+};
+
+const GoalField = ({
+	goal,
+	ready,
+	onGoal,
+	onStart,
+}: {
+	readonly goal: string;
+	readonly ready: boolean;
+	readonly onGoal: (goal: string) => void;
+	readonly onStart: () => void;
+}) => (
+	<label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+		{nls.localize("mete/run/goal", "What should METE do in this folder?")}
+		<textarea
+			className="mete-field"
+			rows={4}
+			value={goal}
+			onChange={(e) => onGoal(e.target.value)}
+			onKeyDown={(e) => {
+				if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && ready) onStart();
+			}}
+		/>
+	</label>
+);
+
 /** The composer for a model and the user's input; Ctrl+Enter in the goal starts the run. */
 export const ComposerView = (props: Props) => {
 	const { model, goal, selected, busy, error } = props;
@@ -141,24 +253,24 @@ export const ComposerView = (props: Props) => {
 			<h2 style={TITLE}>
 				{nls.localize("mete/composer/title", "Start a run")}
 			</h2>
-			<label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-				{nls.localize("mete/run/goal", "What should METE do in this folder?")}
-				<textarea
-					className="mete-field"
-					rows={4}
-					value={goal}
-					onChange={(e) => props.onGoal(e.target.value)}
-					onKeyDown={(e) => {
-						if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && ready)
-							props.onStart();
-					}}
-				/>
-			</label>
+			<GoalField
+				goal={goal}
+				ready={ready}
+				onGoal={props.onGoal}
+				onStart={props.onStart}
+			/>
 			<Teams
 				model={model}
 				selected={selected}
 				onSelect={props.onSelect}
 				onEdit={props.onEdit}
+			/>
+			<Preferences
+				chosen={model.options.find((o) => o.key === selected)}
+				singleModel={props.singleModel}
+				roleModels={props.roleModels}
+				onSingleModel={props.onSingleModel}
+				onRoleModel={props.onRoleModel}
 			/>
 			<div style={ROW}>
 				<button

@@ -1,3 +1,4 @@
+import { NeedSchema, TierSchema } from "@mete/contracts";
 import { CommandService, MessageService } from "@theia/core";
 import { Emitter } from "@theia/core/lib/common/event";
 import { nls } from "@theia/core/lib/common/nls";
@@ -7,13 +8,17 @@ import {
 	type ComposerOption,
 	narrowedTo,
 	optionsOf,
+	preferOf,
 	startOf,
+	type TemplateListing,
 } from "../application/composer.js";
 import {
 	type ComposerModel,
 	ComposerView,
 } from "../application/composer-view.js";
+import { chainKey } from "../application/pins-draft.js";
 import { failureText } from "../application/status-text.js";
+import { draftOf, teamOf } from "../application/team-draft.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import {
 	EDIT_TEAM_COMMAND,
@@ -30,6 +35,62 @@ export type StartedRun = {
 	readonly runId: string;
 	readonly goal: string;
 };
+
+type ChainContext = {
+	readonly daemon: MeteDaemonService;
+	readonly dir: string;
+	readonly cache: Map<string, readonly string[]>;
+};
+
+const fetchChain = async (
+	ctx: ChainContext,
+	tierName: string,
+	needsList: readonly string[],
+): Promise<readonly string[]> => {
+	const tier = TierSchema.safeParse(tierName);
+	if (!tier.success) return [];
+	const needs = NeedSchema.array().parse(
+		needsList.filter((n) => NeedSchema.safeParse(n).success),
+	);
+	const key = chainKey(tier.data, needs);
+	const hit = ctx.cache.get(key);
+	if (hit) return hit;
+	try {
+		const res = await ctx.daemon.chain(ctx.dir, tier.data, needs);
+		const models = res.ok
+			? res.value.models.map((m) => `${m.providerId}/${m.modelId}`)
+			: [];
+		ctx.cache.set(key, models);
+		return models;
+	} catch {
+		return [];
+	}
+};
+
+const loadRoles = async (
+	ctx: ChainContext,
+	templates: readonly TemplateListing[],
+): Promise<TemplateListing[]> =>
+	Promise.all(
+		templates.map(async (t) => {
+			try {
+				const read = await ctx.daemon.readTemplate(ctx.dir, t.id);
+				if (!read.ok) return t;
+				const draft = draftOf(read.value.yaml);
+				if (!draft.ok) return t;
+				const roles = await Promise.all(
+					teamOf(draft.value).roles.map(async (r) => ({
+						id: r.id,
+						name: r.name || r.id,
+						models: await fetchChain(ctx, r.tier, r.needs),
+					})),
+				);
+				return { ...t, roles };
+			} catch {
+				return t;
+			}
+		}),
+	);
 
 /** The METE run composer: its state and requests; the Team panel draws it. */
 @injectable()
@@ -52,6 +113,9 @@ export class MeteRunComposer {
 	protected all: readonly ComposerOption[] = [];
 	protected goal = "";
 	protected selected = "choose";
+	protected singleModel: string | undefined;
+	protected roleModels: Record<string, string> = {};
+	protected readonly chainCache = new Map<string, readonly string[]>();
 	protected busy = false;
 	protected error: string | undefined;
 	protected pending: Promise<void> | undefined;
@@ -77,16 +141,22 @@ export class MeteRunComposer {
 		if (!root) return this.setModel({ kind: "no_folder" });
 		this.dir = root.resource.path.fsPath();
 		if (this.model.kind !== "ready") this.setModel({ kind: "loading" });
-		// The templates, then each one's estimate and the single agent's at once; a cold daemon lists
-		// the providers' models first, so the screen says it is busy.
 		const listed = await this.daemon.templates(this.dir);
-		const templates = listed.ok ? listed.value.templates : [];
-		const ids = [...templates.map((t) => t.id), null];
+		const raw = listed.ok ? listed.value.templates : [];
 		const dir = this.dir;
-		const estimates = await Promise.all(
-			ids.map((id) => this.daemon.estimate(dir, id)),
-		);
-		this.all = optionsOf(templates, estimates);
+		const ctx: ChainContext = {
+			daemon: this.daemon,
+			dir,
+			cache: this.chainCache,
+		};
+		const [templates, singleModels, ...estimates] = await Promise.all([
+			loadRoles(ctx, raw),
+			fetchChain(ctx, "coder", []),
+			...[...raw.map((t) => t.id), null].map((id) =>
+				this.daemon.estimate(dir, id),
+			),
+		]);
+		this.all = optionsOf(templates, estimates, singleModels);
 		this.selected = this.all.some((o) => o.key === this.selected)
 			? this.selected
 			: "choose";
@@ -102,7 +172,15 @@ export class MeteRunComposer {
 		this.busy = true;
 		this.error = undefined;
 		this.changed.fire();
-		const r = await this.daemon.startRun(dir, startOf(this.goal, option));
+		const prefer = preferOf(
+			option.templateId,
+			this.singleModel,
+			this.roleModels,
+		);
+		const r = await this.daemon.startRun(
+			dir,
+			startOf(this.goal, option, prefer),
+		);
 		this.busy = false;
 		if (r.ok) return this.started(dir, r.value.runId);
 		if (r.error.code === "choose_template") this.narrow(r.error.suggestions);
@@ -127,6 +205,8 @@ export class MeteRunComposer {
 		);
 		this.goal = "";
 		this.selected = "choose";
+		this.singleModel = undefined;
+		this.roleModels = {};
 		this.setModel({ kind: "ready", options: this.all, unsure: false });
 		this.startedRun.fire({ dir, runId, goal });
 	}
@@ -145,12 +225,22 @@ export class MeteRunComposer {
 				selected={this.selected}
 				busy={this.busy}
 				error={this.error}
+				singleModel={this.singleModel}
+				roleModels={this.roleModels}
 				onGoal={(goal) => {
 					this.goal = goal;
 					this.changed.fire();
 				}}
 				onSelect={(key) => {
 					this.selected = key;
+					this.changed.fire();
+				}}
+				onSingleModel={(model) => {
+					this.singleModel = model;
+					this.changed.fire();
+				}}
+				onRoleModel={(roleId, model) => {
+					this.roleModels = { ...this.roleModels, [roleId]: model };
 					this.changed.fire();
 				}}
 				onStart={() => void this.start()}

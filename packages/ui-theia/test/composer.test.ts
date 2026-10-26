@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
 	type EstimateReply,
+	modelRefOf,
 	narrowedTo,
 	optionsOf,
+	preferOf,
 	startOf,
 } from "../src/application/composer.js";
 
@@ -111,5 +113,114 @@ describe("startOf", () => {
 			goal: "g",
 			templateId: null,
 		});
+	});
+
+	it("passes prefer for a single agent when provided, or omits it when absent", () => {
+		const single = option("single");
+		expect(
+			startOf("g", single, { providerId: "groq", modelId: "llama" }),
+		).toEqual({
+			goal: "g",
+			templateId: null,
+			prefer: { providerId: "groq", modelId: "llama" },
+		});
+		expect(startOf("g", single, undefined)).toEqual({
+			goal: "g",
+			templateId: null,
+		});
+	});
+
+	it("passes prefer for a team when provided, or omits it when empty", () => {
+		const team = option("game-studio");
+		expect(
+			startOf("g", team, {
+				lead: { providerId: "groq", modelId: "llama" },
+			}),
+		).toEqual({
+			goal: "g",
+			templateId: "game-studio",
+			prefer: { lead: { providerId: "groq", modelId: "llama" } },
+		});
+		expect(startOf("g", team, {})).toEqual({
+			goal: "g",
+			templateId: "game-studio",
+		});
+	});
+
+	it("omits prefer and templateId when METE chooses", () => {
+		expect(
+			startOf("g", option("choose"), {
+				lead: { providerId: "groq", modelId: "llama" },
+			}),
+		).toEqual({
+			goal: "g",
+			prefer: { lead: { providerId: "groq", modelId: "llama" } },
+		});
+	});
+});
+
+describe("modelRefOf", () => {
+	it("parses valid providerId/modelId strings", () => {
+		expect(modelRefOf("groq/llama-3.3-70b-versatile")).toEqual({
+			providerId: "groq",
+			modelId: "llama-3.3-70b-versatile",
+		});
+		expect(modelRefOf("openrouter/anthropic/claude-3.5-sonnet")).toEqual({
+			providerId: "openrouter",
+			modelId: "anthropic/claude-3.5-sonnet",
+		});
+		expect(modelRefOf("  gemini/gemini-2.0-flash  ")).toEqual({
+			providerId: "gemini",
+			modelId: "gemini-2.0-flash",
+		});
+	});
+
+	it("returns undefined for invalid strings", () => {
+		expect(modelRefOf(undefined)).toBeUndefined();
+		expect(modelRefOf("")).toBeUndefined();
+		expect(modelRefOf("   ")).toBeUndefined();
+		expect(modelRefOf("noslash")).toBeUndefined();
+		expect(modelRefOf("/nomodel")).toBeUndefined();
+		expect(modelRefOf("noprovider/")).toBeUndefined();
+	});
+});
+
+describe("preferOf", () => {
+	it("resolves single agent model preference", () => {
+		expect(preferOf(null, "groq/llama")).toEqual({
+			providerId: "groq",
+			modelId: "llama",
+		});
+		expect(preferOf(null, "")).toBeUndefined();
+		expect(preferOf(null, undefined)).toBeUndefined();
+		expect(preferOf(null, "invalid")).toBeUndefined();
+	});
+
+	it("resolves team role model preferences", () => {
+		expect(
+			preferOf("web-dev", undefined, {
+				lead: "groq/llama",
+				dev: "gemini/flash",
+			}),
+		).toEqual({
+			lead: { providerId: "groq", modelId: "llama" },
+			dev: { providerId: "gemini", modelId: "flash" },
+		});
+		expect(
+			preferOf("web-dev", undefined, {
+				lead: "groq/llama",
+				dev: "",
+			}),
+		).toEqual({
+			lead: { providerId: "groq", modelId: "llama" },
+		});
+		expect(preferOf("web-dev", undefined, {})).toBeUndefined();
+		expect(preferOf("web-dev", undefined, { lead: "" })).toBeUndefined();
+	});
+
+	it("returns undefined when METE chooses", () => {
+		expect(
+			preferOf(undefined, "groq/llama", { lead: "groq/llama" }),
+		).toBeUndefined();
 	});
 });

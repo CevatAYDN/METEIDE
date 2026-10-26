@@ -246,6 +246,7 @@
 			"openArtifact": "Open artifact",
 			"pickStart": "Which team should work on it?",
 			"pickTeam": "METE is not sure which team fits this goal; choose one",
+			"preferModel": "Preferred model (optional)",
 			"resume": "Resume run",
 			"resumed": "Resumed.",
 			"revise": "Revise run",

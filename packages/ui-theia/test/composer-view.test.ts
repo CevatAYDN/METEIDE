@@ -98,4 +98,59 @@ describe("ComposerView", () => {
 		expect(html({ kind: "no_folder" })).toContain("Open a folder first");
 		expect(html({ kind: "no_folder" })).not.toContain("<textarea");
 	});
+
+	it("renders preferred model field with datalist when single agent is selected", () => {
+		const singleOptions = optionsOf(
+			[],
+			[undefined],
+			["groq/llama-3.3-70b-versatile", "gemini/gemini-2.0-flash"],
+		);
+		const out = html(
+			{ kind: "ready", options: singleOptions, unsure: false },
+			{ selected: "single", singleModel: "groq/llama-3.3-70b-versatile" },
+		);
+		expect(out).toContain("Preferred model (optional)");
+		expect(out).toContain('value="groq/llama-3.3-70b-versatile"');
+		expect(out).toContain('value="gemini/gemini-2.0-flash"');
+		expect(out).toContain("<datalist");
+	});
+
+	it("renders preferred model fields per role when a team is selected", () => {
+		const teamOptions = optionsOf(
+			[
+				{
+					id: "web-dev",
+					name: "Web development",
+					roles: [
+						{
+							id: "lead",
+							name: "Lead",
+							models: ["groq/llama-3.3-70b-versatile"],
+						},
+						{
+							id: "dev",
+							name: "Developer",
+							models: ["gemini/gemini-2.0-flash"],
+						},
+					],
+				},
+			],
+			[undefined, undefined],
+		);
+		const out = html(
+			{ kind: "ready", options: teamOptions, unsure: false },
+			{
+				selected: "web-dev",
+				roleModels: { lead: "groq/llama-3.3-70b-versatile" },
+			},
+		);
+		expect(out).toContain("Lead · Preferred model (optional)");
+		expect(out).toContain("Developer · Preferred model (optional)");
+		expect(out).toContain('value="groq/llama-3.3-70b-versatile"');
+	});
+
+	it("omits preferred model inputs when Let METE choose is selected", () => {
+		const out = html(READY, { selected: "choose" });
+		expect(out).not.toContain("Preferred model (optional)");
+	});
 });
