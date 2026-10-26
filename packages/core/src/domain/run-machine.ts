@@ -2,6 +2,7 @@ import type {
 	ChatChunk,
 	ChatMessage,
 	PauseReasonSchema,
+	RunPrefer,
 } from "@mete/contracts";
 import { assign, setup } from "xstate";
 import type { z } from "zod";
@@ -61,6 +62,10 @@ export type RunContext = {
 	readonly brief?: string | undefined;
 	/** External content joined this attempt, so its tool calls are tainted (SECURITY.md). */
 	readonly tainted?: boolean | undefined;
+	/** The chosen model for the single agent or per role (ADR-122). */
+	readonly prefer?: RunPrefer | undefined;
+	/** Incremented on each preference change to invalidate seat caches (ADR-122). */
+	readonly preferRevision?: number | undefined;
 };
 
 /** What happens to a run. */
@@ -70,6 +75,7 @@ export type RunEvent =
 	| { type: "TOOL_DONE"; message: ToolMessage; external?: boolean }
 	| { type: "MODEL"; agent: AgentRef }
 	| { type: "TEAM"; team: TeamState }
+	| { type: "PREFER"; prefer: RunPrefer | undefined }
 	| { type: "SUMMARIZED"; messages: readonly ChatMessage[] }
 	| { type: "REPAIR"; team: TeamState; content: string }
 	| {
@@ -121,6 +127,7 @@ export const runMachine = setup({
 			priority: 0 | 1 | 2;
 			messages: readonly ChatMessage[];
 			brief?: string | undefined;
+			prefer?: RunPrefer | undefined;
 		},
 	},
 }).createMachine({
@@ -131,6 +138,8 @@ export const runMachine = setup({
 		priority: input.priority,
 		messages: input.messages,
 		...(input.brief ? { brief: input.brief } : {}),
+		...(input.prefer ? { prefer: input.prefer } : {}),
+		preferRevision: 0,
 		turns: 0,
 		requests: 0,
 		activeMs: 0,
@@ -141,6 +150,12 @@ export const runMachine = setup({
 	on: {
 		MODEL: { actions: assign({ agent: ({ event }) => event.agent }) },
 		TEAM: { actions: assign({ team: ({ event }) => event.team }) },
+		PREFER: {
+			actions: assign(({ context, event }) => ({
+				prefer: event.prefer,
+				preferRevision: (context.preferRevision ?? 0) + 1,
+			})),
+		},
 		// A summary is a cloud request but no agent turn; checkpoint indexes no longer hold.
 		SUMMARIZED: {
 			actions: assign(({ context, event }) => ({

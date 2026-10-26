@@ -2,6 +2,7 @@ import {
 	ChatRequestSchema,
 	type Migration,
 	PauseReasonSchema,
+	RunPreferSchema,
 	RunStatusSchema,
 	type RunView,
 } from "@mete/contracts";
@@ -127,6 +128,8 @@ const PersistedSchema = z.object({
 		review: text1.optional(),
 		tainted: z.boolean().optional(),
 		brief: z.string().optional(),
+		prefer: RunPreferSchema.optional(),
+		preferRevision: z.number().int().nonnegative().optional(),
 	}),
 });
 

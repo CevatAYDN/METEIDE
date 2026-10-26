@@ -2,9 +2,11 @@ import {
 	type ApprovalInput,
 	type EngineError,
 	err,
+	type ModelRef,
 	ok,
 	PolicySchema,
 	type Result,
+	type RunPrefer,
 	type RunStart,
 	RunStartSchema,
 	type TeamEngineAdapter,
@@ -22,6 +24,7 @@ import {
 } from "../infrastructure/template-store.js";
 import { recordDecision } from "./approvals.js";
 import { type Opening, offerBrief, takeHandoff } from "./continue.js";
+import { nextPrefer } from "./pinned.js";
 import { createCheckpointRestore } from "./restore.js";
 import { pruneOldCheckpoints } from "./retention.js";
 import { routeFor } from "./route.js";
@@ -107,11 +110,12 @@ type Begin = {
 	readonly priority: 0 | 1 | 2;
 	readonly team?: TeamState | undefined;
 	readonly opening: Opening;
+	readonly prefer?: RunPrefer | undefined;
 };
 
 const begin = (
 	s: EngineState,
-	{ id, goal, priority, team, opening }: Begin,
+	{ id, goal, priority, team, opening, prefer }: Begin,
 ): Result<{ runId: string }, EngineError> => {
 	const p = policy(s, team);
 	if (!p.ok) return p;
@@ -120,7 +124,7 @@ const begin = (
 	const brief = opening.brief;
 	// A team task opens its own conversation when it starts (team-driver).
 	const messages = team ? [] : openingMessages(goal, where.value, brief);
-	const input = { goal, priority, messages, brief };
+	const input = { goal, priority, messages, brief, prefer };
 	const [fresh] = initialTransition(runMachine, input);
 	const snapshot = team
 		? transition(runMachine, fresh, { type: "TEAM", team })[0]
@@ -184,13 +188,14 @@ const start = async (s: EngineState, req: RunStart): Out<{ runId: string }> => {
 	if (!opening.ok) return opening;
 	// The schema asks for a goal unless the run continues, and a handoff always names one.
 	const goal = r.data.goal ?? opening.value.goal ?? "";
-	const { priority } = r.data;
+	const { priority, prefer } = r.data;
 	return begin(s, {
 		id,
 		goal,
 		priority,
 		team: team.value,
 		opening: opening.value,
+		prefer,
 	});
 };
 
@@ -243,6 +248,27 @@ const approveRun = async (
 	const recorded = recordDecision(s, l.value, input);
 	if (!recorded.ok) return recorded;
 	return resume(s, runId);
+};
+
+const updateModel = async (
+	s: EngineState,
+	runId: string,
+	model: ModelRef | null,
+	roleId?: string,
+): Out<void> => {
+	const l = find(s, runId);
+	if (!l.ok) return l;
+	if (
+		l.value.snapshot.value !== "running" &&
+		l.value.snapshot.value !== "paused" &&
+		l.value.snapshot.value !== "queued"
+	)
+		return invalid(l.value, "model");
+	const next = nextPrefer(l.value.snapshot.context, model, roleId);
+	if (!next.ok) return next;
+	apply(s, l.value, { type: "PREFER", prefer: next.value });
+	l.value.pin = undefined;
+	return ok(undefined);
 };
 
 const cancel = async (s: EngineState, runId: string): Out<void> => {
@@ -334,6 +360,7 @@ export const createEngine = (deps: EngineDeps) => {
 		cancel: (runId) => cancel(s, runId),
 		approve: (runId, input) => approveRun(s, runId, input),
 		status: (runId) => status(s, runId),
+		model: (runId, model, roleId) => updateModel(s, runId, model, roleId),
 	};
 	return {
 		engine,

@@ -64,8 +64,14 @@ export type Live = {
 	all: AbortController;
 	model?: AbortController | undefined;
 	cancelTimer?: (() => void) | undefined;
-	/** The pin read for the agent seated now, by task and role (ADR-077). */
-	pin?: { readonly key: string; readonly prefer: ModelRef | undefined };
+	/** The preferred model or pin read for the agent seated now (ADR-122). */
+	pin?:
+		| {
+				readonly key: string;
+				readonly revision?: number | undefined;
+				readonly prefer: ModelRef | undefined;
+		  }
+		| undefined;
 };
 
 /** The engine's state: its dependencies, the runs in memory and how a quota timer resumes. */
