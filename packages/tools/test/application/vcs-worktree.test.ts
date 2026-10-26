@@ -115,6 +115,44 @@ describe("vcs-worktree cleanup", () => {
 		expect(branch.ok && branch.value.trim()).toBe("");
 	});
 
+	it("keeps a junction's target when git refuses the removal and the folder is deleted", async () => {
+		const { w, git, deps } = await setup();
+		const created = await createWorktree(deps, git, {
+			runId: RUN,
+			taskId: TASK1,
+		});
+		expect(created.ok).toBe(true);
+		if (!created.ok || created.value.op !== "worktree.create")
+			throw new Error("worktree not created");
+
+		const wtDir = created.value.path;
+		const outside = join(w.globalDir, "outside-store");
+		await mkdir(outside, { recursive: true });
+		await writeFile(join(outside, "keep.txt"), "keep me\n");
+		const nmDir = join(wtDir, "node_modules");
+		await mkdir(nmDir, { recursive: true });
+		await symlink(
+			outside,
+			join(nmDir, "linked-pkg"),
+			process.platform === "win32" ? "junction" : "dir",
+		);
+		await writeFile(join(wtDir, "src.js"), "console.log(1);\n");
+		expect(await exists(join(nmDir, "linked-pkg", "keep.txt"))).toBe(true);
+
+		const refusing: Git = async (args, env) =>
+			args.includes("worktree") && args.includes("remove")
+				? err({ code: "io", message: "fatal: could not remove worktree" })
+				: git(args, env);
+		const removed = await removeWorktree(deps, refusing, {
+			runId: RUN,
+			taskId: TASK1,
+		});
+		expect(removed).toEqual(ok({ op: "worktree.remove", removed: true }));
+
+		expect(await exists(wtDir)).toBe(false);
+		expect(await exists(join(outside, "keep.txt"))).toBe(true);
+	});
+
 	it("removes one task worktree with node_modules while keeping sibling task worktrees", async () => {
 		const { git, deps } = await setup();
 		const wt1 = await createWorktree(deps, git, {
