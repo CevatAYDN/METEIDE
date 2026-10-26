@@ -26,7 +26,6 @@ import {
 	titleOf,
 	verifyOf,
 } from "../domain/team-run.js";
-import { commandsOf, hasCapabilityGate } from "../domain/verify.js";
 import { announce, saveArtifact } from "./artifacts.js";
 import {
 	apply,
@@ -100,18 +99,17 @@ const verified = async (
 	task: string,
 ) => {
 	const gates = verifyOf(team, task);
+	if (gates.length === 0) return true;
 	const taskId = team.tasks[task]?.id;
-	if (hasCapabilityGate(gates))
-		s.deps.logger.warn(
-			{ runId: l.meta.id, taskId },
-			"verify gates by capability are not run yet",
-		);
-	const commands = commandsOf(gates);
-	if (commands.length === 0) return true;
 	const gated = await verifyGates(s.deps, {
-		commands,
+		gates,
 		ctx: toolContext(l),
 		emit: (body) => emit(s, l, body, taskId),
+		skipped: (capability) =>
+			s.deps.logger.warn(
+				{ runId: l.meta.id, taskId, capability },
+				"verify gate skipped: no adapter provides its capability",
+			),
 	});
 	if (l.snapshot.value !== "running") return false;
 	if (gated.kind === "passed") return true;

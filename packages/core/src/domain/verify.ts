@@ -3,17 +3,12 @@ import type { verifyOf } from "./team-run.js";
 
 // Verify gates of a task (docs/08, Task execution sequence, step 3): machine checks the engine runs
 // before the guardrail, and the message that sends a failed one back to the agent. Pure.
-// shortcut: only the `run` form is run; the capability form has no defined `expect` or failure yet.
+// shortcut: a capability gate's `expect` has no meaning yet (ADR-120); upgrade when one is defined.
 
-type Gate = ReturnType<typeof verifyOf>[number];
+export type Gate = ReturnType<typeof verifyOf>[number];
 
-/** The shell commands of a task's gates, in template order. */
-export const commandsOf = (gates: readonly Gate[]) =>
-	gates.flatMap((g) => ("run" in g ? [g.run] : []));
-
-/** True when a gate names a capability instead of a command; those are not run yet. */
-export const hasCapabilityGate = (gates: readonly Gate[]) =>
-	gates.some((g) => "capability" in g);
+/** What verify.completed names a gate by: its command, or its capability id (ADR-120). */
+export const gateName = (g: Gate) => ("run" in g ? g.run : g.capability);
 
 /** What a gate command left behind; shell.exec@1 reports exitCode null for a killed process. */
 export const ShellRunSchema = z.object({
@@ -48,6 +43,13 @@ export const gateFailure = (
 		"Fix what it reports, then give your report again.",
 	]);
 };
+
+/** The user message for a capability gate whose capability answered with an error. */
+export const gateError = (capability: string, reason: string) =>
+	message([
+		`The verify gate \`${capability}\` failed: ${reason}`,
+		"Fix what it reports, then give your report again.",
+	]);
 
 /** The user message for a gate whose command could not run at all. */
 export const gateRefused = (command: string, reason: string) =>
