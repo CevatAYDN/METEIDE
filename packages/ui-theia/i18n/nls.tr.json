@@ -228,6 +228,7 @@
 			"summary": "Üye: {0} · çalışan: {1} · seni bekleyen: {2} · biten: {3}",
 			"tasks": "{1} görevden {0} tanesi bitti",
 			"thinking": "Düşünüyor",
+			"thinkingFor": "Düşünüyor · {0}",
 			"title": "Ekip",
 			"tokens": "Token: {0} · çağrı: {1}",
 			"vision": "Görsel",
@@ -392,6 +393,21 @@
 			"runs": "Bu klasörde {0} çalıştırma: {1}",
 			"stopped": "METE daemon'u durdu: {0}"
 		},
+		"steps": {
+			"arguments": "Argümanlar",
+			"done": "Bitti",
+			"error": "Hata",
+			"failedCall": "Başarısız",
+			"feedback": "Geri bildirim",
+			"label": "Adımlar",
+			"noResult": "Sonuç yok",
+			"none": "Tek ajan panosuz çalışır: adımları çalıştıkça, yanıtı da iş bitince burada görünür.",
+			"result": "Sonuç",
+			"running": "Çalışıyor…",
+			"summary": "Önceki adımlar, özetlendi",
+			"thinking": "Düşünüyor… {0}",
+			"unread": "Ajanın adımları okunamadı: {0}"
+		},
 		"stopAll": {
 			"cancelled": "Tümünü durdur: {0} çalıştırma iptal edildi.",
 			"label": "Tümünü durdur",
@@ -535,6 +551,10 @@
 			"watches": "Uyandıran çıktılar (gdd@1 gibi)",
 			"which": "Hangi takım?",
 			"workspace": "Bu klasörün takımı, .mete/teams/{0}.yaml dosyasında."
+		},
+		"time": {
+			"minutes": "{0} dk {1} sn",
+			"seconds": "{0} sn"
 		},
 		"waiting": {
 			"allowAlways": "Her zaman izin ver",

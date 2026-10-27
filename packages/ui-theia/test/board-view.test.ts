@@ -38,6 +38,7 @@ const html = (
 				onOpenReport: () => {},
 				names: { writer: "Copy writer" },
 				windows: {},
+				transcript: {},
 				run,
 				waiting: {
 					onApprove: () => {},
@@ -402,6 +403,7 @@ describe("the Board view", () => {
 					onOpenReport: () => {},
 					names: { writer: "Copy writer" },
 					windows: {},
+					transcript: {},
 					run,
 					onModel: () => {},
 					candidateModels: { writer: ["groq/llama-3.3-70b"] },
@@ -510,10 +512,8 @@ describe("the Board view", () => {
 		expect(out).toContain(">Answer<");
 		const center = (page: string) =>
 			page.slice(0, page.indexOf('class="mete-run-rail"'));
-		expect(center(out)).not.toContain("a single agent works without a board");
-		expect(center(html(base))).toContain(
-			"a single agent works without a board",
-		);
+		expect(center(out)).not.toContain("single agent works without a board");
+		expect(center(html(base))).toContain("single agent works without a board");
 	});
 
 	it("says how many events could not be read, and that a single agent has no board", () => {

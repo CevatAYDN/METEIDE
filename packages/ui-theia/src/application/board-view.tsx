@@ -13,15 +13,16 @@ import type { DaemonFailure } from "../domain/status-service.js";
 import { CheckpointList, type RestoreControls } from "./checkpoint-list.js";
 import type { Windows } from "./context-meter.js";
 import { LINK, LIST, MUTED, PANEL, TITLE } from "./look.js";
-import { MarkdownView } from "./markdown-view.js";
 import { openReportLabel, reportPath } from "./results-list.js";
 import { RunRail } from "./run-rail.js";
 import type { RunFacts } from "./run-strip.js";
 import { RunStrip } from "./run-strip-view.js";
+import { SingleAgent } from "./single-agent.js";
 import { failureText } from "./status-text.js";
 import { studioText } from "./studio-text.js";
 import { columnName, markerText } from "./task-words.js";
 import { TeamView as Roster } from "./team-view.js";
+import type { TranscriptState } from "./transcript-session.js";
 import { type WaitingControls, WaitingStrip } from "./waiting-strip.js";
 
 // The Team panel (docs/13, ADR-051): one run's tasks on the Board (To do, In progress and Done),
@@ -166,6 +167,8 @@ export type TeamControls = {
 		| undefined;
 	/** Preferred models per role (ADR-122). */
 	readonly preferredModels?: Readonly<Record<string, string>> | undefined;
+	/** The shown run's steps and why their latest read failed (ADR-125). */
+	readonly transcript: TranscriptState;
 };
 
 const modeName = (mode: TeamMode) =>
@@ -223,37 +226,22 @@ const Recent = ({
 	</ul>
 );
 
-// A single-agent run has no tasks: no board, but the Studio still seats its agent.
-const NoTasks = () => (
-	<p>
-		{nls.localize(
-			"mete/board/noTasks",
-			"This run has no tasks: a single agent works without a board, and its answer appears here when the run finishes.",
-		)}
-	</p>
-);
-
-// A finished single-agent run shows what the agent answered, not an empty board (docs/13).
-const Answer = ({
-	text,
-	markdown,
-}: {
-	readonly text: string;
-	readonly markdown: MarkdownRenderer;
-}) => (
-	<section aria-label={nls.localize("mete/board/answer", "Answer")}>
-		<h3 style={TITLE}>{nls.localize("mete/board/answer", "Answer")}</h3>
-		<MarkdownView text={text} renderer={markdown} />
-	</section>
-);
-
+// A run without tasks is a single agent: its steps and answer, not an empty board (ADR-125).
 const NoBoard = ({
-	answer,
-	markdown,
+	model,
+	controls,
 }: {
-	readonly answer?: string | undefined;
-	readonly markdown: MarkdownRenderer;
-}) => (answer ? <Answer text={answer} markdown={markdown} /> : <NoTasks />);
+	readonly model: Extract<BoardModel, { kind: "board" }>;
+	readonly controls: TeamControls;
+}) => (
+	<SingleAgent
+		view={model.view}
+		answer={model.answer}
+		transcript={controls.transcript}
+		markdown={controls.markdown}
+		live={controls.run.run?.status === "running"}
+	/>
+);
 
 const Shown = ({
 	model,
@@ -276,13 +264,13 @@ const Shown = ({
 		);
 	if (controls.mode === "flow")
 		return model.view.tasks.length === 0 ? (
-			<NoBoard answer={model.answer} markdown={controls.markdown} />
+			<NoBoard model={model} controls={controls} />
 		) : (
 			controls.flow(model.view)
 		);
 	if (controls.mode === "board")
 		return model.view.tasks.length === 0 ? (
-			<NoBoard answer={model.answer} markdown={controls.markdown} />
+			<NoBoard model={model} controls={controls} />
 		) : (
 			<Columns view={model.view} onOpen={controls.onOpenReport} />
 		);
@@ -335,7 +323,7 @@ const Board = ({
 		<div className="mete-run-body">
 			<div className="mete-run-center">
 				{model.view.tasks.length === 0 && model.view.agents.length === 0 ? (
-					<NoBoard answer={model.answer} markdown={controls.markdown} />
+					<NoBoard model={model} controls={controls} />
 				) : (
 					<>
 						<WaitingStrip
@@ -357,6 +345,7 @@ const Board = ({
 				feed={model.feed}
 				names={controls.names}
 				markdown={controls.markdown}
+				transcript={controls.transcript.transcript}
 				status={controls.run.run?.status}
 				onOpenReport={controls.onOpenReport}
 			/>

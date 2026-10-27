@@ -1,3 +1,5 @@
+import type { ModelInfo, ModelRef } from "@mete/contracts";
+import type { AgentCard } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
 import { CONTEXT_WARN_SHARE } from "../defaults.js";
 import type { Member } from "../domain/roster.js";
@@ -10,6 +12,25 @@ import { Icon, LINE } from "./roster-look.js";
 
 /** The listed context window of each model, by `<providerId>/<modelId>` (ADR-090). */
 export type Windows = Readonly<Record<string, number>>;
+
+/** The models of the run's calls whose window was not asked yet; each is marked asked. */
+export const unaskedModels = (
+	agents: readonly AgentCard[],
+	asked: Set<string>,
+): ModelRef[] =>
+	agents.flatMap((a) => {
+		const l = a.usage?.last;
+		const k = l ? `${l.providerId}/${l.modelId}` : "";
+		if (!l || asked.has(k)) return [];
+		asked.add(k);
+		return [{ providerId: l.providerId, modelId: l.modelId }];
+	});
+
+/** The listed models' windows; a model the listing lacks keeps none, so its row shows the tokens alone. */
+export const windowsOf = (models: readonly ModelInfo[]): Windows =>
+	Object.fromEntries(
+		models.map((m) => [`${m.providerId}/${m.id}`, m.contextWindow]),
+	);
 
 // The latest call's share of its model's context; the bar warns from CONTEXT_WARN_SHARE, the text
 // always says the number. A model with no listed window shows the tokens alone (ADR-090). The bar

@@ -30,16 +30,19 @@ import {
 } from "../application/board-view.js";
 import { restoredText } from "../application/checkpoint-list.js";
 import { type ChainContext, fetchChain } from "../application/composer.js";
+import { unaskedModels, windowsOf } from "../application/context-meter.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { panelRoot } from "../application/panel-root.js";
 import {
 	chainsOfRoles,
 	needsFor,
 	needsOfRoles,
+	preferredOf,
 } from "../application/role-chains.js";
 import type { RunFacts } from "../application/run-strip.js";
 import { failureText, plain } from "../application/status-text.js";
 import { roleNames, teamName } from "../application/team-draft.js";
+import { createTranscriptSession } from "../application/transcript-session.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { FlowView } from "./flow-view.js";
 import { MetePanelWidget } from "./panel-widget.js";
@@ -80,6 +83,11 @@ export class MeteBoardWidget extends MetePanelWidget {
 	protected asked = new Set<string>();
 	protected askedChains = new Set<string>();
 	protected composing = true;
+	// The shown run's steps (ADR-125); the daemon is injected before the first call.
+	protected readonly transcripts = createTranscriptSession({
+		fetch: (dir, runId) => this.daemon.transcript(dir, runId),
+		onChange: () => this.update(),
+	});
 
 	@postConstruct()
 	protected init(): void {
@@ -95,6 +103,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 			this.themes.onDidColorThemeChange(() => this.update()),
 			this.events.onDidReceive(({ workspaceDir, event }) => {
 				this.setSession(receiveBoard(this.session, workspaceDir, event));
+				this.transcripts.onEvent(event);
 				const shown = this.session.shown;
 				if (shown && event.runId === shown.runId) {
 					if (event.type === "run.created")
@@ -108,6 +117,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 				(s) => void this.showRun(s.dir, s.runId, s.goal),
 			),
 			{ dispose: () => this.shownRun.set(undefined) },
+			{ dispose: () => this.transcripts.dispose() },
 		]);
 		void this.composer.reopen();
 		this.update();
@@ -117,6 +127,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 	showComposer(): Promise<void> {
 		this.composing = true;
 		this.shownRun.set(undefined);
+		this.tickThinking();
 		this.update();
 		return this.composer.reopen();
 	}
@@ -136,6 +147,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 		this.templateId = undefined;
 		const shown = { dir, runId, goal };
 		this.setSession(startBoard(shown));
+		this.transcripts.show(dir, runId);
 		const r = await this.daemon.events(dir, runId);
 		const created = r.ok
 			? r.value.events.find((e) => e.type === "run.created")
@@ -157,6 +169,8 @@ export class MeteBoardWidget extends MetePanelWidget {
 		if (!run) return;
 		this.run = { ...this.run, run };
 		if (run.templateId !== undefined) this.templateId = run.templateId;
+		const single = this.session.view.agents[0]?.roleId ?? "assistant";
+		this.preferredModels = preferredOf(run.prefer, single);
 		this.update();
 	}
 
@@ -238,12 +252,14 @@ export class MeteBoardWidget extends MetePanelWidget {
 	protected override onAfterShow(msg: Message): void {
 		super.onAfterShow(msg);
 		this.shown = true;
+		this.tickThinking();
 		this.update();
 	}
 
 	protected override onAfterHide(msg: Message): void {
 		super.onAfterHide(msg);
 		this.shown = false;
+		this.tickThinking();
 		this.update();
 	}
 
@@ -251,6 +267,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 		const drawn = next.model !== this.session.model;
 		this.session = next;
 		if (drawn) this.update();
+		this.tickThinking();
 		this.askWindows();
 		void this.askChains();
 	}
@@ -300,27 +317,21 @@ export class MeteBoardWidget extends MetePanelWidget {
 	// model the listing lacks keeps none, so its row shows the tokens alone.
 	protected askWindows(): void {
 		const { shown, view } = this.session;
-		if (!shown) return;
-		const refs: ModelRef[] = [];
-		for (const a of view.agents) {
-			const l = a.usage?.last;
-			const k = l ? `${l.providerId}/${l.modelId}` : "";
-			if (l && !this.asked.has(k)) {
-				this.asked.add(k);
-				refs.push({ providerId: l.providerId, modelId: l.modelId });
-			}
-		}
-		if (refs.length > 0) void this.loadWindows(shown.dir, shown.runId, refs);
+		const refs = shown ? unaskedModels(view.agents, this.asked) : [];
+		if (shown && refs.length > 0)
+			void this.loadWindows(shown.dir, shown.runId, refs);
+	}
+
+	// The thinking row counts while the shown run has a model call in flight (ADR-125).
+	protected tickThinking(): void {
+		const thinking = this.session.view.thinkingSince !== undefined;
+		this.transcripts.tick(this.shown && thinking && !this.showsComposer());
 	}
 
 	protected async loadWindows(dir: string, runId: string, refs: ModelRef[]) {
 		const r = await this.daemon.models(dir, refs);
 		if (!r.ok || this.shownRun.runId !== runId) return;
-		const got = r.value.models.map((m) => [
-			`${m.providerId}/${m.id}`,
-			m.contextWindow,
-		]);
-		this.windows = { ...this.windows, ...Object.fromEntries(got) };
+		this.windows = { ...this.windows, ...windowsOf(r.value.models) };
 		this.update();
 	}
 
@@ -361,6 +372,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 			onModel: (roleId, model) => void this.setModel(roleId, model),
 			candidateModels: this.candidateModels,
 			preferredModels: this.preferredModels,
+			transcript: this.transcripts.state,
 			waiting: {
 				onApprove: () => void this.decide(APPROVE_RUN_COMMAND.id),
 				onRevise: (feedback) =>

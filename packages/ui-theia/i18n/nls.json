@@ -228,6 +228,7 @@
 			"summary": "Members: {0} · working: {1} · waiting for you: {2} · done: {3}",
 			"tasks": "{0} of {1} tasks done",
 			"thinking": "Thinking",
+			"thinkingFor": "Thinking · {0}",
 			"title": "Team",
 			"tokens": "Tokens: {0} · calls: {1}",
 			"vision": "Sees images",
@@ -392,6 +393,21 @@
 			"runs": "{0} runs in this folder: {1}",
 			"stopped": "The METE daemon stopped: {0}"
 		},
+		"steps": {
+			"arguments": "Arguments",
+			"done": "Done",
+			"error": "Error",
+			"failedCall": "Failed",
+			"feedback": "Feedback",
+			"label": "Steps",
+			"noResult": "No result",
+			"none": "A single agent works without a board: its steps appear here as it works, and its answer when it finishes.",
+			"result": "Result",
+			"running": "Running…",
+			"summary": "Earlier steps, summarized",
+			"thinking": "Thinking… {0}",
+			"unread": "The agent's steps could not be read: {0}"
+		},
 		"stopAll": {
 			"cancelled": "Stop all cancelled {0} runs.",
 			"label": "Stop all",
@@ -535,6 +551,10 @@
 			"watches": "Wakes on artifacts (such as gdd@1)",
 			"which": "Which team?",
 			"workspace": "This folder's team, saved in .mete/teams/{0}.yaml."
+		},
+		"time": {
+			"minutes": "{0} min {1} s",
+			"seconds": "{0} s"
 		},
 		"waiting": {
 			"allowAlways": "Always allow",

@@ -1,3 +1,4 @@
+import { type ModelRef, ModelRefSchema, type RunPrefer } from "@mete/contracts";
 import { type ChainContext, fetchChain } from "./composer.js";
 import { draftOf, teamOf } from "./team-draft.js";
 
@@ -34,4 +35,21 @@ export const chainsOfRoles = async (
 	for (const r of teamOf(draft.value).roles)
 		out[r.id] = await fetchChain(ctx, r.tier, r.needs);
 	return out;
+};
+
+/**
+ * The run's model choice by role, as the member cards show it (ADR-125): a team run's choice is by
+ * role already; the single agent's is one model, shown on its own role's card.
+ */
+export const preferredOf = (
+	prefer: RunPrefer | undefined,
+	singleRole: string,
+): Record<string, string> => {
+	const name = (m: ModelRef) => `${m.providerId}/${m.modelId}`;
+	if (!prefer) return {};
+	const one = ModelRefSchema.safeParse(prefer);
+	if (one.success) return { [singleRole]: name(one.data) };
+	return Object.fromEntries(
+		Object.entries(prefer).map(([role, m]) => [role, name(m)]),
+	);
 };

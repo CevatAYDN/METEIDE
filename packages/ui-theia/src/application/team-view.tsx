@@ -13,6 +13,7 @@ import {
 	type ModelChoiceProps,
 	RevertButton,
 } from "./team-model-choice.js";
+import { elapsedText } from "./time-text.js";
 import { TONES, type Tone } from "./tone.js";
 
 export {
@@ -64,6 +65,13 @@ const stateText = (s: MemberState): string => {
 			"mete/roster/quota",
 			"Waiting for quota until {0}",
 			until(s.resetsAt),
+		);
+	// A model call in flight counts its seconds (ADR-125).
+	if (s.kind === "thinking" && s.since)
+		return nls.localize(
+			"mete/roster/thinkingFor",
+			"Thinking · {0}",
+			elapsedText(s.since),
 		);
 	if (s.kind === "working")
 		return nls.localize(

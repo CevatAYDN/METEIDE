@@ -9,7 +9,7 @@ export type MemberState =
 	| { readonly kind: "waits_for_you" }
 	| { readonly kind: "quota"; readonly resetsAt: string }
 	| { readonly kind: "working"; readonly tool: string }
-	| { readonly kind: "thinking" }
+	| { readonly kind: "thinking"; readonly since?: string }
 	| { readonly kind: "blocked" }
 	| { readonly kind: "done" }
 	| { readonly kind: "idle" };
@@ -60,6 +60,12 @@ const nowOf = (
 		: { task: task.title };
 };
 
+// A model call in flight, with when it began (ADR-125).
+const thinkingOf = (view: TeamView): MemberState =>
+	view.thinkingSince
+		? { kind: "thinking", since: view.thinkingSince }
+		: { kind: "thinking" };
+
 const stateOf = (
 	view: TeamView,
 	tasks: readonly TaskCard[],
@@ -72,7 +78,7 @@ const stateOf = (
 	const resetsAt = agent && exhausted[agent.providerId];
 	if (pausedFor === "quota" && resetsAt) return { kind: "quota", resetsAt };
 	if (agent?.tool) return { kind: "working", tool: agent.tool };
-	if (agent?.thinking) return { kind: "thinking" };
+	if (agent?.thinking) return thinkingOf(view);
 	if (tasks.some((t) => t.status === "blocked")) return { kind: "blocked" };
 	if (tasks.length > 0 && tasks.every((t) => t.status === "approved"))
 		return { kind: "done" };

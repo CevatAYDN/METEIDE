@@ -212,6 +212,8 @@ test.describe("a run that reads and searches the workspace", () => {
 		await expect(
 			answer(page).getByText(`The workspace mentions ${TOKEN}.`),
 		).toBeVisible({ timeout: 60_000 });
+		// The center's steps name each call with its first argument (ADR-125).
+		await expect(page.getByText("fs_read README.md")).toBeVisible();
 
 		// The daemon wrote the run to the workspace's database, which starts as a bare schema.
 		const db = join(dir, ".mete", "mete.db");

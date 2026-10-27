@@ -1,5 +1,7 @@
+import { nls } from "@theia/core/lib/common/nls";
+
 // The panels' times (ADR-092): absolute, never a ticking clock, so a test and a screenshot read the
-// same.
+// same. The one exception is how long a model call has been running (ADR-125), which counts up.
 
 /** A whole time, for a tooltip. */
 export const when = (iso: string) => new Date(iso).toLocaleString();
@@ -15,4 +17,17 @@ export const shortWhen = (iso: string, now = new Date()) => {
 	return at.toDateString() === now.toDateString()
 		? at.toLocaleTimeString(undefined, HOUR)
 		: at.toLocaleString(undefined, { day: "numeric", month: "short", ...HOUR });
+};
+
+/** How long since `since`, as a thinking row counts it: "42 s", or "2 min 5 s" from a minute on. */
+export const elapsedText = (since: string, now = Date.now()) => {
+	const s = Math.max(0, Math.floor((now - Date.parse(since)) / 1000));
+	return s < 60
+		? nls.localize("mete/time/seconds", "{0} s", s)
+		: nls.localize(
+				"mete/time/minutes",
+				"{0} min {1} s",
+				Math.floor(s / 60),
+				s % 60,
+			);
 };

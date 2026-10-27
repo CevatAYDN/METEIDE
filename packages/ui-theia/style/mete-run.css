@@ -184,3 +184,112 @@
 	color: var(--muted-2, var(--theia-badge-foreground));
 	background: var(--chip, var(--theia-badge-background));
 }
+
+/* An agent's steps (ADR-125): a quiet timeline down the left edge, the agent's words as Markdown, and
+   each tool call as one row of the side vocabulary (tile, label, state word, chevron) that opens its
+   arguments and result in JetBrains Mono. */
+.mete-steps {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	padding: 0 0 0 12px;
+	list-style: none;
+	border-left: 1.5px solid var(--line-soft, var(--theia-panel-border));
+}
+
+.mete-step {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+.mete-step-calls {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* A row that opens: the side view's item as a button, with the state word and the chevron after the
+   label. Both classes, so the columns win over .mete-item's whichever sheet loads last; no negative
+   margins, so a row never widens the scrolling column it sits in. */
+.mete-item.mete-step-row,
+.mete-item.mete-rail-task {
+	box-sizing: border-box;
+	width: 100%;
+	margin: 0;
+	align-items: center;
+	font: inherit;
+	color: inherit;
+	text-align: left;
+	background: none;
+	border: 0;
+	cursor: pointer;
+}
+
+.mete-item.mete-step-row {
+	grid-template-columns: 24px minmax(0, 1fr) auto 16px;
+}
+
+.mete-item.mete-rail-task {
+	grid-template-columns: 24px minmax(0, 1fr) 16px;
+}
+
+/* A click leaves no ring; the keyboard's focus keeps one. */
+.mete-step-row:focus:not(:focus-visible),
+.mete-rail-task:focus:not(:focus-visible) {
+	outline: none;
+}
+
+.mete-step-row:focus-visible,
+.mete-rail-task:focus-visible {
+	outline: 1.5px solid var(--accent, var(--theia-focusBorder));
+	outline-offset: -1.5px;
+}
+
+/* The call in flight is not a button, and its seconds are measured, so they do not jump in width. */
+.mete-item.mete-step-live {
+	cursor: default;
+	font-variant-numeric: tabular-nums;
+}
+
+.mete-step-detail {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 4px 0 6px 34px;
+}
+
+.mete-step-block {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+.mete-step-caption {
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--muted, var(--theia-descriptionForeground));
+}
+
+.mete-step-code {
+	margin: 0;
+	max-height: 280px;
+	overflow: auto;
+	padding: 8px 10px;
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-size: 12px;
+	line-height: 1.5;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	background: var(--raised, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 10px;
+}
