@@ -76,6 +76,49 @@ describe("team run helpers", () => {
 		expect(text(user)).toContain("Report of Find sources:\n3 sources");
 	});
 
+	it("names the team, the approver, the next members and the checks in every opening (ADR-135)", () => {
+		const r = parseTemplate({
+			...template(),
+			roles: [
+				...template().roles,
+				{
+					id: "lead",
+					name: "Lead",
+					goal: "Approve. Be strict.",
+					tier: "reasoning",
+					capabilities: [],
+				},
+			],
+			tasks: [
+				{ id: "find", role: "researcher", title: "Find sources" },
+				{
+					id: "write",
+					role: "writer",
+					title: "Write it",
+					context: ["find"],
+					verify: [{ run: "node check.mjs" }],
+					approval: "lead",
+				},
+			],
+		});
+		if (!r.ok) throw new Error(r.error.issues.join("\n"));
+		const team = teamOf(r.value);
+		const [system, find] = taskConversation(team, "find", { goal: "g" }, where);
+		expect(text(system)).toContain("do not guess");
+		expect(text(system)).toContain("how you checked");
+		expect(text(find)).toContain("- Writer: Write");
+		expect(text(find)).toContain("- Lead: Approve.\n");
+		expect(text(find)).toContain("Your report goes to: Writer");
+		expect(text(find)).toContain(
+			"Work built on yours is checked by: `node check.mjs`",
+		);
+		expect(text(find)).not.toContain("approves your work");
+		const [, write] = taskConversation(team, "write", { goal: "g" }, where);
+		expect(text(write)).toContain("Lead approves your work");
+		expect(text(write)).toContain("Your work is checked by: `node check.mjs`");
+		expect(text(write)).not.toContain("Your report goes to");
+	});
+
 	it("goes on with the kept conversation and the feedback after a revision", () => {
 		let team = teamOf(template());
 		team = applyTask(team, "find", { type: "START", agentId: "a" }).team;

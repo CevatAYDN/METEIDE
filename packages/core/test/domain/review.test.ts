@@ -4,8 +4,9 @@ import { checkVerdict } from "../../src/domain/review.js";
 // A reviewer writes its findings before its verdict (ADR-134), so the verdict is read from the
 // reply's last fenced block when the whole reply is no JSON.
 
+const TICKS = "```";
 const fence = (lang: string, body: string) =>
-	["```" + lang, body, "```"].join("\n");
+	[`${TICKS}${lang}`, body, TICKS].join("\n");
 
 describe("a reviewer's verdict", () => {
 	it("takes a bare JSON verdict as before", () => {

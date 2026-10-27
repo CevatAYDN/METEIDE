@@ -71,7 +71,61 @@ const system = (team: TeamState, id: string, where: Platform) => {
 		`Your goal: ${role?.goal ?? "do the task"}.`,
 		...(role?.backstory ? [role.backstory] : []),
 		"Do only your task. When it is done, reply without calling a tool: that reply is your report.",
+		// Every team, the user's own too, works from evidence and spends tokens with care (ADR-135).
+		"Work from evidence: read the files and reports you need and do not guess what you have not read; when something you need is missing, name it in your report as an open question.",
+		"Spend tokens with care: read a file only when you need it, not again while its content is in this conversation; write a file once and fix it with small edits.",
+		"Your report says what you did, the files you wrote or changed, how you checked each claim, your open questions and what the next member needs to know.",
 		`Operating system: ${where.os}. Shell: ${where.shell}.`,
+	].join("\n");
+};
+
+// The first sentence of a role's goal, at most 200 characters, so the roster stays short.
+const firstSentence = (goal: string) =>
+	(/^[\s\S]*?[.!?](?=\s|$)/.exec(goal.trim())?.[0] ?? goal.trim()).slice(
+		0,
+		200,
+	);
+
+const nameOf = (team: TeamState, roleId: string) =>
+	roleId === "human"
+		? "The human"
+		: (team.template.roles.find((r) => r.id === roleId)?.name ?? roleId);
+
+const gatesText = (gates: ReturnType<typeof verifyOf>) =>
+	gates
+		.map((g) =>
+			"run" in g ? `\`${g.run}\`` : `the capability ${g.capability}`,
+		)
+		.join(", ");
+
+// Who the task works with (ADR-135): the team, who approves it, who builds on it, what checks it.
+const teamLines = (team: TeamState, id: string) => {
+	const task = taskOf(team, id);
+	const roster = team.template.roles.map(
+		(r) =>
+			`- ${r.name}${r.id === task?.role ? " (you)" : ""}: ${firstSentence(r.goal)}`,
+	);
+	const human = team.template.policies.human_checkpoints?.includes(id);
+	const approvers = [task?.approval, human ? "human" : undefined].filter(
+		(a): a is string => a !== undefined,
+	);
+	const next = team.template.tasks.filter((t) => t.context?.includes(id));
+	const names = [...new Set(next.map((t) => nameOf(team, t.role)))];
+	const after = next.flatMap((t) => t.verify ?? []);
+	return [
+		["Your team:", ...roster].join("\n"),
+		...(approvers.length > 0
+			? [
+					`${[...new Set(approvers)].map((a) => nameOf(team, a)).join(", then ")} approves your work.`,
+				]
+			: []),
+		...(names.length > 0 ? [`Your report goes to: ${names.join(", ")}.`] : []),
+		...(task?.verify?.length
+			? [`Your work is checked by: ${gatesText(task.verify)}.`]
+			: []),
+		...(after.length > 0
+			? [`Work built on yours is checked by: ${gatesText(after)}.`]
+			: []),
 	].join("\n");
 };
 
@@ -124,6 +178,7 @@ export const taskConversation = (
 		`Team goal: ${goal}`,
 		`Your task: ${taskOf(team, id)?.title ?? id}`,
 		...acceptance(team, id),
+		teamLines(team, id),
 		...reports(team, id),
 	].join("\n\n");
 	return [
