@@ -26,7 +26,7 @@ Settings, the Quota dashboard and the Audit log do not come back when METE start
 
 The run composer asks for the goal, then offers "Let METE choose" (the router decides, and asks with its suggestions when it is unsure), each template of `mete/templates` by name with its description, and "Single agent" (ADR-058).
 
-A run paused for quota shows under its row why each provider cannot carry it on, and a "Resume now" button; "METE: Resume run" offers it too (ADR-059), so a key or privacy change takes effect before the pause's reset. A run paused by the user, which a desktop quit does to a running run, shows a "Resume" button and is offered by "METE: Resume run" too (ADR-061).
+A run paused for quota shows under its row why each provider cannot carry it on, and a "Resume now" button; "METE: Resume run" offers it too (ADR-059), so a key or privacy change takes effect before the pause's reset. A run paused by the user, which a desktop quit does to a running run, shows a "Resume" button and is offered by "METE: Resume run" too (ADR-061). A run paused for its budget shows Resume too, with a line that names the budget: 25 model turns at a time, or the requests or hours of `.mete/policy.yaml`, to raise first if they ran out (ADR-126).
 
 "METE: Stop all" (`Ctrl+Shift+.`, and a "Stop all" button at the left of the status bar) is the kill switch of SECURITY.md: it sends `mete/stop.all` to the daemon of the open folder at once, without asking, and shows how many runs it cancelled, or that there were none (ADR-065). Runs of other folders are not driven by this desktop and stay as they are.
 
