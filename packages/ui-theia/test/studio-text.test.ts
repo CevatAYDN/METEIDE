@@ -64,6 +64,9 @@ describe("the Studio's sentences", () => {
 		expect(said("approval.requested", { approver: "human" })).toBe(
 			"Build waits for your approval.",
 		);
+		expect(said("review.requested", { reviewerRoleId: "editor" })).toBe(
+			"Build asks editor for a review.",
+		);
 		expect(said("run.paused", { reason: "network" })).toBe(
 			"The network is down; the room dims.",
 		);

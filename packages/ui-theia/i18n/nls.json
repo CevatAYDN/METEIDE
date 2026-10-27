@@ -103,6 +103,7 @@
 			"all": "All",
 			"approves": "approves “{0}”",
 			"asks": "asks for approval of “{0}”",
+			"asksReview": "asks for a review of “{0}”",
 			"asksSegment": "Asks",
 			"blocked": "is blocked on “{0}”",
 			"cancelled": "The run is cancelled.",
@@ -117,6 +118,7 @@
 			"newer": "Show {0} new",
 			"paused": "The run pauses: {0}.",
 			"resumed": "The run resumes.",
+			"reviewed": "reviews “{0}”: no changes",
 			"revises": "asks for changes to “{0}”",
 			"run": "Run",
 			"show": "Show",
@@ -450,6 +452,7 @@
 		"studio": {
 			"approved": "{0} is approved and moves to Done.",
 			"asksRole": "{0} asks {1} for approval.",
+			"asksReview": "{0} asks {1} for a review.",
 			"asksYou": "{0} waits for your approval.",
 			"assigned": "{0} goes to an agent.",
 			"blocked": "{0} is blocked.",

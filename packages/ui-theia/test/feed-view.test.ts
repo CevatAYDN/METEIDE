@@ -72,6 +72,24 @@ describe("the Activity feed", () => {
 		]);
 	});
 
+	it("shows a pair review: the ask, the return with its feedback and the pass (ADR-136)", () => {
+		const review = (type: string, more: object = {}) =>
+			event(type, { reviewerRoleId: "editor", ...more }, ofTask);
+		const pair = [
+			review("review.requested"),
+			review("review.completed", {
+				decision: "revise",
+				feedback: "Write gününüzü.",
+			}),
+			review("review.completed", { decision: "approve" }),
+		];
+		expect(lines(feedRows(view, pair, "asks").rows)).toEqual([
+			["editor", "dev", "reviews “Build”: no changes", undefined],
+			["editor", "dev", "asks for changes to “Build”", "Write gününüzü."],
+			["dev", "editor", "asks for a review of “Build”", undefined],
+		]);
+	});
+
 	it("carries the run's answer and a failure's message as the row's detail", () => {
 		const failed = event("run.failed", {
 			code: "unauthorized",

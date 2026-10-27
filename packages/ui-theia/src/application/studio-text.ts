@@ -89,6 +89,13 @@ const runText = (e: MeteEvent, view: TeamView): string | undefined => {
 					taskOf(view, e),
 					e.payload.approver,
 				);
+	if (e.type === "review.requested")
+		return nls.localize(
+			"mete/studio/asksReview",
+			"{0} asks {1} for a review.",
+			taskOf(view, e),
+			e.payload.reviewerRoleId,
+		);
 	return undefined;
 };
 

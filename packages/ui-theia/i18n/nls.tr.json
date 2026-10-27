@@ -103,6 +103,7 @@
 			"all": "Tümü",
 			"approves": "“{0}” işini onaylıyor",
 			"asks": "“{0}” için onay istiyor",
+			"asksReview": "“{0}” için inceleme istiyor",
 			"asksSegment": "İstekler",
 			"blocked": "“{0}” işinde takıldı",
 			"cancelled": "Çalıştırma iptal edildi.",
@@ -117,6 +118,7 @@
 			"newer": "{0} yenisini göster",
 			"paused": "Çalıştırma duraklıyor: {0}.",
 			"resumed": "Çalıştırma sürüyor.",
+			"reviewed": "“{0}” işini inceledi: değişiklik yok",
 			"revises": "“{0}” için değişiklik istiyor",
 			"run": "Çalıştırma",
 			"show": "Göster",
@@ -450,6 +452,7 @@
 		"studio": {
 			"approved": "{0} onaylandı ve Bitti'ye geçiyor.",
 			"asksRole": "{0}, {1} rolünden onay istiyor.",
+			"asksReview": "{0}, {1} rolünden inceleme istiyor.",
 			"asksYou": "{0} senin onayını bekliyor.",
 			"assigned": "{0} bir ajana veriliyor.",
 			"blocked": "{0} engellendi.",

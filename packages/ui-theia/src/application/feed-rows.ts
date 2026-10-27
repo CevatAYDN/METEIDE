@@ -35,6 +35,8 @@ export type Feed = Extract<
 			| "task.status.changed"
 			| "approval.requested"
 			| "approval.resolved"
+			| "review.requested"
+			| "review.completed"
 			| "artifact.created"
 			| "artifact.updated"
 			| "agent.tool.completed"
@@ -73,6 +75,8 @@ const asks: Pick<
 	| "task.status.changed"
 	| "approval.requested"
 	| "approval.resolved"
+	| "review.requested"
+	| "review.completed"
 > = {
 	"task.assigned": (v, e) => ({
 		segment: "asks",
@@ -124,6 +128,42 @@ const asks: Pick<
 					),
 				}),
 		who: e.payload.approver,
+		...opt("to", taskRole(v, e)),
+		...opt("quote", e.payload.feedback),
+	}),
+	// A pair reviewer looks before the approver (ADR-136).
+	"review.requested": (v, e) => ({
+		segment: "asks",
+		icon: "comment-discussion",
+		...opt("who", taskRole(v, e)),
+		to: e.payload.reviewerRoleId,
+		text: nls.localize(
+			"mete/feed/asksReview",
+			"asks for a review of “{0}”",
+			title(v, e),
+		),
+	}),
+	"review.completed": (v, e) => ({
+		segment: "asks",
+		...(e.payload.decision === "revise"
+			? {
+					icon: "comment",
+					tone: "warn",
+					text: nls.localize(
+						"mete/feed/revises",
+						"asks for changes to “{0}”",
+						title(v, e),
+					),
+				}
+			: {
+					icon: "check",
+					text: nls.localize(
+						"mete/feed/reviewed",
+						"reviews “{0}”: no changes",
+						title(v, e),
+					),
+				}),
+		who: e.payload.reviewerRoleId,
 		...opt("to", taskRole(v, e)),
 		...opt("quote", e.payload.feedback),
 	}),
