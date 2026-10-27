@@ -78,6 +78,10 @@ describe("model selection at start and run time (ADR-122)", () => {
 
 		expect(h.requests.length).toBe(1);
 		expect(h.requests[0]?.prefer).toEqual(MODEL_A);
+		// One run's view carries the choice; the list of every run leaves it out (ADR-125).
+		expect(view(h, runId)?.prefer).toEqual(MODEL_A);
+		const all = h.engine.status();
+		expect(all.ok && all.value[0]?.prefer).toBeUndefined();
 	});
 
 	it("team start honors per-role prefer", async () => {

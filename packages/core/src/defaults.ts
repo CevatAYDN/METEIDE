@@ -32,3 +32,6 @@ export const NETWORK_RETRY_MS = 30_000;
 
 /** Days a run's checkpoints are kept after it ended (12 Autonomy and security, SECURITY.md: Checkpoints and rollback). */
 export const CHECKPOINT_KEEP_DAYS = 14;
+
+/** Characters a transcript shows of one tool argument or result before it cuts the rest (ADR-125). */
+export const TRANSCRIPT_FIELD_MAX = 4000;

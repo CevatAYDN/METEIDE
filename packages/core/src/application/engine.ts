@@ -38,9 +38,12 @@ import {
 	hold,
 	iso,
 	type Live,
+	loaded,
+	peek,
 	platformOf,
 } from "./run-state.js";
 import { announce } from "./spawned.js";
+import { readTranscript } from "./transcript.js";
 
 // team.engine@2 (docs/06 engine types, docs/07 Run state machine, docs/08 Single agent and teams).
 
@@ -76,19 +79,6 @@ const policy = (
 		maxHours: Math.min(b.max_hours, t?.max_hours ?? Infinity),
 	};
 	return ok({ autonomy: p.value.autonomy, budget });
-};
-
-// A row whose snapshot cannot be read is not_found, so callers answer instead of throwing.
-const loaded = (s: EngineState, runId: string) => {
-	try {
-		return ok(s.deps.store.load(runId));
-	} catch (e) {
-		const why = e instanceof Error ? e.name : "error";
-		return err<EngineError>({
-			code: "not_found",
-			message: `run ${runId} cannot be read (${why})`,
-		});
-	}
 };
 
 const find = (s: EngineState, runId: string): Result<Live, EngineError> => {
@@ -290,7 +280,10 @@ const status: (
 	const runs = s.deps.store.list(runId);
 	if (runId !== undefined && runs.length === 0)
 		return err({ code: "not_found", message: `no run ${runId}` });
-	return ok(runs);
+	// One run carries its model choice; the list never reads every snapshot (ADR-125).
+	const one = runId === undefined ? undefined : peek(s, runId);
+	const prefer = one?.ok ? one.value.context.prefer : undefined;
+	return ok(prefer ? runs.map((r) => ({ ...r, prefer })) : runs);
 };
 
 // A queued run never started, so it starts and pauses at once; START is a no-op for a running one.
@@ -363,6 +356,7 @@ export const createEngine = (deps: EngineDeps) => {
 		approve: (runId, input) => approveRun(s, runId, input),
 		status: (runId) => status(s, runId),
 		model: (runId, model, roleId) => updateModel(s, runId, model, roleId),
+		transcript: (runId) => readTranscript(s, runId),
 	};
 	return {
 		engine,

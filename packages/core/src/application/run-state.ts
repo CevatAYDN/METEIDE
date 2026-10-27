@@ -1,4 +1,6 @@
 import {
+	type EngineError,
+	err,
 	type ModelRef,
 	ok,
 	type Result,
@@ -85,6 +87,32 @@ export type EngineState = {
 const MAX_DELAY_MS = 2_147_483_647;
 
 export const iso = (ms: number) => new Date(ms).toISOString();
+
+// A row whose snapshot cannot be read is not_found, so callers answer instead of throwing.
+export const loaded = (s: EngineState, runId: string) => {
+	try {
+		return ok(s.deps.store.load(runId));
+	} catch (e) {
+		const why = e instanceof Error ? e.name : "error";
+		return err<EngineError>({
+			code: "not_found",
+			message: `run ${runId} cannot be read (${why})`,
+		});
+	}
+};
+
+// A run's snapshot without taking it into the engine: the live one, else its row (ADR-125).
+export const peek = (
+	s: EngineState,
+	runId: string,
+): Result<RunSnapshot, EngineError> => {
+	const held = s.live.get(runId);
+	if (held) return ok(held.snapshot);
+	const row = loaded(s, runId);
+	if (!row.ok) return row;
+	if (!row.value) return err({ code: "not_found", message: `no run ${runId}` });
+	return ok(row.value.snapshot);
+};
 
 /** What a tool call of the run's active agent carries: the run, its agent, the taint, its task's worktree and the stop signal. */
 export const toolContext = (l: Live): ToolContext => {
