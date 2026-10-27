@@ -91,6 +91,17 @@ describe("parseEvent", () => {
 		).toBe(false);
 	});
 
+	it("takes the worktree a task's submission waits in on the request, not on the answer (ADR-132)", () => {
+		const asked = { approver: "human" };
+		for (const payload of [asked, { ...asked, worktree: "/w/run/task" }])
+			expect(parseEvent(envelope("approval.requested", payload)).ok).toBe(true);
+		expect(
+			parseEvent(
+				envelope("approval.resolved", { ...asked, worktree: "/w/run/task" }),
+			).ok,
+		).toBe(false);
+	});
+
 	it("takes a tool's progress with or without its total, and no message (ADR-067)", () => {
 		const step = { capability: "mcp.tools@1", progress: 3 };
 		for (const payload of [step, { ...step, total: 10 }])

@@ -37,6 +37,8 @@ const approval = z.strictObject({
 	decision: DecisionSchema.optional(),
 	feedback: z.string().optional(),
 });
+// The request names the worktree the submitted files wait in, so the human can read them (ADR-132).
+const approvalRequest = approval.extend({ worktree: text.optional() });
 const quotaUnit = { providerId: text, unit: QuotaUnitSchema };
 const moduleChange = z.strictObject({
 	moduleId: ModuleIdSchema,
@@ -135,7 +137,7 @@ const PAYLOADS = {
 	}),
 	"review.requested": review,
 	"review.completed": review,
-	"approval.requested": approval,
+	"approval.requested": approvalRequest,
 	"approval.resolved": approval,
 	"quota.consumed": z.strictObject({
 		...quotaUnit,

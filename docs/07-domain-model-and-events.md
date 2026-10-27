@@ -128,7 +128,7 @@ From Phase 2, handoffs go into the workspace `handoffs` table: `id`, `workspace_
 | `artifact.created` / `artifact.updated` | artifactId, type, path | core-engine |
 | `verify.completed` | gate, ok, details | core-engine |
 | `review.requested` / `review.completed` | reviewerRoleId, decision? | core-engine |
-| `approval.requested` / `approval.resolved` | approver, decision?, feedback? | core-engine |
+| `approval.requested` / `approval.resolved` | approver, decision?, feedback?; the request also carries worktree? (the absolute folder of the task's worktree, when the task has one, ADR-132) | core-engine |
 | `quota.consumed` | providerId, unit, amount | quota |
 | `quota.exhausted` | providerId, unit, resetsAt | quota |
 | `quota.restored` | providerId, unit | quota |
