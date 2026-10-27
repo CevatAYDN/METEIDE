@@ -1,4 +1,4 @@
-import type { LlmChunk, RunView } from "@mete/contracts";
+import type { LlmChunk, MeteEvent, RunView } from "@mete/contracts";
 import { err, ok } from "@mete/contracts";
 import { describe, expect, it, vi } from "vitest";
 import { MAX_TURNS } from "../../src/defaults.js";
@@ -252,6 +252,8 @@ describe("single-agent engine", () => {
 				["fs.write@1", write],
 			],
 		});
+		const handoffs: MeteEvent[] = [];
+		h.bus.subscribe("handoff.*", (e) => handoffs.push(e));
 		const runId = await begin(h);
 		await settled(h, runId, "paused");
 		const rows = h.db
@@ -277,6 +279,19 @@ describe("single-agent engine", () => {
 			].join("\n"),
 		);
 		expect(rows[0]?.body).not.toMatch(/MARKER/);
+		// The event names the same files, so the UI can lead to them (ADR-133).
+		expect(handoffs.map((e) => e.payload)).toMatchObject([
+			{ files: ["b.md", "c.md"] },
+		]);
+	});
+
+	it("leaves the files out of a handoff event when the run changed none (ADR-133)", async () => {
+		const h = engineHarness({ scripts: [reply("done")] });
+		const handoffs: MeteEvent[] = [];
+		h.bus.subscribe("handoff.*", (e) => handoffs.push(e));
+		await settled(h, await begin(h), "completed");
+		expect(handoffs).toHaveLength(1);
+		expect(handoffs[0]?.payload).not.toHaveProperty("files");
 	});
 
 	it("opens with the workspace's top folder and its first instructions file, as data (ADR-126)", async () => {

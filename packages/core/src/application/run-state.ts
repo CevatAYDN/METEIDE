@@ -15,7 +15,7 @@ import type {
 	Logger,
 } from "@mete/kernel";
 import { transition } from "xstate";
-import { handoffBody } from "../domain/handoff.js";
+import { filesChanged, handoffBody } from "../domain/handoff.js";
 import type { Platform } from "../domain/prompt.js";
 import { type EventBody, runEventOf } from "../domain/run-events.js";
 import {
@@ -190,6 +190,7 @@ const leaveHandoff = (s: EngineState, l: Live) => {
 	const store = s.deps.handoffs;
 	if (!store) return;
 	const id = s.deps.newId();
+	const files = filesChanged(l.snapshot.context);
 	try {
 		const body = handoffBody(l.snapshot.context, l.snapshot.value);
 		const at = iso(s.deps.now());
@@ -205,7 +206,8 @@ const leaveHandoff = (s: EngineState, l: Live) => {
 		s.deps.logger.error({ err: e, runId: l.meta.id }, "handoff not written");
 		return;
 	}
-	emit(s, l, { type: "handoff.created", payload: { handoffId: id } });
+	const payload = { handoffId: id, ...(files.length > 0 ? { files } : {}) };
+	emit(s, l, { type: "handoff.created", payload });
 };
 
 /** Applies one event; the row is written before the event is published (docs/07). */

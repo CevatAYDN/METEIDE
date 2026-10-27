@@ -90,6 +90,13 @@ const openQuestion = (c: RunContext) => {
 const list = (title: string, items: readonly string[]) =>
 	items.length > 0 ? [`${title}:`, ...items.map((i) => `- ${i}`)] : [];
 
+// shortcut: only fs.write and fs.edit arguments; a file a shell command or a commit wrote is missing
+// until a request gives a run's changes (ADR-133).
+/** The paths the run's agents wrote or edited, each once; the handoff and its event share them. */
+export const filesChanged = (c: RunContext): string[] => [
+	...new Set(conversations(c).flatMap(changedFiles)),
+];
+
 /** The Markdown body of a run's handoff at a stop with status `status`. */
 export const handoffBody = (c: RunContext, status: string) => {
 	const all = conversations(c);
@@ -101,6 +108,6 @@ export const handoffBody = (c: RunContext, status: string) => {
 		...(c.error ? [`Failed with: ${c.error.code}`] : []),
 		...(question ? [`Open question: ${question}`] : []),
 		...list("Failed tool calls", all.flatMap(failedCalls)),
-		...list("Files changed", [...new Set(all.flatMap(changedFiles))]),
+		...list("Files changed", filesChanged(c)),
 	].join("\n");
 };

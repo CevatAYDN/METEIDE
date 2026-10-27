@@ -194,6 +194,7 @@ export const engineHarness = (opts: {
 	});
 	return {
 		...created,
+		bus,
 		events,
 		requests,
 		db,
