@@ -171,7 +171,8 @@ const open = (s: EngineState, l: Live, team: TeamState, id: string) => {
 	return apply(s, l, { type: "SWITCH", task: id, team, messages });
 };
 
-// An approver role reviews in a conversation of its own, with its own agent (docs/08, step 7).
+// A pair reviewer or an approver role reviews in a conversation of its own, with its own agent
+// (docs/08, steps 5 and 7; ADR-136).
 const openReview = (
 	s: EngineState,
 	l: Live,

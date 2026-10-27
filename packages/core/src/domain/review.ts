@@ -4,8 +4,8 @@ import { jsonOf } from "./guardrail.js";
 import type { Platform } from "./prompt.js";
 import type { TeamState } from "./team.js";
 
-// An approver role's review of a submitted task (docs/08, Task execution sequence, step 7): findings
-// first, then the verdict (ADR-134). Pure.
+// An approver role's or a pair reviewer's review of a submitted task (docs/08, Task execution
+// sequence, steps 7 and 5; ADR-136): findings first, then the verdict (ADR-134). Pure.
 
 /** A reviewer's verdict; a revision says what to change. */
 export const VerdictSchema = z
