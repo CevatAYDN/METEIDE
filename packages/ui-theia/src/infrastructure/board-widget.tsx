@@ -48,10 +48,12 @@ import { MeteRunComposer } from "./run-composer.js";
 import { MeteShownRun } from "./shown-run.js";
 import { StudioView } from "./studio-view.js";
 import "../../style/mete-avatar.css";
+import "../../style/mete-feed.css";
 import "../../style/mete-hero.css";
 import "../../style/mete-now.css";
 import "../../style/mete-run.css";
 import "../../style/mete-side.css";
+import "../../style/mete-steps.css";
 
 // The Team panel (docs/13; ADR-051; ADR-078; ADR-122).
 @injectable()

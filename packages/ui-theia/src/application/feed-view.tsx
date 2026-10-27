@@ -2,18 +2,17 @@ import type { MeteEvent } from "@mete/contracts";
 import type { TeamView } from "@mete/ui-studio";
 import type { MarkdownRenderer } from "@theia/core/lib/browser/markdown-rendering/markdown-renderer";
 import { nls } from "@theia/core/lib/common/nls";
-import { type CSSProperties, useState } from "react";
+import { useState } from "react";
 import { roleWords } from "../domain/roster.js";
 import { type Feed, type FeedLine, feedLine, inFeed } from "./feed-rows.js";
-import { LIST, MUTED, ROW } from "./look.js";
+import { MUTED, ROW } from "./look.js";
 import { MarkdownView } from "./markdown-view.js";
 import { Icon, LINE } from "./roster-look.js";
-import { TONES } from "./tone.js";
+import { toneStyle } from "./tone.js";
 
 // The Team view's Activity feed (ADR-092), newest first: segments filter it, Follow off keeps the
-// rows it shows, and a row opens to its event's payload.
-
-const MONO = "var(--theia-code-font-family, monospace)";
+// rows it shows, and a row opens to its event's payload. The rows hang on a thread of tiles (ADR-127),
+// laid out by style/mete-run.css.
 
 const SEGMENTS = ["all", "asks", "work", "run"] as const;
 
@@ -24,25 +23,6 @@ const segmentName = (s: Segment) =>
 		work: nls.localize("mete/feed/work", "Work"),
 		run: nls.localize("mete/feed/run", "Run"),
 	})[s];
-
-const SUMMARY: CSSProperties = {
-	display: "grid",
-	gridTemplateColumns: "18px minmax(0, 1fr) auto",
-	gap: "8px",
-	alignItems: "start",
-	cursor: "pointer",
-	listStyle: "none",
-	padding: "6px 2px",
-};
-
-const PEEK: CSSProperties = {
-	fontFamily: MONO,
-	fontSize: "0.9em",
-	whiteSpace: "pre-wrap",
-	overflowWrap: "anywhere",
-	margin: "0 0 6px 26px",
-	...MUTED,
-};
 
 type Names = Readonly<Record<string, string>>;
 
@@ -66,6 +46,25 @@ const clock = (ts: string) => {
 	});
 };
 
+// The thread's tile: the initial of who acted, or the event's icon for the run's own events. It is
+// decorative: the row's words name who did what.
+const Tile = ({
+	line,
+	names,
+}: {
+	readonly line: FeedLine;
+	readonly names: Names;
+}) => (
+	<span className="mete-feed-tile" aria-hidden="true">
+		{line.who ? (
+			nameOf(names, line.who).charAt(0).toUpperCase()
+		) : (
+			<Icon name={line.icon} />
+		)}
+	</span>
+);
+
+// A row on the thread; an ask or a failure wears its tone's wash (ADR-127).
 const Row = ({
 	event,
 	line,
@@ -78,14 +77,16 @@ const Row = ({
 	readonly markdown: MarkdownRenderer;
 }) => (
 	<li
-		style={{ borderBottom: "1px solid var(--line, var(--theia-panel-border))" }}
+		className="mete-feed-row"
+		style={toneStyle(line.tone ?? "muted")}
+		{...(line.tone === "warn" || line.tone === "bad"
+			? { "data-alert": "" }
+			: {})}
 	>
 		<details>
-			<summary style={SUMMARY}>
-				<span style={{ color: TONES[line.tone ?? "muted"] }}>
-					<Icon name={line.icon} />
-				</span>
-				<span style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+			<summary>
+				<Tile line={line} names={names} />
+				<span className="mete-feed-text">
 					<span style={LINE}>
 						{line.who ? <strong>{nameOf(names, line.who)}</strong> : null}
 						{line.to ? (
@@ -103,11 +104,13 @@ const Row = ({
 						<MarkdownView text={line.detail} renderer={markdown} />
 					) : null}
 				</span>
-				<time dateTime={event.ts} style={{ ...MUTED, fontFamily: MONO }}>
+				<time dateTime={event.ts} className="mete-mono">
 					{clock(event.ts)}
 				</time>
 			</summary>
-			<pre style={PEEK}>{JSON.stringify(event.payload, null, 2)}</pre>
+			<pre className="mete-feed-peek">
+				{JSON.stringify(event.payload, null, 2)}
+			</pre>
 		</details>
 	</li>
 );
@@ -151,27 +154,16 @@ const Header = ({
 	readonly follow: boolean;
 	readonly onFollow: () => void;
 }) => (
-	<div style={{ ...ROW, justifyContent: "space-between" }}>
-		<strong style={LINE}>
-			<Icon name="pulse" />
-			{nls.localize("mete/feed/title", "Activity · newest first")}
-		</strong>
-		<div style={ROW}>
+	<>
+		<div className="mete-feed-controls">
 			<fieldset
+				className="mete-segmented small"
 				aria-label={nls.localize("mete/feed/show", "Show")}
-				style={{
-					display: "flex",
-					gap: "4px",
-					border: "none",
-					margin: 0,
-					padding: 0,
-				}}
 			>
 				{SEGMENTS.map((s) => (
 					<button
 						key={s}
 						type="button"
-						className={s === segment ? "mete-button" : "mete-button quiet"}
 						aria-pressed={s === segment}
 						onClick={() => onSegment(s)}
 					>
@@ -181,15 +173,20 @@ const Header = ({
 			</fieldset>
 			<button
 				type="button"
-				className="mete-button quiet"
-				aria-pressed={follow}
+				role="switch"
+				className="mete-follow"
+				aria-checked={follow}
 				onClick={onFollow}
 			>
-				<Icon name={follow ? "pinned" : "pin"} />{" "}
+				<Icon name="pin" />
 				{nls.localize("mete/feed/follow", "Follow")}
+				<span className="mete-knob" aria-hidden="true" />
 			</button>
 		</div>
-	</div>
+		<h3 className="mete-feed-title">
+			{nls.localize("mete/feed/title", "Activity · newest first")}
+		</h3>
+	</>
 );
 
 /** The feed of the run the Team view shows. */
@@ -210,7 +207,7 @@ export const FeedView = ({
 	return (
 		<section
 			aria-label={nls.localize("mete/feed/name", "Activity")}
-			style={{ maxWidth: "960px", marginTop: "16px" }}
+			className="mete-feed"
 		>
 			<Header
 				segment={segment}
@@ -224,14 +221,13 @@ export const FeedView = ({
 				<button
 					type="button"
 					className="mete-button"
-					style={{ marginTop: "8px" }}
 					onClick={() => setHeld(undefined)}
 				>
 					{nls.localize("mete/feed/newer", "Show {0} new", waiting)}
 				</button>
 			) : null}
 			{rows.length > 0 ? (
-				<ol style={{ ...LIST, gap: 0 }}>
+				<ol className="mete-feed-list">
 					{rows.map((r) => (
 						<Row key={r.event.id} {...r} names={names} markdown={markdown} />
 					))}

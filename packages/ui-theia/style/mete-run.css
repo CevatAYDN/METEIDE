@@ -1,4 +1,4 @@
-/* The Team panel's run (ADR-119), from the founder's redesign: under the goal and the run strip, a
+/* The Team panel's run (ADR-119, ADR-127), from the founder's redesign: under the hero band, a
    center column and a 380 px right rail, each scrolling on its own. The tokens come from the panel
    root's style, each with a Theia fallback for a high-contrast theme. */
 
@@ -89,8 +89,11 @@
 	border-bottom-color: var(--accent, var(--theia-focusBorder));
 }
 
-/* The view switch as the segmented control (ADR-127): one chip track, the chosen segment raised. */
+/* The segmented control (ADR-127), for the view switch and the feed's filter: one chip track, the
+   chosen segment raised. */
 .mete-segmented {
+	margin: 0;
+	border: 0;
 	align-self: flex-start;
 	display: inline-flex;
 	flex-wrap: wrap;
@@ -100,7 +103,7 @@
 	border-radius: 13px;
 }
 
-.mete-segmented > [role="tab"] {
+.mete-segmented > button {
 	display: inline-flex;
 	align-items: center;
 	gap: 7px;
@@ -116,19 +119,31 @@
 	cursor: pointer;
 }
 
-.mete-segmented > [role="tab"]:hover {
+.mete-segmented > button:hover {
 	color: var(--ink, var(--theia-foreground));
 }
 
-.mete-segmented > [role="tab"][aria-selected="true"] {
+.mete-segmented > [aria-selected="true"],
+.mete-segmented > [aria-pressed="true"] {
 	color: var(--ink, var(--theia-foreground));
 	background: var(--panel, var(--theia-editorWidget-background));
 	border-color: var(--line, var(--theia-panel-border));
 }
 
-.mete-segmented > [role="tab"]:focus-visible {
+.mete-segmented > button:focus-visible {
 	outline: 2px solid var(--accent, var(--theia-focusBorder));
 	outline-offset: 2px;
+}
+
+.mete-segmented.small {
+	padding: 2px;
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+}
+
+.mete-segmented.small > button {
+	height: 28px;
+	padding: 0 11px;
+	font-size: 13px;
 }
 
 /* The chosen view grows into the center, so the Flow canvas fills it as it filled the column. */
@@ -233,168 +248,4 @@
 	text-align: center;
 	color: var(--muted-2, var(--theia-badge-foreground));
 	background: var(--chip, var(--theia-badge-background));
-}
-
-/* A finished single agent's answer leads the center (ADR-127): a card whose head names it on a good
-   wash, its Markdown at reading size. */
-.mete-answer {
-	flex: none;
-	padding: 20px 30px 26px 26px;
-	background: var(--panel, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line, var(--theia-panel-border));
-	border-radius: 16px;
-}
-
-.mete-answer > header {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	margin-bottom: 18px;
-	padding-bottom: 14px;
-	border-bottom: 1.5px solid var(--line-soft, var(--theia-panel-border));
-}
-
-.mete-answer > header > h3 {
-	margin: 0;
-	font-size: 15px;
-	font-weight: 800;
-}
-
-.mete-answer-icon {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 28px;
-	height: 28px;
-	border-radius: 10px;
-	color: color-mix(
-		in srgb,
-		var(--good, var(--theia-testing-iconPassed)) 60%,
-		var(--ink, var(--theia-foreground))
-	);
-	background: color-mix(
-		in srgb,
-		var(--good, var(--theia-testing-iconPassed)) 14%,
-		var(--panel, var(--theia-editorWidget-background))
-	);
-}
-
-.mete-answer > :not(header) {
-	max-width: 780px;
-	font-size: 15px;
-	line-height: 1.65;
-}
-
-/* An agent's steps (ADR-125): a quiet timeline down the left edge, the agent's words as Markdown, and
-   each tool call as one row of the side vocabulary (tile, label, state word, chevron) that opens its
-   arguments and result in JetBrains Mono. */
-.mete-steps {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-	margin: 0;
-	padding: 0 0 0 12px;
-	list-style: none;
-	border-left: 1.5px solid var(--line-soft, var(--theia-panel-border));
-}
-
-.mete-step {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	min-width: 0;
-}
-
-.mete-step-calls {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-/* A row that opens: the side view's item as a button, with the state word and the chevron after the
-   label. Both classes, so the columns win over .mete-item's whichever sheet loads last; no negative
-   margins, so a row never widens the scrolling column it sits in. */
-.mete-item.mete-step-row,
-.mete-item.mete-rail-task {
-	box-sizing: border-box;
-	width: 100%;
-	margin: 0;
-	align-items: center;
-	font: inherit;
-	color: inherit;
-	text-align: left;
-	background: none;
-	border: 0;
-	cursor: pointer;
-}
-
-.mete-item.mete-step-row {
-	grid-template-columns: 24px minmax(0, 1fr) auto 16px;
-}
-
-.mete-item.mete-rail-task {
-	grid-template-columns: 24px minmax(0, 1fr) 16px;
-}
-
-/* A click leaves no ring; the keyboard's focus keeps one. */
-.mete-step-row:focus:not(:focus-visible),
-.mete-rail-task:focus:not(:focus-visible) {
-	outline: none;
-}
-
-.mete-step-row:focus-visible,
-.mete-rail-task:focus-visible {
-	outline: 1.5px solid var(--accent, var(--theia-focusBorder));
-	outline-offset: -1.5px;
-}
-
-/* The call in flight is not a button, and its seconds are measured, so they do not jump in width. */
-.mete-item.mete-step-live {
-	cursor: default;
-	font-variant-numeric: tabular-nums;
-}
-
-.mete-step-detail {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-	margin: 4px 0 6px 34px;
-}
-
-/* A closed row keeps its detail in the DOM for aria-controls; display: flex would show the margin. */
-.mete-step-detail[hidden] {
-	display: none;
-}
-
-.mete-step-block {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	min-width: 0;
-}
-
-.mete-step-caption {
-	font-size: 11px;
-	font-weight: 700;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
-	color: var(--muted, var(--theia-descriptionForeground));
-}
-
-.mete-step-code {
-	margin: 0;
-	max-height: 280px;
-	overflow: auto;
-	padding: 8px 10px;
-	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
-	font-size: 12px;
-	line-height: 1.5;
-	white-space: pre-wrap;
-	overflow-wrap: anywhere;
-	background: var(--raised, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	border-radius: 10px;
 }

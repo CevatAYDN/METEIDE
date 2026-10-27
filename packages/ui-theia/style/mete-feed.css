@@ -1,0 +1,163 @@
+/* The rail's Activity feed (ADR-092, ADR-127): its filter and Follow, then its rows on a thread that
+   joins their tiles; an ask or a failure wears its tone's wash. Each token has a Theia fallback for a
+   high-contrast theme; a row's tone comes in as `--tone`. */
+
+.mete-feed {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding-top: 12px;
+}
+
+.mete-feed > .mete-button {
+	align-self: flex-start;
+}
+
+.mete-feed-controls {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.mete-follow {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	height: 30px;
+	padding: 0 4px 0 6px;
+	font: inherit;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--ink, var(--theia-foreground));
+	background: transparent;
+	border: 0;
+	border-radius: 10px;
+	cursor: pointer;
+}
+
+.mete-knob {
+	position: relative;
+	width: 30px;
+	height: 18px;
+	border-radius: 999px;
+	background: var(--line, var(--theia-panel-border));
+}
+
+.mete-knob::after {
+	content: "";
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: var(--panel, var(--theia-editorWidget-background));
+	transition: left 0.15s;
+}
+
+.mete-follow[aria-checked="true"] > .mete-knob {
+	background: var(--accent, var(--theia-focusBorder));
+}
+
+.mete-follow[aria-checked="true"] > .mete-knob::after {
+	left: 15px;
+}
+
+.mete-feed-title {
+	margin: 0;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-feed-list {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* The thread: a line through the tiles' centres, behind them. */
+.mete-feed-list::before {
+	content: "";
+	position: absolute;
+	left: 13.25px;
+	top: 14px;
+	bottom: 14px;
+	width: 1.5px;
+	background: var(--line, var(--theia-panel-border));
+}
+
+.mete-feed-row > details > summary {
+	position: relative;
+	display: grid;
+	grid-template-columns: 28px minmax(0, 1fr) auto;
+	gap: 10px;
+	align-items: start;
+	list-style: none;
+	cursor: pointer;
+}
+
+.mete-feed-tile {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	box-sizing: border-box;
+	border-radius: 50%;
+	font-size: 12.5px;
+	font-weight: 800;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+}
+
+.mete-feed-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+	padding: 4px 0;
+}
+
+.mete-feed-row time {
+	padding-top: 5px;
+	font-size: 11.5px;
+	font-variant-numeric: tabular-nums;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-feed-row[data-alert] .mete-feed-tile {
+	color: var(--ink, var(--theia-foreground));
+	background: color-mix(
+		in srgb,
+		var(--tone) 22%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	border-color: var(--tone);
+}
+
+.mete-feed-row[data-alert] .mete-feed-text {
+	padding: 4px 10px;
+	border-radius: 10px;
+	background: color-mix(
+		in srgb,
+		var(--tone) 14%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+}
+
+.mete-feed-peek {
+	margin: 4px 0 6px 38px;
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-size: 0.9em;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	color: var(--muted, var(--theia-descriptionForeground));
+}

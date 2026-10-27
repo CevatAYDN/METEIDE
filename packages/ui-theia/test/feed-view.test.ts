@@ -117,7 +117,7 @@ describe("the Activity feed", () => {
 		).toBe(false);
 	});
 
-	it("names members from the team file and the human as You, with each event's payload behind its row", () => {
+	it("names members from the team file and the human as You, on a thread of their initials, with each event's payload behind its row", () => {
 		const human = event("approval.requested", { approver: "human" }, ofTask);
 		const out = renderToStaticMarkup(
 			createElement(FeedView, {
@@ -138,6 +138,10 @@ describe("the Activity feed", () => {
 		expect(out).toContain('dateTime="2026-10-24T10:00:00.000Z"');
 		expect(out).toContain("&quot;capability&quot;: &quot;fs.write@1&quot;");
 		expect(out).toContain('aria-pressed="true">All<');
+		// The thread's tiles: the initial of who acted, an ask on its warn wash (ADR-127).
+		expect(out).toContain('class="mete-feed-tile" aria-hidden="true">D<');
+		expect(out).toMatch(/class="mete-feed-row"[^>]*data-alert=""/);
+		expect(out).toContain('role="switch"');
 	});
 
 	it("says so when the run has no activity yet", () => {

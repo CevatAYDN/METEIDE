@@ -267,6 +267,8 @@ describe("the Board view", () => {
 			feed: [],
 		});
 		const tasks = out.slice(out.indexOf('data-tab="tasks"'));
+		// The tab counts the approved tasks of all (ADR-127).
+		expect(tasks).toContain('Tasks<span class="mete-count">0/2</span>');
 		expect(tasks).toContain("Blocked · Copy writer");
 		expect(tasks).toContain("To do · Copy writer");
 		expect(tasks.indexOf("Take notes")).toBeLessThan(

@@ -15,3 +15,6 @@ Studio and Team, since it has no board or graph.
 
 Once a single-agent run has ended, its answer leads the center as a card, above the view switch, and
 its steps follow with each row closed.
+
+The rail's Tasks tab counts the approved tasks of all, and the Activity feed hangs its rows on a
+thread of tiles, an ask on its warn wash, under a segmented filter and a Follow switch.

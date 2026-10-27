@@ -8,7 +8,7 @@ import { MUTED } from "./look.js";
 import { RailTasks } from "./rail-tasks.js";
 import { ResultsList, reportPath } from "./results-list.js";
 import type { RunEntry } from "./run-hero.js";
-import { TabList } from "./tab-list.js";
+import { type Tab, TabList } from "./tab-list.js";
 
 // The Team panel's right rail (ADR-119): Activity, the run's feed (ADR-092); Artifacts, its reports
 // (ADR-085); and Tasks, as WAI-ARIA tabs (tab-list.tsx). Every panel stays mounted and only the shown one is
@@ -65,6 +65,21 @@ const Reports = ({
 		</p>
 	);
 
+// The tabs with their counts: the reports, and the approved tasks of all once the run has tasks (ADR-127).
+const tabsOf = (view: TeamView, reports: number): Tab<RailTab>[] => {
+	const done = view.tasks.filter((t) => t.status === "approved").length;
+	const counts: Partial<Record<RailTab, string | number>> = {
+		artifacts: reports,
+		...(view.tasks.length > 0 ? { tasks: `${done}/${view.tasks.length}` } : {}),
+	};
+	return TABS.map((tab) => ({
+		key: tab,
+		icon: ICONS[tab],
+		label: tabName(tab),
+		...(counts[tab] === undefined ? {} : { count: counts[tab] }),
+	}));
+};
+
 /** The rail beside the chosen view. */
 export const RunRail = ({
 	view,
@@ -108,12 +123,7 @@ export const RunRail = ({
 			<TabList
 				id={id}
 				className="mete-rail-tabs"
-				tabs={TABS.map((tab) => ({
-					key: tab,
-					icon: ICONS[tab],
-					label: tabName(tab),
-					...(tab === "artifacts" ? { count: reports } : {}),
-				}))}
+				tabs={tabsOf(view, reports)}
 				shown={shown}
 				onPick={setPicked}
 			/>
