@@ -60,6 +60,7 @@ A team task with an `expected_output` keeps each submitted report as its Artifac
 | submitted | approved | The approver accepts |
 | submitted | changes\_requested | The approver asks for a revision and `revisions + 1` is within the revision limit (`revisions` increments) |
 | submitted | blocked | The approver asks for a revision and the limit would be exceeded |
+| submitted | changes\_requested | The task's pair reviewer asks for a revision (`revisions` does not increment; ADR-136) |
 | changes\_requested | in\_progress | The agent resumes with the feedback |
 | blocked | in\_progress | The human resolves the block (answer, new instruction, capability installed) |
 

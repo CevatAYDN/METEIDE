@@ -51,15 +51,16 @@ const template = () => {
 };
 
 describe("estimateRequests", () => {
-	it("counts 12 per task on its role's seat and 3 per approval on the approver's, naming the role for its pin", () => {
+	it("counts 12 per task on its role's seat, 4 per review on the pair's and 3 per approval on the approver's, naming the role for its pin", () => {
 		expect(estimateRequests(template())).toEqual([
 			{ roleId: "tester", tier: "fast", needs: [], requests: 12 },
 			{ roleId: "artist", tier: "vision", needs: ["vision"], requests: 12 },
 			{ roleId: "lead", tier: "reasoning", needs: [], requests: 3 },
 			// A human approves without a model request.
 			{ roleId: "tester", tier: "fast", needs: [], requests: 12 },
-			// Core does not run pair review yet (docs/08), so the review term adds nothing.
 			{ roleId: "artist", tier: "vision", needs: ["vision"], requests: 12 },
+			// Core runs pair review (ADR-136), so the review term counts.
+			{ roleId: "tester", tier: "fast", needs: [], requests: 4 },
 		]);
 	});
 

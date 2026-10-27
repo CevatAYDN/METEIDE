@@ -15,6 +15,8 @@ export type BlockReason =
 export type TaskContext = {
 	readonly revisionLimit: number;
 	readonly revisions: number;
+	/** How often the task's pair reviewer returned it (ADR-136); absent before its first return. */
+	readonly pairTurns?: number | undefined;
 	readonly agentId?: string | undefined;
 	/** The task's worktree folder, kept through revisions and blocks (docs/08, Parallel work and merging). */
 	readonly worktree?: string | undefined;
@@ -32,6 +34,7 @@ export type TaskEvent =
 	| { type: "BLOCK"; reason: Exclude<BlockReason, "revision_limit"> }
 	| { type: "APPROVE" }
 	| { type: "REVISE"; feedback: string }
+	| { type: "PAIR_REVISE"; feedback: string }
 	| { type: "UNBLOCK"; instruction: string };
 
 /** The task machine; its input is the template's revision limit. */
@@ -79,6 +82,14 @@ export const taskMachine = setup({
 		submitted: {
 			on: {
 				APPROVE: "approved",
+				// A pair reviewer's return does not count toward the revision limit (ADR-136).
+				PAIR_REVISE: {
+					target: "changes_requested",
+					actions: assign(({ context, event }) => ({
+						pairTurns: (context.pairTurns ?? 0) + 1,
+						feedback: event.feedback,
+					})),
+				},
 				REVISE: [
 					{
 						guard: "withinLimit",

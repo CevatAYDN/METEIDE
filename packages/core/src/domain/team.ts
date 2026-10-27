@@ -20,6 +20,7 @@ type TaskStatus = z.infer<typeof TaskStatusSchema>;
 const TaskContextSchema = z.strictObject({
 	revisionLimit: z.number().int().nonnegative(),
 	revisions: z.number().int().nonnegative(),
+	pairTurns: z.number().int().nonnegative().optional(),
 	agentId: z.string().optional(),
 	worktree: z.string().optional(),
 	report: z.string().optional(),
@@ -167,7 +168,7 @@ export const applyTask = (
 	});
 	if (!prev.can(event)) return { team };
 	const [next] = transition(taskMachine, prev, event);
-	const fresh = event.type === "START" || event.type === "REVISE";
+	const fresh = ["START", "REVISE", "PAIR_REVISE"].includes(event.type);
 	const updated: TaskEntry = {
 		...entry,
 		status: next.value,
@@ -183,11 +184,21 @@ export const applyTask = (
 		: { ...out, change: { from: entry.status, to: next.value } };
 };
 
-// The approver role first, then the human when the task is a human checkpoint (docs/08, step 7).
+/** Whether `by` is the task's pair reviewer (ADR-136). */
+export const isPair = (team: TeamState, id: string, by: string) =>
+	team.template.tasks.find((t) => t.id === id)?.review?.pair_with === by;
+
+// The pair while it has turns (docs/08, step 5; ADR-136), the approver role, then the human when
+// the task is a human checkpoint (step 7).
 const required = (team: TeamState, id: string) => {
 	const task = team.template.tasks.find((t) => t.id === id);
+	const turns = team.tasks[id]?.context.pairTurns ?? 0;
+	const pair =
+		task?.review && turns < task.review.max_turns
+			? task.review.pair_with
+			: undefined;
 	const human = team.template.policies.human_checkpoints?.includes(id);
-	const list = [task?.approval, human ? "human" : undefined];
+	const list = [pair, task?.approval, human ? "human" : undefined];
 	return [...new Set(list.filter((a) => a !== undefined))];
 };
 

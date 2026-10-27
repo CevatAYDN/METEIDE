@@ -43,6 +43,22 @@ const research = (human = false): TeamTemplate => {
 	return r.value;
 };
 
+// The research shape with an editor reviewing the report before the lead (ADR-136).
+const paired = (turns: number): TeamTemplate => {
+	const t = research();
+	const r = parseTemplate({
+		...t,
+		roles: [...t.roles, role("editor")],
+		tasks: t.tasks.map((x) =>
+			x.id === "report"
+				? { ...x, review: { pair_with: "editor", max_turns: turns } }
+				: x,
+		),
+	});
+	if (!r.ok) throw new Error(r.error.issues.join("\n"));
+	return r.value;
+};
+
 const run = (
 	t: TeamState,
 	id: string,
@@ -102,6 +118,33 @@ describe("team state", () => {
 		t = run(t, "report", { type: "REVISE", feedback: "more" });
 		expect(t.tasks.report?.approvals).toEqual([]);
 		expect(nextTeamStep(t)).toEqual({ kind: "start", taskId: "report" });
+	});
+
+	it("asks the pair before the lead; its returns do not count and end after max_turns (ADR-136)", () => {
+		let t = teamOf(paired(1));
+		for (const id of ["a", "b"]) t = approve(done(t, id), id, "system").team;
+		t = done(t, "report");
+		const editor = { kind: "approve", taskId: "report", by: "editor" };
+		expect(nextTeamStep(t)).toEqual(editor);
+		t = run(t, "report", { type: "PAIR_REVISE", feedback: "fix it" });
+		expect(t.tasks.report?.context).toMatchObject({
+			revisions: 0,
+			pairTurns: 1,
+			feedback: "fix it",
+		});
+		t = done(t, "report");
+		expect(nextTeamStep(t)).toEqual({ ...editor, by: "lead" });
+	});
+
+	it("asks the pair again after the lead's revision while it has turns (ADR-136)", () => {
+		let t = teamOf(paired(4));
+		for (const id of ["a", "b"]) t = approve(done(t, id), id, "system").team;
+		t = approve(done(t, "report"), "report", "editor").team;
+		const lead = { kind: "approve", taskId: "report", by: "lead" };
+		expect(nextTeamStep(t)).toEqual(lead);
+		t = done(run(t, "report", { type: "REVISE", feedback: "more" }), "report");
+		expect(nextTeamStep(t)).toEqual({ ...lead, by: "editor" });
+		expect(t.tasks.report?.context.revisions).toBe(1);
 	});
 
 	it("waits when every open task is blocked", () => {

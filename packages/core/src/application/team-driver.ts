@@ -11,6 +11,7 @@ import {
 	type ArtifactMeta,
 	applyTask,
 	approve,
+	isPair,
 	keepMessages,
 	nextTeamStep,
 	setRepairs,
@@ -190,8 +191,29 @@ const openReview = (
 		review: by,
 	} as const;
 	if (!apply(s, l, switched)) return;
-	const payload = { approver: by };
-	emit(s, l, { type: "approval.requested", payload }, team.tasks[id]?.id);
+	const body = isPair(team, id, by)
+		? ({ type: "review.requested", payload: { reviewerRoleId: by } } as const)
+		: ({ type: "approval.requested", payload: { approver: by } } as const);
+	emit(s, l, body, team.tasks[id]?.id);
+};
+
+// A pair reviewer's verdict is a review, an approver's an approval (ADR-136).
+const resolved = (
+	pair: boolean,
+	by: string,
+	decision: "approve" | "revise",
+	feedback: string | undefined,
+) => {
+	const said = feedback ? { feedback } : {};
+	return pair
+		? ({
+				type: "review.completed",
+				payload: { reviewerRoleId: by, decision, ...said },
+			} as const)
+		: ({
+				type: "approval.resolved",
+				payload: { approver: by, decision, ...said },
+			} as const);
 };
 
 /**
@@ -214,19 +236,16 @@ export const verdict = (s: EngineState, l: Live, reply: string) => {
 		return apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
 	}
 	const { decision, feedback } = checked.verdict;
+	const pair = isPair(team, task, review);
+	const back = pair ? "PAIR_REVISE" : "REVISE";
 	const r =
 		decision === "approve"
 			? approve(team, task, review)
-			: applyTask(team, task, { type: "REVISE", feedback: feedback ?? "" });
+			: applyTask(team, task, { type: back, feedback: feedback ?? "" });
 	const after = afterApproval(s, l, r.team, task);
 	apply(s, l, { type: "REVIEWED", team: after.team });
 	const taskId = team.tasks[task]?.id;
-	const payload = {
-		approver: review,
-		decision,
-		...(feedback ? { feedback } : {}),
-	};
-	emit(s, l, { type: "approval.resolved", payload }, taskId);
+	emit(s, l, resolved(pair, review, decision, feedback), taskId);
 	changed(s, l, taskId, r.change);
 	after.announce();
 };
