@@ -9,8 +9,9 @@ import type { TeamView } from "./team-view.js";
 // state: a tool's work on its monitor, the offline monitors and shade of a network pause (paint.ts).
 // An effect aimed at a role plays at that role's first character and is skipped when it has none.
 // shortcut: the assigner's envelope of task.assigned (the event names no assigner) and the rows
-// whose events no module publishes yet (agent.message.sent, review.requested, vault.note.saved)
-// come when those events do.
+// whose events no module publishes yet (agent.message.sent, vault.note.saved) come when those
+// events do; the author's walk to its pair reviewer on review.requested (published since ADR-136)
+// is not drawn yet; the review shows as a line of the Studio's list and in the Activity tab.
 
 /** A token colour an effect is drawn in. */
 export type EffectColour = "good" | "accent" | "warn" | "bad";
