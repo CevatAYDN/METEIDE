@@ -694,6 +694,28 @@ describe("worktrees of writing tasks", () => {
 		expect(merged).not.toHaveProperty("cwd");
 	});
 
+	it("names the worktree on the request a human gets for a task that wrote there (ADR-132)", async () => {
+		await writeFile(
+			join(templates.builtIn, "duo.yaml"),
+			BUILDER.replace("title: Build }", "title: Build, approval: human }"),
+		);
+		const vcs = fakeVcs(() =>
+			ok({ op: "worktree.create", path: "/wt", branch: "mete/r/t", sha: "s" }),
+		);
+		const h = engineHarness({
+			scripts: [WRITE, reply("built")],
+			tools: [
+				["fs.write@1", async () => ok({ bytes: 2 })],
+				["vcs.git@2", vcs.run],
+			],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "paused");
+		const asked = h.events.find((e) => e.type === "approval.requested");
+		expect(asked?.payload).toEqual({ approver: "human", worktree: "/wt" });
+	});
+
 	it("starts none without vcs.git@2 or when git cannot make one, and logs why", async () => {
 		await writeFile(join(templates.builtIn, "duo.yaml"), BUILDER);
 		const bare = engineHarness({

@@ -346,10 +346,14 @@ const waitForHuman = (
 	} as const;
 	if (!l.snapshot.can(pause)) return;
 	// Before the pause, so a terminal that stops following at the pause still shows them.
-	const payload = { approver: "human" };
-	for (const id of ids)
-		if (team.tasks[id]?.status === "submitted")
-			emit(s, l, { type: "approval.requested", payload }, team.tasks[id]?.id);
+	for (const id of ids) {
+		const task = team.tasks[id];
+		if (task?.status !== "submitted") continue;
+		// ADR-132: where the submitted files wait, for the human to read.
+		const { worktree } = task.context;
+		const payload = { approver: "human", ...(worktree ? { worktree } : {}) };
+		emit(s, l, { type: "approval.requested", payload }, task.id);
+	}
 	apply(s, l, pause);
 };
 
