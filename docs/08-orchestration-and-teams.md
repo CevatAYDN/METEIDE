@@ -121,7 +121,7 @@ Rules:
 | `before_start.clarify_with` | role id or `human` | Ask open questions before working | ChatDev |
 | `verify` | list of `{ capability, args?, expect? }` or `{ run: "<command>" }` | Machine checks; `run` is sugar for `shell.exec@1` | MetaGPT |
 | `guardrail` | `{ schema, max_retries }` | Schema check with bounded repair | CrewAI |
-| `review` | `{ pair_with, max_turns }` | Pair review before submission | ChatDev |
+| `review` | `{ pair_with, max_turns }` | Pair review of each submission, before the approver | ChatDev |
 | `approval` | role id or `human` | Who approves | METE |
 | `memory.write_lessons` | boolean | Write lessons to the vault | ChatDev + CrewAI |
 | `attempts` | `{ n, distinct_families, judge_tier }` | Best-of-N with cross-family attempts; off by default | METE |
