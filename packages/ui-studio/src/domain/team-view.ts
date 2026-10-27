@@ -41,6 +41,27 @@ export type TeamView = {
 	readonly agents: readonly AgentCard[];
 	readonly signals: RunSignals;
 	readonly checkpoints: readonly CheckpointCard[];
+	/**
+	 * When the model call in flight began (ADR-125): the run's, not an agent's, since the first call
+	 * of an agent starts before the agent exists. Tasks run one at a time, so one call is in flight.
+	 */
+	readonly thinkingSince?: string;
+};
+
+// What ends a model call in flight: its own end, or the run stopping while it waited.
+const CALL_ENDS: ReadonlySet<string> = new Set([
+	"agent.thinking.ended",
+	"run.paused",
+	"run.completed",
+	"run.failed",
+	"run.cancelled",
+]);
+
+const thinkingAfter = (since: string | undefined, e: MeteEvent) => {
+	if (e.type === "agent.thinking.started") return { thinkingSince: e.ts };
+	return since === undefined || CALL_ENDS.has(e.type)
+		? {}
+		: { thinkingSince: since };
 };
 
 /** The view before the first event. */
@@ -151,6 +172,7 @@ export const applyEvent = (
 		agents: agentsAfter(view.agents, e),
 		signals: signalsAfter(view.signals, e),
 		checkpoints: checkpointsAfter(view.checkpoints, e),
+		...thinkingAfter(view.thinkingSince, e),
 	};
 };
 

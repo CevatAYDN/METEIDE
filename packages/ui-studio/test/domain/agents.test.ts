@@ -183,4 +183,12 @@ describe("the agents of the team view", () => {
 			},
 		]);
 	});
+
+	it("keeps when the model call in flight began, before its agent exists (ADR-125)", () => {
+		const started = event("agent.thinking.started", {}, null);
+		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [started]);
+		expect(view.thinkingSince).toBe(started.ts);
+		const ended = applyAll(RUN, view, [event("agent.thinking.ended", {})]);
+		expect(ended.thinkingSince).toBeUndefined();
+	});
 });
