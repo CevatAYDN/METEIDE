@@ -575,6 +575,16 @@
 			"minutes": "{0} min {1} s",
 			"seconds": "{0} s"
 		},
+		"update": {
+			"checking": "Checking for updates…",
+			"failed": "Could not check for updates: {0}",
+			"label": "Check for Updates…",
+			"latest": "METE IDE {0} is the newest version.",
+			"ready": "METE IDE {0} is downloaded. Restart to install it.",
+			"restart": "Restart now",
+			"source": "This METE IDE runs from source, not from an installed copy, so it does not update itself.",
+			"unpublished": "No METE IDE release has been published yet, so there is nothing to update to. This is version {0}."
+		},
 		"waiting": {
 			"allowAlways": "Always allow",
 			"allowHint": "Allow the action once, for the rest of this run, or always in .mete/policy.yaml.",

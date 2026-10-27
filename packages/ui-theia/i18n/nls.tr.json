@@ -575,6 +575,16 @@
 			"minutes": "{0} dk {1} sn",
 			"seconds": "{0} sn"
 		},
+		"update": {
+			"checking": "Güncellemeler denetleniyor…",
+			"failed": "Güncellemeler denetlenemedi: {0}",
+			"label": "Güncellemeleri Denetle…",
+			"latest": "METE IDE {0} en yeni sürüm.",
+			"ready": "METE IDE {0} indirildi. Kurmak için yeniden başlatın.",
+			"restart": "Şimdi yeniden başlat",
+			"source": "Bu METE IDE kurulu bir kopya değil, kaynak koddan çalışıyor; bu yüzden kendini güncellemez.",
+			"unpublished": "Henüz yayımlanmış bir METE IDE sürümü yok, güncellenecek bir şey bulunmuyor. Bu sürüm: {0}."
+		},
 		"waiting": {
 			"allowAlways": "Her zaman izin ver",
 			"allowHint": "Bu eyleme bir kez, bu çalıştırma boyunca ya da .mete/policy.yaml dosyasında her zaman izin verin.",
