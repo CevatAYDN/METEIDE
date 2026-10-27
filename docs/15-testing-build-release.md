@@ -81,7 +81,7 @@ Phase 5 exit gate, as of 2026-10-23: not passed. `apps/cli/test/game-studio.test
 3. Build Linux in WSL2.
 4. Generate SHA-256 checksums for every artifact.
 5. Publish through `release.publish@1`; the default adapter runs `gh release create` from the developer's machine \[C\].
-6. electron-updater reads the same release for Windows and Linux AppImage updates \[C\].
+6. electron-updater reads the same release for Windows and Linux AppImage updates \[C\]. The user asks for it with Help → "Check for Updates…": a newer release downloads, then "Restart now" installs it; with no release published, or in an app run from source, the answer says so (ADR-137) \[D\].
 
 Signing: builds ship unsigned first; the README explains the SmartScreen warning step by step. An application to SignPath Foundation for free Windows signing is part of Phase 7 \[C\].
 
