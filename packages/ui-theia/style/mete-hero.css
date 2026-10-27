@@ -22,7 +22,7 @@
 }
 
 /* The state as a wash pill: the tone's wash behind its darkened word, after a dot that pulses while
-   the run runs. */
+   the run runs, or a settled status's glyph (ADR-128). */
 .mete-pill {
 	display: inline-flex;
 	align-items: center;
@@ -44,7 +44,21 @@
 	);
 }
 
-.mete-pill::before {
+/* Warn is the lightest tone, so its word mixes further toward the ink to clear WCAG AA. */
+.mete-pill[data-status="paused"] {
+	color: color-mix(
+		in srgb,
+		var(--tone) 45%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-pill > .codicon {
+	font-size: 16px;
+}
+
+.mete-pill[data-status="queued"]::before,
+.mete-pill[data-status="running"]::before {
 	content: "";
 	width: 8px;
 	height: 8px;
@@ -125,6 +139,16 @@
 	font-variant-numeric: tabular-nums;
 }
 
+.mete-tiles dd[data-zero] {
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+/* A single agent's tiles stand at the band's right, where a team's glance sits (ADR-128). */
+.mete-hero > .mete-tiles {
+	flex: none;
+	margin: 0;
+}
+
 /* A team at a glance: the ring of its approved tasks, a rule, and one initial tile per member. */
 .mete-glance {
 	flex: none;
@@ -201,8 +225,9 @@
 	border-left: 1.5px solid var(--line-soft, var(--theia-panel-border));
 }
 
+/* Wide enough for the longest state words, such as "Working with browser.screenshot" (ADR-128). */
 .mete-member {
-	width: 96px;
+	width: 112px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -237,7 +262,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.mete-pill::before,
+	.mete-pill[data-status="running"]::before,
 	.mete-ring circle.mete-ring-done {
 		animation: none;
 		transition: none;

@@ -2,6 +2,7 @@ import type { TeamView } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
 import { type Member, roleWords, rosterOf } from "../domain/roster.js";
 import { Avatar } from "./avatar.js";
+import { Icon } from "./roster-look.js";
 import { type Hero, heroOf, type RunFacts } from "./run-hero.js";
 import { stateLook } from "./team-view.js";
 import { toneStyle } from "./tone.js";
@@ -90,6 +91,46 @@ const Glance = ({
 	</section>
 );
 
+// A settled status wears its glyph (ADR-128); a queued or running one keeps the dot of mete-hero.css.
+const GLYPH: Partial<Record<NonNullable<Hero["status"]>["status"], string>> = {
+	paused: "debug-pause",
+	completed: "check",
+	failed: "error",
+	cancelled: "circle-slash",
+};
+
+const Pill = ({ status }: { readonly status: NonNullable<Hero["status"]> }) => {
+	const glyph = GLYPH[status.status];
+	return (
+		<span
+			role="status"
+			className="mete-pill"
+			data-status={status.status}
+			style={toneStyle(status.tone)}
+		>
+			{glyph ? <Icon name={glyph} /> : null}
+			{status.word}
+		</span>
+	);
+};
+
+// A team run's tiles sit under the meta line, a single agent's at the band's right (ADR-128).
+const Tiles = ({ tiles }: { readonly tiles: Hero["tiles"] }) => (
+	<dl className="mete-tiles">
+		{tiles.map((t) => (
+			<div key={t.key}>
+				<dt>{t.caption}</dt>
+				<dd
+					className="mete-mono"
+					{...(t.value === "0" ? { "data-zero": "" } : {})}
+				>
+					{t.value}
+				</dd>
+			</div>
+		))}
+	</dl>
+);
+
 const Main = ({
 	goal,
 	hero,
@@ -98,16 +139,7 @@ const Main = ({
 	readonly hero: Hero;
 }) => (
 	<div className="mete-hero-main">
-		{hero.status ? (
-			<span
-				role="status"
-				className="mete-pill"
-				data-status={hero.status.status}
-				style={toneStyle(hero.status.tone)}
-			>
-				{hero.status.word}
-			</span>
-		) : null}
+		{hero.status ? <Pill status={hero.status} /> : null}
 		<h2 className="mete-hero-goal" title={goal}>
 			{goal}
 		</h2>
@@ -120,14 +152,7 @@ const Main = ({
 				))}
 			</p>
 		) : null}
-		<dl className="mete-tiles">
-			{hero.tiles.map((t) => (
-				<div key={t.key}>
-					<dt>{t.caption}</dt>
-					<dd className="mete-mono">{t.value}</dd>
-				</div>
-			))}
-		</dl>
+		{hero.progress ? <Tiles tiles={hero.tiles} /> : null}
 	</div>
 );
 
@@ -149,7 +174,9 @@ export const RunHero = ({
 			<Main goal={goal} hero={hero} />
 			{hero.progress ? (
 				<Glance progress={hero.progress} view={view} names={names} />
-			) : null}
+			) : (
+				<Tiles tiles={hero.tiles} />
+			)}
 		</header>
 	);
 };

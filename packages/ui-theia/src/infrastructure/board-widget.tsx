@@ -54,6 +54,7 @@ import "../../style/mete-now.css";
 import "../../style/mete-run.css";
 import "../../style/mete-side.css";
 import "../../style/mete-steps.css";
+import "../../style/mete-wait.css";
 
 // The Team panel (docs/13; ADR-051; ADR-078; ADR-122).
 @injectable()

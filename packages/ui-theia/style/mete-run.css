@@ -154,64 +154,6 @@
 	gap: 14px;
 }
 
-/* The Waiting for you strip (ADR-119): a title with the count of waiting tasks over cards that sit
-   side by side while the center is wide enough, each a warn wash with a 1.5 px border. */
-.mete-wait {
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
-}
-
-.mete-wait-title {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	margin: 0;
-	font-size: 1.05em;
-	font-weight: 700;
-}
-
-.mete-wait-title > .codicon {
-	color: var(--warn, var(--theia-editorWarning-foreground));
-}
-
-.mete-wait-cards {
-	display: grid;
-	/* auto-fill keeps the empty tracks, so one card takes one column instead of the whole width. */
-	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-	gap: 12px;
-	align-items: start;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.mete-wait-card {
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
-	padding: 12px 14px;
-	border-radius: 14px;
-	background: color-mix(
-		in srgb,
-		var(--warn, var(--theia-editorWarning-foreground)) 7%,
-		var(--panel, var(--theia-editorWidget-background))
-	);
-	border: 1.5px solid
-		color-mix(
-			in srgb,
-			var(--warn, var(--theia-editorWarning-foreground)) 36%,
-			var(--line, var(--theia-panel-border))
-		);
-}
-
-.mete-wait-head {
-	display: grid;
-	grid-template-columns: 24px minmax(0, 1fr);
-	gap: 10px;
-	align-items: start;
-}
-
 /* A report as a file chip: its name in JetBrains Mono, cut with an ellipsis, the path in its tooltip. */
 .mete-file-chip {
 	align-self: flex-start;

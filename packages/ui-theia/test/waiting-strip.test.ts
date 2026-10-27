@@ -3,11 +3,8 @@ import { applyAll, EMPTY_TEAM_VIEW } from "@mete/ui-studio";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import {
-	AllowActions,
-	RunWaits,
-	WaitingStrip,
-} from "../src/application/waiting-strip.js";
+import { AllowActions, RunWaits } from "../src/application/run-waits.js";
+import { WaitingStrip } from "../src/application/waiting-strip.js";
 
 // The Team panel's Waiting for you strip (ADR-091) over a view the real fold built.
 
@@ -217,9 +214,9 @@ describe("the Waiting for you strip", () => {
 		expect(out).toContain('<span class="mete-count">2</span>');
 		expect(out.match(/class="mete-wait-card"/g)).toHaveLength(2);
 		expect(out).toMatch(
-			/mete-tile warn"[\s\S]*?asks you to approve[\s\S]*?Review</,
+			/data-tone="warn"[\s\S]*?Review<[\s\S]*?asks you to approve/,
 		);
-		expect(out).toMatch(/mete-tile bad"[\s\S]*?is blocked on[\s\S]*?Blocked</);
+		expect(out).toMatch(/data-tone="bad"[\s\S]*?Blocked<[\s\S]*?is blocked on/);
 		const run = strip([created, paused]);
 		expect(run).toContain("Waiting for you");
 		expect(run).not.toContain("mete-count");

@@ -18,3 +18,9 @@ its steps follow with each row closed.
 
 The rail's Tasks tab counts the approved tasks of all, and the Activity feed hangs its rows on a
 thread of tiles, an ask on its warn wash, under a segmented filter and a Follow switch.
+
+The design set in docs/design is now the screens' canonical look (ADR-128). The hero's status pill
+shows a glyph once the run settles (pause, check, error), a single agent's number tiles stand at the
+band's right, and the member tiles are wider. A Waiting for you card leads with its kind as a wash
+pill over the sentence that names the member, with icons on its buttons and a policy ask on a raised
+line of its own.

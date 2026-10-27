@@ -188,4 +188,24 @@ describe("RunHero", () => {
 		expect(single).not.toContain("Team at a glance");
 		expect(single).not.toContain('role="status"');
 	});
+
+	it("gives a settled status its glyph and puts a single agent's tiles at the band's right (ADR-128)", () => {
+		const hero = (run: RunEntry, view: TeamView) =>
+			renderToStaticMarkup(
+				createElement(RunHero, {
+					goal: "Answer",
+					facts: { run },
+					view,
+					names: {},
+				}),
+			);
+		const done = hero({ ...RUN, templateId: null, status: "completed" }, VIEW);
+		expect(done).toMatch(
+			/role="status"[^>]*><span aria-hidden="true" class="codicon codicon-check"/,
+		);
+		expect(done).toMatch(/<\/div><dl class="mete-tiles">/);
+		const team = hero(RUN, TEAM);
+		expect(team).toMatch(/data-status="running"[^>]*>Running</);
+		expect(team).toMatch(/<dl class="mete-tiles">[\s\S]*<\/dl><\/div><section/);
+	});
 });

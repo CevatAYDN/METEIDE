@@ -1,0 +1,251 @@
+/* The Waiting for you strip (ADR-119, ADR-128): a title with the count of waiting tasks over cards
+   that sit side by side while the center is wide enough. A card is its wait's wash with a 1.5 px
+   edge and a 42 px tile, then the kind of wait as a wash pill over the sentence that names the
+   member. The wait's tone comes in as `--tone`; warn, the lightest, mixes its words further toward
+   the ink to clear WCAG AA. */
+
+.mete-wait {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.mete-wait-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 1.3;
+}
+
+.mete-wait-title > .codicon {
+	color: color-mix(
+		in srgb,
+		var(--warn, var(--theia-editorWarning-foreground)) 45%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-wait-cards {
+	display: grid;
+	/* auto-fill keeps the empty tracks, so one card takes one column instead of the whole width. */
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	gap: 12px;
+	align-items: start;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.mete-wait-card {
+	--wash: 12%;
+	--edge: 44%;
+	--share: 45%;
+	display: flex;
+	gap: 16px;
+	padding: 18px 20px 20px;
+	border-radius: 16px;
+	background: color-mix(
+		in srgb,
+		var(--tone) var(--wash),
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	border: 1.5px solid
+		color-mix(
+			in srgb,
+			var(--tone) var(--edge),
+			var(--panel, var(--theia-panel-border))
+		);
+}
+
+.mete-wait-card[data-tone="bad"] {
+	--wash: 8%;
+	--edge: 42%;
+	--share: 60%;
+}
+
+.mete-wait-icon {
+	flex: none;
+	width: 42px;
+	height: 42px;
+	border-radius: 10px;
+	display: grid;
+	place-items: center;
+	background: color-mix(
+		in srgb,
+		var(--tone) 24%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--tone) var(--share),
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-wait-icon > .codicon {
+	font-size: 20px;
+}
+
+.mete-wait-body {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+}
+
+.mete-wait-kind {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 24px;
+	margin-bottom: 8px;
+	padding: 0 10px;
+	border-radius: 999px;
+	font-size: 12.5px;
+	font-weight: 700;
+	background: color-mix(
+		in srgb,
+		var(--tone) 18%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--tone) var(--share),
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-wait-kind > .codicon {
+	font-size: 14px;
+}
+
+.mete-wait-text {
+	margin: 0;
+	font-size: 17px;
+	font-weight: 700;
+	line-height: 1.35;
+}
+
+.mete-wait-note {
+	margin: 4px 0 0;
+	font-size: 13.5px;
+	font-weight: 500;
+	line-height: 1.45;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-wait-body > .mete-file-chip {
+	margin-top: 10px;
+}
+
+/* What the policy asks, in JetBrains Mono on a raised line. */
+.mete-wait-ask {
+	box-sizing: border-box;
+	max-width: 100%;
+	margin-top: 12px;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 9px 14px 9px 10px;
+	background: var(--raised, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+	border-radius: 10px;
+}
+
+.mete-wait-ask > .mete-tile {
+	flex: none;
+	width: 26px;
+	height: 26px;
+	margin: 0;
+	border-radius: 8px;
+}
+
+.mete-wait-ask > code {
+	min-width: 0;
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-size: 13.5px;
+	line-height: 1.4;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.mete-wait-ask-verb {
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-wait-ask-action {
+	color: color-mix(
+		in srgb,
+		var(--warn, var(--theia-editorWarning-foreground)) 60%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-wait-actions {
+	margin-top: 14px;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 8px;
+}
+
+.mete-wait-card .mete-button {
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	height: 34px;
+	padding: 0 15px 0 12px;
+	font-size: 14px;
+}
+
+/* Revise… and Give an instruction… open a form: the words, then the button that sends them. */
+.mete-wait-feedback > summary {
+	list-style: none;
+}
+
+.mete-wait-feedback > summary::-webkit-details-marker {
+	display: none;
+}
+
+.mete-wait-feedback[open] > summary {
+	background: var(--chip, var(--theia-badge-background));
+}
+
+.mete-wait-feedback > summary > .codicon:last-child {
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-wait-feedback > form {
+	margin-top: 10px;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 8px;
+}
+
+.mete-wait-feedback textarea {
+	box-sizing: border-box;
+	width: 260px;
+	max-width: 100%;
+	margin: 0;
+	padding: 8px 12px;
+	resize: none;
+	font: inherit;
+	font-size: 14px;
+	color: var(--ink, var(--theia-input-foreground));
+	background: var(--panel, var(--theia-input-background));
+	border: 1.5px solid
+		var(--line, var(--theia-input-border, var(--theia-panel-border)));
+	border-radius: 10px;
+}
+
+.mete-wait-feedback textarea:focus-visible {
+	outline: 2px solid var(--accent, var(--theia-focusBorder));
+	outline-offset: 1px;
+}
