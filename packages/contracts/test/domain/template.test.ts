@@ -201,6 +201,14 @@ describe("parseTemplate", () => {
 		]);
 	});
 
+	it("refuses a pair reviewer that is also the task's approver (ADR-136)", () => {
+		const t = minimal();
+		const task = { ...t.tasks[0], approval: "writer" };
+		expect(issues({ ...t, tasks: [task] })).toEqual([
+			"tasks.0.review: the pair reviewer writer is also the approver",
+		]);
+	});
+
 	it("names the circle when tasks wait for each other, even through one task alone", () => {
 		const t = minimal();
 		const task = (id: string, context: string[]) =>

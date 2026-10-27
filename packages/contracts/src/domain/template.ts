@@ -174,6 +174,13 @@ const checkTask = (
 	const clarify = f.before_start?.clarify_with;
 	if (clarify) known(r, [...path, "before_start"], [clarify], "approver");
 	if (f.review) known(r, [...path, "review"], [f.review.pair_with], "role");
+	// The pair reviews before the approver; one role in both would count as one approval (ADR-136).
+	if (f.review && f.review.pair_with === f.approval)
+		issue(
+			r,
+			[...path, "review"],
+			`the pair reviewer ${f.approval} is also the approver`,
+		);
 };
 
 const twice = (r: Refs, kind: string, list: readonly string[]) => {

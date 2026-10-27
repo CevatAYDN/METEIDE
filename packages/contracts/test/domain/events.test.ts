@@ -115,6 +115,19 @@ describe("parseEvent", () => {
 		).toBe(false);
 	});
 
+	it("takes a pair reviewer's feedback with its verdict (ADR-136)", () => {
+		const done = { reviewerRoleId: "editor", decision: "revise" };
+		for (const payload of [
+			{ reviewerRoleId: "editor" },
+			done,
+			{ ...done, feedback: "Write gününüzü." },
+		])
+			expect(parseEvent(envelope("review.completed", payload)).ok).toBe(true);
+		expect(
+			parseEvent(envelope("review.completed", { ...done, feedback: 1 })).ok,
+		).toBe(false);
+	});
+
 	it("takes a tool's progress with or without its total, and no message (ADR-067)", () => {
 		const step = { capability: "mcp.tools@1", progress: 3 };
 		for (const payload of [step, { ...step, total: 10 }])

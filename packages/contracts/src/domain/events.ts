@@ -28,9 +28,11 @@ const artifact = z.strictObject({
 	type: text,
 	path: text,
 });
+// A pair reviewer's verdict carries its feedback, as an approver's does (ADR-136).
 const review = z.strictObject({
 	reviewerRoleId: text,
 	decision: DecisionSchema.optional(),
+	feedback: z.string().optional(),
 });
 const approval = z.strictObject({
 	approver: text,
