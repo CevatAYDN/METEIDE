@@ -1,108 +1,11 @@
-/* The Settings screen's frame in the design set's look (ADR-128): the hero band with the scope switch
-   at the right, the groups' list at the left and the chosen group's heading beside it. Every rule
-   hangs off `.mete-settings`; the sections' cards and the save bar are in mete-settings-body.css, the
-   fields' base in mete-form.css, the segmented control's in mete-run.css. */
-
-.mete-settings {
-	container-type: inline-size;
-	max-width: 1320px;
-	box-sizing: border-box;
-	display: flex;
-	flex-direction: column;
-	gap: 16px;
-	padding: 20px;
-	font-size: 14px;
-	line-height: 1.4;
-}
-
-.mete-settings .mete-button {
-	display: inline-flex;
-	align-items: center;
-	gap: 7px;
-	height: 34px;
-	padding: 0 14px 0 12px;
-	font-size: 14px;
-	font-weight: 700;
-}
-
-/* The board draws this screen's outline buttons on the panel colour, not see-through. */
-.mete-settings .mete-button.quiet:not(:disabled, .ghost) {
-	background: var(--panel, var(--theia-editorWidget-background));
-}
-
-.mete-settings .mete-button.quiet:not(:disabled, .ghost):hover {
-	background: var(--raised, var(--theia-toolbar-hoverBackground));
-	border-color: var(--muted, var(--theia-focusBorder));
-}
+/* The Settings screen's frame in the design set's look (ADR-128): the scope switch beside the hero's
+   note, the groups' list at the left and the chosen group's heading beside it. Every rule hangs off
+   `.mete-settings`; the root, the hero band and the buttons are in mete-screen.css, the sections'
+   cards and the save bar in mete-settings-body.css, the fields' base in mete-form.css, the segmented
+   control's in mete-run.css. */
 
 .mete-settings .mete-field {
 	min-height: 38px;
-}
-
-.mete-settings input[type="checkbox"] {
-	accent-color: var(--accent, var(--theia-focusBorder));
-}
-
-/* The hero band: the tile, the title and its caption with Refresh, the loaded note under them. */
-.mete-settings-hero {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 20px 28px;
-	padding: 22px 22px 22px 26px;
-	background: var(--raised, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line, var(--theia-panel-border));
-	border-radius: 16px;
-}
-
-.mete-settings-intro {
-	flex: 1 1 360px;
-	min-width: 0;
-}
-
-.mete-settings-headline {
-	display: flex;
-	align-items: center;
-	gap: 16px;
-}
-
-.mete-settings-tile {
-	flex: none;
-	display: grid;
-	place-items: center;
-	box-sizing: border-box;
-	width: 48px;
-	height: 48px;
-	border-radius: 10px;
-	background: var(--panel, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	color: var(--accent, var(--theia-focusBorder));
-}
-
-.mete-settings-tile > .codicon {
-	font-size: 22px;
-}
-
-.mete-settings-title {
-	flex: 1;
-	min-width: 0;
-}
-
-.mete-settings-title > h2 {
-	margin: 0;
-	font-size: 28px;
-	font-weight: 800;
-	line-height: 1.2;
-	letter-spacing: -0.01em;
-}
-
-.mete-settings-title > p {
-	margin: 3px 0 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	font-weight: 600;
-	color: var(--muted-2, var(--theia-descriptionForeground));
 }
 
 .mete-settings-note {
@@ -303,9 +206,4 @@
 	.mete-settings-nav {
 		flex-basis: auto;
 	}
-}
-
-/* A button's glyph, after the tiles' own, which are not buttons. */
-.mete-settings .mete-button > .codicon {
-	font-size: 16px;
 }

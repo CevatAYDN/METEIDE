@@ -204,7 +204,7 @@ export const SettingsView = ({
 	readonly apply?: ApplyState;
 	readonly choice?: GroupChoice;
 }) => (
-	<section className="mete-settings" aria-live="polite">
+	<section className="mete-screen mete-settings" aria-live="polite">
 		{model.kind === "settings" ? (
 			<Loaded
 				settings={model.settings}

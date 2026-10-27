@@ -1,6 +1,7 @@
 import { nls } from "@theia/core/lib/common/nls";
 import type { ReactNode } from "react";
 import { Icon } from "./roster-look.js";
+import { ScreenHero } from "./screen-hero.js";
 import { type Group, type GroupId, SETTINGS_LINKS } from "./settings-groups.js";
 import type { Section } from "./settings-section.js";
 
@@ -36,30 +37,23 @@ export const Hero = ({
 	readonly note?: ReactNode;
 	readonly scope?: ReactNode;
 }) => (
-	<header className="mete-settings-hero">
-		<div className="mete-settings-intro">
-			<div className="mete-settings-headline">
-				<span className="mete-settings-tile">
-					<Icon name="settings" />
-				</span>
-				<div className="mete-settings-title">
-					<h2>{nls.localize("mete/settings/title", "Settings")}</h2>
-					<p>
-						{nls.localize(
-							"mete/settings/caption",
-							"METE: the configuration it loaded",
-						)}
-					</p>
-				</div>
-				<button type="button" className="mete-button quiet" onClick={onRefresh}>
-					<Icon name="refresh" />
-					{nls.localize("mete/settings/refresh", "Refresh")}
-				</button>
-			</div>
-			{note}
-		</div>
-		{scope}
-	</header>
+	<ScreenHero
+		icon="settings"
+		title={nls.localize("mete/settings/title", "Settings")}
+		caption={nls.localize(
+			"mete/settings/caption",
+			"METE: the configuration it loaded",
+		)}
+		actions={
+			<button type="button" className="mete-button quiet" onClick={onRefresh}>
+				<Icon name="refresh" />
+				{nls.localize("mete/settings/refresh", "Refresh")}
+			</button>
+		}
+		aside={scope}
+	>
+		{note}
+	</ScreenHero>
 );
 
 const GroupItem = ({

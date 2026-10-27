@@ -1,0 +1,112 @@
+/* The frame the main screens share (ADR-128): the root, the hero band with its tile, the title with
+   its caption and the screen's actions beside it, and the buttons as the boards draw them. A screen
+   adds its own root class (`.mete-settings`, `.mete-quota`) for what only it has. */
+
+.mete-screen {
+	container-type: inline-size;
+	max-width: 1320px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 20px;
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+.mete-screen .mete-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	height: 34px;
+	padding: 0 14px 0 12px;
+	font-size: 14px;
+	font-weight: 700;
+}
+
+/* The boards draw outline buttons on the panel colour, not see-through. */
+.mete-screen .mete-button.quiet:not(:disabled, .ghost) {
+	background: var(--panel, var(--theia-editorWidget-background));
+}
+
+.mete-screen .mete-button.quiet:not(:disabled, .ghost):hover {
+	background: var(--raised, var(--theia-toolbar-hoverBackground));
+	border-color: var(--muted, var(--theia-focusBorder));
+}
+
+.mete-screen input[type="checkbox"] {
+	accent-color: var(--accent, var(--theia-focusBorder));
+}
+
+/* The hero band: the tile, the title with its caption and the actions, what the screen adds under
+   them, and an aside at the right. */
+.mete-screen-hero {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 20px 28px;
+	padding: 22px 22px 22px 26px;
+	background: var(--raised, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+	border-radius: 16px;
+}
+
+/* The dashboards' band is slimmer. */
+.mete-screen-hero.compact {
+	padding: 18px 22px 18px 20px;
+}
+
+.mete-screen-intro {
+	flex: 1 1 360px;
+	min-width: 0;
+}
+
+.mete-screen-headline {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
+.mete-screen-tile {
+	flex: none;
+	display: grid;
+	place-items: center;
+	box-sizing: border-box;
+	width: 48px;
+	height: 48px;
+	border-radius: 10px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	color: var(--accent, var(--theia-focusBorder));
+}
+
+.mete-screen-tile > .codicon {
+	font-size: 22px;
+}
+
+.mete-screen-title {
+	flex: 1;
+	min-width: 0;
+}
+
+.mete-screen-title > h2 {
+	margin: 0;
+	font-size: 28px;
+	font-weight: 800;
+	line-height: 1.2;
+	letter-spacing: -0.01em;
+}
+
+.mete-screen-title > p {
+	margin: 3px 0 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-weight: 600;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+/* A button's glyph, after the tiles' own, which are not buttons. */
+.mete-screen .mete-button > .codicon {
+	font-size: 16px;
+}
