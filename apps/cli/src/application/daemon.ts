@@ -50,8 +50,9 @@ import {
 import { customAdapter, endpointModels, probeModels } from "./provider-test.js";
 import { restoreCheckpoint } from "./rollback.js";
 import { settingsOf } from "./settings.js";
+import { serveTranscript } from "./transcript.js";
 
-// `mete daemon`: protocol version 22 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-122).
+// `mete daemon`: protocol version 23 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-125).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
@@ -343,6 +344,7 @@ const serveMethods = (conn: MessageConnection, app: App, io: Io) => {
 	serveSteering(conn, app);
 	serveStopAll(conn, app, io);
 	serveEvents(conn, app);
+	serveTranscript(conn, app);
 	serveAudit(conn, app);
 	serveTemplates(conn, app);
 	serveTemplateRead(conn, app);
