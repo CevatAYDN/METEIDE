@@ -308,6 +308,11 @@ export {
 	WorktreeConfigSchema,
 } from "./domain/tools.js";
 export {
+	type Transcript,
+	TranscriptSchema,
+	type TranscriptStep,
+} from "./domain/transcript.js";
+export {
 	type WebFetchInput,
 	WebFetchInputSchema,
 	type WebFetchOutput,

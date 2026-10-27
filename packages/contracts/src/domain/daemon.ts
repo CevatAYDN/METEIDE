@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ApprovalInputSchema } from "./engine.js";
+import { ApprovalInputSchema, RunPreferSchema } from "./engine.js";
 import { type MeteEvent, MeteEventSchema } from "./events.js";
 import { CapabilityRefSchema, IdSchema, TimestampSchema } from "./ids.js";
 import { ModelRefSchema, NeedSchema, TierSchema } from "./llm.js";
@@ -8,10 +8,10 @@ import { ModelInfoSchema } from "./provider.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol v22 (ARCHITECTURE.md, ADR-045..ADR-122); mete/event checked with MeteEventSchema.
+// Daemon protocol v23 (ARCHITECTURE.md, ADR-045..ADR-125); mete/event checked with MeteEventSchema.
 const text = z.string().min(1);
 
-/** The messages of version 22; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 23; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
@@ -19,6 +19,7 @@ export const DAEMON_METHODS = {
 	runResume: "mete/run.resume",
 	runAllow: "mete/run.allow",
 	runModel: "mete/run.model",
+	runTranscript: "mete/run.transcript",
 	quota: "mete/quota",
 	events: "mete/events",
 	audit: "mete/audit",
@@ -66,6 +67,7 @@ export const RunViewSchema = z.strictObject({
 	createdAt: TimestampSchema,
 	startedAt: TimestampSchema.optional(),
 	endedAt: TimestampSchema.optional(),
+	prefer: RunPreferSchema.optional(),
 });
 
 /** Result of `mete/status`. */
@@ -74,7 +76,7 @@ export const DaemonStatusResultSchema = z.array(RunViewSchema);
 /** Result of `mete/run.start`: the run it started. */
 export const DaemonRunStartResultSchema = z.strictObject({ runId: IdSchema });
 
-/** Params of `mete/run.resume`: the run to go on with. */
+/** Params of `mete/run.resume` and `mete/run.transcript` (ADR-125): the run. */
 export const DaemonRunIdParamsSchema = z.strictObject({ runId: text });
 
 /** How far a policy ask is allowed: once, for the run, or a command for good (ADR-121). */

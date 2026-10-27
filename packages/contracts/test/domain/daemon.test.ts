@@ -42,6 +42,7 @@ import {
 } from "../../src/domain/daemon-providers.js";
 import type { EngineError, RunView } from "../../src/domain/engine.js";
 import type { ModelInfo, ProviderError } from "../../src/domain/provider.js";
+import { TranscriptSchema } from "../../src/domain/transcript.js";
 
 // Typed as RunView, so a field added to the type stops this file from compiling until the schema follows.
 const run: RunView = {
@@ -56,9 +57,10 @@ const run: RunView = {
 	createdAt: "2026-10-23T10:00:00.000Z",
 	startedAt: "2026-10-23T10:00:01.000Z",
 	endedAt: "2026-10-23T11:00:00.000Z",
+	prefer: { writer: { providerId: "groq", modelId: "llama-3.3-70b" } },
 };
 
-describe("daemon protocol version 22", () => {
+describe("daemon protocol version 23", () => {
 	it("answers mete/events with the run's events in order and the count of unreadable rows", () => {
 		const event = {
 			id: crypto.randomUUID(),
@@ -133,6 +135,35 @@ describe("daemon protocol version 22", () => {
 			expect(AuditEntrySchema.safeParse(bad).success).toBe(false);
 	});
 
+	it("round-trips a transcript of mete/run.transcript (ADR-125)", () => {
+		const transcript = {
+			runId: run.id,
+			conversations: [
+				{
+					taskId: "t1",
+					roleId: "writer",
+					steps: [
+						{ from: "summary", text: "earlier turns", toolCalls: [] },
+						{
+							text: "reading",
+							toolCalls: [
+								{
+									name: "fs_read",
+									args: '{"path":"README.md"}',
+									result: { ok: true, text: '"# Notes"' },
+								},
+								{ name: "fs_grep", args: "{}", result: { text: "raw" } },
+								{ name: "fs_list", args: "{}" },
+							],
+						},
+					],
+				},
+			],
+		};
+		expect(TranscriptSchema.parse(transcript)).toEqual(transcript);
+		expect(TranscriptSchema.safeParse({ runId: run.id }).success).toBe(false);
+	});
+
 	it("names the messages of ARCHITECTURE.md", () => {
 		expect(DAEMON_METHODS).toEqual({
 			status: "mete/status",
@@ -141,6 +172,7 @@ describe("daemon protocol version 22", () => {
 			runResume: "mete/run.resume",
 			runAllow: "mete/run.allow",
 			runModel: "mete/run.model",
+			runTranscript: "mete/run.transcript",
 			quota: "mete/quota",
 			events: "mete/events",
 			audit: "mete/audit",

@@ -6,6 +6,7 @@ import {
 	type PauseReasonSchema,
 	type RunStatusSchema,
 } from "./states.js";
+import type { Transcript } from "./transcript.js";
 
 // team.engine@2 from docs/06 (Kernel API); run states in docs/07, single-agent and team rules in docs/08.
 
@@ -72,6 +73,8 @@ export type RunView = {
 	readonly createdAt: string;
 	readonly startedAt?: string;
 	readonly endedAt?: string;
+	/** The run's model choice (ADR-122), when one run is asked (ADR-125). */
+	readonly prefer?: RunPrefer;
 };
 
 /** Why an engine call was refused. */
@@ -110,4 +113,6 @@ export interface TeamEngineAdapter {
 		model: ModelRef | null,
 		roleId?: string,
 	): Promise<Result<void, EngineError>>;
+	/** The steps of the run's saved conversation, masked when read (ADR-125). */
+	transcript?(runId: string): Promise<Result<Transcript, EngineError>>;
 }
