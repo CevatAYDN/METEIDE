@@ -107,6 +107,8 @@ try {
 			"--win",
 			"nsis",
 			"--x64",
+			"--publish",
+			"never",
 			"--projectDir",
 			stage,
 			"-c",

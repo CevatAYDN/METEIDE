@@ -45,3 +45,10 @@ win:
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
+# Where electron-updater looks for a newer release (docs/15, release process, step 6; ADR-137):
+# electron-builder writes it into the app as app-update.yml and writes latest.yml beside the
+# installer for step 5 to upload. package-win.mjs never publishes; step 5 does.
+publish:
+  provider: github
+  owner: CevatAYDN
+  repo: METEIDE
