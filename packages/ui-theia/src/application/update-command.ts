@@ -38,6 +38,11 @@ export const updateText = (state: UpdateState): string => {
 				"No METE IDE release has been published yet, so there is nothing to update to. This is version {0}.",
 				state.current,
 			);
+		case "hidden":
+			return nls.localize(
+				"mete/update/hidden",
+				"GitHub does not show METE IDE's releases (404): its repository is private or has moved, so no update can be found.",
+			);
 		case "latest":
 			return nls.localize(
 				"mete/update/latest",

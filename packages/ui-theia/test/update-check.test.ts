@@ -51,6 +51,7 @@ describe("checkUpdate", () => {
 	});
 
 	it.each([
+		"ERR_XML_MISSED_ELEMENT",
 		"ERR_UPDATER_NO_PUBLISHED_VERSIONS",
 		"ERR_UPDATER_LATEST_VERSION_NOT_FOUND",
 		"ERR_UPDATER_CHANNEL_FILE_NOT_FOUND",
@@ -59,6 +60,27 @@ describe("checkUpdate", () => {
 		expect(await checkUpdate(fake, "0.0.0")).toEqual({
 			kind: "unpublished",
 			current: "0.0.0",
+		});
+	});
+
+	it("says GitHub hides the releases when their feed answers 404", async () => {
+		const { fake } = updater(coded("HTTP_ERROR_404", "404 \nHeaders: {}"));
+		expect(await checkUpdate(fake, "0.1.0")).toEqual({ kind: "hidden" });
+	});
+
+	it("reports a failed download as a failure, not a hidden release", async () => {
+		const fake: Updater = {
+			checkForUpdates: async () => ({
+				isUpdateAvailable: true,
+				updateInfo: { version: "0.2.0" },
+			}),
+			downloadUpdate: async () => {
+				throw coded("HTTP_ERROR_404", "404 \nHeaders: {}");
+			},
+		};
+		expect(await checkUpdate(fake, "0.1.0")).toEqual({
+			kind: "failed",
+			message: "404 ",
 		});
 	});
 

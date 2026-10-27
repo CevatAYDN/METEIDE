@@ -9,6 +9,8 @@ export type UpdateState =
 	// Not an installed build: electron-updater checks only a packaged app.
 	| { kind: "source" }
 	| { kind: "unpublished"; current: string }
+	// GitHub does not show the releases: the repository is private or has moved.
+	| { kind: "hidden" }
 	| { kind: "latest"; current: string }
 	| { kind: "ready"; version: string }
 	| { kind: "failed"; message: string };

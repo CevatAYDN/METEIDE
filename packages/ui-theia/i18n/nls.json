@@ -578,6 +578,7 @@
 		"update": {
 			"checking": "Checking for updates…",
 			"failed": "Could not check for updates: {0}",
+			"hidden": "GitHub does not show METE IDE's releases (404): its repository is private or has moved, so no update can be found.",
 			"label": "Check for Updates…",
 			"latest": "METE IDE {0} is the newest version.",
 			"ready": "METE IDE {0} is downloaded. Restart to install it.",
