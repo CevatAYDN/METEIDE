@@ -1,7 +1,8 @@
 import { nls } from "@theia/core/lib/common/nls";
-import { iconClass, LINK, LIST, MUTED, ROW, SECTION } from "./look.js";
+import { Icon } from "./roster-look.js";
 
-// The Workspaces section of the METE view (docs/13, Home; ADR-078).
+// The Workspaces section of the METE view (docs/13, Home; ADR-078), in the side view's look of the
+// design set (ADR-128, style/mete-side.css).
 
 /** A folder METE was opened on, newest first; `current` is the one open now. */
 export type Workspace = {
@@ -52,21 +53,21 @@ const Row = ({
 			className={`mete-tile${w.current ? " accent" : ""}`}
 			aria-hidden="true"
 		>
-			<span className={iconClass(w.current ? "folder-active" : "folder")} />
+			<Icon name={w.current ? "folder-opened" : "folder"} />
 		</span>
-		<span style={{ display: "grid", gap: "2px", minWidth: 0 }}>
-			<span className="mete-title">
+		<span className="mete-side-body">
+			<span className="mete-title mete-ws-name">
 				{w.current ? (
 					<span>
 						{w.name}{" "}
-						<span style={MUTED}>
+						<span className="mete-side-quiet">
 							{nls.localize("mete/home/currentWorkspace", "(open)")}
 						</span>
 					</span>
 				) : (
 					<button
 						type="button"
-						style={LINK}
+						className="mete-link"
 						onClick={() => actions.onOpen(w.uri)}
 					>
 						{w.name}
@@ -75,7 +76,7 @@ const Row = ({
 				{w.current ? null : (
 					<button
 						type="button"
-						style={{ ...LINK, ...MUTED, fontWeight: 400, marginLeft: 8 }}
+						className="mete-forget"
 						aria-label={nls.localize(
 							"mete/home/forgetWorkspace",
 							"Forget {0}",
@@ -94,7 +95,8 @@ const Row = ({
 
 /**
  * The Workspaces section: the folders opened before, newest first. A click opens one, Forget drops
- * it from the list (the folder stays on disk), and Open folder adds one.
+ * it from the list (the folder stays on disk), and Open folder adds one: the accent button while no
+ * folder is open, since then it is the way to start, a quiet one otherwise.
  */
 export const WorkspacesSection = ({
 	workspaces,
@@ -104,15 +106,24 @@ export const WorkspacesSection = ({
 	readonly actions: WorkspaceActions;
 }) => (
 	<section
-		style={SECTION}
+		className="mete-side-section"
 		aria-label={nls.localize("mete/home/workspaces", "Workspaces")}
 	>
-		<div style={ROW}>
-			<button type="button" className="mete-button" onClick={actions.onAdd}>
+		<div className="mete-side-actions">
+			<button
+				type="button"
+				className={
+					workspaces.some((w) => w.current)
+						? "mete-button quiet"
+						: "mete-button"
+				}
+				onClick={actions.onAdd}
+			>
+				<Icon name="new-folder" />
 				{nls.localize("mete/home/openFolder", "Open folder…")}
 			</button>
 		</div>
-		<ul style={LIST}>
+		<ul className="mete-side-list">
 			{workspaces.map((w) => (
 				<Row key={w.uri} w={w} actions={actions} />
 			))}

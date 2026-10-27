@@ -10,6 +10,7 @@ import { MetePanelWidget } from "./panel-widget.js";
 // The design system of docs/13 on every METE panel (ADR-069); the bundle inlines its font.
 import "../../style/mete.css";
 import "../../style/mete-side.css";
+import "../../style/mete-home.css";
 import {
 	QuotaSection,
 	RunsSection,
@@ -127,8 +128,11 @@ export class MeteHomeSectionWidget extends MetePanelWidget {
 	}
 
 	protected override render() {
+		const root = panelRoot(this.themes.getCurrentTheme().type);
+		// `mete-side` scopes the side view's look (ADR-128): its rows, tiles and pills differ from the
+		// Team panel's, which share their class names.
 		return (
-			<div {...panelRoot(this.themes.getCurrentTheme().type)}>
+			<div {...root} className={`${root.className} mete-side`}>
 				{this.body()}
 			</div>
 		);

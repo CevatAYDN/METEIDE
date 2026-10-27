@@ -1,9 +1,8 @@
-import type { ProviderState } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import type { HomeModel, HomeRow } from "../domain/home-model.js";
-import { iconClass, LINK, LIST, MUTED, ROW, SECTION } from "./look.js";
-import { stateText } from "./quota-text.js";
-import { type Act, Button, Runs } from "./runs-list.js";
+import { QUOTA_LOOK, stateText } from "./quota-text.js";
+import { Icon } from "./roster-look.js";
+import { type Act, Button, Empty, Runs } from "./runs-list.js";
 import { failureText, noFolderText } from "./status-text.js";
 import { when } from "./time-text.js";
 
@@ -11,12 +10,15 @@ import { when } from "./time-text.js";
 // ADR-048), Runs, Workspaces and Quota, each a part of Theia's view container with its own header.
 // The sections hold no state of their own: the widgets pass the model and the actions.
 // Text is shown as it is: React escapes it, Markdown is not involved.
-// The panel root sets the METE tokens and Baloo 2 (ADR-069); the styles come from look.ts.
+// The panel root sets the METE tokens and Baloo 2 (ADR-069); the look is the side view's of the
+// design set (ADR-128), in style/mete-side.css.
 
 const Goal = ({ row }: { readonly row: HomeRow }) => (
 	<>
 		{row.goal}
-		{row.templateId ? <span style={MUTED}> · {row.templateId}</span> : null}
+		{row.templateId ? (
+			<span className="mete-side-quiet"> · {row.templateId}</span>
+		) : null}
 	</>
 );
 
@@ -31,7 +33,7 @@ const OpenGoal = ({
 }) => (
 	<button
 		type="button"
-		style={LINK}
+		className="mete-link"
 		title={nls.localize("mete/home/openRun", "Open in the team panel")}
 		onClick={() => act("open", row.id)}
 	>
@@ -48,37 +50,44 @@ const Waiting = ({
 	readonly row: HomeRow;
 	readonly act: Act;
 }) => (
-	<li className="mete-item">
+	<li className={`mete-item mete-side-card${row.templateId ? " warn" : ""}`}>
 		<span
 			className={`mete-tile${row.templateId ? " warn" : ""}`}
 			aria-hidden="true"
 		>
-			<span className={iconClass(row.templateId ? "check" : "terminal")} />
+			<Icon name={row.templateId ? "check" : "terminal"} />
 		</span>
-		<span style={{ display: "grid", gap: "4px", minWidth: 0 }}>
+		<span className="mete-side-body">
 			<span className="mete-title" title={row.goal}>
 				<OpenGoal row={row} act={act} />
 			</span>
-			<div style={ROW}>
+			<div className="mete-side-actions">
 				{row.templateId ? (
 					<>
 						<Button
 							label={nls.localize("mete/home/approve", "Approve")}
 							onClick={() => act("approve", row.id)}
+							icon="check"
 						/>
 						<Button
 							label={nls.localize("mete/home/revise", "Revise…")}
 							onClick={() => act("revise", row.id)}
+							icon="edit"
+							quiet
 						/>
 						<Button
 							label={nls.localize("mete/run/openArtifact", "Open artifact")}
 							onClick={() => act("artifact", row.id)}
+							icon="file"
+							quiet
 						/>
 					</>
 				) : null}
 				<Button
 					label={nls.localize("mete/home/resume", "Resume")}
 					onClick={() => act("resume", row.id)}
+					icon="play"
+					quiet
 				/>
 			</div>
 			{row.templateId ? null : (
@@ -102,15 +111,15 @@ export const WaitingSection = ({
 		model.kind === "runs" ? model.rows.filter((r) => r.waiting) : [];
 	return (
 		<section
-			style={SECTION}
+			className="mete-side-section"
 			aria-label={nls.localize("mete/home/waiting", "Waiting for you")}
 		>
 			{waiting.length === 0 ? (
-				<p style={MUTED}>
+				<p className="mete-note">
 					{nls.localize("mete/home/nothingWaits", "Nothing waits for you.")}
 				</p>
 			) : (
-				<ul style={LIST}>
+				<ul className="mete-side-cards">
 					{waiting.map((r) => (
 						<Waiting key={r.id} row={r} act={onAct} />
 					))}
@@ -131,10 +140,11 @@ const Failed = ({
 	<>
 		<p role="alert">{failureText(model.failure)}</p>
 		{model.failure.code === "not_ready" ? (
-			<div style={ROW}>
+			<div className="mete-side-actions">
 				<Button
 					label={nls.localize("mete/home/setKey", "Set provider key…")}
 					onClick={onSetKey}
+					icon="key"
 				/>
 			</div>
 		) : null}
@@ -156,7 +166,8 @@ const Body = ({
 		return (
 			<p>{nls.localize("mete/home/loading", "Asking the METE daemon…")}</p>
 		);
-	if (model.kind === "no_folder") return <p>{noFolderText()}</p>;
+	if (model.kind === "no_folder")
+		return <Empty icon="folder-opened" text={noFolderText()} accent />;
 	if (model.kind === "failed")
 		return <Failed model={model} onSetKey={onSetKey} />;
 	return (
@@ -185,15 +196,16 @@ export const RunsSection = ({
 	readonly shown?: string | undefined;
 }) => (
 	<section
-		style={SECTION}
+		className="mete-side-section"
 		aria-live="polite"
 		aria-label={nls.localize("mete/home/runs", "Runs")}
 	>
-		<div style={ROW}>
+		<div className="mete-side-actions">
 			{model.kind === "no_folder" ? null : (
 				<Button
 					label={nls.localize("mete/home/newRun", "New run")}
 					onClick={onStart}
+					icon="add"
 				/>
 			)}
 			{/* The list follows the run events by itself; Refresh is for a daemon that came back. */}
@@ -211,6 +223,7 @@ export const RunsSection = ({
 						}
 					: {})}
 			>
+				<Icon name="refresh" />
 				{nls.localize("mete/home/refresh", "Refresh")}
 			</button>
 		</div>
@@ -218,16 +231,10 @@ export const RunsSection = ({
 	</section>
 );
 
-// A chip's colour by state; the chip's tooltip says the whole state in the words of METE: Quota.
-const QUOTA_TONE: { readonly [S in ProviderState["state"]]: string } = {
-	ready: "good",
-	no_key: "warn",
-	exhausted: "warn",
-	inactive: "bad",
-	unusable: "bad",
-};
-
-/** The Quota section (ADR-109): the providers' chips in the side view's card; a click opens the dashboard. */
+/**
+ * The Quota section (ADR-109): the providers' chips in the side view's card, each with its state's
+ * tone and glyph and the whole state in its tooltip; a click opens the dashboard.
+ */
 export const QuotaSection = ({
 	model,
 	onOpenQuota,
@@ -238,7 +245,7 @@ export const QuotaSection = ({
 	const providers = model.kind === "runs" ? model.providers : [];
 	return (
 		<section
-			style={SECTION}
+			className="mete-side-section"
 			aria-label={nls.localize("mete/home/quota", "Quota")}
 		>
 			{providers.length === 0 ? (
@@ -250,19 +257,18 @@ export const QuotaSection = ({
 				</p>
 			) : (
 				<div className="mete-quota-card">
-					<div style={ROW}>
-						{providers.map((p) => (
-							<button
-								type="button"
-								key={p.id}
-								className={`mete-chip ${QUOTA_TONE[p.state]}`}
-								title={stateText(p)}
-								onClick={onOpenQuota}
-							>
-								{p.id}
-							</button>
-						))}
-					</div>
+					{providers.map((p) => (
+						<button
+							type="button"
+							key={p.id}
+							className={`mete-chip ${QUOTA_LOOK[p.state].tone}`}
+							title={stateText(p)}
+							onClick={onOpenQuota}
+						>
+							<Icon name={QUOTA_LOOK[p.state].icon} />
+							{p.id}
+						</button>
+					))}
 				</div>
 			)}
 		</section>

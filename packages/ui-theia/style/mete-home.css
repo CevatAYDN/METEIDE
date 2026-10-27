@@ -1,0 +1,382 @@
+/* The METE view in the design set's look (ADR-128). Every rule hangs off its root, `.mete-side`:
+   the Team panel's rows, tiles and pills share these class names and keep their own look. */
+.mete-panel.mete-side {
+	background: var(--side, var(--theia-sideBar-background));
+	font-size: 13.5px;
+	line-height: 1.4;
+}
+
+.mete-side-section {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 8px 10px 14px;
+}
+
+.mete-side-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.mete-side .mete-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 30px;
+	padding: 0 12px 0 9px;
+	font-size: 13px;
+	font-weight: 700;
+}
+
+/* A row's own buttons are a step smaller than the section's. */
+.mete-side .mete-side-body .mete-button {
+	height: 28px;
+	padding: 0 10px 0 8px;
+	font-size: 12.5px;
+}
+
+.mete-side .mete-button > .codicon {
+	font-size: 14px;
+}
+
+.mete-side-list,
+.mete-side-cards {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.mete-side-cards {
+	gap: 8px;
+}
+
+/* A row: a 28 px tile beside the body, a quiet border that the current run's row colours. */
+.mete-side .mete-item {
+	grid-template-columns: 28px minmax(0, 1fr);
+	gap: 10px;
+	padding: 8px;
+	margin: 0;
+	border: 1.5px solid transparent;
+}
+
+.mete-side .mete-item:not([aria-current="true"], .mete-side-card):hover {
+	background: color-mix(
+		in srgb,
+		var(--ink, var(--theia-foreground)) 5%,
+		var(--side, var(--theia-sideBar-background))
+	);
+}
+
+.mete-side .mete-item[aria-current="true"] {
+	box-shadow: none;
+	border-color: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 45%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+}
+
+.mete-side .mete-item:has(.mete-ws-name) {
+	align-items: center;
+}
+
+.mete-side-body {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+/* A waiting run is a card: a team run's edge in the warn tone, a single agent's quiet. */
+.mete-side .mete-side-card {
+	padding: 11px 11px 12px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border-color: var(--line-soft, var(--theia-panel-border));
+	border-radius: 14px;
+}
+
+.mete-side .mete-side-card.warn {
+	border-color: color-mix(
+		in srgb,
+		var(--warn, var(--theia-editorWarning-foreground)) 40%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+}
+
+.mete-side-card > .mete-side-body {
+	gap: 9px;
+}
+
+.mete-side-card .mete-title {
+	margin-top: 4px;
+}
+
+/* The tile: 28 px, a wash in the row's tone, or a quiet outline when the row has none. */
+.mete-side .mete-tile {
+	box-sizing: border-box;
+	width: 28px;
+	height: 28px;
+	border-radius: 10px;
+	margin-top: 0;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+}
+
+.mete-side .mete-tile > .codicon {
+	font-size: 16px;
+}
+
+.mete-side .mete-side-card .mete-tile {
+	background: var(--raised, var(--theia-editorWidget-background));
+}
+
+.mete-side .mete-tile.accent {
+	border: 0;
+	background: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 14%,
+		var(--panel, var(--theia-badge-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 60%,
+		var(--ink, var(--theia-badge-foreground))
+	);
+}
+
+.mete-side .mete-tile.good {
+	border: 0;
+	background: color-mix(
+		in srgb,
+		var(--good, var(--theia-testing-iconPassed)) 14%,
+		var(--panel, var(--theia-badge-background))
+	);
+}
+
+.mete-side .mete-tile.warn {
+	border: 0;
+	background: color-mix(
+		in srgb,
+		var(--warn, var(--theia-editorWarning-foreground)) 18%,
+		var(--panel, var(--theia-badge-background))
+	);
+}
+
+.mete-side .mete-tile.bad {
+	border: 0;
+	background: color-mix(
+		in srgb,
+		var(--bad, var(--theia-errorForeground)) 14%,
+		var(--panel, var(--theia-badge-background))
+	);
+}
+
+/* A goal or a folder is a link in the ink, the accent only under the pointer. */
+.mete-link {
+	padding: 0;
+	border: 0;
+	background: none;
+	font: inherit;
+	font-weight: 700;
+	line-height: 1.35;
+	text-align: left;
+	color: var(--ink, var(--theia-foreground));
+	cursor: pointer;
+}
+
+.mete-link:hover {
+	color: var(--accent, var(--theia-textLink-foreground));
+}
+
+.mete-side .mete-title {
+	font-weight: 700;
+}
+
+.mete-title > .mete-link,
+.mete-ws-name > :first-child {
+	display: block;
+	min-width: 0;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.mete-clamp > .mete-link {
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.mete-side .mete-sub,
+.mete-side .mete-note,
+.mete-side-quiet {
+	font-weight: 600;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-side .mete-sub .mete-mono {
+	font-size: 11.5px;
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+}
+
+.mete-side .mete-sub.mete-mono {
+	font-size: 11.5px;
+	font-weight: 500;
+}
+
+/* The state pill: a round wash with a small dot; the quota chip: a mono pill with its glyph. */
+.mete-side .mete-chip {
+	--wash: 14%;
+	display: inline-flex;
+	align-items: center;
+	border-radius: 999px;
+	font-weight: 700;
+	background: color-mix(
+		in srgb,
+		var(--st) var(--wash),
+		var(--panel, var(--theia-badge-background))
+	);
+}
+
+.mete-side .mete-chip.warn {
+	--wash: 16%;
+}
+
+.mete-side .mete-sub .mete-chip {
+	height: 19px;
+	padding: 0 8px 0 6px;
+	border: 0;
+	font-size: 11.5px;
+}
+
+.mete-side .mete-sub .mete-chip::before {
+	width: 6px;
+	height: 6px;
+	margin-right: 5px;
+}
+
+.mete-side .mete-quota-card > .mete-chip {
+	gap: 5px;
+	height: 26px;
+	padding: 0 9px 0 7px;
+	border: 1.5px solid
+		color-mix(
+			in srgb,
+			var(--st) 40%,
+			var(--panel, var(--theia-badge-background))
+		);
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-size: 11.5px;
+}
+
+.mete-side .mete-quota-card > .mete-chip::before {
+	content: none;
+}
+
+.mete-side .mete-quota-card > .mete-chip:hover {
+	border-color: var(--muted, var(--theia-descriptionForeground));
+}
+
+.mete-side .mete-quota-card > .mete-chip > .codicon {
+	font-size: 12px;
+}
+
+/* Under a paused run: the providers that block it, or its budget, on a quiet inset card. */
+.mete-side-box {
+	margin: 4px 0 0;
+	padding: 8px 10px 9px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 10px;
+	font-size: 12px;
+	line-height: 1.5;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+ul.mete-side-box {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	list-style: none;
+}
+
+.mete-side-box > li {
+	display: flex;
+	gap: 7px;
+	line-height: 1.45;
+}
+
+.mete-side-box > li::before {
+	content: "";
+	flex: none;
+	width: 6px;
+	height: 6px;
+	margin-top: 6px;
+	border-radius: 50%;
+	background: var(--tone);
+}
+
+/* An empty section: a dashed card with the section's tile, or the quiet note on a raised one. */
+.mete-side-empty {
+	display: grid;
+	grid-template-columns: 28px minmax(0, 1fr);
+	gap: 10px;
+	align-items: start;
+	padding: 11px 12px;
+	border: 1.5px dashed var(--line, var(--theia-panel-border));
+	border-radius: 14px;
+}
+
+.mete-side-empty > p {
+	margin: 4px 0 0;
+	font-weight: 600;
+	line-height: 1.45;
+}
+
+.mete-side .mete-side-section > .mete-note {
+	margin: 0;
+	padding: 11px 12px;
+	background: var(--raised, var(--theia-editorWidget-background));
+	border: 1.5px dashed var(--line, var(--theia-panel-border));
+	border-radius: 14px;
+	font-weight: 500;
+}
+
+/* A workspace's name with Forget at the row's end, as a small outlined pill. */
+.mete-ws-name {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.mete-side .mete-item:has(.mete-ws-name) > .mete-side-body {
+	gap: 2px;
+}
+
+.mete-forget {
+	flex: none;
+	margin-left: auto;
+	height: 22px;
+	padding: 0 8px;
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+	border-radius: 10px;
+	background: transparent;
+	font: inherit;
+	font-size: 12px;
+	font-weight: 700;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+	cursor: pointer;
+}
+
+.mete-forget:hover {
+	background: var(--chip, var(--theia-badge-background));
+	color: var(--ink, var(--theia-foreground));
+}

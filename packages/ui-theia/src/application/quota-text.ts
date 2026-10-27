@@ -60,3 +60,20 @@ export const quotaText = (
 				"Providers: {0}",
 				providers.map((s) => stateText(s, prepare)).join("; "),
 			);
+
+/**
+ * A provider state's look in the METE view (ADR-109, ADR-128): its tone, and the glyph its quota
+ * chip shows, so a missing key and a used-up quota differ by more than their tooltip.
+ */
+export const QUOTA_LOOK: {
+	readonly [S in ProviderState["state"]]: {
+		readonly tone: "good" | "warn" | "bad";
+		readonly icon: string;
+	};
+} = {
+	ready: { tone: "good", icon: "check" },
+	no_key: { tone: "warn", icon: "key" },
+	exhausted: { tone: "warn", icon: "clock" },
+	inactive: { tone: "bad", icon: "close" },
+	unusable: { tone: "bad", icon: "circle-slash" },
+};

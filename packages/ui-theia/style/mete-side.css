@@ -128,10 +128,20 @@
 	color: var(--muted, var(--theia-descriptionForeground));
 }
 
-/* The quota card at the view's foot (ADR-109): one raised card, not a bare chip row. */
+/* The quota card at the view's foot (ADR-109): one raised card of chips, not a bare chip row. */
 .mete-quota-card {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	padding: 12px;
 	background: var(--raised, var(--theia-editorWidget-background));
 	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	border-radius: 12px;
-	padding: 10px 12px;
+	border-radius: 14px;
+}
+
+/* A running glyph stops turning for those who ask for less motion, in every METE panel. */
+@media (prefers-reduced-motion: reduce) {
+	.mete-panel .codicon-modifier-spin {
+		animation: none;
+	}
 }

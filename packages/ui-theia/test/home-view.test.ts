@@ -80,12 +80,13 @@ describe("the Home view", () => {
 		);
 		expect(none).not.toContain("As of");
 		expect(none).toContain(
-			'<button type="button" class="mete-button quiet">Refresh</button>',
+			'<button type="button" class="mete-button quiet"><span aria-hidden="true" class="codicon codicon-refresh"></span>Refresh</button>',
 		);
 	});
 
 	it("offers New run, which opens the composer, once there is a folder to run in (ADR-078)", () => {
-		const start = '<button type="button" class="mete-button">New run</button>';
+		const start =
+			'<button type="button" class="mete-button"><span aria-hidden="true" class="codicon codicon-add"></span>New run</button>';
 		expect(html({ kind: "loading" })).toContain(start);
 		expect(html({ kind: "no_folder" })).not.toContain(start);
 	});
@@ -109,9 +110,26 @@ describe("the Home view", () => {
 		expect(out).toContain('<span class="mete-chip good">Done</span>');
 		// The snapshot's time is Refresh's tooltip, beside New run, above the list.
 		expect(out).toMatch(
-			/<button type="button" class="mete-button quiet" title="As of [^"]+">Refresh</,
+			/<button type="button" class="mete-button quiet" title="As of [^"]+"><span[^>]*><\/span>Refresh</,
 		);
 		expect(out.indexOf(">Refresh<")).toBeLessThan(out.indexOf("notes"));
+	});
+
+	it("turns a running row's glyph, and no other row's (ADR-128)", () => {
+		const out = html(
+			homeModel(
+				{
+					ok: true,
+					value: [
+						run("running", "busy", null),
+						run("completed", "notes", null),
+					],
+				},
+				AT,
+			),
+		);
+		expect(out.match(/codicon-modifier-spin/g)).toHaveLength(1);
+		expect(out).toContain("codicon-loading codicon-modifier-spin");
 	});
 
 	it("gives a run's status the same tone in the list as in the hero band (ADR-094, ADR-127)", () => {
@@ -262,7 +280,7 @@ describe("the Home view", () => {
 			out.indexOf('aria-label="Workspaces"'),
 		);
 		expect(table).not.toContain("groq");
-		expect(table.slice(table.indexOf("done goal"))).not.toContain("<li>");
+		expect(table.slice(table.indexOf("done goal"))).not.toContain("<li style=");
 		// A quota pause can be resumed before its reset (ADR-059), only there.
 		expect(quotaRow).toContain(">Resume now</button>");
 		expect(out.slice(out.indexOf("done goal"))).not.toContain("Resume now");
@@ -316,9 +334,12 @@ describe("the Home view", () => {
 			]),
 		);
 		const quota = out.slice(out.indexOf('aria-label="Quota"'));
-		expect(quota).toContain('class="mete-chip good" title="groq: ready">groq<');
+		// Each chip's glyph tells a missing key from a used-up quota without the tooltip (ADR-128).
 		expect(quota).toContain(
-			'class="mete-chip warn" title="nvidia: no key (METE: Set provider key)">nvidia<',
+			'class="mete-chip good" title="groq: ready"><span aria-hidden="true" class="codicon codicon-check"></span>groq<',
+		);
+		expect(quota).toContain(
+			'class="mete-chip warn" title="nvidia: no key (METE: Set provider key)"><span aria-hidden="true" class="codicon codicon-key"></span>nvidia<',
 		);
 		const empty = html(homeModel({ ok: true, value: [] }, AT));
 		expect(empty).toContain(

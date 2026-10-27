@@ -31,3 +31,12 @@ finished one shows its answer. The Studio's list of the latest events has a visi
 The Team view's members are the design set's cards: the initial tile with its state badge, the name
 with its tier and model under it, the state as a wash pill over the tasks done, and a strip of what
 the member does now, its context share over its bar, and the run's model choice.
+
+The METE view takes the design set's side look on its own background: 28 px tiles, a running run's
+glyph that turns (and stops for those who ask for less motion), round state pills with the time in
+mono, goals in the ink, and the current run's row outlined. A waiting run is a card whose Approve is
+the accent button and whose other answers are quiet ones with icons; a quota pause lists the blocking
+providers on an inset card, each after a dot in its state's tone; each quota chip carries its state's
+glyph, so a missing key and a used-up quota differ at a glance. Empty sections are dashed cards, Open
+folder is the accent button only while no folder is open, and Forget is a small outlined pill. The
+shared field and disabled-button rules wait for the Settings slice.

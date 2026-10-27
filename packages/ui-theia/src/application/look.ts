@@ -17,13 +17,6 @@ export const PANEL: CSSProperties = {
 	gap: "14px",
 };
 
-/** A section of the METE view, under its part's header in the narrow side bar. */
-export const SECTION: CSSProperties = {
-	...PANEL,
-	padding: "8px 12px 12px",
-	gap: "10px",
-};
-
 /** A panel's section heading. */
 export const TITLE: CSSProperties = {
 	margin: 0,
@@ -77,9 +70,3 @@ export const LIST: CSSProperties = {
 	flexDirection: "column",
 	gap: "8px",
 };
-
-/**
- * A codicon's class, as a plain string: the side view's tiles name their glyph without importing
- * Theia's widget helper, whose module needs a DOM the Node-rendered tests have not.
- */
-export const iconClass = (name: string) => `codicon codicon-${name}`;

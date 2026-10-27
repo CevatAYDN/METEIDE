@@ -1,40 +1,72 @@
 import type { ProviderState } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
-import type { CSSProperties } from "react";
 import type { HomeAction, HomeRow } from "../domain/home-model.js";
 import { roleWords } from "../domain/roster.js";
-import { iconClass, LINK, LIST, MUTED, ROW } from "./look.js";
-import { stateText } from "./quota-text.js";
+import { QUOTA_LOOK, stateText } from "./quota-text.js";
+import { Icon } from "./roster-look.js";
 import { runsText, statusTone, statusWord } from "./status-text.js";
 import { shortWhen, when } from "./time-text.js";
+import { toneStyle } from "./tone.js";
 
 // The run list of the METE view's Runs section (docs/13, Home; ADR-078), and the pieces the other
-// sections share with it: the inbox actions and the button.
+// sections share with it: the inbox actions, the button and the empty card. The look is the side
+// view's of the design set (ADR-128), in style/mete-side.css.
 
 /** What a section asks the store to do with a run. */
 export type Act = (action: HomeAction, runId: string) => void;
 
+/** The main action of a row is the accent button; the others are quiet (ADR-128). */
 export const Button = ({
 	label,
 	onClick,
+	icon,
+	quiet,
 }: {
 	readonly label: string;
 	readonly onClick: () => void;
+	readonly icon?: string;
+	readonly quiet?: boolean;
 }) => (
-	<button type="button" className="mete-button" onClick={onClick}>
+	<button
+		type="button"
+		className={quiet ? "mete-button quiet" : "mete-button"}
+		onClick={onClick}
+	>
+		{icon ? <Icon name={icon} /> : null}
 		{label}
 	</button>
 );
 
-// Under a run paused for quota: why each provider cannot carry it on now (ADR-050).
+/** An empty section's dashed card (ADR-128): a tile with the section's glyph, then the sentence. */
+export const Empty = ({
+	icon,
+	text,
+	accent,
+}: {
+	readonly icon: string;
+	readonly text: string;
+	readonly accent?: boolean;
+}) => (
+	<div className="mete-side-empty">
+		<span className={accent ? "mete-tile accent" : "mete-tile"}>
+			<Icon name={icon} />
+		</span>
+		<p>{text}</p>
+	</div>
+);
+
+// Under a run paused for quota: why each provider cannot carry it on now (ADR-050), each after a
+// dot in its state's tone.
 const Blocked = ({
 	providers,
 }: {
 	readonly providers: readonly ProviderState[];
 }) => (
-	<ul style={{ ...MUTED, margin: "4px 0 0", paddingLeft: "16px" }}>
+	<ul className="mete-side-box">
 		{providers.map((p) => (
-			<li key={p.id}>{stateText(p)}</li>
+			<li key={p.id} style={toneStyle(QUOTA_LOOK[p.state].tone)}>
+				{stateText(p)}
+			</li>
 		))}
 	</ul>
 );
@@ -45,14 +77,14 @@ const Resume = ({ row, act }: { readonly row: HomeRow; readonly act: Act }) =>
 	row.userPaused || row.quotaPaused || row.budgetPaused ? (
 		<>
 			{row.budgetPaused ? (
-				<p style={{ ...MUTED, margin: "4px 0 0" }}>
+				<p className="mete-side-box">
 					{nls.localize(
 						"mete/home/budgetPaused",
 						"It used its budget: 25 model turns at a time, or the requests or hours of .mete/policy.yaml. Resume gives it 25 more turns; raise the requests or hours there first if they ran out.",
 					)}
 				</p>
 			) : null}
-			<div style={ROW}>
+			<div className="mete-side-actions">
 				<Button
 					label={
 						row.quotaPaused
@@ -60,6 +92,8 @@ const Resume = ({ row, act }: { readonly row: HomeRow; readonly act: Act }) =>
 							: nls.localize("mete/home/resume", "Resume")
 					}
 					onClick={() => act("resume", row.id)}
+					icon="play"
+					quiet
 				/>
 			</div>
 		</>
@@ -75,7 +109,7 @@ const OpenGoal = ({
 }) => (
 	<button
 		type="button"
-		style={LINK}
+		className="mete-link"
 		title={nls.localize("mete/home/openRun", "Open in the team panel")}
 		onClick={() => act("open", row.id)}
 	>
@@ -99,14 +133,6 @@ const ICON: Record<string, string> = {
 const iconOf = (row: HomeRow) =>
 	row.waiting ? "bell" : (ICON[row.status] ?? "circle-outline");
 
-// A long goal takes two lines in the narrow side bar; the tooltip keeps it whole.
-const CLAMP: CSSProperties = {
-	display: "-webkit-box",
-	WebkitLineClamp: 2,
-	WebkitBoxOrient: "vertical",
-	overflow: "hidden",
-};
-
 const RunItem = ({
 	row,
 	blocked,
@@ -125,10 +151,15 @@ const RunItem = ({
 		{...(current ? { "aria-current": "true" as const } : {})}
 	>
 		<span className={`mete-tile ${toneOf(row)}`} aria-hidden="true">
-			<span className={iconClass(iconOf(row))} />
+			{/* A running row's glyph turns, so the list shows which runs are at work (ADR-128). */}
+			<Icon
+				name={iconOf(row)}
+				spin={row.status === "running" && !row.waiting}
+			/>
 		</span>
-		<span style={{ display: "grid", gap: "2px", minWidth: 0 }}>
-			<span style={CLAMP} title={row.goal}>
+		<span className="mete-side-body">
+			{/* A long goal takes two lines in the narrow side bar; the tooltip keeps it whole. */}
+			<span className="mete-clamp" title={row.goal}>
 				<OpenGoal row={row} act={act} />
 			</span>
 			<span className="mete-sub">
@@ -136,7 +167,9 @@ const RunItem = ({
 					{statusWord(row.status)}
 				</span>
 				{row.templateId ? ` · ${roleWords(row.templateId)}` : ""} ·{" "}
-				<span title={when(row.createdAt)}>{shortWhen(row.createdAt)}</span>
+				<span className="mete-mono" title={when(row.createdAt)}>
+					{shortWhen(row.createdAt)}
+				</span>
 			</span>
 			{row.quotaPaused && blocked.length > 0 ? (
 				<Blocked providers={blocked} />
@@ -159,9 +192,9 @@ export const Runs = ({
 	readonly shown: string | undefined;
 }) =>
 	rows.length === 0 ? (
-		<p>{runsText([])}</p>
+		<Empty icon="list-unordered" text={runsText([])} />
 	) : (
-		<ul style={LIST}>
+		<ul className="mete-side-list">
 			{rows.map((r) => (
 				<RunItem
 					key={r.id}
