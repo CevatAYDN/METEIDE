@@ -38,12 +38,18 @@
 	"theiaPluginsDir": "plugins",
 	"theiaPlugins": {
 		"ms-vscode.js-debug": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/ms-vscode.js-debug.vsix",
+		"vscode.css": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.css.vsix",
 		"vscode.css-language-features": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.css-language-features.vsix",
 		"vscode.git": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.git.vsix",
 		"vscode.git-base": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.git-base.vsix",
+		"vscode.html": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.html.vsix",
 		"vscode.html-language-features": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.html-language-features.vsix",
+		"vscode.javascript": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.javascript.vsix",
+		"vscode.json": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.json.vsix",
 		"vscode.json-language-features": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.json-language-features.vsix",
+		"vscode.markdown": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.markdown.vsix",
 		"vscode.markdown-language-features": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.markdown-language-features.vsix",
+		"vscode.typescript": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.typescript.vsix",
 		"vscode.typescript-language-features": "https://github.com/eclipse-theia/vscode-builtin-extensions/releases/download/1.108.2/vscode.typescript-language-features.vsix"
 	},
 	"dependencies": {
