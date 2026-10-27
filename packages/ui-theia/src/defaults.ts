@@ -23,3 +23,9 @@ export const CONTEXT_WARN_SHARE = 0.8;
 
 /** Lines of one file's diff the Changes panel draws, the rest left out: 500 (04 Decisions, ADR-100). */
 export const DIFF_LINES = 500;
+
+/** How long the Team panel waits after a step event before it asks for the transcript again: 500 ms (04 Decisions, ADR-125). */
+export const TRANSCRIPT_REFETCH_MS = 500;
+
+/** How often a thinking agent's seconds count up: each second (04 Decisions, ADR-125). */
+export const THINKING_TICK_MS = 1000;

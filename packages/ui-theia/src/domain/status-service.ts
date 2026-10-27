@@ -21,6 +21,7 @@ import type {
 	Result,
 	RunStart,
 	Tier,
+	Transcript,
 } from "@mete/contracts";
 
 import type { ProviderKey } from "./provider-keys.js";
@@ -160,6 +161,11 @@ export interface MeteDaemonService {
 			DaemonFailure
 		>
 	>;
+	/** The steps of a run's saved conversation, masked by the daemon (ADR-125). */
+	transcript(
+		workspaceDir: string,
+		runId: string,
+	): Promise<Result<Transcript, DaemonFailure>>;
 	/** The workspace audit log, newest first, filtered by run, verdict and action (ADR-053). */
 	audit(
 		workspaceDir: string,

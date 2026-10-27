@@ -104,6 +104,10 @@ export class MeteDaemonBackend
 		return this.host.events(workspaceDir, runId);
 	}
 
+	transcript(workspaceDir: string, runId: string) {
+		return this.host.transcript(workspaceDir, runId);
+	}
+
 	audit(workspaceDir: string, filter: AuditFilter) {
 		return this.host.audit(workspaceDir, filter);
 	}

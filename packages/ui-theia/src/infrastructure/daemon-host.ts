@@ -30,6 +30,7 @@ import {
 	type Result,
 	type RunStart,
 	type Tier,
+	TranscriptSchema,
 } from "@mete/contracts";
 import {
 	createMessageConnection,
@@ -242,6 +243,11 @@ const reads = (send: Send) => ({
 	events: (dir: string, runId: string) =>
 		send(dir, DAEMON_METHODS.events, { runId }, (raw) =>
 			DaemonEventsResultSchema.safeParse(raw),
+		),
+	/** The steps of a run's saved conversation (ADR-125). */
+	transcript: (dir: string, runId: string) =>
+		send(dir, DAEMON_METHODS.runTranscript, { runId }, (raw) =>
+			TranscriptSchema.safeParse(raw),
 		),
 	/** The workspace audit log, filtered (ADR-053). */
 	audit: (dir: string, filter: object) =>
