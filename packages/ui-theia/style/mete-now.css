@@ -1,0 +1,92 @@
+/* The Now slot (ADR-127, docs/13 Design system). Its busy card: the member, what it does, its model,
+   its context share, and a sweep along the foot while its call is in flight. */
+.mete-now {
+	position: relative;
+	overflow: hidden;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px;
+	padding: 18px 22px 20px 20px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+	border-radius: 16px;
+}
+
+.mete-now::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	width: 26%;
+	height: 2px;
+	border-radius: 2px;
+	background: var(--accent, var(--theia-focusBorder));
+	animation: mete-sweep 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes mete-sweep {
+	from {
+		transform: translateX(-100%);
+	}
+	to {
+		transform: translateX(385%);
+	}
+}
+
+.mete-now-body {
+	flex: 1 1 240px;
+	min-width: 0;
+}
+
+.mete-now-title,
+.mete-now-model {
+	margin: 0;
+}
+
+.mete-now-title {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0 8px;
+	font-size: 17px;
+	font-weight: 700;
+	line-height: 1.35;
+}
+
+.mete-now-title > span + span::before {
+	content: "·";
+	margin-right: 8px;
+	color: var(--muted, var(--theia-descriptionForeground));
+}
+
+.mete-now-doing {
+	font-variant-numeric: tabular-nums;
+	color: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 60%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-now-model {
+	margin-top: 3px;
+	font-size: 12.5px;
+	color: var(--muted, var(--theia-descriptionForeground));
+}
+
+.mete-now-context {
+	flex: 0 1 250px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.mete-now::after {
+		display: none;
+	}
+}

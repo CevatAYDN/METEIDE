@@ -65,7 +65,11 @@ const levelsOf = (tasks: readonly TaskCard[]) => {
 	return levels;
 };
 
-const stepOf = ({ progress, total }: NonNullable<AgentCard["progress"]>) =>
+/** A tool call's last progress step, as `progress/total` or `progress` (ADR-067). */
+export const stepOf = ({
+	progress,
+	total,
+}: NonNullable<AgentCard["progress"]>) =>
 	total === undefined ? `${progress}` : `${progress}/${total}`;
 
 // Agent ids get a prefix, so an agent never takes the node of a task with the same id. An agent

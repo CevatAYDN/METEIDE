@@ -1,6 +1,6 @@
-/* The redesign's components (ADR-127, docs/13 Design system): the hero band with its wash pill and
-   number tiles, the progress ring and the initial tiles. Each token has a Theia fallback for a
-   high-contrast theme, whose panel root sets none; a component's state tone comes in as `--tone`. */
+/* The hero band (ADR-127, docs/13 Design system): the wash pill, the number tiles, the progress ring
+   and the members at a glance. Each token has a Theia fallback for a high-contrast theme, whose panel
+   root sets none; a component's state tone comes in as `--tone`. */
 
 .mete-hero {
 	display: flex;
@@ -209,73 +209,6 @@
 	text-align: center;
 }
 
-/* An initial tile: the role's initial in a ring of its state's tone, the state's icon in the corner;
-   an idle member's ring is dashed and its tile quiet, a done one's face plain. */
-.mete-avatar {
-	position: relative;
-	display: flex;
-	width: 50px;
-	height: 50px;
-	box-sizing: border-box;
-	padding: 3px;
-	border: 2px solid var(--tone);
-	border-radius: 50%;
-}
-
-.mete-avatar-face {
-	flex: 1;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	border-radius: 50%;
-	font-size: 18px;
-	font-weight: 800;
-	background: color-mix(
-		in srgb,
-		var(--tone) 22%,
-		var(--panel, var(--theia-editorWidget-background))
-	);
-}
-
-.mete-member[data-state="done"] .mete-avatar-face {
-	background: var(--chip, var(--theia-badge-background));
-}
-
-.mete-member[data-state="idle"] .mete-avatar {
-	border: 2px dashed var(--line, var(--theia-panel-border));
-}
-
-.mete-member[data-state="idle"] .mete-avatar-face {
-	color: var(--muted-2, var(--theia-descriptionForeground));
-	background: var(--raised, var(--theia-editorWidget-background));
-}
-
-.mete-avatar-badge {
-	position: absolute;
-	right: -5px;
-	bottom: -5px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 20px;
-	height: 20px;
-	box-sizing: border-box;
-	border-radius: 50%;
-	border: 2px solid var(--panel, var(--theia-editorWidget-background));
-	background: var(--tone);
-	color: var(--panel, var(--theia-editorWidget-background));
-}
-
-.mete-avatar-badge > .codicon {
-	font-size: 11px;
-}
-
-/* On the warn wash the light panel colour fails AA, so a waiting badge carries the ink. */
-.mete-member[data-state="waits_for_you"] .mete-avatar-badge,
-.mete-member[data-state="quota"] .mete-avatar-badge {
-	color: var(--ink, var(--theia-foreground));
-}
-
 .mete-member-name {
 	max-width: 100%;
 	margin-top: 8px;
@@ -298,7 +231,7 @@
 	font-weight: 700;
 	color: color-mix(
 		in srgb,
-		var(--tone) 45%,
+		var(--warn, var(--theia-editorWarning-foreground)) 45%,
 		var(--ink, var(--theia-foreground))
 	);
 }

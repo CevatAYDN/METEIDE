@@ -1,0 +1,112 @@
+/* The initial tile (ADR-127, docs/13 Design system), shared by the hero band's members and the Now
+   slot. Each token has a Theia fallback for a high-contrast theme; the state's tone comes in as
+   `--tone`. */
+
+/* An initial tile: the role's initial in a ring of its state's tone, the state in the corner; an
+   idle member's ring is dashed and its tile quiet, a done one's face plain. */
+.mete-avatar {
+	position: relative;
+	flex: none;
+	display: flex;
+	width: 50px;
+	height: 50px;
+	box-sizing: border-box;
+	padding: 3px;
+	border: 2px solid var(--tone);
+	border-radius: 50%;
+}
+
+.mete-avatar-face {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	font-size: 18px;
+	font-weight: 800;
+	color: var(--ink, var(--theia-foreground));
+	background: color-mix(
+		in srgb,
+		var(--tone) 22%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+}
+
+.mete-avatar[data-state="done"] .mete-avatar-face {
+	background: var(--chip, var(--theia-badge-background));
+}
+
+.mete-avatar[data-state="idle"] {
+	border: 2px dashed var(--line, var(--theia-panel-border));
+}
+
+.mete-avatar[data-state="idle"] .mete-avatar-face {
+	color: var(--muted-2, var(--theia-descriptionForeground));
+	background: var(--raised, var(--theia-editorWidget-background));
+}
+
+.mete-avatar-badge {
+	position: absolute;
+	right: -5px;
+	bottom: -5px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 2.5px;
+	min-width: 20px;
+	height: 20px;
+	box-sizing: border-box;
+	border-radius: 999px;
+	border: 2px solid var(--panel, var(--theia-editorWidget-background));
+	background: var(--tone);
+	color: var(--panel, var(--theia-editorWidget-background));
+}
+
+.mete-avatar-badge > .codicon {
+	font-size: 11px;
+}
+
+/* On the warn wash the light panel colour fails AA, so a waiting badge carries the ink. */
+.mete-avatar[data-state="waits_for_you"] .mete-avatar-badge,
+.mete-avatar[data-state="quota"] .mete-avatar-badge {
+	color: var(--ink, var(--theia-foreground));
+}
+
+/* While its model thinks, three dots that breathe in turn. */
+.mete-avatar-badge.mete-dots {
+	right: -8px;
+	padding: 0 5px;
+}
+
+.mete-dots > i {
+	width: 3.5px;
+	height: 3.5px;
+	border-radius: 50%;
+	background: currentColor;
+	animation: mete-dot 1.2s ease-in-out infinite;
+}
+
+.mete-dots > i:nth-child(2) {
+	animation-delay: 0.15s;
+}
+
+.mete-dots > i:nth-child(3) {
+	animation-delay: 0.3s;
+}
+
+@keyframes mete-dot {
+	0%,
+	80%,
+	100% {
+		opacity: 0.3;
+	}
+	40% {
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.mete-dots > i {
+		animation: none;
+	}
+}

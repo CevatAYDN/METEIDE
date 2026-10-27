@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 // The panels' colour roles (docs/13, Design system; ADR-069): each is a METE token with a Theia
 // colour as its fallback, which a high-contrast theme uses, since its panel root sets no tokens.
 
@@ -12,3 +14,8 @@ export const TONES: Readonly<Record<Tone, string>> = {
 	bad: "var(--bad, var(--theia-errorForeground))",
 	muted: "var(--muted, var(--theia-descriptionForeground))",
 };
+
+/** A component's state tone as the `--tone` its stylesheet reads (ADR-127). */
+export const toneStyle = (tone: Tone): CSSProperties => ({
+	["--tone" as string]: TONES[tone],
+});

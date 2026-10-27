@@ -1,19 +1,14 @@
 import type { TeamView } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
-import type { CSSProperties } from "react";
 import { type Member, roleWords, rosterOf } from "../domain/roster.js";
-import { Icon } from "./roster-look.js";
+import { Avatar } from "./avatar.js";
 import { type Hero, heroOf, type RunFacts } from "./run-hero.js";
 import { stateLook } from "./team-view.js";
-import { TONES, type Tone } from "./tone.js";
+import { toneStyle } from "./tone.js";
 
 // The Team panel's hero band (ADR-094, ADR-127): the run's status as a wash pill over its goal, the
 // meta line, the number tiles, and in a team run the ring of its approved tasks beside one initial
-// tile per member. The look lives in style/mete-components.css; a tone is passed as `--tone`.
-
-const toned = (tone: Tone): CSSProperties => ({
-	["--tone" as string]: TONES[tone],
-});
+// tile per member. The look lives in style/mete-hero.css; a tone is passed as `--tone`.
 
 // The ring's circumference for its radius of 31 in a 76 wide box.
 const ROUND = 2 * Math.PI * 31;
@@ -55,34 +50,19 @@ const Ring = ({
 	</div>
 );
 
-// A role's initial in a ring of its state's tone, with the state's icon in the corner but for idle.
 const MemberTile = ({
 	member,
 	name,
 }: {
 	readonly member: Member;
 	readonly name: string;
-}) => {
-	const look = stateLook(member.state);
-	return (
-		<li
-			className="mete-member"
-			data-state={member.state.kind}
-			style={toned(look.tone)}
-		>
-			<span className="mete-avatar">
-				<span className="mete-avatar-face">{name.charAt(0).toUpperCase()}</span>
-				{member.state.kind === "idle" ? null : (
-					<span className="mete-avatar-badge">
-						<Icon name={look.icon} {...(look.spin ? { spin: true } : {})} />
-					</span>
-				)}
-			</span>
-			<span className="mete-member-name">{name}</span>
-			<span className="mete-member-state">{look.text}</span>
-		</li>
-	);
-};
+}) => (
+	<li className="mete-member" data-state={member.state.kind}>
+		<Avatar name={name} state={member.state} />
+		<span className="mete-member-name">{name}</span>
+		<span className="mete-member-state">{stateLook(member.state).text}</span>
+	</li>
+);
 
 const Glance = ({
 	progress,
@@ -123,7 +103,7 @@ const Main = ({
 				role="status"
 				className="mete-pill"
 				data-status={hero.status.status}
-				style={toned(hero.status.tone)}
+				style={toneStyle(hero.status.tone)}
 			>
 				{hero.status.word}
 			</span>

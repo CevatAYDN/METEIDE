@@ -47,7 +47,9 @@ import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
 import { MeteRunComposer } from "./run-composer.js";
 import { MeteShownRun } from "./shown-run.js";
 import { StudioView } from "./studio-view.js";
-import "../../style/mete-components.css";
+import "../../style/mete-avatar.css";
+import "../../style/mete-hero.css";
+import "../../style/mete-now.css";
 import "../../style/mete-run.css";
 import "../../style/mete-side.css";
 
