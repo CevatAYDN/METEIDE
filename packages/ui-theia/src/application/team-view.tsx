@@ -1,10 +1,10 @@
 import type { ModelRef, Tier } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
-import type { CSSProperties } from "react";
 import { type Member, type MemberState, roleWords } from "../domain/roster.js";
+import { Avatar } from "./avatar.js";
 import { Context, type Windows } from "./context-meter.js";
-import { LIST, MUTED } from "./look.js";
-import { Icon, LINE } from "./roster-look.js";
+import { stateLook, TIER_ICONS, tierLabel } from "./member-look.js";
+import { Icon } from "./roster-look.js";
 import {
 	commitModel,
 	ModelChoice,
@@ -13,8 +13,7 @@ import {
 	type ModelChoiceProps,
 	RevertButton,
 } from "./team-model-choice.js";
-import { elapsedText } from "./time-text.js";
-import { TONES, type Tone } from "./tone.js";
+import { toneStyle } from "./tone.js";
 
 export {
 	commitModel,
@@ -28,108 +27,12 @@ export {
 // The Team panel's fourth view (ADR-089): one row per role with its tier, model, state and what it
 // does now. Icons are Theia's codicons; each state is an icon and a word, never a colour alone.
 
-const MONO = "var(--theia-code-font-family, monospace)";
-
-export const TIER_ICONS: Readonly<Record<Tier, string>> = {
-	reasoning: "lightbulb",
-	coder: "code",
-	fast: "zap",
-	"long-context": "book",
-	vision: "eye",
-};
-
-/** A tier's plain label (ADR-089); the team file keeps the tier id. */
-export const tierLabel = (tier: Tier): string =>
-	({
-		reasoning: nls.localize("mete/roster/reasoning", "Thinker"),
-		coder: nls.localize("mete/roster/coder", "Coder"),
-		fast: nls.localize("mete/roster/fast", "Fast"),
-		"long-context": nls.localize("mete/roster/longContext", "Long reads"),
-		vision: nls.localize("mete/roster/vision", "Sees images"),
-	})[tier];
-
-const until = (at: string) =>
-	new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-type Look = {
-	readonly icon: string;
-	readonly text: string;
-	readonly tone: Tone;
-	readonly spin?: boolean;
-};
-
-// The words of a state; the two with a value take it from the state.
-const stateText = (s: MemberState): string => {
-	if (s.kind === "quota")
-		return nls.localize(
-			"mete/roster/quota",
-			"Waiting for quota until {0}",
-			until(s.resetsAt),
-		);
-	// A model call in flight counts its seconds (ADR-125).
-	if (s.kind === "thinking" && s.since)
-		return nls.localize(
-			"mete/roster/thinkingFor",
-			"Thinking · {0}",
-			elapsedText(s.since),
-		);
-	if (s.kind === "working")
-		return nls.localize(
-			"mete/roster/working",
-			"Working with {0}",
-			s.tool.replace(/@\d+$/, ""),
-		);
-	return {
-		waits_for_you: nls.localize("mete/roster/waitsForYou", "Waiting for you"),
-		thinking: nls.localize("mete/roster/thinking", "Thinking"),
-		blocked: nls.localize("mete/roster/blocked", "Blocked"),
-		done: nls.localize("mete/roster/done", "Done"),
-		idle: nls.localize("mete/roster/idle", "Idle"),
-	}[s.kind];
-};
-
-const LOOKS: Readonly<Record<MemberState["kind"], Omit<Look, "text">>> = {
-	waits_for_you: { icon: "bell", tone: "warn" },
-	quota: { icon: "watch", tone: "warn" },
-	working: { icon: "tools", tone: "accent" },
-	thinking: { icon: "loading", tone: "accent", spin: true },
-	blocked: { icon: "circle-slash", tone: "bad" },
-	done: { icon: "pass", tone: "good" },
-	idle: { icon: "circle-outline", tone: "muted" },
-};
-
-/** A member's state as an icon, a word and a tone. */
-export const stateLook = (s: MemberState): Look => ({
-	...LOOKS[s.kind],
-	text: stateText(s),
-});
-
-const ROW: CSSProperties = {
-	display: "grid",
-	gridTemplateColumns: "40px minmax(0, 1fr) auto",
-	gap: "4px 14px",
-	alignItems: "center",
-};
-const AVATAR: CSSProperties = {
-	width: "40px",
-	height: "40px",
-	borderRadius: "11px",
-	display: "grid",
-	placeItems: "center",
-	fontWeight: 800,
-	fontSize: "1.2em",
-	background: "var(--chip, var(--theia-badge-background))",
-	color: "var(--accent, var(--theia-foreground))",
-};
-const PILL: CSSProperties = {
-	display: "inline-flex",
-	alignItems: "center",
-	gap: "5px",
-	whiteSpace: "nowrap",
-};
+// A row is the design set's member card (ADR-128): the initial tile, the name with its tier and model,
+// and the state with the tasks done at its head; under them a strip of what it does now, its context
+// and the run's model choice. The look lives in style/mete-roster.css; the state's tone is `--tone`.
 
 const Now = ({ now }: { readonly now: NonNullable<Member["now"]> }) => (
-	<div style={LINE}>
+	<div className="mete-roster-now">
 		<Icon name={now.waitsFor ? "watch" : "arrow-right"} />
 		<span>
 			{now.waitsFor
@@ -146,25 +49,22 @@ const Now = ({ now }: { readonly now: NonNullable<Member["now"]> }) => (
 
 const Model = ({ member }: { readonly member: Member }) =>
 	member.agent ? (
-		<div style={{ ...LINE, ...MUTED }}>
+		<p className="mete-roster-model mete-mono">
 			<Icon name="circuit-board" />
-			<span style={{ fontFamily: MONO }}>
-				{member.agent.providerId} ·{" "}
-				{/* Some providers' model ids start with the provider's own name. */}
-				{member.agent.modelId.replace(`${member.agent.providerId}/`, "")}
-			</span>
-		</div>
+			{member.agent.providerId} ·{" "}
+			{/* Some providers' model ids start with the provider's own name. */}
+			{member.agent.modelId.replace(`${member.agent.providerId}/`, "")}
+		</p>
 	) : null;
 
 const TierChip = ({ tier }: { readonly tier: Tier }) => (
-	<span className="mete-chip" style={PILL} title={tier}>
+	<span className="mete-roster-tier" title={tier}>
 		<Icon name={TIER_ICONS[tier]} />
 		{tierLabel(tier)}
-		<span style={{ ...MUTED, fontFamily: MONO, fontSize: "0.85em" }}>
-			{tier}
-		</span>
+		<span className="mete-mono">{tier}</span>
 	</span>
 );
+
 type MemberRowProps = {
 	readonly member: Member;
 	readonly name: string;
@@ -176,90 +76,78 @@ type MemberRowProps = {
 		| undefined;
 };
 
-const MemberDetails = ({
-	member,
-	name,
-	windows,
-	models,
-	value,
-	onModel,
-}: MemberRowProps) => (
-	<div
-		style={{
-			display: "flex",
-			flexDirection: "column",
-			gap: "3px",
-			minWidth: 0,
-		}}
-	>
-		<div style={LINE}>
-			<strong style={{ fontSize: "1.1em" }}>{name}</strong>
-			{member.agent?.tier ? <TierChip tier={member.agent.tier} /> : null}
-		</div>
-		<Model member={member} />
-		<Context member={member} windows={windows} />
-		{onModel ? (
-			<ModelChoice
-				roleId={member.roleId}
-				value={value}
-				models={models}
-				onModel={onModel}
-			/>
-		) : null}
-		{member.now ? <Now now={member.now} /> : null}
-	</div>
-);
-
-const MemberStatus = ({
-	member,
-	look,
-}: {
-	readonly member: Member;
-	readonly look: Look;
-}) => (
-	<div
-		style={{
-			display: "flex",
-			flexDirection: "column",
-			alignItems: "flex-end",
-			gap: "4px",
-		}}
-	>
-		<span className="mete-chip" style={{ ...PILL, color: TONES[look.tone] }}>
-			<Icon name={look.icon} {...(look.spin ? { spin: true } : {})} />
-			{look.text}
-		</span>
-		{member.total > 0 ? (
-			<span style={{ ...PILL, ...MUTED }}>
-				<Icon name="checklist" />
-				{nls.localize(
-					"mete/roster/tasks",
-					"{0} of {1} tasks done",
-					member.done,
-					member.total,
-				)}
-			</span>
-		) : null}
-	</div>
-);
-
-const Row = (props: MemberRowProps) => {
-	const look = stateLook(props.member.state);
-	const ring = look.tone === "muted" ? undefined : TONES[look.tone];
+const State = ({ member }: { readonly member: Member }) => {
+	const look = stateLook(member.state);
 	return (
-		<li
-			className="mete-card"
-			aria-label={props.name}
-			style={{ ...ROW, ...(ring ? { borderColor: ring } : {}) }}
-		>
-			<span aria-hidden="true" style={AVATAR}>
-				{props.name.charAt(0).toUpperCase()}
+		<div className="mete-roster-state">
+			<span className="mete-roster-pill">
+				<Icon name={look.icon} {...(look.spin ? { spin: true } : {})} />
+				{look.text}
 			</span>
-			<MemberDetails {...props} />
-			<MemberStatus member={props.member} look={look} />
-		</li>
+			{member.total > 0 ? (
+				<span className="mete-roster-done">
+					<Icon name="checklist" />
+					{nls.localize(
+						"mete/roster/tasks",
+						"{0} of {1} tasks done",
+						member.done,
+						member.total,
+					)}
+				</span>
+			) : null}
+		</div>
 	);
 };
+
+const Head = ({
+	member,
+	name,
+}: {
+	readonly member: Member;
+	readonly name: string;
+}) => (
+	<div className="mete-roster-head">
+		<Avatar name={name} state={member.state} />
+		<div className="mete-roster-who">
+			<div className="mete-roster-name">
+				<h3>{name}</h3>
+				{member.agent?.tier ? <TierChip tier={member.agent.tier} /> : null}
+			</div>
+			<Model member={member} />
+		</div>
+		<State member={member} />
+	</div>
+);
+
+// The strip under the head: what the member does now, its context and tokens (ADR-090) and the run's
+// model choice (ADR-122); none while it has none of them.
+const Strip = ({ member, windows, models, value, onModel }: MemberRowProps) =>
+	member.now || member.used || onModel ? (
+		<div className="mete-roster-strip">
+			{member.now ? <Now now={member.now} /> : null}
+			<Context member={member} windows={windows} />
+			{onModel ? (
+				<ModelChoice
+					roleId={member.roleId}
+					value={value}
+					models={models}
+					onModel={onModel}
+				/>
+			) : null}
+		</div>
+	) : null;
+
+const Row = (props: MemberRowProps) => (
+	<li
+		className="mete-roster-row"
+		aria-label={props.name}
+		data-state={props.member.state.kind}
+		style={toneStyle(stateLook(props.member.state).tone)}
+	>
+		<Head member={props.member} name={props.name} />
+		<Strip {...props} />
+	</li>
+);
 
 const count = (
 	members: readonly Member[],
@@ -267,7 +155,7 @@ const count = (
 ) => members.filter((m) => kinds.includes(m.state.kind)).length;
 
 const Summary = ({ members }: { readonly members: readonly Member[] }) => (
-	<p style={MUTED}>
+	<p className="mete-roster-summary">
 		{nls.localize(
 			"mete/roster/summary",
 			"Members: {0} · working: {1} · waiting for you: {2} · done: {3}",
@@ -302,11 +190,11 @@ export const TeamView = ({
 	onModel,
 }: TeamViewProps) => (
 	<section
+		className="mete-roster"
 		aria-label={nls.localize("mete/roster/title", "Team")}
-		style={{ maxWidth: "960px" }}
 	>
 		<Summary members={members} />
-		<ul style={LIST}>
+		<ul>
 			{members.map((m) => (
 				<Row
 					key={m.roleId}

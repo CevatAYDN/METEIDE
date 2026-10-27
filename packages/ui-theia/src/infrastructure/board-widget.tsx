@@ -51,6 +51,7 @@ import "../../style/mete-avatar.css";
 import "../../style/mete-feed.css";
 import "../../style/mete-hero.css";
 import "../../style/mete-now.css";
+import "../../style/mete-roster.css";
 import "../../style/mete-run.css";
 import "../../style/mete-side.css";
 import "../../style/mete-steps.css";

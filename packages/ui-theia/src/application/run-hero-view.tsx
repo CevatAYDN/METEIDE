@@ -2,9 +2,9 @@ import type { TeamView } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
 import { type Member, roleWords, rosterOf } from "../domain/roster.js";
 import { Avatar } from "./avatar.js";
+import { stateLook } from "./member-look.js";
 import { Icon } from "./roster-look.js";
 import { type Hero, heroOf, type RunFacts } from "./run-hero.js";
-import { stateLook } from "./team-view.js";
 import { toneStyle } from "./tone.js";
 
 // The Team panel's hero band (ADR-094, ADR-127): the run's status as a wash pill over its goal, the

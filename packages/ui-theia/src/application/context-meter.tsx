@@ -3,9 +3,8 @@ import type { AgentCard } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
 import { CONTEXT_WARN_SHARE } from "../defaults.js";
 import type { Member } from "../domain/roster.js";
-import { MUTED } from "./look.js";
 import { tokenCount } from "./numbers.js";
-import { Icon, LINE } from "./roster-look.js";
+import { Icon } from "./roster-look.js";
 
 // A Team view row's context line (ADR-090): the latest call's share of its model's context window,
 // and the tokens and calls of every agent of the role.
@@ -37,9 +36,13 @@ export type Share = {
 	readonly share: number;
 	/** At least CONTEXT_WARN_SHARE: the bar warns, the text always says the number. */
 	readonly warn: boolean;
-	/** "Context 18% · 23.5k of 131k". */
+	/** "18% · 24k of 131k". */
+	readonly value: string;
+	/** "Context 18% · 24k of 131k". */
 	readonly text: string;
 };
+
+const contextLabel = () => nls.localize("mete/roster/contextLabel", "Context");
 
 /** A member's share; none before its first call with usage, or for a model the listing lacks (ADR-090). */
 export const shareOf = (
@@ -50,17 +53,19 @@ export const shareOf = (
 	const window = last ? windows[`${last.providerId}/${last.modelId}`] : 0;
 	if (!last || !window) return undefined;
 	const share = last.prompt / window;
+	const value = nls.localize(
+		"mete/roster/contextShare",
+		"{0}% · {1} of {2}",
+		// A share that rounds to 0 is still some context used.
+		share > 0 && share < 0.005 ? "<1" : Math.round(share * 100),
+		tokenCount(last.prompt),
+		tokenCount(window),
+	);
 	return {
 		share,
 		warn: share >= CONTEXT_WARN_SHARE,
-		text: nls.localize(
-			"mete/roster/context",
-			"Context {0}% · {1} of {2}",
-			// A share that rounds to 0 is still some context used.
-			share > 0 && share < 0.005 ? "<1" : Math.round(share * 100),
-			tokenCount(last.prompt),
-			tokenCount(window),
-		),
+		value,
+		text: `${contextLabel()} ${value}`,
 	};
 };
 
@@ -81,7 +86,10 @@ export const ShareBar = ({
 	</span>
 );
 
-/** A member's context share and tokens; nothing before its first call with usage. */
+/**
+ * A member's context share over its bar, then its tokens and calls (ADR-090, ADR-128); nothing before
+ * its first call with usage, and the tokens alone for a model the listing lacks.
+ */
 export const Context = ({
 	member,
 	windows,
@@ -92,23 +100,23 @@ export const Context = ({
 	const share = shareOf(member, windows);
 	if (!member.used) return null;
 	return (
-		<div style={{ ...LINE, ...MUTED }}>
-			<Icon name="layers" />
-			{share ? (
-				<>
-					<ShareBar share={share} width="96px" />
-					<span>{share.text}</span>
-					<span aria-hidden="true">·</span>
-				</>
-			) : null}
-			<span>
+		<div className="mete-roster-context">
+			<p className="mete-roster-context-head">
+				<span>
+					<Icon name="layers" />
+					{contextLabel()}
+				</span>
+				{share ? <span className="mete-mono">{share.value}</span> : null}
+			</p>
+			{share ? <ShareBar share={share} width="100%" /> : null}
+			<p className="mete-roster-tokens">
 				{nls.localize(
 					"mete/roster/tokens",
 					"Tokens: {0} · calls: {1}",
 					tokenCount(member.used.tokens),
 					member.used.calls,
 				)}
-			</span>
+			</p>
 		</div>
 	);
 };

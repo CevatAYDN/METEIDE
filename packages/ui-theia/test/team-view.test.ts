@@ -1,15 +1,14 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { stateLook, tierLabel } from "../src/application/member-look.js";
 import { tokenCount } from "../src/application/numbers.js";
 import {
 	commitModel,
 	ModelChoice,
 	ModelChoiceField,
 	RevertButton,
-	stateLook,
 	TeamView,
-	tierLabel,
 } from "../src/application/team-view.js";
 import type { Member } from "../src/domain/roster.js";
 
@@ -60,6 +59,10 @@ describe("the Team view", () => {
 		// The provider is not written twice when the model id repeats it.
 		expect(out).toContain("nvidia · nemotron<");
 		expect(out).toContain("Working with fs.write");
+		// Each row leads with the shared initial tile in its state (ADR-128).
+		expect(out).toMatch(
+			/class="mete-avatar" data-state="working"[^>]*><span class="mete-avatar-face">F</,
+		);
 		expect(out).toContain("Audit it · waits for “Build the page”");
 		expect(out).toContain(
 			"Members: 2 · working: 1 · waiting for you: 0 · done: 0<",
@@ -103,20 +106,20 @@ describe("the Team view", () => {
 				},
 			}),
 		);
-		expect(out).toContain("Context 48% · 61k of 128k");
+		expect(out).toContain(">48% · 61k of 128k<");
 		expect(out).toContain("Tokens: 250k · calls: 4");
 		// From 80% the bar takes the warning colour; the text still says the number.
-		expect(out).toContain("Context 86% · 110k of 128k");
+		expect(out).toContain(">86% · 110k of 128k<");
 		// From 80% the meter takes the warning tone (ADR-107); the text still says the number.
 		expect(out).toContain('class="mete-meter warn"');
 		expect(out).toContain("--p:85.9375%");
 		expect(out).toContain('class="mete-meter"');
 		expect(out).toContain("--p:48%");
 		// A model with no listed window shows the tokens alone, and a member with no usage nothing.
-		expect(out.match(/Context /g)).toHaveLength(3);
+		expect(out.match(/ of 128k</g)).toHaveLength(3);
 		expect(out.match(/Tokens: /g)).toHaveLength(4);
 		// A share that rounds to 0 still says some context is used.
-		expect(out).toContain("Context &lt;1% · 500 of 128k");
+		expect(out).toContain(">&lt;1% · 500 of 128k<");
 		// The run's tokens and calls moved to the run strip (ADR-094): the Team view keeps its member counts only.
 		expect(out).not.toContain("run tokens");
 	});

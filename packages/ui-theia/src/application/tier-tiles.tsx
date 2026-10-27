@@ -2,8 +2,8 @@ import { TierSchema } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import { FIELD } from "./fields.js";
 import { MUTED, ROW } from "./look.js";
+import { TIER_ICONS, tierLabel } from "./member-look.js";
 import { Icon } from "./roster-look.js";
-import { TIER_ICONS, tierLabel } from "./team-view.js";
 
 // A member's model tier as tiles (ADR-093): the plain label of ADR-089 with the tier id beside it,
 // since the team file keeps the id; the lenient draft may hold a tier the schema refuses, then none

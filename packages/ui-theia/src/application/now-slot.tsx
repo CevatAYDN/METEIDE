@@ -14,7 +14,7 @@ import {
 	type Windows,
 } from "./context-meter.js";
 import { stepOf } from "./flow-graph.js";
-import { stateLook } from "./team-view.js";
+import { stateLook } from "./member-look.js";
 import { elapsedText } from "./time-text.js";
 import { type WaitingControls, WaitingStrip } from "./waiting-strip.js";
 

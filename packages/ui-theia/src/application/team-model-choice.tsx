@@ -2,7 +2,6 @@ import type { ModelRef } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import { useRef, useState } from "react";
 import { modelRefOf } from "./composer.js";
-import { MUTED } from "./look.js";
 
 /**
  * Commits a model the run does not already prefer and answers the preference now in force: empty
@@ -60,8 +59,8 @@ export const ModelChoiceField = ({
 }) => {
 	const listId = `roster-models-${roleId}`;
 	return (
-		<label style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-			<span style={MUTED}>
+		<label className="mete-model-field">
+			<span className="mete-model-label">
 				{nls.localize("mete/roster/preferModel", "Preferred model (optional)")}
 			</span>
 			<input
@@ -80,7 +79,6 @@ export const ModelChoiceField = ({
 				}}
 				onKeyDown={(e) => e.key === "Enter" && onCommit(draft)}
 				onBlur={() => onCommit(draft)}
-				style={{ maxWidth: "220px" }}
 			/>
 			<ModelList id={listId} models={models} />
 		</label>
@@ -94,8 +92,7 @@ export const RevertButton = ({
 }) => (
 	<button
 		type="button"
-		className="mete-button quiet"
-		style={{ padding: "1px 6px", fontSize: "0.85em" }}
+		className="mete-button quiet mete-model-revert"
 		title={nls.localize("mete/roster/revertModel", "Revert to default")}
 		onMouseDown={(e) => e.preventDefault()}
 		onClick={onRevert}
@@ -120,14 +117,7 @@ export const ModelChoiceInput = ({
 		onModel?.(roleId, null);
 	};
 	return (
-		<div
-			style={{
-				display: "flex",
-				alignItems: "center",
-				gap: "6px",
-				flexWrap: "wrap",
-			}}
-		>
+		<div className="mete-model-choice">
 			<ModelChoiceField
 				roleId={roleId}
 				draft={draft}

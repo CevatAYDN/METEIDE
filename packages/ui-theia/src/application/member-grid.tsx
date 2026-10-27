@@ -1,8 +1,8 @@
 import { TierSchema } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import { MUTED } from "./look.js";
+import { tierLabel } from "./member-look.js";
 import type { MemberView, TeamView } from "./team-draft.js";
-import { tierLabel } from "./team-view.js";
 import { TONES } from "./tone.js";
 
 // The members of the team editor as tiles (ADR-093): one per member, the chosen one pressed; its form

@@ -27,3 +27,7 @@ line of its own.
 
 A single agent that failed leads its center with the failure, its code and its message, where a
 finished one shows its answer. The Studio's list of the latest events has a visible caption.
+
+The Team view's members are the design set's cards: the initial tile with its state badge, the name
+with its tier and model under it, the state as a wash pill over the tasks done, and a strip of what
+the member does now, its context share over its bar, and the run's model choice.

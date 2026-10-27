@@ -1,6 +1,6 @@
 import type { MemberState } from "../domain/roster.js";
+import { stateLook } from "./member-look.js";
 import { Icon } from "./roster-look.js";
-import { stateLook } from "./team-view.js";
 import { toneStyle } from "./tone.js";
 
 // The initial tile (ADR-127): a role's initial in a ring of its state's tone, the state in the corner,
