@@ -119,8 +119,15 @@ const answerOf = (feed: readonly MeteEvent[]) => {
 	return done?.type === "run.completed" ? done.payload.summary : undefined;
 };
 
+// A failed run's code and message, which a single agent's center shows in the answer's place (ADR-128).
+const failureOf = (feed: readonly MeteEvent[]) => {
+	const failed = feed.findLast((e) => e.type === "run.failed");
+	return failed?.type === "run.failed" ? failed.payload : undefined;
+};
+
 const drawn = (s: BoardSession, shown: Shown, view: TeamView): BoardModel => {
 	const answer = answerOf(s.feed);
+	const runFailed = failureOf(s.feed);
 	return {
 		kind: "board",
 		goal: shown.goal,
@@ -129,6 +136,7 @@ const drawn = (s: BoardSession, shown: Shown, view: TeamView): BoardModel => {
 		recent: s.recent,
 		feed: s.feed,
 		...(answer ? { answer } : {}),
+		...(runFailed ? { runFailed } : {}),
 		...(s.pulse ? { pulse: s.pulse } : {}),
 	};
 };

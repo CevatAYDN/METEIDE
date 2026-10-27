@@ -2,6 +2,7 @@ import type { TranscriptStep } from "@mete/contracts";
 import type { TeamView } from "@mete/ui-studio";
 import type { MarkdownRenderer } from "@theia/core/lib/browser/markdown-rendering/markdown-renderer";
 import { nls } from "@theia/core/lib/common/nls";
+import { useId } from "react";
 import { MUTED, TITLE } from "./look.js";
 import { MarkdownView } from "./markdown-view.js";
 import { Icon } from "./roster-look.js";
@@ -44,6 +45,36 @@ export const Answer = ({
 		<MarkdownView text={text} renderer={markdown} />
 	</section>
 );
+
+/** A single agent that failed: its failure's code and message, in the answer's place (ADR-128). */
+export const Failure = ({
+	code,
+	message,
+}: {
+	readonly code: string;
+	readonly message: string;
+}) => {
+	const title = useId();
+	// The code sits in its own chip, so the sentence is split around its placeholder.
+	const [before, after] = nls
+		.localize("mete/feed/failed", "The run fails: {0}.", "{0}")
+		.split("{0}");
+	return (
+		<section className="mete-failure" role="alert" aria-labelledby={title}>
+			<span className="mete-failure-icon" aria-hidden="true">
+				<Icon name="error" />
+			</span>
+			<div>
+				<h3 id={title}>
+					{before}
+					<code>{code}</code>
+					{after}
+				</h3>
+				<p>{message}</p>
+			</div>
+		</section>
+	);
+};
 
 /** The single agent's steps; its answer, once it has one, leads the center instead (ADR-127). */
 export const SingleAgent = ({

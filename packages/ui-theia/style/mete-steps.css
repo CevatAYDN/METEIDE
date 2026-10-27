@@ -51,6 +51,81 @@
 	line-height: 1.65;
 }
 
+/* A failed single agent's failure, in the answer's place (ADR-128): a card on a bad edge, its code in
+   a bad chip, its message at reading size. */
+.mete-failure {
+	flex: none;
+	display: flex;
+	gap: 16px;
+	padding: 20px 26px 22px 22px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid
+		color-mix(
+			in srgb,
+			var(--bad, var(--theia-errorForeground)) 50%,
+			var(--panel, var(--theia-panel-border))
+		);
+	border-radius: 16px;
+}
+
+.mete-failure-icon {
+	flex: none;
+	width: 42px;
+	height: 42px;
+	display: grid;
+	place-items: center;
+	border-radius: 10px;
+	background: color-mix(
+		in srgb,
+		var(--bad, var(--theia-errorForeground)) 16%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--bad, var(--theia-errorForeground)) 60%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-failure-icon > .codicon {
+	font-size: 20px;
+}
+
+.mete-failure > div > h3 {
+	margin: 0;
+	padding-top: 2px;
+	font-size: 19px;
+	font-weight: 800;
+	line-height: 1.3;
+}
+
+.mete-failure code {
+	padding: 1px 7px;
+	border-radius: 8px;
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-size: 16px;
+	font-variant-ligatures: none;
+	background: color-mix(
+		in srgb,
+		var(--bad, var(--theia-errorForeground)) 14%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--bad, var(--theia-errorForeground)) 60%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-failure > div > p {
+	max-width: 780px;
+	margin: 10px 0 0;
+	font-size: 16px;
+	font-weight: 500;
+	line-height: 1.6;
+	overflow-wrap: anywhere;
+}
+
 /* An agent's steps (ADR-125): a quiet timeline down the left edge, the agent's words as Markdown, and
    each tool call as one row of the side vocabulary (tile, label, state word, chevron) that opens its
    arguments and result in JetBrains Mono. */

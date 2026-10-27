@@ -530,6 +530,18 @@ describe("the Board view", () => {
 			page.slice(0, page.indexOf('class="mete-run-rail"'));
 		expect(center(out)).not.toContain("single agent works without a board");
 		expect(center(html(base))).toContain("single agent works without a board");
+		// A failed one leads with its failure instead, as an alert of its own (ADR-128).
+		const failed = html({
+			...base,
+			runFailed: { code: "bad_request", message: "groq answered 400" },
+		});
+		expect(failed).toMatch(
+			/role="alert"[\s\S]*?The run fails: <code>bad_request<\/code>\.[\s\S]*?groq answered 400/,
+		);
+		expect(failed.indexOf('class="mete-failure"')).toBeLessThan(
+			failed.indexOf('role="tablist"'),
+		);
+		expect(failed).not.toContain('aria-label="Answer"');
 	});
 
 	it("says how many events could not be read, and that a single agent has no board", () => {

@@ -24,3 +24,6 @@ shows a glyph once the run settles (pause, check, error), a single agent's numbe
 band's right, and the member tiles are wider. A Waiting for you card leads with its kind as a wash
 pill over the sentence that names the member, with icons on its buttons and a policy ask on a raised
 line of its own.
+
+A single agent that failed leads its center with the failure, its code and its message, where a
+finished one shows its answer. The Studio's list of the latest events has a visible caption.

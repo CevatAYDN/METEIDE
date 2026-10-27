@@ -13,7 +13,7 @@ import { NowSlot } from "./now-slot.js";
 import type { RunFacts } from "./run-hero.js";
 import { RunHero } from "./run-hero-view.js";
 import { RunRail } from "./run-rail.js";
-import { Answer, SingleAgent } from "./single-agent.js";
+import { Answer, Failure, SingleAgent } from "./single-agent.js";
 import { failureText } from "./status-text.js";
 import { studioText } from "./studio-text.js";
 import { TabList } from "./tab-list.js";
@@ -42,6 +42,8 @@ export type BoardModel =
 			readonly feed: readonly MeteEvent[];
 			/** A finished run's summary: the single agent's answer or the team's last report. */
 			readonly answer?: string;
+			/** A failed run's code and message (ADR-128). */
+			readonly runFailed?: { readonly code: string; readonly message: string };
 			/** The last live event and the view before it, for the Studio's effects. */
 			readonly pulse?: { readonly event: MeteEvent; readonly before: TeamView };
 	  };
@@ -153,24 +155,41 @@ const ViewSwitch = ({
 	);
 };
 
-// The Studio's accessible list (docs/13: every visual event is also written to a list).
+// The Studio's accessible list (docs/13: every visual event is also written to a list), under its
+// visible caption (ADR-128).
 const Recent = ({
 	view,
 	recent,
 }: {
 	readonly view: TeamView;
 	readonly recent: readonly MeteEvent[];
-}) => (
-	<ul
-		aria-live="polite"
-		aria-label={nls.localize("mete/board/recent", "Latest events")}
-		style={{ ...MUTED, margin: 0, paddingLeft: "16px" }}
-	>
-		{recent.map((e) => (
-			<li key={e.id}>{studioText(view, e)}</li>
-		))}
-	</ul>
-);
+}) => {
+	const caption = nls.localize("mete/board/recent", "Latest events");
+	return (
+		<section className="mete-recent">
+			<h3>{caption}</h3>
+			<ul aria-live="polite" aria-label={caption}>
+				{recent.map((e) => (
+					<li key={e.id}>{studioText(view, e)}</li>
+				))}
+			</ul>
+		</section>
+	);
+};
+
+// An ended single agent leads its center with its answer (ADR-127), or with its failure (ADR-128).
+const Ended = ({
+	model,
+	controls,
+}: {
+	readonly model: Extract<BoardModel, { kind: "board" }>;
+	readonly controls: TeamControls;
+}) =>
+	model.answer ? (
+		<Answer text={model.answer} markdown={controls.markdown} />
+	) : model.runFailed ? (
+		<Failure {...model.runFailed} />
+	) : null;
 
 // A run without tasks is a single agent: its steps and answer, not an empty board (ADR-125).
 const NoBoard = ({
@@ -280,8 +299,8 @@ const Board = ({
 		) : null}
 		<div className="mete-run-body">
 			<div className="mete-run-center">
-				{model.view.tasks.length === 0 && model.answer ? (
-					<Answer text={model.answer} markdown={controls.markdown} />
+				{model.view.tasks.length === 0 ? (
+					<Ended model={model} controls={controls} />
 				) : null}
 				{model.view.tasks.length === 0 && model.view.agents.length === 0 ? (
 					<NoBoard model={model} controls={controls} />
