@@ -151,16 +151,20 @@ describe("TeamEditorView", () => {
 		expect(out).toContain('role="alert"');
 		expect(out).toContain("roles.4.goal");
 		expect(out).toMatch(
-			/<button type="button" class="mete-button" disabled="">Save</,
+			/<button type="button" class="mete-button" disabled=""><span[^>]*><\/span>Save</,
 		);
 		// Save and what blocks it stand above the members' grid (ADR-093).
-		expect(out.indexOf(">Save<")).toBeLessThan(out.indexOf('role="alert"'));
+		expect(out.indexOf("</span>Save<")).toBeLessThan(
+			out.indexOf('role="alert"'),
+		);
 		expect(out.indexOf('role="alert"')).toBeLessThan(out.indexOf(">Members<"));
 	});
 
 	it("opens the YAML only once the team is the folder's own file", () => {
 		const openYaml = (source: "workspace" | "builtIn") =>
-			html(ready(DOC, { source })).match(/<button[^>]*>Open YAML/)?.[0];
+			html(ready(DOC, { source })).match(
+				/<button[^>]*><span[^>]*><\/span>Open YAML/,
+			)?.[0];
 		expect(openYaml("builtIn")).toContain('disabled=""');
 		expect(openYaml("workspace")).not.toContain('disabled=""');
 	});
@@ -172,7 +176,7 @@ describe("TeamEditorView", () => {
 	it("saves an unchanged built-in team as the folder's copy, and an unchanged copy not again", () => {
 		const save = (source: "workspace" | "builtIn") =>
 			html(ready(DOC, { source, changed: false })).match(
-				/<button[^>]*>Save</,
+				/<button[^>]*><span[^>]*><\/span>Save</,
 			)?.[0];
 		expect(save("builtIn")).not.toContain('disabled=""');
 		expect(save("workspace")).toContain('disabled=""');
@@ -310,7 +314,7 @@ tasks: [{ id: a, role: r, title: A, approval: human }]`,
 		expect(out).toContain('role="alert"');
 		expect(out).not.toContain("Remove member");
 		expect(out).toMatch(
-			/<button type="button" class="mete-button" disabled="">Save</,
+			/<button type="button" class="mete-button" disabled=""><span[^>]*><\/span>Save</,
 		);
 	});
 });
@@ -327,7 +331,9 @@ describe("a new team (ADR-093)", () => {
 			"A new team: Save writes it to .mete/teams/my-team.yaml.",
 		);
 		expect(out).not.toContain("Save as new team");
-		expect(out).toMatch(/<button[^>]*disabled=""[^>]*>Open YAML/);
+		expect(out).toMatch(
+			/<button[^>]*disabled=""[^>]*><span[^>]*><\/span>Open YAML/,
+		);
 	});
 
 	it("lets the member's id change before the first Save, and blocks Save on what is still empty", () => {
@@ -336,7 +342,7 @@ describe("a new team (ADR-093)", () => {
 		expect(out).toContain("roles.0.name");
 		expect(out).toContain("tasks.0.title");
 		expect(out).toMatch(
-			/<button type="button" class="mete-button" disabled="">Save</,
+			/<button type="button" class="mete-button" disabled=""><span[^>]*><\/span>Save</,
 		);
 	});
 
@@ -347,6 +353,8 @@ describe("a new team (ADR-093)", () => {
 		);
 		const out = html(ready(done, { source: "new", fixedIds: [] }));
 		expect(out).not.toContain('role="alert"');
-		expect(out).toMatch(/<button type="button" class="mete-button">Save</);
+		expect(out).toMatch(
+			/<button type="button" class="mete-button"><span[^>]*><\/span>Save</,
+		);
 	});
 });

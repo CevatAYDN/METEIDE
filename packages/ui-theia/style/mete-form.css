@@ -127,3 +127,14 @@ select.mete-field {
 	font-weight: 600;
 	color: var(--muted, var(--theia-descriptionForeground));
 }
+
+/* A count, such as the team's revision limit: its label over a narrow number field. */
+.mete-count-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.mete-count {
+	width: 8em;
+}

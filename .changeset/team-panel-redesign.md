@@ -70,3 +70,9 @@ fields two by two (ids, URLs and formats in mono), a rule, its key beside Testâ€
 lists as a card of rows whose last probe shows as a green or red pill with its glyph, and Remove as a
 ghost button; the card's foot puts where it saves at the left and Add endpoint and Save at the right.
 Set key carries a key glyph, on the Welcome screen too.
+
+The team editor opens with the design set's hero band: the team's tile and id, with Open YAML and
+Save beside the title, where the team saves under it, what blocks Save as a red-washed row, the name
+and description, a copy under another id past a quiet rule, and the revision limit and budget as
+three tiles with their numbers in mono at the right. The Save buttons keep their place above the
+members (ADR-093).

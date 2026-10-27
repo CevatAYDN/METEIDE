@@ -15,6 +15,8 @@ import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service
 import { MetePanelWidget } from "./panel-widget.js";
 // The design system of docs/13 on every METE panel (ADR-069); the bundle inlines its font.
 import "../../style/mete.css";
+import "../../style/mete-form.css";
+import "../../style/mete-team.css";
 import { draftIdea, withDraft } from "../application/member-draft.js";
 import { panelRoot } from "../application/panel-root.js";
 import { failureText } from "../application/status-text.js";

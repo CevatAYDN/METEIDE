@@ -1,0 +1,263 @@
+/* The team editor in the design set's look (ADR-075, ADR-093, ADR-128): the hero band with the team's
+   id, Open YAML and Save in its title row, what blocks Save under it, the name and description, a copy
+   under another id, and the revision limit and budget as three tiles at the right. Every rule hangs
+   off `.mete-team`; the fields' base is in mete-form.css. */
+
+.mete-team {
+	container-type: inline-size;
+	max-width: 1320px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 20px;
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+.mete-team .mete-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	height: 36px;
+	padding: 0 14px 0 12px;
+	font-size: 14px;
+	font-weight: 700;
+}
+
+.mete-team .mete-field {
+	min-height: 38px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.mete-team .mete-field.mono {
+	font-size: 13px;
+	font-weight: 500;
+}
+
+.mete-team .mete-field.strong {
+	font-size: 14.5px;
+	font-weight: 700;
+}
+
+/* The hero: the intro at the left, the limits at the right. */
+.mete-team-hero {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: stretch;
+	gap: 20px 28px;
+	padding: 22px 22px 22px 26px;
+	background: var(--raised, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+	border-radius: 16px;
+}
+
+.mete-team-intro {
+	flex: 1 1 520px;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.mete-team-headline {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px 12px;
+}
+
+.mete-team-tile {
+	flex: none;
+	display: grid;
+	place-items: center;
+	box-sizing: border-box;
+	width: 48px;
+	height: 48px;
+	margin-right: 4px;
+	border-radius: 10px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	color: var(--accent, var(--theia-focusBorder));
+}
+
+.mete-team-tile > .codicon {
+	font-size: 22px;
+}
+
+.mete-team-title {
+	flex: 1 1 200px;
+	min-width: 0;
+}
+
+.mete-team-title > h2 {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	margin: 0;
+	font-size: 28px;
+	font-weight: 800;
+	line-height: 1.2;
+	letter-spacing: -0.01em;
+	white-space: nowrap;
+}
+
+.mete-team-id {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-size: 22px;
+	font-weight: 700;
+	letter-spacing: 0;
+}
+
+.mete-team-title > p {
+	margin: 3px 0 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-weight: 600;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-team .mete-team-headline > .mete-button.quiet:not(:disabled) {
+	background: var(--panel, var(--theia-editorWidget-background));
+}
+
+.mete-team-source {
+	margin: -2px 0 0;
+	font-weight: 600;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+/* What blocks Save: a bad wash under the title row. */
+.mete-team-issues {
+	padding: 10px 14px;
+	background: color-mix(
+		in srgb,
+		var(--bad, var(--theia-errorForeground)) 10%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	border: 1.5px solid
+		color-mix(
+			in srgb,
+			var(--bad, var(--theia-errorForeground)) 40%,
+			var(--panel, var(--theia-editorWidget-background))
+		);
+	border-radius: 12px;
+	color: color-mix(
+		in srgb,
+		var(--bad, var(--theia-errorForeground)) 65%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-team-issues > p {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0 0 4px;
+	font-weight: 700;
+}
+
+.mete-team-issues > ul {
+	margin: 0;
+	padding-left: 24px;
+	font-weight: 600;
+}
+
+/* A label over its field: the design set's 13 px bold --muted-2. */
+.mete-team label {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	font-size: 13px;
+	font-weight: 700;
+	line-height: 1.3;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-team-names {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+	gap: 14px;
+}
+
+/* A copy under another id: past a quiet rule, the two fields and the button at their foot. */
+.mete-team-copy {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+	align-items: end;
+	gap: 14px;
+	padding-top: 16px;
+	border-top: 1.5px solid var(--line-soft, var(--theia-panel-border));
+}
+
+.mete-team .mete-team-copy > .mete-button {
+	height: 38px;
+}
+
+/* The limits: three tiles, each its label over a big number in mono. */
+.mete-team-limits {
+	flex: 1 1 360px;
+	max-width: 430px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 16px 18px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 14px;
+}
+
+.mete-team-limits > div {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px;
+}
+
+.mete-team .mete-team-limits label {
+	justify-content: space-between;
+	gap: 6px;
+	padding: 10px 12px 12px;
+	font-size: 12px;
+	background: var(--raised, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 14px;
+}
+
+.mete-team .mete-team-limits .mete-count {
+	width: 100%;
+	min-height: 36px;
+	padding: 0 10px;
+	font-variant-numeric: tabular-nums;
+	font-size: 18px;
+	font-weight: 700;
+}
+
+.mete-team-limits > p {
+	margin: 0;
+	font-size: 12.5px;
+	font-weight: 600;
+	line-height: 1.45;
+	color: var(--muted, var(--theia-descriptionForeground));
+}
+
+/* A button's glyph, after the tiles' own, which are not buttons. */
+.mete-team .mete-button > .codicon {
+	font-size: 16px;
+}
+
+/* A narrow panel stacks the fields. */
+@container (max-width: 760px) {
+	.mete-team-names,
+	.mete-team-copy {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.mete-team-limits {
+		max-width: none;
+	}
+}

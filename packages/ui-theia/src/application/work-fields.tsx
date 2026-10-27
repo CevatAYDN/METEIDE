@@ -2,7 +2,7 @@ import { TEMPLATE_DEFAULTS } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import { useId } from "react";
 import { Chips, Count, FIELD, type OnEdit, orNone, Text } from "./fields.js";
-import { MUTED, ROW } from "./look.js";
+import { ROW } from "./look.js";
 import {
 	runsOf,
 	type TeamView,
@@ -114,7 +114,7 @@ const Guardrail = (props: {
 	);
 };
 
-/** The team's revision limit and budget. */
+/** The team's revision limit and budget: three tiles over the note that a team never raises the policy's limit. */
 export const TeamRules = ({
 	team,
 	onEdit,
@@ -122,8 +122,8 @@ export const TeamRules = ({
 	readonly team: TeamView;
 	readonly onEdit: OnEdit;
 }) => (
-	<>
-		<div style={{ ...ROW, alignItems: "flex-end" }}>
+	<section className="mete-team-limits">
+		<div>
 			<Count
 				label={nls.localize("mete/team/revisionLimit", "Revisions per task")}
 				value={team.policies.revision_limit}
@@ -143,11 +143,11 @@ export const TeamRules = ({
 				onChange={(v) => onEdit(["budget", "max_hours"], v)}
 			/>
 		</div>
-		<p style={MUTED}>
+		<p>
 			{nls.localize(
 				"mete/team/budgetHint",
 				"A run stops at the lower of this budget and your policy's, so a team never raises your limit.",
 			)}
 		</p>
-	</>
+	</section>
 );

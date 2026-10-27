@@ -108,13 +108,12 @@ export const Count = (props: {
 	readonly disabled?: boolean;
 	readonly onChange: (value: number | undefined) => void;
 }) => (
-	<label style={FIELD}>
+	<label className="mete-count-field">
 		{props.label}
 		<input
-			className="mete-field"
+			className="mete-field mete-count"
 			type="number"
 			min={0}
-			style={{ width: "8em" }}
 			value={props.value ?? ""}
 			placeholder={String(props.fallback)}
 			disabled={props.disabled}
