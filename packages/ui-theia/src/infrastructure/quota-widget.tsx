@@ -12,6 +12,9 @@ import { panelRoot } from "../application/panel-root.js";
 import { type QuotaModel, QuotaView } from "../application/quota-view.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { MetePanelWidget } from "./panel-widget.js";
+import "../../style/mete.css";
+import "../../style/mete-screen.css";
+import "../../style/mete-quota.css";
 
 // The Quota dashboard (docs/13; ADR-054) of the first open folder: it asks the daemon again when
 // it opens, on Refresh and on every quota.* event of its folder (quota events of a call carry no

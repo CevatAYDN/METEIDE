@@ -89,3 +89,8 @@ and backstory on a grid; the model tier as five tiles whose own tile carries the
 Needs as ticks that become accent chips beside the pinned model; capabilities, families and wake-up
 artifacts as removable chips with a dashed field that adds one; and each task, and the defaults a task
 list gives the member, as a raised card with its fields on a grid.
+
+The Quota dashboard takes the design set's look: the shared hero band, then one card whose table
+names each provider once over its units, shows the amount used over a thin bar of its limit that
+grows in, and opens a unit's history in place as dated amounts on a rail (a button with a chevron
+instead of a folded list). Settings and the dashboards share one hero band and frame.

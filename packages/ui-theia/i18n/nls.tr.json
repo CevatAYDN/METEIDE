@@ -205,6 +205,7 @@
 			"states": "Sağlayıcılar: {0}",
 			"title": "Kota",
 			"unit": "Birim",
+			"units": "Kota birimleri",
 			"unusable": "{0}: modellerinden hiçbiri burada kullanılamıyor (gizlilik kuralları onları dışarıda bırakabilir: privacy.yaml içindeki allowTraining; model modu bırakabilir: gateway.yaml içindeki models; ya da anahtarı reddedildi)",
 			"used": "Kullanılan"
 		},

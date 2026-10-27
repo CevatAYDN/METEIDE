@@ -6,9 +6,9 @@ import { type QuotaModel, QuotaView } from "../src/application/quota-view.js";
 
 // The Quota dashboard rendered to HTML on Node.
 
-const html = (model: QuotaModel) =>
+const html = (model: QuotaModel, opened: readonly string[] = []) =>
 	renderToStaticMarkup(
-		createElement(QuotaView, { model, onRefresh: () => {} }),
+		createElement(QuotaView, { model, onRefresh: () => {}, opened }),
 	);
 
 const unit = (over: Partial<QuotaUsage> = {}): QuotaUsage => ({
@@ -36,12 +36,29 @@ describe("the Quota dashboard", () => {
 				}),
 			],
 		});
-		expect(out.match(/<tr>/g)).toHaveLength(3);
+		expect(out.match(/<tr[ >]/g)).toHaveLength(3);
 		expect(out).toContain('<th scope="col"');
-		expect(out).toContain(">openrouter</td>");
+		// A provider's name stands once over its units.
+		expect(out).toMatch(/<th scope="rowgroup"[^>]*>openrouter<\/th>/);
 		expect(out).toContain(">50</td>");
 		expect(out).toContain(">gpt-oss-20b</td>");
 		expect(out).toContain(">Not known yet</td>");
+		// The used amount has a bar of its share of the limit (3 of 50), and none without a limit.
+		expect(out.match(/class="mete-quota-meter"/g)).toHaveLength(1);
+		expect(out).toContain('style="width:6%"');
+	});
+
+	it("groups a provider's units under its name, one header spanning them", () => {
+		const out = html({
+			kind: "units",
+			units: [
+				unit({ providerId: "groq", unit: "requests_per_minute" }),
+				unit({ providerId: "openrouter" }),
+				unit({ providerId: "groq", unit: "tokens_per_minute", scope: "m" }),
+			],
+		});
+		expect(out.match(/<th scope="rowgroup"/g)).toHaveLength(2);
+		expect(out).toMatch(/<th scope="rowgroup" rowSpan="2"[^>]*>groq<\/th>/i);
 	});
 
 	it("folds each unit's amounts under their count, oldest first (ADR-055)", () => {
@@ -49,11 +66,19 @@ describe("the Quota dashboard", () => {
 			{ at: "2026-10-23T09:00:00.000Z", amount: 1 },
 			{ at: "2026-10-23T09:00:00.000Z", amount: 2 },
 		];
-		const out = html({ kind: "units", units: [unit({ history })] });
-		expect(out).toContain("<summary>2 amount(s)</summary>");
-		expect(out.match(/<li>/g)).toHaveLength(2);
-		expect(out.indexOf("— 1</li>")).toBeLessThan(out.indexOf("— 2</li>"));
-		expect(out.indexOf("— 1</li>")).toBeGreaterThan(0);
+		const model: QuotaModel = { kind: "units", units: [unit({ history })] };
+		const shut = html(model);
+		expect(shut).toMatch(
+			/aria-expanded="false"[^>]*>(?:<span[^>]*><\/span>)2 amount\(s\)</,
+		);
+		expect(shut).not.toContain("<li>");
+		const open = html(model, ["openrouter/requests_per_day/"]);
+		expect(open).toContain('aria-expanded="true"');
+		expect(open.match(/<li>/g)).toHaveLength(2);
+		expect(open.indexOf("<span>1</span>")).toBeLessThan(
+			open.indexOf("<span>2</span>"),
+		);
+		expect(open.indexOf("<span>1</span>")).toBeGreaterThan(0);
 	});
 
 	it("names the spending cap, and a unit without model, reset or history with a dash", () => {
@@ -62,7 +87,7 @@ describe("the Quota dashboard", () => {
 			unit: "usd_per_day",
 		});
 		const out = html({ kind: "units", units: [cap] });
-		expect(out).toContain(">Every paid model</td>");
+		expect(out).toContain(">Every paid model</th>");
 		expect(out.match(/>—<\/td>/g)).toHaveLength(3);
 	});
 

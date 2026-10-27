@@ -205,6 +205,7 @@
 			"states": "Providers: {0}",
 			"title": "Quota",
 			"unit": "Unit",
+			"units": "Quota units",
 			"unusable": "{0}: none of its models can be used here (the privacy rules may leave them out: allowTraining in privacy.yaml; the model mode may: models in gateway.yaml; or its key was refused)",
 			"used": "Used"
 		},
