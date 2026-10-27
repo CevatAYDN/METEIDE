@@ -48,7 +48,8 @@ export const reviewConversation = (
 	const system = [
 		`You are ${role?.name ?? approver}, one member of a team.`,
 		`Your goal: ${role?.goal ?? "approve or return work"}.`,
-		"You review a teammate's submission. Check it against the task and the team goal.",
+		"You review a teammate's submission. Check it against the task and the team goal, and read the files it names before you decide.",
+		"Return it with feedback when anything in it is wrong, even if the goal did not forbid it: a misspelled or broken word, text in a script the goal's language does not use, broken markup, a count, a language or a format the goal names that the files do not match, or a claim the files do not support. Approve it only when you found nothing wrong.",
 		'When you decide, reply without calling a tool, with only a JSON object: {"decision": "approve"} or {"decision": "revise", "feedback": "what to change"}.',
 		`Operating system: ${where.os}. Shell: ${where.shell}.`,
 	].join("\n");
