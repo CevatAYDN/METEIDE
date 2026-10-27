@@ -25,3 +25,87 @@
 .mete-key-note {
 	color: var(--muted, var(--theia-descriptionForeground));
 }
+
+/* A field in the design set's look (ADR-128): 36 px on the panel colour, its border the accent while
+   it has the focus, numbers and keys in mono, a placeholder in --muted. A screen sets another height
+   where its board draws one. */
+.mete-field {
+	font: inherit;
+	width: 100%;
+	min-height: 36px;
+	box-sizing: border-box;
+	resize: vertical;
+	padding: 0 12px;
+	color: var(--ink, var(--theia-input-foreground));
+	background: var(--panel, var(--theia-input-background));
+	border: 1.5px solid
+		var(
+			--line,
+			var(--theia-contrastBorder, var(--theia-input-border, transparent))
+		);
+	border-radius: 10px;
+}
+
+textarea.mete-field {
+	padding: 8px 12px;
+}
+
+.mete-field[type="number"],
+.mete-field[type="password"] {
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+}
+
+.mete-field:not(:disabled):hover {
+	border-color: var(--muted, var(--theia-input-border));
+}
+
+.mete-field:focus {
+	border-color: var(--accent, var(--theia-focusBorder));
+}
+
+.mete-field::placeholder {
+	color: var(--muted, var(--theia-input-placeholderForeground));
+	opacity: 1;
+}
+
+/* A choice drawn without the platform's arrow: a chevron in --muted-2 at the field's end. */
+select.mete-field {
+	appearance: none;
+	padding-right: 36px;
+	cursor: pointer;
+	/* Two thin strokes, "\" then "/", meet in a "v". */
+	background-image:
+		linear-gradient(
+			45deg,
+			transparent 38%,
+			var(--muted-2, var(--theia-descriptionForeground)) 38% 62%,
+			transparent 62%
+		),
+		linear-gradient(
+			-45deg,
+			transparent 38%,
+			var(--muted-2, var(--theia-descriptionForeground)) 38% 62%,
+			transparent 62%
+		);
+	background-position:
+		calc(100% - 20px) 50%,
+		calc(100% - 14px) 50%;
+	background-size: 6px 6px;
+	background-repeat: no-repeat;
+}
+
+/* A field the user cannot change, such as a team member's id that tasks name, reads as fixed. */
+.mete-field:disabled {
+	color: var(--muted-2, var(--theia-disabledForeground));
+	background-color: var(--raised, var(--theia-input-background));
+	border-color: var(--line-soft, var(--theia-panel-border));
+	cursor: not-allowed;
+}
+
+/* A button that cannot act now: a quiet raised plate, its words faded, never a see-through one. */
+.mete-button:disabled {
+	color: var(--muted, var(--theia-disabledForeground));
+	background: var(--raised, var(--theia-button-secondaryBackground));
+	border-color: var(--line-soft, var(--theia-panel-border));
+	cursor: not-allowed;
+}

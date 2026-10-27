@@ -217,10 +217,10 @@
 	color: var(--muted-2, var(--theia-descriptionForeground));
 }
 
-.mete-welcome-providers .mete-field {
-	box-sizing: border-box;
-	width: 100%;
+/* The board draws this screen's fields on the raised tone. */
+.mete-welcome .mete-field {
 	min-width: 0;
+	background-color: var(--raised, var(--theia-input-background));
 }
 
 .mete-welcome-who {

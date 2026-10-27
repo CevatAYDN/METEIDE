@@ -9,7 +9,14 @@ import { TONES } from "../src/application/tone.js";
 // a Theia colour as its fallback, so a high-contrast theme keeps Theia's look; the stylesheet carries
 // Baloo 2, bundled, and the shape.
 
-const CSS = readFileSync(join(__dirname, "..", "style", "mete.css"), "utf8");
+// Every sheet, not mete.css alone: a token with no fallback in any of them leaves that rule without a
+// colour in a high-contrast theme, where the panel root sets no tokens.
+const STYLE = join(__dirname, "..", "style");
+const CSS = readdirSync(STYLE)
+	.filter((f) => f.endsWith(".css"))
+	.sort((a, b) => (a === "mete.css" ? -1 : b === "mete.css" ? 1 : 0))
+	.map((f) => readFileSync(join(STYLE, f), "utf8"))
+	.join("\n");
 
 // Every var(--x ...) in a text, with what follows the name up to its closing parenthesis.
 const vars = (text: string) =>

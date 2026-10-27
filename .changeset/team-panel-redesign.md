@@ -47,3 +47,8 @@ number in the accent; a model provider's name, key state, field and Set key on o
 name above the field in a narrow panel); privacy and web search side by side; and a start bar with
 the big Start a run. The step titles drop their numbers from the translations, which the heading now
 draws.
+
+Fields and buttons share the design set's controls in every panel: a field is 36 px with its border
+in the accent while it has the focus, numbers and keys in mono, placeholders in --muted, and a choice
+with a thin chevron in place of the platform's arrow; a field or a button that cannot act is a quiet
+raised plate with faded words, no longer a see-through one.
