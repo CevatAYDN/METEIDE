@@ -1,7 +1,7 @@
 import { nls } from "@theia/core/lib/common/nls";
 import type { EndpointTest } from "../domain/status-service.js";
 import { customId } from "./endpoint-key.js";
-import { MUTED, ROW } from "./look.js";
+import { Icon } from "./roster-look.js";
 
 // A custom endpoint's Test on its card (ADR-087): "Test…" lists the models METE loaded for it, the
 // user picks some, and "Test" sends one probe per picked model, only on that click (docs/09).
@@ -50,14 +50,19 @@ const ModelRow = ({
 }) => {
 	const result = state.results?.find((r) => r.modelId === model);
 	return (
-		<label style={ROW}>
+		<label className="mete-endpoint-pick">
 			<input
 				type="checkbox"
 				checked={state.picked.includes(model)}
 				onChange={(e) => tests.onPick(slug, model, e.target.checked)}
 			/>
-			{model}
-			{result ? <span style={MUTED}>{resultText(result)}</span> : null}
+			<span className="mete-endpoint-model">{model}</span>
+			{result ? (
+				<span className={`mete-endpoint-result ${result.ok ? "good" : "bad"}`}>
+					<Icon name={result.ok ? "check" : "close"} />
+					{resultText(result)}
+				</span>
+			) : null}
 		</label>
 	);
 };
@@ -71,32 +76,33 @@ const ListedModels = ({
 	readonly state: Listed;
 	readonly tests: EndpointTestsView;
 }) => (
-	<>
+	<div className="mete-endpoint-models">
 		{state.models.length === 0 ? (
-			<span style={MUTED}>
+			<p>
 				{nls.localize(
 					"mete/settings/noModels",
 					"The endpoint lists no models.",
 				)}
-			</span>
+			</p>
 		) : null}
 		{state.models.map((m) => (
 			<ModelRow key={m} slug={slug} model={m} state={state} tests={tests} />
 		))}
-		<div style={ROW}>
+		<div className="mete-endpoint-run">
 			<button
 				type="button"
-				className="mete-button"
+				className="mete-button quiet"
 				disabled={state.testing || state.picked.length === 0}
 				onClick={() => tests.onProbe(slug)}
 			>
+				<Icon name={state.testing ? "loading" : "play"} spin={state.testing} />
 				{state.testing
 					? nls.localize("mete/settings/testing", "Testing…")
 					: nls.localize("mete/settings/runTest", "Test")}
 			</button>
 		</div>
 		{state.problem ? <p role="alert">{state.problem}</p> : null}
-	</>
+	</div>
 );
 
 // not_found is the only refusal the daemon sends for these requests, so refused means not loaded.
@@ -121,14 +127,15 @@ export const TestPanel = ({
 	const state = tests.stateOf(slug);
 	const line = stateLine(slug, state);
 	return (
-		<div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-			<div style={ROW}>
+		<div className="mete-endpoint-test">
+			<div className="mete-endpoint-list">
 				<button
 					type="button"
 					className="mete-button quiet"
 					disabled={!customId(slug) || state.kind === "loading"}
 					onClick={() => tests.onList(slug)}
 				>
+					<Icon name="beaker" />
 					{nls.localize("mete/settings/testEndpoint", "Test…")}
 				</button>
 			</div>

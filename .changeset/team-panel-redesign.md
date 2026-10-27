@@ -64,3 +64,9 @@ A Settings section's card says where its form's value comes from in its head, as
 title (a warn wash with a dot when this folder's file sets it), with Reset beside it as a small ghost
 button; field labels are quiet and bold over their fields, and every form's Saves to line, on the
 Welcome screen too, starts with a file glyph.
+
+The custom endpoints card takes the design set's look: each endpoint on a raised inset with its
+fields two by two (ids, URLs and formats in mono), a rule, its key beside Test…, the models Test
+lists as a card of rows whose last probe shows as a green or red pill with its glyph, and Remove as a
+ghost button; the card's foot puts where it saves at the left and Add endpoint and Save at the right.
+Set key carries a key glyph, on the Welcome screen too.

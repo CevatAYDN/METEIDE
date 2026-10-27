@@ -482,16 +482,16 @@ describe("the custom endpoints card (ADR-087)", () => {
 		const idle = withEndpoints("global", 0);
 		expect(idle).toMatch(/<input id="mete-endpoint-0-key"[^>]*type="password"/);
 		expect(idle).toContain(
-			'<button type="button" class="mete-button">Set key</button>',
+			'<button type="button" class="mete-button"><span aria-hidden="true" class="codicon codicon-key"></span>Set key</button>',
 		);
 		const busy = withEndpoints("global", 1);
 		expect(busy).toContain(
-			'<button type="button" class="mete-button" disabled="">Set key</button>',
+			'<button type="button" class="mete-button" disabled=""><span aria-hidden="true" class="codicon codicon-key"></span>Set key</button>',
 		);
 		expect(busy).toContain("setting a key restarts METE");
 		// A key restarts METE, which reloads the card, so unsaved edits are saved first.
 		expect(withEndpoints("global", 0, true)).toContain(
-			'<button type="button" class="mete-button" disabled="">Set key</button>',
+			'<button type="button" class="mete-button" disabled=""><span aria-hidden="true" class="codicon codicon-key"></span>Set key</button>',
 		);
 	});
 
@@ -515,7 +515,7 @@ describe("the custom endpoints card (ADR-087)", () => {
 	it("tests only picked models, says so while it runs, and shows each result", () => {
 		const none = withEndpoints("global", undefined, false, listed([], false));
 		expect(none).toContain(
-			'<button type="button" class="mete-button" disabled="">Test</button>',
+			'<button type="button" class="mete-button quiet" disabled=""><span aria-hidden="true" class="codicon codicon-play"></span>Test</button>',
 		);
 		expect(none).toContain("ok, 840 ms");
 		const ready = withEndpoints(
@@ -525,7 +525,7 @@ describe("the custom endpoints card (ADR-087)", () => {
 			listed(["lab-7b"], false),
 		);
 		expect(ready).toContain(
-			'<button type="button" class="mete-button">Test</button>',
+			'<button type="button" class="mete-button quiet"><span aria-hidden="true" class="codicon codicon-play"></span>Test</button>',
 		);
 		const running = withEndpoints(
 			"global",
@@ -534,7 +534,7 @@ describe("the custom endpoints card (ADR-087)", () => {
 			listed(["lab-7b"], true),
 		);
 		expect(running).toContain(
-			'<button type="button" class="mete-button" disabled="">Testing…</button>',
+			'<button type="button" class="mete-button quiet" disabled=""><span aria-hidden="true" class="codicon codicon-loading codicon-modifier-spin"></span>Testing…</button>',
 		);
 	});
 });

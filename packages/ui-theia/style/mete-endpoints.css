@@ -1,0 +1,215 @@
+/* The custom endpoints card in the design set's look (ADR-087, ADR-128): each endpoint on a raised
+   inset with its fields two by two, a rule, its key beside Test…, the models Test lists as a card of
+   rows with each probe's pill, Remove; then the card's foot with where it saves, Add endpoint and
+   Save. The key field's base is in mete-form.css. */
+
+.mete-endpoints {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.mete-endpoint {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	min-width: 0;
+	margin: 0;
+	padding: 16px 18px;
+	background: var(--raised, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 14px;
+}
+
+.mete-endpoint-fields,
+.mete-endpoint-checks {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-items: start;
+	gap: 12px 16px;
+}
+
+.mete-endpoint-wide {
+	grid-column: 1 / -1;
+}
+
+.mete-endpoint-rule {
+	height: 1.5px;
+	background: var(--line-soft, var(--theia-panel-border));
+}
+
+/* Test… sits beside the key, at its foot; what it lists runs under both. */
+.mete-endpoint-test {
+	display: contents;
+}
+
+.mete-endpoint-list {
+	align-self: end;
+}
+
+.mete-endpoint-test > p,
+.mete-endpoint-models {
+	grid-column: 1 / -1;
+	margin: 0;
+}
+
+.mete-settings .mete-key-entry > .mete-button,
+.mete-settings .mete-endpoint-list > .mete-button {
+	height: 38px;
+}
+
+.mete-endpoint-models {
+	display: flex;
+	flex-direction: column;
+	padding: 6px 6px 10px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 14px;
+}
+
+.mete-endpoint-models > p {
+	margin: 6px 10px;
+	font-weight: 600;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+/* A model METE loaded: its box, its id in mono, faded until picked, and the last probe's pill. */
+.mete-endpoint-pick {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 10px;
+	border-radius: 10px;
+	cursor: pointer;
+}
+
+.mete-endpoint-pick:hover {
+	background: var(--raised, var(--theia-list-hoverBackground));
+}
+
+.mete-endpoint-pick > input {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	margin: 0;
+}
+
+.mete-endpoint-model {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-size: 13px;
+	font-weight: 500;
+}
+
+.mete-endpoint-pick > input:not(:checked) + .mete-endpoint-model {
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-endpoint-result {
+	--tone: var(--good, var(--theia-testing-iconPassed));
+	flex: none;
+	max-width: 60%;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 24px;
+	box-sizing: border-box;
+	padding: 3px 10px 3px 8px;
+	border-radius: 12px;
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-variant-numeric: tabular-nums;
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1.3;
+	background: color-mix(
+		in srgb,
+		var(--tone) 14%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--tone) 60%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-endpoint-result.bad {
+	--tone: var(--bad, var(--theia-errorForeground));
+}
+
+.mete-endpoint-result > .codicon {
+	flex: none;
+	font-size: 13px;
+}
+
+.mete-endpoint-run {
+	padding: 6px 10px 0;
+}
+
+.mete-settings .mete-endpoint-run > .mete-button {
+	height: 32px;
+	font-size: 13.5px;
+}
+
+.mete-settings .mete-endpoint .mete-button.ghost {
+	height: 30px;
+	padding: 0 11px 0 9px;
+	font-size: 13px;
+}
+
+/* The card's foot: where it saves at the left, Add endpoint and Save at the right. */
+.mete-endpoints-foot {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px 20px;
+	padding-top: 2px;
+}
+
+.mete-endpoints-target {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.mete-endpoints-target > label {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.mete-endpoints-target > label > input {
+	width: 16px;
+	height: 16px;
+	margin: 0;
+}
+
+.mete-endpoints-target > span {
+	padding-left: 26px;
+	font-size: 12.5px;
+	font-weight: 600;
+	line-height: 1.4;
+	color: var(--muted, var(--theia-descriptionForeground));
+}
+
+.mete-endpoints-acts {
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+/* A narrow panel stacks an endpoint's fields and its key over Test…. */
+@container (max-width: 760px) {
+	.mete-endpoint-fields,
+	.mete-endpoint-checks {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}

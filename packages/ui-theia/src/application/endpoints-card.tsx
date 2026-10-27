@@ -3,7 +3,7 @@ import { nls } from "@theia/core/lib/common/nls";
 import { customId, type EndpointKeysView, KeyField } from "./endpoint-key.js";
 import { type EndpointTestsView, TestPanel } from "./endpoint-test.js";
 import type { EndpointDraft } from "./endpoints-draft.js";
-import { MUTED, ROW } from "./look.js";
+import { Icon } from "./roster-look.js";
 import type { Target } from "./section-draft.js";
 import { FormNote, type SaveNote } from "./settings-form.js";
 
@@ -51,18 +51,21 @@ const Text = ({
 	id,
 	label,
 	value,
+	mono,
 	onChange,
 }: {
 	readonly id: string;
 	readonly label: string;
 	readonly value: string;
+	/** An id or a URL, which the field shows in mono. */
+	readonly mono?: boolean;
 	readonly onChange: (v: string) => void;
 }) => (
 	<div style={COLUMN}>
 		<label htmlFor={id}>{label}</label>
 		<input
 			id={id}
-			className="mete-field"
+			className={mono ? "mete-field mono" : "mete-field"}
 			value={value}
 			onChange={(e) => onChange(e.target.value)}
 		/>
@@ -85,7 +88,7 @@ const Format = ({
 		</label>
 		<select
 			id={id}
-			className="mete-field"
+			className="mete-field mono"
 			value={value}
 			onChange={(e) => onChange(e.target.value)}
 		>
@@ -111,7 +114,7 @@ const DraftFields = ({
 	readonly endpoint: EndpointDraft;
 	readonly edit: (field: keyof EndpointDraft) => (v: string) => void;
 }) => (
-	<>
+	<div className="mete-endpoint-fields">
 		<Text
 			id={id("name")}
 			label={nls.localize("mete/settings/endpointName", "Name")}
@@ -122,12 +125,14 @@ const DraftFields = ({
 			id={id("slug")}
 			label={nls.localize("mete/settings/slug", "Slug")}
 			value={endpoint.slug}
+			mono
 			onChange={edit("slug")}
 		/>
 		<Text
 			id={id("baseUrl")}
 			label={nls.localize("mete/settings/baseUrl", "Base URL")}
 			value={endpoint.baseUrl}
+			mono
 			onChange={edit("baseUrl")}
 		/>
 		<Format
@@ -135,20 +140,22 @@ const DraftFields = ({
 			value={endpoint.format}
 			onChange={edit("format")}
 		/>
-		<label htmlFor={id("headers")}>
-			{nls.localize(
-				"mete/settings/headers",
-				"Extra headers, one Name: value per line",
-			)}
-		</label>
-		<textarea
-			id={id("headers")}
-			className="mete-field"
-			rows={2}
-			value={endpoint.headers}
-			onChange={(e) => edit("headers")(e.target.value)}
-		/>
-	</>
+		<div style={COLUMN} className="mete-endpoint-wide">
+			<label htmlFor={id("headers")}>
+				{nls.localize(
+					"mete/settings/headers",
+					"Extra headers, one Name: value per line",
+				)}
+			</label>
+			<textarea
+				id={id("headers")}
+				className="mete-field mono"
+				rows={2}
+				value={endpoint.headers}
+				onChange={(e) => edit("headers")(e.target.value)}
+			/>
+		</div>
+	</div>
 );
 
 /** An endpoint's key and Test, which the widget gives when the daemon service is there. */
@@ -168,7 +175,7 @@ const Checks = ({
 	readonly slug: string;
 	readonly checks: ChecksView;
 }) => (
-	<>
+	<div className="mete-endpoint-checks">
 		{checks.keys ? (
 			<KeyField
 				id={id}
@@ -178,7 +185,7 @@ const Checks = ({
 			/>
 		) : null}
 		{checks.tests ? <TestPanel slug={slug} tests={checks.tests} /> : null}
-	</>
+	</div>
 );
 
 const EndpointFields = ({
@@ -196,15 +203,17 @@ const EndpointFields = ({
 	const edit = (field: keyof EndpointDraft) => (v: string) =>
 		actions.onEdit(index, field, v);
 	return (
-		<fieldset className="mete-card" style={COLUMN}>
+		<fieldset className="mete-endpoint">
 			<DraftFields id={id} endpoint={endpoint} edit={edit} />
+			<span className="mete-endpoint-rule" aria-hidden="true" />
 			<Checks id={id("key")} slug={endpoint.slug} checks={checks} />
-			<div style={ROW}>
+			<div>
 				<button
 					type="button"
-					className="mete-button quiet"
+					className="mete-button quiet ghost"
 					onClick={() => actions.onRemove(index)}
 				>
+					<Icon name="trash" />
 					{nls.localize("mete/settings/remove", "Remove")}
 				</button>
 			</div>
@@ -219,8 +228,8 @@ const SaveTarget = ({
 	readonly state: EndpointsState;
 	readonly actions: EndpointsActions;
 }) => (
-	<div style={COLUMN}>
-		<label style={ROW}>
+	<div className="mete-endpoints-target">
+		<label>
 			<input
 				type="checkbox"
 				checked={state.target === "workspace"}
@@ -230,7 +239,7 @@ const SaveTarget = ({
 			/>
 			{nls.localize("mete/settings/folderOnly", "Save for this folder only")}
 		</label>
-		<span style={MUTED}>
+		<span>
 			{nls.localize(
 				"mete/settings/folderHides",
 				"A folder's list hides the global endpoints in this folder.",
@@ -251,7 +260,7 @@ export const EndpointsCard = ({
 	readonly keys?: EndpointKeysView | undefined;
 	readonly tests?: EndpointTestsView | undefined;
 }) => (
-	<div style={{ ...COLUMN, gap: "8px" }}>
+	<div className="mete-endpoints">
 		{state.list.map((endpoint, i) => (
 			<EndpointFields
 				// biome-ignore lint/suspicious/noArrayIndexKey: an endpoint has no stable id while its slug is typed
@@ -262,23 +271,26 @@ export const EndpointsCard = ({
 				checks={{ keys, tests, unsaved: state.dirty }}
 			/>
 		))}
-		<SaveTarget state={state} actions={actions} />
-		<div style={ROW}>
-			<button
-				type="button"
-				className="mete-button quiet"
-				onClick={actions.onAdd}
-			>
-				{nls.localize("mete/settings/addEndpoint", "Add endpoint")}
-			</button>
-			<button
-				type="button"
-				className="mete-button"
-				disabled={state.busy || !state.dirty || state.file === undefined}
-				onClick={actions.onSave}
-			>
-				{nls.localize("mete/settings/save", "Save")}
-			</button>
+		<div className="mete-endpoints-foot">
+			<SaveTarget state={state} actions={actions} />
+			<div className="mete-endpoints-acts">
+				<button
+					type="button"
+					className="mete-button quiet"
+					onClick={actions.onAdd}
+				>
+					<Icon name="add" />
+					{nls.localize("mete/settings/addEndpoint", "Add endpoint")}
+				</button>
+				<button
+					type="button"
+					className="mete-button"
+					disabled={state.busy || !state.dirty || state.file === undefined}
+					onClick={actions.onSave}
+				>
+					{nls.localize("mete/settings/save", "Save")}
+				</button>
+			</div>
 		</div>
 		<FormNote state={state} />
 	</div>

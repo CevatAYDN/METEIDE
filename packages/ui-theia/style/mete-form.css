@@ -55,6 +55,12 @@ textarea.mete-field {
 	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
 }
 
+/* A field that holds an id, a URL or a format, as the design set draws them. */
+.mete-field.mono {
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-size: 13px;
+}
+
 .mete-field:not(:disabled):hover {
 	border-color: var(--muted, var(--theia-input-border));
 }

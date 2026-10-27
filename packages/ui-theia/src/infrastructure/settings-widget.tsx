@@ -34,6 +34,7 @@ import "../../style/mete-form.css";
 import "../../style/mete-run.css";
 import "../../style/mete-settings.css";
 import "../../style/mete-settings-body.css";
+import "../../style/mete-endpoints.css";
 
 // The read-only Settings screen (docs/13; ADR-081) of the first open folder: it asks the daemon
 // what it loaded when it opens and on Refresh; a file opens in Theia's editor.

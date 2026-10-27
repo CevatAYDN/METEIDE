@@ -1,5 +1,6 @@
 import { CustomProviderIdSchema } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
+import { Icon } from "./roster-look.js";
 
 // A custom endpoint's API key field on its card (ADR-087): a masked field that is never filled from
 // the keychain, and Set key, which waits while a run of the folder is queued or running.
@@ -66,6 +67,7 @@ export const KeyField = ({
 					disabled={off}
 					onClick={() => keys.onSet(name)}
 				>
+					<Icon name="key" />
 					{nls.localize("mete/settings/setEndpointKey", "Set key")}
 				</button>
 			</div>
