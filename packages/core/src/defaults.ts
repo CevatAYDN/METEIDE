@@ -6,7 +6,7 @@ export const ESTIMATE_PER_TASK = 12;
 /** Requests an approval by a role is estimated to need before there is history (09 Models, providers and quota, Scheduler, step 6). */
 export const ESTIMATE_PER_APPROVAL = 3;
 
-/** Model turns a single-agent run may take (docs/08, Task execution sequence and Single agent). */
+/** Model turns an attempt takes before its run pauses for the budget (docs/08, Task execution sequence and Single agent; ADR-126). */
 export const MAX_TURNS = 25;
 
 /** Repairs asked of a reviewer whose verdict is not valid (08 Orchestration and teams, Task execution sequence). */

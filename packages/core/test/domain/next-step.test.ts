@@ -78,12 +78,9 @@ describe("nextStep", () => {
 		});
 	});
 
-	it("fails at the turn limit and pauses at the budget", () => {
-		expect(nextStep({ ...base, turns: MAX_TURNS }, budget, 0)).toMatchObject({
-			kind: "fail",
-			code: "turn_limit",
-		});
+	it("pauses at the turn limit and at the budget", () => {
 		const pause = { kind: "pause", reason: "budget" };
+		expect(nextStep({ ...base, turns: MAX_TURNS }, budget, 0)).toEqual(pause);
 		const twoCalls = { cloudRequests: 2, maxHours: 6 };
 		expect(nextStep({ ...base, requests: 2 }, twoCalls, 0)).toEqual(pause);
 		// turns count one attempt, requests the whole run (docs/08)

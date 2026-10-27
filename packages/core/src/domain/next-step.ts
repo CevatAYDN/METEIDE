@@ -21,11 +21,6 @@ export type NextStep =
 			readonly checkpoint: boolean;
 	  }
 	| { readonly kind: "complete"; readonly summary: string }
-	| {
-			readonly kind: "fail";
-			readonly code: "turn_limit";
-			readonly message: string;
-	  }
 	| { readonly kind: "pause"; readonly reason: "budget" };
 
 const lastAssistant = (messages: readonly ChatMessage[]) =>
@@ -44,14 +39,11 @@ const pendingCall = (messages: readonly ChatMessage[], step: number) => {
 
 const HOUR_MS = 3_600_000;
 
+// The turns of an attempt are part of the budget: at the limit the run pauses, and a resume
+// gives it MAX_TURNS more (ADR-126).
 const modelOrLimit = (c: RunContext, budget: Budget, at: number): NextStep => {
-	if (c.turns >= MAX_TURNS)
-		return {
-			kind: "fail",
-			code: "turn_limit",
-			message: `the run reached ${MAX_TURNS} model turns`,
-		};
 	if (
+		c.turns >= MAX_TURNS ||
 		c.requests >= budget.cloudRequests ||
 		activeTime(c, at) >= budget.maxHours * HOUR_MS
 	)

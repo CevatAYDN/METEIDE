@@ -222,9 +222,7 @@ const step = async (s: EngineState, l: Live, token: object) => {
 	}
 	if (next.kind === "tool") return toolTurn(s, l, token, next);
 	if (next.kind === "complete") return finish(s, l, next.summary);
-	if (next.kind === "fail")
-		apply(s, l, { type: "FAIL", at, code: next.code, message: next.message });
-	else apply(s, l, { type: "PAUSE", at, reason: next.reason });
+	apply(s, l, { type: "PAUSE", at, reason: next.reason });
 };
 
 const loop = async (s: EngineState, l: Live, token: object) => {

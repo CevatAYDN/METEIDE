@@ -6,6 +6,7 @@ import type {
 } from "@mete/contracts";
 import { assign, setup } from "xstate";
 import type { z } from "zod";
+import { MAX_TURNS } from "../defaults.js";
 import type { TeamState } from "./team.js";
 
 // The run state machine of docs/07 for a single-agent run (docs/08, Single agent). Pure:
@@ -255,9 +256,11 @@ export const runMachine = setup({
 			on: {
 				RESUME: {
 					target: "running",
-					actions: assign(({ event }) => ({
+					// A resume after the turn limit gives the attempt MAX_TURNS more (ADR-126).
+					actions: assign(({ context, event }) => ({
 						since: event.at,
 						pause: undefined,
+						turns: context.turns >= MAX_TURNS ? 0 : context.turns,
 					})),
 				},
 				CANCEL: "#run.cancelled",

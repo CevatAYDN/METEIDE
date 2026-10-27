@@ -564,7 +564,7 @@ describe("single-agent engine", () => {
 		});
 	});
 
-	it("fails at the turn limit", async () => {
+	it("pauses at the turn limit, and a resume gives it as many turns again", async () => {
 		const h = engineHarness({
 			scripts: [reply("", [{ name: "fs_read", args: { path: "a" } }])],
 			tools: [
@@ -575,12 +575,15 @@ describe("single-agent engine", () => {
 			],
 		});
 		const runId = await begin(h);
-		await settled(h, runId, "failed");
+		await settled(h, runId, "paused");
 		expect(h.requests).toHaveLength(MAX_TURNS);
 		expect(h.events.at(-1)).toMatchObject({
-			type: "run.failed",
-			payload: { code: "turn_limit" },
+			type: "run.paused",
+			payload: { reason: "budget" },
 		});
+		expect((await h.engine.resume(runId)).ok).toBe(true);
+		await vi.waitFor(() => expect(h.requests).toHaveLength(2 * MAX_TURNS));
+		await settled(h, runId, "paused");
 	});
 
 	it("fails a writing step whose checkpoint cannot be made", async () => {
