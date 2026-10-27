@@ -145,6 +145,7 @@
 		"home": {
 			"approve": "Onayla",
 			"asOf": "{0} itibarıyla",
+			"budgetPaused": "Bütçesini kullandı: bir seferde 25 model turu ya da .mete/policy.yaml dosyasındaki istek veya saat sınırı. Sürdür ona 25 tur daha verir; istekler ya da saatler bittiyse önce orada artırın.",
 			"currentWorkspace": "(açık)",
 			"forget": "Unut",
 			"forgetWorkspace": "{0} klasörünü unut",

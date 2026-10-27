@@ -39,6 +39,32 @@ const Blocked = ({
 	</ul>
 );
 
+// A paused run someone must go on with: a quota pause before its reset (ADR-059), a user's pause
+// (ADR-061), or a budget pause, which names its budget first (ADR-126).
+const Resume = ({ row, act }: { readonly row: HomeRow; readonly act: Act }) =>
+	row.userPaused || row.quotaPaused || row.budgetPaused ? (
+		<>
+			{row.budgetPaused ? (
+				<p style={{ ...MUTED, margin: "4px 0 0" }}>
+					{nls.localize(
+						"mete/home/budgetPaused",
+						"It used its budget: 25 model turns at a time, or the requests or hours of .mete/policy.yaml. Resume gives it 25 more turns; raise the requests or hours there first if they ran out.",
+					)}
+				</p>
+			) : null}
+			<div style={ROW}>
+				<Button
+					label={
+						row.quotaPaused
+							? nls.localize("mete/home/resumeNow", "Resume now")
+							: nls.localize("mete/home/resume", "Resume")
+					}
+					onClick={() => act("resume", row.id)}
+				/>
+			</div>
+		</>
+	) : null;
+
 // A run's goal opens it in the Team panel (ADR-051); a button styled as a link keeps the keyboard.
 const OpenGoal = ({
 	row,
@@ -115,18 +141,7 @@ const RunItem = ({
 			{row.quotaPaused && blocked.length > 0 ? (
 				<Blocked providers={blocked} />
 			) : null}
-			{row.userPaused || row.quotaPaused ? (
-				<div style={ROW}>
-					<Button
-						label={
-							row.userPaused
-								? nls.localize("mete/home/resume", "Resume")
-								: nls.localize("mete/home/resumeNow", "Resume now")
-						}
-						onClick={() => act("resume", row.id)}
-					/>
-				</div>
-			) : null}
+			<Resume row={row} act={act} />
 		</span>
 	</li>
 );

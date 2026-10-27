@@ -13,6 +13,7 @@ import {
 import { inject, injectable } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import {
+	waitsForBudget,
 	waitsForQuota,
 	waitsForUser,
 	waitsForYou,
@@ -95,10 +96,15 @@ export class MeteApprovalContribution implements CommandContribution {
 	}
 
 	protected async resume(given: unknown) {
-		// A quota pause may be resumed before its reset (ADR-059), a user's pause or a quit's any time (ADR-061).
+		// A quota pause may be resumed before its reset (ADR-059), a user's pause or a quit's any time
+		// (ADR-061), and a budget pause after its turns or a raised budget (ADR-126).
 		const t = await this.target(
 			given,
-			(r) => waitsForYou(r) || waitsForQuota(r) || waitsForUser(r),
+			(r) =>
+				waitsForYou(r) ||
+				waitsForQuota(r) ||
+				waitsForUser(r) ||
+				waitsForBudget(r),
 		);
 		if (!t) return;
 		const r = await this.daemon.resume(t.dir, t.runId);

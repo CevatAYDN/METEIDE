@@ -145,6 +145,7 @@
 		"home": {
 			"approve": "Approve",
 			"asOf": "As of {0}",
+			"budgetPaused": "It used its budget: 25 model turns at a time, or the requests or hours of .mete/policy.yaml. Resume gives it 25 more turns; raise the requests or hours there first if they ran out.",
 			"currentWorkspace": "(open)",
 			"forget": "Forget",
 			"forgetWorkspace": "Forget {0}",

@@ -288,6 +288,17 @@ describe("the Home view", () => {
 		);
 	});
 
+	it("offers Resume under a run paused for its budget and names the budget (ADR-126)", () => {
+		const out = html(
+			homeModel(
+				{ ok: true, value: [run("paused", "long goal", null, "budget")] },
+				AT,
+			),
+		);
+		expect(out).toContain("It used its budget: 25 model turns at a time");
+		expect(out).toContain(">Resume</button>");
+	});
+
 	it("lets each run's goal open the run in the team panel", () => {
 		const r = run("completed", "notes", null);
 		const out = html(homeModel({ ok: true, value: [r] }, AT));
