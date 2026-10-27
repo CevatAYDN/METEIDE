@@ -29,16 +29,13 @@ import {
 	type TeamMode,
 } from "../application/board-view.js";
 import { restoredText } from "../application/checkpoint-list.js";
-import { type ChainContext, fetchChain } from "../application/composer.js";
 import { unaskedModels, windowsOf } from "../application/context-meter.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
-import { panelRoot } from "../application/panel-root.js";
 import {
-	chainsOfRoles,
-	needsFor,
-	needsOfRoles,
-	preferredOf,
-} from "../application/role-chains.js";
+	createModelSession,
+	type ModelSession,
+} from "../application/model-session.js";
+import { panelRoot } from "../application/panel-root.js";
 import type { RunFacts } from "../application/run-strip.js";
 import { failureText, plain } from "../application/status-text.js";
 import { roleNames, teamName } from "../application/team-draft.js";
@@ -73,16 +70,11 @@ export class MeteBoardWidget extends MetePanelWidget {
 	protected restoring: string | undefined;
 	protected names: Readonly<Record<string, string>> = {};
 	protected windows: Readonly<Record<string, number>> = {};
-	protected candidateModels: Readonly<Record<string, readonly string[]>> = {};
-	/** The needs each of the team file's roles names, for the chains asked before it was read. */
-	protected roleNeeds: Readonly<Record<string, readonly string[]>> = {};
-	protected preferredModels: Readonly<Record<string, string>> = {};
-	protected chainCache = new Map<string, readonly string[]>();
-	protected templateId: string | null | undefined;
 	protected run: RunFacts = {};
 	protected asked = new Set<string>();
-	protected askedChains = new Set<string>();
 	protected composing = true;
+	// The shown run's model choice (ADR-122); made once the daemon is injected.
+	protected models!: ModelSession;
 	// The shown run's steps (ADR-125); the daemon is injected before the first call.
 	protected readonly transcripts = createTranscriptSession({
 		fetch: (dir, runId) => this.daemon.transcript(dir, runId),
@@ -91,6 +83,11 @@ export class MeteBoardWidget extends MetePanelWidget {
 
 	@postConstruct()
 	protected init(): void {
+		this.models = createModelSession({
+			daemon: this.daemon,
+			onChange: () => this.update(),
+			warn: (text) => void this.messages.warn(text),
+		});
 		this.id = MeteBoardWidget.ID;
 		this.title.label = nls.localize("mete/board/title", "Team panel");
 		this.title.caption = nls.localize(
@@ -107,7 +104,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 				const shown = this.session.shown;
 				if (shown && event.runId === shown.runId) {
 					if (event.type === "run.created")
-						this.templateId = event.payload.templateId;
+						this.models.setTemplate(event.payload.templateId);
 					if (event.type.startsWith("run."))
 						void this.loadRun(shown.dir, shown.runId);
 				}
@@ -139,12 +136,8 @@ export class MeteBoardWidget extends MetePanelWidget {
 		this.names = {};
 		this.run = {};
 		this.windows = {};
-		this.candidateModels = {};
-		this.preferredModels = {};
-		this.chainCache = new Map();
 		this.asked = new Set();
-		this.askedChains = new Set();
-		this.templateId = undefined;
+		this.models.show(dir, runId);
 		const shown = { dir, runId, goal };
 		this.setSession(startBoard(shown));
 		this.transcripts.show(dir, runId);
@@ -154,7 +147,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 			: undefined;
 		// Before the first agents reach the view: a single-agent run asks its chain for tool calling.
 		if (created?.type === "run.created")
-			this.templateId = created.payload.templateId;
+			this.models.setTemplate(created.payload.templateId);
 		this.setSession(loadedBoard(this.session, shown, r));
 		void this.loadRun(dir, runId);
 		if (created?.type === "run.created" && created.payload.templateId)
@@ -168,9 +161,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 		const run = r.value.find((x) => x.id === runId);
 		if (!run) return;
 		this.run = { ...this.run, run };
-		if (run.templateId !== undefined) this.templateId = run.templateId;
-		const single = this.session.view.agents[0]?.roleId ?? "assistant";
-		this.preferredModels = preferredOf(run.prefer, single);
+		this.models.onRun(run, this.session.view.agents[0]?.roleId ?? "assistant");
 		this.update();
 	}
 
@@ -184,20 +175,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 		const name = teamName(t.value.yaml);
 		this.run = { ...this.run, ...(name ? { teamName: name } : {}) };
 		this.update();
-		void this.loadTemplateChains(dir, runId, t.value.yaml);
-	}
-
-	protected chainCtx(dir: string): ChainContext {
-		return { daemon: this.daemon, dir, cache: this.chainCache };
-	}
-
-	protected async loadTemplateChains(dir: string, runId: string, yaml: string) {
-		this.roleNeeds = needsOfRoles(yaml);
-		const models = await chainsOfRoles(this.chainCtx(dir), yaml);
-		if (this.shownRun.runId !== runId) return;
-		for (const id of Object.keys(models)) this.askedChains.add(id);
-		this.candidateModels = { ...this.candidateModels, ...models };
-		this.update();
+		void this.models.loadTemplate(t.value.yaml);
 	}
 
 	// The strip's answers run ADR-048's commands with the shown run, as the Home view's buttons do.
@@ -269,48 +247,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 		if (drawn) this.update();
 		this.tickThinking();
 		this.askWindows();
-		void this.askChains();
-	}
-
-	// Each member's chain, asked for the needs its role names, or the single agent's tool calling.
-	protected async askChains(): Promise<void> {
-		const { shown, view } = this.session;
-		if (!shown) return;
-		for (const a of view.agents) {
-			if (this.candidateModels[a.roleId] || this.askedChains.has(a.roleId))
-				continue;
-			this.askedChains.add(a.roleId);
-			const models = await fetchChain(
-				this.chainCtx(shown.dir),
-				a.tier ?? "coder",
-				needsFor(this.templateId, this.roleNeeds, a.roleId),
-			);
-			if (this.shownRun.runId !== shown.runId) return;
-			this.candidateModels = { ...this.candidateModels, [a.roleId]: models };
-			this.update();
-		}
-	}
-
-	protected async setModel(
-		roleId: string,
-		model: ModelRef | null,
-	): Promise<void> {
-		const shown = this.session.shown;
-		if (!shown) return;
-		const isSingle =
-			this.templateId === null || this.run.run?.templateId === null;
-		const r = await this.daemon.model(
-			shown.dir,
-			shown.runId,
-			model,
-			isSingle ? undefined : roleId,
-		);
-		if (!r.ok) return void this.messages.warn(failureText(r.error, plain));
-		const next = { ...this.preferredModels };
-		if (model) next[roleId] = `${model.providerId}/${model.modelId}`;
-		else delete next[roleId];
-		this.preferredModels = next;
-		this.update();
+		void this.models.askChains(this.session.view.agents);
 	}
 
 	// The context windows of the models the shown run's calls used, each asked once (ADR-090); a
@@ -369,9 +306,9 @@ export class MeteBoardWidget extends MetePanelWidget {
 			names: this.names,
 			windows: this.windows,
 			run: this.run,
-			onModel: (roleId, model) => void this.setModel(roleId, model),
-			candidateModels: this.candidateModels,
-			preferredModels: this.preferredModels,
+			onModel: (roleId, model) => void this.models.setModel(roleId, model),
+			candidateModels: this.models.candidates,
+			preferredModels: this.models.preferred,
 			transcript: this.transcripts.state,
 			waiting: {
 				onApprove: () => void this.decide(APPROVE_RUN_COMMAND.id),

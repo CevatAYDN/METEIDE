@@ -1,26 +1,20 @@
 import type { MeteEvent, ModelRef } from "@mete/contracts";
-import {
-	type Place,
-	placeOf,
-	type TaskCard,
-	type TeamView,
-} from "@mete/ui-studio";
+import type { TeamView } from "@mete/ui-studio";
 import type { MarkdownRenderer } from "@theia/core/lib/browser/markdown-rendering/markdown-renderer";
 import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties, ReactNode } from "react";
 import { rosterOf } from "../domain/roster.js";
 import type { DaemonFailure } from "../domain/status-service.js";
+import { Columns } from "./board-columns.js";
 import { CheckpointList, type RestoreControls } from "./checkpoint-list.js";
 import type { Windows } from "./context-meter.js";
-import { LINK, LIST, MUTED, PANEL, TITLE } from "./look.js";
-import { openReportLabel, reportPath } from "./results-list.js";
+import { MUTED, PANEL, TITLE } from "./look.js";
 import { RunRail } from "./run-rail.js";
 import type { RunFacts } from "./run-strip.js";
 import { RunStrip } from "./run-strip-view.js";
 import { SingleAgent } from "./single-agent.js";
 import { failureText } from "./status-text.js";
 import { studioText } from "./studio-text.js";
-import { columnName, markerText } from "./task-words.js";
 import { TeamView as Roster } from "./team-view.js";
 import type { TranscriptState } from "./transcript-session.js";
 import { type WaitingControls, WaitingStrip } from "./waiting-strip.js";
@@ -50,81 +44,12 @@ export type BoardModel =
 			readonly pulse?: { readonly event: MeteEvent; readonly before: TeamView };
 	  };
 
-// The Board fills the panel; its columns share the width.
+// The Board fills the panel.
 const BOARD: CSSProperties = {
 	...PANEL,
 	height: "100%",
 	boxSizing: "border-box",
 };
-const COLUMNS: CSSProperties = {
-	display: "grid",
-	gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-	gap: "12px",
-};
-const CARD: CSSProperties = {
-	display: "flex",
-	flexDirection: "column",
-	gap: "2px",
-	padding: "8px 12px",
-};
-
-// A Done card opens its report; another column's report may still change (ADR-085).
-const Card = ({
-	task,
-	onOpen,
-}: {
-	readonly task: TaskCard;
-	readonly onOpen: (path: string) => void;
-}) => {
-	const { column, marker } = placeOf(task.status);
-	const path = column === "done" ? reportPath(task) : undefined;
-	return (
-		<li className="mete-card" style={CARD}>
-			<span>{task.title}</span>
-			<span style={MUTED}>
-				{task.roleId}
-				{marker ? ` · ${markerText(marker)}` : ""}
-			</span>
-			{path ? (
-				<button
-					type="button"
-					style={LINK}
-					aria-label={openReportLabel(task)}
-					onClick={() => onOpen(path)}
-				>
-					{nls.localize("mete/board/openReport", "Open report")}
-				</button>
-			) : null}
-		</li>
-	);
-};
-
-const Column = ({
-	column,
-	tasks,
-	onOpen,
-}: {
-	readonly column: Place["column"];
-	readonly tasks: readonly TaskCard[];
-	readonly onOpen: (path: string) => void;
-}) => (
-	<section aria-label={columnName(column)}>
-		<h3 style={TITLE}>
-			{columnName(column)} <span style={MUTED}>({tasks.length})</span>
-		</h3>
-		<ul style={LIST}>
-			{tasks.map((t) => (
-				<Card key={t.id} task={t} onOpen={onOpen} />
-			))}
-		</ul>
-	</section>
-);
-
-const COLUMN_ORDER: readonly Place["column"][] = [
-	"todo",
-	"in_progress",
-	"done",
-];
 
 // The statuses in which a run's model can still be changed (ADR-122).
 const STEERABLE: ReadonlySet<string> = new Set(["queued", "running", "paused"]);
@@ -281,25 +206,6 @@ const Shown = ({
 		</>
 	);
 };
-
-const Columns = ({
-	view,
-	onOpen,
-}: {
-	readonly view: TeamView;
-	readonly onOpen: (path: string) => void;
-}) => (
-	<div style={COLUMNS}>
-		{COLUMN_ORDER.map((column) => (
-			<Column
-				key={column}
-				column={column}
-				tasks={view.tasks.filter((t) => placeOf(t.status).column === column)}
-				onOpen={onOpen}
-			/>
-		))}
-	</div>
-);
 
 const Board = ({
 	model,
