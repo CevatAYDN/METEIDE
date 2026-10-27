@@ -67,6 +67,17 @@ const teamLine = (e: MeteEvent, title: string): string | undefined => {
 			const why = e.payload.feedback ? ` (${e.payload.feedback})` : "";
 			return `${e.payload.approver} ${what}: ${title}${why}`;
 		}
+		// A pair reviewer looks before the approver (ADR-136).
+		case "review.requested":
+			return `review by ${e.payload.reviewerRoleId}: ${title}`;
+		case "review.completed": {
+			const what =
+				e.payload.decision === "revise"
+					? "asked for changes"
+					: "reviewed, no changes";
+			const why = e.payload.feedback ? ` (${e.payload.feedback})` : "";
+			return `${e.payload.reviewerRoleId} ${what}: ${title}${why}`;
+		}
 		case "artifact.created":
 		case "artifact.updated":
 			return `artifact ${e.payload.path}`;

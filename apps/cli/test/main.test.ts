@@ -251,6 +251,30 @@ describe("output lines", () => {
 		).toBeUndefined();
 	});
 
+	it("shows a pair review: the ask, the return with its feedback and the pass (ADR-136)", () => {
+		const by = { reviewerRoleId: "editor" };
+		const title = () => "Write";
+		expect(eventLine(event("review.requested", by), title)).toBe(
+			"review by editor: Write",
+		);
+		expect(
+			eventLine(
+				event("review.completed", {
+					...by,
+					decision: "revise",
+					feedback: "cite",
+				}),
+				title,
+			),
+		).toBe("editor asked for changes: Write (cite)");
+		expect(
+			eventLine(
+				event("review.completed", { ...by, decision: "approve" }),
+				title,
+			),
+		).toBe("editor reviewed, no changes: Write");
+	});
+
 	it("names what a policy ask is about: the command, the path, or else the capability (ADR-121)", () => {
 		const ask = {
 			action: "shell.exec",

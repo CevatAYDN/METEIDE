@@ -108,6 +108,8 @@ describe("the game-studio template", () => {
 				["fs_write", { path: "game/game.js", content: "let score = 0;\n" }],
 			),
 			say("game/index.html, game/game.js"),
+			// The tester reviews the developer's game as its pair before the lead (ADR-136).
+			APPROVE,
 			APPROVE,
 			calls(["browser_screenshot", { folder: "game" }]),
 			say(REPORT),
@@ -169,5 +171,9 @@ describe("the game-studio template", () => {
 		expect(shot).toHaveLength(1);
 		expect((shot[0] as { folder: string }).folder.endsWith("game")).toBe(true);
 		expect(events.map((e) => e.type)).toContain("run.completed");
+		const reviews = events.filter((e) => e.type === "review.completed");
+		expect(reviews.map((e) => e.payload)).toEqual([
+			{ reviewerRoleId: "tester", decision: "approve" },
+		]);
 	}, 180_000);
 });

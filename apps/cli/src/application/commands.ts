@@ -76,6 +76,7 @@ const FOLLOWED = [
 	"checkpoint.*",
 	"task.*",
 	"approval.*",
+	"review.*",
 	"artifact.*",
 ] as const;
 
