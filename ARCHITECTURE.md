@@ -68,16 +68,17 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 
 ## Daemon protocol
 
-`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 22 (ADR-122) has twenty-one requests and one notification, and each side validates what it receives with the schemas in `@mete/contracts` (`daemon.ts`) \[D\]:
+`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 23 (ADR-125) has twenty-two requests and one notification, and each side validates what it receives with the schemas in `@mete/contracts` (`daemon.ts`) \[D\]:
 
 | Message | Kind | Params | Result |
 | --- | --- | --- | --- |
-| `mete/status` | request | `{ runId? }` | the `RunView` list that `mete status` prints; on failure a JSON-RPC error whose `data.code` is the `EngineError` code, or `not_ready` with `data.reasons` (the lines `mete status` prints) while core-engine is not active |
+| `mete/status` | request | `{ runId? }` | the `RunView` list that `mete status` prints, with the run's model choice `prefer` (ADR-122) when one run is asked (ADR-125); on failure a JSON-RPC error whose `data.code` is the `EngineError` code, or `not_ready` with `data.reasons` (the lines `mete status` prints) while core-engine is not active |
 | `mete/run.start` | request | the `RunStart` of team.engine@2: `{ goal?, templateId?, priority?, continue?, prefer? }` | `{ runId }`; errors as for `mete/status`, and `choose_template` carries the router's `data.suggestions` |
 | `mete/run.approve` | request | `{ runId, input }`, `input` the `ApprovalInput` of team.engine@2 | `null`; errors as for `mete/status` |
 | `mete/run.resume` | request | `{ runId }` | `null`; errors as for `mete/status` |
 | `mete/run.allow` | request | `{ runId, scope }`, `scope` `once`, `run` or `always` | `null`: grants the run's newest `policy.asked` and resumes the run, as `mete allow` does (ADR-121); `not_found` when the run is not paused for approval or has no such ask, `bad_input` for `always` on an ask that is no command; errors as for `mete/status` |
 | `mete/run.model` | request | `{ runId, roleId?, model }` | `null`: sets or clears a run-specific model preference (`null` clears), taking priority over `.mete/pins.yaml` on the next call and saved in the snapshot; errors as for `mete/status` (ADR-122) |
+| `mete/run.transcript` | request | `{ runId }` | `{ runId, conversations }`: the run's steps from its saved conversation, one conversation for a single agent and one per task (and a running review) for a team, each `{ taskId?, roleId, steps }`, a step the agent's `text` and its `toolCalls` (`name`, `args`, `result?`) or a later user message with `from`; masked by `secrets.mask@1` when read, long fields cut; `not_supported` when the engine has none; errors as for `mete/status` (ADR-125) |
 | `mete/quota` | request | none | `{ providers: [{ id, state, resetsAt? }], units: [{ providerId, unit, scope, used, limit, resetsAt?, history }] }`, `state` one of `ready`, `no_key`, `inactive`, `exhausted` (with `resetsAt`), `unusable`; `units` are the rows of `quota.reserve@4` `usage()` (ADR-054), `history` included since version 9 (ADR-055), read after the states; answered while core-engine is not active too |
 | `mete/events` | request | `{ runId }` | `{ events, unreadable }`: the run's persisted events in order, as `mete events` reads them, and the count of rows that no longer parse; errors as for `mete/status` |
 | `mete/audit` | request | `{ runId?, verdict?, action?, limit? }` | `{ entries }`: the workspace audit log (SECURITY.md), newest first, each row with `seq`, `ts`, `runId`, `agentId`, `action`, `capability`, `adapterId`, `argsSha256`, `verdict`, `rule` and `tainted`; answered while core-engine is not active too |

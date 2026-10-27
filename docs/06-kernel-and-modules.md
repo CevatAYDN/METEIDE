@@ -279,7 +279,10 @@ export interface TeamEngineAdapter {
   cancel(runId: string): Promise<Result<void, EngineError>>;   // aborts everything in flight; the kill switch calls it
   approve(runId: string, input: ApprovalInput): Promise<Result<void, EngineError>>;   // a run paused for approval;
                                                                // records the decision, then resumes the run
-  status(runId?: string): Result<RunView[], EngineError>;      // one run, or all runs of the workspace, newest first
+  status(runId?: string): Result<RunView[], EngineError>;      // one run, or all runs of the workspace, newest first;
+                                                               // one run carries prefer, its model choice (ADR-125)
+  model?(runId: string, model: ModelRef | null, roleId?: string): Promise<Result<void, EngineError>>;   // ADR-122
+  transcript?(runId: string): Promise<Result<Transcript, EngineError>>;   // the steps of its saved conversation, masked (ADR-125)
 }
 
 export interface CapabilityRegistry {
