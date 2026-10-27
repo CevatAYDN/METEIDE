@@ -4,7 +4,8 @@ import { jsonOf } from "./guardrail.js";
 import type { Platform } from "./prompt.js";
 import type { TeamState } from "./team.js";
 
-// An approver role's review of a submitted task (docs/08, Task execution sequence, step 7). Pure.
+// An approver role's review of a submitted task (docs/08, Task execution sequence, step 7): findings
+// first, then the verdict (ADR-134). Pure.
 
 /** A reviewer's verdict; a revision says what to change. */
 export const VerdictSchema = z
@@ -20,11 +21,18 @@ export const VerdictSchema = z
 /** A checked verdict. */
 export type Verdict = z.output<typeof VerdictSchema>;
 
+// Every fenced block of a reply; the verdict comes after the findings, which may quote code (ADR-134).
+const FENCES = /```[^\n]*\r?\n([\s\S]*?)\r?\n[ \t]*```/g;
+
+const verdictJson = (reply: string) =>
+	jsonOf(reply) ??
+	[...reply.matchAll(FENCES)].flatMap((m) => jsonOf(m[1] ?? "") ?? []).at(-1);
+
 /** The reviewer's verdict from its reply, or what is wrong with it. */
 export const checkVerdict = (
 	reply: string,
 ): { ok: true; verdict: Verdict } | { ok: false; issues: string } => {
-	const json = jsonOf(reply);
+	const json = verdictJson(reply);
 	if (!json) return { ok: false, issues: "the reply is not JSON" };
 	const r = VerdictSchema.safeParse(json.value);
 	return r.success
@@ -50,7 +58,8 @@ export const reviewConversation = (
 		`Your goal: ${role?.goal ?? "approve or return work"}.`,
 		"You review a teammate's submission. Check it against the task and the team goal, and read the files it names before you decide.",
 		"Return it with feedback when anything in it is wrong, even if the goal did not forbid it: a misspelled or broken word, text in a script the goal's language does not use, broken markup, a count, a language or a format the goal names that the files do not match, or a claim the files do not support. Approve it only when you found nothing wrong.",
-		'When you decide, reply without calling a tool, with only a JSON object: {"decision": "approve"} or {"decision": "revise", "feedback": "what to change"}.',
+		"When you decide, reply without calling a tool. First write your findings as plain lines: quote each sentence of text a reader of the files will see (not code, markup or styles; for a long text, its headings and first 30 sentences) and mark it right, or wrong with its fix, in the language the goal names; then check, one by one, each thing the goal names or counts.",
+		'End with your verdict as a JSON object in a ```json block: {"decision": "approve"} or {"decision": "revise", "feedback": "what to change"}.',
 		`Operating system: ${where.os}. Shell: ${where.shell}.`,
 	].join("\n");
 	const report = team.tasks[id]?.context.report ?? "";
