@@ -1,27 +1,12 @@
 import { nls } from "@theia/core/lib/common/nls";
-import { MUTED, ROW, TITLE } from "./look.js";
+import { useId } from "react";
+import { Icon } from "./roster-look.js";
 import type { TeamView } from "./team-draft.js";
 import { orderOfWork, type Step } from "./work-order.js";
 
 // Order of work (ADR-093): the team's tasks in the order a run can start them, read-only. A row
-// selects its member; what a task waits for is edited in the member's form.
-
-const ROWS = {
-	listStyle: "none",
-	margin: 0,
-	padding: 0,
-	display: "flex",
-	flexDirection: "column",
-	gap: "6px",
-} as const;
-const ROWBOX = {
-	...ROW,
-	width: "100%",
-	textAlign: "left",
-	cursor: "pointer",
-	font: "inherit",
-	color: "inherit",
-} as const;
+// selects its member; what a task waits for is edited in the member's form. Laid out by
+// style/mete-team-members.css.
 
 const approvedBy = (s: Step): string | undefined => {
 	if (!s.approver) return undefined;
@@ -56,17 +41,20 @@ const StepRow = (props: {
 		<li>
 			<button
 				type="button"
-				className="mete-card"
-				style={ROWBOX}
+				className="mete-step"
 				disabled={step.member < 0}
 				onClick={() => props.onSelect(step.member)}
 			>
-				<span style={MUTED}>{props.number}</span>
-				<strong>{step.title}</strong>
-				<span>{step.memberName}</span>
-				{notes.length > 0 ? (
-					<span style={MUTED}>{notes.join(" · ")}</span>
-				) : null}
+				<span className="mete-step-n">{props.number}</span>
+				<span className="mete-step-text">
+					<strong>{step.title}</strong>
+					<span className="mete-step-by">
+						{step.memberName}
+						{notes.length > 0 ? (
+							<span className="mete-step-notes">{` · ${notes.join(" · ")}`}</span>
+						) : null}
+					</span>
+				</span>
 			</button>
 		</li>
 	);
@@ -77,18 +65,22 @@ export const OrderOfWork = (props: {
 	readonly team: TeamView;
 	readonly onSelect: (member: number) => void;
 }) => {
+	const title = useId();
 	const steps = orderOfWork(props.team);
 	if (steps.length === 0) return null;
 	return (
-		<>
-			<h3 style={TITLE}>{nls.localize("mete/team/order", "Order of work")}</h3>
-			<p style={MUTED}>
+		<section className="mete-order" aria-labelledby={title}>
+			<h3 id={title}>
+				<Icon name="list-ordered" />
+				{nls.localize("mete/team/order", "Order of work")}
+			</h3>
+			<p>
 				{nls.localize(
 					"mete/team/orderHint",
 					"Each task starts when the tasks it waits for are done.",
 				)}
 			</p>
-			<ol style={ROWS}>
+			<ol>
 				{steps.map((s, i) => (
 					<StepRow
 						// biome-ignore lint/suspicious/noArrayIndexKey: two new tasks may share a title until the schema refuses it
@@ -99,6 +91,6 @@ export const OrderOfWork = (props: {
 					/>
 				))}
 			</ol>
-		</>
+		</section>
 	);
 };

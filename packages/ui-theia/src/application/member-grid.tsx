@@ -1,43 +1,12 @@
 import { TierSchema } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
-import { MUTED } from "./look.js";
-import { tierLabel } from "./member-look.js";
+import { TIER_ICONS, tierLabel } from "./member-look.js";
+import { Icon } from "./roster-look.js";
 import type { MemberView, TeamView } from "./team-draft.js";
-import { TONES } from "./tone.js";
 
 // The members of the team editor as tiles (ADR-093): one per member, the chosen one pressed; its form
 // shows beside the grid. A tile says who the member is and whether it has work, never its fields.
-
-const GRID = {
-	display: "grid",
-	gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))",
-	gap: "8px",
-} as const;
-const TILE = {
-	display: "flex",
-	flexDirection: "column",
-	gap: "4px",
-	textAlign: "left",
-	minWidth: 0,
-	cursor: "pointer",
-	font: "inherit",
-	color: "inherit",
-} as const;
-const AVATAR = {
-	display: "inline-grid",
-	placeItems: "center",
-	width: "28px",
-	height: "28px",
-	borderRadius: "8px",
-	fontWeight: 800,
-	color: TONES.accent,
-	border: `1.5px solid ${TONES.accent}`,
-} as const;
-const CLIP = {
-	overflow: "hidden",
-	textOverflow: "ellipsis",
-	whiteSpace: "nowrap",
-} as const;
+// Laid out by style/mete-team-members.css.
 
 /** What a member's tile says about its work: how many tasks name it. */
 const tasksText = (n: number): string =>
@@ -47,9 +16,15 @@ const tasksText = (n: number): string =>
 			? nls.localize("mete/team/oneTask", "1 task")
 			: nls.localize("mete/team/tasks", "{0} tasks", n);
 
-const tierText = (tier: string): string => {
+// The lenient draft may hold a tier the schema refuses: it shows as written, without a glyph.
+const Tier = ({ tier }: { readonly tier: string }) => {
 	const t = TierSchema.safeParse(tier);
-	return t.success ? tierLabel(t.data) : tier;
+	return (
+		<span className="mete-member-tier">
+			{t.success ? <Icon name={TIER_ICONS[t.data]} /> : null}
+			{t.success ? tierLabel(t.data) : tier}
+		</span>
+	);
 };
 
 const Tile = (props: {
@@ -63,20 +38,27 @@ const Tile = (props: {
 	return (
 		<button
 			type="button"
-			className="mete-card"
-			style={TILE}
+			className="mete-member-tile"
 			aria-pressed={props.pressed}
 			onClick={props.onSelect}
 		>
-			<span style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-				<span aria-hidden="true" style={AVATAR}>
-					{name.slice(0, 1).toUpperCase()}
+			<span className="mete-member-head">
+				<span className="mete-member-face" aria-hidden="true">
+					<span>{name.slice(0, 1).toUpperCase()}</span>
 				</span>
-				<strong style={CLIP}>{name}</strong>
+				<span className="mete-member-who">
+					<strong>{name}</strong>
+					<Tier tier={member.tier} />
+				</span>
 			</span>
-			<span style={MUTED}>{tierText(member.tier)}</span>
-			<span style={{ ...MUTED, ...CLIP }}>{member.goal.split("\n")[0]}</span>
-			<span style={MUTED}>{tasksText(props.tasks)}</span>
+			<span className="mete-member-goal">{member.goal.split("\n")[0]}</span>
+			<span
+				className={
+					props.tasks === 0 ? "mete-member-count none" : "mete-member-count"
+				}
+			>
+				{tasksText(props.tasks)}
+			</span>
 		</button>
 	);
 };
@@ -88,7 +70,7 @@ export const MemberGrid = (props: {
 	readonly onSelect: (index: number) => void;
 	readonly onAdd: () => void;
 }) => (
-	<div style={GRID}>
+	<div className="mete-member-grid">
 		{props.team.roles.map((r, i) => (
 			<Tile
 				// biome-ignore lint/suspicious/noArrayIndexKey: two new members may share an id until the schema refuses it
@@ -99,12 +81,8 @@ export const MemberGrid = (props: {
 				onSelect={() => props.onSelect(i)}
 			/>
 		))}
-		<button
-			type="button"
-			className="mete-button quiet"
-			style={{ minHeight: "72px" }}
-			onClick={props.onAdd}
-		>
+		<button type="button" className="mete-member-add" onClick={props.onAdd}>
+			<Icon name="add" />
 			{nls.localize("mete/team/addMember", "Add member")}
 		</button>
 	</div>

@@ -106,10 +106,12 @@ describe("TeamEditorView", () => {
 		expect(out).not.toMatch(/<input[^>]*value="frontend_developer"/);
 		// Four tiles, one for each member; the chosen tile is pressed.
 		expect(
-			out.match(/<button type="button" class="mete-card"[^>]*aria-pressed/g),
+			out.match(
+				/<button type="button" class="mete-member-tile"[^>]*aria-pressed/g,
+			),
 		).toHaveLength(4);
 		expect(
-			out.match(/class="mete-card"[^>]*aria-pressed="true"/g),
+			out.match(/class="mete-member-tile"[^>]*aria-pressed="true"/g),
 		).toHaveLength(1);
 	});
 
@@ -117,13 +119,13 @@ describe("TeamEditorView", () => {
 		const doc = addRole(DOC);
 		const out = html(ready(doc, { selected: 0 }));
 		expect(out).toMatch(
-			/<strong[^>]*>UI designer<\/strong><\/span><span[^>]*>Thinker<\/span><span[^>]*>[^<]*<\/span><span[^>]*>1 task<\/span>/,
+			/<strong>UI designer<\/strong><span class="mete-member-tier"><span[^>]*><\/span>Thinker<\/span><\/span><\/span><span class="mete-member-goal">[^<]*<\/span><span class="mete-member-count">1 task<\/span>/,
 		);
 		expect(out).toMatch(
-			/<strong[^>]*>Frontend developer<\/strong><\/span><span[^>]*>Coder</,
+			/<strong>Frontend developer<\/strong><span class="mete-member-tier"><span[^>]*><\/span>Coder</,
 		);
 		// The member just added has no task and a goal and name still to write: its tile shows its id.
-		expect(out).toMatch(/<strong[^>]*>member<\/strong>/);
+		expect(out).toMatch(/<strong>member<\/strong>/);
 		expect(out).toContain(">No task yet<");
 	});
 
@@ -272,14 +274,14 @@ describe("Order of work (ADR-093)", () => {
 		expect(out).toContain("Order of work");
 		const rows = [
 			...out.matchAll(
-				/<li><button[^>]*class="mete-card"[^>]*>(.*?)<\/button><\/li>/g,
+				/<li><button[^>]*class="mete-step"[^>]*>(.*?)<\/button><\/li>/g,
 			),
 		];
 		expect(rows).toHaveLength(3);
 		expect(rows[0]?.[1]).toMatch(
-			/>1<\/span><strong>[^<]+<\/strong><span>UI designer<\/span>/,
+			/>1<\/span><span class="mete-step-text"><strong>[^<]+<\/strong><span class="mete-step-by">UI designer</,
 		);
-		expect(rows[1]?.[1]).toContain("<span>Frontend developer</span>");
+		expect(rows[1]?.[1]).toContain(">Frontend developer<");
 		expect(rows[1]?.[1]).toContain("after ");
 		expect(rows[2]?.[1]).toContain("approved by Lead");
 	});

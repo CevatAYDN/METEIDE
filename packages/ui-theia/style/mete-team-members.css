@@ -1,0 +1,336 @@
+/* The team editor's members in the design set's look (ADR-093, ADR-128): a column with the members
+   as tiles in two columns, Add member as a dashed tile, and the order of work as a card with its
+   steps on a rail, the selected member's form beside it. Every rule hangs off `.mete-team`; the hero
+   is in mete-team.css. */
+
+.mete-team-members {
+	display: flex;
+	align-items: flex-start;
+	gap: 20px;
+}
+
+.mete-team-side {
+	flex: 0 0 420px;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.mete-team-form {
+	flex: 1;
+	min-width: 0;
+}
+
+.mete-team-side > h3,
+.mete-order > h3 {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	font-weight: 800;
+	line-height: 1.3;
+}
+
+.mete-team-side > h3 {
+	margin: 4px 2px 0;
+	font-size: 18px;
+}
+
+.mete-member-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px;
+}
+
+/* A member: the face, the name with its tier, the goal's first line and how many tasks name it. */
+.mete-member-tile {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 14px;
+	font: inherit;
+	text-align: left;
+	color: var(--ink, var(--theia-foreground));
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 14px;
+	cursor: pointer;
+}
+
+.mete-member-tile:hover {
+	border-color: var(--muted, var(--theia-focusBorder));
+}
+
+.mete-member-tile[aria-pressed="true"] {
+	border-color: var(--accent, var(--theia-focusBorder));
+}
+
+.mete-member-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+}
+
+.mete-member-face {
+	flex: none;
+	box-sizing: border-box;
+	display: flex;
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+}
+
+.mete-member-face > span {
+	flex: 1;
+	display: grid;
+	place-items: center;
+	border-radius: 50%;
+	background: var(--chip, var(--theia-badge-background));
+	font-size: 15px;
+	font-weight: 800;
+}
+
+/* The chosen member's face is ringed in the accent, its initial on an accent wash. */
+.mete-member-tile[aria-pressed="true"] .mete-member-face {
+	padding: 2px;
+	border: 2px solid var(--accent, var(--theia-focusBorder));
+}
+
+.mete-member-tile[aria-pressed="true"] .mete-member-face > span {
+	font-size: 14px;
+	background: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 14%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 60%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-member-who {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.mete-member-who > strong {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 14.5px;
+	font-weight: 800;
+	line-height: 1.25;
+}
+
+.mete-member-tier {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 12.5px;
+	font-weight: 700;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-member-tier > .codicon {
+	font-size: 13px;
+}
+
+.mete-member-goal {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 12.5px;
+	font-weight: 600;
+	line-height: 1.4;
+	color: var(--muted, var(--theia-descriptionForeground));
+}
+
+.mete-member-count {
+	align-self: flex-start;
+	padding: 0 9px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 1.5;
+	background: var(--chip, var(--theia-badge-background));
+	color: var(--muted-2, var(--theia-badge-foreground));
+}
+
+.mete-member-tile[aria-pressed="true"] .mete-member-count {
+	background: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 14%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 60%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+/* A member with no task yet: a dashed outline, no fill. */
+.mete-member-count.none,
+.mete-member-tile[aria-pressed="true"] .mete-member-count.none {
+	padding: 0 8px;
+	background: transparent;
+	border: 1.5px dashed var(--line, var(--theia-panel-border));
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-member-add {
+	min-height: 72px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 14px;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+	background: transparent;
+	border: 1.5px dashed var(--line, var(--theia-panel-border));
+	border-radius: 14px;
+	cursor: pointer;
+}
+
+.mete-member-add:hover {
+	color: var(--ink, var(--theia-foreground));
+	background: var(--raised, var(--theia-list-hoverBackground));
+	border-color: var(--muted, var(--theia-focusBorder));
+}
+
+/* The order of work: a card, its steps numbered on a rail. */
+.mete-order {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 16px 14px 12px 16px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 16px;
+}
+
+.mete-order > h3 {
+	font-size: 15px;
+}
+
+.mete-order > p {
+	margin: 0 0 8px;
+	font-size: 12.5px;
+	font-weight: 600;
+	line-height: 1.45;
+	color: var(--muted, var(--theia-descriptionForeground));
+}
+
+.mete-order > ol {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.mete-order li {
+	position: relative;
+}
+
+/* The rail runs from a step's number to the next one, whatever height the steps are. */
+.mete-order li:not(:last-child)::before {
+	content: "";
+	position: absolute;
+	top: 36px;
+	bottom: -12px;
+	left: 21.25px;
+	width: 1.5px;
+	background: var(--line, var(--theia-panel-border));
+}
+
+.mete-step {
+	position: relative;
+	width: 100%;
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 8px;
+	font: inherit;
+	text-align: left;
+	color: var(--ink, var(--theia-foreground));
+	background: transparent;
+	border: 0;
+	border-radius: 10px;
+	cursor: pointer;
+}
+
+.mete-step:disabled {
+	cursor: default;
+}
+
+.mete-step:not(:disabled):hover {
+	background: var(--raised, var(--theia-list-hoverBackground));
+}
+
+.mete-step-n {
+	flex: none;
+	display: grid;
+	place-items: center;
+	box-sizing: border-box;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-size: 12.5px;
+	font-weight: 700;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-step-text {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+.mete-step-text > strong {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 1.35;
+}
+
+.mete-step-by {
+	font-size: 12.5px;
+	font-weight: 700;
+	line-height: 1.4;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-step-notes {
+	font-weight: 600;
+	color: var(--muted, var(--theia-descriptionForeground));
+}
+
+/* A narrow panel puts the form under the members. */
+@container (max-width: 900px) {
+	.mete-team-members {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.mete-team-side {
+		flex-basis: auto;
+	}
+}

@@ -76,3 +76,9 @@ Save beside the title, where the team saves under it, what blocks Save as a red-
 and description, a copy under another id past a quiet rule, and the revision limit and budget as
 three tiles with their numbers in mono at the right. The Save buttons keep their place above the
 members (ADR-093).
+
+The team editor's members are the design set's tiles: a round face with the member's initial (ringed
+in the accent while its form is open), the name with its tier and glyph, the goal's first line and a
+count of its tasks, which is a dashed outline while it has none; Add member is a dashed tile. The
+order of work is a card whose steps hang on a rail, each with its number, title, member and what it
+waits for.

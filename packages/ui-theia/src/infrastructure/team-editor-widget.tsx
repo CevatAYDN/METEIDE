@@ -17,6 +17,7 @@ import { MetePanelWidget } from "./panel-widget.js";
 import "../../style/mete.css";
 import "../../style/mete-form.css";
 import "../../style/mete-team.css";
+import "../../style/mete-team-members.css";
 import { draftIdea, withDraft } from "../application/member-draft.js";
 import { panelRoot } from "../application/panel-root.js";
 import { failureText } from "../application/status-text.js";
