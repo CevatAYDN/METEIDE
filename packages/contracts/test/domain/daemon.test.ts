@@ -19,10 +19,6 @@ import {
 	DaemonEventsResultSchema,
 	DaemonModelsParamsSchema,
 	DaemonModelsResultSchema,
-	DaemonProviderModelsParamsSchema,
-	DaemonProviderModelsResultSchema,
-	DaemonProviderTestParamsSchema,
-	DaemonProviderTestResultSchema,
 	DaemonQuotaResultSchema,
 	DaemonRunAllowParamsSchema,
 	DaemonRunApproveParamsSchema,
@@ -38,6 +34,12 @@ import {
 	DaemonTemplatesResultSchema,
 	RunViewSchema,
 } from "../../src/domain/daemon.js";
+import {
+	DaemonProviderModelsParamsSchema,
+	DaemonProviderModelsResultSchema,
+	DaemonProviderTestParamsSchema,
+	DaemonProviderTestResultSchema,
+} from "../../src/domain/daemon-providers.js";
 import type { EngineError, RunView } from "../../src/domain/engine.js";
 import type { ModelInfo, ProviderError } from "../../src/domain/provider.js";
 

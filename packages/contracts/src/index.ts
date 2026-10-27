@@ -54,10 +54,6 @@ export {
 	DaemonMemberDraftResultSchema,
 	DaemonModelsParamsSchema,
 	DaemonModelsResultSchema,
-	DaemonProviderModelsParamsSchema,
-	DaemonProviderModelsResultSchema,
-	DaemonProviderTestParamsSchema,
-	DaemonProviderTestResultSchema,
 	DaemonQuotaResultSchema,
 	DaemonRunAllowParamsSchema,
 	DaemonRunApproveParamsSchema,
@@ -76,6 +72,12 @@ export {
 	ProviderStateSchema,
 	RunViewSchema,
 } from "./domain/daemon.js";
+export {
+	DaemonProviderModelsParamsSchema,
+	DaemonProviderModelsResultSchema,
+	DaemonProviderTestParamsSchema,
+	DaemonProviderTestResultSchema,
+} from "./domain/daemon-providers.js";
 export {
 	type ApprovalInput,
 	ApprovalInputSchema,
