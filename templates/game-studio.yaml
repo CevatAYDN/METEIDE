@@ -3,8 +3,9 @@
 # entries become tasks of the run (spawns), and developers, an artist and a tester work through
 # them one at a time, each step approved by the lead. The prototype is a browser game without a game
 # engine: gameengine.* gates are skipped while no engine is bound and the tester reports the gap,
-# and the artist writes placeholder files while no media.* capability is bound. Core does not honor
-# before_start, review, retrospective or watches yet; the lines stay as docs/08 writes them.
+# and the artist writes placeholder files while no media.* capability is bound. A developer's work
+# goes to the tester as its pair before the lead (ADR-136). Core does not honor before_start,
+# retrospective or watches yet; the lines stay as docs/08 writes them.
 apiVersion: mete/v1
 kind: TeamTemplate
 metadata:
