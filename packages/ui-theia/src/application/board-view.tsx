@@ -8,10 +8,10 @@ import type { DaemonFailure } from "../domain/status-service.js";
 import { Columns } from "./board-columns.js";
 import { CheckpointList, type RestoreControls } from "./checkpoint-list.js";
 import type { Windows } from "./context-meter.js";
-import { MUTED, PANEL, TITLE } from "./look.js";
+import { MUTED, PANEL } from "./look.js";
+import type { RunFacts } from "./run-hero.js";
+import { RunHero } from "./run-hero-view.js";
 import { RunRail } from "./run-rail.js";
-import type { RunFacts } from "./run-strip.js";
-import { RunStrip } from "./run-strip-view.js";
 import { SingleAgent } from "./single-agent.js";
 import { failureText } from "./status-text.js";
 import { studioText } from "./studio-text.js";
@@ -22,7 +22,7 @@ import { type WaitingControls, WaitingStrip } from "./waiting-strip.js";
 // The Team panel (docs/13, ADR-051): one run's tasks on the Board (To do, In progress and Done),
 // its members in the Team view (ADR-089) or as the Flow graph, both from the view model the fold of @mete/ui-studio keeps. Text is shown as it is: React escapes it.
 // Inline styles on Theia's CSS variables, as the Home view: the DOM panels keep Theia's colours (ADR-052).
-// Under the goal and the strip, a center column and the right rail (ADR-119), laid out by style/mete-run.css.
+// Under the hero band (ADR-127), a center column and the right rail (ADR-119), laid out by style/mete-run.css.
 
 /** What the Board draws: no run chosen yet, waiting for the history, why it failed, or the run. */
 export type BoardModel =
@@ -82,7 +82,7 @@ export type TeamControls = {
 	readonly windows: Windows;
 	/** The Waiting for you strip's answers for the shown run (ADR-091). */
 	readonly waiting: Omit<WaitingControls, "onOpen">;
-	/** What the daemon says of the shown run, for the run strip (ADR-094). */
+	/** What the daemon says of the shown run, for the hero band (ADR-094, ADR-127). */
 	readonly run: RunFacts;
 	/** Sets or clears role preferred model mid-run (ADR-122). */
 	readonly onModel?: (roleId: string, model: ModelRef | null) => void;
@@ -215,8 +215,12 @@ const Board = ({
 	readonly controls: TeamControls;
 }) => (
 	<>
-		<h2 style={TITLE}>{model.goal}</h2>
-		<RunStrip facts={controls.run} view={model.view} />
+		<RunHero
+			goal={model.goal}
+			facts={controls.run}
+			view={model.view}
+			names={controls.names}
+		/>
 		{model.unreadable > 0 ? (
 			<p style={MUTED}>
 				{nls.localize(

@@ -7,7 +7,7 @@ import {
 	RunsSection,
 	WaitingSection,
 } from "../src/application/home-view.js";
-import { chipsOf } from "../src/application/run-strip.js";
+import { heroOf } from "../src/application/run-hero.js";
 import { shortWhen } from "../src/application/time-text.js";
 import {
 	parentTail,
@@ -114,7 +114,7 @@ describe("the Home view", () => {
 		expect(out.indexOf(">Refresh<")).toBeLessThan(out.indexOf("notes"));
 	});
 
-	it("gives a run's status the same tone in the list as in the run strip (ADR-094)", () => {
+	it("gives a run's status the same tone in the list as in the hero band (ADR-094, ADR-127)", () => {
 		const statuses = [
 			"queued",
 			"running",
@@ -125,10 +125,10 @@ describe("the Home view", () => {
 		] as const;
 		for (const status of statuses) {
 			const entry = run(status, "a goal", null);
-			const chip = chipsOf({ run: entry }, EMPTY_TEAM_VIEW, new Date(AT))[0];
+			const pill = heroOf({ run: entry }, EMPTY_TEAM_VIEW).status;
 			const out = html(homeModel({ ok: true, value: [entry] }, AT));
 			expect(out).toContain(
-				`<span class="mete-chip ${chip?.tone}">${chip?.text}</span>`,
+				`<span class="mete-chip ${pill?.tone}">${pill?.word}</span>`,
 			);
 		}
 	});

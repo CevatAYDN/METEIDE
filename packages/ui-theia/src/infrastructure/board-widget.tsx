@@ -36,7 +36,7 @@ import {
 	type ModelSession,
 } from "../application/model-session.js";
 import { panelRoot } from "../application/panel-root.js";
-import type { RunFacts } from "../application/run-strip.js";
+import type { RunFacts } from "../application/run-hero.js";
 import { failureText, plain } from "../application/status-text.js";
 import { roleNames, teamName } from "../application/team-draft.js";
 import { createTranscriptSession } from "../application/transcript-session.js";
@@ -47,6 +47,7 @@ import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
 import { MeteRunComposer } from "./run-composer.js";
 import { MeteShownRun } from "./shown-run.js";
 import { StudioView } from "./studio-view.js";
+import "../../style/mete-components.css";
 import "../../style/mete-run.css";
 import "../../style/mete-side.css";
 

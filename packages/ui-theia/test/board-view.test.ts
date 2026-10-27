@@ -9,8 +9,8 @@ import {
 	type TeamMode,
 } from "../src/application/board-view.js";
 import { restoredText } from "../src/application/checkpoint-list.js";
+import type { RunFacts } from "../src/application/run-hero.js";
 import { stepTab } from "../src/application/run-rail.js";
-import type { RunFacts } from "../src/application/run-strip.js";
 
 // The Board rendered to HTML on Node from a view the real fold built.
 
@@ -97,7 +97,7 @@ const section = (out: string, name: string) => {
 };
 
 describe("the Board view", () => {
-	it("shows the run strip under the goal in every view, once the daemon has answered (ADR-094)", () => {
+	it("shows the hero band in every view, the status over the goal, once the daemon has answered (ADR-094, ADR-127)", () => {
 		const model: BoardModel = {
 			kind: "board",
 			goal: "Build a page",
@@ -128,7 +128,7 @@ describe("the Board view", () => {
 			const out = html(model, mode, undefined, facts);
 			expect(out).toContain("Paused");
 			expect(out).toContain("up to 12 requests, 2 h");
-			expect(out.indexOf("Build a page")).toBeLessThan(out.indexOf("Paused"));
+			expect(out.indexOf("Paused")).toBeLessThan(out.indexOf("Build a page"));
 		}
 		expect(html(model)).not.toContain("up to 12 requests");
 	});

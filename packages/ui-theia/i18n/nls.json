@@ -418,21 +418,24 @@
 		},
 		"strip": {
 			"autonomy": "Autonomy {0}",
+			"calls": "Calls",
 			"cancelled": "Cancelled",
-			"checkpoints": "{0} checkpoints",
+			"checkpoints": "Checkpoints",
 			"completed": "Done",
 			"failed": "Failed",
+			"glance": "Team at a glance",
 			"limits": "up to {0} requests, {1} h",
-			"oneCheckpoint": "1 checkpoint",
 			"paused": "Paused",
+			"progress": "{0} of {1} tasks done",
 			"queued": "Queued",
 			"running": "Running",
 			"singleAgent": "Single agent",
 			"started": "started {0}",
+			"tasks": "tasks",
+			"tokens": "Tokens",
 			"tookHours": "took {0} h {1} min",
 			"tookMinutes": "took {0} min",
-			"tookShort": "took under a minute",
-			"usage": "{0} calls · {1} tokens"
+			"tookShort": "took under a minute"
 		},
 		"studio": {
 			"approved": "{0} is approved and moves to Done.",

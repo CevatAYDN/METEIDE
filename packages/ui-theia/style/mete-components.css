@@ -1,0 +1,312 @@
+/* The redesign's components (ADR-127, docs/13 Design system): the hero band with its wash pill and
+   number tiles, the progress ring and the initial tiles. Each token has a Theia fallback for a
+   high-contrast theme, whose panel root sets none; a component's state tone comes in as `--tone`. */
+
+.mete-hero {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 20px 28px;
+	padding: 22px 22px 22px 26px;
+	background: var(--raised, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+	border-radius: 16px;
+}
+
+.mete-hero-main {
+	flex: 1 1 320px;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+}
+
+/* The state as a wash pill: the tone's wash behind its darkened word, after a dot that pulses while
+   the run runs. */
+.mete-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 9px;
+	height: 32px;
+	padding: 0 15px 0 13px;
+	border-radius: 999px;
+	font-size: 15px;
+	font-weight: 700;
+	background: color-mix(
+		in srgb,
+		var(--tone) 14%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--tone) 60%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-pill::before {
+	content: "";
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--tone);
+}
+
+.mete-pill[data-status="running"]::before {
+	animation: mete-pulse 1.8s ease-out infinite;
+}
+
+@keyframes mete-pulse {
+	from {
+		box-shadow: 0 0 0 0 color-mix(in srgb, var(--tone) 60%, transparent);
+	}
+	to {
+		box-shadow: 0 0 0 8px transparent;
+	}
+}
+
+/* docs/13: inside the panel the subject is its h2, where an artboard, a page, has its h1. */
+.mete-hero-goal {
+	max-width: 100%;
+	margin: 12px 0 0;
+	font-size: 28px;
+	font-weight: 800;
+	line-height: 1.2;
+	letter-spacing: -0.01em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.mete-hero-facts {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0 8px;
+	margin: 6px 0 0;
+	font-weight: 600;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-hero-facts > span + span::before {
+	content: "·";
+	margin-right: 8px;
+	color: var(--muted, var(--theia-descriptionForeground));
+}
+
+/* Number tiles: a small caption over a measured number. */
+.mete-tiles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin: 16px 0 0;
+}
+
+.mete-tiles > div {
+	min-width: 104px;
+	box-sizing: border-box;
+	padding: 10px 16px 11px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 14px;
+}
+
+.mete-tiles dt {
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var(--muted, var(--theia-descriptionForeground));
+}
+
+.mete-tiles dd {
+	margin: 3px 0 0;
+	font-size: 22px;
+	font-weight: 700;
+	line-height: 1.2;
+	font-variant-numeric: tabular-nums;
+}
+
+/* A team at a glance: the ring of its approved tasks, a rule, and one initial tile per member. */
+.mete-glance {
+	flex: none;
+	align-self: stretch;
+	display: flex;
+	align-items: center;
+	gap: 22px;
+	padding: 18px 22px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 14px;
+}
+
+.mete-ring {
+	position: relative;
+	flex: none;
+	width: 84px;
+	height: 84px;
+}
+
+.mete-ring > svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.mete-ring circle {
+	fill: none;
+	stroke-width: 6;
+	stroke: var(--line, var(--theia-panel-border));
+}
+
+.mete-ring circle.mete-ring-done {
+	stroke: var(--accent, var(--theia-focusBorder));
+	stroke-linecap: round;
+	transition: stroke-dasharray 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+	animation: mete-ring 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes mete-ring {
+	from {
+		stroke-dasharray: 0 195;
+	}
+}
+
+.mete-ring-label {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.2;
+	color: var(--muted, var(--theia-descriptionForeground));
+}
+
+.mete-ring-label > .mete-mono {
+	font-size: 18px;
+	font-weight: 700;
+	line-height: 1.1;
+	font-variant-numeric: tabular-nums;
+	color: var(--ink, var(--theia-foreground));
+}
+
+.mete-members {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0;
+	padding: 0 0 0 22px;
+	list-style: none;
+	border-left: 1.5px solid var(--line-soft, var(--theia-panel-border));
+}
+
+.mete-member {
+	width: 96px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+}
+
+/* An initial tile: the role's initial in a ring of its state's tone, the state's icon in the corner;
+   an idle member's ring is dashed and its tile quiet, a done one's face plain. */
+.mete-avatar {
+	position: relative;
+	display: flex;
+	width: 50px;
+	height: 50px;
+	box-sizing: border-box;
+	padding: 3px;
+	border: 2px solid var(--tone);
+	border-radius: 50%;
+}
+
+.mete-avatar-face {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	font-size: 18px;
+	font-weight: 800;
+	background: color-mix(
+		in srgb,
+		var(--tone) 22%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+}
+
+.mete-member[data-state="done"] .mete-avatar-face {
+	background: var(--chip, var(--theia-badge-background));
+}
+
+.mete-member[data-state="idle"] .mete-avatar {
+	border: 2px dashed var(--line, var(--theia-panel-border));
+}
+
+.mete-member[data-state="idle"] .mete-avatar-face {
+	color: var(--muted-2, var(--theia-descriptionForeground));
+	background: var(--raised, var(--theia-editorWidget-background));
+}
+
+.mete-avatar-badge {
+	position: absolute;
+	right: -5px;
+	bottom: -5px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	box-sizing: border-box;
+	border-radius: 50%;
+	border: 2px solid var(--panel, var(--theia-editorWidget-background));
+	background: var(--tone);
+	color: var(--panel, var(--theia-editorWidget-background));
+}
+
+.mete-avatar-badge > .codicon {
+	font-size: 11px;
+}
+
+/* On the warn wash the light panel colour fails AA, so a waiting badge carries the ink. */
+.mete-member[data-state="waits_for_you"] .mete-avatar-badge,
+.mete-member[data-state="quota"] .mete-avatar-badge {
+	color: var(--ink, var(--theia-foreground));
+}
+
+.mete-member-name {
+	max-width: 100%;
+	margin-top: 8px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 13.5px;
+	font-weight: 700;
+	line-height: 1.25;
+}
+
+.mete-member-state {
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var(--muted, var(--theia-descriptionForeground));
+}
+
+.mete-member[data-state="waits_for_you"] .mete-member-state {
+	font-weight: 700;
+	color: color-mix(
+		in srgb,
+		var(--tone) 45%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.mete-pill::before,
+	.mete-ring circle.mete-ring-done {
+		animation: none;
+		transition: none;
+	}
+}

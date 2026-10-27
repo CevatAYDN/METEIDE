@@ -8,7 +8,7 @@ import {
 	needsOfRoles,
 	preferredOf,
 } from "./role-chains.js";
-import type { RunEntry } from "./run-strip.js";
+import type { RunEntry } from "./run-hero.js";
 import { failureText, plain } from "./status-text.js";
 
 // The shown run's model choice for the Team panel (ADR-122): each member's candidate models, asked once

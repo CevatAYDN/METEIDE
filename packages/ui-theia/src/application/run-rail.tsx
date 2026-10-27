@@ -8,7 +8,7 @@ import { MUTED } from "./look.js";
 import { RailTasks } from "./rail-tasks.js";
 import { ResultsList, reportPath } from "./results-list.js";
 import { Icon } from "./roster-look.js";
-import type { RunEntry } from "./run-strip.js";
+import type { RunEntry } from "./run-hero.js";
 
 // The Team panel's right rail (ADR-119): Activity, the run's feed (ADR-092); Artifacts, its reports
 // (ADR-085); and Tasks, as WAI-ARIA tabs. Every panel stays mounted and only the shown one is

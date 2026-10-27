@@ -418,21 +418,24 @@
 		},
 		"strip": {
 			"autonomy": "Özerklik {0}",
+			"calls": "Çağrı",
 			"cancelled": "İptal edildi",
-			"checkpoints": "{0} kontrol noktası",
+			"checkpoints": "Kontrol noktası",
 			"completed": "Bitti",
 			"failed": "Başarısız",
+			"glance": "Ekibe bir bakış",
 			"limits": "en çok {0} istek, {1} sa",
-			"oneCheckpoint": "1 kontrol noktası",
 			"paused": "Duraklatıldı",
+			"progress": "{1} görevden {0} tanesi bitti",
 			"queued": "Sırada",
 			"running": "Çalışıyor",
 			"singleAgent": "Tek ajan",
 			"started": "{0} başladı",
+			"tasks": "görev",
+			"tokens": "Token",
 			"tookHours": "{0} sa {1} dk sürdü",
 			"tookMinutes": "{0} dk sürdü",
-			"tookShort": "bir dakikadan az sürdü",
-			"usage": "{0} çağrı · {1} token"
+			"tookShort": "bir dakikadan az sürdü"
 		},
 		"studio": {
 			"approved": "{0} onaylandı ve Bitti'ye geçiyor.",
