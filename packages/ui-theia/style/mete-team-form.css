@@ -1,0 +1,353 @@
+/* The selected member's form in the design set's look (ADR-075, ADR-128): the head with the face,
+   Draft with a model and Remove; the fields on a grid; the tier as five tiles; Needs and the pin side
+   by side; chips for what the member may use; and the tasks that name it as raised cards. Every rule
+   hangs off `.mete-team`; the hero is in mete-team.css, the tiles in mete-team-members.css. */
+
+.mete-member-form {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+	padding: 20px 22px 22px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 16px;
+}
+
+.mete-member-title {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px 14px;
+}
+
+.mete-member-title > h3 {
+	flex: 1 1 160px;
+	min-width: 0;
+	margin: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 22px;
+	font-weight: 800;
+	line-height: 1.25;
+}
+
+/* The open member's face: the accent ring and wash a pressed tile has, bigger. */
+.mete-member-title > .mete-member-face {
+	width: 46px;
+	height: 46px;
+	padding: 3px;
+	border: 2px solid var(--accent, var(--theia-focusBorder));
+}
+
+.mete-member-title > .mete-member-face > span {
+	font-size: 17px;
+	background: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 14%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 60%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-member-title > .mete-button > .codicon:first-child {
+	color: var(--accent, var(--theia-textLink-foreground));
+}
+
+/* What Draft with a model did, or is doing. */
+.mete-member-note {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 12px;
+	margin: -6px 0 0;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-member-fields {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14px 16px;
+}
+
+.mete-team .mete-wide {
+	grid-column: 1 / -1;
+}
+
+.mete-team textarea.mete-field {
+	font-weight: 500;
+	line-height: 1.5;
+}
+
+/* A locked id: a lock at the field's end. */
+.mete-locked {
+	position: relative;
+	display: block;
+}
+
+.mete-locked > .mete-field {
+	padding-right: 36px;
+}
+
+.mete-locked > .codicon {
+	position: absolute;
+	top: 50%;
+	right: 12px;
+	transform: translateY(-50%);
+	color: var(--muted-2, var(--theia-descriptionForeground));
+	pointer-events: none;
+}
+
+/* The tier: five tiles, the member's own with the accent and a check. */
+.mete-tiers,
+.mete-ticks {
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.mete-tiers > legend,
+.mete-ticks > legend {
+	float: left;
+	margin: 0 0 6px;
+	padding: 0;
+	font-size: 13px;
+	font-weight: 700;
+	line-height: 1.3;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-tiers > div {
+	clear: both;
+	display: grid;
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.mete-tiers > p {
+	margin: 8px 0 0;
+	font-size: 12.5px;
+	font-weight: 600;
+	line-height: 1.45;
+	color: var(--muted, var(--theia-descriptionForeground));
+}
+
+.mete-tier {
+	position: relative;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 12px;
+	font: inherit;
+	text-align: left;
+	color: var(--ink, var(--theia-foreground));
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+	border-radius: 14px;
+	cursor: pointer;
+}
+
+.mete-tier:hover {
+	border-color: var(--muted, var(--theia-focusBorder));
+}
+
+.mete-tier[aria-pressed="true"] {
+	background: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 14%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	border-color: var(--accent, var(--theia-focusBorder));
+}
+
+.mete-tier-glyph {
+	display: grid;
+	place-items: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 10px;
+	background: var(--chip, var(--theia-badge-background));
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-tier[aria-pressed="true"] .mete-tier-glyph {
+	background: var(--accent, var(--theia-focusBorder));
+	color: var(--panel, var(--theia-button-foreground));
+}
+
+.mete-tier-check {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	display: grid;
+	place-items: center;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: var(--accent, var(--theia-focusBorder));
+	color: var(--panel, var(--theia-button-foreground));
+}
+
+.mete-tier-check > .codicon {
+	font-size: 12px;
+}
+
+.mete-tier-text {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.mete-tier-text > span:first-child {
+	font-size: 14px;
+	font-weight: 800;
+	line-height: 1.3;
+}
+
+.mete-tier-text > span:last-child {
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-size: 11.5px;
+	font-weight: 500;
+	line-height: 1.4;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-pin {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+
+.mete-pin > label {
+	font-size: 13px;
+	font-weight: 700;
+	line-height: 1.3;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-pin > p,
+.mete-pin-later {
+	margin: 0;
+	font-size: 12.5px;
+	font-weight: 600;
+	line-height: 1.45;
+	color: var(--muted, var(--theia-descriptionForeground));
+}
+
+/* Ticks: a chip each, the ticked ones on an accent wash. */
+.mete-ticks > div {
+	clear: both;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.mete-team .mete-ticks label {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	height: 32px;
+	padding: 0 11px 0 9px;
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-size: 12.5px;
+	font-weight: 500;
+	color: var(--ink, var(--theia-foreground));
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+	border-radius: 10px;
+	cursor: pointer;
+}
+
+.mete-team .mete-ticks label:has(input:checked) {
+	background: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 14%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	border-color: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 45%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+}
+
+.mete-ticks input {
+	flex: none;
+	width: 15px;
+	height: 15px;
+	margin: 0;
+	accent-color: var(--accent, var(--theia-focusBorder));
+}
+
+/* One tick on its own line: a box and a bold sentence. */
+.mete-team label.mete-tick {
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--ink, var(--theia-foreground));
+	cursor: pointer;
+}
+
+.mete-tick > input {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	accent-color: var(--accent, var(--theia-focusBorder));
+}
+
+.mete-member-pair {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-items: start;
+	gap: 16px;
+}
+
+.mete-member-rule {
+	height: 1.5px;
+	background: var(--line-soft, var(--theia-panel-border));
+}
+
+/* What the member may use and what wakes it. */
+.mete-reach {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.mete-reach-pair {
+	display: grid;
+	grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+	align-items: start;
+	gap: 16px;
+}
+
+/* A narrow panel stacks the tiers' tiles and the pairs. */
+@container (max-width: 1100px) {
+	.mete-tiers > div {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
+@container (max-width: 760px) {
+	.mete-member-fields,
+	.mete-member-pair,
+	.mete-reach-pair,
+	.mete-task-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.mete-tiers > div {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}

@@ -82,3 +82,10 @@ in the accent while its form is open), the name with its tier and glyph, the goa
 count of its tasks, which is a dashed outline while it has none; Add member is a dashed tile. The
 order of work is a card whose steps hang on a rail, each with its number, title, member and what it
 waits for.
+
+The selected member's form takes the design set's look: its ringed face and name with Draft with a
+model and Remove in the head; the id (locked with a lock glyph while the file fixes it), name, goal
+and backstory on a grid; the model tier as five tiles whose own tile carries the accent and a check;
+Needs as ticks that become accent chips beside the pinned model; capabilities, families and wake-up
+artifacts as removable chips with a dashed field that adds one; and each task, and the defaults a task
+list gives the member, as a raised card with its fields on a grid.

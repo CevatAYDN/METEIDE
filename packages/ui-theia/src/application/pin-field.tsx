@@ -1,7 +1,5 @@
 import { nls } from "@theia/core/lib/common/nls";
 import { useId, useState } from "react";
-import { FIELD } from "./fields.js";
-import { MUTED } from "./look.js";
 
 // A member's pinned model (ADR-077): this folder's setting in .mete/pins.yaml, not the team file's,
 // saved when the field is left or Enter is pressed, apart from the team's Save. It offers the models
@@ -22,15 +20,19 @@ type Props = {
 const PinInput = ({ value, models, onPin }: Omit<Props, "fixed">) => {
 	const [draft, setDraft] = useState(value ?? "");
 	const list = useId();
+	const id = useId();
 	const commit = () => {
 		const next = draft.trim() || undefined;
 		if (next !== value) onPin(next);
 	};
 	return (
-		<label style={FIELD}>
-			{nls.localize("mete/team/pin", "Pinned model (optional)")}
+		<div className="mete-pin">
+			<label htmlFor={id}>
+				{nls.localize("mete/team/pin", "Pinned model (optional)")}
+			</label>
 			<input
-				className="mete-field"
+				id={id}
+				className="mete-field mono"
 				list={list}
 				value={draft}
 				placeholder="providerId/modelId"
@@ -45,7 +47,7 @@ const PinInput = ({ value, models, onPin }: Omit<Props, "fixed">) => {
 					<option key={m} value={m} />
 				))}
 			</datalist>
-			<span style={MUTED}>
+			<p>
 				{models.length === 0
 					? nls.localize(
 							"mete/team/pinNoModels",
@@ -55,8 +57,8 @@ const PinInput = ({ value, models, onPin }: Omit<Props, "fixed">) => {
 							"mete/team/pinHint",
 							"This folder's setting in .mete/pins.yaml, not the team file's. The pinned model goes first when it can serve the tier; otherwise the tier's other models carry on.",
 						)}
-			</span>
-		</label>
+			</p>
+		</div>
 	);
 };
 
@@ -71,7 +73,7 @@ export const PinField = (props: Props) =>
 			onPin={props.onPin}
 		/>
 	) : (
-		<p style={MUTED}>
+		<p className="mete-pin-later">
 			{nls.localize(
 				"mete/team/pinLater",
 				"Save the team to pin this member's model.",

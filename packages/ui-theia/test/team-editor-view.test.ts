@@ -83,7 +83,7 @@ describe("TeamEditorView", () => {
 			"Web development",
 			"UI designer",
 			"Frontend developer",
-			"fs.*@1 ×",
+			">fs.*@1<",
 			"Model tier",
 			"never a provider or model",
 			"writes your copy to .mete/teams/web-dev.yaml",
@@ -94,7 +94,7 @@ describe("TeamEditorView", () => {
 		expect(out).not.toContain('role="alert"');
 		// A member that came with the file keeps its id: the chosen member's id field is fixed.
 		expect(out).toMatch(
-			/<input class="mete-field" disabled="" value="frontend_developer"/,
+			/<input class="mete-field mono" disabled="" value="frontend_developer"/,
 		);
 	});
 
@@ -142,7 +142,9 @@ describe("TeamEditorView", () => {
 		for (const id of ["reasoning", "coder", "fast", "long-context", "vision"])
 			expect(out).toContain(`>${id}</span>`);
 		// UI designer's tier is reasoning: its tile is pressed and no select is left.
-		expect(out).toMatch(/aria-pressed="true"><span[^>]*><\/span> Thinker/);
+		expect(out).toMatch(
+			/aria-pressed="true">(?:(?!<\/button>).)*<span>Thinker<\/span>/,
+		);
 		expect(out).not.toContain('<option value="reasoning"');
 	});
 

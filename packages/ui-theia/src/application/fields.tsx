@@ -1,9 +1,9 @@
 import { nls } from "@theia/core/lib/common/nls";
 import { useId, useState } from "react";
-import { ROW } from "./look.js";
+import { Icon } from "./roster-look.js";
 
-// The team editor's plain fields (ADR-075): text, chips of ids and counts. A blank optional field
-// goes out as undefined, so the key leaves the file.
+// The team editor's plain fields (ADR-075): text, chips of ids, counts and ticks. A blank optional
+// field goes out as undefined, so the key leaves the file. Laid out by style/mete-team-form.css.
 
 /** A change at a path of the template; undefined removes the key. */
 export type OnEdit = (
@@ -34,32 +34,36 @@ export const Chips = (props: {
 		setDraft("");
 	};
 	return (
-		<div style={FIELD}>
+		<div className="mete-chips">
 			<span>{props.label}</span>
-			<div style={ROW}>
+			<div>
 				{props.values.map((v) => (
 					<button
 						key={v}
 						type="button"
-						className="mete-button quiet"
+						className="mete-chip-item"
 						title={nls.localize("mete/team/removeChip", "Remove {0}", v)}
+						aria-label={nls.localize("mete/team/removeChip", "Remove {0}", v)}
 						onClick={() => props.onChange(props.values.filter((x) => x !== v))}
 					>
-						{v} ×
+						{v}
+						<Icon name="close" />
 					</button>
 				))}
-				<input
-					className="mete-field"
-					style={{ width: "14em" }}
-					list={list}
-					value={draft}
-					aria-label={props.label}
-					onChange={(e) => setDraft(e.target.value)}
-					onKeyDown={(e) => {
-						if (e.key === "Enter") add();
-					}}
-					onBlur={add}
-				/>
+				<span className="mete-chip-add">
+					<Icon name="add" />
+					<input
+						className="mete-field"
+						list={list}
+						value={draft}
+						aria-label={props.label}
+						onChange={(e) => setDraft(e.target.value)}
+						onKeyDown={(e) => {
+							if (e.key === "Enter") add();
+						}}
+						onBlur={add}
+					/>
+				</span>
 				<datalist id={list}>
 					{props.hints.map((h) => (
 						<option key={h} value={h} />
@@ -76,10 +80,14 @@ export const Text = (props: {
 	readonly value: string;
 	readonly rows?: number;
 	readonly disabled?: boolean;
+	/** An id, a path or a type, which the field shows in mono. */
+	readonly mono?: boolean;
+	/** The label takes the whole row of a grid. */
+	readonly wide?: boolean;
 	readonly onChange: (value: string) => void;
 }) =>
 	props.rows ? (
-		<label style={FIELD}>
+		<label className={props.wide ? "mete-wide" : undefined}>
 			{props.label}
 			<textarea
 				className="mete-field"
@@ -89,10 +97,10 @@ export const Text = (props: {
 			/>
 		</label>
 	) : (
-		<label style={FIELD}>
+		<label className={props.wide ? "mete-wide" : undefined}>
 			{props.label}
 			<input
-				className="mete-field"
+				className={props.mono ? "mete-field mono" : "mete-field"}
 				value={props.value}
 				disabled={props.disabled}
 				onChange={(e) => props.onChange(e.target.value)}
@@ -126,18 +134,18 @@ export const Count = (props: {
 	</label>
 );
 
-/** A set of ticks, one per option. */
+/** A set of ticks, one per option, each a chip that takes the accent while it is ticked. */
 export const Ticks = (props: {
 	readonly label: string;
 	readonly options: readonly string[];
 	readonly values: readonly string[];
 	readonly onChange: (values: readonly string[]) => void;
 }) => (
-	<fieldset style={{ border: "none", padding: 0, margin: 0 }}>
+	<fieldset className="mete-ticks">
 		<legend>{props.label}</legend>
-		<div style={ROW}>
+		<div>
 			{props.options.map((o) => (
-				<label key={o} style={ROW}>
+				<label key={o}>
 					<input
 						type="checkbox"
 						checked={props.values.includes(o)}
@@ -162,7 +170,7 @@ export const Tick = (props: {
 	readonly checked: boolean;
 	readonly onChange: (checked: boolean) => void;
 }) => (
-	<label style={ROW}>
+	<label className="mete-tick">
 		<input
 			type="checkbox"
 			checked={props.checked}

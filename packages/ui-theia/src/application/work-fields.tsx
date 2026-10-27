@@ -1,8 +1,7 @@
 import { TEMPLATE_DEFAULTS } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import { useId } from "react";
-import { Chips, Count, FIELD, type OnEdit, orNone, Text } from "./fields.js";
-import { ROW } from "./look.js";
+import { Chips, Count, type OnEdit, orNone, Text } from "./fields.js";
 import {
 	runsOf,
 	type TeamView,
@@ -13,6 +12,7 @@ import {
 // What the team editor asks of the work (docs/08, Task fields; ADR-075): a task's or a member's
 // spawn defaults' output, approver, verify commands and guardrail, and the team's revision limit and
 // budget. Only what core honors is shown: capability gates, clarify_with and pair_with are not yet.
+// The fields sit in the grid of `.mete-task-grid` (style/mete-team-form.css).
 
 type Path = readonly (string | number)[];
 
@@ -34,9 +34,10 @@ export const Work = (props: {
 					"Expected output (artifact:<type>@<version>, optional)",
 				)}
 				value={work.expected_output ?? ""}
+				mono
 				onChange={(v) => onEdit(at("expected_output"), orNone(v))}
 			/>
-			<label style={FIELD}>
+			<label>
 				{nls.localize("mete/team/approval", "Approved by")}
 				<select
 					className="mete-field"
@@ -81,14 +82,14 @@ const Guardrail = (props: {
 	const schema = work.guardrail?.schema ?? "";
 	const list = useId();
 	return (
-		<div style={{ ...ROW, alignItems: "flex-end" }}>
-			<label style={FIELD}>
+		<div className="mete-guardrail">
+			<label>
 				{nls.localize(
 					"mete/team/guardrail",
 					"Report checked as (artifact type such as gdd@1, optional)",
 				)}
 				<input
-					className="mete-field"
+					className="mete-field mono"
 					list={list}
 					value={schema}
 					onChange={(e) =>
