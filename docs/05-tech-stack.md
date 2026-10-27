@@ -38,6 +38,7 @@ This is the only valid technology list. Anything not listed here needs an ADR be
 | UI motion | Motion | Short purposeful transitions |
 | Studio view | PixiJS + tween.js | 2D renderer for agent characters |
 | 3D preview | `<model-viewer>` | GLB preview of generated assets |
+| HTML preview | Theia Mini Browser (`@theia/mini-browser`) | A generated page rendered beside its source (ADR-129) |
 | Localization | Theia localization for UI, i18next for core messages | English and Turkish |
 
 ## Core and platform

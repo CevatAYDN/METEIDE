@@ -61,6 +61,7 @@
 		"@theia/electron": "1.76.0",
 		"@theia/filesystem": "1.76.0",
 		"@theia/messages": "1.76.0",
+		"@theia/mini-browser": "1.76.0",
 		"@theia/monaco": "1.76.0",
 		"@theia/navigator": "1.76.0",
 		"@theia/plugin-ext": "1.76.0",
