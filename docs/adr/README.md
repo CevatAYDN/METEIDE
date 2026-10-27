@@ -2,7 +2,7 @@
 
 Repository file: `docs/adr/README.md`, one row per decision in the table below. Depends on: 02 Glossary, 03 Architecture.
 
-These 128 decisions are accepted. Changing one requires a new ADR that marks the old one "Superseded by ADR-NNN"; code MUST follow the accepted set.
+These 131 decisions are accepted. Changing one requires a new ADR that marks the old one "Superseded by ADR-NNN"; code MUST follow the accepted set.
 
 | ADR | Decision | Reason | Rejected alternatives | Source |
 | --- | --- | --- | --- | --- |
