@@ -35,6 +35,7 @@ const controls = {
 	onRevise: () => {},
 	onResume: () => {},
 	onOpen: () => {},
+	onShowFiles: () => {},
 };
 const strip = (events: MeteEvent[]) =>
 	renderToStaticMarkup(
@@ -68,6 +69,15 @@ describe("the Waiting for you strip", () => {
 		expect(out).toContain("Revise…");
 		expect(out).toContain('name="feedback" required=""');
 		expect(out).not.toContain("The run waits for you.");
+	});
+
+	it("offers the files of a task that waits in a worktree, and nothing when it has none (ADR-132)", () => {
+		const asked = (payload: object) =>
+			strip([created, event("approval.requested", payload, TASK), paused]);
+		expect(asked({ approver: "human", worktree: "/w/r/t" })).toContain(
+			"Show files",
+		);
+		expect(asked({ approver: "human" })).not.toContain("Show files");
 	});
 
 	it("names a blocked task and offers the instruction that lifts it (docs/07)", () => {

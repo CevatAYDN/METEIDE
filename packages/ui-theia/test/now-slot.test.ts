@@ -51,6 +51,7 @@ const html = (view: TeamView) =>
 				onApprove: () => {},
 				onRevise: () => {},
 				onResume: () => {},
+				onShowFiles: () => {},
 				onOpen: () => {},
 			},
 		}),

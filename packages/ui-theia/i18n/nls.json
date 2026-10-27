@@ -579,10 +579,13 @@
 			"goOn": "Go on",
 			"instruct": "Give an instruction…",
 			"instruction": "What should it do?",
+			"noFiles": "This task has no files to show.",
 			"review": "Review",
 			"run": "The run waits for you.",
 			"send": "Send back",
-			"sendInstruction": "Send the instruction"
+			"sendInstruction": "Send the instruction",
+			"showFiles": "Show files",
+			"whichFile": "Which file?"
 		},
 		"welcome": {
 			"caption": "METE: keys, privacy and web search to start with",

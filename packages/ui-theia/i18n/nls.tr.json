@@ -579,10 +579,13 @@
 			"goOn": "Devam et",
 			"instruct": "Talimat ver…",
 			"instruction": "Ne yapmalı?",
+			"noFiles": "Bu görevin gösterilecek dosyası yok.",
 			"review": "İnceleme",
 			"run": "Çalıştırma seni bekliyor.",
 			"send": "Geri gönder",
-			"sendInstruction": "Talimatı gönder"
+			"sendInstruction": "Talimatı gönder",
+			"showFiles": "Dosyaları göster",
+			"whichFile": "Hangi dosya?"
 		},
 		"welcome": {
 			"caption": "METE: başlamak için anahtarlar, gizlilik ve web araması",

@@ -4,6 +4,7 @@ import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import { ThemeService } from "@theia/core/lib/browser/theming";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
 import { nls } from "@theia/core/lib/common/nls";
+import { QuickInputService } from "@theia/core/lib/common/quick-pick-service";
 import URI from "@theia/core/lib/common/uri";
 import type { Message } from "@theia/core/shared/@lumino/messaging";
 import {
@@ -11,6 +12,7 @@ import {
 	injectable,
 	postConstruct,
 } from "@theia/core/shared/inversify";
+import { FileService } from "@theia/filesystem/lib/browser/file-service";
 import {
 	APPROVE_RUN_COMMAND,
 	RESUME_RUN_COMMAND,
@@ -40,6 +42,7 @@ import type { RunFacts } from "../application/run-hero.js";
 import { failureText, plain } from "../application/status-text.js";
 import { roleNames, teamName } from "../application/team-draft.js";
 import { createTranscriptSession } from "../application/transcript-session.js";
+import { isPage } from "../application/worktree-files.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { FlowView } from "./flow-view.js";
 import { MetePanelWidget } from "./panel-widget.js";
@@ -47,6 +50,7 @@ import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
 import { MeteRunComposer } from "./run-composer.js";
 import { MeteShownRun } from "./shown-run.js";
 import { StudioView } from "./studio-view.js";
+import { worktreeFiles } from "./worktree-files.js";
 import "../../style/mete-avatar.css";
 import "../../style/mete-feed.css";
 import "../../style/mete-hero.css";
@@ -70,6 +74,8 @@ export class MeteBoardWidget extends MetePanelWidget {
 	@inject(MeteRunComposer) protected readonly composer!: MeteRunComposer;
 	@inject(MeteShownRun) protected readonly shownRun!: MeteShownRun;
 	@inject(OpenerService) protected readonly openers!: OpenerService;
+	@inject(FileService) protected readonly files!: FileService;
+	@inject(QuickInputService) protected readonly quick!: QuickInputService;
 
 	protected session: BoardSession = IDLE_BOARD;
 	protected shown = true;
@@ -234,6 +240,36 @@ export class MeteBoardWidget extends MetePanelWidget {
 		}
 	}
 
+	// The files a submitted task wrote, in its worktree, for the human to read before deciding; a page
+	// opens rendered through the Mini Browser (ADR-129, ADR-132).
+	protected async showFiles(worktree: string): Promise<void> {
+		const dir = URI.fromFilePath(worktree);
+		try {
+			const names = await worktreeFiles(this.files, dir);
+			if (names.length === 0)
+				return void this.messages.info(
+					nls.localize(
+						"mete/waiting/noFiles",
+						"This task has no files to show.",
+					),
+				);
+			const pick = await this.quick.pick(
+				names.map((label) => ({ label })),
+				{
+					placeHolder: nls.localize("mete/waiting/whichFile", "Which file?"),
+				},
+			);
+			if (pick)
+				await open(
+					this.openers,
+					dir.resolve(pick.label),
+					isPage(pick.label) ? { openFor: "preview" } : {},
+				);
+		} catch (e) {
+			void this.messages.warn(String(e));
+		}
+	}
+
 	protected override onAfterShow(msg: Message): void {
 		super.onAfterShow(msg);
 		this.shown = true;
@@ -323,6 +359,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 					void this.decide(REVISE_RUN_COMMAND.id, feedback),
 				onResume: () => void this.decide(RESUME_RUN_COMMAND.id),
 				onAllow: (scope) => this.allowShown(scope),
+				onShowFiles: (worktree) => void this.showFiles(worktree),
 			},
 		};
 	}
