@@ -5,11 +5,12 @@ import type { ChatMessage } from "@mete/contracts";
 /** Where the agent works: the operating system and the shell shell.exec@1 runs. */
 export type Platform = { readonly os: string; readonly shell: string };
 
-/** The system message for role `assistant`, then the start brief, if any, and the goal. */
+/** The system message for role `assistant`, then the start brief and the workspace block, if any, and the goal. */
 export const openingMessages = (
 	goal: string,
 	where: Platform,
 	brief?: string,
+	workspace?: string,
 ): ChatMessage[] => [
 	{
 		role: "system",
@@ -21,13 +22,11 @@ export const openingMessages = (
 			`Operating system: ${where.os}. Shell: ${where.shell}.`,
 		].join("\n"),
 	},
-	// The brief is data from earlier runs, so it goes with the user message, never the system one.
+	// The brief and the workspace are data, so they go with the user message, never the system one.
 	{
 		role: "user",
-		content: brief
-			? `${brief}
-
-${goal}`
-			: goal,
+		content: [brief, workspace, goal]
+			.filter((part) => part !== undefined && part !== "")
+			.join("\n\n"),
 	},
 ];

@@ -128,6 +128,7 @@ const PersistedSchema = z.object({
 		review: text1.optional(),
 		tainted: z.boolean().optional(),
 		brief: z.string().optional(),
+		workspace: z.string().optional(),
 		prefer: RunPreferSchema.optional(),
 		preferRevision: z.number().int().nonnegative().optional(),
 	}),

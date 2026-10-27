@@ -44,6 +44,7 @@ import {
 } from "./run-state.js";
 import { announce } from "./spawned.js";
 import { readTranscript } from "./transcript.js";
+import { readWorkspace } from "./workspace.js";
 
 // team.engine@2 (docs/06 engine types, docs/07 Run state machine, docs/08 Single agent and teams).
 
@@ -101,11 +102,13 @@ type Begin = {
 	readonly team?: TeamState | undefined;
 	readonly opening: Opening;
 	readonly prefer?: RunPrefer | undefined;
+	/** The workspace block, read once when the run starts (ADR-126). */
+	readonly workspace?: string | undefined;
 };
 
 const begin = (
 	s: EngineState,
-	{ id, goal, priority, team, opening, prefer }: Begin,
+	{ id, goal, priority, team, opening, prefer, workspace }: Begin,
 ): Result<{ runId: string }, EngineError> => {
 	const p = policy(s, team);
 	if (!p.ok) return p;
@@ -113,8 +116,10 @@ const begin = (
 	if (!where.ok) return err(fromConfig(where.error));
 	const brief = opening.brief;
 	// A team task opens its own conversation when it starts (team-driver).
-	const messages = team ? [] : openingMessages(goal, where.value, brief);
-	const input = { goal, priority, messages, brief, prefer };
+	const messages = team
+		? []
+		: openingMessages(goal, where.value, brief, workspace);
+	const input = { goal, priority, messages, brief, workspace, prefer };
 	const [fresh] = initialTransition(runMachine, input);
 	const snapshot = team
 		? transition(runMachine, fresh, { type: "TEAM", team })[0]
@@ -188,6 +193,7 @@ const start = async (s: EngineState, req: RunStart): Out<{ runId: string }> => {
 		team: team.value,
 		opening: opening.value,
 		prefer,
+		workspace: await readWorkspace(s.deps, id),
 	});
 };
 

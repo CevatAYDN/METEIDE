@@ -15,6 +15,10 @@ export const REVIEW_REPAIRS = 2;
 /** Characters the start brief may take, its label included (08 Orchestration and teams, Run memory). */
 export const BRIEF_MAX_CHARS = 4000;
 
+/** Characters the workspace block may take, its label included, and the top-folder names it lists (08 Orchestration and teams, Agent context assembly; ADR-126). */
+export const WORKSPACE_MAX_CHARS = 4000;
+export const WORKSPACE_MAX_NAMES = 100;
+
 /** Share of the tier window at which older turns are summarized (08 Orchestration and teams, Agent context assembly). */
 export const SUMMARY_AT = 0.7;
 

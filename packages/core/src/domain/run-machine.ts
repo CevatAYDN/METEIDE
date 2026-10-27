@@ -61,6 +61,8 @@ export type RunContext = {
 	readonly review?: string | undefined;
 	/** The start brief every conversation of the run opens with (docs/08, Run memory). */
 	readonly brief?: string | undefined;
+	/** The workspace block every task conversation and the single agent's open with (ADR-126). */
+	readonly workspace?: string | undefined;
 	/** External content joined this attempt, so its tool calls are tainted (SECURITY.md). */
 	readonly tainted?: boolean | undefined;
 	/** The chosen model for the single agent or per role (ADR-122). */
@@ -128,6 +130,7 @@ export const runMachine = setup({
 			priority: 0 | 1 | 2;
 			messages: readonly ChatMessage[];
 			brief?: string | undefined;
+			workspace?: string | undefined;
 			prefer?: RunPrefer | undefined;
 		},
 	},
@@ -139,6 +142,7 @@ export const runMachine = setup({
 		priority: input.priority,
 		messages: input.messages,
 		...(input.brief ? { brief: input.brief } : {}),
+		...(input.workspace ? { workspace: input.workspace } : {}),
 		...(input.prefer ? { prefer: input.prefer } : {}),
 		preferRevision: 0,
 		turns: 0,

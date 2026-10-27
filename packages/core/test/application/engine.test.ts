@@ -279,6 +279,29 @@ describe("single-agent engine", () => {
 		expect(rows[0]?.body).not.toMatch(/MARKER/);
 	});
 
+	it("opens with the workspace's top folder and its first instructions file, as data (ADR-126)", async () => {
+		const read: Tool = async (input) =>
+			ok({
+				content: `rules of ${JSON.stringify(input)}`,
+				totalLines: 1,
+				lineEnding: "none",
+			});
+		const h = engineHarness({
+			scripts: [reply("done")],
+			tools: [
+				["fs.list@1", async () => ok({ paths: ["AGENTS.md", "README.md"] })],
+				["fs.read@1", read],
+			],
+		});
+		await settled(h, await begin(h, "fix it"), "completed");
+		const user = String(h.requests[0]?.messages[1]?.content);
+		expect(user).toMatch(/^<workspace> The project's top folder/);
+		expect(user).toContain("Top folder: AGENTS.md, README.md");
+		expect(user).toContain('## AGENTS.md\nrules of {"path":"AGENTS.md"}');
+		expect(user).not.toContain("## README.md");
+		expect(user.endsWith("</workspace>\n\nfix it")).toBe(true);
+	});
+
 	it("offers the next run the open handoff in one line, never its body", async () => {
 		const h = engineHarness({ scripts: [reply("done")] });
 		await settled(h, await begin(h, "first goal"), "completed");

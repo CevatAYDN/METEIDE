@@ -93,7 +93,15 @@ const reports = (team: TeamState, id: string) =>
 export const taskConversation = (
 	team: TeamState,
 	id: string,
-	{ goal, brief }: { goal: string; brief?: string | undefined },
+	{
+		goal,
+		brief,
+		workspace,
+	}: {
+		goal: string;
+		brief?: string | undefined;
+		workspace?: string | undefined;
+	},
 	where: Platform,
 ): ChatMessage[] => {
 	const entry = team.tasks[id];
@@ -112,6 +120,7 @@ export const taskConversation = (
 		];
 	const user = [
 		...(brief ? [brief] : []),
+		...(workspace ? [workspace] : []),
 		`Team goal: ${goal}`,
 		`Your task: ${taskOf(team, id)?.title ?? id}`,
 		...acceptance(team, id),
