@@ -22,6 +22,7 @@
 			"export": "Export as JSON…",
 			"exportTitle": "Export the audit log",
 			"exported": "Exported {0} audit row(s).",
+			"filters": "Filters",
 			"loading": "Reading the audit log…",
 			"none": "No audit rows match these filters.",
 			"open": "Open audit log",

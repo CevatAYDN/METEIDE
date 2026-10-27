@@ -1,12 +1,13 @@
 import { type AuditEntry, PolicyActionSchema } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import type { AuditFilter, DaemonFailure } from "../domain/status-service.js";
-import { CELL, PANEL, ROW } from "./look.js";
+import { Icon } from "./roster-look.js";
+import { ScreenHero } from "./screen-hero.js";
 import { failureText, noFolderText } from "./status-text.js";
 
 // The Audit log view (docs/13; SECURITY.md, Audit log; ADR-053): the workspace's policy decisions,
 // newest first, filtered by run, verdict and action, and exported as JSON. Text is shown as it is:
-// React escapes it. Inline styles on Theia's CSS variables, as the other panels.
+// React escapes it. Laid out by style/mete-audit.css.
 
 /** What the view draws: waiting, no folder, why the daemon gave no rows, or the rows. */
 export type AuditModel =
@@ -44,12 +45,11 @@ const Choice = ({
 	}[];
 	readonly onChange: (value: string | undefined) => void;
 }) => (
-	<label style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+	<label>
 		{label}
 		<select
-			className="theia-select"
 			// A run is named by its goal, which can be long: the box stays a box, the text is cut.
-			style={{ maxWidth: "24em" }}
+			className={value === undefined ? "mete-field" : "mete-field active"}
 			value={value ?? ""}
 			onChange={(e) => onChange(e.target.value || undefined)}
 		>
@@ -74,7 +74,11 @@ const withField = <K extends keyof AuditFilter>(
 };
 
 const Filters = ({ c }: { readonly c: AuditControls }) => (
-	<div style={ROW}>
+	<section
+		className="mete-audit-filters"
+		aria-label={nls.localize("mete/audit/filters", "Filters")}
+	>
+		<Icon name="filter" />
 		<Choice
 			label={nls.localize("mete/audit/run", "Run")}
 			value={c.filter.runId}
@@ -105,53 +109,90 @@ const Filters = ({ c }: { readonly c: AuditControls }) => (
 				)
 			}
 		/>
-	</div>
+	</section>
+);
+
+const VERDICT_ICONS = {
+	allow: "check",
+	ask: "question",
+	deny: "circle-slash",
+} as const;
+
+// A verdict in words with its glyph and tone, never a colour alone.
+const Verdict = ({ verdict }: { readonly verdict: AuditEntry["verdict"] }) => (
+	<span className={`mete-verdict ${verdict}`}>
+		<Icon name={VERDICT_ICONS[verdict]} />
+		{verdict}
+	</span>
 );
 
 const Rows = ({ entries }: { readonly entries: readonly AuditEntry[] }) =>
 	entries.length === 0 ? (
-		<p>
+		<p className="mete-audit-state">
 			{nls.localize("mete/audit/none", "No audit rows match these filters.")}
 		</p>
 	) : (
-		<table style={{ borderCollapse: "collapse", width: "100%" }}>
-			<thead>
-				<tr>
-					{[
-						nls.localize("mete/audit/time", "Time"),
-						nls.localize("mete/audit/action", "Action"),
-						nls.localize("mete/audit/capability", "Capability"),
-						nls.localize("mete/audit/verdict", "Verdict"),
-						nls.localize("mete/audit/rule", "Rule"),
-					].map((h) => (
-						<th key={h} scope="col" style={CELL}>
-							{h}
-						</th>
-					))}
-				</tr>
-			</thead>
-			<tbody>
-				{entries.map((e) => (
-					<tr key={e.seq}>
-						<td style={CELL}>{new Date(e.ts).toLocaleString()}</td>
-						<td style={CELL}>{e.action}</td>
-						<td style={CELL}>{e.capability}</td>
-						<td style={CELL}>{e.verdict}</td>
-						<td style={CELL}>{e.rule}</td>
+		<section
+			className="mete-table-card mete-audit-card"
+			aria-label={nls.localize("mete/audit/title", "Audit log")}
+		>
+			<table>
+				<colgroup>
+					<col className="time" />
+					<col className="action" />
+					<col className="capability" />
+					<col className="verdict" />
+					<col />
+				</colgroup>
+				<thead>
+					<tr>
+						{[
+							nls.localize("mete/audit/time", "Time"),
+							nls.localize("mete/audit/action", "Action"),
+							nls.localize("mete/audit/capability", "Capability"),
+							nls.localize("mete/audit/verdict", "Verdict"),
+							nls.localize("mete/audit/rule", "Rule"),
+						].map((h) => (
+							<th key={h} scope="col">
+								{h}
+							</th>
+						))}
 					</tr>
-				))}
-			</tbody>
-		</table>
+				</thead>
+				<tbody>
+					{entries.map((e) => (
+						<tr key={e.seq}>
+							<td className="mete-audit-time">
+								{new Date(e.ts).toLocaleString()}
+							</td>
+							<td className="mete-audit-action">{e.action}</td>
+							<td className="mete-audit-dim">{e.capability}</td>
+							<td>
+								<Verdict verdict={e.verdict} />
+							</td>
+							<td className="mete-audit-dim">{e.rule}</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</section>
 	);
 
 const Body = ({ model }: { readonly model: AuditModel }) => {
 	if (model.kind === "loading")
 		return (
-			<p>{nls.localize("mete/audit/loading", "Reading the audit log…")}</p>
+			<p className="mete-audit-state">
+				{nls.localize("mete/audit/loading", "Reading the audit log…")}
+			</p>
 		);
-	if (model.kind === "no_folder") return <p>{noFolderText()}</p>;
+	if (model.kind === "no_folder")
+		return <p className="mete-audit-state">{noFolderText()}</p>;
 	if (model.kind === "failed")
-		return <p role="alert">{failureText(model.failure)}</p>;
+		return (
+			<p className="mete-audit-state" role="alert">
+				{failureText(model.failure)}
+			</p>
+		);
 	return <Rows entries={model.entries} />;
 };
 
@@ -163,25 +204,38 @@ export const AuditView = ({
 	readonly model: AuditModel;
 	readonly controls: AuditControls;
 }) => (
-	<section style={PANEL} aria-live="polite">
+	<section className="mete-screen mete-audit" aria-live="polite">
+		<ScreenHero
+			compact
+			icon="shield"
+			title={nls.localize("mete/audit/title", "Audit log")}
+			caption={nls.localize(
+				"mete/audit/caption",
+				"METE: the policy's decisions",
+			)}
+			actions={
+				<div className="mete-screen-actions">
+					<button
+						type="button"
+						className="mete-button quiet"
+						onClick={controls.onRefresh}
+					>
+						<Icon name="refresh" />
+						{nls.localize("mete/home/refresh", "Refresh")}
+					</button>
+					<button
+						type="button"
+						className="mete-button quiet"
+						disabled={model.kind !== "rows" || model.entries.length === 0}
+						onClick={controls.onExport}
+					>
+						<Icon name="export" />
+						{nls.localize("mete/audit/export", "Export as JSON…")}
+					</button>
+				</div>
+			}
+		/>
 		<Filters c={controls} />
 		<Body model={model} />
-		<div style={ROW}>
-			<button
-				type="button"
-				className="mete-button"
-				onClick={controls.onRefresh}
-			>
-				{nls.localize("mete/home/refresh", "Refresh")}
-			</button>
-			<button
-				type="button"
-				className="mete-button quiet"
-				disabled={model.kind !== "rows" || model.entries.length === 0}
-				onClick={controls.onExport}
-			>
-				{nls.localize("mete/audit/export", "Export as JSON…")}
-			</button>
-		</div>
 	</section>
 );

@@ -94,3 +94,8 @@ The Quota dashboard takes the design set's look: the shared hero band, then one 
 names each provider once over its units, shows the amount used over a thin bar of its limit that
 grows in, and opens a unit's history in place as dated amounts on a rail (a button with a chevron
 instead of a folded list). Settings and the dashboards share one hero band and frame.
+
+The Audit log takes the same frame: the shared hero band with Refresh and Export beside the title, a
+filter bar whose set filters are tinted in the accent, and the rows in a card with each verdict as a
+pill, its word and glyph in the tone of allow, ask or deny. The Quota and Audit tables share one
+card.

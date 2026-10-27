@@ -106,6 +106,49 @@
 	color: var(--muted-2, var(--theia-descriptionForeground));
 }
 
+/* The actions beside a hero's title. */
+.mete-screen-actions {
+	flex: none;
+	display: flex;
+	gap: 8px;
+}
+
+/* A table in a card (the Quota units, the Audit log): a raised head, quiet rules between the rows. */
+.mete-table-card {
+	overflow-x: auto;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 16px;
+}
+
+.mete-table-card > table {
+	width: 100%;
+	border-collapse: collapse;
+	table-layout: fixed;
+}
+
+.mete-table-card thead tr {
+	background: var(--raised, var(--theia-editorWidget-background));
+}
+
+.mete-table-card thead th {
+	padding: 11px 16px;
+	text-align: left;
+	font-size: 12.5px;
+	font-weight: 700;
+	line-height: 1.3;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+	border-bottom: 1.5px solid var(--line, var(--theia-panel-border));
+}
+
+.mete-table-card thead th:first-child {
+	padding-left: 18px;
+}
+
+.mete-table-card tbody tr:hover {
+	background: var(--raised, var(--theia-list-hoverBackground));
+}
+
 /* A button's glyph, after the tiles' own, which are not buttons. */
 .mete-screen .mete-button > .codicon {
 	font-size: 16px;

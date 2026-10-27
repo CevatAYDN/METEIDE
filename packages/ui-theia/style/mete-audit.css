@@ -1,0 +1,155 @@
+/* The Audit log in the design set's look (SECURITY.md, Audit log; ADR-053, ADR-128): the filters in a
+   bar, a filter that is set tinted in the accent, and the rows in a card with each verdict as a
+   pill with its glyph. The root, the hero and the table card are in mete-screen.css. */
+
+.mete-audit-filters {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px 22px;
+	padding: 12px 18px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 14px;
+}
+
+.mete-audit-filters > .codicon {
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-audit-filters label {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 13.5px;
+	font-weight: 700;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-audit-filters .mete-field {
+	width: auto;
+	min-width: 112px;
+	max-width: 24em;
+	min-height: 34px;
+	padding-left: 12px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-size: 13.5px;
+	font-weight: 600;
+}
+
+/* A filter that is set: the accent tints the box. */
+.mete-audit-filters .mete-field.active {
+	background-color: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 8%,
+		var(--panel, var(--theia-input-background))
+	);
+	border-color: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 45%,
+		var(--line, var(--theia-panel-border))
+	);
+}
+
+.mete-audit-card col.time {
+	width: 230px;
+}
+
+.mete-audit-card col.action {
+	width: 210px;
+}
+
+.mete-audit-card col.capability {
+	width: 220px;
+}
+
+.mete-audit-card col.verdict {
+	width: 170px;
+}
+
+.mete-audit-card > table {
+	min-width: 900px;
+}
+
+.mete-audit-card thead th:first-child {
+	padding-left: 20px;
+}
+
+.mete-audit-card tbody {
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-variant-numeric: tabular-nums;
+	font-size: 13px;
+}
+
+.mete-audit-card td {
+	padding: 10px 16px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.mete-audit-card tbody tr + tr > td {
+	border-top: 1.5px solid var(--line-soft, var(--theia-panel-border));
+}
+
+.mete-audit-card td:first-child {
+	padding-left: 20px;
+}
+
+.mete-audit-time {
+	font-size: 12.5px;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-audit-action {
+	font-weight: 700;
+}
+
+.mete-audit-dim {
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+/* A verdict: its word and glyph on a wash of its tone; warn, the lightest, mixes further to the ink. */
+.mete-verdict {
+	--tone: var(--good, var(--theia-testing-iconPassed));
+	--share: 60%;
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	height: 24px;
+	padding: 0 10px 0 7px;
+	border-radius: 999px;
+	font-family: "Baloo 2", system-ui, sans-serif;
+	font-size: 13px;
+	font-weight: 700;
+	background: color-mix(
+		in srgb,
+		var(--tone) 14%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--tone) var(--share),
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-verdict.ask {
+	--tone: var(--warn, var(--theia-editorWarning-foreground));
+	--share: 45%;
+}
+
+.mete-verdict.deny {
+	--tone: var(--bad, var(--theia-errorForeground));
+}
+
+.mete-verdict > .codicon {
+	font-size: 14px;
+}
+
+.mete-audit-state {
+	margin: 0 4px;
+	font-weight: 600;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}

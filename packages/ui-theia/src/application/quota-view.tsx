@@ -229,7 +229,7 @@ const Units = ({
 		);
 	return (
 		<section
-			className="mete-quota-card"
+			className="mete-table-card mete-quota-card"
 			aria-label={nls.localize("mete/quota/units", "Quota units")}
 		>
 			<table>

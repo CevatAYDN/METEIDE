@@ -50,13 +50,13 @@ describe("the Audit log view", () => {
 		expect(out).toContain('<option value="allow" selected="">allow</option>');
 		expect(out).toContain(`<option value="${RUN}">fix the typo</option>`);
 		expect(out).toContain('<option value="mcp.call">mcp.call</option>');
-		expect(out).not.toMatch(/disabled="">Export/);
+		expect(out).not.toMatch(/disabled=""><span[^>]*><\/span>Export/);
 	});
 
 	it("says no row matches, and offers no export of nothing", () => {
 		const out = html({ kind: "rows", entries: [] });
 		expect(out).toContain("No audit rows match these filters.");
-		expect(out).toMatch(/disabled="">Export as JSON/);
+		expect(out).toMatch(/disabled=""><span[^>]*><\/span>Export as JSON/);
 	});
 
 	it("says why the daemon gave no rows, or that a folder is needed", () => {

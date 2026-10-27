@@ -22,6 +22,10 @@ import {
 	MeteDaemonService,
 } from "../domain/status-service.js";
 import { MetePanelWidget } from "./panel-widget.js";
+import "../../style/mete.css";
+import "../../style/mete-form.css";
+import "../../style/mete-screen.css";
+import "../../style/mete-audit.css";
 
 // The Audit log view (docs/13; ADR-053) of the first open folder: it asks the daemon again when it
 // opens, on Refresh, on a filter change and on every run.* event of its folder. Export writes the

@@ -22,6 +22,7 @@
 			"export": "JSON olarak dışa aktar…",
 			"exportTitle": "Denetim günlüğünü dışa aktar",
 			"exported": "{0} denetim satırı dışa aktarıldı.",
+			"filters": "Süzgeçler",
 			"loading": "Denetim günlüğü okunuyor…",
 			"none": "Bu filtrelere uyan denetim satırı yok.",
 			"open": "Denetim günlüğünü aç",
