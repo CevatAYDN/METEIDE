@@ -48,6 +48,8 @@ export type TeamView = {
 	 * of an agent starts before the agent exists. Tasks run one at a time, so one call is in flight.
 	 */
 	readonly thinkingSince?: string;
+	/** The files the run's latest handoff lists as changed, as the agents named them (ADR-133). */
+	readonly files?: readonly string[];
 };
 
 // What ends a model call in flight: its own end, or the run stopping while it waited.
@@ -64,6 +66,12 @@ const thinkingAfter = (since: string | undefined, e: MeteEvent) => {
 	return since === undefined || CALL_ENDS.has(e.type)
 		? {}
 		: { thinkingSince: since };
+};
+
+// Each handoff lists every file the run changed so far, so the latest one stands alone.
+const filesAfter = (files: readonly string[] | undefined, e: MeteEvent) => {
+	const now = e.type === "handoff.created" ? e.payload.files : files;
+	return now ? { files: now } : {};
 };
 
 /** The view before the first event. */
@@ -180,6 +188,7 @@ export const applyEvent = (
 		signals: signalsAfter(view.signals, e),
 		checkpoints: checkpointsAfter(view.checkpoints, e),
 		...thinkingAfter(view.thinkingSince, e),
+		...filesAfter(view.files, e),
 	};
 };
 

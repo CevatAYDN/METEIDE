@@ -147,6 +147,19 @@ describe("the team view fold", () => {
 		expect(decided.tasks[0]?.worktree).toBeUndefined();
 	});
 
+	it("keeps the files of the run's latest handoff (ADR-133)", () => {
+		const handoff = (files?: string[]) =>
+			event("handoff.created", {
+				handoffId: crypto.randomUUID(),
+				...(files ? { files } : {}),
+			});
+		const paused = applyAll(RUN, EMPTY_TEAM_VIEW, [handoff(["design/a.html"])]);
+		expect(paused.files).toEqual(["design/a.html"]);
+		const ended = applyAll(RUN, paused, [handoff(["design/a.html", "a.html"])]);
+		expect(ended.files).toEqual(["design/a.html", "a.html"]);
+		expect(applyAll(RUN, ended, [handoff()]).files).toBeUndefined();
+	});
+
 	it("marks a blocked task as waiting for the human, and clears it when the task goes back to work", () => {
 		const working = applyAll(RUN, EMPTY_TEAM_VIEW, [
 			created(NOTES, "Take notes"),
