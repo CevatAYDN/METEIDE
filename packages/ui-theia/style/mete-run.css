@@ -89,6 +89,56 @@
 	border-bottom-color: var(--accent, var(--theia-focusBorder));
 }
 
+/* The view switch as the segmented control (ADR-127): one chip track, the chosen segment raised. */
+.mete-segmented {
+	align-self: flex-start;
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 2px;
+	padding: 3px;
+	background: var(--chip, var(--theia-badge-background));
+	border-radius: 13px;
+}
+
+.mete-segmented > [role="tab"] {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	height: 32px;
+	padding: 0 14px 0 11px;
+	font: inherit;
+	font-size: 13.5px;
+	font-weight: 700;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+	background: transparent;
+	border: 1.5px solid transparent;
+	border-radius: 10px;
+	cursor: pointer;
+}
+
+.mete-segmented > [role="tab"]:hover {
+	color: var(--ink, var(--theia-foreground));
+}
+
+.mete-segmented > [role="tab"][aria-selected="true"] {
+	color: var(--ink, var(--theia-foreground));
+	background: var(--panel, var(--theia-editorWidget-background));
+	border-color: var(--line, var(--theia-panel-border));
+}
+
+.mete-segmented > [role="tab"]:focus-visible {
+	outline: 2px solid var(--accent, var(--theia-focusBorder));
+	outline-offset: 2px;
+}
+
+/* The chosen view grows into the center, so the Flow canvas fills it as it filled the column. */
+.mete-view {
+	flex: 1 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
 /* The Waiting for you strip (ADR-119): a title with the count of waiting tasks over cards that sit
    side by side while the center is wide enough, each a warn wash with a 1.5 px border. */
 .mete-wait {

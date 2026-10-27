@@ -10,7 +10,7 @@ import {
 } from "../src/application/board-view.js";
 import { restoredText } from "../src/application/checkpoint-list.js";
 import type { RunFacts } from "../src/application/run-hero.js";
-import { stepTab } from "../src/application/run-rail.js";
+import { stepTab } from "../src/application/tab-list.js";
 
 // The Board rendered to HTML on Node from a view the real fold built.
 
@@ -48,9 +48,9 @@ const html = (
 			},
 		}),
 	);
-// The pressed mode button: its codicon, then its name.
+// The selected view tab: its codicon, then its name.
 const pressed = (name: string) =>
-	new RegExp(`aria-pressed="true"><span[^>]*></span>${name}<`);
+	new RegExp(`aria-selected="true"[^>]*><span[^>]*></span>${name}<`);
 
 const event = (type: string, payload: object, taskId: string): MeteEvent =>
 	({
@@ -214,14 +214,17 @@ describe("the Board view", () => {
 				createdAt: "2026-10-24T15:00:00",
 			},
 		});
+		// The rail follows the center, whose view switch has tabs of its own.
+		const rail = (out: string) =>
+			out.slice(out.indexOf('aria-label="Run details"'));
 		const selected = (out: string) =>
-			/data-tab="(\w+)" aria-selected="true"/.exec(out)?.[1];
+			/data-tab="(\w+)" aria-selected="true"/.exec(rail(out))?.[1];
 		const withReport = model([doc.created, created]);
 		for (const mode of ["board", "flow", "studio", "team"] as const) {
 			const out = html(withReport, mode, undefined, facts("running"));
 			expect(out.split("Activity · newest first")).toHaveLength(2);
-			expect(out.match(/role="tabpanel"/g)).toHaveLength(3);
-			expect(out.match(/role="tabpanel"[^>]*hidden=""/g)).toHaveLength(2);
+			expect(rail(out).match(/role="tabpanel"/g)).toHaveLength(3);
+			expect(rail(out).match(/role="tabpanel"[^>]*hidden=""/g)).toHaveLength(2);
 			expect(selected(out)).toBe("activity");
 		}
 		expect(
@@ -237,13 +240,15 @@ describe("the Board view", () => {
 		expect(noReport).toContain("No reports yet");
 	});
 
-	it("moves between the rail's tabs with the arrow keys, Home and End, wrapping at the ends", () => {
-		expect(stepTab("activity", "ArrowRight")).toBe("artifacts");
-		expect(stepTab("tasks", "ArrowRight")).toBe("activity");
-		expect(stepTab("activity", "ArrowLeft")).toBe("tasks");
-		expect(stepTab("tasks", "Home")).toBe("activity");
-		expect(stepTab("activity", "End")).toBe("tasks");
-		expect(stepTab("activity", "Enter")).toBeUndefined();
+	const RAIL = ["activity", "artifacts", "tasks"] as const;
+
+	it("moves between tabs with the arrow keys, Home and End, wrapping at the ends", () => {
+		expect(stepTab(RAIL, "activity", "ArrowRight")).toBe("artifacts");
+		expect(stepTab(RAIL, "tasks", "ArrowRight")).toBe("activity");
+		expect(stepTab(RAIL, "activity", "ArrowLeft")).toBe("tasks");
+		expect(stepTab(RAIL, "tasks", "Home")).toBe("activity");
+		expect(stepTab(RAIL, "activity", "End")).toBe("tasks");
+		expect(stepTab(RAIL, "activity", "Enter")).toBeUndefined();
 	});
 
 	it("lists every task in the rail's Tasks tab with where it stands and its member, in the Board's words (ADR-119)", () => {
@@ -462,7 +467,7 @@ describe("the Board view", () => {
 		).not.toContain("Latest events");
 	});
 
-	it("offers the Studio for a single-agent run, which has no board", () => {
+	it("offers Steps, the Studio and the Team for a single-agent run, which has no board or graph (ADR-127)", () => {
 		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [
 			{
 				...task("x").created,
@@ -482,6 +487,8 @@ describe("the Board view", () => {
 		};
 		expect(html(model)).toContain("a single agent works without a board");
 		expect(html(model)).toContain(">Studio<");
+		expect(html(model)).toMatch(pressed("Steps"));
+		expect(html(model)).not.toContain(">Flow<");
 		expect(html(model, "studio")).toContain("studio of 0 task(s)");
 		expect(html(model, "flow")).toContain(
 			"a single agent works without a board",

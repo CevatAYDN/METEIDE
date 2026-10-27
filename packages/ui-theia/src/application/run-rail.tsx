@@ -2,16 +2,16 @@ import type { MeteEvent, Transcript } from "@mete/contracts";
 import type { TeamView } from "@mete/ui-studio";
 import type { MarkdownRenderer } from "@theia/core/lib/browser/markdown-rendering/markdown-renderer";
 import { nls } from "@theia/core/lib/common/nls";
-import { type KeyboardEvent, type ReactNode, useId, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { FeedView } from "./feed-view.js";
 import { MUTED } from "./look.js";
 import { RailTasks } from "./rail-tasks.js";
 import { ResultsList, reportPath } from "./results-list.js";
-import { Icon } from "./roster-look.js";
 import type { RunEntry } from "./run-hero.js";
+import { TabList } from "./tab-list.js";
 
 // The Team panel's right rail (ADR-119): Activity, the run's feed (ADR-092); Artifacts, its reports
-// (ADR-085); and Tasks, as WAI-ARIA tabs. Every panel stays mounted and only the shown one is
+// (ADR-085); and Tasks, as WAI-ARIA tabs (tab-list.tsx). Every panel stays mounted and only the shown one is
 // visible, so the feed keeps its segment and Follow across a switch.
 
 /** A tab of the rail. */
@@ -45,16 +45,6 @@ export const openingTab = (
 ): RailTab =>
 	status && FINISHED.has(status) && reports > 0 ? "artifacts" : "activity";
 
-/** The tab an arrow, Home or End key moves to, wrapping at the ends; none for another key. */
-export const stepTab = (tab: RailTab, key: string): RailTab | undefined => {
-	const at = TABS.indexOf(tab);
-	if (key === "ArrowRight") return TABS[(at + 1) % TABS.length];
-	if (key === "ArrowLeft") return TABS[(at + TABS.length - 1) % TABS.length];
-	if (key === "Home") return TABS[0];
-	if (key === "End") return TABS[TABS.length - 1];
-	return undefined;
-};
-
 const Reports = ({
 	view,
 	count,
@@ -74,50 +64,6 @@ const Reports = ({
 			)}
 		</p>
 	);
-
-// One tab in the tab order, the shown one; the keys move the choice and the focus together.
-const Tabs = ({
-	id,
-	shown,
-	reports,
-	onPick,
-}: {
-	readonly id: string;
-	readonly shown: RailTab;
-	readonly reports: number;
-	readonly onPick: (tab: RailTab) => void;
-}) => {
-	const onKey = (e: KeyboardEvent<HTMLElement>) => {
-		const next = stepTab(shown, e.key);
-		if (!next) return;
-		e.preventDefault();
-		onPick(next);
-		e.currentTarget.querySelector<HTMLElement>(`[data-tab="${next}"]`)?.focus();
-	};
-	return (
-		<div role="tablist" className="mete-rail-tabs" onKeyDown={onKey}>
-			{TABS.map((tab) => (
-				<button
-					key={tab}
-					type="button"
-					role="tab"
-					id={`${id}-${tab}`}
-					data-tab={tab}
-					aria-selected={tab === shown}
-					aria-controls={`${id}-${tab}-panel`}
-					tabIndex={tab === shown ? 0 : -1}
-					onClick={() => onPick(tab)}
-				>
-					<Icon name={ICONS[tab]} />
-					{tabName(tab)}
-					{tab === "artifacts" ? (
-						<span className="mete-count">{reports}</span>
-					) : null}
-				</button>
-			))}
-		</div>
-	);
-};
 
 /** The rail beside the chosen view. */
 export const RunRail = ({
@@ -159,7 +105,18 @@ export const RunRail = ({
 			className="mete-run-rail"
 			aria-label={nls.localize("mete/rail/label", "Run details")}
 		>
-			<Tabs id={id} shown={shown} reports={reports} onPick={setPicked} />
+			<TabList
+				id={id}
+				className="mete-rail-tabs"
+				tabs={TABS.map((tab) => ({
+					key: tab,
+					icon: ICONS[tab],
+					label: tabName(tab),
+					...(tab === "artifacts" ? { count: reports } : {}),
+				}))}
+				shown={shown}
+				onPick={setPicked}
+			/>
 			{TABS.map((tab) => (
 				<div
 					key={tab}

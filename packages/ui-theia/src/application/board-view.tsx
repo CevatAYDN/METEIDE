@@ -2,7 +2,7 @@ import type { MeteEvent, ModelRef } from "@mete/contracts";
 import type { TeamView } from "@mete/ui-studio";
 import type { MarkdownRenderer } from "@theia/core/lib/browser/markdown-rendering/markdown-renderer";
 import { nls } from "@theia/core/lib/common/nls";
-import type { CSSProperties, ReactNode } from "react";
+import { type CSSProperties, type ReactNode, useId } from "react";
 import { rosterOf } from "../domain/roster.js";
 import type { DaemonFailure } from "../domain/status-service.js";
 import { Columns } from "./board-columns.js";
@@ -16,6 +16,7 @@ import { RunRail } from "./run-rail.js";
 import { SingleAgent } from "./single-agent.js";
 import { failureText } from "./status-text.js";
 import { studioText } from "./studio-text.js";
+import { TabList } from "./tab-list.js";
 import { TeamView as Roster } from "./team-view.js";
 import type { TranscriptState } from "./transcript-session.js";
 import type { WaitingControls } from "./waiting-strip.js";
@@ -97,14 +98,6 @@ export type TeamControls = {
 	readonly transcript: TranscriptState;
 };
 
-const modeName = (mode: TeamMode) =>
-	({
-		board: nls.localize("mete/board/boardMode", "Board"),
-		flow: nls.localize("mete/board/flowMode", "Flow"),
-		studio: nls.localize("mete/board/studioMode", "Studio"),
-		team: nls.localize("mete/board/teamMode", "Team"),
-	})[mode];
-
 const MODE_ICONS: Readonly<Record<TeamMode, string>> = {
 	board: "project",
 	flow: "type-hierarchy",
@@ -112,26 +105,53 @@ const MODE_ICONS: Readonly<Record<TeamMode, string>> = {
 	team: "person",
 };
 
-const ModeSwitch = ({ controls }: { readonly controls: TeamControls }) => (
-	<div style={{ display: "flex", gap: "6px" }}>
-		{(["board", "flow", "studio", "team"] as const).map((mode) => (
-			<button
-				key={mode}
-				type="button"
-				className={mode === controls.mode ? "mete-button" : "mete-button quiet"}
-				aria-pressed={mode === controls.mode}
-				onClick={() => controls.onMode(mode)}
-			>
-				<span
-					aria-hidden="true"
-					className={`codicon codicon-${MODE_ICONS[mode]}`}
-					style={{ marginRight: "6px", verticalAlign: "text-bottom" }}
-				/>
-				{modeName(mode)}
-			</button>
-		))}
-	</div>
-);
+// A run without tasks draws its steps where the Board would be, and has no graph to draw (ADR-127).
+const modesOf = (view: TeamView): readonly TeamMode[] =>
+	view.tasks.length === 0
+		? ["board", "studio", "team"]
+		: ["board", "flow", "studio", "team"];
+
+/** The view drawn: the one picked, or the steps for a Flow picked on a run that has no tasks. */
+const shownMode = (mode: TeamMode, view: TeamView): TeamMode =>
+	modesOf(view).includes(mode) ? mode : "board";
+
+const modeName = (mode: TeamMode, steps: boolean) =>
+	steps && mode === "board"
+		? nls.localize("mete/board/stepsMode", "Steps")
+		: {
+				board: nls.localize("mete/board/boardMode", "Board"),
+				flow: nls.localize("mete/board/flowMode", "Flow"),
+				studio: nls.localize("mete/board/studioMode", "Studio"),
+				team: nls.localize("mete/board/teamMode", "Team"),
+			}[mode];
+
+// The segmented control (ADR-127): Board · Flow · Studio · Team, or Steps · Studio · Team.
+const ViewSwitch = ({
+	id,
+	mode,
+	view,
+	onMode,
+}: {
+	readonly id: string;
+	readonly mode: TeamMode;
+	readonly view: TeamView;
+	readonly onMode: (mode: TeamMode) => void;
+}) => {
+	const steps = view.tasks.length === 0;
+	return (
+		<TabList
+			id={id}
+			className="mete-segmented"
+			tabs={modesOf(view).map((m) => ({
+				key: m,
+				icon: steps && m === "board" ? "list-ordered" : MODE_ICONS[m],
+				label: modeName(m, steps),
+			}))}
+			shown={mode}
+			onPick={onMode}
+		/>
+	);
+};
 
 // The Studio's accessible list (docs/13: every visual event is also written to a list).
 const Recent = ({
@@ -172,12 +192,14 @@ const NoBoard = ({
 const Shown = ({
 	model,
 	controls,
+	mode,
 }: {
 	readonly model: Extract<BoardModel, { kind: "board" }>;
 	readonly controls: TeamControls;
+	readonly mode: TeamMode;
 }) => {
 	const steer = steerOf(controls);
-	if (controls.mode === "team")
+	if (mode === "team")
 		return (
 			<Roster
 				members={rosterOf(model.view)}
@@ -188,13 +210,8 @@ const Shown = ({
 				{...(steer ? { onModel: steer } : {})}
 			/>
 		);
-	if (controls.mode === "flow")
-		return model.view.tasks.length === 0 ? (
-			<NoBoard model={model} controls={controls} />
-		) : (
-			controls.flow(model.view)
-		);
-	if (controls.mode === "board")
+	if (mode === "flow") return controls.flow(model.view);
+	if (mode === "board")
 		return model.view.tasks.length === 0 ? (
 			<NoBoard model={model} controls={controls} />
 		) : (
@@ -204,6 +221,36 @@ const Shown = ({
 		<>
 			{controls.studio(model.view, model.pulse)}
 			<Recent view={model.view} recent={model.recent} />
+		</>
+	);
+};
+
+// The view switch over the chosen view, as tabs and their panel.
+const Views = ({
+	model,
+	controls,
+}: {
+	readonly model: Extract<BoardModel, { kind: "board" }>;
+	readonly controls: TeamControls;
+}) => {
+	const id = useId();
+	const mode = shownMode(controls.mode, model.view);
+	return (
+		<>
+			<ViewSwitch
+				id={id}
+				mode={mode}
+				view={model.view}
+				onMode={controls.onMode}
+			/>
+			<div
+				role="tabpanel"
+				id={`${id}-${mode}-panel`}
+				aria-labelledby={`${id}-${mode}`}
+				className="mete-view"
+			>
+				<Shown model={model} controls={controls} mode={mode} />
+			</div>
 		</>
 	);
 };
@@ -243,8 +290,7 @@ const Board = ({
 							windows={controls.windows}
 							waiting={{ ...controls.waiting, onOpen: controls.onOpenReport }}
 						/>
-						<ModeSwitch controls={controls} />
-						<Shown model={model} controls={controls} />
+						<Views model={model} controls={controls} />
 					</>
 				)}
 				<CheckpointList
