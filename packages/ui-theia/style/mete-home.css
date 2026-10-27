@@ -239,6 +239,10 @@
 	align-items: center;
 	border-radius: 999px;
 	font-weight: 700;
+}
+
+/* A muted pill (queued, cancelled) has no state token, so it keeps the base's chip fill. */
+.mete-side .mete-chip:is(.good, .accent, .warn, .bad) {
 	background: color-mix(
 		in srgb,
 		var(--st) var(--wash),
