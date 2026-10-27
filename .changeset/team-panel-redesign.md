@@ -12,3 +12,6 @@ progress, its model and its context share.
 
 The view switch is a segmented control of tabs, with the arrow keys; a single-agent run's reads Steps,
 Studio and Team, since it has no board or graph.
+
+Once a single-agent run has ended, its answer leads the center as a card, above the view switch, and
+its steps follow with each row closed.

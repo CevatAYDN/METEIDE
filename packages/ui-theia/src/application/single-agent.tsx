@@ -4,12 +4,13 @@ import type { MarkdownRenderer } from "@theia/core/lib/browser/markdown-renderin
 import { nls } from "@theia/core/lib/common/nls";
 import { MUTED, TITLE } from "./look.js";
 import { MarkdownView } from "./markdown-view.js";
+import { Icon } from "./roster-look.js";
 import { failureText } from "./status-text.js";
 import { StepList } from "./step-list.js";
 import type { TranscriptState } from "./transcript-session.js";
 
 // A single-agent run in the Team panel's center (docs/13, ADR-125): no board, but the agent's steps
-// as it works, the call in flight with its seconds, and its answer once the run finishes.
+// as it works and the call in flight with its seconds; the center puts its answer above them.
 
 // The answer is the agent's last reply, so that reply is not shown twice.
 const withoutAnswer = (
@@ -22,20 +23,29 @@ const withoutAnswer = (
 		: steps;
 };
 
-const Answer = ({
+/** A finished single agent's answer, leading the center above its steps (ADR-127). */
+export const Answer = ({
 	text,
 	markdown,
 }: {
 	readonly text: string;
 	readonly markdown: MarkdownRenderer;
 }) => (
-	<section aria-label={nls.localize("mete/board/answer", "Answer")}>
-		<h3 style={TITLE}>{nls.localize("mete/board/answer", "Answer")}</h3>
+	<section
+		className="mete-answer"
+		aria-label={nls.localize("mete/board/answer", "Answer")}
+	>
+		<header>
+			<span className="mete-answer-icon">
+				<Icon name="comment" />
+			</span>
+			<h3>{nls.localize("mete/board/answer", "Answer")}</h3>
+		</header>
 		<MarkdownView text={text} renderer={markdown} />
 	</section>
 );
 
-/** The single agent's steps and answer. */
+/** The single agent's steps; its answer, once it has one, leads the center instead (ADR-127). */
 export const SingleAgent = ({
 	view,
 	answer,
@@ -76,7 +86,6 @@ export const SingleAgent = ({
 					/>
 				</section>
 			) : null}
-			{answer ? <Answer text={answer} markdown={markdown} /> : null}
 			{!working && !answer ? (
 				<p style={MUTED}>
 					{nls.localize(

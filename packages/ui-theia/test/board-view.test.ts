@@ -496,7 +496,7 @@ describe("the Board view", () => {
 		expect(html(model, "flow")).not.toContain("flow of");
 	});
 
-	it("shows a finished single-agent run's answer instead of the empty-board note", () => {
+	it("leads the center with a finished single-agent run's answer, in place of the empty-board note (ADR-127)", () => {
 		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [
 			{
 				...task("x").created,
@@ -517,6 +517,13 @@ describe("the Board view", () => {
 		const out = html({ ...base, answer: "# Done\n\nTwo files changed." });
 		expect(out).toContain('aria-label="Answer"');
 		expect(out).toContain(">Answer<");
+		// Once it has ended the answer leads the center, above the view switch (ADR-127).
+		expect(out.indexOf('aria-label="Answer"')).toBeLessThan(
+			out.indexOf('role="tablist"'),
+		);
+		expect(html({ ...base, answer: "Done" }, "studio")).toContain(
+			'aria-label="Answer"',
+		);
 		const center = (page: string) =>
 			page.slice(0, page.indexOf('class="mete-run-rail"'));
 		expect(center(out)).not.toContain("single agent works without a board");

@@ -235,6 +235,56 @@
 	background: var(--chip, var(--theia-badge-background));
 }
 
+/* A finished single agent's answer leads the center (ADR-127): a card whose head names it on a good
+   wash, its Markdown at reading size. */
+.mete-answer {
+	flex: none;
+	padding: 20px 30px 26px 26px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+	border-radius: 16px;
+}
+
+.mete-answer > header {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 18px;
+	padding-bottom: 14px;
+	border-bottom: 1.5px solid var(--line-soft, var(--theia-panel-border));
+}
+
+.mete-answer > header > h3 {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 800;
+}
+
+.mete-answer-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border-radius: 10px;
+	color: color-mix(
+		in srgb,
+		var(--good, var(--theia-testing-iconPassed)) 60%,
+		var(--ink, var(--theia-foreground))
+	);
+	background: color-mix(
+		in srgb,
+		var(--good, var(--theia-testing-iconPassed)) 14%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+}
+
+.mete-answer > :not(header) {
+	max-width: 780px;
+	font-size: 15px;
+	line-height: 1.65;
+}
+
 /* An agent's steps (ADR-125): a quiet timeline down the left edge, the agent's words as Markdown, and
    each tool call as one row of the side vocabulary (tile, label, state word, chevron) that opens its
    arguments and result in JetBrains Mono. */

@@ -13,7 +13,7 @@ import { NowSlot } from "./now-slot.js";
 import type { RunFacts } from "./run-hero.js";
 import { RunHero } from "./run-hero-view.js";
 import { RunRail } from "./run-rail.js";
-import { SingleAgent } from "./single-agent.js";
+import { Answer, SingleAgent } from "./single-agent.js";
 import { failureText } from "./status-text.js";
 import { studioText } from "./studio-text.js";
 import { TabList } from "./tab-list.js";
@@ -280,6 +280,9 @@ const Board = ({
 		) : null}
 		<div className="mete-run-body">
 			<div className="mete-run-center">
+				{model.view.tasks.length === 0 && model.answer ? (
+					<Answer text={model.answer} markdown={controls.markdown} />
+				) : null}
 				{model.view.tasks.length === 0 && model.view.agents.length === 0 ? (
 					<NoBoard model={model} controls={controls} />
 				) : (
