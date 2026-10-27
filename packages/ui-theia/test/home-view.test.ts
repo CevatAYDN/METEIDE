@@ -8,7 +8,7 @@ import {
 	WaitingSection,
 } from "../src/application/home-view.js";
 import { heroOf } from "../src/application/run-hero.js";
-import { shortWhen } from "../src/application/time-text.js";
+import { shortWhen, when } from "../src/application/time-text.js";
 import {
 	parentTail,
 	type Workspace,
@@ -242,6 +242,11 @@ describe("the Home view", () => {
 		expect(inbox).toContain("Open the run to answer.");
 		// A long goal ends in an ellipsis, so the row's tooltip keeps it whole (ADR-109).
 		expect(inbox).toContain('class="mete-title" title="team goal"');
+		// The second line names the team and the time as a Runs row does, so two runs of one goal differ.
+		expect(inbox).toContain(
+			`<span class="mete-sub">Duo · <span class="mete-mono" title="${when(AT)}">${shortWhen(AT)}</span></span>`,
+		);
+		expect(inbox).not.toContain("· duo");
 		// The hint explains that answering happens in the run, so it wraps instead of being cut.
 		expect(inbox).toContain('class="mete-note"');
 	});

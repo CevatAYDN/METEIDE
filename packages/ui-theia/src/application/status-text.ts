@@ -99,6 +99,14 @@ export const waitingBadgeText = (count: number) =>
 		? nls.localize("mete/home/oneWaitingBadge", "1 run waits for you")
 		: nls.localize("mete/home/waitingBadge", "{0} runs wait for you", count);
 
+/** The message of a started run: its goal's first line, which the user knows it by, not its id. */
+export const startedText = (goal: string) =>
+	nls.localize(
+		"mete/run/started",
+		"Run started: {0}",
+		plain(goal.trim().split("\n")[0] ?? goal),
+	);
+
 /** Counts the runs of the folder and names the newest ones by status and goal. */
 export const runsText = (runs: StatusRuns, prepare = asIs) => {
 	if (runs.length === 0)

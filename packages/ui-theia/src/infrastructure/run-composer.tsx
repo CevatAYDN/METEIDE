@@ -1,6 +1,5 @@
 import { CommandService, MessageService } from "@theia/core";
 import { Emitter } from "@theia/core/lib/common/event";
-import { nls } from "@theia/core/lib/common/nls";
 import { inject, injectable } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import {
@@ -17,7 +16,7 @@ import {
 	type ComposerModel,
 	ComposerView,
 } from "../application/composer-view.js";
-import { failureText } from "../application/status-text.js";
+import { failureText, startedText } from "../application/status-text.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import {
 	EDIT_TEAM_COMMAND,
@@ -149,9 +148,7 @@ export class MeteRunComposer {
 
 	protected started(dir: string, runId: string): void {
 		const goal = this.goal;
-		void this.messages.info(
-			nls.localize("mete/run/started", "Run started: {0}", runId),
-		);
+		void this.messages.info(startedText(goal));
 		this.goal = "";
 		this.selected = "choose";
 		this.singleModel = undefined;

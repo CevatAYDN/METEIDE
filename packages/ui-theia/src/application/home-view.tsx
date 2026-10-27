@@ -1,10 +1,11 @@
 import { nls } from "@theia/core/lib/common/nls";
 import type { HomeModel, HomeRow } from "../domain/home-model.js";
+import { roleWords } from "../domain/roster.js";
 import { QUOTA_LOOK, stateText } from "./quota-text.js";
 import { Icon } from "./roster-look.js";
 import { type Act, Button, Empty, Runs } from "./runs-list.js";
 import { failureText, noFolderText } from "./status-text.js";
-import { when } from "./time-text.js";
+import { shortWhen, when } from "./time-text.js";
 
 // The sections of the METE view (docs/13, Home; ADR-078): Waiting for you (the approvals inbox of
 // ADR-048), Runs, Workspaces and Quota, each a part of Theia's view container with its own header.
@@ -12,15 +13,6 @@ import { when } from "./time-text.js";
 // Text is shown as it is: React escapes it, Markdown is not involved.
 // The panel root sets the METE tokens and Baloo 2 (ADR-069); the look is the side view's of the
 // design set (ADR-128), in style/mete-side.css.
-
-const Goal = ({ row }: { readonly row: HomeRow }) => (
-	<>
-		{row.goal}
-		{row.templateId ? (
-			<span className="mete-side-quiet"> · {row.templateId}</span>
-		) : null}
-	</>
-);
 
 // A waiting run's goal opens it in the Team panel, so the human sees the task before deciding
 // (ADR-091, ADR-110): the same link the Runs list uses (runs-list.tsx), reused here.
@@ -37,8 +29,19 @@ const OpenGoal = ({
 		title={nls.localize("mete/home/openRun", "Open in the team panel")}
 		onClick={() => act("open", row.id)}
 	>
-		<Goal row={row} />
+		{row.goal}
 	</button>
+);
+
+// A card's second line is a Runs row's without the chip, since the section says it waits
+// (docs/13, ADR-109): two runs of one goal differ by their time.
+const Sub = ({ row }: { readonly row: HomeRow }) => (
+	<span className="mete-sub">
+		{row.templateId ? `${roleWords(row.templateId)} · ` : ""}
+		<span className="mete-mono" title={when(row.createdAt)}>
+			{shortWhen(row.createdAt)}
+		</span>
+	</span>
 );
 
 // A team run waits for a decision (the check: an approval); a single-agent run waits only for a
@@ -61,6 +64,7 @@ const Waiting = ({
 			<span className="mete-title" title={row.goal}>
 				<OpenGoal row={row} act={act} />
 			</span>
+			<Sub row={row} />
 			<div className="mete-side-actions">
 				{row.templateId ? (
 					<>

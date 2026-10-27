@@ -11,6 +11,7 @@ import { Container } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import { describe, expect, it, vi } from "vitest";
 import { QUOTA_COMMAND } from "../src/application/status-command.js";
+import { startedText } from "../src/application/status-text.js";
 import {
 	type DaemonFailure,
 	MeteDaemonService,
@@ -271,5 +272,13 @@ describe("METE: Status", () => {
 			await t.execute();
 			expect(t.warn).toEqual([text]);
 		}
+	});
+});
+
+describe("the started toast", () => {
+	it("names the run by its goal's first line, escaped for a message, not by its id", () => {
+		expect(startedText("  Build *the* page\nwith two sections")).toBe(
+			"Run started: Build \\*the\\* page",
+		);
 	});
 });
