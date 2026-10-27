@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Team editor — web-dev</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mete.light{--bg:#ECEAF4;--panel:#F8F7FC;--line:#DAD6EA;--ink:#24223A;--muted:#6B6785;--accent:#5B4BD6;--good:#2FA38A;--warn:#E3A13A;--bad:#D9544A;--chip:#E4E0F3;--chrome:#DCD8EC;--side:#E6E3F2;--raised:#EFEDF8;--line-soft:#E2DEF0;--muted-2:#524E6E}
+.mete.dark{--bg:#17162A;--panel:#211F38;--line:#34315A;--ink:#ECEAF7;--muted:#A6A2C4;--accent:#8F83F2;--good:#4CC3A6;--warn:#F0B75A;--bad:#EE7368;--chip:#2D2A4D;--chrome:#121122;--side:#1A192F;--raised:#1C1B32;--line-soft:#2A2848;--muted-2:#B9B5D6}
+@keyframes mete-rise{from{opacity:0;transform:translateY(6px)}}
+.mete .b-p:hover{background:color-mix(in srgb,var(--accent) 76%,var(--ink))!important;border-color:color-mix(in srgb,var(--accent) 76%,var(--ink))!important}
+.mete .b-q:hover{background:var(--raised)!important;border-color:var(--muted)!important}
+.mete .b-g:hover{background:var(--chip)!important;color:var(--ink)!important}
+.mete .tile:hover{border-color:var(--muted)!important}
+.mete .tier:hover{border-color:var(--muted)!important;background:var(--raised)!important}
+.mete .row:hover{background:var(--raised)!important}
+.mete .chip:hover{background:var(--line)!important}
+.mete .fld:hover{border-color:var(--muted)!important}
+.mete button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mete input:focus-visible,.mete select:focus-visible,.mete textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)!important}
+@media (prefers-reduced-motion:reduce){.mete *{animation:none!important}}
+</style>
+</helmet>
+<div class="mete light" style="width:1320px;height:1758px;box-sizing:border-box;padding:20px;background:var(--bg);color:var(--ink);font-family:'Baloo 2',system-ui,sans-serif;font-size:14px;line-height:1.4;display:flex;flex-direction:column;gap:16px">
+
+  <!-- Hero band: which team, where it saves, its name and its rules -->
+  <header style="flex:none;background:var(--raised);border:1.5px solid var(--line);border-radius:16px;padding:22px 22px 22px 26px;display:flex;align-items:stretch;gap:28px">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:16px">
+        <span aria-hidden="true" style="flex:none;width:48px;height:48px;box-sizing:border-box;border-radius:10px;background:var(--panel);border:1.5px solid var(--line-soft);display:flex;align-items:center;justify-content:center;color:var(--accent)">
+          <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5.5" r="2.25"></circle><path d="M2 13.5c.5-2.3 2-3.5 4-3.5s3.5 1.2 4 3.5"></path><circle cx="11.25" cy="5" r="1.75"></circle><path d="M11 9.5c1.6.1 2.6 1.2 3 3.25"></path></svg>
+        </span>
+        <div style="flex:1;min-width:0">
+        <h1 style="margin:0;display:flex;align-items:baseline;gap:10px;font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.01em;white-space:nowrap">Edit team: <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:22px;font-weight:700;letter-spacing:0">web-dev</span></h1>
+        <p style="margin:3px 0 0;font-size:14px;font-weight:600;color:var(--muted-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">METE: edit a team</p>
+        </div>
+        <button class="b-q" style="font:inherit;cursor:pointer;flex:none;display:inline-flex;align-items:center;gap:7px;height:36px;border-radius:10px;font-size:14px;font-weight:700;padding:0 14px 0 12px;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"></path><path d="M9 1.75v3h3M6.5 8.5L5.25 10l1.25 1.5M9.5 8.5l1.25 1.5-1.25 1.5"></path></svg>
+          Open YAML
+        </button>
+        <button class="b-p" style="font:inherit;cursor:pointer;flex:none;display:inline-flex;align-items:center;gap:7px;height:36px;border-radius:10px;font-size:14px;font-weight:700;padding:0 18px 0 14px;background:var(--accent);border:1.5px solid var(--accent);color:var(--panel)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>
+          Save
+        </button>
+      </div>
+      <p style="margin:14px 0 0;font-size:14px;font-weight:600;color:var(--muted-2)">This folder's team, saved in <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500;color:var(--ink)">.mete/teams/web-dev.yaml</span>.</p>
+      <div style="margin-top:18px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:14px">
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Team name
+          <input class="fld" value="Web development" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-size:14.5px;font-weight:700">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Description (optional)
+          <input class="fld" value="A page described in a sentence becomes a built, audited site" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-size:14px;font-weight:600">
+        </label>
+      </div>
+      <!-- Save as new team: with Save and Open YAML above the grid (ADR-093) -->
+      <div style="margin-top:16px;padding-top:16px;border-top:1.5px solid var(--line-soft);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:14px;align-items:end">
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">New team id (such as my-web-team)
+          <input class="fld" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:500">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">New team name
+          <input class="fld" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-size:14px;font-weight:600">
+        </label>
+        <button disabled style="font:inherit;cursor:not-allowed;flex:none;display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px 0 12px;border-radius:10px;font-size:14px;font-weight:700;background:var(--raised);border:1.5px solid var(--line-soft);color:var(--muted)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5"></rect><path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5"></path></svg>
+          Save as new team
+        </button>
+      </div>
+    </div>
+
+    <!-- The team's revision limit and budget -->
+    <section style="flex:none;width:430px;box-sizing:border-box;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+        <label style="display:flex;flex-direction:column;justify-content:space-between;gap:6px;padding:10px 12px 12px;background:var(--raised);border:1.5px solid var(--line-soft);border-radius:14px;font-size:12px;font-weight:700;line-height:1.3;color:var(--muted-2)">Revisions per task
+          <input class="fld" type="number" min="0" placeholder="3" style="font:inherit;width:100%;box-sizing:border-box;height:36px;padding:0 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:18px;font-weight:700">
+        </label>
+        <label style="display:flex;flex-direction:column;justify-content:space-between;gap:6px;padding:10px 12px 12px;background:var(--raised);border:1.5px solid var(--line-soft);border-radius:14px;font-size:12px;font-weight:700;line-height:1.3;color:var(--muted-2)">Cloud requests per run
+          <input class="fld" type="number" min="0" value="120" placeholder="150" style="font:inherit;width:100%;box-sizing:border-box;height:36px;padding:0 10px;border-radius:10px;border:1.5px solid var(--accent);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:18px;font-weight:700">
+        </label>
+        <label style="display:flex;flex-direction:column;justify-content:space-between;gap:6px;padding:10px 12px 12px;background:var(--raised);border:1.5px solid var(--line-soft);border-radius:14px;font-size:12px;font-weight:700;line-height:1.3;color:var(--muted-2)">Hours per run
+          <input class="fld" type="number" min="0" placeholder="6" style="font:inherit;width:100%;box-sizing:border-box;height:36px;padding:0 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:18px;font-weight:700">
+        </label>
+      </div>
+      <p style="margin:0;font-size:12.5px;font-weight:600;line-height:1.45;color:var(--muted)">A run stops at the lower of this budget and your policy's, so a team never raises your limit.</p>
+    </section>
+  </header>
+
+  <!-- Members: the grid and the order of work, the selected member's form beside them -->
+  <div style="flex:none;display:flex;align-items:flex-start;gap:20px">
+
+    <!-- Left column -->
+    <div style="width:420px;flex:none;display:flex;flex-direction:column;gap:14px">
+      <h2 style="margin:4px 2px 0;display:flex;align-items:center;gap:8px;font-size:18px;font-weight:800;line-height:1.3">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--muted-2)"><circle cx="6" cy="5.5" r="2.25"></circle><path d="M2 13.5c.5-2.3 2-3.5 4-3.5s3.5 1.2 4 3.5"></path><circle cx="11.25" cy="5" r="1.75"></circle><path d="M11 9.5c1.6.1 2.6 1.2 3 3.25"></path></svg>
+        Members
+      </h2>
+
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+        <button class="tile" aria-pressed="false" style="font:inherit;cursor:pointer;text-align:left;min-width:0;display:flex;flex-direction:column;gap:8px;padding:14px;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px;color:var(--ink);animation:mete-rise .35s ease-out both">
+          <span style="display:flex;align-items:center;gap:10px;min-width:0">
+            <span aria-hidden="true" style="flex:none;width:34px;height:34px;border-radius:50%;background:var(--chip);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--ink)">U</span>
+            <span style="min-width:0;display:flex;flex-direction:column">
+              <strong style="font-size:14.5px;font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">UI designer</strong>
+              <span style="display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--muted-2)">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 12.25h4M6.5 14.25h3"></path><path d="M8 1.75a4.25 4.25 0 00-2.5 7.7c.4.3.5.6.5 1v.8h4v-.8c0-.4.1-.7.5-1A4.25 4.25 0 008 1.75z"></path></svg>
+                Thinker
+              </span>
+            </span>
+          </span>
+          <span style="font-size:12.5px;font-weight:600;line-height:1.4;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Turn the goal into a short brief for one static page: its purpose, the sections in order with their text, a colour palette with hex values, the fonts to use (system fonts only), and the layout for a phone and for a desktop. Reply with the brief only.</span>
+          <span style="align-self:flex-start;font-size:12px;font-weight:700;line-height:1.5;color:var(--muted-2);background:var(--chip);border-radius:999px;padding:0 9px">1 task</span>
+        </button>
+
+        <button class="tile" aria-pressed="true" style="font:inherit;cursor:pointer;text-align:left;min-width:0;display:flex;flex-direction:column;gap:8px;padding:14px;background:var(--panel);border:1.5px solid var(--accent);border-radius:14px;color:var(--ink);animation:mete-rise .35s .04s ease-out both">
+          <span style="display:flex;align-items:center;gap:10px;min-width:0">
+            <span aria-hidden="true" style="flex:none;width:34px;height:34px;box-sizing:border-box;border-radius:50%;border:2px solid var(--accent);padding:2px;display:flex">
+              <span style="flex:1;border-radius:50%;background:color-mix(in srgb,var(--accent) 14%,var(--panel));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:color-mix(in srgb,var(--accent) 60%,var(--ink))">F</span>
+            </span>
+            <span style="min-width:0;display:flex;flex-direction:column">
+              <strong style="font-size:14.5px;font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Frontend developer</strong>
+              <span style="display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--muted-2)">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5"></path></svg>
+                Coder
+              </span>
+            </span>
+          </span>
+          <span style="font-size:12.5px;font-weight:600;line-height:1.4;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Build the page from the brief as a static site with no dependencies, in the workspace. Create package.json whose &quot;build&quot; script writes the finished site into the dist folder with its index.html at the root (for example &quot;build&quot;: &quot;node build.mjs&quot;, where build.mjs copies the files from src to dist). Create .gitignore with the lines node_modules and dist. Write semantic HTML with a lang attribute, a viewport meta tag, a title and a meta description, give every image alt text, and keep the CSS small. Run npm run build and fix what it reports until it succeeds. Reply with the list of files you wrote.</span>
+          <span style="align-self:flex-start;font-size:12px;font-weight:700;line-height:1.5;color:color-mix(in srgb,var(--accent) 60%,var(--ink));background:color-mix(in srgb,var(--accent) 14%,var(--panel));border-radius:999px;padding:0 9px">1 task</span>
+        </button>
+
+        <button class="tile" aria-pressed="false" style="font:inherit;cursor:pointer;text-align:left;min-width:0;display:flex;flex-direction:column;gap:8px;padding:14px;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px;color:var(--ink);animation:mete-rise .35s .08s ease-out both">
+          <span style="display:flex;align-items:center;gap:10px;min-width:0">
+            <span aria-hidden="true" style="flex:none;width:34px;height:34px;border-radius:50%;background:var(--chip);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--ink)">Q</span>
+            <span style="min-width:0;display:flex;flex-direction:column">
+              <strong style="font-size:14.5px;font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">QA</strong>
+              <span style="display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--muted-2)">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5"></path></svg>
+                Coder
+              </span>
+            </span>
+          </span>
+          <span style="font-size:12.5px;font-weight:600;line-height:1.4;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Check the finished page. Run npm run build and read dist/index.html. Run the SEO audit tool on the folder dist and take a screenshot of it. Reply with a test report: the build result, the four Lighthouse category scores exactly as the tool returns them, every audit that scores below 90 with its id and title, and whether every score is at least 85.</span>
+          <span style="align-self:flex-start;font-size:12px;font-weight:700;line-height:1.5;color:var(--muted-2);background:var(--chip);border-radius:999px;padding:0 9px">1 task</span>
+        </button>
+
+        <button class="tile" aria-pressed="false" style="font:inherit;cursor:pointer;text-align:left;min-width:0;display:flex;flex-direction:column;gap:8px;padding:14px;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px;color:var(--ink);animation:mete-rise .35s .12s ease-out both">
+          <span style="display:flex;align-items:center;gap:10px;min-width:0">
+            <span aria-hidden="true" style="flex:none;width:34px;height:34px;border-radius:50%;background:var(--chip);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--ink)">L</span>
+            <span style="min-width:0;display:flex;flex-direction:column">
+              <strong style="font-size:14.5px;font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Lead</strong>
+              <span style="display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--muted-2)">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 12.25h4M6.5 14.25h3"></path><path d="M8 1.75a4.25 4.25 0 00-2.5 7.7c.4.3.5.6.5 1v.8h4v-.8c0-.4.1-.7.5-1A4.25 4.25 0 008 1.75z"></path></svg>
+                Thinker
+              </span>
+            </span>
+          </span>
+          <span style="font-size:12.5px;font-weight:600;line-height:1.4;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Judge a step only by its own title: later steps cover the rest, so never ask a step for work that belongs to another one (QA runs the build and the Lighthouse audit, the designer and the developer do not). Approve a step whose report does what its title says, or return it with exactly what to fix. For the test report, return it unless the build succeeded and every Lighthouse score is at least 85.</span>
+          <span style="align-self:flex-start;font-size:12px;font-weight:700;line-height:1.5;color:var(--muted-2);border:1.5px dashed var(--line);border-radius:999px;padding:0 8px">No task yet</span>
+        </button>
+
+        <button class="b-q" style="font:inherit;cursor:pointer;min-height:72px;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:transparent;border:1.5px dashed var(--line);border-radius:14px;font-size:14px;font-weight:700;color:var(--muted-2)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg>
+          Add member
+        </button>
+      </div>
+
+      <!-- Order of work (read-only; a row selects its member) -->
+      <section aria-labelledby="order-title" style="background:var(--panel);border:1.5px solid var(--line-soft);border-radius:16px;padding:16px 14px 12px 16px;display:flex;flex-direction:column;gap:4px">
+        <h2 id="order-title" style="margin:0;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;line-height:1.3">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--muted-2)"><path d="M2 4l1.25 1.25L5.5 3M2 10.5l1.25 1.25L5.5 9.5M8 4.25h6M8 10.75h6"></path></svg>
+          Order of work
+        </h2>
+        <p style="margin:0 0 8px;font-size:12.5px;font-weight:600;line-height:1.45;color:var(--muted)">Each task starts when the tasks it waits for are done.</p>
+        <div style="position:relative">
+          <span aria-hidden="true" style="position:absolute;left:21.25px;top:22px;bottom:30px;width:1.5px;background:var(--line)"></span>
+          <ol style="position:relative;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px">
+            <li>
+              <button class="row" style="font:inherit;cursor:pointer;width:100%;text-align:left;display:flex;align-items:flex-start;gap:12px;padding:8px 8px;background:transparent;border:0;border-radius:10px;color:var(--ink)">
+                <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:700;color:var(--muted-2)">1</span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+                  <strong style="font-size:14px;font-weight:700;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Write the design brief for the page</strong>
+                  <span style="font-size:12.5px;font-weight:700;line-height:1.4;color:var(--muted-2)">UI designer <span style="font-weight:600;color:var(--muted)">· approved by Lead</span></span>
+                </span>
+              </button>
+            </li>
+            <li>
+              <button class="row" style="font:inherit;cursor:pointer;width:100%;text-align:left;display:flex;align-items:flex-start;gap:12px;padding:8px 8px;background:transparent;border:0;border-radius:10px;color:var(--ink)">
+                <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:700;color:var(--muted-2)">2</span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+                  <strong style="font-size:14px;font-weight:700;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Build the page and pass the build</strong>
+                  <span style="font-size:12.5px;font-weight:700;line-height:1.4;color:var(--muted-2)">Frontend developer <span style="font-weight:600;color:var(--muted)">· after Write the design brief for the page · approved by Lead</span></span>
+                </span>
+              </button>
+            </li>
+            <li>
+              <button class="row" style="font:inherit;cursor:pointer;width:100%;text-align:left;display:flex;align-items:flex-start;gap:12px;padding:8px 8px;background:transparent;border:0;border-radius:10px;color:var(--ink)">
+                <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:700;color:var(--muted-2)">3</span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+                  <strong style="font-size:14px;font-weight:700;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Build the page again and audit it with Lighthouse</strong>
+                  <span style="font-size:12.5px;font-weight:700;line-height:1.4;color:var(--muted-2)">QA <span style="font-weight:600;color:var(--muted)">· after Build the page and pass the build · approved by Lead</span></span>
+                </span>
+              </button>
+            </li>
+          </ol>
+        </div>
+      </section>
+    </div>
+
+    <!-- The selected member's form -->
+    <section aria-label="Frontend developer" style="flex:1;min-width:0;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:16px;padding:20px 22px 22px;display:flex;flex-direction:column;gap:18px;animation:mete-rise .4s .06s ease-out both">
+
+      <div style="display:flex;align-items:center;gap:14px">
+        <span aria-hidden="true" style="flex:none;width:46px;height:46px;box-sizing:border-box;border-radius:50%;border:2px solid var(--accent);padding:3px;display:flex">
+          <span style="flex:1;border-radius:50%;background:color-mix(in srgb,var(--accent) 14%,var(--panel));display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:color-mix(in srgb,var(--accent) 60%,var(--ink))">F</span>
+        </span>
+        <h2 style="flex:1;min-width:0;margin:0;font-size:22px;font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Frontend developer</h2>
+        <button class="b-q" style="font:inherit;cursor:pointer;flex:none;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px 0 12px;border-radius:10px;font-size:14px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--accent)"><path d="M8 1.75l1.4 3.6 3.6 1.4-3.6 1.4L8 11.75 6.6 8.15 3 6.75l3.6-1.4z"></path><path d="M12.5 10.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"></path></svg>
+          Draft with a model
+        </button>
+        <button class="b-g" style="font:inherit;cursor:pointer;flex:none;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px 0 11px;border-radius:10px;font-size:14px;font-weight:700;background:transparent;border:1.5px solid var(--line);color:var(--muted-2)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.75 4.25h10.5M6.25 4.25v-1.5h3.5v1.5M4 4.25l.6 9.25h6.8l.6-9.25"></path></svg>
+          Remove member
+        </button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 16px">
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Id
+          <span style="position:relative;display:block">
+            <input disabled value="frontend_developer" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 36px 0 12px;border-radius:10px;border:1.5px solid var(--line-soft);background:var(--raised);color:var(--muted-2);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:500;cursor:not-allowed">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;right:13px;top:12px;color:var(--muted)"><rect x="3" y="7" width="10" height="7.25" rx="1.5"></rect><path d="M5.25 7V5a2.75 2.75 0 015.5 0v2"></path></svg>
+          </span>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Name
+          <input class="fld" value="Frontend developer" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-size:14px;font-weight:600">
+        </label>
+        <label style="grid-column:1 / -1;display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Goal
+          <textarea class="fld" rows="3" style="font:inherit;width:100%;box-sizing:border-box;padding:8px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-size:14px;font-weight:500;line-height:1.5;resize:vertical;scrollbar-width:thin">Build the page from the brief as a static site with no dependencies, in the workspace. Create package.json whose "build" script writes the finished site into the dist folder with its index.html at the root (for example "build": "node build.mjs", where build.mjs copies the files from src to dist). Create .gitignore with the lines node_modules and dist. Write semantic HTML with a lang attribute, a viewport meta tag, a title and a meta description, give every image alt text, and keep the CSS small. Run npm run build and fix what it reports until it succeeds. Reply with the list of files you wrote.</textarea>
+        </label>
+        <label style="grid-column:1 / -1;display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Backstory (optional)
+          <textarea class="fld" rows="2" style="font:inherit;width:100%;box-sizing:border-box;padding:8px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-size:14px;font-weight:500;line-height:1.5;resize:vertical">You build fast, accessible pages by hand and check every command you run.</textarea>
+        </label>
+      </div>
+
+      <!-- Model tier as tiles -->
+      <fieldset style="margin:0;padding:0;border:0;min-width:0;display:flex;flex-direction:column;gap:8px">
+        <legend style="float:left;padding:0;margin:0 0 2px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Model tier</legend>
+        <div style="clear:both;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px">
+          <button class="tier" aria-pressed="false" style="font:inherit;cursor:pointer;text-align:left;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:12px;background:var(--panel);border:1.5px solid var(--line);border-radius:14px;color:var(--ink)">
+            <span aria-hidden="true" style="width:32px;height:32px;border-radius:10px;background:var(--chip);color:var(--muted-2);display:flex;align-items:center;justify-content:center">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12.25h4M6.5 14.25h3"></path><path d="M8 1.75a4.25 4.25 0 00-2.5 7.7c.4.3.5.6.5 1v.8h4v-.8c0-.4.1-.7.5-1A4.25 4.25 0 008 1.75z"></path></svg>
+            </span>
+            <span style="display:flex;flex-direction:column;min-width:0">
+              <span style="font-size:14px;font-weight:800;line-height:1.3">Thinker</span>
+              <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;font-weight:500;line-height:1.4;color:var(--muted-2)">reasoning</span>
+            </span>
+          </button>
+          <button aria-pressed="true" style="font:inherit;cursor:pointer;position:relative;text-align:left;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:12px;background:color-mix(in srgb,var(--accent) 14%,var(--panel));border:1.5px solid var(--accent);border-radius:14px;color:var(--ink)">
+            <span aria-hidden="true" style="width:32px;height:32px;border-radius:10px;background:var(--accent);color:var(--panel);display:flex;align-items:center;justify-content:center">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5"></path></svg>
+            </span>
+            <span aria-hidden="true" style="position:absolute;top:10px;right:10px;width:18px;height:18px;border-radius:50%;background:var(--accent);color:var(--panel);display:flex;align-items:center;justify-content:center">
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"></path></svg>
+            </span>
+            <span style="display:flex;flex-direction:column;min-width:0">
+              <span style="font-size:14px;font-weight:800;line-height:1.3">Coder</span>
+              <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;font-weight:500;line-height:1.4;color:var(--muted-2)">coder</span>
+            </span>
+          </button>
+          <button class="tier" aria-pressed="false" style="font:inherit;cursor:pointer;text-align:left;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:12px;background:var(--panel);border:1.5px solid var(--line);border-radius:14px;color:var(--ink)">
+            <span aria-hidden="true" style="width:32px;height:32px;border-radius:10px;background:var(--chip);color:var(--muted-2);display:flex;align-items:center;justify-content:center">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"></path></svg>
+            </span>
+            <span style="display:flex;flex-direction:column;min-width:0">
+              <span style="font-size:14px;font-weight:800;line-height:1.3">Fast</span>
+              <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;font-weight:500;line-height:1.4;color:var(--muted-2)">fast</span>
+            </span>
+          </button>
+          <button class="tier" aria-pressed="false" style="font:inherit;cursor:pointer;text-align:left;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:12px;background:var(--panel);border:1.5px solid var(--line);border-radius:14px;color:var(--ink)">
+            <span aria-hidden="true" style="width:32px;height:32px;border-radius:10px;background:var(--chip);color:var(--muted-2);display:flex;align-items:center;justify-content:center">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.25 3.25c1.9-.6 3.8-.4 5.75.75v9.5c-1.95-1.15-3.85-1.35-5.75-.75zM13.75 3.25c-1.9-.6-3.8-.4-5.75.75v9.5c1.95-1.15 3.85-1.35 5.75-.75z"></path></svg>
+            </span>
+            <span style="display:flex;flex-direction:column;min-width:0">
+              <span style="font-size:14px;font-weight:800;line-height:1.3">Long reads</span>
+              <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;font-weight:500;line-height:1.4;color:var(--muted-2)">long-context</span>
+            </span>
+          </button>
+          <button class="tier" aria-pressed="false" style="font:inherit;cursor:pointer;text-align:left;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:12px;background:var(--panel);border:1.5px solid var(--line);border-radius:14px;color:var(--ink)">
+            <span aria-hidden="true" style="width:32px;height:32px;border-radius:10px;background:var(--chip);color:var(--muted-2);display:flex;align-items:center;justify-content:center">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8s-2.5 4.5-6.5 4.5S1.5 8 1.5 8z"></path><circle cx="8" cy="8" r="2"></circle></svg>
+            </span>
+            <span style="display:flex;flex-direction:column;min-width:0">
+              <span style="font-size:14px;font-weight:800;line-height:1.3">Sees images</span>
+              <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;font-weight:500;line-height:1.4;color:var(--muted-2)">vision</span>
+            </span>
+          </button>
+        </div>
+        <p style="margin:0;font-size:12.5px;font-weight:600;line-height:1.45;color:var(--muted)">A team names a tier, never a provider or model: the providers that serve each tier come from the gateway settings.</p>
+      </fieldset>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start">
+        <fieldset style="margin:0;padding:0;border:0;min-width:0;display:flex;flex-direction:column;gap:6px">
+          <legend style="float:left;padding:0;margin:0;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Needs</legend>
+          <div style="clear:both;display:flex;flex-wrap:wrap;gap:6px">
+            <label style="display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 11px 0 9px;border-radius:10px;background:color-mix(in srgb,var(--accent) 14%,var(--panel));border:1.5px solid color-mix(in srgb,var(--accent) 45%,var(--panel));font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500;cursor:pointer">
+              <input type="checkbox" checked style="flex:none;width:15px;height:15px;margin:0;accent-color:var(--accent)">tool_calling</label>
+            <label style="display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 11px 0 9px;border-radius:10px;background:var(--panel);border:1.5px solid var(--line);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500;cursor:pointer">
+              <input type="checkbox" style="flex:none;width:15px;height:15px;margin:0;accent-color:var(--accent)">vision</label>
+            <label style="display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 11px 0 9px;border-radius:10px;background:var(--panel);border:1.5px solid var(--line);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500;cursor:pointer">
+              <input type="checkbox" style="flex:none;width:15px;height:15px;margin:0;accent-color:var(--accent)">long_context</label>
+          </div>
+        </fieldset>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label for="pin" style="font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Pinned model (optional)</label>
+          <input id="pin" class="fld" list="pin-models" value="groq/openai/gpt-oss-120b" placeholder="providerId/modelId" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:500">
+          <datalist id="pin-models">
+            <option value="groq/openai/gpt-oss-120b"></option>
+            <option value="openrouter/qwen/qwen-2.5-coder-32b-instruct:free"></option>
+            <option value="nvidia/qwen/qwen2.5-coder-32b-instruct"></option>
+          </datalist>
+          <p style="margin:0;font-size:12.5px;font-weight:600;line-height:1.45;color:var(--muted)">This folder's setting in <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;font-weight:500;color:var(--muted-2)">.mete/pins.yaml</span>, not the team file's. The pinned model goes first when it can serve the tier; otherwise the tier's other models carry on.</p>
+        </div>
+      </div>
+
+      <span aria-hidden="true" style="height:1.5px;background:var(--line-soft)"></span>
+
+      <!-- What the member may use and what wakes it -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Capabilities (ids such as fs.read@1)</span>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
+            <button class="chip" title="Remove fs.*@1" aria-label="Remove fs.*@1" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 9px 0 11px;border-radius:10px;background:var(--chip);border:1.5px solid var(--line-soft);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500">fs.*@1
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="color:var(--muted-2)"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+            </button>
+            <button class="chip" title="Remove shell.exec@1" aria-label="Remove shell.exec@1" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 9px 0 11px;border-radius:10px;background:var(--chip);border:1.5px solid var(--line-soft);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500">shell.exec@1
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="color:var(--muted-2)"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+            </button>
+            <span style="position:relative;display:inline-block;width:14em"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="position:absolute;left:10px;top:9px;color:var(--muted);pointer-events:none"><path d="M8 3v10M3 8h10"></path></svg><input class="fld" list="cap-hints" aria-label="Capabilities (ids such as fs.read@1)" style="font:inherit;width:100%;box-sizing:border-box;height:32px;padding:0 10px 0 30px;border-radius:10px;border:1.5px dashed var(--line);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500"></span>
+            <datalist id="cap-hints">
+              <option value="browser.screenshot@2"></option>
+              <option value="fs.*@1"></option>
+              <option value="fs.read@1"></option>
+              <option value="seo.audit@2"></option>
+              <option value="shell.exec@1"></option>
+            </datalist>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start">
+          <fieldset style="margin:0;padding:0;border:0;min-width:0;display:flex;flex-direction:column;gap:6px">
+            <legend style="float:left;padding:0;margin:0;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Prefer a different model family than</legend>
+            <div style="clear:both;display:flex;flex-wrap:wrap;gap:6px">
+              <label style="display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 11px 0 9px;border-radius:10px;background:var(--panel);border:1.5px solid var(--line);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500;cursor:pointer">
+                <input type="checkbox" style="flex:none;width:15px;height:15px;margin:0;accent-color:var(--accent)">ui_designer</label>
+              <label style="display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 11px 0 9px;border-radius:10px;background:var(--panel);border:1.5px solid var(--line);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500;cursor:pointer">
+                <input type="checkbox" style="flex:none;width:15px;height:15px;margin:0;accent-color:var(--accent)">qa</label>
+              <label style="display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 11px 0 9px;border-radius:10px;background:var(--panel);border:1.5px solid var(--line);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500;cursor:pointer">
+                <input type="checkbox" style="flex:none;width:15px;height:15px;margin:0;accent-color:var(--accent)">lead</label>
+            </div>
+          </fieldset>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Wakes on artifacts (such as gdd@1)</span>
+            <span style="position:relative;display:inline-block;width:14em"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="position:absolute;left:10px;top:9px;color:var(--muted);pointer-events:none"><path d="M8 3v10M3 8h10"></path></svg><input class="fld" aria-label="Wakes on artifacts (such as gdd@1)" style="font:inherit;width:100%;box-sizing:border-box;height:32px;padding:0 10px 0 30px;border-radius:10px;border:1.5px dashed var(--line);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- The task that names this member -->
+      <div style="background:var(--raised);border:1.5px solid var(--line-soft);border-radius:14px;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <strong style="display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:800">
+            <span aria-hidden="true" style="width:28px;height:28px;box-sizing:border-box;border-radius:10px;background:var(--panel);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted-2)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4l1.25 1.25L5.5 3M2 10.5l1.25 1.25L5.5 9.5M8 4.25h6M8 10.75h6"></path></svg>
+            </span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13.5px;font-weight:700">build</span>
+          </strong>
+          <button class="b-g" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px 0 8px;border-radius:10px;font-size:12.5px;font-weight:700;background:transparent;border:1.5px solid var(--line);color:var(--muted-2)">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.75 4.25h10.5M6.25 4.25v-1.5h3.5v1.5M4 4.25l.6 9.25h6.8l.6-9.25"></path></svg>
+            Remove task
+          </button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 16px">
+          <label style="grid-column:1 / -1;display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Title
+            <input class="fld" value="Build the page and pass the build" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-size:14px;font-weight:600">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Expected output (artifact:&lt;type&gt;@&lt;version&gt;, optional)
+            <input class="fld" value="artifact:code-change@1" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:500">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Approved by
+            <span style="position:relative;display:block">
+              <select class="fld" style="font:inherit;appearance:none;-webkit-appearance:none;width:100%;box-sizing:border-box;height:38px;padding:0 36px 0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-size:14px;font-weight:600;cursor:pointer">
+                <option value="">No approval</option>
+                <option value="human">You</option>
+                <option value="ui_designer">UI designer</option>
+                <option value="frontend_developer">Frontend developer</option>
+                <option value="qa">QA</option>
+                <option value="lead" selected>Lead</option>
+              </select>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;right:12px;top:11px;color:var(--muted-2);pointer-events:none"><path d="M4 6l4 4 4-4"></path></svg>
+            </span>
+          </label>
+
+          <div style="grid-column:1 / -1;display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Commands that must pass before it is submitted (such as npm test)</span>
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
+              <button class="chip" title="Remove npm run build" aria-label="Remove npm run build" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 9px 0 11px;border-radius:10px;background:var(--chip);border:1.5px solid var(--line-soft);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500">npm run build
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="color:var(--muted-2)"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+              </button>
+              <span style="position:relative;display:inline-block;width:14em"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="position:absolute;left:10px;top:9px;color:var(--muted);pointer-events:none"><path d="M8 3v10M3 8h10"></path></svg><input class="fld" aria-label="Commands that must pass before it is submitted (such as npm test)" style="font:inherit;width:100%;box-sizing:border-box;height:32px;padding:0 10px 0 30px;border-radius:10px;border:1.5px dashed var(--line);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500"></span>
+            </div>
+          </div>
+
+          <div style="grid-column:1 / -1;display:flex;align-items:flex-end;gap:12px">
+            <label style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Report checked as (artifact type such as gdd@1, optional)
+              <input class="fld" list="guard-hints" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:500">
+              <datalist id="guard-hints">
+                <option value="code-change@1"></option>
+                <option value="test-report@1"></option>
+              </datalist>
+            </label>
+            <label style="flex:none;width:8em;display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Repairs
+              <input type="number" min="0" placeholder="2" disabled style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line-soft);background:var(--raised);color:var(--muted-2);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:500;cursor:not-allowed">
+            </label>
+          </div>
+
+          <label style="grid-column:1 / -1;display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:700;cursor:pointer">
+            <input type="checkbox" style="flex:none;width:16px;height:16px;margin:0;accent-color:var(--accent)">
+            You approve it too, after the approver
+          </label>
+
+          <div style="grid-column:1 / -1;display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Waits for the tasks</span>
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
+              <button class="chip" title="Remove design" aria-label="Remove design" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 9px 0 11px;border-radius:10px;background:var(--chip);border:1.5px solid var(--line-soft);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500">design
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="color:var(--muted-2)"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+              </button>
+              <span style="position:relative;display:inline-block;width:14em"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="position:absolute;left:10px;top:9px;color:var(--muted);pointer-events:none"><path d="M8 3v10M3 8h10"></path></svg><input class="fld" list="task-hints" aria-label="Waits for the tasks" style="font:inherit;width:100%;box-sizing:border-box;height:32px;padding:0 10px 0 30px;border-radius:10px;border:1.5px dashed var(--line);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500"></span>
+              <datalist id="task-hints">
+                <option value="design"></option>
+                <option value="test"></option>
+              </datalist>
+            </div>
+          </div>
+
+          <label style="grid-column:1 / -1;display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:700;cursor:pointer">
+            <input type="checkbox" style="flex:none;width:16px;height:16px;margin:0;accent-color:var(--accent)">
+            <span>Its approved task list (<span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500">task-list@1</span>) becomes tasks for the members it names</span>
+          </label>
+        </div>
+      </div>
+
+      <div style="display:flex">
+        <button class="b-q" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px 0 12px;border-radius:10px;font-size:14px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg>
+          Add a task for this member
+        </button>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":1758}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

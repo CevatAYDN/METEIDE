@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Welcome — onboarding</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mete.light{--bg:#ECEAF4;--panel:#F8F7FC;--line:#DAD6EA;--ink:#24223A;--muted:#6B6785;--accent:#5B4BD6;--good:#2FA38A;--warn:#E3A13A;--bad:#D9544A;--chip:#E4E0F3;--chrome:#DCD8EC;--side:#E6E3F2;--raised:#EFEDF8;--line-soft:#E2DEF0;--muted-2:#524E6E}
+.mete.dark{--bg:#17162A;--panel:#211F38;--line:#34315A;--ink:#ECEAF7;--muted:#A6A2C4;--accent:#8F83F2;--good:#4CC3A6;--warn:#F0B75A;--bad:#EE7368;--chip:#2D2A4D;--chrome:#121122;--side:#1A192F;--raised:#1C1B32;--line-soft:#2A2848;--muted-2:#B9B5D6}
+.mete .b-p:hover{background:color-mix(in srgb,var(--accent) 76%,var(--ink))!important;border-color:color-mix(in srgb,var(--accent) 76%,var(--ink))!important}
+.mete .b-q:hover{background:var(--raised)!important;border-color:var(--muted)!important}
+.mete .ext:hover{background:color-mix(in srgb,var(--accent) 10%,var(--panel))!important}
+.mete .fld:hover{border-color:var(--muted)!important}
+.mete button:focus-visible,.mete select:focus-visible,.mete input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.mete *{animation:none!important}}
+</style>
+</helmet>
+<div class="mete light" style="width:1320px;height:1145px;box-sizing:border-box;padding:24px;background:var(--bg);color:var(--ink);font-family:'Baloo 2',system-ui,sans-serif;font-size:14px;line-height:1.4;display:flex;flex-direction:column;gap:16px">
+
+  <!-- Hero band: the title, and step 1 beside it -->
+  <header style="flex:none;background:var(--raised);border:1.5px solid var(--line);border-radius:16px;padding:24px 24px 24px 28px;display:flex;align-items:center;gap:32px">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start">
+      <span aria-hidden="true" style="width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--accent) 16%,var(--panel));border:1.5px solid color-mix(in srgb,var(--accent) 35%,var(--panel));color:color-mix(in srgb,var(--accent) 70%,var(--ink))">
+        <svg width="26" height="26" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M13.75 2.25c-3.5 0-6.25 2.5-7.5 5.75l1.75 1.75c3.25-1.25 5.75-4 5.75-7.5z"></path><path d="M6.25 8L3.75 7.6 5.4 5.6h2.4M8 9.75l.4 2.5 2-1.65V8.2"></path><path d="M4.6 11.4c-1 .25-1.6 1.1-1.85 2.35 1.25-.25 2.1-.85 2.35-1.85"></path><circle cx="10.6" cy="5.4" r="1"></circle></svg>
+      </span>
+      <h1 style="margin:16px 0 0;font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.01em;white-space:nowrap">Welcome to METE</h1>
+      <p style="margin:6px 0 0;font-size:15px;font-weight:600;line-height:1.4;color:var(--muted-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">METE: keys, privacy and web search to start with</p>
+    </div>
+
+    <section aria-labelledby="w-lang" style="flex:none;width:460px;box-sizing:border-box;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px;padding:18px 20px 20px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span aria-hidden="true" style="flex:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--accent) 14%,var(--panel));color:color-mix(in srgb,var(--accent) 70%,var(--ink))">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.75"></circle><path d="M2.25 8h11.5M8 2.25c1.6 1.6 2.4 3.5 2.4 5.75S9.6 12.15 8 13.75C6.4 12.15 5.6 10.25 5.6 8S6.4 3.85 8 2.25z"></path></svg>
+        </span>
+        <h2 id="w-lang" style="margin:0;font-size:18px;font-weight:800;line-height:1.25"><span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:16px;font-weight:700;color:var(--accent)">1.</span> Language</h2>
+      </div>
+      <p style="margin:0;font-size:14px;font-weight:500;line-height:1.5;color:var(--muted-2)">METE speaks English and Turkish; METE starts again in the language you pick.</p>
+      <div style="margin-top:4px;display:flex">
+        <button class="b-q" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px 0 12px;border-radius:10px;font-size:14px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3.5h7M5.5 2v1.5M4 3.5c.5 2.5 2 4.5 4 5.5M7.5 3.5C7 6 5.25 8.25 2.5 9.5"></path><path d="M8.5 14l2.75-6.5L14 14M9.4 12h3.7"></path></svg>
+          Display language
+        </button>
+      </div>
+    </section>
+  </header>
+
+  <!-- 2. Model provider keys -->
+  <section aria-labelledby="w-keys" style="flex:none;background:var(--panel);border:1.5px solid var(--line);border-radius:16px;padding:20px 24px 10px">
+    <div style="display:flex;align-items:flex-start;gap:12px">
+      <span aria-hidden="true" style="flex:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--accent) 14%,var(--panel));color:color-mix(in srgb,var(--accent) 70%,var(--ink))">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.25" cy="10.75" r="2.75"></circle><path d="M7.2 8.8L13.5 2.5M11.25 4.75l1.75 1.75M9.75 6.25l1.25 1.25"></path></svg>
+      </span>
+      <div style="min-width:0">
+        <h2 id="w-keys" style="margin:4px 0 0;font-size:18px;font-weight:800;line-height:1.25"><span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:16px;font-weight:700;color:var(--accent)">2.</span> Model provider keys</h2>
+        <p style="margin:4px 0 0;font-size:14px;font-weight:500;line-height:1.5;color:var(--muted-2)">Set at least one. A key stays in the operating system keychain and never in a file.</p>
+      </div>
+    </div>
+
+    <ul style="list-style:none;margin:14px 0 0;padding:0">
+
+      <li style="display:grid;grid-template-columns:250px auto minmax(0,1fr) auto;align-items:center;column-gap:14px;padding:14px 0;border-top:1.5px solid var(--line-soft)">
+        <div style="min-width:0;display:flex;flex-direction:column;gap:5px">
+          <strong style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14.5px;font-weight:700;line-height:1.3">nvidia</strong>
+          <span style="display:flex;align-items:center;gap:8px">
+            <span style="display:inline-flex;align-items:center;gap:5px;height:21px;padding:0 9px 0 7px;border-radius:999px;background:var(--chip);color:var(--muted-2);font-size:12px;font-weight:700"><span aria-hidden="true" style="width:6px;height:6px;box-sizing:border-box;border-radius:50%;border:1.5px solid var(--muted-2)"></span>no key</span>
+            <button class="ext" title="https://build.nvidia.com/settings/api-keys" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 7px;border-radius:10px;background:transparent;border:0;color:var(--accent);font-size:13px;font-weight:700">Get a key<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5L8 8M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3"></path></svg></button>
+          </span>
+        </div>
+        <label for="key-nvidia" style="font-size:13px;font-weight:700;color:var(--muted-2)">API key</label>
+        <input id="key-nvidia" class="fld" type="password" autocomplete="off" value="" style="box-sizing:border-box;width:100%;height:36px;padding:0 12px;border-radius:10px;background:var(--raised);border:1.5px solid var(--line);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px">
+        <button disabled="disabled" style="font:inherit;cursor:not-allowed;height:36px;padding:0 16px;border-radius:10px;font-size:14px;font-weight:700;background:var(--raised);border:1.5px solid var(--line-soft);color:var(--muted-2)">Set key</button>
+      </li>
+
+      <li style="display:grid;grid-template-columns:250px auto minmax(0,1fr) auto;align-items:center;column-gap:14px;padding:14px 0;border-top:1.5px solid var(--line-soft)">
+        <div style="min-width:0;display:flex;flex-direction:column;gap:5px">
+          <strong style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14.5px;font-weight:700;line-height:1.3">openrouter</strong>
+          <span style="display:flex;align-items:center;gap:8px">
+            <span style="display:inline-flex;align-items:center;gap:5px;height:21px;padding:0 9px 0 7px;border-radius:999px;background:var(--chip);color:var(--muted-2);font-size:12px;font-weight:700"><span aria-hidden="true" style="width:6px;height:6px;box-sizing:border-box;border-radius:50%;border:1.5px solid var(--muted-2)"></span>no key</span>
+            <button class="ext" title="https://openrouter.ai/keys" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 7px;border-radius:10px;background:transparent;border:0;color:var(--accent);font-size:13px;font-weight:700">Get a key<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5L8 8M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3"></path></svg></button>
+          </span>
+        </div>
+        <label for="key-openrouter" style="font-size:13px;font-weight:700;color:var(--muted-2)">API key</label>
+        <input id="key-openrouter" class="fld" type="password" autocomplete="off" value="" style="box-sizing:border-box;width:100%;height:36px;padding:0 12px;border-radius:10px;background:var(--raised);border:1.5px solid var(--line);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px">
+        <button disabled="disabled" style="font:inherit;cursor:not-allowed;height:36px;padding:0 16px;border-radius:10px;font-size:14px;font-weight:700;background:var(--raised);border:1.5px solid var(--line-soft);color:var(--muted-2)">Set key</button>
+      </li>
+
+      <li style="display:grid;grid-template-columns:250px auto minmax(0,1fr) auto;align-items:center;column-gap:14px;padding:14px 0;border-top:1.5px solid var(--line-soft)">
+        <div style="min-width:0;display:flex;flex-direction:column;gap:5px">
+          <strong style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14.5px;font-weight:700;line-height:1.3">opencode-zen</strong>
+          <span style="display:flex;align-items:center;gap:8px">
+            <span style="display:inline-flex;align-items:center;gap:5px;height:21px;padding:0 9px 0 7px;border-radius:999px;background:var(--chip);color:var(--muted-2);font-size:12px;font-weight:700"><span aria-hidden="true" style="width:6px;height:6px;box-sizing:border-box;border-radius:50%;border:1.5px solid var(--muted-2)"></span>no key</span>
+            <button class="ext" title="https://opencode.ai/console" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 7px;border-radius:10px;background:transparent;border:0;color:var(--accent);font-size:13px;font-weight:700">Get a key<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5L8 8M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3"></path></svg></button>
+          </span>
+        </div>
+        <label for="key-opencode-zen" style="font-size:13px;font-weight:700;color:var(--ink)">API key</label>
+        <input id="key-opencode-zen" type="password" autocomplete="off" value="zen-key-typed-by-the-user-01" style="box-sizing:border-box;width:100%;height:36px;padding:0 12px;border-radius:10px;background:var(--panel);border:1.5px solid var(--accent);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;letter-spacing:.08em">
+        <button class="b-p" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 16px 0 13px;border-radius:10px;font-size:14px;font-weight:700;background:var(--accent);border:1.5px solid var(--accent);color:var(--panel)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.25" cy="10.75" r="2.75"></circle><path d="M7.2 8.8L13.5 2.5M11.25 4.75l1.75 1.75"></path></svg>
+          Set key
+        </button>
+      </li>
+
+      <li style="display:grid;grid-template-columns:250px auto minmax(0,1fr) auto;align-items:center;column-gap:14px;padding:14px 0;border-top:1.5px solid var(--line-soft)">
+        <div style="min-width:0;display:flex;flex-direction:column;gap:5px">
+          <strong style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14.5px;font-weight:700;line-height:1.3">groq</strong>
+          <span style="display:flex;align-items:center;gap:8px">
+            <span style="display:inline-flex;align-items:center;gap:5px;height:21px;padding:0 9px 0 7px;border-radius:999px;background:var(--chip);color:var(--muted-2);font-size:12px;font-weight:700"><span aria-hidden="true" style="width:6px;height:6px;box-sizing:border-box;border-radius:50%;border:1.5px solid var(--muted-2)"></span>no key</span>
+            <button class="ext" title="https://console.groq.com/keys" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 7px;border-radius:10px;background:transparent;border:0;color:var(--accent);font-size:13px;font-weight:700">Get a key<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5L8 8M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3"></path></svg></button>
+          </span>
+        </div>
+        <label for="key-groq" style="font-size:13px;font-weight:700;color:var(--muted-2)">API key</label>
+        <input id="key-groq" class="fld" type="password" autocomplete="off" value="" style="box-sizing:border-box;width:100%;height:36px;padding:0 12px;border-radius:10px;background:var(--raised);border:1.5px solid var(--line);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px">
+        <button disabled="disabled" style="font:inherit;cursor:not-allowed;height:36px;padding:0 16px;border-radius:10px;font-size:14px;font-weight:700;background:var(--raised);border:1.5px solid var(--line-soft);color:var(--muted-2)">Set key</button>
+      </li>
+
+      <li style="display:grid;grid-template-columns:250px auto minmax(0,1fr) auto;align-items:center;column-gap:14px;padding:14px 0;border-top:1.5px solid var(--line-soft)">
+        <div style="min-width:0;display:flex;flex-direction:column;gap:5px">
+          <strong style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14.5px;font-weight:700;line-height:1.3">google</strong>
+          <span style="display:flex;align-items:center;gap:8px">
+            <span style="display:inline-flex;align-items:center;gap:5px;height:21px;padding:0 9px 0 7px;border-radius:999px;background:var(--chip);color:var(--muted-2);font-size:12px;font-weight:700"><span aria-hidden="true" style="width:6px;height:6px;box-sizing:border-box;border-radius:50%;border:1.5px solid var(--muted-2)"></span>no key</span>
+            <button class="ext" title="https://aistudio.google.com/app/apikey" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 7px;border-radius:10px;background:transparent;border:0;color:var(--accent);font-size:13px;font-weight:700">Get a key<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5L8 8M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3"></path></svg></button>
+          </span>
+        </div>
+        <label for="key-google" style="font-size:13px;font-weight:700;color:var(--muted-2)">API key</label>
+        <input id="key-google" class="fld" type="password" autocomplete="off" value="" style="box-sizing:border-box;width:100%;height:36px;padding:0 12px;border-radius:10px;background:var(--raised);border:1.5px solid var(--line);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px">
+        <button disabled="disabled" style="font:inherit;cursor:not-allowed;height:36px;padding:0 16px;border-radius:10px;font-size:14px;font-weight:700;background:var(--raised);border:1.5px solid var(--line-soft);color:var(--muted-2)">Set key</button>
+      </li>
+    </ul>
+  </section>
+
+  <!-- 3. Privacy and 4. Web search, side by side -->
+  <div style="flex:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+
+    <section aria-labelledby="w-privacy" style="background:var(--panel);border:1.5px solid var(--line);border-radius:16px;padding:20px 24px 22px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <span aria-hidden="true" style="flex:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--accent) 14%,var(--panel));color:color-mix(in srgb,var(--accent) 70%,var(--ink))">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.75l5 2v4c0 3-2.1 5.3-5 6.5-2.9-1.2-5-3.5-5-6.5v-4z"></path><path d="M5.75 8.25l1.5 1.5 3-3.25"></path></svg>
+        </span>
+        <div style="min-width:0">
+          <h2 id="w-privacy" style="margin:4px 0 0;font-size:18px;font-weight:800;line-height:1.25"><span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:16px;font-weight:700;color:var(--accent)">3.</span> Privacy</h2>
+          <p style="margin:4px 0 0;font-size:14px;font-weight:500;line-height:1.5;color:var(--muted-2)">Providers that may train on your prompts stay out unless you let them in.</p>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label for="w-allow-training" style="font-size:13.5px;font-weight:700">Allow providers that may train on prompts</label>
+        <div style="position:relative;max-width:320px">
+          <select id="w-allow-training" class="fld" style="appearance:none;-webkit-appearance:none;box-sizing:border-box;width:100%;height:36px;padding:0 36px 0 12px;border-radius:10px;background:var(--raised);border:1.5px solid var(--line);color:var(--ink);font-family:'Baloo 2',system-ui,sans-serif;font-size:14px;font-weight:600;cursor:pointer">
+            <option value="" selected="selected">Default (No)</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;right:12px;top:10px;pointer-events:none;color:var(--muted-2)"><path d="M4 6l4 4 4-4"></path></svg>
+        </div>
+      </div>
+
+      <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1.5px solid var(--line-soft)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <label style="display:inline-flex;align-items:center;gap:9px;font-size:14px;font-weight:600;cursor:pointer">
+            <input type="checkbox" checked="checked" style="margin:0;width:16px;height:16px;accent-color:var(--accent);cursor:pointer">
+            Save for every folder
+          </label>
+          <button disabled="disabled" style="font:inherit;cursor:not-allowed;height:34px;padding:0 16px;border-radius:10px;font-size:14px;font-weight:700;background:var(--raised);border:1.5px solid var(--line-soft);color:var(--muted-2)">Save</button>
+        </div>
+        <p title="C:\Users\ada\AppData\Roaming\METE\settings.yaml" style="margin:0;font-size:13px;font-weight:500;color:var(--muted-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Saves to <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;color:var(--ink)">C:\Users\ada\AppData\Roaming\METE\settings.yaml</span></p>
+      </div>
+    </section>
+
+    <section aria-labelledby="w-search" style="background:var(--panel);border:1.5px solid var(--line);border-radius:16px;padding:20px 24px 22px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <span aria-hidden="true" style="flex:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--accent) 14%,var(--panel));color:color-mix(in srgb,var(--accent) 70%,var(--ink))">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4.25"></circle><path d="M10.25 10.25L13.5 13.5"></path></svg>
+        </span>
+        <div style="min-width:0">
+          <h2 id="w-search" style="margin:4px 0 0;font-size:18px;font-weight:800;line-height:1.25"><span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:16px;font-weight:700;color:var(--accent)">4.</span> Web search</h2>
+          <p style="margin:4px 0 0;font-size:14px;font-weight:500;line-height:1.5;color:var(--muted-2)">Exa MCP searches the web without a key; a Tavily key is optional.</p>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <strong style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14.5px;font-weight:700;line-height:1.3">tavily</strong>
+          <span style="display:inline-flex;align-items:center;gap:5px;height:21px;padding:0 9px 0 7px;border-radius:999px;background:var(--chip);color:var(--muted-2);font-size:12px;font-weight:700"><span aria-hidden="true" style="width:6px;height:6px;box-sizing:border-box;border-radius:50%;border:1.5px solid var(--muted-2)"></span>no key</span>
+          <button class="ext" title="https://app.tavily.com" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 7px;border-radius:10px;background:transparent;border:0;color:var(--accent);font-size:13px;font-weight:700">Get a key<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5L8 8M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3"></path></svg></button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label for="key-tavily" style="font-size:13.5px;font-weight:700">API key</label>
+          <div style="display:flex;gap:10px">
+            <input id="key-tavily" class="fld" type="password" autocomplete="off" value="" style="flex:1;min-width:0;box-sizing:border-box;height:36px;padding:0 12px;border-radius:10px;background:var(--raised);border:1.5px solid var(--line);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px">
+            <button disabled="disabled" style="flex:none;font:inherit;cursor:not-allowed;height:36px;padding:0 16px;border-radius:10px;font-size:14px;font-weight:700;background:var(--raised);border:1.5px solid var(--line-soft);color:var(--muted-2)">Set key</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Start -->
+  <div style="flex:none;display:flex;align-items:center;gap:16px;padding:16px 20px;background:var(--raised);border:1.5px solid var(--line);border-radius:16px">
+    <button disabled="disabled" style="font:inherit;cursor:not-allowed;display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 20px 0 16px;border-radius:10px;font-size:15px;font-weight:700;background:var(--chip);border:1.5px solid var(--line);color:var(--muted-2)">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3.25v9.5L12.5 8z"></path></svg>
+      Start a run
+    </button>
+    <p style="margin:0;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--muted-2)">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="5.75"></circle><path d="M8 7.25v3.5M8 5.1v.1"></path></svg>
+      Set a model provider's key first.
+    </p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":1145}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

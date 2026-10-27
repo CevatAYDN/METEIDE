@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Assets</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mete.light{--bg:#ECEAF4;--panel:#F8F7FC;--line:#DAD6EA;--ink:#24223A;--muted:#6B6785;--accent:#5B4BD6;--good:#2FA38A;--warn:#E3A13A;--bad:#D9544A;--chip:#E4E0F3;--chrome:#DCD8EC;--side:#E6E3F2;--raised:#EFEDF8;--line-soft:#E2DEF0;--muted-2:#524E6E}
+.mete.dark{--bg:#17162A;--panel:#211F38;--line:#34315A;--ink:#ECEAF7;--muted:#A6A2C4;--accent:#8F83F2;--good:#4CC3A6;--warn:#F0B75A;--bad:#EE7368;--chip:#2D2A4D;--chrome:#121122;--side:#1A192F;--raised:#1C1B32;--line-soft:#2A2848;--muted-2:#B9B5D6}
+.mete .b-q:hover{background:var(--raised)!important;border-color:var(--muted)!important}
+.mete .row:hover{background:var(--raised)}
+.mete button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.mete *{animation:none!important}}
+</style>
+</helmet>
+<div class="mete dark" style="width:1320px;height:870px;box-sizing:border-box;padding:20px;background:var(--bg);color:var(--ink);font-family:'Baloo 2',system-ui,sans-serif;font-size:14px;line-height:1.4;display:flex;flex-direction:column;gap:16px">
+
+  <!-- Header band -->
+  <header style="flex:none;background:var(--raised);border:1.5px solid var(--line);border-radius:16px;padding:18px 22px 18px 20px;display:flex;align-items:center;gap:16px">
+    <span aria-hidden="true" style="flex:none;width:48px;height:48px;box-sizing:border-box;border-radius:10px;background:var(--panel);border:1.5px solid var(--line-soft);display:flex;align-items:center;justify-content:center;color:var(--accent)">
+      <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="2.5" width="12.5" height="11" rx="1.5"></rect><circle cx="5.5" cy="6" r="1.25"></circle><path d="M14.25 10.75L10.5 7.25l-6.25 6.25"></path></svg>
+    </span>
+    <div style="flex:1;min-width:0">
+      <h1 style="margin:0;font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.01em">Assets</h1>
+      <p style="margin:3px 0 0;font-size:14px;font-weight:600;color:var(--muted-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">METE: the files tools saved</p>
+    </div>
+    <button class="b-q" style="font:inherit;cursor:pointer;flex:none;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 15px 0 12px;border-radius:10px;font-size:14px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.25 8.5a5.25 5.25 0 1 1-1.55-4.2"></path><path d="M13.25 2.25v3h-3"></path></svg>
+      Refresh
+    </button>
+  </header>
+
+  <!-- Files, newest first -->
+  <section aria-label="Assets" aria-live="polite" style="flex:none;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:16px;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+      <colgroup>
+        <col style="width:152px">
+        <col style="width:300px">
+        <col style="width:180px">
+        <col style="width:226px">
+        <col style="width:100px">
+        <col style="width:196px">
+        <col>
+      </colgroup>
+      <thead>
+        <tr style="background:var(--raised)">
+          <th scope="col" style="text-align:left;padding:11px 18px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">Preview</th>
+          <th scope="col" style="text-align:left;padding:11px 16px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">Name</th>
+          <th scope="col" style="text-align:left;padding:11px 16px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">Type</th>
+          <th scope="col" style="text-align:left;padding:11px 16px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">From</th>
+          <th scope="col" style="text-align:left;padding:11px 16px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">Size</th>
+          <th scope="col" style="text-align:left;padding:11px 16px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">When</th>
+          <th scope="col" style="text-align:left;padding:11px 16px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">Open</th>
+        </tr>
+      </thead>
+      <!-- Preview placeholders: the product shows each image row as its own picture (an img of the file).
+           The "Image" tiles below are neutral mockup placeholders for those pictures, not product text.
+           A row that is not an image shows its extension (GLTF, MPEG, JSON), as the code does. -->
+      <tbody>
+        <tr class="row">
+          <td style="padding:12px 16px;vertical-align:middle;padding-left:18px"><span role="img" aria-label="7c1e4b2a-93d5-4f60-8a17-2be5c9d04f31.png" style="width:120px;height:72px;box-sizing:border-box;border-radius:10px;background:var(--chip);border:1.5px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted)">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.75" y="2.5" width="12.5" height="11" rx="1.5"></rect><circle cx="5.5" cy="6" r="1.25"></circle><path d="M14.25 10.75L10.5 7.25l-6.25 6.25"></path></svg>
+              <span aria-hidden="true" style="font-size:11.5px;font-weight:700;line-height:1;color:var(--muted)">Image</span>
+            </span></td>
+          <td style="padding:12px 16px;vertical-align:middle;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;line-height:1.45;overflow-wrap:anywhere">7c1e4b2a-93d5-4f60-8a17-2be5c9d04f31.png</td>
+          <td style="padding:12px 16px;vertical-align:middle;"><span style="display:inline-block;padding:2px 9px;border-radius:999px;background:var(--chip);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted-2)">image/png</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;"><span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;line-height:1.4">playwright</span><span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;line-height:1.4;color:var(--muted-2)">browser_take_screenshot</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px">412.8 KB</td>
+          <td style="padding:12px 16px;vertical-align:middle;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">27/10/2026, 15:24:08</td>
+          <td style="padding:12px 16px;vertical-align:middle;"></td>
+        </tr>
+        <tr class="row">
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);padding-left:18px"><span role="img" aria-label="e05a9f7d-1c42-4b8e-b3a6-58f0d27c9e14.png" style="width:120px;height:72px;box-sizing:border-box;border-radius:10px;background:var(--chip);border:1.5px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted)">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.75" y="2.5" width="12.5" height="11" rx="1.5"></rect><circle cx="5.5" cy="6" r="1.25"></circle><path d="M14.25 10.75L10.5 7.25l-6.25 6.25"></path></svg>
+              <span aria-hidden="true" style="font-size:11.5px;font-weight:700;line-height:1;color:var(--muted)">Image</span>
+            </span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;line-height:1.45;overflow-wrap:anywhere">e05a9f7d-1c42-4b8e-b3a6-58f0d27c9e14.png</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"><span style="display:inline-block;padding:2px 9px;border-radius:999px;background:var(--chip);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted-2)">image/png</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"><span style="color:var(--muted)">—</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px">398.1 KB</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">27/10/2026, 15:23:51</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"></td>
+        </tr>
+        <tr class="row">
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);padding-left:18px"><span role="img" aria-label="4b9d03e6-a7f1-4c25-9e8b-0d3c6a1f72b8.webp" style="width:120px;height:72px;box-sizing:border-box;border-radius:10px;background:var(--chip);border:1.5px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted)">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.75" y="2.5" width="12.5" height="11" rx="1.5"></rect><circle cx="5.5" cy="6" r="1.25"></circle><path d="M14.25 10.75L10.5 7.25l-6.25 6.25"></path></svg>
+              <span aria-hidden="true" style="font-size:11.5px;font-weight:700;line-height:1;color:var(--muted)">Image</span>
+            </span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;line-height:1.45;overflow-wrap:anywhere">4b9d03e6-a7f1-4c25-9e8b-0d3c6a1f72b8.webp</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"><span style="display:inline-block;padding:2px 9px;border-radius:999px;background:var(--chip);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted-2)">image/webp</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"><span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;line-height:1.4">flux</span><span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;line-height:1.4;color:var(--muted-2)">generate_image</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px">86.4 KB</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">27/10/2026, 15:19:02</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"></td>
+        </tr>
+        <tr class="row">
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);padding-left:18px"><span aria-hidden="true" style="width:120px;height:72px;box-sizing:border-box;border-radius:10px;background:var(--raised);border:1.5px solid var(--line-soft);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:15px;font-weight:700;letter-spacing:.04em;color:var(--muted-2)">GLTF</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;line-height:1.45;overflow-wrap:anywhere">9a2f61c8-5e0b-47d3-8c94-b17e3d5a0f26.gltf</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"><span style="display:inline-block;padding:2px 9px;border-radius:999px;background:var(--chip);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted-2)">model/gltf-binary</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"><span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;line-height:1.4">blender</span><span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;line-height:1.4;color:var(--muted-2)">export_glb</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px">2.4 MB</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">27/10/2026, 14:58:37</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"><button class="b-q" aria-label="Open 9a2f61c8-5e0b-47d3-8c94-b17e3d5a0f26.gltf" title="Open" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px 0 9px;border-radius:10px;font-size:13px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5L7.75 8.25"></path><path d="M12 9.5V13a.75.75 0 0 1-.75.75h-8.5A.75.75 0 0 1 2 13V4.75A.75.75 0 0 1 2.75 4H6.5"></path></svg>
+              Open
+            </button></td>
+        </tr>
+        <tr class="row">
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);padding-left:18px"><span aria-hidden="true" style="width:120px;height:72px;box-sizing:border-box;border-radius:10px;background:var(--raised);border:1.5px solid var(--line-soft);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:15px;font-weight:700;letter-spacing:.04em;color:var(--muted-2)">MPEG</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;line-height:1.45;overflow-wrap:anywhere">d38c7a15-0f6e-4a92-b5d1-6e24f8b9c703.mpeg</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"><span style="display:inline-block;padding:2px 9px;border-radius:999px;background:var(--chip);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted-2)">audio/mpeg</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"><span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;line-height:1.4">elevenlabs</span><span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;line-height:1.4;color:var(--muted-2)">text_to_speech</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px">1.1 MB</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">27/10/2026, 14:41:15</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"><button class="b-q" aria-label="Open d38c7a15-0f6e-4a92-b5d1-6e24f8b9c703.mpeg" title="Open" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px 0 9px;border-radius:10px;font-size:13px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5L7.75 8.25"></path><path d="M12 9.5V13a.75.75 0 0 1-.75.75h-8.5A.75.75 0 0 1 2 13V4.75A.75.75 0 0 1 2.75 4H6.5"></path></svg>
+              Open
+            </button></td>
+        </tr>
+        <tr class="row">
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);padding-left:18px"><span role="img" aria-label="1f6b8e30-c4a7-4d19-a2e5-9b07d3c6f158.svg" style="width:120px;height:72px;box-sizing:border-box;border-radius:10px;background:var(--chip);border:1.5px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted)">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.75" y="2.5" width="12.5" height="11" rx="1.5"></rect><circle cx="5.5" cy="6" r="1.25"></circle><path d="M14.25 10.75L10.5 7.25l-6.25 6.25"></path></svg>
+              <span aria-hidden="true" style="font-size:11.5px;font-weight:700;line-height:1;color:var(--muted)">Image</span>
+            </span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;line-height:1.45;overflow-wrap:anywhere">1f6b8e30-c4a7-4d19-a2e5-9b07d3c6f158.svg</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"><span style="display:inline-block;padding:2px 9px;border-radius:999px;background:var(--chip);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted-2)">image/svg+xml</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"><span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;line-height:1.4">svgmaker</span><span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;line-height:1.4;color:var(--muted-2)">generate_svg</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px">1.9 KB</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">27/10/2026, 14:30:02</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"></td>
+        </tr>
+        <tr class="row">
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);padding-left:18px"><span aria-hidden="true" style="width:120px;height:72px;box-sizing:border-box;border-radius:10px;background:var(--raised);border:1.5px solid var(--line-soft);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:15px;font-weight:700;letter-spacing:.04em;color:var(--muted-2)">JSON</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;line-height:1.45;overflow-wrap:anywhere">63e0d4a9-2b7c-4f85-9d31-c8a5e1f7b240.json</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"><span style="display:inline-block;padding:2px 9px;border-radius:999px;background:var(--chip);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted-2)">application/json</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"><span style="color:var(--muted)">—</span></td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px">386.2 KB</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">26/10/2026, 18:12:44</td>
+          <td style="padding:12px 16px;vertical-align:middle;border-top:1.5px solid var(--line-soft);"><button class="b-q" aria-label="Open 63e0d4a9-2b7c-4f85-9d31-c8a5e1f7b240.json" title="Open" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px 0 9px;border-radius:10px;font-size:13px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5L7.75 8.25"></path><path d="M12 9.5V13a.75.75 0 0 1-.75.75h-8.5A.75.75 0 0 1 2 13V4.75A.75.75 0 0 1 2.75 4H6.5"></path></svg>
+              Open
+            </button></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":870}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

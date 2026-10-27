@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quota dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mete.light{--bg:#ECEAF4;--panel:#F8F7FC;--line:#DAD6EA;--ink:#24223A;--muted:#6B6785;--accent:#5B4BD6;--good:#2FA38A;--warn:#E3A13A;--bad:#D9544A;--chip:#E4E0F3;--chrome:#DCD8EC;--side:#E6E3F2;--raised:#EFEDF8;--line-soft:#E2DEF0;--muted-2:#524E6E}
+.mete.dark{--bg:#17162A;--panel:#211F38;--line:#34315A;--ink:#ECEAF7;--muted:#A6A2C4;--accent:#8F83F2;--good:#4CC3A6;--warn:#F0B75A;--bad:#EE7368;--chip:#2D2A4D;--chrome:#121122;--side:#1A192F;--raised:#1C1B32;--line-soft:#2A2848;--muted-2:#B9B5D6}
+@keyframes mete-fill{from{transform:scaleX(0)}}
+.mete .b-q:hover{background:var(--raised)!important;border-color:var(--muted)!important}
+.mete .b-g:hover{background:var(--chip)!important;border-color:var(--line)!important;color:var(--ink)!important}
+.mete .row:hover{background:var(--raised)}
+.mete button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.mete *{animation:none!important}}
+</style>
+</helmet>
+<div class="mete light" style="width:1320px;height:742px;box-sizing:border-box;padding:20px;background:var(--bg);color:var(--ink);font-family:'Baloo 2',system-ui,sans-serif;font-size:14px;line-height:1.4;display:flex;flex-direction:column;gap:16px">
+
+  <!-- Header band -->
+  <header style="flex:none;background:var(--raised);border:1.5px solid var(--line);border-radius:16px;padding:18px 22px 18px 20px;display:flex;align-items:center;gap:16px">
+    <span aria-hidden="true" style="flex:none;width:48px;height:48px;box-sizing:border-box;border-radius:10px;background:var(--panel);border:1.5px solid var(--line-soft);display:flex;align-items:center;justify-content:center;color:var(--accent)">
+      <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.25 11.75a5.75 5.75 0 1 1 11.5 0"></path><path d="M8 11.75l2.75-3.75"></path><path d="M4.25 7.5l.75.5M8 4.25V5.1M11.75 7.5l-.75.5"></path></svg>
+    </span>
+    <div style="flex:1;min-width:0">
+      <h1 style="margin:0;font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.01em">Quota</h1>
+      <p style="margin:3px 0 0;font-size:14px;font-weight:600;color:var(--muted-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">METE: each provider's quota units</p>
+    </div>
+    <button class="b-q" style="font:inherit;cursor:pointer;flex:none;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 15px 0 12px;border-radius:10px;font-size:14px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.25 8.5a5.25 5.25 0 1 1-1.55-4.2"></path><path d="M13.25 2.25v3h-3"></path></svg>
+      Refresh
+    </button>
+  </header>
+
+  <!-- Units table -->
+  <section aria-label="Quota units" aria-live="polite" style="flex:none;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:16px;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+      <colgroup>
+        <col style="width:176px">
+        <col style="width:214px">
+        <col style="width:250px">
+        <col style="width:160px">
+        <col style="width:132px">
+        <col style="width:196px">
+        <col>
+      </colgroup>
+      <thead>
+        <tr style="background:var(--raised)">
+          <th scope="col" style="text-align:left;padding:11px 18px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">Provider</th>
+          <th scope="col" style="text-align:left;padding:11px 16px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">Unit</th>
+          <th scope="col" style="text-align:left;padding:11px 16px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">Model</th>
+          <th scope="col" style="text-align:left;padding:11px 16px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">Used</th>
+          <th scope="col" style="text-align:left;padding:11px 16px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">Limit</th>
+          <th scope="col" style="text-align:left;padding:11px 16px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">Resets</th>
+          <th scope="col" style="text-align:left;padding:11px 16px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">History</th>
+        </tr>
+      </thead>
+
+      <!-- groq -->
+      <tbody>
+        <tr class="row">
+          <th scope="rowgroup" rowspan="4" style="text-align:left;vertical-align:top;padding:17px 18px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14px;font-weight:700;line-height:1.4;background:var(--panel)">groq</th>
+          <td style="padding:12px 16px;border-left:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px">requests_per_minute</td>
+          <td style="padding:12px 16px;color:var(--muted)">—</td>
+          <td style="padding:12px 16px">
+            <span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:15px;font-weight:700;line-height:1.3">6</span>
+            <span aria-hidden="true" style="display:block;margin-top:6px;width:112px;height:5px;border-radius:3px;background:var(--line);overflow:hidden"><span style="display:block;width:20%;height:100%;border-radius:3px;background:var(--accent);transform-origin:left center;animation:mete-fill 1s cubic-bezier(.2,.7,.2,1) both"></span></span>
+          </td>
+          <td style="padding:12px 16px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:500">30</td>
+          <td style="padding:12px 16px;color:var(--muted)">—</td>
+          <td style="padding:12px 16px">
+            <button class="b-g" aria-expanded="false" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px 0 8px;border-radius:10px;font-size:13px;font-weight:700;background:transparent;border:1.5px solid var(--line-soft);color:var(--muted-2)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5"></path></svg>
+              6 amount(s)
+            </button>
+          </td>
+        </tr>
+        <tr style="background:var(--raised)">
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft);border-left:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px">tokens_per_minute</td>
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="openai/gpt-oss-120b">openai/gpt-oss-120b</td>
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft)">
+            <span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:15px;font-weight:700;line-height:1.3">5612</span>
+            <span aria-hidden="true" style="display:block;margin-top:6px;width:112px;height:5px;border-radius:3px;background:var(--line);overflow:hidden"><span style="display:block;width:70.2%;height:100%;border-radius:3px;background:var(--accent);transform-origin:left center;animation:mete-fill 1s cubic-bezier(.2,.7,.2,1) both"></span></span>
+          </td>
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:500">8000</td>
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted)">—</td>
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft)">
+            <button class="b-g" aria-expanded="true" aria-controls="history-groq-gpt-oss-120b" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px 0 8px;border-radius:10px;font-size:13px;font-weight:700;background:var(--chip);border:1.5px solid var(--line);color:var(--ink)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6"></path></svg>
+              5 amount(s)
+            </button>
+          </td>
+        </tr>
+        <tr id="history-groq-gpt-oss-120b" style="background:var(--raised)">
+          <td colspan="6" style="padding:0 16px 16px;border-left:1.5px solid var(--line-soft)">
+            <div style="position:relative;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px;padding:16px 20px 14px">
+              <span aria-hidden="true" style="position:absolute;left:24px;right:20px;top:20.25px;height:1.5px;background:var(--line)"></span>
+              <ul style="position:relative;list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px 16px">
+                <li style="display:flex;flex-direction:column;gap:2px;padding-top:20px;position:relative">
+                  <span aria-hidden="true" style="position:absolute;left:0;top:0;width:10px;height:10px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--muted)"></span>
+                  <time style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">27/10/2026, 15:41:14</time>
+                  <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:16px;font-weight:700;line-height:1.3">1430</span>
+                </li>
+                <li style="display:flex;flex-direction:column;gap:2px;padding-top:20px;position:relative">
+                  <span aria-hidden="true" style="position:absolute;left:0;top:0;width:10px;height:10px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--muted)"></span>
+                  <time style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">27/10/2026, 15:41:26</time>
+                  <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:16px;font-weight:700;line-height:1.3">1206</span>
+                </li>
+                <li style="display:flex;flex-direction:column;gap:2px;padding-top:20px;position:relative">
+                  <span aria-hidden="true" style="position:absolute;left:0;top:0;width:10px;height:10px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--muted)"></span>
+                  <time style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">27/10/2026, 15:41:39</time>
+                  <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:16px;font-weight:700;line-height:1.3">930</span>
+                </li>
+                <li style="display:flex;flex-direction:column;gap:2px;padding-top:20px;position:relative">
+                  <span aria-hidden="true" style="position:absolute;left:0;top:0;width:10px;height:10px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--muted)"></span>
+                  <time style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">27/10/2026, 15:41:52</time>
+                  <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:16px;font-weight:700;line-height:1.3">852</span>
+                </li>
+                <li style="display:flex;flex-direction:column;gap:2px;padding-top:20px;position:relative">
+                  <span aria-hidden="true" style="position:absolute;left:0;top:0;width:10px;height:10px;box-sizing:border-box;border-radius:50%;background:var(--accent);border:1.5px solid var(--accent)"></span>
+                  <time style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">27/10/2026, 15:42:03</time>
+                  <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:16px;font-weight:700;line-height:1.3">1194</span>
+                </li>
+              </ul>
+            </div>
+          </td>
+        </tr>
+        <tr class="row">
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft);border-left:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px">tokens_per_minute</td>
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="openai/gpt-oss-20b">openai/gpt-oss-20b</td>
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:15px;font-weight:700">1930</td>
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft);font-size:13.5px;font-weight:600;color:var(--muted-2)">Not known yet</td>
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted)">—</td>
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft)">
+            <button class="b-g" aria-expanded="false" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px 0 8px;border-radius:10px;font-size:13px;font-weight:700;background:transparent;border:1.5px solid var(--line-soft);color:var(--muted-2)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5"></path></svg>
+              1 amount(s)
+            </button>
+          </td>
+        </tr>
+      </tbody>
+
+      <!-- nvidia -->
+      <tbody style="border-top:1.5px solid var(--line)">
+        <tr class="row">
+          <th scope="rowgroup" style="text-align:left;vertical-align:top;padding:17px 18px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14px;font-weight:700;line-height:1.4">nvidia</th>
+          <td style="padding:12px 16px;border-left:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px">requests_per_minute</td>
+          <td style="padding:12px 16px;color:var(--muted)">—</td>
+          <td style="padding:12px 16px">
+            <span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:15px;font-weight:700;line-height:1.3">4</span>
+            <span aria-hidden="true" style="display:block;margin-top:6px;width:112px;height:5px;border-radius:3px;background:var(--line);overflow:hidden"><span style="display:block;width:10%;height:100%;border-radius:3px;background:var(--accent);transform-origin:left center;animation:mete-fill 1s cubic-bezier(.2,.7,.2,1) both"></span></span>
+          </td>
+          <td style="padding:12px 16px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:500">40</td>
+          <td style="padding:12px 16px;color:var(--muted)">—</td>
+          <td style="padding:12px 16px">
+            <button class="b-g" aria-expanded="false" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px 0 8px;border-radius:10px;font-size:13px;font-weight:700;background:transparent;border:1.5px solid var(--line-soft);color:var(--muted-2)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5"></path></svg>
+              4 amount(s)
+            </button>
+          </td>
+        </tr>
+      </tbody>
+
+      <!-- openrouter -->
+      <tbody style="border-top:1.5px solid var(--line)">
+        <tr class="row">
+          <th scope="rowgroup" rowspan="2" style="text-align:left;vertical-align:top;padding:17px 18px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14px;font-weight:700;line-height:1.4;background:var(--panel)">openrouter</th>
+          <td style="padding:12px 16px;border-left:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px">requests_per_minute</td>
+          <td style="padding:12px 16px;color:var(--muted)">—</td>
+          <td style="padding:12px 16px">
+            <span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:15px;font-weight:700;line-height:1.3">2</span>
+            <span aria-hidden="true" style="display:block;margin-top:6px;width:112px;height:5px;border-radius:3px;background:var(--line);overflow:hidden"><span style="display:block;width:10%;height:100%;border-radius:3px;background:var(--accent);transform-origin:left center;animation:mete-fill 1s cubic-bezier(.2,.7,.2,1) both"></span></span>
+          </td>
+          <td style="padding:12px 16px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:500">20</td>
+          <td style="padding:12px 16px;color:var(--muted)">—</td>
+          <td style="padding:12px 16px">
+            <button class="b-g" aria-expanded="false" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px 0 8px;border-radius:10px;font-size:13px;font-weight:700;background:transparent;border:1.5px solid var(--line-soft);color:var(--muted-2)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5"></path></svg>
+              2 amount(s)
+            </button>
+          </td>
+        </tr>
+        <tr class="row">
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft);border-left:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px">requests_per_day</td>
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted)">—</td>
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft)">
+            <span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:15px;font-weight:700;line-height:1.3">37</span>
+            <span aria-hidden="true" style="display:block;margin-top:6px;width:112px;height:5px;border-radius:3px;background:var(--line);overflow:hidden"><span style="display:block;width:74%;height:100%;border-radius:3px;background:var(--accent);transform-origin:left center;animation:mete-fill 1s cubic-bezier(.2,.7,.2,1) both"></span></span>
+          </td>
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:500">50</td>
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">28/10/2026, 03:00:00</td>
+          <td style="padding:12px 16px;border-top:1.5px solid var(--line-soft)">
+            <button class="b-g" aria-expanded="false" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px 0 8px;border-radius:10px;font-size:13px;font-weight:700;background:transparent;border:1.5px solid var(--line-soft);color:var(--muted-2)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5"></path></svg>
+              37 amount(s)
+            </button>
+          </td>
+        </tr>
+      </tbody>
+
+      <!-- opencode-zen: limit not discovered yet, nothing in the window -->
+      <tbody style="border-top:1.5px solid var(--line)">
+        <tr class="row">
+          <th scope="rowgroup" style="text-align:left;vertical-align:top;padding:17px 18px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14px;font-weight:700;line-height:1.4">opencode-zen</th>
+          <td style="padding:12px 16px;border-left:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px">requests_per_minute</td>
+          <td style="padding:12px 16px;color:var(--muted)">—</td>
+          <td style="padding:12px 16px;height:30px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:15px;font-weight:700">0</td>
+          <td style="padding:12px 16px;font-size:13.5px;font-weight:600;color:var(--muted-2)">Not known yet</td>
+          <td style="padding:12px 16px;color:var(--muted)">—</td>
+          <td style="padding:12px 16px 12px 20px;color:var(--muted)">—</td>
+        </tr>
+      </tbody>
+
+      <!-- every paid model (ANY_PROVIDER) -->
+      <tbody style="border-top:1.5px solid var(--line)">
+        <tr class="row">
+          <th scope="rowgroup" style="text-align:left;vertical-align:top;padding:16px 18px;font-size:14.5px;font-weight:700;line-height:1.4">Every paid model</th>
+          <td style="padding:12px 16px;border-left:1.5px solid var(--line-soft);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px">usd_per_day</td>
+          <td style="padding:12px 16px;color:var(--muted)">—</td>
+          <td style="padding:12px 16px">
+            <span style="display:block;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:15px;font-weight:700;line-height:1.3">0.1875</span>
+            <span aria-hidden="true" style="display:block;margin-top:6px;width:112px;height:5px;border-radius:3px;background:var(--line);overflow:hidden"><span style="display:block;width:9.4%;height:100%;border-radius:3px;background:var(--accent);transform-origin:left center;animation:mete-fill 1s cubic-bezier(.2,.7,.2,1) both"></span></span>
+          </td>
+          <td style="padding:12px 16px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:500">2</td>
+          <td style="padding:12px 16px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">28/10/2026, 03:00:00</td>
+          <td style="padding:12px 16px">
+            <button class="b-g" aria-expanded="false" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px 0 8px;border-radius:10px;font-size:13px;font-weight:700;background:transparent;border:1.5px solid var(--line-soft);color:var(--muted-2)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5"></path></svg>
+              2 amount(s)
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":742}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

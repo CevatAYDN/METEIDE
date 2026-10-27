@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Team panel — single agent done</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mete.light{--bg:#ECEAF4;--panel:#F8F7FC;--line:#DAD6EA;--ink:#24223A;--muted:#6B6785;--accent:#5B4BD6;--good:#2FA38A;--warn:#E3A13A;--bad:#D9544A;--chip:#E4E0F3;--chrome:#DCD8EC;--side:#E6E3F2;--raised:#EFEDF8;--line-soft:#E2DEF0;--muted-2:#524E6E}
+.mete.dark{--bg:#17162A;--panel:#211F38;--line:#34315A;--ink:#ECEAF7;--muted:#A6A2C4;--accent:#8F83F2;--good:#4CC3A6;--warn:#F0B75A;--bad:#EE7368;--chip:#2D2A4D;--chrome:#121122;--side:#1A192F;--raised:#1C1B32;--line-soft:#2A2848;--muted-2:#B9B5D6}
+.mete .b-g:hover{background:var(--chip)!important;color:var(--ink)!important}
+.mete .seg:hover{color:var(--ink)!important}
+.mete .tab:hover{color:var(--ink)!important}
+.mete button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.mete *{animation:none!important}}
+</style>
+</helmet>
+<div class="mete light" style="width:1320px;height:952px;box-sizing:border-box;padding:20px;background:var(--bg);color:var(--ink);font-family:'Baloo 2',system-ui,sans-serif;font-size:14px;line-height:1.4;display:flex;flex-direction:column;gap:16px">
+
+  <!-- Hero band -->
+  <header style="flex:none;background:var(--raised);border:1.5px solid var(--line);border-radius:16px;padding:22px 24px 22px 26px;display:flex;align-items:center;gap:28px">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start">
+      <span role="status" style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 15px 0 11px;border-radius:999px;background:color-mix(in srgb,var(--good) 14%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink));font-size:15px;font-weight:700">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>
+        Done
+      </span>
+      <h1 title="Explain where the quota window resets" style="margin:12px 0 0;max-width:100%;font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Explain where the quota window resets</h1>
+      <p style="margin:6px 0 0;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--muted-2);white-space:nowrap">
+        <span>Single agent</span>
+        <span aria-hidden="true" style="color:var(--muted)">·</span>
+        <span>started <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:500">15:30</span></span>
+        <span aria-hidden="true" style="color:var(--muted)">·</span>
+        <span>took <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:500">2 min</span></span>
+        <span aria-hidden="true" style="color:var(--muted)">·</span>
+        <span>Autonomy 2: approve risky actions</span>
+        <span aria-hidden="true" style="color:var(--muted)">·</span>
+        <span>up to 150 requests, 6 h</span>
+      </p>
+    </div>
+    <dl style="flex:none;margin:0;display:flex;gap:10px">
+      <div style="min-width:104px;padding:10px 16px 11px;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px">
+        <dt style="font-size:12px;font-weight:600;line-height:1.3;color:var(--muted)">Calls</dt>
+        <dd style="margin:3px 0 0;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:22px;font-weight:700;line-height:1.2">6</dd>
+      </div>
+      <div style="min-width:104px;padding:10px 16px 11px;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px">
+        <dt style="font-size:12px;font-weight:600;line-height:1.3;color:var(--muted)">Tokens</dt>
+        <dd style="margin:3px 0 0;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:22px;font-weight:700;line-height:1.2">14k</dd>
+      </div>
+      <div style="min-width:104px;padding:10px 16px 11px;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px">
+        <dt style="font-size:12px;font-weight:600;line-height:1.3;color:var(--muted)">Checkpoints</dt>
+        <dd style="margin:3px 0 0;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:22px;font-weight:700;line-height:1.2;color:var(--muted-2)">0</dd>
+      </div>
+    </dl>
+  </header>
+
+  <!-- Columns -->
+  <div style="flex:1;min-height:0;display:flex;gap:20px">
+
+    <!-- Center -->
+    <main style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px">
+
+      <!-- Answer: the hero of the center -->
+      <article aria-labelledby="answer-title" style="flex:none;background:var(--panel);border:1.5px solid var(--line);border-radius:16px;padding:22px 34px 32px 30px">
+        <header style="display:flex;align-items:center;gap:10px;padding-bottom:14px;margin-bottom:22px;border-bottom:1.5px solid var(--line-soft)">
+          <span aria-hidden="true" style="flex:none;width:28px;height:28px;border-radius:10px;background:color-mix(in srgb,var(--good) 14%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink));display:flex;align-items:center;justify-content:center">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 3.5h11v7.5H8l-3 2.5V11H2.5z"></path><path d="M5.5 7.25l1.5 1.5 3-3"></path></svg>
+          </span>
+          <h2 id="answer-title" style="margin:0;font-size:15px;font-weight:800;line-height:1.3">Answer</h2>
+        </header>
+        <div style="max-width:780px">
+          <h3 style="margin:0 0 10px;font-size:21px;font-weight:800;line-height:1.3">Where the quota window resets</h3>
+          <p style="margin:0 0 14px;font-size:16px;font-weight:500;line-height:1.65">A quota unit's window ends at <code style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-ligatures:none;font-size:13.5px;padding:1px 5px;border-radius:10px;background:var(--chip)">resetsAt</code>, which <code style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-ligatures:none;font-size:13.5px;padding:1px 5px;border-radius:10px;background:var(--chip)">quota.ts</code> computes from the unit's <code style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-ligatures:none;font-size:13.5px;padding:1px 5px;border-radius:10px;background:var(--chip)">window</code>. The two kinds of window reset differently:</p>
+          <ul style="list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:9px">
+            <li style="display:flex;gap:12px;font-size:16px;font-weight:500;line-height:1.6">
+              <span aria-hidden="true" style="flex:none;margin-top:10px;width:6px;height:6px;border-radius:2px;background:var(--accent)"></span>
+              <span><code style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-ligatures:none;font-size:13.5px;padding:1px 5px;border-radius:10px;background:var(--chip)">"minute"</code> is a sliding window: it ends 60 s after the oldest call still counted, so calls come back one at a time.</span>
+            </li>
+            <li style="display:flex;gap:12px;font-size:16px;font-weight:500;line-height:1.6">
+              <span aria-hidden="true" style="flex:none;margin-top:10px;width:6px;height:6px;border-radius:2px;background:var(--accent)"></span>
+              <span><code style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-ligatures:none;font-size:13.5px;padding:1px 5px;border-radius:10px;background:var(--chip)">"day"</code> is a fixed window: every call comes back at once, at 00:00 UTC.</span>
+            </li>
+            <li style="display:flex;gap:12px;font-size:16px;font-weight:500;line-height:1.6">
+              <span aria-hidden="true" style="flex:none;margin-top:10px;width:6px;height:6px;border-radius:2px;background:var(--accent)"></span>
+              <span><code style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-ligatures:none;font-size:13.5px;padding:1px 5px;border-radius:10px;background:var(--chip)">QuotaUnit</code> sets which window a unit has; <code style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-ligatures:none;font-size:13.5px;padding:1px 5px;border-radius:10px;background:var(--chip)">limits.ts</code> gives each provider its limits.</span>
+            </li>
+          </ul>
+          <p style="margin:0 0 14px;font-size:16px;font-weight:500;line-height:1.65">The daily reset is the last branch of <code style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-ligatures:none;font-size:13.5px;padding:1px 5px;border-radius:10px;background:var(--chip)">resetsAt</code>:</p>
+          <pre style="margin:0;padding:12px 16px;background:var(--raised);border:1.5px solid var(--line-soft);border-radius:10px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-ligatures:none;font-size:13px;line-height:1.65;white-space:pre;overflow:hidden"><span style="color:var(--accent)">const</span> next = <span style="color:var(--accent)">new</span> Date(now); <span style="color:var(--muted)">// fixed daily window</span>
+next.setUTCHours(<span style="color:color-mix(in srgb,var(--warn) 45%,var(--ink))">24</span>, <span style="color:color-mix(in srgb,var(--warn) 45%,var(--ink))">0</span>, <span style="color:color-mix(in srgb,var(--warn) 45%,var(--ink))">0</span>, <span style="color:color-mix(in srgb,var(--warn) 45%,var(--ink))">0</span>);
+<span style="color:var(--accent)">return</span> next.getTime();</pre>
+        </div>
+      </article>
+
+      <!-- View switch -->
+      <div style="flex:none;display:flex;align-items:center;justify-content:space-between">
+        <div role="tablist" aria-label="View" style="display:inline-flex;gap:2px;padding:3px;background:var(--chip);border-radius:13px">
+          <button type="button" role="tab" aria-selected="true" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px 0 11px;border-radius:10px;font-size:13.5px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 4h7M6.5 8h7M6.5 12h7"></path><circle cx="3" cy="4" r="1"></circle><circle cx="3" cy="8" r="1"></circle><circle cx="3" cy="12" r="1"></circle></svg>
+            Steps
+          </button>
+          <button type="button" class="seg" role="tab" aria-selected="false" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px 0 11px;border-radius:10px;font-size:13.5px;font-weight:700;background:transparent;border:1.5px solid transparent;color:var(--muted-2)">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.75" y="2.5" width="12.5" height="9" rx="1.5"></rect><path d="M5.5 14h5M8 11.5V14"></path></svg>
+            Studio
+          </button>
+          <button type="button" class="seg" role="tab" aria-selected="false" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px 0 11px;border-radius:10px;font-size:13.5px;font-weight:700;background:transparent;border:1.5px solid transparent;color:var(--muted-2)">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="5.5" r="2.25"></circle><path d="M2 13.5c.5-2.3 2-3.5 4-3.5s3.5 1.2 4 3.5"></path><circle cx="11.25" cy="5" r="1.75"></circle><path d="M11 9.5c1.6.1 2.6 1.2 3 3.25"></path></svg>
+            Team
+          </button>
+        </div>
+      </div>
+
+      <!-- Steps, collapsed -->
+      <section aria-labelledby="steps-title" style="flex:none;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:16px;padding:12px 10px 4px 18px">
+        <h2 id="steps-title" style="margin:0 0 8px;font-size:14px;font-weight:700;line-height:1.3">Steps</h2>
+        <ol style="list-style:none;margin:0;padding:0">
+          <li style="display:flex;align-items:center;gap:12px;height:42px;border-top:1.5px solid var(--line-soft)">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;color:var(--muted-2)"><circle cx="7" cy="7" r="4.25"></circle><path d="M10.25 10.25L13.5 13.5"></path></svg>
+            <code style="flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-weight:700">fs_grep</span> <span style="color:var(--muted-2)">resetsAt</span></code>
+            <span style="flex:none;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--good) 14%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink));font-size:12px;font-weight:700">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>
+              Done
+            </span>
+            <button type="button" class="b-g" aria-label="Show details" aria-expanded="false" style="font:inherit;cursor:pointer;flex:none;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;background:transparent;border:1.5px solid transparent;color:var(--muted-2)">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5"></path></svg>
+            </button>
+          </li>
+          <li style="display:flex;align-items:center;gap:12px;height:42px;border-top:1.5px solid var(--line-soft)">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;color:var(--muted-2)"><path d="M4 1.75h5l3 3v9.5H4z"></path><path d="M9 1.75v3h3"></path></svg>
+            <code title="fs_read packages/gateway/src/application/quota.ts" style="flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-weight:700">fs_read</span> <span style="color:var(--muted-2)">packages/gateway/src/application/quota.ts</span></code>
+            <span style="flex:none;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--good) 14%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink));font-size:12px;font-weight:700">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>
+              Done
+            </span>
+            <button type="button" class="b-g" aria-label="Show details" aria-expanded="false" style="font:inherit;cursor:pointer;flex:none;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;background:transparent;border:1.5px solid transparent;color:var(--muted-2)">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5"></path></svg>
+            </button>
+          </li>
+          <li style="display:flex;align-items:center;gap:12px;height:42px;border-top:1.5px solid var(--line-soft)">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;color:var(--muted-2)"><path d="M4 1.75h5l3 3v9.5H4z"></path><path d="M9 1.75v3h3"></path></svg>
+            <code title="fs_read packages/providers/src/domain/limits.ts" style="flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-weight:700">fs_read</span> <span style="color:var(--muted-2)">packages/providers/src/domain/limits.ts</span></code>
+            <span style="flex:none;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--good) 14%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink));font-size:12px;font-weight:700">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>
+              Done
+            </span>
+            <button type="button" class="b-g" aria-label="Show details" aria-expanded="false" style="font:inherit;cursor:pointer;flex:none;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;background:transparent;border:1.5px solid transparent;color:var(--muted-2)">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5"></path></svg>
+            </button>
+          </li>
+          <li style="display:flex;align-items:center;gap:12px;height:42px;border-top:1.5px solid var(--line-soft)">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;color:var(--muted-2)"><path d="M4 1.75h5l3 3v9.5H4z"></path><path d="M9 1.75v3h3"></path></svg>
+            <code title="fs_read packages/gateway/src/domain/quota-unit.ts" style="flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-weight:700">fs_read</span> <span style="color:var(--muted-2)">packages/gateway/src/domain/quota-unit.ts</span></code>
+            <span style="flex:none;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--good) 14%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink));font-size:12px;font-weight:700">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>
+              Done
+            </span>
+            <button type="button" class="b-g" aria-label="Show details" aria-expanded="false" style="font:inherit;cursor:pointer;flex:none;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;background:transparent;border:1.5px solid transparent;color:var(--muted-2)">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5"></path></svg>
+            </button>
+          </li>
+        </ol>
+      </section>
+    </main>
+
+    <!-- Right rail -->
+    <aside aria-label="Run details" style="width:380px;flex:none;box-sizing:border-box;background:var(--side);border:1.5px solid var(--line-soft);border-radius:16px;display:flex;flex-direction:column;overflow:hidden">
+      <div role="tablist" aria-label="Run details" style="flex:none;display:flex;gap:2px;padding:4px 12px 0;border-bottom:1.5px solid var(--line)">
+        <button type="button" role="tab" aria-selected="true" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:11px 10px 9px;margin-bottom:-1.5px;background:transparent;border:0;border-bottom:2.5px solid var(--accent);font-size:13.5px;font-weight:700;color:var(--ink)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8h3l2-4.5 3 9 2-4.5h3"></path></svg>
+          Activity
+        </button>
+        <button type="button" class="tab" role="tab" aria-selected="false" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:11px 10px 9px;margin-bottom:-1.5px;background:transparent;border:0;border-bottom:2.5px solid transparent;font-size:13.5px;font-weight:700;color:var(--muted-2)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.75l5.5 3v6.5L8 14.25l-5.5-3v-6.5z"></path><path d="M2.5 4.75L8 7.75l5.5-3M8 7.75v6.5"></path></svg>
+          Artifacts
+          <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;font-weight:700;background:var(--panel);border-radius:999px;padding:0 7px">0</span>
+        </button>
+        <button type="button" class="tab" role="tab" aria-selected="false" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:11px 10px 9px;margin-bottom:-1.5px;background:transparent;border:0;border-bottom:2.5px solid transparent;font-size:13.5px;font-weight:700;color:var(--muted-2)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4l1.25 1.25L5.5 3M2 10.5l1.25 1.25L5.5 9.5M8 4.25h6M8 10.75h6"></path></svg>
+          Tasks
+        </button>
+      </div>
+
+      <div style="flex:1;min-height:0;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div role="group" aria-label="Show" style="display:inline-flex;gap:2px;padding:2px;background:var(--chip);border:1.5px solid var(--line-soft);border-radius:13px">
+            <button type="button" aria-pressed="true" style="font:inherit;cursor:pointer;height:28px;padding:0 11px;border-radius:10px;font-size:13px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">All</button>
+            <button type="button" class="seg" aria-pressed="false" style="font:inherit;cursor:pointer;height:28px;padding:0 11px;border-radius:10px;font-size:13px;font-weight:700;background:transparent;border:1.5px solid transparent;color:var(--muted-2)">Asks</button>
+            <button type="button" class="seg" aria-pressed="false" style="font:inherit;cursor:pointer;height:28px;padding:0 11px;border-radius:10px;font-size:13px;font-weight:700;background:transparent;border:1.5px solid transparent;color:var(--muted-2)">Work</button>
+            <button type="button" class="seg" aria-pressed="false" style="font:inherit;cursor:pointer;height:28px;padding:0 11px;border-radius:10px;font-size:13px;font-weight:700;background:transparent;border:1.5px solid transparent;color:var(--muted-2)">Run</button>
+          </div>
+          <button type="button" role="switch" aria-checked="false" disabled style="font:inherit;cursor:default;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 4px 0 6px;border-radius:10px;background:transparent;border:0;font-size:13px;font-weight:700;color:var(--muted-2)">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 10.5v4M5 1.75h6M6 1.75v4L4 8.25v2.25h8V8.25l-2-2.5v-4"></path></svg>
+            Follow
+            <span aria-hidden="true" style="position:relative;display:inline-block;width:30px;height:18px;box-sizing:border-box;border-radius:999px;background:var(--chip);border:1.5px solid var(--line)">
+              <span style="position:absolute;top:1px;left:1px;width:13px;height:13px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--line)"></span>
+            </span>
+          </button>
+        </div>
+
+        <h2 style="margin:2px 0 0;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Activity · newest first</h2>
+
+        <div style="position:relative">
+          <span aria-hidden="true" style="position:absolute;left:13.25px;top:14px;bottom:14px;width:1.5px;background:var(--line)"></span>
+          <ol style="position:relative;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px">
+            <li style="display:flex;align-items:flex-start;gap:10px">
+              <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:color-mix(in srgb,var(--good) 22%,var(--panel));border:1.5px solid var(--good);display:flex;align-items:center;justify-content:center;color:color-mix(in srgb,var(--good) 60%,var(--ink))">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"></path></svg>
+              </span>
+              <div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;padding:5px 10px 7px;margin-top:-1px;border-radius:10px;background:color-mix(in srgb,var(--good) 14%,var(--panel))">
+                <div style="flex:1;min-width:0">
+                  <p style="margin:0;font-size:13.5px;font-weight:700;line-height:1.4">The run is complete.</p>
+                  <p style="margin:2px 0 0;font-size:13px;font-weight:500;line-height:1.45;color:var(--muted-2)">A quota unit's window ends at <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px">resetsAt</span>, which <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px">quota.ts</span> computes from the unit's <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px">window</span>.</p>
+                </div>
+                <time style="flex:none;padding-top:1px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted-2)">15:32:05</time>
+              </div>
+            </li>
+            <li style="display:flex;align-items:flex-start;gap:10px">
+              <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:var(--muted-2)">A</span>
+              <div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;padding:5px 10px 6px;margin-top:-1px">
+                <p style="flex:1;min-width:0;margin:0;font-size:13.5px;font-weight:500;line-height:1.4"><b style="font-weight:700">Assistant</b> uses <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px">fs.read@1</span> <span style="color:var(--muted-2)">·</span> <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">2 ms</span></p>
+                <time style="flex:none;padding-top:1px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted-2)">15:31:02</time>
+              </div>
+            </li>
+            <li style="display:flex;align-items:flex-start;gap:10px">
+              <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:var(--muted-2)">A</span>
+              <div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;padding:5px 10px 6px;margin-top:-1px">
+                <p style="flex:1;min-width:0;margin:0;font-size:13.5px;font-weight:500;line-height:1.4"><b style="font-weight:700">Assistant</b> uses <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px">fs.read@1</span> <span style="color:var(--muted-2)">·</span> <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">3 ms</span></p>
+                <time style="flex:none;padding-top:1px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted-2)">15:30:41</time>
+              </div>
+            </li>
+            <li style="display:flex;align-items:flex-start;gap:10px">
+              <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:var(--muted-2)">A</span>
+              <div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;padding:5px 10px 6px;margin-top:-1px">
+                <p style="flex:1;min-width:0;margin:0;font-size:13.5px;font-weight:500;line-height:1.4"><b style="font-weight:700">Assistant</b> uses <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px">fs.read@1</span> <span style="color:var(--muted-2)">·</span> <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">4 ms</span></p>
+                <time style="flex:none;padding-top:1px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted-2)">15:30:39</time>
+              </div>
+            </li>
+            <li style="display:flex;align-items:flex-start;gap:10px">
+              <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:var(--muted-2)">A</span>
+              <div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;padding:5px 10px 6px;margin-top:-1px">
+                <p style="flex:1;min-width:0;margin:0;font-size:13.5px;font-weight:500;line-height:1.4"><b style="font-weight:700">Assistant</b> uses <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px">fs.grep@1</span> <span style="color:var(--muted-2)">·</span> <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">38 ms</span></p>
+                <time style="flex:none;padding-top:1px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted-2)">15:30:33</time>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":952}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings — models and keys</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mete.light{--bg:#ECEAF4;--panel:#F8F7FC;--line:#DAD6EA;--ink:#24223A;--muted:#6B6785;--accent:#5B4BD6;--good:#2FA38A;--warn:#E3A13A;--bad:#D9544A;--chip:#E4E0F3;--chrome:#DCD8EC;--side:#E6E3F2;--raised:#EFEDF8;--line-soft:#E2DEF0;--muted-2:#524E6E}
+.mete.dark{--bg:#17162A;--panel:#211F38;--line:#34315A;--ink:#ECEAF7;--muted:#A6A2C4;--accent:#8F83F2;--good:#4CC3A6;--warn:#F0B75A;--bad:#EE7368;--chip:#2D2A4D;--chrome:#121122;--side:#1A192F;--raised:#1C1B32;--line-soft:#2A2848;--muted-2:#B9B5D6}
+@keyframes mete-rise{from{opacity:0;transform:translateY(6px)}}
+.mete .b-p:hover{background:color-mix(in srgb,var(--accent) 76%,var(--ink))!important;border-color:color-mix(in srgb,var(--accent) 76%,var(--ink))!important}
+.mete .b-q:hover{background:var(--raised)!important;border-color:var(--muted)!important}
+.mete .b-g:hover{background:var(--chip)!important;color:var(--ink)!important}
+.mete .seg:hover{color:var(--ink)!important}
+.mete .nav:hover{background:color-mix(in srgb,var(--panel) 55%,var(--side))!important}
+.mete .lnk:hover{color:var(--ink)!important;text-decoration-color:var(--ink)!important}
+.mete .fld:hover{border-color:var(--muted)!important}
+.mete .pick:hover{background:var(--raised)!important}
+.mete button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mete input:focus-visible,.mete select:focus-visible,.mete textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)!important}
+@media (prefers-reduced-motion:reduce){.mete *{animation:none!important}}
+</style>
+</helmet>
+<div class="mete light" style="width:1320px;height:1568px;box-sizing:border-box;padding:20px;background:var(--bg);color:var(--ink);font-family:'Baloo 2',system-ui,sans-serif;font-size:14px;line-height:1.4;display:flex;flex-direction:column;gap:16px">
+
+  <!-- Hero band: the screen, when METE loaded it, and where the forms save -->
+  <header style="flex:none;background:var(--raised);border:1.5px solid var(--line);border-radius:16px;padding:22px 22px 22px 26px;display:flex;align-items:center;gap:28px">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start">
+      <div style="align-self:stretch;display:flex;align-items:center;justify-content:space-between;gap:16px">
+        <div style="flex:1;min-width:0;display:flex;align-items:center;gap:16px">
+          <span aria-hidden="true" style="flex:none;width:48px;height:48px;box-sizing:border-box;border-radius:10px;background:var(--panel);border:1.5px solid var(--line-soft);display:flex;align-items:center;justify-content:center;color:var(--accent)">
+            <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h6M11.5 4h2M2.5 8h2M7.5 8h6M2.5 12h7M12.5 12h1"></path><circle cx="10" cy="4" r="1.5"></circle><circle cx="6" cy="8" r="1.5"></circle><circle cx="11" cy="12" r="1.5"></circle></svg>
+          </span>
+          <div style="min-width:0">
+            <h1 style="margin:0;font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.01em">Settings</h1>
+            <p style="margin:3px 0 0;font-size:14px;font-weight:600;color:var(--muted-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">METE: the configuration it loaded</p>
+          </div>
+        </div>
+        <button class="b-q" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px 0 12px;border-radius:10px;font-size:14px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.25 2.75v3.5h-3.5"></path><path d="M13 6.25a5.5 5.5 0 10.3 3.6"></path></svg>
+          Refresh
+        </button>
+      </div>
+      <p style="margin:14px 0 0;max-width:760px;font-size:14px;font-weight:500;line-height:1.5;color:var(--muted-2)">As METE loaded them at <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--ink)">27/10/2026, 15:42:10</span>. Edits to these files apply when METE starts again or on Apply now, except pins, which apply when the next task starts; a key no file sets takes its module's built-in default.</p>
+    </div>
+
+    <!-- Scope switch (ADR-095) -->
+    <fieldset style="flex:none;width:330px;box-sizing:border-box;margin:0;min-width:0;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+      <legend style="float:left;padding:0;margin:0;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Save changes to</legend>
+      <div style="clear:both;display:flex;gap:2px;padding:3px;background:var(--chip);border-radius:13px">
+        <button aria-pressed="true" style="font:inherit;cursor:pointer;flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:32px;padding:0 12px;border-radius:10px;font-size:13.5px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.75 4.25a1 1 0 011-1h3.2l1.5 1.5h5.8a1 1 0 011 1v6.5a1 1 0 01-1 1H2.75a1 1 0 01-1-1z"></path></svg>
+          This folder
+        </button>
+        <button class="seg" aria-pressed="false" style="font:inherit;cursor:pointer;flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:32px;padding:0 12px;border-radius:10px;font-size:13.5px;font-weight:700;background:transparent;border:1.5px solid transparent;color:var(--muted-2)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.25"></circle><path d="M1.75 8h12.5M8 1.75c1.75 1.9 2.6 4 2.6 6.25S9.75 12.35 8 14.25C6.25 12.35 5.4 10.25 5.4 8S6.25 3.65 8 1.75z"></path></svg>
+          All folders
+        </button>
+      </div>
+      <p style="margin:0;font-size:12.5px;font-weight:600;line-height:1.45;color:var(--muted)">For the forms below; the custom endpoints card has its own choice.</p>
+    </fieldset>
+  </header>
+
+  <!-- Columns: the groups, then the chosen group -->
+  <div style="flex:none;display:flex;align-items:flex-start;gap:20px">
+
+    <!-- Group list -->
+    <nav aria-label="Settings groups" style="width:290px;flex:none;box-sizing:border-box;background:var(--side);border:1.5px solid var(--line-soft);border-radius:16px;padding:8px;display:flex;flex-direction:column;gap:2px">
+      <button aria-pressed="true" style="font:inherit;cursor:pointer;text-align:left;display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border-radius:12px;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+        <span aria-hidden="true" style="flex:none;width:32px;height:32px;border-radius:10px;background:color-mix(in srgb,var(--accent) 14%,var(--panel));color:color-mix(in srgb,var(--accent) 60%,var(--ink));display:flex;align-items:center;justify-content:center">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="8" height="8" rx="1.5"></rect><path d="M6.5 1.5V4M9.5 1.5V4M6.5 12v2.5M9.5 12v2.5M1.5 6.5H4M1.5 9.5H4M12 6.5h2.5M12 9.5h2.5"></path></svg>
+        </span>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+          <span style="display:flex;align-items:center;gap:7px;font-size:14.5px;font-weight:800;line-height:1.3">Models and keys
+            <span role="img" aria-label="A value of this group is set for this folder only" title="A value of this group is set for this folder only" style="width:8px;height:8px;border-radius:50%;background:color-mix(in srgb,var(--warn) 70%,var(--ink))"></span>
+          </span>
+          <span style="font-size:12.5px;font-weight:600;line-height:1.4;color:var(--muted-2)">Providers, endpoints and which models METE may use</span>
+        </span>
+      </button>
+      <button class="nav" aria-pressed="false" style="font:inherit;cursor:pointer;text-align:left;display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border-radius:12px;background:transparent;border:1.5px solid transparent;color:var(--ink)">
+        <span aria-hidden="true" style="flex:none;width:32px;height:32px;border-radius:10px;background:var(--chip);color:var(--muted-2);display:flex;align-items:center;justify-content:center">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.75l5.25 2v4c0 3.2-2.3 5.4-5.25 6.5-2.95-1.1-5.25-3.3-5.25-6.5v-4z"></path><path d="M5.75 8l1.5 1.5 3-3.25"></path></svg>
+        </span>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+          <span style="font-size:14.5px;font-weight:700;line-height:1.3">What the team may do alone</span>
+          <span style="font-size:12.5px;font-weight:600;line-height:1.4;color:var(--muted-2)">When to ask you first, and how much a run may use</span>
+        </span>
+      </button>
+      <button class="nav" aria-pressed="false" style="font:inherit;cursor:pointer;text-align:left;display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border-radius:12px;background:transparent;border:1.5px solid transparent;color:var(--ink)">
+        <span aria-hidden="true" style="flex:none;width:32px;height:32px;border-radius:10px;background:var(--chip);color:var(--muted-2);display:flex;align-items:center;justify-content:center">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="10" height="7.25" rx="1.5"></rect><path d="M5.25 7V5a2.75 2.75 0 015.5 0v2"></path></svg>
+        </span>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+          <span style="display:flex;align-items:center;gap:7px;font-size:14.5px;font-weight:700;line-height:1.3">Privacy
+            <span role="img" aria-label="A value of this group is set for this folder only" title="A value of this group is set for this folder only" style="width:8px;height:8px;border-radius:50%;background:color-mix(in srgb,var(--warn) 70%,var(--ink))"></span>
+          </span>
+          <span style="font-size:12.5px;font-weight:600;line-height:1.4;color:var(--muted-2)">Whether providers may train on your prompts</span>
+        </span>
+      </button>
+      <button class="nav" aria-pressed="false" style="font:inherit;cursor:pointer;text-align:left;display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border-radius:12px;background:transparent;border:1.5px solid transparent;color:var(--ink)">
+        <span aria-hidden="true" style="flex:none;width:32px;height:32px;border-radius:10px;background:var(--chip);color:var(--muted-2);display:flex;align-items:center;justify-content:center">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.2 2.1a3.5 3.5 0 00-4.3 4.6l-3.7 3.7a1.4 1.4 0 002 2l3.7-3.7a3.5 3.5 0 004.6-4.3l-2 2-1.7-.3-.3-1.7z"></path></svg>
+        </span>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+          <span style="font-size:14.5px;font-weight:700;line-height:1.3">Tools and web search</span>
+          <span style="font-size:12.5px;font-weight:600;line-height:1.4;color:var(--muted-2)">Adapters, MCP servers and the shell</span>
+        </span>
+      </button>
+      <button class="nav" aria-pressed="false" style="font:inherit;cursor:pointer;text-align:left;display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border-radius:12px;background:transparent;border:1.5px solid transparent;color:var(--ink)">
+        <span aria-hidden="true" style="flex:none;width:32px;height:32px;border-radius:10px;background:var(--chip);color:var(--muted-2);display:flex;align-items:center;justify-content:center">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5.5" r="2.25"></circle><path d="M2 13.5c.5-2.3 2-3.5 4-3.5s3.5 1.2 4 3.5"></path><circle cx="11.25" cy="5" r="1.75"></circle><path d="M11 9.5c1.6.1 2.6 1.2 3 3.25"></path></svg>
+        </span>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+          <span style="font-size:14.5px;font-weight:700;line-height:1.3">Teams</span>
+          <span style="font-size:12.5px;font-weight:600;line-height:1.4;color:var(--muted-2)">Change a team or start a new one</span>
+        </span>
+      </button>
+      <button class="nav" aria-pressed="false" style="font:inherit;cursor:pointer;text-align:left;display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border-radius:12px;background:transparent;border:1.5px solid transparent;color:var(--ink)">
+        <span aria-hidden="true" style="flex:none;width:32px;height:32px;border-radius:10px;background:var(--chip);color:var(--muted-2);display:flex;align-items:center;justify-content:center">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.75a6.25 6.25 0 100 12.5c.9 0 1.4-.6 1.4-1.3 0-.9-.8-1.3-.8-2.1 0-.7.6-1.2 1.3-1.2h1.5a2.85 2.85 0 002.85-2.85C14.25 4.1 11.45 1.75 8 1.75z"></path><circle cx="5" cy="7.25" r=".75"></circle><circle cx="7.5" cy="4.75" r=".75"></circle><circle cx="10.5" cy="5.25" r=".75"></circle></svg>
+        </span>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+          <span style="font-size:14.5px;font-weight:700;line-height:1.3">Look and language</span>
+          <span style="font-size:12.5px;font-weight:600;line-height:1.4;color:var(--muted-2)">Theme, fonts and display language</span>
+        </span>
+      </button>
+      <button class="nav" aria-pressed="false" style="font:inherit;cursor:pointer;text-align:left;display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border-radius:12px;background:transparent;border:1.5px solid transparent;color:var(--ink)">
+        <span aria-hidden="true" style="flex:none;width:32px;height:32px;border-radius:10px;background:var(--chip);color:var(--muted-2);display:flex;align-items:center;justify-content:center">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1.75h5l3 3v9.5H4z"></path><path d="M9 1.75v3h3"></path></svg>
+        </span>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+          <span style="font-size:14.5px;font-weight:700;line-height:1.3">Other files</span>
+          <span style="font-size:12.5px;font-weight:600;line-height:1.4;color:var(--muted-2)">Sections no group above holds</span>
+        </span>
+      </button>
+    </nav>
+
+    <!-- The chosen group -->
+    <main style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:4px 2px 0">
+        <h2 style="margin:0;font-size:22px;font-weight:800;line-height:1.25">Models and keys</h2>
+        <button class="b-q" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px 0 12px;border-radius:10px;font-size:14px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.25" cy="10.75" r="2.75"></circle><path d="M7.2 8.8l6.05-6.05M11 5l1.75 1.75M9.5 6.5l1.25 1.25"></path></svg>
+          Set provider key…
+        </button>
+      </div>
+
+      <!-- Section: gateway -->
+      <section aria-label="Models and daily spend" style="background:var(--panel);border:1.5px solid var(--line-soft);border-radius:16px;padding:18px 20px 18px;display:flex;flex-direction:column;gap:14px;animation:mete-rise .4s ease-out both">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+          <h3 style="margin:0;display:flex;align-items:baseline;gap:8px;font-size:17px;font-weight:800;line-height:1.3">Models and daily spend <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500;color:var(--muted)">· gateway</span></h3>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 11px 0 9px;border-radius:999px;background:color-mix(in srgb,var(--warn) 14%,var(--panel));color:color-mix(in srgb,var(--warn) 45%,var(--ink));font-size:12.5px;font-weight:700">
+              <span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:var(--warn)"></span>
+              Changed for this folder
+            </span>
+            <button class="b-g" title="Removes these values from .mete/gateway.yaml, so the global file's value or the default applies again." style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px 0 8px;border-radius:10px;font-size:12.5px;font-weight:700;background:transparent;border:1.5px solid var(--line);color:var(--muted-2)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 2.5v3.75h3.75"></path><path d="M2.9 6.25A5.5 5.5 0 1 1 3.4 11"></path></svg>
+              Reset
+            </button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <label for="set-models" style="font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Models</label>
+              <span style="position:relative;display:block">
+                <select id="set-models" class="fld" style="font:inherit;appearance:none;-webkit-appearance:none;width:100%;box-sizing:border-box;height:38px;padding:0 36px 0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-size:14px;font-weight:600;cursor:pointer">
+                  <option value="">Default (Free models only)</option>
+                  <option value="free">Free models only</option>
+                  <option value="paid">Paid models only</option>
+                  <option value="both" selected>Free first, then paid</option>
+                </select>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;right:12px;top:11px;color:var(--muted-2);pointer-events:none"><path d="M4 6l4 4 4-4"></path></svg>
+              </span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <label for="set-spend" style="font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Daily spending cap (US dollars)</label>
+              <input id="set-spend" class="fld" type="number" step="any" value="2" placeholder="Default (1)" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--accent);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:500">
+            </div>
+            <p style="margin:2px 0 0;display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--muted)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"></path><path d="M9 1.75v3h3"></path></svg>
+              <span>Saves to <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;font-weight:500;color:var(--muted-2)">.mete/gateway.yaml</span></span>
+            </p>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+            <p style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted)">This folder:
+              <button class="lnk" title=".mete/gateway.yaml" style="font:inherit;cursor:pointer;padding:0;background:transparent;border:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500;color:color-mix(in srgb,var(--accent) 80%,var(--ink));text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent) 40%,var(--panel));text-underline-offset:3px">.mete/gateway.yaml</button>
+            </p>
+            <pre style="margin:0;padding:10px 14px;background:var(--raised);border:1.5px solid var(--line-soft);border-radius:10px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.6;white-space:pre;overflow:hidden;font-variant-ligatures:none"><span style="color:var(--muted-2)">models</span>: <span style="color:color-mix(in srgb,var(--good) 60%,var(--ink))">both</span></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: providers (the custom endpoints card, ADR-087) -->
+      <section aria-label="Custom endpoints" style="background:var(--panel);border:1.5px solid var(--line-soft);border-radius:16px;padding:18px 20px 18px;display:flex;flex-direction:column;gap:14px;animation:mete-rise .4s .06s ease-out both">
+        <h3 style="margin:0;display:flex;align-items:baseline;gap:8px;font-size:17px;font-weight:800;line-height:1.3">Custom endpoints <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500;color:var(--muted)">· providers</span></h3>
+
+        <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+          <p style="margin:0;display:flex;align-items:center;gap:6px;min-width:0;font-size:13px;font-weight:600;color:var(--muted)">Global:
+            <button class="lnk" title="C:\Users\dev\AppData\Roaming\METE\settings.yaml" style="font:inherit;cursor:pointer;min-width:0;padding:0;background:transparent;border:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500;color:color-mix(in srgb,var(--accent) 80%,var(--ink));text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent) 40%,var(--panel));text-underline-offset:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">C:\Users\dev\AppData\Roaming\METE\settings.yaml</button>
+          </p>
+          <pre style="margin:0;padding:10px 14px;background:var(--raised);border:1.5px solid var(--line-soft);border-radius:10px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.6;white-space:pre;overflow:hidden;font-variant-ligatures:none"><span style="color:var(--muted-2)">custom</span>:
+  - <span style="color:var(--muted-2)">slug</span>: <span style="color:color-mix(in srgb,var(--good) 60%,var(--ink))">studio-gw</span>
+    <span style="color:var(--muted-2)">name</span>: <span style="color:color-mix(in srgb,var(--good) 60%,var(--ink))">Studio gateway</span>
+    <span style="color:var(--muted-2)">baseUrl</span>: <span style="color:color-mix(in srgb,var(--good) 60%,var(--ink))">https://llm.studio.example/v1</span>
+    <span style="color:var(--muted-2)">format</span>: <span style="color:color-mix(in srgb,var(--good) 60%,var(--ink))">openai-chat</span>
+    <span style="color:var(--muted-2)">headers</span>:
+      <span style="color:var(--muted-2)">X-Team</span>: <span style="color:color-mix(in srgb,var(--good) 60%,var(--ink))">web</span></pre>
+        </div>
+
+        <!-- One endpoint -->
+        <fieldset style="margin:0;min-width:0;background:var(--raised);border:1.5px solid var(--line-soft);border-radius:14px;padding:16px 18px 16px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 16px">
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <label for="ep-0-name" style="font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Name</label>
+              <input id="ep-0-name" class="fld" value="Studio gateway" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-size:14px;font-weight:600">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <label for="ep-0-slug" style="font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Slug</label>
+              <input id="ep-0-slug" class="fld" value="studio-gw" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:500">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <label for="ep-0-url" style="font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Base URL</label>
+              <input id="ep-0-url" class="fld" value="https://llm.studio.example/v1" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:500">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <label for="ep-0-format" style="font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">API format</label>
+              <span style="position:relative;display:block">
+                <select id="ep-0-format" class="fld" style="font:inherit;appearance:none;-webkit-appearance:none;width:100%;box-sizing:border-box;height:38px;padding:0 36px 0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:500;cursor:pointer">
+                  <option value="">Choose…</option>
+                  <option value="openai-chat" selected>openai-chat</option>
+                  <option value="anthropic-messages">anthropic-messages</option>
+                  <option value="google-gemini">google-gemini</option>
+                </select>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;right:12px;top:11px;color:var(--muted-2);pointer-events:none"><path d="M4 6l4 4 4-4"></path></svg>
+              </span>
+            </div>
+            <div style="grid-column:1 / -1;display:flex;flex-direction:column;gap:5px">
+              <label for="ep-0-headers" style="font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Extra headers, one Name: value per line</label>
+              <textarea id="ep-0-headers" class="fld" rows="2" style="font:inherit;width:100%;box-sizing:border-box;padding:8px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:500;line-height:1.5;resize:vertical">X-Team: web</textarea>
+            </div>
+          </div>
+
+          <span aria-hidden="true" style="height:1.5px;background:var(--line-soft)"></span>
+
+          <!-- Key and Test -->
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start">
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <label for="ep-0-key" style="font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">API key</label>
+              <div style="display:flex;gap:8px">
+                <span style="position:relative;flex:1;min-width:0;display:block">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;left:12px;top:11px;color:var(--muted-2);pointer-events:none"><circle cx="5.25" cy="10.75" r="2.75"></circle><path d="M7.2 8.8l6.05-6.05M11 5l1.75 1.75M9.5 6.5l1.25 1.25"></path></svg>
+                  <input id="ep-0-key" class="fld" type="password" autocomplete="off" value="typed-key-not-saved" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px 0 36px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14px;font-weight:500;letter-spacing:.08em">
+                </span>
+                <button class="b-q" style="font:inherit;cursor:pointer;flex:none;display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px 0 12px;border-radius:10px;font-size:14px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>
+                  Set key
+                </button>
+              </div>
+            </div>
+
+            <div style="align-self:end;display:flex;flex-direction:column;gap:5px">
+              <div style="display:flex">
+                <button class="b-q" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px 0 12px;border-radius:10px;font-size:14px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 1.75h4M6.75 1.75v4.5L3 12.6a1.1 1.1 0 00.95 1.65h8.1A1.1 1.1 0 0013 12.6L9.25 6.25v-4.5"></path><path d="M4.6 10h6.8"></path></svg>
+                  Test…
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Test: the models METE loaded, picked ones probed -->
+          <div style="background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px;padding:6px 6px 10px">
+            <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column">
+              <li>
+                <label class="pick" style="display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:10px;cursor:pointer">
+                  <input type="checkbox" checked style="flex:none;width:16px;height:16px;margin:0;accent-color:var(--accent)">
+                  <span style="flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">llama-3.3-70b-instruct</span>
+                  <span style="flex:none;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px 0 8px;border-radius:999px;background:color-mix(in srgb,var(--good) 14%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink));font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12px;font-weight:500">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>
+                    ok, 412 ms
+                  </span>
+                </label>
+              </li>
+              <li>
+                <label class="pick" style="display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:10px;cursor:pointer">
+                  <input type="checkbox" checked style="flex:none;width:16px;height:16px;margin:0;accent-color:var(--accent)">
+                  <span style="flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">qwen2.5-coder-32b-instruct</span>
+                  <span style="flex:none;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px 0 8px;border-radius:999px;background:color-mix(in srgb,var(--bad) 14%,var(--panel));color:color-mix(in srgb,var(--bad) 60%,var(--ink));font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12px;font-weight:500">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"></path></svg>
+                    rate_limited 429 Too many requests
+                  </span>
+                </label>
+              </li>
+              <li>
+                <label class="pick" style="display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:10px;cursor:pointer">
+                  <input type="checkbox" style="flex:none;width:16px;height:16px;margin:0;accent-color:var(--accent)">
+                  <span style="flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:500;color:var(--muted-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">mistral-small-24b-instruct</span>
+                </label>
+              </li>
+            </ul>
+            <div style="display:flex;padding:6px 10px 0">
+              <button class="b-q" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px 0 12px;border-radius:10px;font-size:13.5px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.75v10.5L13 8z"></path></svg>
+                Test
+              </button>
+            </div>
+          </div>
+
+          <div style="display:flex">
+            <button class="b-g" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px 0 9px;border-radius:10px;font-size:13px;font-weight:700;background:transparent;border:1.5px solid var(--line);color:var(--muted-2)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.75 4.25h10.5M6.25 4.25v-1.5h3.5v1.5M4 4.25l.6 9.25h6.8l.6-9.25"></path></svg>
+              Remove
+            </button>
+          </div>
+        </fieldset>
+
+        <!-- Where the card saves, Add endpoint, its own Save -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding-top:2px">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label style="display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:700;cursor:pointer">
+              <input type="checkbox" style="flex:none;width:16px;height:16px;margin:0;accent-color:var(--accent)">
+              Save for this folder only
+            </label>
+            <span style="padding-left:26px;font-size:12.5px;font-weight:600;line-height:1.4;color:var(--muted)">A folder's list hides the global endpoints in this folder.</span>
+          </div>
+          <div style="flex:none;display:flex;align-items:center;gap:8px">
+            <button class="b-q" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px 0 12px;border-radius:10px;font-size:14px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg>
+              Add endpoint
+            </button>
+            <button disabled style="font:inherit;cursor:not-allowed;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 16px;border-radius:10px;font-size:14px;font-weight:700;background:var(--raised);border:1.5px solid var(--line-soft);color:var(--muted)">Save</button>
+          </div>
+        </div>
+        <p style="margin:-4px 0 0;display:flex;align-items:center;gap:7px;min-width:0;font-size:12.5px;font-weight:600;color:var(--muted)">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M4 1.75h5l3 3v9.5H4z"></path><path d="M9 1.75v3h3"></path></svg>
+          <span title="C:\Users\dev\AppData\Roaming\METE\settings.yaml" style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Saves to <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;font-weight:500;color:var(--muted-2)">C:\Users\dev\AppData\Roaming\METE\settings.yaml</span></span>
+        </p>
+      </section>
+
+      <!-- The one save bar (ADR-095), with Apply now (ADR-083) -->
+      <section aria-label="Save changes" style="position:sticky;bottom:0;display:flex;align-items:center;gap:14px;padding:12px 14px 12px 16px;border-radius:16px;background:color-mix(in srgb,var(--accent) 14%,var(--panel));border:1.5px solid color-mix(in srgb,var(--accent) 35%,var(--panel))">
+        <span aria-hidden="true" style="flex:none;width:36px;height:36px;border-radius:10px;background:var(--panel);color:color-mix(in srgb,var(--accent) 70%,var(--ink));display:flex;align-items:center;justify-content:center">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.75 2.75h8.5l2 2v8.5H2.75z"></path><path d="M5 2.75v3.5h5.5v-3.5M5 13.25V9.5h6v3.75"></path></svg>
+        </span>
+        <p style="flex:1;min-width:0;margin:0;font-size:14.5px;font-weight:700;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Unsaved changes: <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:500">gateway</span></p>
+        <button class="b-p" style="font:inherit;cursor:pointer;flex:none;display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 16px 0 13px;border-radius:10px;font-size:14px;font-weight:700;background:var(--accent);border:1.5px solid var(--accent);color:var(--panel)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>
+          Save changes
+        </button>
+        <span aria-hidden="true" style="flex:none;width:1.5px;height:24px;background:color-mix(in srgb,var(--accent) 30%,var(--panel))"></span>
+        <button class="b-q" style="font:inherit;cursor:pointer;flex:none;display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px 0 12px;border-radius:10px;font-size:14px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.75v5.5"></path><path d="M4.5 3.9a5.25 5.25 0 107 0"></path></svg>
+          Apply now
+        </button>
+      </section>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":1568}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

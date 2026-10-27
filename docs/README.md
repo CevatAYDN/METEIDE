@@ -35,7 +35,7 @@ AI coding agents start with 17 AGENTS.md, then follow its reading list; humans s
 | 01 Vision | `docs/01-vision.md` | Why METE exists, goals, non-goals, principles |
 | 02 Glossary | `docs/02-glossary.md` | The one meaning of every term |
 | 03 Architecture | `ARCHITECTURE.md` | Layers, processes, data locations, repository layout |
-| 04 Decisions (ADR) | `docs/adr/` | 127 accepted decisions with reasons |
+| 04 Decisions (ADR) | `docs/adr/` | 128 accepted decisions with reasons |
 | 05 Tech stack | `docs/05-tech-stack.md` | Every allowed technology and license rule |
 | 06 Kernel and modules | `docs/06-kernel-and-modules.md` | Kernel API, module catalog, capability catalog |
 | 07 Domain model and events | `docs/07-domain-model-and-events.md` | Entities, state machines, event catalog |
@@ -44,7 +44,7 @@ AI coding agents start with 17 AGENTS.md, then follow its reading list; humans s
 | 10 Tools, MCP and runtimes | `docs/10-tools-mcp-runtimes.md` | Built-in tools, full MCP, adapters, runtimes, registries |
 | 11 Knowledge layer | `docs/11-knowledge-layer.md` | Code graph, vaults, hybrid search, indexing |
 | 12 Autonomy and security | `SECURITY.md` | Autonomy levels, policy, threat model, checkpoints, triggers |
-| 13 UI and studio view | `docs/13-ui-and-studio-view.md` | Screens, studio view event mapping, design tokens |
+| 13 UI and studio view | `docs/13-ui-and-studio-view.md` | Screens, studio view event mapping, design tokens; the design set in `docs/design/` |
 | 14 Coding standards | `CONTRIBUTING.md` | SOLID and clean code rules, definition of done |
 | 15 Testing, build and release | `docs/15-testing-build-release.md` | Tests, local CI, builds, releases |
 | 16 Roadmap | `ROADMAP.md` | Phases, exit gates, Phase 1 task order |

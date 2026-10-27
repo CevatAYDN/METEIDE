@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Audit log</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mete.light{--bg:#ECEAF4;--panel:#F8F7FC;--line:#DAD6EA;--ink:#24223A;--muted:#6B6785;--accent:#5B4BD6;--good:#2FA38A;--warn:#E3A13A;--bad:#D9544A;--chip:#E4E0F3;--chrome:#DCD8EC;--side:#E6E3F2;--raised:#EFEDF8;--line-soft:#E2DEF0;--muted-2:#524E6E}
+.mete.dark{--bg:#17162A;--panel:#211F38;--line:#34315A;--ink:#ECEAF7;--muted:#A6A2C4;--accent:#8F83F2;--good:#4CC3A6;--warn:#F0B75A;--bad:#EE7368;--chip:#2D2A4D;--chrome:#121122;--side:#1A192F;--raised:#1C1B32;--line-soft:#2A2848;--muted-2:#B9B5D6}
+.mete .b-q:hover{background:var(--raised)!important;border-color:var(--muted)!important}
+.mete .sel:hover{border-color:var(--muted)!important}
+.mete .row:hover{background:var(--raised)}
+.mete button:focus-visible,.mete select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.mete *{animation:none!important}}
+</style>
+</helmet>
+<div class="mete light" style="width:1320px;height:807px;box-sizing:border-box;padding:20px;background:var(--bg);color:var(--ink);font-family:'Baloo 2',system-ui,sans-serif;font-size:14px;line-height:1.4;display:flex;flex-direction:column;gap:16px">
+
+  <!-- Header band -->
+  <header style="flex:none;background:var(--raised);border:1.5px solid var(--line);border-radius:16px;padding:18px 22px 18px 20px;display:flex;align-items:center;gap:16px">
+    <span aria-hidden="true" style="flex:none;width:48px;height:48px;box-sizing:border-box;border-radius:10px;background:var(--panel);border:1.5px solid var(--line-soft);display:flex;align-items:center;justify-content:center;color:var(--accent)">
+      <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.75l5.25 2v4.1c0 3.1-2.2 5.3-5.25 6.4-3.05-1.1-5.25-3.3-5.25-6.4v-4.1z"></path><path d="M5.75 8.1l1.6 1.6 2.9-3.2"></path></svg>
+    </span>
+    <div style="flex:1;min-width:0">
+      <h1 style="margin:0;font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.01em">Audit log</h1>
+      <p style="margin:3px 0 0;font-size:14px;font-weight:600;color:var(--muted-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">METE: the policy's decisions</p>
+    </div>
+    <div style="flex:none;display:flex;gap:8px">
+      <button class="b-q" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 15px 0 12px;border-radius:10px;font-size:14px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.25 8.5a5.25 5.25 0 1 1-1.55-4.2"></path><path d="M13.25 2.25v3h-3"></path></svg>
+        Refresh
+      </button>
+      <button class="b-q" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 15px 0 12px;border-radius:10px;font-size:14px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8.25M4.75 7L8 10.25 11.25 7"></path><path d="M2.75 13.5h10.5"></path></svg>
+        Export as JSON…
+      </button>
+    </div>
+  </header>
+
+  <!-- Filters -->
+  <section aria-label="Filters" style="flex:none;display:flex;align-items:center;gap:22px;padding:12px 18px;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;color:var(--muted-2)"><path d="M2 3.75h12M4.5 8h7M6.75 12.25h2.5"></path></svg>
+    <label style="display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:700;color:var(--muted-2)">
+      Run
+      <span style="position:relative;display:inline-flex">
+        <select class="sel" style="appearance:none;-webkit-appearance:none;font:inherit;cursor:pointer;max-width:24em;height:34px;padding:0 34px 0 12px;border-radius:10px;border:1.5px solid color-mix(in srgb,var(--accent) 45%,var(--line));background:color-mix(in srgb,var(--accent) 8%,var(--panel));font-size:13.5px;font-weight:600;color:var(--ink);text-overflow:ellipsis">
+          <option value="">Any</option>
+          <option value="run-1" selected>Add a dark mode toggle to the settings page</option>
+          <option value="run-2">Explain where the quota window resets</option>
+          <option value="run-3">Write a release note for 0.4</option>
+        </select>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;right:12px;top:10px;pointer-events:none;color:var(--muted-2)"><path d="M3.5 6l4.5 4.5L12.5 6"></path></svg>
+      </span>
+    </label>
+    <label style="display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:700;color:var(--muted-2)">
+      Verdict
+      <span style="position:relative;display:inline-flex">
+        <select class="sel" style="appearance:none;-webkit-appearance:none;font:inherit;cursor:pointer;min-width:112px;height:34px;padding:0 34px 0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);font-size:13.5px;font-weight:600;color:var(--ink)">
+          <option value="" selected>Any</option>
+          <option value="allow">allow</option>
+          <option value="ask">ask</option>
+          <option value="deny">deny</option>
+        </select>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;right:12px;top:10px;pointer-events:none;color:var(--muted-2)"><path d="M3.5 6l4.5 4.5L12.5 6"></path></svg>
+      </span>
+    </label>
+    <label style="display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:700;color:var(--muted-2)">
+      Action
+      <span style="position:relative;display:inline-flex">
+        <select class="sel" style="appearance:none;-webkit-appearance:none;font:inherit;cursor:pointer;min-width:150px;height:34px;padding:0 34px 0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);font-size:13.5px;font-weight:600;color:var(--ink)">
+          <option value="" selected>Any</option>
+          <option>fs.write</option>
+          <option>fs.delete</option>
+          <option>fs.write.outside</option>
+          <option>shell.exec</option>
+          <option>git.commit</option>
+          <option>git.push</option>
+          <option>git.merge</option>
+          <option>net.fetch</option>
+          <option>plugin.install</option>
+          <option>mcp.install</option>
+          <option>mcp.call</option>
+          <option>mcp.sampling</option>
+          <option>runtime.install</option>
+          <option>release.publish</option>
+          <option>vault.write.personal</option>
+        </select>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;right:12px;top:10px;pointer-events:none;color:var(--muted-2)"><path d="M3.5 6l4.5 4.5L12.5 6"></path></svg>
+      </span>
+    </label>
+  </section>
+
+  <!-- Rows, newest first -->
+  <section aria-label="Audit log" aria-live="polite" style="flex:none;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:16px;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+      <colgroup>
+        <col style="width:230px">
+        <col style="width:210px">
+        <col style="width:220px">
+        <col style="width:170px">
+        <col>
+      </colgroup>
+      <thead>
+        <tr style="background:var(--raised)">
+          <th scope="col" style="text-align:left;padding:11px 20px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">Time</th>
+          <th scope="col" style="text-align:left;padding:11px 16px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">Action</th>
+          <th scope="col" style="text-align:left;padding:11px 16px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">Capability</th>
+          <th scope="col" style="text-align:left;padding:11px 16px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">Verdict</th>
+          <th scope="col" style="text-align:left;padding:11px 16px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--muted-2);border-bottom:1.5px solid var(--line)">Rule</th>
+        </tr>
+      </thead>
+      <tbody style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px">
+        <tr class="row">
+          <td style="padding:10px 20px;color:var(--muted-2);font-size:12.5px">27/10/2026, 15:21:31</td>
+          <td style="padding:10px 16px;font-weight:700">fs.write</td>
+          <td style="padding:10px 16px;color:var(--muted-2)">fs.write@1</td>
+          <td style="padding:10px 16px"><span style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--good) 14%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink));font-family:'Baloo 2',system-ui,sans-serif;font-size:13px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>allow</span></td>
+          <td style="padding:10px 16px;color:var(--muted-2)">autonomy:2:inside</td>
+        </tr>
+        <tr class="row">
+          <td style="padding:10px 20px;border-top:1.5px solid var(--line-soft);color:var(--muted-2);font-size:12.5px">27/10/2026, 15:21:02</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);font-weight:700">fs.write</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">fs.edit@1</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft)"><span style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--good) 14%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink));font-family:'Baloo 2',system-ui,sans-serif;font-size:13px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>allow</span></td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">autonomy:2:inside</td>
+        </tr>
+        <tr class="row">
+          <td style="padding:10px 20px;border-top:1.5px solid var(--line-soft);color:var(--muted-2);font-size:12.5px">27/10/2026, 15:20:12</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);font-weight:700">shell.exec</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">shell.exec@1</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft)"><span style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--good) 14%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink));font-family:'Baloo 2',system-ui,sans-serif;font-size:13px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>allow</span></td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">granted:once</td>
+        </tr>
+        <tr class="row">
+          <td style="padding:10px 20px;border-top:1.5px solid var(--line-soft);color:var(--muted-2);font-size:12.5px">27/10/2026, 15:19:58</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);font-weight:700">net.fetch</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">web.fetch@1</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft)"><span style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--good) 14%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink));font-family:'Baloo 2',system-ui,sans-serif;font-size:13px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>allow</span></td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">autonomy:2:action</td>
+        </tr>
+        <tr class="row">
+          <td style="padding:10px 20px;border-top:1.5px solid var(--line-soft);color:var(--muted-2);font-size:12.5px">27/10/2026, 15:19:30</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);font-weight:700">shell.exec</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">shell.exec@1</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft)"><span style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--warn) 14%,var(--panel));color:color-mix(in srgb,var(--warn) 45%,var(--ink));font-family:'Baloo 2',system-ui,sans-serif;font-size:13px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.6 5.6a2.4 2.4 0 1 1 3.5 2.1c-.7.4-1.1.9-1.1 1.7"></path><path d="M8 12.4v.1"></path></svg>ask</span></td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">autonomy:1</td>
+        </tr>
+        <tr class="row">
+          <td style="padding:10px 20px;border-top:1.5px solid var(--line-soft);color:var(--muted-2);font-size:12.5px">27/10/2026, 15:18:44</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);font-weight:700">fs.write</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">fs.write@1</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft)"><span style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--warn) 14%,var(--panel));color:color-mix(in srgb,var(--warn) 45%,var(--ink));font-family:'Baloo 2',system-ui,sans-serif;font-size:13px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.6 5.6a2.4 2.4 0 1 1 3.5 2.1c-.7.4-1.1.9-1.1 1.7"></path><path d="M8 12.4v.1"></path></svg>ask</span></td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">autonomy:2:script_manifest</td>
+        </tr>
+        <tr class="row">
+          <td style="padding:10px 20px;border-top:1.5px solid var(--line-soft);color:var(--muted-2);font-size:12.5px">27/10/2026, 15:18:02</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);font-weight:700">shell.exec</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">shell.exec@1</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft)"><span style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--bad) 14%,var(--panel));color:color-mix(in srgb,var(--bad) 60%,var(--ink));font-family:'Baloo 2',system-ui,sans-serif;font-size:13px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="5.5"></circle><path d="M4.2 11.8l7.6-7.6"></path></svg>deny</span></td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">never_allow:2</td>
+        </tr>
+        <tr class="row">
+          <td style="padding:10px 20px;border-top:1.5px solid var(--line-soft);color:var(--muted-2);font-size:12.5px">27/10/2026, 15:17:40</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);font-weight:700">fs.write</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">fs.write@1</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft)"><span style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--bad) 14%,var(--panel));color:color-mix(in srgb,var(--bad) 60%,var(--ink));font-family:'Baloo 2',system-ui,sans-serif;font-size:13px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="5.5"></circle><path d="M4.2 11.8l7.6-7.6"></path></svg>deny</span></td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">protected_path</td>
+        </tr>
+        <tr class="row">
+          <td style="padding:10px 20px;border-top:1.5px solid var(--line-soft);color:var(--muted-2);font-size:12.5px">27/10/2026, 15:16:12</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);font-weight:700">mcp.call</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">mcp.tools@1</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft)"><span style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--warn) 14%,var(--panel));color:color-mix(in srgb,var(--warn) 45%,var(--ink));font-family:'Baloo 2',system-ui,sans-serif;font-size:13px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.6 5.6a2.4 2.4 0 1 1 3.5 2.1c-.7.4-1.1.9-1.1 1.7"></path><path d="M8 12.4v.1"></path></svg>ask</span></td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">autonomy:2</td>
+        </tr>
+        <tr class="row">
+          <td style="padding:10px 20px;border-top:1.5px solid var(--line-soft);color:var(--muted-2);font-size:12.5px">27/10/2026, 15:14:50</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);font-weight:700">git.commit</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">vcs.git@2</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft)"><span style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--good) 14%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink));font-family:'Baloo 2',system-ui,sans-serif;font-size:13px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>allow</span></td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">autonomy:2:action</td>
+        </tr>
+        <tr class="row">
+          <td style="padding:10px 20px;border-top:1.5px solid var(--line-soft);color:var(--muted-2);font-size:12.5px">27/10/2026, 15:14:21</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);font-weight:700">fs.delete</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">fs.write@1</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft)"><span style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--warn) 14%,var(--panel));color:color-mix(in srgb,var(--warn) 45%,var(--ink));font-family:'Baloo 2',system-ui,sans-serif;font-size:13px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.6 5.6a2.4 2.4 0 1 1 3.5 2.1c-.7.4-1.1.9-1.1 1.7"></path><path d="M8 12.4v.1"></path></svg>ask</span></td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">always_ask</td>
+        </tr>
+        <tr class="row">
+          <td style="padding:10px 20px;border-top:1.5px solid var(--line-soft);color:var(--muted-2);font-size:12.5px">27/10/2026, 15:13:05</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);font-weight:700">shell.exec</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">shell.exec@1</td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft)"><span style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--good) 14%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink));font-family:'Baloo 2',system-ui,sans-serif;font-size:13px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>allow</span></td>
+          <td style="padding:10px 16px;border-top:1.5px solid var(--line-soft);color:var(--muted-2)">shell.always</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":807}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>METE side view — empty</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mete.light{--bg:#ECEAF4;--panel:#F8F7FC;--line:#DAD6EA;--ink:#24223A;--muted:#6B6785;--accent:#5B4BD6;--good:#2FA38A;--warn:#E3A13A;--bad:#D9544A;--chip:#E4E0F3;--chrome:#DCD8EC;--side:#E6E3F2;--raised:#EFEDF8;--line-soft:#E2DEF0;--muted-2:#524E6E}
+.mete.dark{--bg:#17162A;--panel:#211F38;--line:#34315A;--ink:#ECEAF7;--muted:#A6A2C4;--accent:#8F83F2;--good:#4CC3A6;--warn:#F0B75A;--bad:#EE7368;--chip:#2D2A4D;--chrome:#121122;--side:#1A192F;--raised:#1C1B32;--line-soft:#2A2848;--muted-2:#B9B5D6}
+.mete .b-p:hover{background:color-mix(in srgb,var(--accent) 76%,var(--ink))!important;border-color:color-mix(in srgb,var(--accent) 76%,var(--ink))!important}
+.mete .b-q:hover{background:var(--raised)!important;border-color:var(--muted)!important}
+.mete .b-g:hover{background:var(--chip)!important;color:var(--ink)!important}
+.mete .row:not([aria-current]):hover{background:color-mix(in srgb,var(--ink) 5%,var(--side))!important}
+.mete .lnk:hover{color:var(--accent)!important}
+.mete .qc:hover{border-color:var(--muted)!important}
+.mete button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.mete *{animation:none!important}}
+</style>
+</helmet>
+<div class="mete dark" style="width:320px;height:1186px;box-sizing:border-box;background:var(--chrome);color:var(--ink);font-family:'Baloo 2',system-ui,sans-serif;font-size:13.5px;line-height:1.4;display:flex;flex-direction:column">
+
+  <!-- State 1 label (annotation, not product UI) -->
+  <p style="flex:none;margin:0;padding:12px 16px 10px;display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">
+    <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line);color:var(--ink)">1</span>
+    No folder open
+  </p>
+
+  <!-- State 1: the side view with no folder open -->
+  <div style="flex:none;background:var(--side);border-top:1.5px solid var(--line);border-bottom:1.5px solid var(--line)">
+    <div style="height:35px;display:flex;align-items:center;padding:0 16px;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2)">METE</div>
+
+    <section aria-labelledby="a-wait">
+      <h2 id="a-wait" style="margin:0;height:24px;display:flex;align-items:center;gap:4px;padding:0 8px 0 4px;border-top:1.5px solid var(--line-soft);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg>
+        Waiting for you
+      </h2>
+      <div style="padding:8px 12px 12px;display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:center">
+        <span aria-hidden="true" style="width:28px;height:28px;box-sizing:border-box;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--panel);border:1.5px solid var(--line);color:var(--muted-2)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.25 1.5H2.75z"></path><path d="M6.5 14h3"></path></svg>
+        </span>
+        <p style="margin:0;font-size:13px;font-weight:600;color:var(--muted-2)">Nothing waits for you.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="a-runs" aria-live="polite">
+      <h2 id="a-runs" style="margin:0;height:24px;display:flex;align-items:center;gap:4px;padding:0 8px 0 4px;border-top:1.5px solid var(--line-soft);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg>
+        Runs
+      </h2>
+      <div style="padding:8px 12px 14px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex">
+          <button class="b-q" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px 0 9px;border-radius:10px;font-size:13px;font-weight:700;background:transparent;border:1.5px solid var(--line);color:var(--ink)">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 2.5v3.75H9.75"></path><path d="M13.1 6.25A5.5 5.5 0 1 0 12.6 11"></path></svg>
+            Refresh
+          </button>
+        </div>
+        <div style="display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;padding:11px 12px 12px;border:1.5px dashed var(--line);border-radius:14px">
+          <span aria-hidden="true" style="width:28px;height:28px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--accent) 16%,var(--panel));color:color-mix(in srgb,var(--accent) 60%,var(--ink))">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.75 12.25v-8a1 1 0 0 1 1-1h3.2l1.5 1.5h4.8a1 1 0 0 1 1 1v1.5"></path><path d="M1.75 12.25l1.6-4.6a1 1 0 0 1 .95-.65h9.2a.75.75 0 0 1 .7 1l-1.5 4.25z"></path></svg>
+          </span>
+          <p style="margin:3px 0 0;font-size:13.5px;font-weight:600;line-height:1.45;color:var(--ink)">Open a folder first: METE works on one folder at a time.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="a-ws">
+      <h2 id="a-ws" style="margin:0;height:24px;display:flex;align-items:center;gap:4px;padding:0 8px 0 4px;border-top:1.5px solid var(--line-soft);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg>
+        Workspaces (1)
+      </h2>
+      <div style="padding:8px 10px 12px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;padding:0 2px">
+          <button class="b-p" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px 0 9px;border-radius:10px;font-size:13px;font-weight:700;background:var(--accent);border:1.5px solid var(--accent);color:var(--panel)">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.75 4.25a1 1 0 0 1 1-1h3.2l1.5 1.5h5.8a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1H2.75a1 1 0 0 1-1-1z"></path><path d="M8 7v4M6 9h4"></path></svg>
+            Open folder…
+          </button>
+        </div>
+        <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px">
+          <li class="row" title="D:\work\clients\acme\landing-page" style="display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:center;padding:8px;border-radius:10px;border:1.5px solid transparent">
+            <span aria-hidden="true" style="width:28px;height:28px;box-sizing:border-box;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--panel);border:1.5px solid var(--line);color:var(--muted-2)">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.75 4.25a1 1 0 0 1 1-1h3.2l1.5 1.5h5.8a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1H2.75a1 1 0 0 1-1-1z"></path></svg>
+            </span>
+            <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+              <div style="display:flex;align-items:center;gap:8px;min-width:0">
+                <button class="lnk" style="font:inherit;cursor:pointer;padding:0;margin:0;background:none;border:0;text-align:left;color:var(--ink);font-size:13.5px;font-weight:700;line-height:1.35;display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">landing-page</button>
+                <button class="b-g" aria-label="Forget landing-page" style="flex:none;margin-left:auto;font:inherit;cursor:pointer;height:22px;padding:0 8px;border-radius:10px;font-size:12px;font-weight:700;background:transparent;border:1.5px solid var(--line);color:var(--muted-2)">Forget</button>
+              </div>
+              <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;line-height:1.4;color:var(--muted-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">D:\work\clients\acme</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section aria-labelledby="a-quota">
+      <h2 id="a-quota" style="margin:0;height:24px;display:flex;align-items:center;gap:4px;padding:0 8px 0 4px;border-top:1.5px solid var(--line-soft);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg>
+        Quota
+      </h2>
+      <div style="padding:8px 12px 16px">
+        <p style="margin:0;padding:11px 12px;background:var(--raised);border:1.5px dashed var(--line);border-radius:14px;font-size:12px;font-weight:500;line-height:1.5;color:var(--muted-2)">The providers' states show once the daemon answers.</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- State 2 label (annotation, not product UI) -->
+  <p style="flex:none;margin:0;padding:20px 16px 10px;display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">
+    <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line);color:var(--ink)">2</span>
+    A folder, no runs yet
+  </p>
+
+  <!-- State 2: a folder is open, it has no runs yet -->
+  <div style="flex:none;background:var(--side);border-top:1.5px solid var(--line);border-bottom:1.5px solid var(--line)">
+    <div style="height:35px;display:flex;align-items:center;padding:0 16px;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2)">METE</div>
+
+    <section aria-labelledby="b-wait">
+      <h2 id="b-wait" style="margin:0;height:24px;display:flex;align-items:center;gap:4px;padding:0 8px 0 4px;border-top:1.5px solid var(--line-soft);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg>
+        Waiting for you (0)
+      </h2>
+      <div style="padding:8px 12px 12px;display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:center">
+        <span aria-hidden="true" style="width:28px;height:28px;box-sizing:border-box;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--panel);border:1.5px solid var(--line);color:var(--muted-2)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.25 1.5H2.75z"></path><path d="M6.5 14h3"></path></svg>
+        </span>
+        <p style="margin:0;font-size:13px;font-weight:600;color:var(--muted-2)">Nothing waits for you.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="b-runs" aria-live="polite">
+      <h2 id="b-runs" style="margin:0;height:24px;display:flex;align-items:center;gap:4px;padding:0 8px 0 4px;border-top:1.5px solid var(--line-soft);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg>
+        Runs (0)
+      </h2>
+      <div style="padding:8px 12px 14px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:6px">
+          <button class="b-p" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px 0 9px;border-radius:10px;font-size:13px;font-weight:700;background:var(--accent);border:1.5px solid var(--accent);color:var(--panel)">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg>
+            New run
+          </button>
+          <button class="b-q" title="As of 27/10/2026, 15:40:12" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px 0 9px;border-radius:10px;font-size:13px;font-weight:700;background:transparent;border:1.5px solid var(--line);color:var(--ink)">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 2.5v3.75H9.75"></path><path d="M13.1 6.25A5.5 5.5 0 1 0 12.6 11"></path></svg>
+            Refresh
+          </button>
+        </div>
+        <div style="display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:center;padding:11px 12px;border:1.5px dashed var(--line);border-radius:14px">
+          <span aria-hidden="true" style="width:28px;height:28px;box-sizing:border-box;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--panel);border:1.5px solid var(--line);color:var(--muted-2)">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 4h7M6.5 8h7M6.5 12h7"></path><circle cx="3" cy="4" r="1"></circle><circle cx="3" cy="8" r="1"></circle><circle cx="3" cy="12" r="1"></circle></svg>
+          </span>
+          <p style="margin:0;font-size:13.5px;font-weight:600;line-height:1.45;color:var(--ink)">No runs in this folder yet.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="b-ws">
+      <h2 id="b-ws" style="margin:0;height:24px;display:flex;align-items:center;gap:4px;padding:0 8px 0 4px;border-top:1.5px solid var(--line-soft);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg>
+        Workspaces (2)
+      </h2>
+      <div style="padding:8px 10px 12px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;padding:0 2px">
+          <button class="b-q" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px 0 9px;border-radius:10px;font-size:13px;font-weight:700;background:transparent;border:1.5px solid var(--line);color:var(--ink)">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.75 4.25a1 1 0 0 1 1-1h3.2l1.5 1.5h5.8a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1H2.75a1 1 0 0 1-1-1z"></path><path d="M8 7v4M6 9h4"></path></svg>
+            Open folder…
+          </button>
+        </div>
+        <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px">
+          <li class="row" title="C:\Users\ada\Documents\Github\experiments\notes-api" style="display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:center;padding:8px;border-radius:10px;border:1.5px solid transparent">
+            <span aria-hidden="true" style="width:28px;height:28px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--accent) 16%,var(--panel));color:color-mix(in srgb,var(--accent) 60%,var(--ink))">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.75 12.25v-8a1 1 0 0 1 1-1h3.2l1.5 1.5h4.8a1 1 0 0 1 1 1v1.5"></path><path d="M1.75 12.25l1.6-4.6a1 1 0 0 1 .95-.65h9.2a.75.75 0 0 1 .7 1l-1.5 4.25z"></path></svg>
+            </span>
+            <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:13.5px;font-weight:700;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">notes-api <span style="font-weight:600;color:var(--muted-2)">(open)</span></span>
+              <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;line-height:1.4;color:var(--muted-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">…\Documents\Github\experiments</span>
+            </div>
+          </li>
+          <li class="row" title="D:\work\clients\acme\landing-page" style="display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:center;padding:8px;border-radius:10px;border:1.5px solid transparent">
+            <span aria-hidden="true" style="width:28px;height:28px;box-sizing:border-box;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--panel);border:1.5px solid var(--line);color:var(--muted-2)">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.75 4.25a1 1 0 0 1 1-1h3.2l1.5 1.5h5.8a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1H2.75a1 1 0 0 1-1-1z"></path></svg>
+            </span>
+            <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+              <div style="display:flex;align-items:center;gap:8px;min-width:0">
+                <button class="lnk" style="font:inherit;cursor:pointer;padding:0;margin:0;background:none;border:0;text-align:left;color:var(--ink);font-size:13.5px;font-weight:700;line-height:1.35;display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">landing-page</button>
+                <button class="b-g" aria-label="Forget landing-page" style="flex:none;margin-left:auto;font:inherit;cursor:pointer;height:22px;padding:0 8px;border-radius:10px;font-size:12px;font-weight:700;background:transparent;border:1.5px solid var(--line);color:var(--muted-2)">Forget</button>
+              </div>
+              <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;line-height:1.4;color:var(--muted-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">D:\work\clients\acme</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section aria-labelledby="b-quota">
+      <h2 id="b-quota" style="margin:0;height:24px;display:flex;align-items:center;gap:4px;padding:0 8px 0 4px;border-top:1.5px solid var(--line-soft);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg>
+        Quota
+      </h2>
+      <div style="padding:8px 12px 16px">
+        <div style="background:var(--raised);border:1.5px solid var(--line-soft);border-radius:14px;padding:12px;display:flex;flex-wrap:wrap;gap:6px">
+          <button class="qc" title="nvidia: no key (METE: Set provider key)" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--warn) 16%,var(--panel));border:1.5px solid color-mix(in srgb,var(--warn) 40%,var(--panel));color:color-mix(in srgb,var(--warn) 45%,var(--ink));font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;font-weight:700">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.25" cy="10.75" r="2.75"></circle><path d="M7.2 8.8L13.5 2.5M11.25 4.75l1.75 1.75"></path></svg>
+            nvidia
+          </button>
+          <button class="qc" title="openrouter: no key (METE: Set provider key)" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--warn) 16%,var(--panel));border:1.5px solid color-mix(in srgb,var(--warn) 40%,var(--panel));color:color-mix(in srgb,var(--warn) 45%,var(--ink));font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;font-weight:700">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.25" cy="10.75" r="2.75"></circle><path d="M7.2 8.8L13.5 2.5M11.25 4.75l1.75 1.75"></path></svg>
+            openrouter
+          </button>
+          <button class="qc" title="opencode-zen: ready" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--good) 14%,var(--panel));border:1.5px solid color-mix(in srgb,var(--good) 38%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink));font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;font-weight:700">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>
+            opencode-zen
+          </button>
+          <button class="qc" title="groq: no key (METE: Set provider key)" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--warn) 16%,var(--panel));border:1.5px solid color-mix(in srgb,var(--warn) 40%,var(--panel));color:color-mix(in srgb,var(--warn) 45%,var(--ink));font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;font-weight:700">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.25" cy="10.75" r="2.75"></circle><path d="M7.2 8.8L13.5 2.5M11.25 4.75l1.75 1.75"></path></svg>
+            groq
+          </button>
+          <button class="qc" title="google: no key (METE: Set provider key)" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--warn) 16%,var(--panel));border:1.5px solid color-mix(in srgb,var(--warn) 40%,var(--panel));color:color-mix(in srgb,var(--warn) 45%,var(--ink));font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;font-weight:700">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.25" cy="10.75" r="2.75"></circle><path d="M7.2 8.8L13.5 2.5M11.25 4.75l1.75 1.75"></path></svg>
+            google
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":320,"height":1186}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

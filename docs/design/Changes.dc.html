@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Changes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mete.light{--bg:#ECEAF4;--panel:#F8F7FC;--line:#DAD6EA;--ink:#24223A;--muted:#6B6785;--accent:#5B4BD6;--good:#2FA38A;--warn:#E3A13A;--bad:#D9544A;--chip:#E4E0F3;--chrome:#DCD8EC;--side:#E6E3F2;--raised:#EFEDF8;--line-soft:#E2DEF0;--muted-2:#524E6E}
+.mete.dark{--bg:#17162A;--panel:#211F38;--line:#34315A;--ink:#ECEAF7;--muted:#A6A2C4;--accent:#8F83F2;--good:#4CC3A6;--warn:#F0B75A;--bad:#EE7368;--chip:#2D2A4D;--chrome:#121122;--side:#1A192F;--raised:#1C1B32;--line-soft:#2A2848;--muted-2:#B9B5D6}
+.mete .b-q:hover{background:var(--raised)!important;border-color:var(--muted)!important}
+.mete .file:hover{background:var(--raised)!important}
+.mete .pick:hover{border-color:var(--muted)!important}
+.mete button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.mete *{animation:none!important}}
+</style>
+</helmet>
+<div class="mete light" style="width:1320px;height:825px;box-sizing:border-box;padding:20px;background:var(--bg);color:var(--ink);font-family:'Baloo 2',system-ui,sans-serif;font-size:14px;line-height:1.4;display:flex;flex-direction:column;gap:16px">
+
+  <!-- Header band -->
+  <header style="flex:none;background:var(--raised);border:1.5px solid var(--line);border-radius:16px;padding:18px 22px 18px 20px;display:flex;align-items:center;gap:16px">
+    <span aria-hidden="true" style="flex:none;width:48px;height:48px;box-sizing:border-box;border-radius:10px;background:var(--panel);border:1.5px solid var(--line-soft);display:flex;align-items:center;justify-content:center;color:var(--accent)">
+      <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1.75h5l3 3v9.5H4z"></path><path d="M9 1.75v3h3"></path><path d="M8 6.5v3.5M6.25 8.25h3.5M6.25 12h3.5"></path></svg>
+    </span>
+    <div style="flex:1;min-width:0">
+      <h1 style="margin:0;font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.01em">Changes</h1>
+      <p style="margin:3px 0 0;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--muted-2);white-space:nowrap">
+        <span><span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:500">6</span> changed files</span>
+        <span aria-hidden="true" style="color:var(--muted)">·</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4.5" cy="3.5" r="1.5"></circle><circle cx="4.5" cy="12.5" r="1.5"></circle><circle cx="11.5" cy="4.5" r="1.5"></circle><path d="M4.5 5v6M11.5 6c0 2.75-2.5 3.25-6.25 5"></path></svg>main</span>
+      </p>
+    </div>
+    <button class="b-q" style="font:inherit;cursor:pointer;flex:none;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 15px 0 12px;border-radius:10px;font-size:14px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.25 8.5a5.25 5.25 0 1 1-1.55-4.2"></path><path d="M13.25 2.25v3h-3"></path></svg>
+      Refresh
+    </button>
+  </header>
+
+  <div style="flex:none;display:flex;align-items:flex-start;gap:16px">
+    <!-- Changed files -->
+    <section aria-label="Changed files" style="flex:none;width:452px;box-sizing:border-box;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:16px;padding:8px">
+      <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px">
+          <li>
+            <button class="pick" aria-pressed="true" title="src/settings/settings-page.tsx" style="font:inherit;cursor:pointer;width:100%;display:flex;align-items:center;gap:12px;height:44px;padding:0 12px 0 10px;border-radius:10px;text-align:left;background:var(--chip);border:1.5px solid var(--line);color:var(--ink)">
+              <span style="flex:none;min-width:88px;box-sizing:border-box;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 8px;border-radius:999px;background:color-mix(in srgb,var(--warn) 14%,var(--panel));color:color-mix(in srgb,var(--warn) 45%,var(--ink));font-size:12.5px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.75 2.75l2.5 2.5L6 12.5H3.5V10z"></path></svg>Changed</span>
+              <span style="flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">src/settings/settings-page.tsx</span>
+            </button>
+          </li>
+          <li>
+            <button class="file" aria-pressed="false" title="src/settings/theme-toggle.tsx" style="font:inherit;cursor:pointer;width:100%;display:flex;align-items:center;gap:12px;height:44px;padding:0 12px 0 10px;border-radius:10px;text-align:left;background:transparent;border:1.5px solid transparent;color:var(--ink)">
+              <span style="flex:none;min-width:88px;box-sizing:border-box;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 8px;border-radius:999px;background:color-mix(in srgb,var(--good) 14%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink));font-size:12.5px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v3.25M8 10.25v3.25M2.5 8h3.25M10.25 8h3.25"></path></svg>New</span>
+              <span style="flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">src/settings/theme-toggle.tsx</span>
+            </button>
+          </li>
+          <li>
+            <button class="file" aria-pressed="false" title="src/settings/theme-toggle.test.tsx" style="font:inherit;cursor:pointer;width:100%;display:flex;align-items:center;gap:12px;height:44px;padding:0 12px 0 10px;border-radius:10px;text-align:left;background:transparent;border:1.5px solid transparent;color:var(--ink)">
+              <span style="flex:none;min-width:88px;box-sizing:border-box;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 8px;border-radius:999px;background:color-mix(in srgb,var(--good) 14%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink));font-size:12.5px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg>Added</span>
+              <span style="flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">src/settings/theme-toggle.test.tsx</span>
+            </button>
+          </li>
+          <li>
+            <button class="file" aria-pressed="false" title="src/styles/tokens.css" style="font:inherit;cursor:pointer;width:100%;display:flex;align-items:center;gap:12px;height:44px;padding:0 12px 0 10px;border-radius:10px;text-align:left;background:transparent;border:1.5px solid transparent;color:var(--ink)">
+              <span style="flex:none;min-width:88px;box-sizing:border-box;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 8px;border-radius:999px;background:color-mix(in srgb,var(--warn) 14%,var(--panel));color:color-mix(in srgb,var(--warn) 45%,var(--ink));font-size:12.5px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.75 2.75l2.5 2.5L6 12.5H3.5V10z"></path></svg>Changed</span>
+              <span style="flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">src/styles/tokens.css</span>
+            </button>
+          </li>
+          <li>
+            <button class="file" aria-pressed="false" title="docs/appearance.md" style="font:inherit;cursor:pointer;width:100%;display:flex;align-items:center;gap:12px;height:44px;padding:0 12px 0 10px;border-radius:10px;text-align:left;background:transparent;border:1.5px solid transparent;color:var(--ink)">
+              <span style="flex:none;min-width:88px;box-sizing:border-box;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 8px;border-radius:999px;background:color-mix(in srgb,var(--warn) 14%,var(--panel));color:color-mix(in srgb,var(--warn) 45%,var(--ink));font-size:12.5px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8h10M9 4.5L12.5 8 9 11.5"></path></svg>Renamed</span>
+              <span style="flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">docs/appearance.md</span>
+            </button>
+          </li>
+          <li>
+            <button class="file" aria-pressed="false" title="src/styles/legacy-dark.css" style="font:inherit;cursor:pointer;width:100%;display:flex;align-items:center;gap:12px;height:44px;padding:0 12px 0 10px;border-radius:10px;text-align:left;background:transparent;border:1.5px solid transparent;color:var(--ink)">
+              <span style="flex:none;min-width:88px;box-sizing:border-box;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 8px;border-radius:999px;background:color-mix(in srgb,var(--bad) 14%,var(--panel));color:color-mix(in srgb,var(--bad) 60%,var(--ink));font-size:12.5px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg>Deleted</span>
+              <span style="flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">src/styles/legacy-dark.css</span>
+            </button>
+          </li>
+      </ul>
+    </section>
+
+    <!-- The picked file: Open file and its diff -->
+    <section aria-label="Diff" style="flex:1;min-width:0;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:16px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px 12px 18px;border-bottom:1.5px solid var(--line-soft)">
+        <span style="flex:none;min-width:88px;box-sizing:border-box;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 8px;border-radius:999px;background:color-mix(in srgb,var(--warn) 14%,var(--panel));color:color-mix(in srgb,var(--warn) 45%,var(--ink));font-size:12.5px;font-weight:700"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.75 2.75l2.5 2.5L6 12.5H3.5V10z"></path></svg>Changed</span>
+        <code style="flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">src/settings/settings-page.tsx</code>
+        <button class="b-q" style="font:inherit;cursor:pointer;flex:none;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px 0 9px;border-radius:10px;font-size:13px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"></path><path d="M9 1.75v3h3"></path></svg>
+          Open file
+        </button>
+      </div>
+      <pre style="margin:0;padding:10px 0 12px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;line-height:1.7;font-variant-ligatures:none;overflow:hidden"><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--ink)">diff --git a/src/settings/settings-page.tsx b/src/settings/settings-page.tsx</span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--ink)">index 3f2a1c4..8b7d9e0 100644</span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--muted-2)">--- a/src/settings/settings-page.tsx</span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--muted-2)">+++ b/src/settings/settings-page.tsx</span><span style="display:block;padding:0 18px;white-space:pre-wrap;background:var(--raised);color:var(--muted-2)">@@ -1,9 +1,12 @@</span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--ink)"> import { Section } from "../ui/section";</span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--ink)"> import { LanguagePicker } from "./language-picker";</span><span style="display:block;padding:0 18px;white-space:pre-wrap;background:color-mix(in srgb,var(--good) 12%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink))">+import { ThemeToggle } from "./theme-toggle";</span><span style="display:block;padding:0 18px;white-space:pre-wrap;background:color-mix(in srgb,var(--good) 12%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink))">+import { useTheme } from "../theme/use-theme";</span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--ink)"> </span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--ink)"> export function SettingsPage() {</span><span style="display:block;padding:0 18px;white-space:pre-wrap;background:color-mix(in srgb,var(--good) 12%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink))">+  const theme = useTheme();</span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--ink)">   return (</span><span style="display:block;padding:0 18px;white-space:pre-wrap;background:color-mix(in srgb,var(--bad) 12%,var(--panel));color:color-mix(in srgb,var(--bad) 60%,var(--ink))">-    &lt;main className="settings"&gt;</span><span style="display:block;padding:0 18px;white-space:pre-wrap;background:color-mix(in srgb,var(--good) 12%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink))">+    &lt;main className="settings" data-theme={theme.mode}&gt;</span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--ink)">       &lt;Section title="Language"&gt;</span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--ink)">         &lt;LanguagePicker /&gt;</span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--ink)">       &lt;/Section&gt;</span><span style="display:block;padding:0 18px;white-space:pre-wrap;background:var(--raised);color:var(--muted-2)">@@ -18,6 +21,9 @@ export function SettingsPage() {</span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--ink)">       &lt;Section title="Notifications"&gt;</span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--ink)">         &lt;NotificationList /&gt;</span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--ink)">       &lt;/Section&gt;</span><span style="display:block;padding:0 18px;white-space:pre-wrap;background:color-mix(in srgb,var(--good) 12%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink))">+      &lt;Section title="Appearance"&gt;</span><span style="display:block;padding:0 18px;white-space:pre-wrap;background:color-mix(in srgb,var(--good) 12%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink))">+        &lt;ThemeToggle value={theme.mode} onChange={theme.set} /&gt;</span><span style="display:block;padding:0 18px;white-space:pre-wrap;background:color-mix(in srgb,var(--good) 12%,var(--panel));color:color-mix(in srgb,var(--good) 60%,var(--ink))">+      &lt;/Section&gt;</span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--ink)">     &lt;/main&gt;</span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--ink)">   );</span><span style="display:block;padding:0 18px;white-space:pre-wrap;color:var(--ink)"> }</span></pre>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":825}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

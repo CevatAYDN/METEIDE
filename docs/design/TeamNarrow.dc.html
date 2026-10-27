@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Team panel — narrow</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mete.light{--bg:#ECEAF4;--panel:#F8F7FC;--line:#DAD6EA;--ink:#24223A;--muted:#6B6785;--accent:#5B4BD6;--good:#2FA38A;--warn:#E3A13A;--bad:#D9544A;--chip:#E4E0F3;--chrome:#DCD8EC;--side:#E6E3F2;--raised:#EFEDF8;--line-soft:#E2DEF0;--muted-2:#524E6E}
+.mete.dark{--bg:#17162A;--panel:#211F38;--line:#34315A;--ink:#ECEAF7;--muted:#A6A2C4;--accent:#8F83F2;--good:#4CC3A6;--warn:#F0B75A;--bad:#EE7368;--chip:#2D2A4D;--chrome:#121122;--side:#1A192F;--raised:#1C1B32;--line-soft:#2A2848;--muted-2:#B9B5D6}
+@keyframes mete-ring{from{stroke-dasharray:0 194.8}}
+.mete .b-p:hover{background:color-mix(in srgb,var(--accent) 76%,var(--ink))!important;border-color:color-mix(in srgb,var(--accent) 76%,var(--ink))!important}
+.mete .b-q:hover{background:var(--raised)!important;border-color:var(--muted)!important}
+.mete .chip:hover{border-color:var(--accent)!important}
+.mete .seg:hover{color:var(--ink)!important}
+.mete .tab:hover{color:var(--ink)!important}
+.mete button:focus-visible,.mete summary:focus-visible,.mete textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.mete *{animation:none!important}}
+</style>
+</helmet>
+<div class="mete light" style="width:760px;height:1654px;box-sizing:border-box;padding:20px;background:var(--bg);color:var(--ink);font-family:'Baloo 2',system-ui,sans-serif;font-size:14px;line-height:1.4;display:flex;flex-direction:column;gap:16px">
+
+  <!-- Hero band, stacked -->
+  <header style="flex:none;background:var(--raised);border:1.5px solid var(--line);border-radius:16px;padding:20px 22px 22px;display:flex;flex-direction:column;gap:16px">
+    <div style="min-width:0;display:flex;flex-direction:column;align-items:flex-start">
+      <span role="status" style="display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 15px 0 12px;border-radius:999px;background:color-mix(in srgb,var(--warn) 14%,var(--panel));color:color-mix(in srgb,var(--warn) 45%,var(--ink));font-size:15px;font-weight:700">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 4v8M10 4v8"></path></svg>
+        Paused
+      </span>
+      <h1 title="Add a dark mode toggle to the settings page" style="margin:12px 0 0;max-width:100%;font-size:26px;line-height:1.2;font-weight:800;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Add a dark mode toggle to the settings page</h1>
+      <p style="margin:6px 0 0;display:flex;flex-wrap:wrap;align-items:center;column-gap:8px;row-gap:2px;font-size:14px;font-weight:600;color:var(--muted-2)">
+        <span>Web dev</span>
+        <span aria-hidden="true" style="color:var(--muted)">·</span>
+        <span>started <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:500">15:12</span></span>
+        <span aria-hidden="true" style="color:var(--muted)">·</span>
+        <span>Autonomy 2: approve risky actions</span>
+        <span aria-hidden="true" style="color:var(--muted)">·</span>
+        <span>up to 150 requests, 6 h</span>
+      </p>
+    </div>
+
+    <dl style="margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+      <div style="padding:10px 16px 11px;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px">
+        <dt style="font-size:12px;font-weight:600;line-height:1.3;color:var(--muted)">Calls</dt>
+        <dd style="margin:3px 0 0;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:22px;font-weight:700;line-height:1.2">23</dd>
+      </div>
+      <div style="padding:10px 16px 11px;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px">
+        <dt style="font-size:12px;font-weight:600;line-height:1.3;color:var(--muted)">Tokens</dt>
+        <dd style="margin:3px 0 0;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:22px;font-weight:700;line-height:1.2">42k</dd>
+      </div>
+      <div style="padding:10px 16px 11px;background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px">
+        <dt style="font-size:12px;font-weight:600;line-height:1.3;color:var(--muted)">Checkpoints</dt>
+        <dd style="margin:3px 0 0;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:22px;font-weight:700;line-height:1.2">3</dd>
+      </div>
+    </dl>
+
+    <!-- Team at a glance -->
+    <section aria-label="Team at a glance" style="background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:20px">
+      <div role="img" aria-label="2 of 5 tasks done" style="position:relative;width:76px;height:76px;flex:none">
+        <svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true">
+          <circle cx="38" cy="38" r="31" fill="none" stroke-width="6" style="stroke:var(--line)"></circle>
+          <circle cx="38" cy="38" r="31" fill="none" stroke-width="6" stroke-linecap="round" stroke-dasharray="71.9 194.8" transform="rotate(-90 38 38)" style="stroke:var(--accent);animation:mete-ring 1.2s cubic-bezier(.2,.7,.2,1) both"></circle>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:17px;font-weight:700;line-height:1.1">2/5</span>
+          <span style="font-size:12px;font-weight:600;line-height:1.2;color:var(--muted)">tasks</span>
+        </div>
+      </div>
+      <span aria-hidden="true" style="width:1.5px;align-self:stretch;background:var(--line-soft)"></span>
+      <ul style="flex:1;list-style:none;margin:0;padding:0;display:flex;justify-content:space-around;gap:6px">
+        <li style="width:112px;display:flex;flex-direction:column;align-items:center">
+          <span style="position:relative;width:50px;height:50px;box-sizing:border-box;border-radius:50%;border:2px solid var(--good);padding:3px;display:flex">
+            <span style="flex:1;border-radius:50%;background:var(--chip);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:var(--ink)">P</span>
+            <span aria-hidden="true" style="position:absolute;right:-5px;bottom:-5px;width:20px;height:20px;box-sizing:border-box;border-radius:50%;background:var(--good);border:2px solid var(--panel);display:flex;align-items:center;justify-content:center;color:var(--panel)">
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"></path></svg>
+            </span>
+          </span>
+          <span style="margin-top:8px;font-size:13.5px;font-weight:700;line-height:1.25">Planner</span>
+          <span style="font-size:12px;font-weight:600;line-height:1.3;color:var(--muted)">Done</span>
+        </li>
+        <li style="width:112px;display:flex;flex-direction:column;align-items:center">
+          <span style="position:relative;width:50px;height:50px;box-sizing:border-box;border-radius:50%;border:2px solid var(--warn);padding:3px;display:flex">
+            <span style="flex:1;border-radius:50%;background:color-mix(in srgb,var(--warn) 22%,var(--panel));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:var(--ink)">D</span>
+            <span aria-hidden="true" style="position:absolute;right:-5px;bottom:-5px;width:20px;height:20px;box-sizing:border-box;border-radius:50%;background:var(--warn);border:2px solid var(--panel);display:flex;align-items:center;justify-content:center;color:var(--ink)">
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11V7a4 4 0 018 0v4l1.25 1.5H2.75z"></path><path d="M6.5 14h3"></path></svg>
+            </span>
+          </span>
+          <span style="margin-top:8px;font-size:13.5px;font-weight:700;line-height:1.25">Developer</span>
+          <span style="font-size:12px;font-weight:700;line-height:1.3;color:color-mix(in srgb,var(--warn) 45%,var(--ink))">Waiting for you</span>
+        </li>
+        <li style="width:112px;display:flex;flex-direction:column;align-items:center">
+          <span style="position:relative;width:50px;height:50px;box-sizing:border-box;border-radius:50%;border:2px dashed var(--line);padding:3px;display:flex">
+            <span style="flex:1;border-radius:50%;background:var(--raised);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:var(--muted-2)">R</span>
+          </span>
+          <span style="margin-top:8px;font-size:13.5px;font-weight:700;line-height:1.25">Reviewer</span>
+          <span style="font-size:12px;font-weight:600;line-height:1.3;color:var(--muted)">Idle</span>
+        </li>
+      </ul>
+    </section>
+  </header>
+
+  <!-- Center: the rail follows it below 900 px -->
+  <main style="flex:none;display:flex;flex-direction:column;gap:14px">
+
+    <!-- Waiting for you -->
+    <section aria-labelledby="wait-title" style="display:flex;flex-direction:column;gap:10px">
+      <h2 id="wait-title" style="margin:0;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;line-height:1.3">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:color-mix(in srgb,var(--warn) 45%,var(--ink))"><path d="M4 11V7a4 4 0 018 0v4l1.25 1.5H2.75z"></path><path d="M6.5 14h3"></path></svg>
+        Waiting for you
+        <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;font-weight:700;color:var(--muted-2);background:var(--chip);border-radius:999px;padding:1px 8px">1</span>
+      </h2>
+      <ul style="list-style:none;margin:0;padding:0">
+        <li style="display:flex;gap:14px;padding:16px 18px 18px;border-radius:16px;background:color-mix(in srgb,var(--warn) 14%,var(--panel));border:1.5px solid color-mix(in srgb,var(--warn) 45%,var(--panel))">
+          <span aria-hidden="true" style="flex:none;width:40px;height:40px;border-radius:10px;background:color-mix(in srgb,var(--warn) 30%,var(--panel));color:color-mix(in srgb,var(--warn) 45%,var(--ink));display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8s-2.5 4.5-6.5 4.5S1.5 8 1.5 8z"></path><circle cx="8" cy="8" r="2"></circle></svg>
+          </span>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start">
+            <span style="display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:color-mix(in srgb,var(--warn) 26%,var(--panel));color:color-mix(in srgb,var(--warn) 40%,var(--ink));font-size:12px;font-weight:700">Review</span>
+            <p style="margin:7px 0 0;font-size:17px;font-weight:700;line-height:1.35">Developer asks you to approve “Wire the toggle into Settings”</p>
+            <button type="button" class="chip" title=".mete/reports/wire-toggle.md" aria-label="Open the report of Wire the toggle into Settings" style="margin-top:10px;max-width:100%;font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 10px;border-radius:10px;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;color:var(--muted-2)"><path d="M4 1.75h5l3 3v9.5H4z"></path><path d="M9 1.75v3h3"></path></svg>
+              <span style="min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">wire-toggle.md</span>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;color:var(--muted-2)"><path d="M9.5 2.5h4v4"></path><path d="M13.5 2.5L8 8"></path><path d="M11.5 9.5v4h-9v-9h4"></path></svg>
+            </button>
+            <div style="margin-top:14px;display:flex;align-items:flex-start;gap:8px">
+              <button type="button" class="b-p" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 16px 0 13px;border-radius:10px;font-size:14px;font-weight:700;background:var(--accent);border:1.5px solid var(--accent);color:var(--panel)">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg>
+                Approve
+              </button>
+              <details>
+                <summary class="b-q" style="display:inline-flex;align-items:center;gap:7px;height:34px;box-sizing:border-box;padding:0 10px 0 12px;border-radius:10px;font-size:14px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink);cursor:pointer;list-style:none">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4L2.5 7.5 6 11"></path><path d="M2.5 7.5h7a4 4 0 014 4v1"></path></svg>
+                  Revise…
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--muted-2)"><path d="M3.5 6l4.5 4.5L12.5 6"></path></svg>
+                </summary>
+                <div style="margin-top:10px;display:flex;align-items:flex-end;gap:8px">
+                  <textarea name="feedback" required rows="2" aria-label="What should change?" style="width:260px;box-sizing:border-box;resize:none;margin:0;font:inherit;font-size:14px;padding:8px 12px;border-radius:10px;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)"></textarea>
+                  <button type="button" class="b-p" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;height:34px;padding:0 14px;border-radius:10px;font-size:14px;font-weight:700;background:var(--accent);border:1.5px solid var(--accent);color:var(--panel)">Send back</button>
+                </div>
+              </details>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- View switch -->
+    <div style="display:flex;align-items:center">
+      <div role="tablist" aria-label="View" style="display:inline-flex;gap:2px;padding:3px;background:var(--chip);border-radius:13px">
+        <button type="button" role="tab" aria-selected="true" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px 0 11px;border-radius:10px;font-size:13.5px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2.5" width="12" height="11" rx="2"></rect><path d="M6 2.5v11M10 2.5v11"></path></svg>
+          Board
+        </button>
+        <button type="button" class="seg" role="tab" aria-selected="false" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px 0 11px;border-radius:10px;font-size:13.5px;font-weight:700;background:transparent;border:1.5px solid transparent;color:var(--muted-2)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4" cy="3.75" r="1.75"></circle><circle cx="12" cy="3.75" r="1.75"></circle><circle cx="8" cy="12.25" r="1.75"></circle><path d="M4 5.5v1a2 2 0 002 2h4a2 2 0 002-2v-1M8 8.5v2"></path></svg>
+          Flow
+        </button>
+        <button type="button" class="seg" role="tab" aria-selected="false" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px 0 11px;border-radius:10px;font-size:13.5px;font-weight:700;background:transparent;border:1.5px solid transparent;color:var(--muted-2)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.75" y="2.5" width="12.5" height="9" rx="1.5"></rect><path d="M5.5 14h5M8 11.5V14"></path></svg>
+          Studio
+        </button>
+        <button type="button" class="seg" role="tab" aria-selected="false" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px 0 11px;border-radius:10px;font-size:13.5px;font-weight:700;background:transparent;border:1.5px solid transparent;color:var(--muted-2)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="5.5" r="2.25"></circle><path d="M2 13.5c.5-2.3 2-3.5 4-3.5s3.5 1.2 4 3.5"></path><circle cx="11.25" cy="5" r="1.75"></circle><path d="M11 9.5c1.6.1 2.6 1.2 3 3.25"></path></svg>
+          Team
+        </button>
+      </div>
+    </div>
+
+    <!-- Compact board -->
+    <section aria-label="Board" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:10px">
+
+      <div style="background:var(--raised);border:1.5px solid var(--line-soft);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px">
+        <h2 style="margin:0;padding:2px 4px;display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;line-height:1.3">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="color:var(--muted-2)"><circle cx="8" cy="8" r="5.5"></circle></svg>
+          To do
+          <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11px;font-weight:700;color:var(--muted-2);background:var(--chip);border-radius:999px;padding:0 7px">2</span>
+        </h2>
+        <article style="background:var(--panel);border:1.5px solid var(--line-soft);border-radius:12px;padding:9px 11px;display:flex;flex-direction:column;gap:6px">
+          <h3 title="Review the change" style="margin:0;font-size:13.5px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Review the change</h3>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted-2)">
+            <span aria-hidden="true" style="width:18px;height:18px;border-radius:50%;background:var(--chip);display:inline-flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;color:var(--muted-2)">R</span>
+            Reviewer
+          </span>
+        </article>
+        <article style="background:var(--panel);border:1.5px solid var(--line-soft);border-radius:12px;padding:9px 11px;display:flex;flex-direction:column;gap:6px">
+          <h3 title="Write the release note" style="margin:0;font-size:13.5px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Write the release note</h3>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted-2)">
+            <span aria-hidden="true" style="width:18px;height:18px;border-radius:50%;background:var(--chip);display:inline-flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;color:var(--muted-2)">D</span>
+            Developer
+          </span>
+        </article>
+      </div>
+
+      <div style="background:var(--raised);border:1.5px solid var(--line-soft);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px">
+        <h2 style="margin:0;padding:2px 4px;display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;line-height:1.3">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" style="color:var(--accent)"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 2.5a5.5 5.5 0 010 11z" fill="currentColor" stroke="none"></path></svg>
+          In progress
+          <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11px;font-weight:700;color:var(--muted-2);background:var(--chip);border-radius:999px;padding:0 7px">1</span>
+        </h2>
+        <article style="background:var(--panel);border:1.5px solid color-mix(in srgb,var(--warn) 50%,var(--panel));border-radius:12px;padding:9px 11px;display:flex;flex-direction:column;align-items:flex-start;gap:6px">
+          <h3 title="Wire the toggle into Settings" style="margin:0;max-width:100%;font-size:13.5px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wire the toggle into Settings</h3>
+          <span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px 0 7px;border-radius:999px;background:color-mix(in srgb,var(--warn) 14%,var(--panel));color:color-mix(in srgb,var(--warn) 45%,var(--ink));font-size:12px;font-weight:700">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8s-2.5 4.5-6.5 4.5S1.5 8 1.5 8z"></path><circle cx="8" cy="8" r="2"></circle></svg>
+            In review
+          </span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted-2)">
+            <span aria-hidden="true" style="width:18px;height:18px;border-radius:50%;background:var(--chip);display:inline-flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;color:var(--muted-2)">D</span>
+            Developer
+          </span>
+        </article>
+      </div>
+
+      <div style="background:var(--raised);border:1.5px solid var(--line-soft);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px">
+        <h2 style="margin:0;padding:2px 4px;display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;line-height:1.3">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--good)"><circle cx="8" cy="8" r="5.5"></circle><path d="M5.6 8.2l1.6 1.6 3.2-3.5"></path></svg>
+          Done
+          <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11px;font-weight:700;color:var(--muted-2);background:var(--chip);border-radius:999px;padding:0 7px">2</span>
+        </h2>
+        <article style="background:var(--panel);border:1.5px solid var(--line-soft);border-radius:12px;padding:9px 11px;display:flex;flex-direction:column;align-items:flex-start;gap:6px">
+          <h3 title="Plan the change" style="margin:0;max-width:100%;font-size:13.5px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Plan the change</h3>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted-2)">
+            <span aria-hidden="true" style="width:18px;height:18px;border-radius:50%;background:var(--chip);display:inline-flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;color:var(--muted-2)">P</span>
+            Planner
+          </span>
+          <button type="button" class="b-q" aria-label="Open the report of Plan the change" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 9px 0 7px;border-radius:10px;font-size:12px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"></path><path d="M9 1.75v3h3M6 8.5h4M6 11h4"></path></svg>
+            Open report
+          </button>
+        </article>
+        <article style="background:var(--panel);border:1.5px solid var(--line-soft);border-radius:12px;padding:9px 11px;display:flex;flex-direction:column;align-items:flex-start;gap:6px">
+          <h3 title="Write the theme tokens" style="margin:0;max-width:100%;font-size:13.5px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Write the theme tokens</h3>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted-2)">
+            <span aria-hidden="true" style="width:18px;height:18px;border-radius:50%;background:var(--chip);display:inline-flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;color:var(--muted-2)">D</span>
+            Developer
+          </span>
+          <button type="button" class="b-q" aria-label="Open the report of Write the theme tokens" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 9px 0 7px;border-radius:10px;font-size:12px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"></path><path d="M9 1.75v3h3M6 8.5h4M6 11h4"></path></svg>
+            Open report
+          </button>
+        </article>
+      </div>
+    </section>
+
+    <!-- Checkpoints -->
+    <section aria-labelledby="cp-title" style="background:var(--panel);border:1.5px solid var(--line-soft);border-radius:16px;padding:14px 16px 6px 18px">
+      <h2 id="cp-title" style="margin:0;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;line-height:1.3">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--muted-2)"><path d="M3.5 14.5V2M3.5 2.5h8l-1.75 3 1.75 3h-8"></path></svg>
+        Checkpoints
+        <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;font-weight:700;color:var(--muted-2);background:var(--chip);border-radius:999px;padding:1px 8px">3</span>
+      </h2>
+      <p style="margin:6px 0 10px;font-size:13px;font-weight:500;line-height:1.5;color:var(--muted-2)">Restore puts this folder's files back as they were at a checkpoint, for a paused or ended run; the files as they are now are kept as a new checkpoint first, so a restore can be undone.</p>
+      <ol style="list-style:none;margin:0;padding:0">
+        <li style="display:flex;align-items:center;gap:12px;padding:7px 0;border-top:1.5px solid var(--line-soft)">
+          <span style="flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;white-space:nowrap">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700">#3</span>
+            <span aria-hidden="true" style="color:var(--muted)">·</span>
+            <time style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted-2)">27/10/2026, 15:21:00</time>
+          </span>
+          <button type="button" class="b-q" aria-label="Restore checkpoint #3" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px 0 8px;border-radius:10px;font-size:12.5px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 2.5v3.75h3.75"></path><path d="M2.9 6.25A5.5 5.5 0 1 1 3.4 11"></path></svg>
+            Restore
+          </button>
+        </li>
+        <li style="display:flex;align-items:center;gap:12px;padding:7px 0;border-top:1.5px solid var(--line-soft)">
+          <span style="flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;white-space:nowrap">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700">#2</span>
+            <span aria-hidden="true" style="color:var(--muted)">·</span>
+            <time style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted-2)">27/10/2026, 15:17:02</time>
+          </span>
+          <button type="button" class="b-q" aria-label="Restore checkpoint #2" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px 0 8px;border-radius:10px;font-size:12.5px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 2.5v3.75h3.75"></path><path d="M2.9 6.25A5.5 5.5 0 1 1 3.4 11"></path></svg>
+            Restore
+          </button>
+        </li>
+        <li style="display:flex;align-items:center;gap:12px;padding:7px 0;border-top:1.5px solid var(--line-soft)">
+          <span style="flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;white-space:nowrap">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700">#1</span>
+            <span aria-hidden="true" style="color:var(--muted)">·</span>
+            <time style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted-2)">27/10/2026, 15:14:20</time>
+          </span>
+          <button type="button" class="b-q" aria-label="Restore checkpoint #1" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px 0 8px;border-radius:10px;font-size:12.5px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 2.5v3.75h3.75"></path><path d="M2.9 6.25A5.5 5.5 0 1 1 3.4 11"></path></svg>
+            Restore
+          </button>
+        </li>
+      </ol>
+    </section>
+  </main>
+
+  <!-- The rail, under the center -->
+  <aside aria-label="Run details" style="flex:none;box-sizing:border-box;background:var(--side);border:1.5px solid var(--line-soft);border-radius:16px;display:flex;flex-direction:column;overflow:hidden">
+    <div role="tablist" aria-label="Run details" style="flex:none;display:flex;gap:2px;padding:4px 12px 0;border-bottom:1.5px solid var(--line)">
+      <button type="button" role="tab" aria-selected="true" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:11px 10px 9px;margin-bottom:-1.5px;background:transparent;border:0;border-bottom:2.5px solid var(--accent);font-size:13.5px;font-weight:700;color:var(--ink)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8h3l2-4.5 3 9 2-4.5h3"></path></svg>
+        Activity
+      </button>
+      <button type="button" class="tab" role="tab" aria-selected="false" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:11px 10px 9px;margin-bottom:-1.5px;background:transparent;border:0;border-bottom:2.5px solid transparent;font-size:13.5px;font-weight:700;color:var(--muted-2)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.75l5.5 3v6.5L8 14.25l-5.5-3v-6.5z"></path><path d="M2.5 4.75L8 7.75l5.5-3M8 7.75v6.5"></path></svg>
+        Artifacts
+        <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;font-weight:700;background:var(--panel);border-radius:999px;padding:0 7px">2</span>
+      </button>
+      <button type="button" class="tab" role="tab" aria-selected="false" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:11px 10px 9px;margin-bottom:-1.5px;background:transparent;border:0;border-bottom:2.5px solid transparent;font-size:13.5px;font-weight:700;color:var(--muted-2)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4l1.25 1.25L5.5 3M2 10.5l1.25 1.25L5.5 9.5M8 4.25h6M8 10.75h6"></path></svg>
+        Tasks
+        <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;font-weight:700;background:var(--panel);border-radius:999px;padding:0 7px">2/5</span>
+      </button>
+    </div>
+
+    <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div role="group" aria-label="Show" style="display:inline-flex;gap:2px;padding:2px;background:var(--chip);border:1.5px solid var(--line-soft);border-radius:13px">
+          <button type="button" aria-pressed="true" style="font:inherit;cursor:pointer;height:28px;padding:0 11px;border-radius:10px;font-size:13px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--ink)">All</button>
+          <button type="button" class="seg" aria-pressed="false" style="font:inherit;cursor:pointer;height:28px;padding:0 11px;border-radius:10px;font-size:13px;font-weight:700;background:transparent;border:1.5px solid transparent;color:var(--muted-2)">Asks</button>
+          <button type="button" class="seg" aria-pressed="false" style="font:inherit;cursor:pointer;height:28px;padding:0 11px;border-radius:10px;font-size:13px;font-weight:700;background:transparent;border:1.5px solid transparent;color:var(--muted-2)">Work</button>
+          <button type="button" class="seg" aria-pressed="false" style="font:inherit;cursor:pointer;height:28px;padding:0 11px;border-radius:10px;font-size:13px;font-weight:700;background:transparent;border:1.5px solid transparent;color:var(--muted-2)">Run</button>
+        </div>
+        <button type="button" role="switch" aria-checked="true" style="font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 4px 0 6px;border-radius:10px;background:transparent;border:0;font-size:13px;font-weight:700;color:var(--ink)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--muted-2)"><path d="M8 10.5v4M5 1.75h6M6 1.75v4L4 8.25v2.25h8V8.25l-2-2.5v-4"></path></svg>
+          Follow
+          <span aria-hidden="true" style="position:relative;display:inline-block;width:30px;height:18px;border-radius:999px;background:var(--accent)">
+            <span style="position:absolute;top:3px;right:3px;width:12px;height:12px;border-radius:50%;background:var(--panel)"></span>
+          </span>
+        </button>
+      </div>
+
+      <h2 style="margin:2px 0 0;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Activity · newest first</h2>
+
+      <div style="position:relative">
+        <span aria-hidden="true" style="position:absolute;left:13.25px;top:14px;bottom:14px;width:1.5px;background:var(--line)"></span>
+        <ol style="position:relative;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px">
+          <li style="display:flex;align-items:flex-start;gap:10px">
+            <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:color-mix(in srgb,var(--warn) 22%,var(--panel));border:1.5px solid var(--warn);display:flex;align-items:center;justify-content:center;color:color-mix(in srgb,var(--warn) 45%,var(--ink))">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v8M10 4v8"></path></svg>
+            </span>
+            <div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;padding:5px 10px 6px;margin-top:-1px;border-radius:10px;background:color-mix(in srgb,var(--warn) 14%,var(--panel))">
+              <p style="flex:1;min-width:0;margin:0;font-size:13.5px;font-weight:500;line-height:1.4">The run pauses: approval.</p>
+              <time style="flex:none;padding-top:1px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted-2)">15:21:40</time>
+            </div>
+          </li>
+          <li style="display:flex;align-items:flex-start;gap:10px">
+            <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:color-mix(in srgb,var(--warn) 22%,var(--panel));border:1.5px solid var(--warn);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:var(--ink)">D</span>
+            <div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;padding:5px 10px 6px;margin-top:-1px">
+              <p style="flex:1;min-width:0;margin:0;font-size:13.5px;font-weight:500;line-height:1.4"><b style="font-weight:700">Developer</b> <span aria-hidden="true" style="color:var(--muted-2)">→</span> <b style="font-weight:700">You</b> asks for approval of “Wire the toggle into Settings”</p>
+              <time style="flex:none;padding-top:1px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted-2)">15:21:40</time>
+            </div>
+          </li>
+          <li style="display:flex;align-items:flex-start;gap:10px">
+            <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:var(--muted-2)">D</span>
+            <div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;padding:5px 10px 6px;margin-top:-1px">
+              <p style="flex:1;min-width:0;margin:0;font-size:13.5px;font-weight:500;line-height:1.4"><b style="font-weight:700">Developer</b> writes <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;white-space:nowrap">theme-toggle.tsx</span></p>
+              <time style="flex:none;padding-top:1px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted-2)">15:21:31</time>
+            </div>
+          </li>
+          <li style="display:flex;align-items:flex-start;gap:10px">
+            <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:var(--muted-2)">D</span>
+            <div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;padding:5px 10px 6px;margin-top:-1px">
+              <p style="flex:1;min-width:0;margin:0;font-size:13.5px;font-weight:500;line-height:1.4"><b style="font-weight:700">Developer</b> uses <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px">fs.write@1</span> <span style="color:var(--muted-2)">·</span> <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">41 ms</span></p>
+              <time style="flex:none;padding-top:1px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted-2)">15:21:31</time>
+            </div>
+          </li>
+          <li style="display:flex;align-items:flex-start;gap:10px">
+            <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted-2)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 14.5V2M3.5 2.5h8l-1.75 3 1.75 3h-8"></path></svg>
+            </span>
+            <div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;padding:5px 10px 6px;margin-top:-1px">
+              <p style="flex:1;min-width:0;margin:0;font-size:13.5px;font-weight:500;line-height:1.4">A checkpoint is saved.</p>
+              <time style="flex:none;padding-top:1px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted-2)">15:21:00</time>
+            </div>
+          </li>
+            <li style="display:flex;align-items:flex-start;gap:10px">
+              <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:var(--muted-2)">D</span>
+              <div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;padding:5px 10px 6px;margin-top:-1px">
+                <p style="flex:1;min-width:0;margin:0;font-size:13.5px;font-weight:500;line-height:1.4"><b style="font-weight:700">Developer</b> uses <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px">fs.read@1</span> <span style="color:var(--muted-2)">·</span> <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted-2)">3 ms</span></p>
+                <time style="flex:none;padding-top:1px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted-2)">15:19:47</time>
+              </div>
+            </li>
+          <li style="display:flex;align-items:flex-start;gap:10px">
+            <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:var(--muted-2)">D</span>
+            <div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;padding:5px 10px 6px;margin-top:-1px">
+              <p style="flex:1;min-width:0;margin:0;font-size:13.5px;font-weight:500;line-height:1.4"><b style="font-weight:700">Developer</b> takes “Wire the toggle into Settings”</p>
+              <time style="flex:none;padding-top:1px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted-2)">15:17:05</time>
+            </div>
+          </li>
+          <li style="display:flex;align-items:flex-start;gap:10px">
+            <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted-2)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 14.5V2M3.5 2.5h8l-1.75 3 1.75 3h-8"></path></svg>
+            </span>
+            <div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;padding:5px 10px 6px;margin-top:-1px">
+              <p style="flex:1;min-width:0;margin:0;font-size:13.5px;font-weight:500;line-height:1.4">A checkpoint is saved.</p>
+              <time style="flex:none;padding-top:1px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted-2)">15:17:02</time>
+            </div>
+          </li>
+          <li style="display:flex;align-items:flex-start;gap:10px">
+            <span aria-hidden="true" style="flex:none;width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:var(--panel);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:var(--muted-2)">R</span>
+            <div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;padding:5px 10px 6px;margin-top:-1px">
+              <p style="flex:1;min-width:0;margin:0;font-size:13.5px;font-weight:500;line-height:1.4"><b style="font-weight:700">Reviewer</b> approves “Write the theme tokens”</p>
+              <time style="flex:none;padding-top:1px;font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted-2)">15:16:58</time>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":760,"height":1654}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

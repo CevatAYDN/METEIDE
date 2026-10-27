@@ -1,0 +1,273 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-27T13:05:00Z"
+  },
+  "title": "METE design set",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [
+    {
+      "id": "team",
+      "name": "Team panel"
+    },
+    {
+      "id": "home",
+      "name": "Home and welcome"
+    },
+    {
+      "id": "settings",
+      "name": "Settings and team editor"
+    },
+    {
+      "id": "dashboards",
+      "name": "Dashboards"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1320,
+      "h": 1026,
+      "title": "Team run · waiting for you (light)",
+      "page": "team"
+    },
+    "SingleRunning.dc.html": {
+      "x": 1400,
+      "y": 0,
+      "w": 1320,
+      "h": 953,
+      "title": "Single agent · running (dark)",
+      "page": "team"
+    },
+    "SingleDone.dc.html": {
+      "x": 2800,
+      "y": 0,
+      "w": 1320,
+      "h": 952,
+      "title": "Single agent · done (light)",
+      "page": "team"
+    },
+    "TeamRoster.dc.html": {
+      "x": 0,
+      "y": 1446,
+      "w": 1320,
+      "h": 1308,
+      "title": "Team view · roster (light)",
+      "page": "team"
+    },
+    "TeamFlow.dc.html": {
+      "x": 1400,
+      "y": 1446,
+      "w": 1320,
+      "h": 1130,
+      "title": "Flow view (dark)",
+      "page": "team"
+    },
+    "TeamStudio.dc.html": {
+      "x": 2800,
+      "y": 1446,
+      "w": 1320,
+      "h": 1409,
+      "title": "Studio view (light)",
+      "page": "team"
+    },
+    "TeamTasks.dc.html": {
+      "x": 4200,
+      "y": 1446,
+      "w": 1320,
+      "h": 1129,
+      "title": "Tasks in the rail (light)",
+      "page": "team"
+    },
+    "TeamBlocked.dc.html": {
+      "x": 0,
+      "y": 3275,
+      "w": 1320,
+      "h": 1144,
+      "title": "Task blocked (light)",
+      "page": "team"
+    },
+    "TeamPolicyAsk.dc.html": {
+      "x": 1400,
+      "y": 3275,
+      "w": 1320,
+      "h": 1050,
+      "title": "Policy ask (dark)",
+      "page": "team"
+    },
+    "TeamFailed.dc.html": {
+      "x": 2800,
+      "y": 3275,
+      "w": 1320,
+      "h": 1112,
+      "title": "Single agent · failed (light)",
+      "page": "team"
+    },
+    "Composer.dc.html": {
+      "x": 4200,
+      "y": 3275,
+      "w": 1320,
+      "h": 850,
+      "title": "Run composer (light)",
+      "page": "team"
+    },
+    "TeamNarrow.dc.html": {
+      "x": 5600,
+      "y": 3275,
+      "w": 760,
+      "h": 1654,
+      "title": "Narrow panel (light)",
+      "page": "team"
+    },
+    "HomeActive.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 320,
+      "h": 1590,
+      "title": "Side view · active (light)",
+      "page": "home"
+    },
+    "HomeEmpty.dc.html": {
+      "x": 400,
+      "y": 0,
+      "w": 320,
+      "h": 1186,
+      "title": "Side view · empty (dark)",
+      "page": "home"
+    },
+    "Welcome.dc.html": {
+      "x": 800,
+      "y": 0,
+      "w": 1320,
+      "h": 1145,
+      "title": "Welcome (light)",
+      "page": "home"
+    },
+    "Settings.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1320,
+      "h": 1568,
+      "title": "Settings · models and keys (light)",
+      "page": "settings"
+    },
+    "TeamEditor.dc.html": {
+      "x": 1400,
+      "y": 0,
+      "w": 1320,
+      "h": 1758,
+      "title": "Team editor · web-dev (light)",
+      "page": "settings"
+    },
+    "Quota.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1320,
+      "h": 742,
+      "title": "Quota (light)",
+      "page": "dashboards"
+    },
+    "Audit.dc.html": {
+      "x": 1400,
+      "y": 0,
+      "w": 1320,
+      "h": 807,
+      "title": "Audit log (light)",
+      "page": "dashboards"
+    },
+    "Assets.dc.html": {
+      "x": 2800,
+      "y": 0,
+      "w": 1320,
+      "h": 870,
+      "title": "Assets (dark)",
+      "page": "dashboards"
+    },
+    "Changes.dc.html": {
+      "x": 4200,
+      "y": 0,
+      "w": 1320,
+      "h": 825,
+      "title": "Changes (light)",
+      "page": "dashboards"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "SingleRunning.dc.html",
+    "SingleDone.dc.html",
+    "TeamRoster.dc.html",
+    "TeamFlow.dc.html",
+    "TeamStudio.dc.html",
+    "TeamTasks.dc.html",
+    "TeamBlocked.dc.html",
+    "TeamPolicyAsk.dc.html",
+    "TeamFailed.dc.html",
+    "Composer.dc.html",
+    "TeamNarrow.dc.html",
+    "HomeActive.dc.html",
+    "HomeEmpty.dc.html",
+    "Welcome.dc.html",
+    "Settings.dc.html",
+    "TeamEditor.dc.html",
+    "Quota.dc.html",
+    "Audit.dc.html",
+    "Assets.dc.html",
+    "Changes.dc.html"
+  ],
+  "notes": {
+    "heading": {
+      "x": 0,
+      "y": -300,
+      "text": "The three references",
+      "kind": "title1",
+      "maxW": 4120,
+      "page": "team"
+    },
+    "team-1": {
+      "x": 0,
+      "y": 1146,
+      "text": "A team run's views",
+      "kind": "title1",
+      "maxW": 5520,
+      "page": "team"
+    },
+    "team-2": {
+      "x": 0,
+      "y": 2975,
+      "text": "Asks, failures, the composer and a narrow panel",
+      "kind": "title1",
+      "maxW": 6360,
+      "page": "team"
+    },
+    "home-0": {
+      "x": 0,
+      "y": -300,
+      "text": "The side view and the first start",
+      "kind": "title1",
+      "maxW": 2120,
+      "page": "home"
+    },
+    "settings-0": {
+      "x": 0,
+      "y": -300,
+      "text": "Settings and the team editor",
+      "kind": "title1",
+      "maxW": 2720,
+      "page": "settings"
+    },
+    "dashboards-0": {
+      "x": 0,
+      "y": -300,
+      "text": "Quota, audit, assets and changes",
+      "kind": "title1",
+      "maxW": 5520,
+      "page": "dashboards"
+    }
+  },
+  "designSystems": []
+}
