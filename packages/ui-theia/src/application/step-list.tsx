@@ -123,24 +123,26 @@ const ToolRow = ({
 				<span className="mete-sub">{look.word}</span>
 				<Icon name={open ? "chevron-down" : "chevron-right"} />
 			</button>
-			{open ? (
-				<div id={id} className="mete-step-detail">
-					<Block
-						title={nls.localize("mete/steps/arguments", "Arguments")}
-						text={argsBody(call.args)}
-					/>
-					{call.result ? (
+			<div id={id} className="mete-step-detail" hidden={!open}>
+				{open ? (
+					<>
 						<Block
-							title={
-								call.result.ok === false
-									? nls.localize("mete/steps/error", "Error")
-									: nls.localize("mete/steps/result", "Result")
-							}
-							text={resultBody(call.result.text)}
+							title={nls.localize("mete/steps/arguments", "Arguments")}
+							text={argsBody(call.args)}
 						/>
-					) : null}
-				</div>
-			) : null}
+						{call.result ? (
+							<Block
+								title={
+									call.result.ok === false
+										? nls.localize("mete/steps/error", "Error")
+										: nls.localize("mete/steps/result", "Result")
+								}
+								text={resultBody(call.result.text)}
+							/>
+						) : null}
+					</>
+				) : null}
+			</div>
 		</li>
 	);
 };
@@ -170,11 +172,9 @@ const Note = ({ step }: { readonly step: TranscriptStep }) => {
 				<span />
 				<Icon name={open ? "chevron-down" : "chevron-right"} />
 			</button>
-			{open ? (
-				<div id={id} className="mete-step-detail">
-					<pre className="mete-step-code">{step.text}</pre>
-				</div>
-			) : null}
+			<div id={id} className="mete-step-detail" hidden={!open}>
+				{open ? <pre className="mete-step-code">{step.text}</pre> : null}
+			</div>
 		</li>
 	);
 };

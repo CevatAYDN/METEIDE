@@ -138,15 +138,15 @@ const Row = ({
 				<Head task={task} member={member} />
 				<Icon name={open ? "chevron-down" : "chevron-right"} />
 			</button>
-			{open ? (
-				<div id={id} className="mete-step-detail">
+			<div id={id} className="mete-step-detail" hidden={!open}>
+				{open ? (
 					<TaskSteps
 						conversations={conversations}
 						steps={steps}
 						thinkingSince={thinkingSince}
 					/>
-				</div>
-			) : null}
+				) : null}
+			</div>
 		</li>
 	);
 };

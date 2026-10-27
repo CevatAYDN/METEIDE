@@ -264,6 +264,11 @@
 	margin: 4px 0 6px 34px;
 }
 
+/* A closed row keeps its detail in the DOM for aria-controls; display: flex would show the margin. */
+.mete-step-detail[hidden] {
+	display: none;
+}
+
 .mete-step-block {
 	display: flex;
 	flex-direction: column;
