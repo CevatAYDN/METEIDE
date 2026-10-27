@@ -24,6 +24,13 @@
 	flex-direction: column;
 }
 
+/* A card keeps its height when a tab is taller than the column (the Studio scene): the column
+   scrolls, and nothing that clips its content is squeezed to a strip. */
+.mete-run-center > *,
+.mete-run-rail > * {
+	flex-shrink: 0;
+}
+
 .mete-run-center {
 	gap: 14px;
 }
