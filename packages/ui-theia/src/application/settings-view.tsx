@@ -1,19 +1,20 @@
 import { nls } from "@theia/core/lib/common/nls";
-import type { CSSProperties } from "react";
 import type { DaemonFailure, Settings } from "../domain/status-service.js";
-import { MUTED, PANEL, ROW, TITLE } from "./look.js";
 import { SaveBar, type SaveEntry } from "./save-bar.js";
 import { ScopeSwitch } from "./scope-switch.js";
 import type { Target } from "./section-draft.js";
 import {
-	type Group,
-	type GroupId,
-	groupsOf,
-	SETTINGS_LINKS,
-} from "./settings-groups.js";
+	ApplyNow,
+	type ApplyState,
+	GroupHead,
+	GroupList,
+	Hero,
+} from "./settings-frame.js";
+import { type Group, type GroupId, groupsOf } from "./settings-groups.js";
 import {
 	type Bindings,
 	type Endpoints,
+	type FormParts,
 	type Forms,
 	formOf,
 	type Mcp,
@@ -28,6 +29,7 @@ import { failureText, noFolderText } from "./status-text.js";
 // the left. It leads to what Settings has elsewhere: the team editor, provider keys and Theia's
 // preferences and language.
 
+export type { ApplyState } from "./settings-frame.js";
 export { SETTINGS_LINKS } from "./settings-groups.js";
 export type { Bindings, Endpoints, Forms, Mcp } from "./settings-section.js";
 
@@ -56,126 +58,6 @@ export type GroupChoice = {
 	readonly onGroup: (group: GroupId) => void;
 };
 
-const LAYOUT: CSSProperties = {
-	display: "flex",
-	gap: "16px",
-	alignItems: "flex-start",
-	flexWrap: "wrap",
-};
-const LIST: CSSProperties = {
-	flex: "0 0 240px",
-	display: "flex",
-	flexDirection: "column",
-	gap: "6px",
-};
-const BODY: CSSProperties = {
-	flex: "1 1 480px",
-	// One readable column: the forms' fields need no more width than this.
-	maxWidth: "760px",
-	minWidth: 0,
-	display: "flex",
-	flexDirection: "column",
-	gap: "14px",
-};
-const ITEM: CSSProperties = {
-	display: "flex",
-	flexDirection: "column",
-	gap: "2px",
-	textAlign: "left",
-	cursor: "pointer",
-	font: "inherit",
-	color: "inherit",
-};
-
-const GroupItem = ({
-	group,
-	chosen,
-	onChoose,
-}: {
-	readonly group: Group<Settings["sections"][number]>;
-	readonly chosen: boolean;
-	readonly onChoose: () => void;
-}) => (
-	<button
-		type="button"
-		className="mete-card"
-		style={ITEM}
-		aria-pressed={chosen}
-		onClick={onChoose}
-	>
-		<strong>
-			{group.label}
-			{group.changedHere ? (
-				<span
-					role="img"
-					style={{
-						color: "var(--warn, var(--theia-editorWarning-foreground))",
-					}}
-					title={nls.localize(
-						"mete/groups/changedHere",
-						"A value of this group is set for this folder only",
-					)}
-					aria-label={nls.localize(
-						"mete/groups/changedHere",
-						"A value of this group is set for this folder only",
-					)}
-				>
-					{" ●"}
-				</span>
-			) : null}
-		</strong>
-		<span style={MUTED}>{group.hint}</span>
-	</button>
-);
-
-// The list of groups at the left, the chosen one pressed (ADR-095).
-const GroupList = ({
-	groups,
-	chosen,
-	onGroup,
-}: {
-	readonly groups: readonly Group<Section>[];
-	readonly chosen?: Group<Section> | undefined;
-	readonly onGroup: (group: GroupId) => void;
-}) => (
-	<nav
-		style={LIST}
-		aria-label={nls.localize("mete/groups/list", "Settings groups")}
-	>
-		{groups.map((g) => (
-			<GroupItem
-				key={g.id}
-				group={g}
-				chosen={g.id === chosen?.id}
-				onChoose={() => onGroup(g.id)}
-			/>
-		))}
-	</nav>
-);
-
-// A group's links, for the groups that lead to a command more than to a section.
-const Links = ({
-	ids,
-	onCommand,
-}: {
-	readonly ids: readonly string[];
-	readonly onCommand: (id: string) => void;
-}) =>
-	ids.length === 0 ? null : (
-		<div style={ROW}>
-			{SETTINGS_LINKS.filter(([id]) => ids.includes(id)).map(([id, label]) => (
-				<button
-					type="button"
-					key={id}
-					className="mete-button quiet"
-					onClick={() => onCommand(id)}
-				>
-					{label()}
-				</button>
-			))}
-		</div>
-	);
-
 // Everything the scope switch moves and the save bar saves (ADR-095, ADR-096): the forms, then the
 // cards that follow them.
 const saveablesOf = (
@@ -190,107 +72,114 @@ const saveablesOf = (
 	...(mcp ? [["mcp", mcp] as const] : []),
 ];
 
+// The chosen group: its heading, then its sections, each with its form or card.
+const GroupBody = ({
+	group,
+	settings,
+	actions,
+	parts,
+}: {
+	readonly group: Group<Section>;
+	readonly settings: Settings;
+	readonly actions: SettingsActions;
+	readonly parts: Omit<FormParts, "name" | "settings">;
+}) => (
+	<>
+		<GroupHead group={group} onCommand={actions.onCommand} />
+		{group.sections.map((s) => (
+			<SectionCard
+				key={s.name}
+				section={s}
+				onOpen={actions.onOpen}
+				form={formOf({ ...parts, name: s.name, settings })}
+			/>
+		))}
+	</>
+);
+
 const Loaded = ({
 	settings,
 	actions,
-	forms,
-	endpoints,
-	bindings,
-	mcp,
+	parts,
+	apply,
 	choice,
 }: {
 	readonly settings: Settings;
 	readonly actions: SettingsActions;
-	readonly forms: Forms;
-	readonly endpoints?: Endpoints | undefined;
-	readonly bindings?: Bindings | undefined;
-	readonly mcp?: Mcp | undefined;
+	readonly parts: Omit<FormParts, "name" | "settings">;
+	readonly apply: ApplyState;
 	readonly choice: GroupChoice;
 }) => {
 	const groups = groupsOf(withForms(settings.sections));
 	const chosen = groups.find((g) => g.id === choice.group) ?? groups[0];
-	const saveables = saveablesOf(forms, bindings, mcp);
+	const saveables = saveablesOf(parts.forms, parts.bindings, parts.mcp);
 	// The forms move together, so the first one tells where they all save.
 	const target = saveables[0]?.[1].state.target;
 	return (
 		<>
-			<p style={MUTED}>
-				{nls.localize(
-					"mete/settings/loaded",
-					"As METE loaded them at {0}. Edits to these files apply when METE starts again or on Apply now, except pins, which apply when the next task starts; a key no file sets takes its module's built-in default.",
-					new Date(settings.loadedAt).toLocaleString(),
-				)}
-			</p>
-			{target ? (
-				<ScopeSwitch
-					target={target}
-					canGlobal={settings.globalFile !== undefined}
-					onTarget={actions.onScope}
-				/>
-			) : null}
-			<div style={LAYOUT}>
+			<Hero
+				onRefresh={actions.onRefresh}
+				note={
+					<p className="mete-settings-note">
+						{nls.localize(
+							"mete/settings/loaded",
+							"As METE loaded them at {0}. Edits to these files apply when METE starts again or on Apply now, except pins, which apply when the next task starts; a key no file sets takes its module's built-in default.",
+							new Date(settings.loadedAt).toLocaleString(),
+						)}
+					</p>
+				}
+				scope={
+					target ? (
+						<ScopeSwitch
+							target={target}
+							canGlobal={settings.globalFile !== undefined}
+							onTarget={actions.onScope}
+						/>
+					) : undefined
+				}
+			/>
+			<div className="mete-settings-columns">
 				<GroupList groups={groups} chosen={chosen} onGroup={choice.onGroup} />
-				{chosen ? (
-					<div style={BODY}>
-						<h3 style={TITLE}>{chosen.label}</h3>
-						<Links ids={chosen.links} onCommand={actions.onCommand} />
-						{chosen.sections.map((s) => (
-							<SectionCard
-								key={s.name}
-								section={s}
-								onOpen={actions.onOpen}
-								form={formOf({
-									name: s.name,
-									forms,
-									settings,
-									endpoints,
-									bindings,
-									mcp,
-								})}
-							/>
-						))}
-					</div>
-				) : null}
+				<div className="mete-settings-body">
+					{chosen ? (
+						<GroupBody
+							group={chosen}
+							settings={settings}
+							actions={actions}
+							parts={parts}
+						/>
+					) : null}
+					<SaveBar entries={saveables} onSave={actions.onSaveAll}>
+						<ApplyNow apply={apply} onApply={actions.onApply} />
+					</SaveBar>
+				</div>
 			</div>
-			{target ? (
-				<SaveBar entries={saveables} onSave={actions.onSaveAll} />
-			) : null}
 		</>
 	);
 };
 
-/** Apply now (ADR-083): in flight, and how many runs of the folder are queued or running. */
-export type ApplyState = {
-	readonly busy: boolean;
-	readonly activeRuns: number;
-};
-
-// A restart pauses a running run (ADR-061), so Apply now waits until none runs.
-const ApplyNow = ({
-	apply,
-	onApply,
+// Before METE has answered, the hero band and what the screen waits for or why it has nothing.
+const Waiting = ({
+	model,
+	onRefresh,
 }: {
-	readonly apply: ApplyState;
-	readonly onApply: () => void;
+	readonly model: Exclude<SettingsModel, { kind: "settings" }>;
+	readonly onRefresh: () => void;
 }) => (
 	<>
-		<button
-			type="button"
-			className="mete-button"
-			disabled={apply.busy || apply.activeRuns > 0}
-			onClick={onApply}
-		>
-			{apply.busy
-				? nls.localize("mete/settings/applying", "Restarting METE…")
-				: nls.localize("mete/settings/apply", "Apply now")}
-		</button>
-		{apply.activeRuns > 0 ? (
-			<span style={MUTED}>
-				{nls.localize(
-					"mete/settings/applyWaits",
-					"A run is running; Apply now waits until it is paused or ends.",
-				)}
-			</span>
+		<Hero onRefresh={onRefresh} />
+		{model.kind === "loading" ? (
+			<p className="mete-settings-state">
+				{nls.localize("mete/settings/loading", "Asking the METE daemon…")}
+			</p>
+		) : null}
+		{model.kind === "no_folder" ? (
+			<p className="mete-settings-state">{noFolderText()}</p>
+		) : null}
+		{model.kind === "failed" ? (
+			<p className="mete-settings-state" role="alert">
+				{failureText(model.failure)}
+			</p>
 		) : null}
 	</>
 );
@@ -315,35 +204,17 @@ export const SettingsView = ({
 	readonly apply?: ApplyState;
 	readonly choice?: GroupChoice;
 }) => (
-	<section style={{ ...PANEL, maxWidth: "1100px" }} aria-live="polite">
-		<h2 style={TITLE}>{nls.localize("mete/settings/title", "Settings")}</h2>
-		<div style={ROW}>
-			<ApplyNow apply={apply} onApply={actions.onApply} />
-			<button
-				type="button"
-				className="mete-button quiet"
-				onClick={actions.onRefresh}
-			>
-				{nls.localize("mete/settings/refresh", "Refresh")}
-			</button>
-		</div>
-		{model.kind === "loading" ? (
-			<p>{nls.localize("mete/settings/loading", "Asking the METE daemon…")}</p>
-		) : null}
-		{model.kind === "no_folder" ? <p>{noFolderText()}</p> : null}
-		{model.kind === "failed" ? (
-			<p role="alert">{failureText(model.failure)}</p>
-		) : null}
+	<section className="mete-settings" aria-live="polite">
 		{model.kind === "settings" ? (
 			<Loaded
 				settings={model.settings}
 				actions={actions}
-				forms={forms}
-				endpoints={endpoints}
-				bindings={bindings}
-				mcp={mcp}
+				parts={{ forms, endpoints, bindings, mcp }}
+				apply={apply}
 				choice={choice}
 			/>
-		) : null}
+		) : (
+			<Waiting model={model} onRefresh={actions.onRefresh} />
+		)}
 	</section>
 );

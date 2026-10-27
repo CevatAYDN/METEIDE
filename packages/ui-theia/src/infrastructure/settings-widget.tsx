@@ -29,6 +29,11 @@ import { EndpointsForm } from "./endpoints-form.js";
 import { McpForm } from "./mcp-form.js";
 import { MetePanelWidget } from "./panel-widget.js";
 import { SettingsForms } from "./settings-forms.js";
+import "../../style/mete.css";
+import "../../style/mete-form.css";
+import "../../style/mete-run.css";
+import "../../style/mete-settings.css";
+import "../../style/mete-settings-body.css";
 
 // The read-only Settings screen (docs/13; ADR-081) of the first open folder: it asks the daemon
 // what it loaded when it opens and on Refresh; a file opens in Theia's editor.

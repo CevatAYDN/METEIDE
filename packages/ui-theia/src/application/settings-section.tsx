@@ -1,5 +1,5 @@
 import { nls } from "@theia/core/lib/common/nls";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { stringify } from "yaml";
 import type { Settings } from "../domain/status-service.js";
 import {
@@ -14,7 +14,6 @@ import {
 	EndpointsCard,
 	type EndpointsState,
 } from "./endpoints-card.js";
-import { LINK, MUTED, TITLE } from "./look.js";
 import { type McpActions, McpCard, type McpState } from "./mcp-card.js";
 import { type FormSection, layerOf } from "./section-draft.js";
 import { SectionForm } from "./section-form.js";
@@ -27,15 +26,6 @@ import { sectionTitle } from "./settings-groups.js";
 
 // What one Settings section looks like (ADR-081 to ADR-087): its name, what METE loaded from each
 // file as YAML text with the file's path, and its form or card where it has one.
-
-const CODE: CSSProperties = {
-	margin: "4px 0 0",
-	padding: "8px 10px",
-	whiteSpace: "pre-wrap",
-	overflowWrap: "anywhere",
-	fontFamily: "monospace",
-	fontSize: "0.92em",
-};
 
 // YAML text of a value; a missing section value reads as an empty mapping.
 const yamlOf = (value: unknown) => stringify(value ?? {}).trimEnd();
@@ -108,19 +98,19 @@ const FileValue = ({
 	readonly from: { readonly file: string; readonly value: unknown };
 	readonly onOpen: (file: string) => void;
 }) => (
-	<div>
-		<span style={MUTED}>{label} </span>
-		<button
-			type="button"
-			style={LINK}
-			title={from.file}
-			onClick={() => onOpen(from.file)}
-		>
-			{shortPath(from.file)}
-		</button>
-		<pre className="mete-card" style={CODE}>
-			{yamlOf(from.value)}
-		</pre>
+	<div className="mete-settings-file">
+		<p>
+			{label}{" "}
+			<button
+				type="button"
+				className="mete-settings-path"
+				title={from.file}
+				onClick={() => onOpen(from.file)}
+			>
+				{shortPath(from.file)}
+			</button>
+		</p>
+		<pre>{yamlOf(from.value)}</pre>
 	</div>
 );
 
@@ -128,14 +118,9 @@ const FileValue = ({
 const SectionTitle = ({ name }: { readonly name: string }) => {
 	const title = sectionTitle(name);
 	return (
-		<h3 style={TITLE}>
+		<h3>
 			{title ?? name}
-			{title ? (
-				<span style={{ ...MUTED, fontSize: "0.75em", fontWeight: 400 }}>
-					{" "}
-					· {name}
-				</span>
-			) : null}
+			{title ? <span className="mete-settings-id">{` · ${name}`}</span> : null}
 		</h3>
 	);
 };
@@ -150,12 +135,12 @@ export const SectionCard = ({
 	readonly form?: ReactNode;
 }) => (
 	<section
-		className="mete-card"
+		className="mete-settings-card"
 		aria-label={sectionTitle(section.name) ?? section.name}
 	>
 		<SectionTitle name={section.name} />
 		{!section.global && !section.workspace ? (
-			<p style={MUTED}>
+			<p className="mete-settings-unset">
 				{nls.localize(
 					"mete/settings/unset",
 					"No file sets this section; its defaults apply.",
@@ -164,11 +149,9 @@ export const SectionCard = ({
 		) : null}
 		{/* With one file the merged value is that file's; with both, it is what modules read. */}
 		{section.global && section.workspace ? (
-			<div>
-				<span style={MUTED}>
-					{nls.localize("mete/settings/merged", "What METE uses:")}
-				</span>
-				<pre style={CODE}>{yamlOf(section.merged)}</pre>
+			<div className="mete-settings-file">
+				<p>{nls.localize("mete/settings/merged", "What METE uses:")}</p>
+				<pre>{yamlOf(section.merged)}</pre>
 			</div>
 		) : null}
 		{section.global ? (

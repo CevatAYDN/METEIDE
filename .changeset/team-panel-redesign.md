@@ -52,3 +52,10 @@ Fields and buttons share the design set's controls in every panel: a field is 36
 in the accent while it has the focus, numbers and keys in mono, placeholders in --muted, and a choice
 with a thin chevron in place of the platform's arrow; a field or a button that cannot act is a quiet
 raised plate with faded words, no longer a see-through one.
+
+The Settings screen takes the design set's frame: a hero band with its tile, title and caption,
+Refresh at the right and the loaded note under them, with the scope switch beside it as a segmented
+control; the groups on a side card at the left, each with its glyph's tile and a dot for a value set
+for this folder only; the chosen group's title with its links at the right; each section a card with
+its id in mono and each file's YAML on a raised block under its path; and the save bar as an accent
+band at the foot that now also holds Apply now, past a rule, with the reason it waits beside it.

@@ -80,7 +80,6 @@ describe("the Settings screen", () => {
 		expect(gateway).toContain(
 			'title="/w/.mete/gateway.yaml">.mete/gateway.yaml<',
 		);
-		expect(out).toContain("max-width:760px");
 		// The MCP section sits in the tools group.
 		const tools = html(LOADED, "tools");
 		const mcp = tools.slice(tools.indexOf('aria-label="MCP servers"'));
@@ -250,8 +249,12 @@ describe("the Settings forms (ADR-082)", () => {
 			page.slice(page.indexOf("<fieldset"), page.indexOf("</fieldset>"));
 		const folder = switchOf(out);
 		expect(folder).toContain("<legend");
-		expect(folder).toMatch(/aria-pressed="true">This folder</);
-		expect(folder).toMatch(/disabled="" aria-pressed="false">All folders</);
+		expect(folder).toMatch(
+			/aria-pressed="true"><span[^>]*><\/span>This folder</,
+		);
+		expect(folder).toMatch(
+			/disabled="" aria-pressed="false"><span[^>]*><\/span>All folders</,
+		);
 		const withGlobal = {
 			kind: "settings",
 			settings: { ...LOADED.settings, globalFile: "/g/settings.yaml" },
@@ -259,7 +262,9 @@ describe("the Settings forms (ADR-082)", () => {
 		const global = switchOf(
 			withForms(withGlobal, "models", { target: "global" }),
 		);
-		expect(global).toMatch(/aria-pressed="true">All folders</);
+		expect(global).toMatch(
+			/aria-pressed="true"><span[^>]*><\/span>All folders</,
+		);
 		expect(global).not.toContain("disabled");
 		// No forms to switch (the daemon has not answered): no switch.
 		expect(html(LOADED)).not.toContain("All folders");
@@ -317,21 +322,21 @@ describe("the Settings forms (ADR-082)", () => {
 		);
 		return page.slice(page.indexOf('aria-label="Save changes'));
 	};
+	// Save changes, off: its glyph, then its words.
+	const OFF = /disabled=""><span[^>]*><\/span>Save changes</;
 
 	it("says nothing is changed and keeps Save changes off, until a form is changed", () => {
 		const idle = bar({ gateway: {}, policy: {} });
 		expect(idle).toContain("No unsaved changes");
-		expect(idle).toMatch(/disabled="">Save changes</);
+		expect(idle).toMatch(OFF);
 		const changed = bar({ gateway: { dirty: true }, policy: { dirty: true } });
 		expect(changed).toContain("Unsaved changes: gateway, policy");
-		expect(changed).not.toMatch(/disabled="">Save changes</);
-		expect(changed).toMatch(/>Save changes</);
+		expect(changed).not.toMatch(OFF);
+		expect(changed).toMatch(/<\/span>Save changes</);
 	});
 
 	it("holds Save changes while a form saves, and names the file of a form that has a problem", () => {
-		expect(bar({ gateway: { dirty: true, busy: true } })).toMatch(
-			/disabled="">Save changes</,
-		);
+		expect(bar({ gateway: { dirty: true, busy: true } })).toMatch(OFF);
 		const refused = bar({
 			gateway: { dirty: true },
 			policy: {
@@ -370,13 +375,17 @@ describe("Apply now (ADR-083)", () => {
 			}),
 		);
 
+	// The save bar holds it (ADR-128), past Save changes.
+	const inBar = (page: string) =>
+		page.slice(page.indexOf('aria-label="Save changes'));
+
 	it("is on while no run runs, and off with the reason while one does", () => {
-		expect(withApply(0)).toContain(
-			'<button type="button" class="mete-button">Apply now</button>',
+		expect(inBar(withApply(0))).toMatch(
+			/<button type="button" class="mete-button quiet"><span[^>]*><\/span>Apply now<\/button>/,
 		);
-		const busy = withApply(1);
-		expect(busy).toContain(
-			'<button type="button" class="mete-button" disabled="">Apply now</button>',
+		const busy = inBar(withApply(1));
+		expect(busy).toMatch(
+			/<button type="button" class="mete-button quiet" disabled=""><span[^>]*><\/span>Apply now<\/button>/,
 		);
 		expect(busy).toContain("Apply now waits until it is paused or ends.");
 	});
@@ -734,7 +743,9 @@ describe("the groups list (ADR-095)", () => {
 		])
 			expect(out).toContain(text);
 		expect(out.match(/aria-pressed="true"/g)).toHaveLength(1);
-		expect(out).toMatch(/aria-pressed="true"><strong>Privacy/);
+		expect(out).toMatch(
+			/aria-pressed="true">(?:(?!<\/button>).)*<strong>Privacy/,
+		);
 		// LOADED sets gateway and mcp in this folder's files: their groups carry the dot, the others not.
 		expect(out.match(/role="img"/g)).toHaveLength(2);
 		expect(out).not.toContain("Other files");

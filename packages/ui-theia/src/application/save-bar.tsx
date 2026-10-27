@@ -1,5 +1,6 @@
 import { nls } from "@theia/core/lib/common/nls";
-import { MUTED, ROW } from "./look.js";
+import type { ReactNode } from "react";
+import { Icon } from "./roster-look.js";
 import type { Target } from "./section-draft.js";
 import { type SaveNote, shortPath } from "./settings-form.js";
 
@@ -21,21 +22,16 @@ export type Saveable = {
 /** A form with the name the bar prints for it: its section's id. */
 export type SaveEntry = readonly [name: string, form: Saveable];
 
-const BAR = {
-	position: "sticky",
-	bottom: 0,
-	display: "flex",
-	flexDirection: "column",
-	gap: "6px",
-} as const;
-
-/** The save bar; Save changes waits for a change and for a save in flight. */
+/** The save bar; Save changes waits for a change and for a save in flight. What else the screen
+ * applies (Apply now, ADR-083) follows it, past a rule. Laid out by style/mete-settings.css. */
 export const SaveBar = ({
 	entries,
 	onSave,
+	children,
 }: {
 	readonly entries: readonly SaveEntry[];
 	readonly onSave: () => void;
+	readonly children?: ReactNode;
 }) => {
 	const changed = entries
 		.filter(([, f]) => f.state.dirty)
@@ -47,30 +43,36 @@ export const SaveBar = ({
 	);
 	const label = nls.localize("mete/settings/saveAll", "Save changes");
 	return (
-		<section className="mete-card" style={BAR} aria-label={label}>
-			<div style={ROW}>
-				<button
-					type="button"
-					className="mete-button"
-					disabled={
-						changed.length === 0 || entries.some(([, f]) => f.state.busy)
-					}
-					onClick={onSave}
-				>
-					{label}
-				</button>
-				<span style={MUTED}>
-					{changed.length === 0
-						? nls.localize("mete/settings/barNone", "No unsaved changes")
-						: nls.localize(
-								"mete/settings/barChanged",
-								"Unsaved changes: {0}",
-								changed.join(", "),
-							)}
-				</span>
-			</div>
+		<section className="mete-save-bar" aria-label={label}>
+			<span className="mete-save-bar-tile">
+				<Icon name="save" />
+			</span>
+			<p>
+				{changed.length === 0
+					? nls.localize("mete/settings/barNone", "No unsaved changes")
+					: nls.localize(
+							"mete/settings/barChanged",
+							"Unsaved changes: {0}",
+							changed.join(", "),
+						)}
+			</p>
+			<button
+				type="button"
+				className="mete-button"
+				disabled={changed.length === 0 || entries.some(([, f]) => f.state.busy)}
+				onClick={onSave}
+			>
+				<Icon name="check" />
+				{label}
+			</button>
+			{children ? (
+				<>
+					<span className="mete-save-bar-rule" aria-hidden="true" />
+					{children}
+				</>
+			) : null}
 			{problems.map((file) => (
-				<span key={file} role="alert">
+				<span key={file} className="mete-save-bar-problem" role="alert">
 					{nls.localize(
 						"mete/settings/barProblem",
 						"A problem with {0}: its form says why.",
