@@ -99,3 +99,8 @@ The Audit log takes the same frame: the shared hero band with Refresh and Export
 filter bar whose set filters are tinted in the accent, and the rows in a card with each verdict as a
 pill, its word and glyph in the tone of allow, ask or deny. The Quota and Audit tables share one
 card.
+
+The Assets view takes the same frame: the shared hero band, then a table card where an image is its
+own bigger picture, any other file is its extension on a quiet tile, the media type is a pill, the
+server sits over the tool that saved the file, and Open is a small outlined button with its file's
+name for assistive tools.

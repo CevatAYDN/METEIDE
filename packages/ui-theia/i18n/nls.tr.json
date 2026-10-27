@@ -8,6 +8,7 @@
 			"none": "Henüz varlık yok: dosya kaydeden bir araç ve her ekran görüntüsü burada görünür.",
 			"open": "Varlıkları aç",
 			"openFile": "Aç",
+			"openNamed": "{0} dosyasını aç",
 			"preview": "Önizleme",
 			"size": "Boyut",
 			"title": "Varlıklar",

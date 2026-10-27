@@ -1,0 +1,144 @@
+/* The Assets view in the design set's look (docs/13, Assets; ADR-114, ADR-128): the files in a table
+   card, an image as its picture and any other file as its extension on a quiet tile, the media type
+   as a pill, and the server over the tool that saved it. The root, the hero and the table card are in
+   mete-screen.css. */
+
+.mete-assets-card col.preview {
+	width: 152px;
+}
+
+.mete-assets-card col.name {
+	width: 300px;
+}
+
+.mete-assets-card col.type {
+	width: 180px;
+}
+
+.mete-assets-card col.from {
+	width: 226px;
+}
+
+.mete-assets-card col.size {
+	width: 100px;
+}
+
+.mete-assets-card col.when {
+	width: 196px;
+}
+
+.mete-assets-card > table {
+	min-width: 1000px;
+}
+
+.mete-assets-card td {
+	padding: 12px 16px;
+	vertical-align: middle;
+}
+
+.mete-assets-card td:first-child {
+	padding-left: 18px;
+}
+
+.mete-assets-card tbody tr + tr > td {
+	border-top: 1.5px solid var(--line-soft, var(--theia-panel-border));
+}
+
+.mete-asset-thumb,
+.mete-asset-ext {
+	box-sizing: border-box;
+	display: flex;
+	width: 120px;
+	height: 72px;
+	border-radius: 10px;
+}
+
+.mete-asset-thumb {
+	object-fit: cover;
+	background: var(--chip, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+}
+
+.mete-asset-ext {
+	align-items: center;
+	justify-content: center;
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+	background: var(--raised, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+}
+
+.mete-asset-name,
+.mete-asset-server,
+.mete-asset-size,
+.mete-asset-when,
+.mete-asset-tool,
+.mete-asset-type {
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-variant-numeric: tabular-nums;
+}
+
+.mete-asset-name {
+	font-size: 13px;
+	font-weight: 700;
+	line-height: 1.45;
+	overflow-wrap: anywhere;
+}
+
+.mete-asset-type {
+	display: inline-block;
+	padding: 2px 9px;
+	font-size: 12px;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+	background: var(--chip, var(--theia-badge-background));
+	border-radius: 999px;
+}
+
+.mete-asset-server,
+.mete-asset-tool {
+	display: block;
+	line-height: 1.4;
+}
+
+.mete-asset-server {
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.mete-asset-tool {
+	font-size: 12.5px;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+/* The dot between them is for text; the two lines say it already. */
+.mete-asset-sep {
+	display: none;
+}
+
+.mete-asset-size {
+	font-size: 13px;
+}
+
+.mete-asset-when {
+	font-size: 12.5px;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-asset-none {
+	color: var(--muted, var(--theia-descriptionForeground));
+}
+
+.mete-screen .mete-assets-card .mete-button {
+	height: 30px;
+	padding: 0 12px 0 9px;
+	font-size: 13px;
+}
+
+.mete-assets-state {
+	margin: 0 4px;
+	font-weight: 600;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}

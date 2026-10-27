@@ -15,6 +15,9 @@ import { type AssetsModel, AssetsView } from "../application/assets-view.js";
 import { panelRoot } from "../application/panel-root.js";
 import { assetRows, parseManifest } from "../domain/assets.js";
 import { MetePanelWidget } from "./panel-widget.js";
+import "../../style/mete.css";
+import "../../style/mete-screen.css";
+import "../../style/mete-assets.css";
 import { textOf } from "./settings-forms.js";
 
 // The Assets view in Theia's main area (docs/13, Assets; ADR-114): the files tools save under

@@ -34,10 +34,15 @@ const html = (model: AssetsModel) =>
 describe("the Assets view", () => {
 	it("draws an image as its picture, with its type, origin and size", () => {
 		const out = html({ kind: "rows", rows: [item()] });
-		expect(out).toContain('<img src="file:///w/.mete/assets/a.png"');
+		expect(out).toContain(
+			'<img class="mete-asset-thumb" src="file:///w/.mete/assets/a.png"',
+		);
 		expect(out).toContain("a.png");
 		expect(out).toContain("image/png");
-		expect(out).toContain("demo · render");
+		// The server over the tool, with the dot between them kept for text.
+		expect(out).toMatch(
+			/>demo<\/span><span[^>]*> · <\/span><span[^>]*>render</,
+		);
 		expect(out).toContain("2.0 KB");
 	});
 
@@ -54,7 +59,9 @@ describe("the Assets view", () => {
 				}),
 			],
 		});
-		expect(out).toContain(">Open</button>");
+		expect(out).toMatch(
+			/aria-label="Open report\.json"[^>]*><span[^>]*><\/span>Open<\/button>/,
+		);
 	});
 
 	it("says when there is nothing yet", () => {

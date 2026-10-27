@@ -8,6 +8,7 @@
 			"none": "No assets yet: a tool that saves a file, and every screenshot, appears here.",
 			"open": "Open assets",
 			"openFile": "Open",
+			"openNamed": "Open {0}",
 			"preview": "Preview",
 			"size": "Size",
 			"title": "Assets",
