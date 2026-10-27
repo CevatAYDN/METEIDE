@@ -11,6 +11,7 @@ import {
 	text as gwText,
 	offer,
 	RUN,
+	status,
 } from "./fakes.js";
 
 // A provider stream that goes quiet ends with a network error and is aborted (docs/09, ADR-062).
@@ -120,5 +121,76 @@ describe("a quiet model in the chain (ADR-062)", () => {
 			["quiet", "network"],
 			["b", "stop"],
 		]);
+	});
+});
+
+describe("a model that stalled goes to the end of the chain (ADR-131)", () => {
+	const req: LlmChatRequest = {
+		target: { tier: "coder" },
+		runId: RUN,
+		priority: 1,
+		messages: [{ role: "user", content: "hello" }],
+		maxTokens: 10,
+	};
+	const signal = () => new AbortController().signal;
+	const firstModel = async (chat: ReturnType<typeof createLlmChat>) =>
+		(await collect(chat.chat(req, signal()))).find((c) => c.type === "model");
+
+	// Its first call hangs until aborted; the later ones answer.
+	const quietOnce = (id: string) => {
+		const p = fakeProvider(id, [[gwText(id), done]]);
+		const answer = p.adapter.chat.bind(p.adapter);
+		let calls = 0;
+		p.adapter.chat = (r, s) =>
+			++calls === 1
+				? (async function* () {
+						await new Promise((res) => s.addEventListener("abort", res));
+					})()
+				: answer(r, s);
+		return p;
+	};
+
+	it("after one stall, and back in its place once it answers", async () => {
+		const quiet = quietOnce("quiet");
+		const b = fakeProvider("b", [
+			[gwText("b"), done],
+			[status(400)],
+			[gwText("b"), done],
+		]);
+		const { deps: d } = deps({
+			discover: async () => [
+				offer(quiet.adapter, "m1", 100_000),
+				offer(b.adapter, "m2"),
+			],
+			quota: fakeQuota().quota,
+			stall: LIMITS,
+		});
+		const chat = createLlmChat(d);
+		// quiet leads and stalls; b answers.
+		expect(await firstModel(chat)).toMatchObject({ providerId: "quiet" });
+		// quiet is last now; b fails, so quiet is tried and answers.
+		expect(await firstModel(chat)).toMatchObject({ providerId: "b" });
+		// The answer put quiet back in its place.
+		expect(await firstModel(chat)).toMatchObject({ providerId: "quiet" });
+	});
+
+	it("does not move a model for one dropped connection", async () => {
+		const dropped: ChatChunk = {
+			type: "error",
+			error: { code: "network", message: "socket hang up" },
+		};
+		const a = fakeProvider("a", [[dropped], [gwText("a"), done]]);
+		const b = fakeProvider("b", [[gwText("b"), done]]);
+		const { deps: d } = deps({
+			discover: async () => [
+				offer(a.adapter, "m1", 100_000),
+				offer(b.adapter, "m2"),
+			],
+			quota: fakeQuota().quota,
+			stall: LIMITS,
+		});
+		const chat = createLlmChat(d);
+		expect(await firstModel(chat)).toMatchObject({ providerId: "a" });
+		expect(await firstModel(chat)).toMatchObject({ providerId: "a" });
 	});
 });

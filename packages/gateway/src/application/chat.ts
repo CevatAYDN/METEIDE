@@ -35,6 +35,7 @@ import type {
 	Walk,
 } from "./chat-types.js";
 import {
+	blame,
 	demoted,
 	forgive,
 	type Memory,
@@ -42,7 +43,6 @@ import {
 	noteBlocked,
 	refuse,
 	report,
-	strike,
 } from "./model-memory.js";
 import { maskMessages, type Offered } from "./prepare.js";
 import { type StallLimits, watched } from "./stall.js";
@@ -274,7 +274,7 @@ const moveOn = (
 	if (unavailable(e)) refuse(deps.warn, st.memory, whoOf(o), e);
 	else {
 		st.tried++;
-		if (e.code !== "rate_limited") strike(st.memory, keyOf(o));
+		blame(st.memory, keyOf(o), e);
 		if (e.code === "bad_request") report(deps.warn, st.memory, whoOf(o), e);
 	}
 	return st.tried >= CHAIN_LENGTH ? chainEnd(e, st.passed) : undefined;

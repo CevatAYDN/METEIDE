@@ -5,6 +5,7 @@ import {
 	type PrivacyRules,
 	privacyBlocked,
 } from "../domain/resolve.js";
+import { isStall } from "./stall.js";
 
 // What the gateway remembers between calls about models that did not answer (docs/09, Gateway,
 // Retries in detail): a refused key leaves a model out, a rejected request is only logged.
@@ -40,9 +41,15 @@ export const demoted = <T>(
 	...chain.filter((o) => struck(memory, keyOf(o))),
 ];
 
-/** A model failed a call (a rate limit is the quota's business, not the model's). */
-export const strike = (memory: Memory, key: string) =>
-	memory.strikes.set(key, (memory.strikes.get(key) ?? 0) + 1);
+/**
+ * A model failed a call. A stall costs the call its whole wait, so it strikes the model out at once
+ * (ADR-131); a rate limit is the quota's business, not the model's.
+ */
+export const blame = (memory: Memory, key: string, e: ProviderError) => {
+	const had = memory.strikes.get(key) ?? 0;
+	if (isStall(e)) memory.strikes.set(key, Math.max(had, DEMOTE_AFTER));
+	else if (e.code !== "rate_limited") memory.strikes.set(key, had + 1);
+};
 
 /** A model answered: it is back in its place. */
 export const forgive = (memory: Memory, key: string) =>
