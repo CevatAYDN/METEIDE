@@ -58,6 +58,14 @@ describe("ComposerView", () => {
 		expect(out.match(/type="radio"/g)).toHaveLength(3);
 	});
 
+	// The design's goal box (docs/design/Composer.dc.html) shows an example goal; an empty box left
+	// users asking where to type.
+	it("shows an example goal in the empty goal field", () => {
+		expect(html(READY)).toContain(
+			'placeholder="Add a dark mode toggle to the settings page.',
+		);
+	});
+
 	it("checks the picked option only", () => {
 		const out = html(READY, { selected: "web-dev" });
 		expect(out.match(/checked=""/g)).toHaveLength(1);

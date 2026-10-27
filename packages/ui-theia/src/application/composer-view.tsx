@@ -250,6 +250,10 @@ const GoalField = ({
 		<textarea
 			className="mete-field"
 			rows={4}
+			placeholder={nls.localize(
+				"mete/run/goalHint",
+				"Add a dark mode toggle to the settings page. Keep the choice in the user's settings file and follow the system theme until the user picks one.",
+			)}
 			value={goal}
 			onChange={(e) => onGoal(e.target.value)}
 			onKeyDown={(e) => {
