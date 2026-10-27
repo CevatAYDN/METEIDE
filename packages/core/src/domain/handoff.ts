@@ -90,8 +90,9 @@ const openQuestion = (c: RunContext) => {
 const list = (title: string, items: readonly string[]) =>
 	items.length > 0 ? [`${title}:`, ...items.map((i) => `- ${i}`)] : [];
 
-// shortcut: only fs.write and fs.edit arguments; a file a shell command or a commit wrote is missing
-// until a request gives a run's changes (ADR-133).
+// shortcut: only fs.write and fs.edit arguments still in the conversation; a file a shell command or a
+// commit wrote, or one of turns the summary step replaced, is missing until a request gives a run's
+// changes (ADR-133).
 /** The paths the run's agents wrote or edited, each once; the handoff and its event share them. */
 export const filesChanged = (c: RunContext): string[] => [
 	...new Set(conversations(c).flatMap(changedFiles)),
