@@ -186,6 +186,45 @@ const Issues = ({ issues }: { readonly issues: readonly string[] }) =>
 		</div>
 	);
 
+// Save, Open YAML and Save as new team stand above the grid with the team's own fields (ADR-093),
+// and what blocks Save right under it.
+const Controls = ({
+	model,
+	actions,
+}: {
+	readonly model: Ready;
+	readonly actions: TeamEditorActions;
+}) => {
+	const blocked = model.issues.length > 0 || model.busy;
+	return (
+		<>
+			<div style={ROW}>
+				<button
+					type="button"
+					className="mete-button"
+					// A built-in team saves as it is too: the copy then opens in the YAML editor.
+					disabled={blocked || (!model.changed && model.source === "workspace")}
+					onClick={actions.onSave}
+				>
+					{nls.localize("mete/team/save", "Save")}
+				</button>
+				<button
+					type="button"
+					className="mete-button quiet"
+					disabled={model.source !== "workspace"}
+					onClick={actions.onOpenYaml}
+				>
+					{nls.localize("mete/team/openYaml", "Open YAML")}
+				</button>
+			</div>
+			<Issues issues={model.issues} />
+			{model.source === "new" ? null : (
+				<SaveAs disabled={blocked} onSaveAs={actions.onSaveAs} />
+			)}
+		</>
+	);
+};
+
 const Message = ({ children }: { readonly children: string }) => (
 	<section style={PANEL}>
 		<p>{children}</p>
@@ -269,35 +308,12 @@ export const TeamEditorView = ({
 				{nls.localize("mete/team/loading", "METE is reading the team…")}
 			</Message>
 		);
-	const blocked = model.issues.length > 0 || model.busy;
 	return (
 		<section style={PANEL}>
 			<Header model={model} onEdit={actions.onEdit} />
 			<TeamRules team={model.team} onEdit={actions.onEdit} />
+			<Controls model={model} actions={actions} />
 			<Members model={model} actions={actions} />
-			<Issues issues={model.issues} />
-			<div style={ROW}>
-				<button
-					type="button"
-					className="mete-button"
-					// A built-in team saves as it is too: the copy then opens in the YAML editor.
-					disabled={blocked || (!model.changed && model.source === "workspace")}
-					onClick={actions.onSave}
-				>
-					{nls.localize("mete/team/save", "Save")}
-				</button>
-				<button
-					type="button"
-					className="mete-button quiet"
-					disabled={model.source !== "workspace"}
-					onClick={actions.onOpenYaml}
-				>
-					{nls.localize("mete/team/openYaml", "Open YAML")}
-				</button>
-			</div>
-			{model.source === "new" ? null : (
-				<SaveAs disabled={blocked} onSaveAs={actions.onSaveAs} />
-			)}
 		</section>
 	);
 };

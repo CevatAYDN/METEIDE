@@ -153,6 +153,9 @@ describe("TeamEditorView", () => {
 		expect(out).toMatch(
 			/<button type="button" class="mete-button" disabled="">Save</,
 		);
+		// Save and what blocks it stand above the members' grid (ADR-093).
+		expect(out.indexOf(">Save<")).toBeLessThan(out.indexOf('role="alert"'));
+		expect(out.indexOf('role="alert"')).toBeLessThan(out.indexOf(">Members<"));
 	});
 
 	it("opens the YAML only once the team is the folder's own file", () => {
