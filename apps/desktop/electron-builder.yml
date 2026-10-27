@@ -41,7 +41,9 @@ win:
     - target: nsis
       arch:
         - x64
-  artifactName: ${productName}-${version}-${arch}.${ext}
+  # No space: GitHub turns one in an asset name into a dot, while latest.yml names the file with a
+  # dash, so the updater would ask the release for a file it does not hold (ADR-137).
+  artifactName: METE-IDE-${version}-${arch}.${ext}
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
