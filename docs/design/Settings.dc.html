@@ -28,7 +28,7 @@ body{margin:0}
 @media (prefers-reduced-motion:reduce){.mete *{animation:none!important}}
 </style>
 </helmet>
-<div class="mete light" style="width:1320px;height:1568px;box-sizing:border-box;padding:20px;background:var(--bg);color:var(--ink);font-family:'Baloo 2',system-ui,sans-serif;font-size:14px;line-height:1.4;display:flex;flex-direction:column;gap:16px">
+<div class="mete light" style="width:1320px;height:1648px;box-sizing:border-box;padding:20px;background:var(--bg);color:var(--ink);font-family:'Baloo 2',system-ui,sans-serif;font-size:14px;line-height:1.4;display:flex;flex-direction:column;gap:16px">
 
   <!-- Hero band: the screen, when METE loaded it, and where the forms save -->
   <header style="flex:none;background:var(--raised);border:1.5px solid var(--line);border-radius:16px;padding:22px 22px 22px 26px;display:flex;align-items:center;gap:28px">
@@ -168,7 +168,14 @@ body{margin:0}
           </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+            <p style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted)">This folder:
+              <button class="lnk" title=".mete/gateway.yaml" style="font:inherit;cursor:pointer;padding:0;background:transparent;border:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500;color:color-mix(in srgb,var(--accent) 80%,var(--ink));text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent) 40%,var(--panel));text-underline-offset:3px">.mete/gateway.yaml</button>
+            </p>
+            <pre style="margin:0;padding:10px 14px;background:var(--raised);border:1.5px solid var(--line-soft);border-radius:10px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.6;white-space:pre;overflow:hidden;font-variant-ligatures:none"><span style="color:var(--muted-2)">models</span>: <span style="color:color-mix(in srgb,var(--good) 60%,var(--ink))">both</span></pre>
+          </div>
+
           <div style="display:flex;flex-direction:column;gap:12px">
             <div style="display:flex;flex-direction:column;gap:5px">
               <label for="set-models" style="font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Models</label>
@@ -184,19 +191,12 @@ body{margin:0}
             </div>
             <div style="display:flex;flex-direction:column;gap:5px">
               <label for="set-spend" style="font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Daily spending cap (US dollars)</label>
-              <input id="set-spend" class="fld" type="number" step="any" value="2" placeholder="Default (1)" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--accent);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:500">
+              <input id="set-spend" class="fld" type="number" step="any" value="2" placeholder="Default (1)" style="font:inherit;width:100%;box-sizing:border-box;height:38px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:500">
             </div>
             <p style="margin:2px 0 0;display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--muted)">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.75h5l3 3v9.5H4z"></path><path d="M9 1.75v3h3"></path></svg>
               <span>Saves to <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;font-weight:500;color:var(--muted-2)">.mete/gateway.yaml</span></span>
             </p>
-          </div>
-
-          <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
-            <p style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted)">This folder:
-              <button class="lnk" title=".mete/gateway.yaml" style="font:inherit;cursor:pointer;padding:0;background:transparent;border:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500;color:color-mix(in srgb,var(--accent) 80%,var(--ink));text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent) 40%,var(--panel));text-underline-offset:3px">.mete/gateway.yaml</button>
-            </p>
-            <pre style="margin:0;padding:10px 14px;background:var(--raised);border:1.5px solid var(--line-soft);border-radius:10px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.6;white-space:pre;overflow:hidden;font-variant-ligatures:none"><span style="color:var(--muted-2)">models</span>: <span style="color:color-mix(in srgb,var(--good) 60%,var(--ink))">both</span></pre>
           </div>
         </div>
       </section>
@@ -368,7 +368,7 @@ body{margin:0}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":1568}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":1648}}'>
 class Component extends DCLogic {
 renderVals() {
 return {};
