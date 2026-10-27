@@ -29,6 +29,8 @@ export type TaskCard = {
 	readonly approver?: string;
 	/** The human's answer is what the task waits for: an approval it was asked for, or a block only the human can lift (ADR-091, docs/07). */
 	readonly waitsForHuman?: true;
+	/** The folder the submitted files wait in while the human decides, when the task has a worktree (ADR-132). */
+	readonly worktree?: string;
 	/** The task's latest report, relative to the workspace (docs/07, Artifact). */
 	readonly artifactPath?: string;
 	readonly status: TaskStatus;
@@ -149,8 +151,13 @@ const approvalAfter = (
 		return e.type === "approval.requested"
 			? { ...t, approver: e.payload.approver }
 			: t;
-	if (e.type === "approval.requested") return { ...t, waitsForHuman: true };
-	const { waitsForHuman: _, ...rest } = t;
+	if (e.type === "approval.requested")
+		return {
+			...t,
+			waitsForHuman: true,
+			...(e.payload.worktree ? { worktree: e.payload.worktree } : {}),
+		};
+	const { waitsForHuman: _, worktree: __, ...rest } = t;
 	return rest;
 };
 

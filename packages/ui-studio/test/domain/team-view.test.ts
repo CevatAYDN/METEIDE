@@ -127,6 +127,26 @@ describe("the team view fold", () => {
 		expect(decided.tasks[0]?.approver).toBe("lead");
 	});
 
+	it("keeps the worktree the human's request names until the human decides (ADR-132)", () => {
+		const asked = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			created(NOTES, "Take notes"),
+			event(
+				"approval.requested",
+				{ approver: "human", worktree: "/w/r/t" },
+				NOTES,
+			),
+		]);
+		expect(asked.tasks[0]?.worktree).toBe("/w/r/t");
+		const decided = applyAll(RUN, asked, [
+			event(
+				"approval.resolved",
+				{ approver: "human", decision: "approve" },
+				NOTES,
+			),
+		]);
+		expect(decided.tasks[0]?.worktree).toBeUndefined();
+	});
+
 	it("marks a blocked task as waiting for the human, and clears it when the task goes back to work", () => {
 		const working = applyAll(RUN, EMPTY_TEAM_VIEW, [
 			created(NOTES, "Take notes"),
