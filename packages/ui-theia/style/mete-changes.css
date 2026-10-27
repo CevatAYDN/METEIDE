@@ -1,0 +1,238 @@
+/* The Changes panel in the design set's look (ADR-100, ADR-128): the changed files on a card, each
+   with a pill for how it stands, and the picked file's card with its path, Open file and its diff in
+   tinted lines. The root and the hero are in mete-screen.css. */
+
+.mete-changes-columns {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
+}
+
+.mete-changes-list {
+	flex: 0 0 452px;
+	box-sizing: border-box;
+	padding: 8px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 16px;
+}
+
+.mete-changes-list > ul {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.mete-changes-row {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	height: 44px;
+	padding: 0 12px 0 10px;
+	font: inherit;
+	text-align: left;
+	color: var(--ink, var(--theia-foreground));
+	background: transparent;
+	border: 1.5px solid transparent;
+	border-radius: 10px;
+	cursor: pointer;
+}
+
+.mete-changes-row:hover {
+	background: var(--raised, var(--theia-list-hoverBackground));
+}
+
+.mete-changes-row[aria-pressed="true"] {
+	background: var(--chip, var(--theia-list-inactiveSelectionBackground));
+	border-color: var(--line, var(--theia-panel-border));
+}
+
+/* How a file stands: its word and glyph on a wash of its tone; warn, the lightest, mixes further to the ink. */
+.mete-change {
+	--tone: var(--warn, var(--theia-editorWarning-foreground));
+	--share: 45%;
+	flex: none;
+	box-sizing: border-box;
+	min-width: 88px;
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	height: 24px;
+	padding: 0 10px 0 8px;
+	border-radius: 999px;
+	font-size: 12.5px;
+	font-weight: 700;
+	background: color-mix(
+		in srgb,
+		var(--tone) 14%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--tone) var(--share),
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-change.added,
+.mete-change.untracked {
+	--tone: var(--good, var(--theia-testing-iconPassed));
+	--share: 60%;
+}
+
+.mete-change.deleted {
+	--tone: var(--bad, var(--theia-errorForeground));
+	--share: 60%;
+}
+
+.mete-change > .codicon {
+	font-size: 14px;
+}
+
+.mete-changes-path,
+.mete-changes-picked code,
+.mete-changes-branch {
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-variant-numeric: tabular-nums;
+}
+
+.mete-changes-path {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 13px;
+}
+
+.mete-changes-row[aria-pressed="true"] .mete-changes-path {
+	font-weight: 700;
+}
+
+.mete-changes-picked {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 16px;
+}
+
+.mete-changes-picked > div {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 14px 12px 18px;
+	border-bottom: 1.5px solid var(--line-soft, var(--theia-panel-border));
+}
+
+.mete-changes-picked code {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 13.5px;
+	font-weight: 700;
+}
+
+.mete-screen .mete-changes-picked .mete-button {
+	height: 30px;
+	padding: 0 12px 0 9px;
+	gap: 6px;
+	font-size: 13px;
+}
+
+/* The diff: each line on its own row, additions and removals on a tinted ground. */
+.mete-diff {
+	max-height: 55vh;
+	overflow: auto;
+	padding: 10px 0 12px;
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-variant-numeric: tabular-nums;
+	font-variant-ligatures: none;
+	font-size: 12.5px;
+	line-height: 1.7;
+}
+
+.mete-diff-line {
+	display: block;
+	padding: 0 18px;
+	white-space: pre-wrap;
+	color: var(--ink, var(--theia-foreground));
+}
+
+.mete-diff-line.add {
+	background: color-mix(
+		in srgb,
+		var(--good, var(--theia-testing-iconPassed)) 12%,
+		var(--panel, var(--theia-editor-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--good, var(--theia-testing-iconPassed)) 60%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-diff-line.del {
+	background: color-mix(
+		in srgb,
+		var(--bad, var(--theia-errorForeground)) 12%,
+		var(--panel, var(--theia-editor-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--bad, var(--theia-errorForeground)) 60%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-diff-line.hunk {
+	background: var(--raised, var(--theia-editorWidget-background));
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-diff-line.head {
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+/* The hero's caption: the count, then the branch with its glyph. */
+.mete-changes-sep {
+	color: var(--muted, var(--theia-descriptionForeground));
+}
+
+.mete-changes-branch {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 13px;
+	font-weight: 500;
+}
+
+.mete-changes-state {
+	margin: 0 4px;
+	font-weight: 600;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-changes-picked > .mete-changes-state {
+	margin: 0;
+	padding: 14px 18px;
+}
+
+/* A narrow panel puts the diff under the files. */
+@container (max-width: 900px) {
+	.mete-changes-columns {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.mete-changes-list {
+		flex-basis: auto;
+	}
+}

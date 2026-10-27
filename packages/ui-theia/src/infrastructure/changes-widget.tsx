@@ -14,6 +14,9 @@ import { panelRoot } from "../application/panel-root.js";
 import { failureText } from "../application/status-text.js";
 import { type Changes, MeteDaemonService } from "../domain/status-service.js";
 import { MetePanelWidget } from "./panel-widget.js";
+import "../../style/mete.css";
+import "../../style/mete-screen.css";
+import "../../style/mete-changes.css";
 
 // The Changes view (docs/13; ADR-100) of the first open folder: it asks the daemon for the working
 // tree when it opens, on Refresh, when a tool call of its folder completes while it is visible, and

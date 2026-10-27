@@ -58,9 +58,12 @@ describe("the Changes panel", () => {
 			]),
 		);
 		expect(out).toContain("2 changed files");
-		expect(out).toContain(" · main");
-		expect(out).toContain(">Changed<");
-		expect(out).toContain(">New<");
+		// The count, then the branch with its glyph, in the hero's caption.
+		expect(out).toMatch(
+			/<span[^>]*> · <\/span><span[^>]*><span[^>]*><\/span>main</,
+		);
+		expect(out).toMatch(/<\/span>Changed</);
+		expect(out).toMatch(/<\/span>New</);
 		expect(out).toContain(">src/a.ts<");
 		expect(out).toContain(">src/b.ts<");
 	});

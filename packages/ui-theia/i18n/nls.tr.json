@@ -69,6 +69,7 @@
 			"cut": "… {0} satır daha var; gerisini dosyayı açıp oku.",
 			"deleted": "Silindi",
 			"diff": "Fark",
+			"files": "Değişen dosyalar",
 			"loading": "Çalışma ağacı okunuyor…",
 			"new": "Yeni",
 			"noDiff": "Fark yok: git bu dosyayı henüz izlemiyor; içeriği için dosyayı aç.",

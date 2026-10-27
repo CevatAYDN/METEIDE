@@ -104,3 +104,8 @@ The Assets view takes the same frame: the shared hero band, then a table card wh
 own bigger picture, any other file is its extension on a quiet tile, the media type is a pill, the
 server sits over the tool that saved the file, and Open is a small outlined button with its file's
 name for assistive tools.
+
+The Changes panel takes the same frame: the hero's caption has the count and the branch with its
+glyph; the changed files are a card of rows, each with a pill for how it stands (a glyph and a word in
+the tone of new, changed or deleted); and the picked file has its own card with its path, Open file
+and a diff whose added and removed lines sit on a tinted ground.

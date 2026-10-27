@@ -69,6 +69,7 @@
 			"cut": "… {0} more lines, open the file to read the rest.",
 			"deleted": "Deleted",
 			"diff": "Diff",
+			"files": "Changed files",
 			"loading": "Reading the working tree…",
 			"new": "New",
 			"noDiff": "No diff: git does not track this file yet, so open it to read it.",

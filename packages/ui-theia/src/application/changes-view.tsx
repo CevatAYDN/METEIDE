@@ -1,10 +1,13 @@
 import { nls } from "@theia/core/lib/common/nls";
+import type { ReactNode } from "react";
 import { DIFF_LINES } from "../defaults.js";
 import type { Changes } from "../domain/status-service.js";
-import { LIST, MUTED, ROW, TITLE } from "./look.js";
+import { Icon } from "./roster-look.js";
+import { ScreenHero } from "./screen-hero.js";
 
-// The Changes panel (ADR-100): the open folder's working tree as vcs.git@2 reads it, one row per
-// file with a word for how it stands, and the diff of the row that is clicked.
+// The Changes panel (ADR-100, ADR-128): the open folder's working tree as vcs.git@2 reads it, one row
+// per file with a word for how it stands, and the diff of the row that is clicked. Laid out by
+// style/mete-changes.css.
 
 /** A changed file as mete/changes lists it. */
 type ChangedFile = Changes["files"][number];
@@ -50,6 +53,15 @@ export const countText = (n: number) =>
 		? nls.localize("mete/changes/one", "1 changed file")
 		: nls.localize("mete/changes/count", "{0} changed files", n);
 
+// The glyph of how a file stands, so the word is never alone.
+const CHANGE_ICONS: Readonly<Record<ChangedFile["change"], string>> = {
+	added: "diff-added",
+	untracked: "diff-added",
+	modified: "diff-modified",
+	renamed: "diff-renamed",
+	deleted: "diff-removed",
+};
+
 /** A diff line's colour: additions, removals, the hunks and the rest (ADR-100). */
 const toneOf = (line: string) => {
 	if (line.startsWith("@@")) return "hunk";
@@ -61,6 +73,13 @@ const toneOf = (line: string) => {
 
 /** A picked file can be opened in the editor unless the working tree no longer holds it (ADR-102). */
 const openable = (change: ChangedFile["change"]) => change !== "deleted";
+
+const Change = ({ change }: { readonly change: ChangedFile["change"] }) => (
+	<span className={`mete-change ${change}`}>
+		<Icon name={CHANGE_ICONS[change]} />
+		{changeWord(change)}
+	</span>
+);
 
 /** Opens the picked file with the widget's opener (ADR-102). */
 const OpenFile = ({
@@ -75,6 +94,7 @@ const OpenFile = ({
 		className="mete-button quiet"
 		onClick={() => onOpen(file.path)}
 	>
+		<Icon name="go-to-file" />
 		{nls.localize("mete/changes/openFile", "Open file")}
 	</button>
 );
@@ -109,15 +129,6 @@ const Diff = ({ text }: { readonly text: string }) => {
 	);
 };
 
-const Header = ({ onRefresh }: { readonly onRefresh: () => void }) => (
-	<header style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-		<h3 style={TITLE}>{nls.localize("mete/changes/title", "Changes")}</h3>
-		<button type="button" className="mete-button quiet" onClick={onRefresh}>
-			{nls.localize("mete/changes/refresh", "Refresh")}
-		</button>
-	</header>
-);
-
 const Rows = ({
 	files,
 	picked,
@@ -127,23 +138,56 @@ const Rows = ({
 	readonly picked?: string;
 	readonly onPick: (path: string) => void;
 }) => (
-	<ul style={LIST}>
-		{files.map((f) => (
-			<li key={f.path} style={ROW}>
-				<button
-					type="button"
-					className="mete-changes-row"
-					aria-pressed={f.path === picked}
-					onClick={() => onPick(f.path)}
-				>
-					<span className={`mete-change ${f.change}`}>
-						{changeWord(f.change)}
-					</span>
-					<span className="mete-changes-path">{f.path}</span>
-				</button>
-			</li>
-		))}
-	</ul>
+	<section
+		className="mete-changes-list"
+		aria-label={nls.localize("mete/changes/files", "Changed files")}
+	>
+		<ul>
+			{files.map((f) => (
+				<li key={f.path}>
+					<button
+						type="button"
+						className="mete-changes-row"
+						aria-pressed={f.path === picked}
+						title={f.path}
+						onClick={() => onPick(f.path)}
+					>
+						<Change change={f.change} />
+						<span className="mete-changes-path">{f.path}</span>
+					</button>
+				</li>
+			))}
+		</ul>
+	</section>
+);
+
+// The picked file: how it stands, its path and Open file over its diff, or why it has none.
+const Picked = ({
+	file,
+	diff,
+	onOpen,
+}: {
+	readonly file: ChangedFile;
+	readonly diff: string | undefined;
+	readonly onOpen: (path: string) => void;
+}) => (
+	<section className="mete-changes-picked">
+		<div>
+			<Change change={file.change} />
+			<code>{file.path}</code>
+			{openable(file.change) ? <OpenFile file={file} onOpen={onOpen} /> : null}
+		</div>
+		{diff === undefined ? (
+			<p className="mete-changes-state">
+				{nls.localize(
+					"mete/changes/noDiff",
+					"No diff: git does not track this file yet, so open it to read it.",
+				)}
+			</p>
+		) : (
+			<Diff text={diff} />
+		)}
+	</section>
 );
 
 const Files = ({
@@ -155,36 +199,68 @@ const Files = ({
 }) => {
 	const { changes, picked } = model;
 	const pickedFile = changes.files.find((f) => f.path === picked);
-	return (
-		<>
-			<p style={MUTED}>
-				{countText(changes.files.length)}
-				{changes.branch ? ` · ${changes.branch}` : ""}
+	if (changes.files.length === 0)
+		return (
+			<p className="mete-changes-state">
+				{nls.localize("mete/changes/clean", "No changes.")}
 			</p>
-			{changes.files.length === 0 ? (
-				<p style={MUTED}>{nls.localize("mete/changes/clean", "No changes.")}</p>
-			) : (
-				<Rows
-					files={changes.files}
-					{...(picked === undefined ? {} : { picked })}
-					onPick={controls.onPick}
+		);
+	return (
+		<div className="mete-changes-columns">
+			<Rows
+				files={changes.files}
+				{...(picked === undefined ? {} : { picked })}
+				onPick={controls.onPick}
+			/>
+			{pickedFile === undefined ? null : (
+				<Picked
+					file={pickedFile}
+					diff={changes.diff}
+					onOpen={controls.onOpen}
 				/>
 			)}
-			{pickedFile !== undefined && openable(pickedFile.change) ? (
-				<OpenFile file={pickedFile} onOpen={controls.onOpen} />
-			) : null}
-			{picked === undefined ? null : changes.diff === undefined ? (
-				<p style={MUTED}>
-					{nls.localize(
-						"mete/changes/noDiff",
-						"No diff: git does not track this file yet, so open it to read it.",
-					)}
-				</p>
-			) : (
-				<Diff text={changes.diff} />
-			)}
-		</>
+		</div>
 	);
+};
+
+// What the hero says under the title: the files and the branch, or the tab's caption before they are known.
+const captionOf = (model: ChangesModel): ReactNode =>
+	model.kind === "files" ? (
+		<>
+			{countText(model.changes.files.length)}
+			{model.changes.branch ? (
+				<>
+					<span className="mete-changes-sep"> · </span>
+					<span className="mete-changes-branch">
+						<Icon name="git-branch" />
+						{model.changes.branch}
+					</span>
+				</>
+			) : null}
+		</>
+	) : (
+		nls.localize("mete/changes/caption", "METE: what changed in this folder")
+	);
+
+const Notice = ({ model }: { readonly model: ChangesModel }) => {
+	switch (model.kind) {
+		case "loading":
+			return nls.localize("mete/changes/loading", "Reading the working tree…");
+		case "no_folder":
+			return nls.localize(
+				"mete/changes/noFolder",
+				"Open a folder to see its changes.",
+			);
+		case "no_git":
+			return nls.localize(
+				"mete/changes/noGit",
+				"This folder is not a git repository. A run's checkpoints can still put its files back.",
+			);
+		case "failed":
+			return model.message;
+		default:
+			return null;
+	}
 };
 
 /** The Changes panel of the open folder (ADR-100). */
@@ -195,32 +271,32 @@ export const ChangesView = ({
 	readonly model: ChangesModel;
 	readonly controls: ChangesControls;
 }) => (
-	<section aria-label={nls.localize("mete/changes/title", "Changes")}>
-		<Header onRefresh={controls.onRefresh} />
-		{model.kind === "loading" ? (
-			<p style={MUTED}>
-				{nls.localize("mete/changes/loading", "Reading the working tree…")}
-			</p>
-		) : null}
-		{model.kind === "no_folder" ? (
-			<p style={MUTED}>
-				{nls.localize(
-					"mete/changes/noFolder",
-					"Open a folder to see its changes.",
-				)}
-			</p>
-		) : null}
-		{model.kind === "no_git" ? (
-			<p style={MUTED}>
-				{nls.localize(
-					"mete/changes/noGit",
-					"This folder is not a git repository. A run's checkpoints can still put its files back.",
-				)}
-			</p>
-		) : null}
-		{model.kind === "failed" ? <p style={MUTED}>{model.message}</p> : null}
+	<section
+		className="mete-screen mete-changes"
+		aria-label={nls.localize("mete/changes/title", "Changes")}
+	>
+		<ScreenHero
+			compact
+			icon="diff"
+			title={nls.localize("mete/changes/title", "Changes")}
+			caption={captionOf(model)}
+			actions={
+				<button
+					type="button"
+					className="mete-button quiet"
+					onClick={controls.onRefresh}
+				>
+					<Icon name="refresh" />
+					{nls.localize("mete/changes/refresh", "Refresh")}
+				</button>
+			}
+		/>
 		{model.kind === "files" ? (
 			<Files model={model} controls={controls} />
-		) : null}
+		) : (
+			<p className="mete-changes-state">
+				<Notice model={model} />
+			</p>
+		)}
 	</section>
 );

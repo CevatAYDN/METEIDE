@@ -17,7 +17,7 @@ export const ScreenHero = ({
 }: {
 	readonly icon: string;
 	readonly title: string;
-	readonly caption: string;
+	readonly caption: ReactNode;
 	readonly actions?: ReactNode;
 	readonly compact?: boolean;
 	readonly children?: ReactNode;
