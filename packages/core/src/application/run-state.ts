@@ -39,7 +39,6 @@ export type EngineDeps = StepDeps & {
 	readonly config: ConfigReader;
 	readonly logger: Logger;
 	readonly store: RunStore;
-	readonly newId: () => string;
 	readonly setTimer: (fn: () => void, ms: number) => () => void;
 	/** The operating system as shell.exec@1 reports it, and process.platform. */
 	readonly os: string;

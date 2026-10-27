@@ -13,13 +13,13 @@ import {
 } from "../../src/domain/tools.js";
 import { reply } from "../helpers/engine.js";
 
-const setup = (refs: CapabilityRef[]) => {
+const setup = (refs: CapabilityRef[], answer = "hi") => {
 	const registry = createCapabilityRegistry(() => []);
 	const asked: LlmChatRequest[] = [];
 	const llm: LlmChatAdapter = {
 		chat: async function* (req) {
 			asked.push(req);
-			yield* reply("hi");
+			yield* reply(answer);
 		},
 	};
 	const ran: string[] = [];
@@ -40,7 +40,12 @@ const setup = (refs: CapabilityRef[]) => {
 		info() {},
 		debug() {},
 	};
-	return { deps: { registry, logger, now: () => 0 }, asked, ran, warned };
+	return {
+		deps: { registry, logger, now: () => 0, newId: () => "id" },
+		asked,
+		ran,
+		warned,
+	};
 };
 
 const run = { runId: "r", priority: 1 as const, messages: [] };
@@ -63,6 +68,26 @@ describe("steps for a seat", () => {
 			needs: ["tool_calling"],
 		});
 		expect(names(asked[0])).toEqual(["fs_read", "shell_exec"]);
+	});
+
+	it("reads tool calls the model wrote as text, with new ids (ADR-126)", async () => {
+		const block =
+			'<tool_call>{"name": "fs_read", "arguments": {"path": "a"}}</tool_call>';
+		const { deps, warned } = setup(["fs.read@1"], block);
+		const out = await callModel(
+			deps,
+			{ ...run, seat: SINGLE_AGENT },
+			() => {},
+			signal,
+		);
+		expect(out).toMatchObject({
+			kind: "replied",
+			message: {
+				content: "",
+				toolCalls: [{ id: "id", name: "fs_read", args: { path: "a" } }],
+			},
+		});
+		expect(warned).toEqual([{ tools: ["fs_read"] }]);
 	});
 
 	it("asks the role's tier and offers only its capabilities, fs.*@1 meaning every fs tool", async () => {

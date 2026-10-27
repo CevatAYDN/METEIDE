@@ -18,6 +18,7 @@ import {
 import type { AdapterChain, CapabilityRegistry, Logger } from "@mete/kernel";
 import { z } from "zod";
 import type { EventBody } from "../domain/run-events.js";
+import { textCalls } from "../domain/text-calls.js";
 import { allowed, EXTERNAL_LABEL, type Seat } from "../domain/tools.js";
 import { mcpSpecs, runMcpTool } from "./mcp-steps.js";
 
@@ -34,6 +35,7 @@ export type StepDeps = {
 	readonly registry: CapabilityRegistry;
 	readonly logger: Logger;
 	readonly now: () => number;
+	readonly newId: () => string;
 };
 
 /** Publishes an event of the current run. */
@@ -100,6 +102,23 @@ const take = (
 	return undefined;
 };
 
+// A reply that wrote its calls as text gets them as calls with new ids (ADR-126); a reply cut at the
+// token limit is never read this way, since its last block may be cut too.
+const withTextCalls = (
+	deps: StepDeps,
+	o: ModelOutcome,
+	offered: ReadonlySet<string>,
+): ModelOutcome => {
+	if (o.kind !== "replied" || o.finish === "length" || o.message.toolCalls)
+		return o;
+	const found = textCalls(o.message.content, offered);
+	if (!found) return o;
+	const names = found.calls.map((c) => c.name);
+	deps.logger.warn({ tools: names }, "tool calls read from the reply text");
+	const toolCalls = found.calls.map((c) => ({ id: deps.newId(), ...c }));
+	return { ...o, message: { ...o.message, content: found.content, toolCalls } };
+};
+
 const read = async (
 	chunks: AsyncIterable<LlmChunk>,
 	onModel: (c: ModelChunk) => void,
@@ -150,7 +169,11 @@ export const callModel = async (
 		},
 		signal,
 	);
-	return maskOutcome(deps, await read(chunks, onModel));
+	const offered = new Set(tools.map((t) => t.name));
+	return maskOutcome(
+		deps,
+		withTextCalls(deps, await read(chunks, onModel), offered),
+	);
 };
 
 /** How one tool call ended; `approval` means the policy asked and nothing ran. */
