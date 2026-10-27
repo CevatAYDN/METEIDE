@@ -10,8 +10,9 @@ import {
 } from "./team-draft.js";
 
 // What the team editor asks of the work (docs/08, Task fields; ADR-075): a task's or a member's
-// spawn defaults' output, approver, verify commands and guardrail, and the team's revision limit and
-// budget. Only what core honors is shown: capability gates, clarify_with and pair_with are not yet.
+// spawn defaults' output, approver, pair reviewer (ADR-136), verify commands and guardrail, and the
+// team's revision limit and budget. Only what core honors is shown: capability gates and
+// clarify_with are not yet; a pair's max_turns stays in the YAML.
 // The fields sit in the grid of `.mete-task-grid` (style/mete-team-form.css).
 
 type Path = readonly (string | number)[];
@@ -57,6 +58,7 @@ export const Work = (props: {
 					))}
 				</select>
 			</label>
+			<Pair {...props} />
 			<Chips
 				label={nls.localize(
 					"mete/team/verify",
@@ -70,6 +72,41 @@ export const Work = (props: {
 		</>
 	);
 };
+
+// The pair reviewer: a member who reviews each submission before the approver (ADR-136).
+const Pair = ({
+	team,
+	work,
+	base,
+	onEdit,
+}: {
+	readonly team: TeamView;
+	readonly work: WorkView;
+	readonly base: Path;
+	readonly onEdit: OnEdit;
+}) => (
+	<label>
+		{nls.localize("mete/team/pair", "Reviewed first by (optional)")}
+		<select
+			className="mete-field"
+			value={work.review?.pair_with ?? ""}
+			onChange={(e) =>
+				e.target.value
+					? onEdit([...base, "review", "pair_with"], e.target.value)
+					: onEdit([...base, "review"], undefined)
+			}
+		>
+			<option value="">
+				{nls.localize("mete/team/noPair", "No pair review")}
+			</option>
+			{team.roles.map((r) => (
+				<option key={r.id} value={r.id}>
+					{r.name || r.id}
+				</option>
+			))}
+		</select>
+	</label>
+);
 
 // The guardrail: the report must be JSON of an artifact type, repaired at most max_retries times.
 const Guardrail = (props: {

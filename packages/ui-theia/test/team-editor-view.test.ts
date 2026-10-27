@@ -210,6 +210,14 @@ describe("the rules of the work", () => {
 			expect(game).toContain(text);
 	});
 
+	it("shows who reviews the work first, as the developer's pair is the tester (ADR-136)", () => {
+		expect(game).toContain("Reviewed first by (optional)");
+		expect(game).toContain(
+			'<option value="tester" selected="">Tester</option>',
+		);
+		expect(game).toContain("No pair review");
+	});
+
 	it("shows a guardrail with its repairs, the human checkpoint after a role, and the task list that spawns tasks", () => {
 		expect(game).toContain('value="gdd@1"');
 		const ticked = '<input type="checkbox" checked=""/>';
