@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { ProviderKey } from "../domain/provider-keys.js";
 import type { DaemonFailure } from "../domain/status-service.js";
 import { type EndpointKeysView, KeyField } from "./endpoint-key.js";
-import { LINK, MUTED, PANEL, ROW, TITLE } from "./look.js";
+import { Icon } from "./roster-look.js";
 import {
 	type FormActions,
 	type FormState,
@@ -12,7 +12,9 @@ import {
 import { failureText } from "./status-text.js";
 
 // The onboarding wizard of docs/13 as the Welcome screen (ADR-088): language, model provider keys,
-// privacy and web search on one page, in docs/13's order, then "Start a run".
+// privacy and web search on one page, in docs/13's order, then "Start a run". The look is the design
+// set's (ADR-128), in style/mete-welcome.css: a hero band with the first step beside the title, the
+// keys under it, privacy and web search side by side, then the start bar.
 
 /** What the screen draws: the providers `mete key list` names. */
 export type WelcomeModel =
@@ -41,20 +43,42 @@ export type WelcomeActions = {
 export const needsWelcome = (keys: readonly ProviderKey[]) =>
 	!keys.some((k) => k.kind === "model" && k.set);
 
+// A step's card: its glyph's tile and its number and title, the lead under them. The heading names
+// the region, so the number reads with the title ("1. Language").
 const Step = ({
+	n,
+	icon,
 	title,
 	lead,
 	children,
 }: {
+	readonly n: number;
+	readonly icon: string;
 	readonly title: string;
 	readonly lead: string;
 	readonly children?: ReactNode;
 }) => (
-	<section className="mete-card" aria-label={title}>
-		<h3 style={TITLE}>{title}</h3>
-		<p style={MUTED}>{lead}</p>
+	<section className="mete-welcome-step" aria-labelledby={`mete-step-${n}`}>
+		<div className="mete-welcome-head">
+			<span className="mete-welcome-tile">
+				<Icon name={icon} />
+			</span>
+			<h3 id={`mete-step-${n}`}>
+				<span className="mete-welcome-n">{`${n}.`}</span>
+				{` ${title}`}
+			</h3>
+		</div>
+		<p className="mete-welcome-lead">{lead}</p>
 		{children}
 	</section>
+);
+
+const KeyState = ({ set }: { readonly set: boolean }) => (
+	<span className="mete-welcome-state" data-set={set}>
+		{set
+			? nls.localize("mete/key/hasKey", "key set")
+			: nls.localize("mete/key/noKey", "no key")}
+	</span>
 );
 
 const ProviderRow = ({
@@ -66,22 +90,21 @@ const ProviderRow = ({
 	readonly keys: EndpointKeysView;
 	readonly onKeyPage: (url: string) => void;
 }) => (
-	<div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-		<div style={ROW}>
+	<li className="mete-welcome-provider">
+		<div className="mete-welcome-who">
 			<strong>{provider.id}</strong>
-			<span style={MUTED}>
-				{provider.set
-					? nls.localize("mete/key/hasKey", "key set")
-					: nls.localize("mete/key/noKey", "no key")}
+			<span>
+				<KeyState set={provider.set} />
+				<button
+					type="button"
+					className="mete-welcome-ext"
+					title={provider.keyPage}
+					onClick={() => onKeyPage(provider.keyPage)}
+				>
+					{nls.localize("mete/welcome/getKey", "Get a key")}
+					<Icon name="link-external" />
+				</button>
 			</span>
-			<button
-				type="button"
-				style={LINK}
-				title={provider.keyPage}
-				onClick={() => onKeyPage(provider.keyPage)}
-			>
-				{nls.localize("mete/welcome/getKey", "Get a key")}
-			</button>
 		</div>
 		<KeyField
 			id={`mete-welcome-${provider.id}`}
@@ -89,7 +112,7 @@ const ProviderRow = ({
 			keys={keys}
 			locked={false}
 		/>
-	</div>
+	</li>
 );
 
 const PrivacyStep = ({
@@ -98,14 +121,16 @@ const PrivacyStep = ({
 	readonly privacy?: WelcomePrivacy | undefined;
 }) => (
 	<Step
-		title={nls.localize("mete/welcome/privacy", "3. Privacy")}
+		n={3}
+		icon="shield"
+		title={nls.localize("mete/welcome/privacy", "Privacy")}
 		lead={nls.localize(
 			"mete/welcome/privacyLead",
 			"Providers that may train on your prompts stay out unless you let them in.",
 		)}
 	>
 		{privacy?.kind === "no_folder" ? (
-			<p style={MUTED}>
+			<p className="mete-welcome-lead">
 				{nls.localize(
 					"mete/welcome/privacyNoFolder",
 					"They are off now; open a folder to change this in Settings.",
@@ -123,14 +148,14 @@ const PrivacyStep = ({
 	</Step>
 );
 
+// A model provider's row lays its name, field and Set key out on one line; the search one stacks.
 const rowsOf = (
 	kind: ProviderKey["kind"],
 	providers: readonly ProviderKey[],
 	keys: EndpointKeysView,
 	onKeyPage: (url: string) => void,
 ) => (
-	// A gap between the rows, so one row's Set key does not sit against the next provider.
-	<div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+	<ul className="mete-welcome-providers" data-kind={kind}>
 		{providers
 			.filter((p) => p.kind === kind)
 			.map((p) => (
@@ -141,7 +166,7 @@ const rowsOf = (
 					onKeyPage={onKeyPage}
 				/>
 			))}
-	</div>
+	</ul>
 );
 
 const Steps = ({
@@ -157,7 +182,9 @@ const Steps = ({
 }) => (
 	<>
 		<Step
-			title={nls.localize("mete/welcome/keys", "2. Model provider keys")}
+			n={2}
+			icon="key"
+			title={nls.localize("mete/welcome/keys", "Model provider keys")}
 			lead={nls.localize(
 				"mete/welcome/keysLead",
 				"Set at least one. A key stays in the operating system keychain and never in a file.",
@@ -165,16 +192,20 @@ const Steps = ({
 		>
 			{rowsOf("model", providers, keys, actions.onKeyPage)}
 		</Step>
-		<PrivacyStep privacy={privacy} />
-		<Step
-			title={nls.localize("mete/welcome/search", "4. Web search")}
-			lead={nls.localize(
-				"mete/welcome/searchLead",
-				"Exa MCP searches the web without a key; a Tavily key is optional.",
-			)}
-		>
-			{rowsOf("search", providers, keys, actions.onKeyPage)}
-		</Step>
+		<div className="mete-welcome-pair">
+			<PrivacyStep privacy={privacy} />
+			<Step
+				n={4}
+				icon="search"
+				title={nls.localize("mete/welcome/search", "Web search")}
+				lead={nls.localize(
+					"mete/welcome/searchLead",
+					"Exa MCP searches the web without a key; a Tavily key is optional.",
+				)}
+			>
+				{rowsOf("search", providers, keys, actions.onKeyPage)}
+			</Step>
+		</div>
 	</>
 );
 
@@ -185,24 +216,64 @@ const Start = ({
 	readonly ready: boolean;
 	readonly onStart: () => void;
 }) => (
-	<div style={ROW}>
+	<div className="mete-welcome-start">
 		<button
 			type="button"
 			className="mete-button"
 			disabled={!ready}
 			onClick={onStart}
 		>
+			<Icon name="play" />
 			{nls.localize("mete/welcome/start", "Start a run")}
 		</button>
 		{ready ? null : (
-			<span style={MUTED}>
+			<p>
+				<Icon name="info" />
 				{nls.localize(
 					"mete/welcome/startWaits",
 					"Set a model provider's key first.",
 				)}
-			</span>
+			</p>
 		)}
 	</div>
+);
+
+// The hero band: the rocket, the title and what the screen is for, with the first step beside them.
+const Hero = ({ onLanguage }: { readonly onLanguage: () => void }) => (
+	<header className="mete-welcome-hero">
+		<div className="mete-welcome-title">
+			<span className="mete-welcome-rocket">
+				<Icon name="rocket" />
+			</span>
+			<h2>{nls.localize("mete/welcome/title", "Welcome to METE")}</h2>
+			<p>
+				{nls.localize(
+					"mete/welcome/caption",
+					"METE: keys, privacy and web search to start with",
+				)}
+			</p>
+		</div>
+		<Step
+			n={1}
+			icon="globe"
+			title={nls.localize("mete/welcome/language", "Language")}
+			lead={nls.localize(
+				"mete/welcome/languageLead",
+				"METE speaks English and Turkish; METE starts again in the language you pick.",
+			)}
+		>
+			<div>
+				<button
+					type="button"
+					className="mete-button quiet"
+					onClick={onLanguage}
+				>
+					<Icon name="globe" />
+					{nls.localize("mete/settings/language", "Display language")}
+				</button>
+			</div>
+		</Step>
+	</header>
 );
 
 /** The Welcome screen for a model. */
@@ -217,27 +288,8 @@ export const WelcomeView = ({
 	readonly privacy?: WelcomePrivacy | undefined;
 	readonly actions: WelcomeActions;
 }) => (
-	<section style={{ ...PANEL, maxWidth: "760px" }} aria-live="polite">
-		<h2 style={TITLE}>
-			{nls.localize("mete/welcome/title", "Welcome to METE")}
-		</h2>
-		<Step
-			title={nls.localize("mete/welcome/language", "1. Language")}
-			lead={nls.localize(
-				"mete/welcome/languageLead",
-				"METE speaks English and Turkish; METE starts again in the language you pick.",
-			)}
-		>
-			<div style={ROW}>
-				<button
-					type="button"
-					className="mete-button quiet"
-					onClick={actions.onLanguage}
-				>
-					{nls.localize("mete/settings/language", "Display language")}
-				</button>
-			</div>
-		</Step>
+	<section className="mete-welcome" aria-live="polite">
+		<Hero onLanguage={actions.onLanguage} />
 		{model.kind === "loading" ? (
 			<p>
 				{nls.localize("mete/welcome/loading", "Reading the provider keys…")}

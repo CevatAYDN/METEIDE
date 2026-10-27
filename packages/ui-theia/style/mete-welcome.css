@@ -1,0 +1,398 @@
+/* The Welcome screen in the design set's look (ADR-128): a hero band with the first step beside the
+   title, the keys' card, privacy and web search side by side, and the start bar. Every rule hangs
+   off `.mete-welcome`; the form parts' base is in mete-form.css. */
+
+.mete-welcome {
+	container-type: inline-size;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 24px;
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+.mete-welcome .mete-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	height: 36px;
+	padding: 0 16px;
+	font-size: 14px;
+}
+
+/* The hero band: the rocket, the title and the caption, with the first step's card at the right. */
+.mete-welcome-hero {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 24px 32px;
+	padding: 24px 24px 24px 28px;
+	background: var(--raised, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+	border-radius: 16px;
+}
+
+.mete-welcome-title {
+	flex: 1 1 280px;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	min-width: 0;
+}
+
+.mete-welcome-rocket {
+	display: grid;
+	place-items: center;
+	box-sizing: border-box;
+	width: 52px;
+	height: 52px;
+	border-radius: 14px;
+	background: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 16%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	border: 1.5px solid
+		color-mix(
+			in srgb,
+			var(--accent, var(--theia-focusBorder)) 35%,
+			var(--panel, var(--theia-editorWidget-background))
+		);
+	color: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 70%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-welcome-rocket > .codicon {
+	font-size: 26px;
+}
+
+.mete-welcome-title > h2 {
+	margin: 16px 0 0;
+	font-size: 28px;
+	font-weight: 800;
+	line-height: 1.2;
+	letter-spacing: -0.01em;
+}
+
+.mete-welcome-title > p {
+	max-width: 100%;
+	margin: 6px 0 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+/* A step's card: the tile beside its number and title, the lead under the title. */
+.mete-welcome-step {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	padding: 20px 24px 22px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+	border-radius: 16px;
+}
+
+.mete-welcome-step > :nth-child(n + 3) {
+	margin-top: 16px;
+}
+
+.mete-welcome-head {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.mete-welcome-head > h3 {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 800;
+	line-height: 1.25;
+}
+
+.mete-welcome-n {
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-size: 16px;
+	font-weight: 700;
+	color: var(--accent, var(--theia-textLink-foreground));
+}
+
+.mete-welcome-tile {
+	flex: none;
+	display: grid;
+	place-items: center;
+	width: 34px;
+	height: 34px;
+	border-radius: 10px;
+	background: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 14%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 70%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-welcome-tile > .codicon {
+	font-size: 18px;
+}
+
+.mete-welcome-lead {
+	margin: 4px 0 0 46px;
+	font-weight: 500;
+	line-height: 1.5;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-welcome-hero > .mete-welcome-step {
+	flex: 0 1 460px;
+	box-sizing: border-box;
+	padding: 18px 20px 20px;
+	border-color: var(--line-soft, var(--theia-panel-border));
+	border-radius: 14px;
+}
+
+.mete-welcome-hero .mete-welcome-step > .mete-welcome-lead {
+	margin: 10px 0 0;
+}
+
+.mete-welcome-hero .mete-welcome-step > :nth-child(n + 3) {
+	margin-top: 14px;
+}
+
+.mete-welcome-hero .mete-button {
+	height: 34px;
+	padding: 0 14px 0 12px;
+}
+
+.mete-welcome-pair {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+	gap: 16px;
+}
+
+/* The providers: a model provider's name, label, field and Set key on one ruled line. */
+.mete-welcome-providers {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.mete-welcome-providers[data-kind="model"] {
+	margin-bottom: -12px;
+}
+
+.mete-welcome-providers[data-kind="model"] > li {
+	display: grid;
+	grid-template-columns: minmax(160px, 250px) auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 6px 14px;
+	padding: 14px 0;
+	border-top: 1.5px solid var(--line-soft, var(--theia-panel-border));
+}
+
+.mete-welcome-providers[data-kind="model"] .mete-key-field,
+.mete-welcome-providers[data-kind="model"] .mete-key-entry {
+	display: contents;
+}
+
+.mete-welcome-providers[data-kind="model"] .mete-key-field > :is(span, p) {
+	grid-column: 2 / -1;
+	margin: 0;
+}
+
+.mete-welcome-providers[data-kind="model"] label {
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-welcome-providers .mete-field {
+	box-sizing: border-box;
+	width: 100%;
+	min-width: 0;
+}
+
+.mete-welcome-who {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	min-width: 0;
+}
+
+.mete-welcome-who > strong {
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-size: 14.5px;
+	font-weight: 700;
+	line-height: 1.3;
+}
+
+.mete-welcome-who > span {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+/* The search provider stacks: its name line, then the label over the field and Set key. */
+.mete-welcome-providers[data-kind="search"] .mete-welcome-who {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+
+.mete-welcome-providers[data-kind="search"] .mete-key-field {
+	gap: 6px;
+}
+
+.mete-welcome-providers[data-kind="search"] label {
+	font-size: 13.5px;
+	font-weight: 700;
+}
+
+.mete-welcome-providers[data-kind="search"] .mete-key-entry {
+	flex-wrap: nowrap;
+	gap: 10px;
+}
+
+/* Whether a provider has a key: a round pill, its dot hollow until the key is set. */
+.mete-welcome-state {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	height: 21px;
+	padding: 0 9px 0 7px;
+	border-radius: 999px;
+	background: var(--chip, var(--theia-badge-background));
+	color: var(--muted-2, var(--theia-descriptionForeground));
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.mete-welcome-state::before {
+	content: "";
+	box-sizing: border-box;
+	width: 6px;
+	height: 6px;
+	border: 1.5px solid currentColor;
+	border-radius: 50%;
+}
+
+.mete-welcome-state[data-set="true"] {
+	background: color-mix(
+		in srgb,
+		var(--good, var(--theia-testing-iconPassed)) 14%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--good, var(--theia-testing-iconPassed)) 60%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+.mete-welcome-state[data-set="true"]::before {
+	border-color: var(--good, var(--theia-testing-iconPassed));
+	background: var(--good, var(--theia-testing-iconPassed));
+}
+
+.mete-welcome-ext {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	height: 24px;
+	padding: 0 7px;
+	border: 0;
+	border-radius: 10px;
+	background: transparent;
+	font: inherit;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--accent, var(--theia-textLink-foreground));
+	cursor: pointer;
+}
+
+.mete-welcome-ext:hover {
+	background: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 10%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+}
+
+.mete-welcome-ext > .codicon {
+	font-size: 13px;
+}
+
+/* The privacy form's foot: a quiet rule, the target at the left and Save at the right. */
+.mete-welcome .mete-form-foot {
+	gap: 10px;
+	margin-top: 6px;
+	padding-top: 14px;
+	border-top: 1.5px solid var(--line-soft, var(--theia-panel-border));
+}
+
+.mete-welcome .mete-form-target {
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.mete-welcome .mete-form-target > label {
+	gap: 9px;
+	font-weight: 600;
+}
+
+/* The start bar: the big Start a run and, while it waits, what it waits for. */
+.mete-welcome-start {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px;
+	padding: 16px 20px;
+	background: var(--raised, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+	border-radius: 16px;
+}
+
+.mete-welcome-start > .mete-button {
+	height: 42px;
+	padding: 0 20px 0 16px;
+	font-size: 15px;
+}
+
+.mete-welcome-start > p {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	font-weight: 600;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+/* A button's glyph, after the tiles' own, which are not buttons. */
+.mete-welcome .mete-button > .codicon {
+	font-size: 16px;
+}
+
+/* A narrow panel puts a model provider's name on its own line above its field. */
+@container (max-width: 760px) {
+	.mete-welcome-providers[data-kind="model"] > li {
+		grid-template-columns: auto minmax(0, 1fr) auto;
+	}
+
+	.mete-welcome-providers[data-kind="model"] .mete-welcome-who {
+		grid-column: 1 / -1;
+	}
+}

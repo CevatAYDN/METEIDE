@@ -1,0 +1,27 @@
+/* The parts of a form a screen lays out its own way (ADR-128): one key's field and Set key, and a
+   form's foot with its target, Save and the file it writes. The base is a plain column and a row
+   that wraps; a screen's own sheet arranges the parts as its board draws them. */
+
+.mete-key-field,
+.mete-form-foot {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.mete-form-foot {
+	gap: 8px;
+}
+
+.mete-key-entry,
+.mete-form-target,
+.mete-form-target > label {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.mete-key-note {
+	color: var(--muted, var(--theia-descriptionForeground));
+}

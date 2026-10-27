@@ -1,7 +1,7 @@
 import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties } from "react";
 import { optionLabel } from "./labels.js";
-import { MUTED, ROW } from "./look.js";
+import { MUTED } from "./look.js";
 import {
 	type Draft,
 	type FieldSpec,
@@ -271,20 +271,23 @@ export const SettingsForm = ({
 }) => (
 	<div style={FORM}>
 		<FormFields section={section} state={state} onField={actions.onField} />
-		<div style={ROW}>
-			<label style={ROW}>
-				<input
-					type="checkbox"
-					checked={state.target === "global"}
-					disabled={!canSaveGlobally}
-					onChange={(e) =>
-						actions.onTarget(e.target.checked ? "global" : "workspace")
-					}
-				/>
-				{nls.localize("mete/settings/everyFolder", "Save for every folder")}
-			</label>
-			<SaveButton state={state} onSave={actions.onSave} />
+		{/* The target, Save and where it writes, as one foot (style/mete-form.css). */}
+		<div className="mete-form-foot">
+			<div className="mete-form-target">
+				<label>
+					<input
+						type="checkbox"
+						checked={state.target === "global"}
+						disabled={!canSaveGlobally}
+						onChange={(e) =>
+							actions.onTarget(e.target.checked ? "global" : "workspace")
+						}
+					/>
+					{nls.localize("mete/settings/everyFolder", "Save for every folder")}
+				</label>
+				<SaveButton state={state} onSave={actions.onSave} />
+			</div>
+			<FormNote state={state} />
 		</div>
-		<FormNote state={state} />
 	</div>
 );

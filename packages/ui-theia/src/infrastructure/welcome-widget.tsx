@@ -23,6 +23,7 @@ import { START_RUN_COMMAND } from "./board-contribution.js";
 import { EndpointKeys } from "./endpoint-keys.js";
 import { MetePanelWidget } from "./panel-widget.js";
 import { SettingsForms } from "./settings-forms.js";
+import "../../style/mete-welcome.css";
 
 // The Welcome screen (docs/13 Onboarding wizard; ADR-088) in Theia's main area: the providers of
 // `mete key list` with their key fields, and the privacy form once a folder is open.

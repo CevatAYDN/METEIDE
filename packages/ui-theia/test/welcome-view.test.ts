@@ -50,15 +50,19 @@ describe("the Welcome screen", () => {
 			kind: "keys",
 			keys: [provider("nvidia", false), provider("tavily", false, "search")],
 		});
+		// Each step's region is named by its heading, the number with the title (ADR-128).
+		expect(out).toContain(
+			'aria-labelledby="mete-step-2"><div class="mete-welcome-head"><span class="mete-welcome-tile"><span aria-hidden="true" class="codicon codicon-key"></span></span><h3 id="mete-step-2"><span class="mete-welcome-n">2.</span> Model provider keys</h3>',
+		);
 		const keys = out.slice(
-			out.indexOf('aria-label="2. Model provider keys"'),
-			out.indexOf('aria-label="3. Privacy"'),
+			out.indexOf('aria-labelledby="mete-step-2"'),
+			out.indexOf('aria-labelledby="mete-step-3"'),
 		);
 		expect(keys).toContain("<strong>nvidia</strong>");
 		expect(keys).toContain('title="https://nvidia.example/keys">Get a key<');
 		expect(keys).toMatch(/<input id="mete-welcome-nvidia"[^>]*type="password"/);
 		expect(keys).not.toContain("tavily");
-		const search = out.slice(out.indexOf('aria-label="4. Web search"'));
+		const search = out.slice(out.indexOf('aria-labelledby="mete-step-4"'));
 		expect(search).toContain("<strong>tavily</strong>");
 		expect(search).toContain("Exa MCP searches the web without a key");
 	});
@@ -66,12 +70,12 @@ describe("the Welcome screen", () => {
 	it("starts a run only once a model provider has a key", () => {
 		const waiting = html({ kind: "keys", keys: [provider("nvidia", false)] });
 		expect(waiting).toContain(
-			'<button type="button" class="mete-button" disabled="">Start a run</button>',
+			'<button type="button" class="mete-button" disabled=""><span aria-hidden="true" class="codicon codicon-play"></span>Start a run</button>',
 		);
 		expect(waiting).toContain("Set a model provider&#x27;s key first.");
 		const ready = html({ kind: "keys", keys: [provider("nvidia", true)] });
 		expect(ready).toContain(
-			'<button type="button" class="mete-button">Start a run</button>',
+			'<button type="button" class="mete-button"><span aria-hidden="true" class="codicon codicon-play"></span>Start a run</button>',
 		);
 		expect(ready).toContain("key set");
 	});

@@ -40,3 +40,10 @@ providers on an inset card, each after a dot in its state's tone; each quota chi
 glyph, so a missing key and a used-up quota differ at a glance. Empty sections are dashed cards, Open
 folder is the accent button only while no folder is open, and Forget is a small outlined pill. The
 shared field and disabled-button rules wait for the Settings slice.
+
+The Welcome screen takes the design set's look: a hero band with the rocket, the title and what the
+screen is for, with the language step beside it; each step a card with its glyph's tile and its
+number in the accent; a model provider's name, key state, field and Set key on one ruled line (its
+name above the field in a narrow panel); privacy and web search side by side; and a start bar with
+the big Start a run. The step titles drop their numbers from the translations, which the heading now
+draws.

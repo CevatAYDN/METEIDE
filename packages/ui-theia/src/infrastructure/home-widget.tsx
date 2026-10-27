@@ -9,6 +9,7 @@ import {
 import { MetePanelWidget } from "./panel-widget.js";
 // The design system of docs/13 on every METE panel (ADR-069); the bundle inlines its font.
 import "../../style/mete.css";
+import "../../style/mete-form.css";
 import "../../style/mete-side.css";
 import "../../style/mete-home.css";
 import {

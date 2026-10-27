@@ -1,6 +1,5 @@
 import { CustomProviderIdSchema } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
-import { MUTED, ROW } from "./look.js";
 
 // A custom endpoint's API key field on its card (ADR-087): a masked field that is never filled from
 // the keychain, and Set key, which waits while a run of the folder is queued or running.
@@ -46,11 +45,13 @@ export const KeyField = ({
 	const state = keys.stateOf(name);
 	const off = locked || !state.key.trim() || state.busy || keys.activeRuns > 0;
 	return (
-		<div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+		// Classes, not inline styles, so a screen can lay the parts out as its board draws them
+		// (style/mete-form.css; the Welcome screen's rows in mete-welcome.css).
+		<div className="mete-key-field">
 			<label htmlFor={id}>
 				{nls.localize("mete/settings/apiKey", "API key")}
 			</label>
-			<div style={ROW}>
+			<div className="mete-key-entry">
 				<input
 					id={id}
 					className="mete-field"
@@ -69,7 +70,7 @@ export const KeyField = ({
 				</button>
 			</div>
 			{keys.activeRuns > 0 ? (
-				<span style={MUTED}>
+				<span className="mete-key-note">
 					{nls.localize(
 						"mete/settings/keyWaits",
 						"A run is running; setting a key restarts METE, so it waits until the run is paused or ends.",
