@@ -1,7 +1,7 @@
 import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties } from "react";
 import { optionLabel } from "./labels.js";
-import { MUTED } from "./look.js";
+import { Icon } from "./roster-look.js";
 import {
 	type Draft,
 	type FieldSpec,
@@ -241,13 +241,14 @@ export type NoteState = {
 export const FormNote = ({ state }: { readonly state: NoteState }) => (
 	<>
 		{state.file ? (
-			<span style={MUTED} title={state.file}>
+			<p className="mete-form-saves" title={state.file}>
+				<Icon name="file" />
 				{nls.localize(
 					"mete/settings/savesTo",
 					"Saves to {0}",
 					shortPath(state.file),
 				)}
-			</span>
+			</p>
 		) : null}
 		{state.note ? (
 			<p role={state.note.kind === "refused" ? "alert" : undefined}>

@@ -109,3 +109,15 @@ select.mete-field {
 	border-color: var(--line-soft, var(--theia-panel-border));
 	cursor: not-allowed;
 }
+
+/* Where a form saves: a file glyph before the path, quiet under the fields. */
+.mete-form-saves {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	min-width: 0;
+	margin: 0;
+	font-size: 12.5px;
+	font-weight: 600;
+	color: var(--muted, var(--theia-descriptionForeground));
+}

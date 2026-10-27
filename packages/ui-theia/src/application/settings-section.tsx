@@ -16,7 +16,7 @@ import {
 } from "./endpoints-card.js";
 import { type McpActions, McpCard, type McpState } from "./mcp-card.js";
 import { type FormSection, layerOf } from "./section-draft.js";
-import { SectionForm } from "./section-form.js";
+import { Origin, SectionForm } from "./section-form.js";
 import {
 	type FormActions,
 	type FormState,
@@ -128,17 +128,20 @@ const SectionTitle = ({ name }: { readonly name: string }) => {
 export const SectionCard = ({
 	section,
 	onOpen,
+	origin,
 	form,
 }: {
 	readonly section: Section;
 	readonly onOpen: (file: string) => void;
-	readonly form?: ReactNode;
-}) => (
+} & CardParts) => (
 	<section
 		className="mete-settings-card"
 		aria-label={sectionTitle(section.name) ?? section.name}
 	>
-		<SectionTitle name={section.name} />
+		<div className="mete-settings-card-head">
+			<SectionTitle name={section.name} />
+			{origin}
+		</div>
 		{!section.global && !section.workspace ? (
 			<p className="mete-settings-unset">
 				{nls.localize(
@@ -193,22 +196,36 @@ const CARDS: {
 	mcp: ({ mcp }) => (mcp ? <McpCard {...mcp} /> : undefined),
 };
 
-// A section's form or card, if it has one, under what METE loaded.
-export const formOf = (parts: FormParts): ReactNode => {
+/** What a section's card holds besides what METE loaded: its form or card, and where the form's value comes from. */
+export type CardParts = {
+	readonly origin?: ReactNode;
+	readonly form?: ReactNode;
+};
+
+// A section's form or card, if it has one, under what METE loaded; a form's origin goes in the head.
+export const cardParts = (parts: FormParts): CardParts => {
 	const { name, forms, settings } = parts;
 	const card = Object.hasOwn(CARDS, name) ? CARDS[name] : undefined;
-	if (card) return card(parts);
+	if (card) return { form: card(parts) };
 	const form = forms[name as FormSection];
-	if (!form) return undefined;
+	if (!form) return {};
 	const loaded = settings.sections.find((s) => s.name === name);
-	return (
-		<SectionForm
-			section={name as FormSection}
-			state={form.state}
-			actions={form.actions}
-			layer={loaded && layerOf(name as FormSection, loaded)}
-			folderFile={loaded?.workspace?.file}
-			sensitive={sensitiveOf(settings.sections)}
-		/>
-	);
+	return {
+		origin: (
+			<Origin
+				layer={loaded && layerOf(name as FormSection, loaded)}
+				file={loaded?.workspace?.file}
+				busy={form.state.busy}
+				onClear={form.actions.onClear}
+			/>
+		),
+		form: (
+			<SectionForm
+				section={name as FormSection}
+				state={form.state}
+				actions={form.actions}
+				sensitive={sensitiveOf(settings.sections)}
+			/>
+		),
+	};
 };

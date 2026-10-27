@@ -26,11 +26,11 @@
 }
 
 /* The board draws this screen's outline buttons on the panel colour, not see-through. */
-.mete-settings .mete-button.quiet:not(:disabled) {
+.mete-settings .mete-button.quiet:not(:disabled, .ghost) {
 	background: var(--panel, var(--theia-editorWidget-background));
 }
 
-.mete-settings .mete-button.quiet:not(:disabled):hover {
+.mete-settings .mete-button.quiet:not(:disabled, .ghost):hover {
 	background: var(--raised, var(--theia-toolbar-hoverBackground));
 	border-color: var(--muted, var(--theia-focusBorder));
 }

@@ -59,3 +59,8 @@ control; the groups on a side card at the left, each with its glyph's tile and a
 for this folder only; the chosen group's title with its links at the right; each section a card with
 its id in mono and each file's YAML on a raised block under its path; and the save bar as an accent
 band at the foot that now also holds Apply now, past a rule, with the reason it waits beside it.
+
+A Settings section's card says where its form's value comes from in its head, as a pill beside the
+title (a warn wash with a dot when this folder's file sets it), with Reset beside it as a small ghost
+button; field labels are quiet and bold over their fields, and every form's Saves to line, on the
+Welcome screen too, starts with a file glyph.

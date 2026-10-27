@@ -178,7 +178,7 @@ describe("the Settings forms (ADR-082)", () => {
 		);
 		expect(gateway).toContain('placeholder="Default (1)"');
 		expect(gateway).toContain(
-			'title="/w/.mete/gateway.yaml">Saves to .mete/gateway.yaml<',
+			'title="/w/.mete/gateway.yaml"><span aria-hidden="true" class="codicon codicon-file"></span>Saves to .mete/gateway.yaml<',
 		);
 		expect(shortPath(String.raw`C:\w\.mete\policy.yaml`)).toBe(
 			String.raw`.mete\policy.yaml`,
@@ -282,7 +282,11 @@ describe("the Settings forms (ADR-082)", () => {
 		const out = withForms(LOADED);
 		expect(out).toContain("Changed for this folder");
 		expect(out).toMatch(
-			/title="Removes[^"]*\/w\/\.mete\/gateway\.yaml[^"]*">Reset</,
+			/title="Removes[^"]*\/w\/\.mete\/gateway\.yaml[^"]*"><span[^>]*><\/span>Reset</,
+		);
+		// The origin sits in the card's head, above what METE loaded (ADR-128).
+		expect(out.indexOf("Changed for this folder")).toBeLessThan(
+			out.indexOf("What METE uses:"),
 		);
 		const global = withForms(
 			only({ global: { file: "/g/s.yaml", value: { models: "free" } } }),
@@ -352,9 +356,11 @@ describe("the Settings forms (ADR-082)", () => {
 
 	it("holds Reset while the form saves", () => {
 		expect(withForms(LOADED, "models", { busy: true })).toMatch(
-			/<button type="button" class="mete-button quiet" disabled=""[^>]*>Reset</,
+			/<button type="button" class="mete-button quiet ghost" disabled=""[^>]*><span[^>]*><\/span>Reset</,
 		);
-		expect(withForms(LOADED)).not.toMatch(/disabled=""[^>]*>Reset</);
+		expect(withForms(LOADED)).not.toMatch(
+			/disabled=""[^>]*><span[^>]*><\/span>Reset</,
+		);
 	});
 });
 
@@ -575,7 +581,7 @@ describe("the bindings card (ADR-096)", () => {
 		expect(card).toContain("web.search@1 → exa-mcp, tavily");
 		expect(card).toContain("Add capability");
 		expect(card).toContain(
-			'title="/w/.mete/bindings.yaml">Saves to .mete/bindings.yaml<',
+			'title="/w/.mete/bindings.yaml"><span aria-hidden="true" class="codicon codicon-file"></span>Saves to .mete/bindings.yaml<',
 		);
 		expect(card).toMatch(/<button[^>]*>Remove<\/button>/);
 		// The switch and the bar own the target and the save: the card has neither.
@@ -672,7 +678,7 @@ describe("the MCP servers card (ADR-097)", () => {
 		);
 		expect(card).toContain("Add server");
 		expect(card).toContain(
-			'title="/w/.mete/mcp.yaml">Saves to .mete/mcp.yaml<',
+			'title="/w/.mete/mcp.yaml"><span aria-hidden="true" class="codicon codicon-file"></span>Saves to .mete/mcp.yaml<',
 		);
 		// The download belongs to a binary server only.
 		expect(card).not.toContain("SHA-256");

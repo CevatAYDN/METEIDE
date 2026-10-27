@@ -1,5 +1,6 @@
 import { nls } from "@theia/core/lib/common/nls";
-import { MUTED, ROW } from "./look.js";
+import { MUTED } from "./look.js";
+import { Icon } from "./roster-look.js";
 import type { FormSection, Target } from "./section-draft.js";
 import {
 	FORM,
@@ -9,11 +10,12 @@ import {
 	type FormState,
 } from "./settings-form.js";
 
-// A form as the Settings screen draws it (ADR-095): where its value comes from, its fields and what
-// the last save said. The target is the screen's switch and Save is its bar, not parts of the form.
+// A form as the Settings screen draws it (ADR-095): its fields and what the last save said, with
+// where its value comes from in its card's head. The target is the screen's switch and Save is its
+// bar, not parts of the form.
 
-// Where METE loaded a field of the form from: this folder's file, which Reset can clear, or the global one.
-const Origin = ({
+/** Where METE loaded a field of the form from: this folder's file, which Reset can clear, or the global one. */
+export const Origin = ({
 	layer,
 	file,
 	busy,
@@ -27,18 +29,20 @@ const Origin = ({
 	if (layer === undefined) return null;
 	if (layer === "global")
 		return (
-			<span style={MUTED}>
-				{nls.localize("mete/settings/originAll", "From all folders' file")}
-			</span>
+			<div className="mete-settings-origin">
+				<span className="mete-origin">
+					{nls.localize("mete/settings/originAll", "From all folders' file")}
+				</span>
+			</div>
 		);
 	return (
-		<div style={ROW}>
-			<span style={MUTED}>
+		<div className="mete-settings-origin">
+			<span className="mete-origin here">
 				{nls.localize("mete/settings/originFolder", "Changed for this folder")}
 			</span>
 			<button
 				type="button"
-				className="mete-button quiet"
+				className="mete-button quiet ghost"
 				disabled={busy}
 				title={nls.localize(
 					"mete/settings/resetHint",
@@ -47,6 +51,7 @@ const Origin = ({
 				)}
 				onClick={onClear}
 			>
+				<Icon name="discard" />
 				{nls.localize("mete/settings/reset", "Reset")}
 			</button>
 		</div>
@@ -58,15 +63,11 @@ export const SectionForm = ({
 	section,
 	state,
 	actions,
-	layer,
-	folderFile,
 	sensitive,
 }: {
 	readonly section: FormSection;
 	readonly state: FormState;
 	readonly actions: FormActions;
-	readonly layer: Target | undefined;
-	readonly folderFile: string | undefined;
 	/** docs/09: in a sensitive folder allowTraining changes nothing. */
 	readonly sensitive: boolean;
 }) => (
@@ -79,12 +80,6 @@ export const SectionForm = ({
 				)}
 			</p>
 		) : null}
-		<Origin
-			layer={layer}
-			file={folderFile}
-			busy={state.busy}
-			onClear={actions.onClear}
-		/>
 		<FormFields section={section} state={state} onField={actions.onField} />
 		<FormNote state={state} />
 	</div>

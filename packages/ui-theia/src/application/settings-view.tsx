@@ -13,10 +13,10 @@ import {
 import { type Group, type GroupId, groupsOf } from "./settings-groups.js";
 import {
 	type Bindings,
+	cardParts,
 	type Endpoints,
 	type FormParts,
 	type Forms,
-	formOf,
 	type Mcp,
 	type Section,
 	SectionCard,
@@ -91,7 +91,7 @@ const GroupBody = ({
 				key={s.name}
 				section={s}
 				onOpen={actions.onOpen}
-				form={formOf({ ...parts, name: s.name, settings })}
+				{...cardParts({ ...parts, name: s.name, settings })}
 			/>
 		))}
 	</>
