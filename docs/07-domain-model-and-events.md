@@ -133,7 +133,7 @@ From Phase 2, handoffs go into the workspace `handoffs` table: `id`, `workspace_
 | `quota.exhausted` | providerId, unit, resetsAt | quota |
 | `quota.restored` | providerId, unit | quota |
 | `checkpoint.created` | kind, ref | core-engine |
-| `handoff.created` | handoffId | core-engine |
+| `handoff.created` | handoffId, files? (the paths the handoff lists as changed, ADR-133) | core-engine |
 | `handoff.accepted` | handoffId, byRunId | core-engine |
 | `rollback.performed` | checkpointId | core-engine |
 | `vault.note.saved` | path, noteType | vault |

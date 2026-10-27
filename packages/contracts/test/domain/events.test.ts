@@ -102,6 +102,19 @@ describe("parseEvent", () => {
 		).toBe(false);
 	});
 
+	it("takes the files a handoff lists, or none, but not an empty path (ADR-133)", () => {
+		const handoffId = crypto.randomUUID();
+		for (const payload of [
+			{ handoffId },
+			{ handoffId, files: [] },
+			{ handoffId, files: ["index.html", "design/index.html"] },
+		])
+			expect(parseEvent(envelope("handoff.created", payload)).ok).toBe(true);
+		expect(
+			parseEvent(envelope("handoff.created", { handoffId, files: [""] })).ok,
+		).toBe(false);
+	});
+
 	it("takes a tool's progress with or without its total, and no message (ADR-067)", () => {
 		const step = { capability: "mcp.tools@1", progress: 3 };
 		for (const payload of [step, { ...step, total: 10 }])

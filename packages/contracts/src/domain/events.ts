@@ -152,7 +152,11 @@ const PAYLOADS = {
 		kind: CheckpointKindSchema,
 		ref: text,
 	}),
-	"handoff.created": z.strictObject({ handoffId: IdSchema }),
+	// The files the handoff lists as changed, so the UI can lead to them (ADR-133).
+	"handoff.created": z.strictObject({
+		handoffId: IdSchema,
+		files: z.array(text).optional(),
+	}),
 	"handoff.accepted": z.strictObject({
 		handoffId: IdSchema,
 		byRunId: IdSchema,
