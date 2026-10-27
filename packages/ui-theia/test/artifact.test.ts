@@ -1,6 +1,6 @@
 import { EMPTY_TEAM_VIEW, type TaskCard, type TeamView } from "@mete/ui-studio";
 import { describe, expect, it } from "vitest";
-import { artifactToOpen } from "../src/application/artifact.js";
+import { artifactToOpen, worktreeToShow } from "../src/application/artifact.js";
 
 // The report the approvals inbox opens: the waiting task's first, else the latest written.
 
@@ -38,5 +38,13 @@ describe("the artifact the inbox opens", () => {
 			),
 		).toBe("x/a.md");
 		expect(artifactToOpen(view([task("b", "todo")]))).toBeUndefined();
+	});
+
+	it("names the worktree of the task that waits for the human, for a run with no report (ADR-133)", () => {
+		const waiting = { ...task("b", "submitted"), worktree: "/w/r/b" };
+		expect(worktreeToShow(view([task("a", "approved"), waiting]))).toBe(
+			"/w/r/b",
+		);
+		expect(worktreeToShow(view([task("a", "approved")]))).toBeUndefined();
 	});
 });

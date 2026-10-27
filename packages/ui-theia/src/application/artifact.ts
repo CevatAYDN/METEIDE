@@ -12,3 +12,7 @@ export const artifactToOpen = (view: TeamView): string | undefined => {
 	const latest = [...view.tasks].reverse().find((t) => t.artifactPath);
 	return (waiting ?? latest)?.artifactPath?.replaceAll("\\", "/");
 };
+
+/** The worktree of the task that waits for the human, whose files the inbox lists when the run has no report (ADR-133). */
+export const worktreeToShow = (view: TeamView): string | undefined =>
+	view.tasks.find((t) => t.worktree)?.worktree;

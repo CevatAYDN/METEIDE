@@ -16,6 +16,33 @@ const fileOf = (path: string) => path.slice(path.lastIndexOf("/") + 1);
 export const openReportLabel = (task: TaskCard) =>
 	nls.localize("mete/board/openReportOf", "Open the report of {0}", task.title);
 
+/** The files a completed run changed (ADR-133), each with Open, as paths relative to the run's folder. */
+export const FilesList = ({
+	files,
+	onOpen,
+}: {
+	readonly files: readonly string[];
+	readonly onOpen: (path: string) => void;
+}) => (
+	<section aria-label={nls.localize("mete/board/files", "Files")}>
+		<ul style={{ ...LIST, margin: 0 }}>
+			{files.map((path) => (
+				<li key={path} style={ROW}>
+					<span>{path}</span>
+					<button
+						type="button"
+						className="mete-button quiet"
+						aria-label={nls.localize("mete/board/openFile", "Open {0}", path)}
+						onClick={() => onOpen(path)}
+					>
+						{nls.localize("mete/board/openResult", "Open")}
+					</button>
+				</li>
+			))}
+		</ul>
+	</section>
+);
+
 export const ResultsList = ({
 	tasks,
 	onOpen,

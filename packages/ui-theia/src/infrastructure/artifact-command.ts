@@ -9,18 +9,21 @@ import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import { nls } from "@theia/core/lib/common/nls";
 import { QuickInputService } from "@theia/core/lib/common/quick-pick-service";
 import { inject, injectable } from "@theia/core/shared/inversify";
+import { FileService } from "@theia/filesystem/lib/browser/file-service";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
-import { artifactToOpen } from "../application/artifact.js";
+import { artifactToOpen, worktreeToShow } from "../application/artifact.js";
 import {
 	failureText,
 	noFolderText,
 	plain,
 } from "../application/status-text.js";
 import { MeteDaemonService } from "../domain/status-service.js";
+import { showWorktreeFiles } from "./worktree-files.js";
 
 // "METE: Open artifact" (docs/13, Approvals inbox: artifact preview): it reads the run's history,
-// finds the report under review and opens it in an editor. The inbox's button passes the run; from
-// the palette it asks which one.
+// finds the report under review and opens it in an editor, or with no report lists the files of the
+// task that waits for the human (ADR-133). The inbox's button passes the run; from the palette it
+// asks which one.
 
 /** The palette entry "METE: Open artifact". */
 export const OPEN_ARTIFACT_COMMAND: Command = Command.toLocalizedCommand(
@@ -36,6 +39,7 @@ export class MeteArtifactContribution implements CommandContribution {
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;
 	@inject(OpenerService) protected readonly openers!: OpenerService;
 	@inject(QuickInputService) protected readonly quick!: QuickInputService;
+	@inject(FileService) protected readonly files!: FileService;
 
 	registerCommands(commands: CommandRegistry): void {
 		commands.registerCommand(OPEN_ARTIFACT_COMMAND, {
@@ -70,9 +74,14 @@ export class MeteArtifactContribution implements CommandContribution {
 		if (!runId) return;
 		const r = await this.daemon.events(root.resource.path.fsPath(), runId);
 		if (!r.ok) return void this.messages.warn(failureText(r.error, plain));
-		const path = artifactToOpen(
-			applyAll(runId, EMPTY_TEAM_VIEW, r.value.events),
-		);
+		const view = applyAll(runId, EMPTY_TEAM_VIEW, r.value.events);
+		const path = artifactToOpen(view);
+		// No report: the files of the task that waits for the human, as its card's Show files (ADR-133).
+		const worktree = path ? undefined : worktreeToShow(view);
+		if (worktree) {
+			const { files, quick, openers, messages } = this;
+			return showWorktreeFiles({ files, quick, openers, messages }, worktree);
+		}
 		if (!path)
 			return void this.messages.info(
 				nls.localize(

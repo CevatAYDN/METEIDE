@@ -241,6 +241,42 @@ describe("the Board view", () => {
 		expect(noReport).toContain("No reports yet");
 	});
 
+	it("lists the files a completed run changed under its reports, and opens on them (ADR-133)", () => {
+		const page = task("Write the page");
+		const handoff = event(
+			"handoff.created",
+			{
+				handoffId: crypto.randomUUID(),
+				files: ["index.html", "design/DESIGN.md"],
+			},
+			page.id,
+		);
+		const model: BoardModel = {
+			kind: "board",
+			goal: "g",
+			view: applyAll(RUN, EMPTY_TEAM_VIEW, [page.created, handoff]),
+			unreadable: 0,
+			recent: [],
+			feed: [],
+		};
+		const facts = (status: "paused" | "completed" | "failed"): RunFacts => ({
+			run: { ...runEntry("completed"), status },
+		});
+		const done = html(model, "board", undefined, facts("completed"));
+		const files = section(done, "Files");
+		expect(files).toContain('aria-label="Open index.html"');
+		expect(files).toContain('aria-label="Open design/DESIGN.md"');
+		expect(done).not.toContain("No reports yet");
+		expect(done).toMatch(
+			/data-tab="artifacts" aria-selected="true"[^>]*>.*?<span class="mete-count">2</,
+		);
+		// A paused or failed run's files wait in a worktree, not in the folder.
+		for (const status of ["paused", "failed"] as const)
+			expect(html(model, "board", undefined, facts(status))).not.toContain(
+				'aria-label="Files"',
+			);
+	});
+
 	const RAIL = ["activity", "artifacts", "tasks"] as const;
 
 	it("moves between tabs with the arrow keys, Home and End, wrapping at the ends", () => {

@@ -1,6 +1,13 @@
-import type URI from "@theia/core/lib/common/uri";
+import type { MessageService } from "@theia/core";
+import {
+	type OpenerService,
+	open,
+} from "@theia/core/lib/browser/opener-service";
+import { nls } from "@theia/core/lib/common/nls";
+import type { QuickInputService } from "@theia/core/lib/common/quick-pick-service";
+import URI from "@theia/core/lib/common/uri";
 import type { FileService } from "@theia/filesystem/lib/browser/file-service";
-import { hidden, ranked } from "../application/worktree-files.js";
+import { hidden, isPage, ranked } from "../application/worktree-files.js";
 
 // The files under a task's worktree for the card's "Show files" (ADR-132).
 // shortcut: five folders deep and 200 files; a task's own work is far smaller, raise it when a team writes more.
@@ -30,4 +37,39 @@ export const worktreeFiles = async (
 		return [...here, ...below.flat()];
 	};
 	return ranked(await walk(dir, "", 0)).slice(0, MAX);
+};
+
+/** What Show files needs from the widget or command that offers it. */
+export type ShowFilesDeps = {
+	readonly files: FileService;
+	readonly quick: QuickInputService;
+	readonly openers: OpenerService;
+	readonly messages: MessageService;
+};
+
+/** Lists the files of a task's worktree and opens the one picked, a page rendered (ADR-129, ADR-132). */
+export const showWorktreeFiles = async (
+	deps: ShowFilesDeps,
+	worktree: string,
+): Promise<void> => {
+	const dir = URI.fromFilePath(worktree);
+	try {
+		const names = await worktreeFiles(deps.files, dir);
+		if (names.length === 0)
+			return void deps.messages.info(
+				nls.localize("mete/waiting/noFiles", "This task has no files to show."),
+			);
+		const pick = await deps.quick.pick(
+			names.map((label) => ({ label })),
+			{ placeHolder: nls.localize("mete/waiting/whichFile", "Which file?") },
+		);
+		if (pick)
+			await open(
+				deps.openers,
+				dir.resolve(pick.label),
+				isPage(pick.label) ? { openFor: "preview" } : {},
+			);
+	} catch (e) {
+		void deps.messages.warn(String(e));
+	}
 };

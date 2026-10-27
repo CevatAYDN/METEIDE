@@ -6,12 +6,12 @@ import { type ReactNode, useId, useState } from "react";
 import { FeedView } from "./feed-view.js";
 import { MUTED } from "./look.js";
 import { RailTasks } from "./rail-tasks.js";
-import { ResultsList, reportPath } from "./results-list.js";
+import { FilesList, ResultsList, reportPath } from "./results-list.js";
 import type { RunEntry } from "./run-hero.js";
 import { type Tab, TabList } from "./tab-list.js";
 
-// The Team panel's right rail (ADR-119): Activity, the run's feed (ADR-092); Artifacts, its reports
-// (ADR-085); and Tasks, as WAI-ARIA tabs (tab-list.tsx). Every panel stays mounted and only the shown one is
+// The Team panel's right rail (ADR-119): Activity, the run's feed (ADR-092); Artifacts, its reports and a completed run's files
+// (ADR-085, ADR-133); and Tasks, as WAI-ARIA tabs (tab-list.tsx). Every panel stays mounted and only the shown one is
 // visible, so the feed keeps its segment and Follow across a switch.
 
 /** A tab of the rail. */
@@ -38,7 +38,7 @@ const FINISHED: ReadonlySet<RunEntry["status"]> = new Set([
 	"cancelled",
 ]);
 
-/** The tab the rail opens on until the user picks one: a finished run's reports, else the activity. */
+/** The tab the rail opens on until the user picks one: a finished run's reports and files, else the activity. */
 export const openingTab = (
 	status: RunEntry["status"] | undefined,
 	reports: number,
@@ -47,23 +47,32 @@ export const openingTab = (
 
 const Reports = ({
 	view,
-	count,
+	files,
 	onOpen,
 }: {
 	readonly view: TeamView;
-	readonly count: number;
+	readonly files: readonly string[];
 	readonly onOpen: (path: string) => void;
-}) =>
-	count > 0 ? (
+}) => (
+	<>
 		<ResultsList tasks={view.tasks} onOpen={onOpen} />
-	) : (
-		<p style={{ ...MUTED, margin: 0 }}>
-			{nls.localize(
-				"mete/rail/noReports",
-				"No reports yet: a task's report shows here once it is written.",
-			)}
-		</p>
-	);
+		{files.length > 0 ? <FilesList files={files} onOpen={onOpen} /> : null}
+		{files.length === 0 && !view.tasks.some((t) => reportPath(t)) ? (
+			<p style={{ ...MUTED, margin: 0 }}>
+				{nls.localize(
+					"mete/rail/noReports",
+					"No reports yet: a task's report shows here once it is written.",
+				)}
+			</p>
+		) : null}
+	</>
+);
+
+// A completed run's files are in its folder; a paused, failed or cancelled run's wait in unmerged worktrees (ADR-133).
+const filesOf = (view: TeamView, status: RunEntry["status"] | undefined) =>
+	status === "completed"
+		? (view.files ?? []).map((f) => f.replaceAll("\\", "/"))
+		: [];
 
 // The tabs with their counts: the reports, and the approved tasks of all once the run has tasks (ADR-127).
 const tabsOf = (view: TeamView, reports: number): Tab<RailTab>[] => {
@@ -100,13 +109,14 @@ export const RunRail = ({
 }) => {
 	const id = useId();
 	const [picked, setPicked] = useState<RailTab>();
-	const reports = view.tasks.filter((t) => reportPath(t)).length;
+	const files = filesOf(view, status);
+	const reports = view.tasks.filter((t) => reportPath(t)).length + files.length;
 	const shown = picked ?? openingTab(status, reports);
 	const panels: Readonly<Record<RailTab, ReactNode>> = {
 		activity: (
 			<FeedView view={view} feed={feed} names={names} markdown={markdown} />
 		),
-		artifacts: <Reports view={view} count={reports} onOpen={onOpenReport} />,
+		artifacts: <Reports view={view} files={files} onOpen={onOpenReport} />,
 		tasks: (
 			<RailTasks
 				view={view}

@@ -50,7 +50,7 @@ import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
 import { MeteRunComposer } from "./run-composer.js";
 import { MeteShownRun } from "./shown-run.js";
 import { StudioView } from "./studio-view.js";
-import { worktreeFiles } from "./worktree-files.js";
+import { showWorktreeFiles } from "./worktree-files.js";
 import "../../style/mete-avatar.css";
 import "../../style/mete-feed.css";
 import "../../style/mete-hero.css";
@@ -229,45 +229,23 @@ export class MeteBoardWidget extends MetePanelWidget {
 		void this.messages.info(restoredText(r.value));
 	}
 
-	// A report of the shown run, by its path relative to the run's folder (ADR-085).
+	// A report or a changed file of the shown run, by its path relative to the run's folder; a page
+	// opens rendered (ADR-085, ADR-129, ADR-133).
 	protected async openReport(path: string): Promise<void> {
 		const shown = this.session.shown;
 		if (!shown) return;
 		try {
-			await open(this.openers, URI.fromFilePath(shown.dir).resolve(path));
+			const uri = URI.fromFilePath(shown.dir).resolve(path);
+			await open(this.openers, uri, isPage(path) ? { openFor: "preview" } : {});
 		} catch (e) {
 			void this.messages.warn(String(e));
 		}
 	}
 
-	// The files a submitted task wrote, in its worktree, for the human to read before deciding; a page
-	// opens rendered through the Mini Browser (ADR-129, ADR-132).
-	protected async showFiles(worktree: string): Promise<void> {
-		const dir = URI.fromFilePath(worktree);
-		try {
-			const names = await worktreeFiles(this.files, dir);
-			if (names.length === 0)
-				return void this.messages.info(
-					nls.localize(
-						"mete/waiting/noFiles",
-						"This task has no files to show.",
-					),
-				);
-			const pick = await this.quick.pick(
-				names.map((label) => ({ label })),
-				{
-					placeHolder: nls.localize("mete/waiting/whichFile", "Which file?"),
-				},
-			);
-			if (pick)
-				await open(
-					this.openers,
-					dir.resolve(pick.label),
-					isPage(pick.label) ? { openFor: "preview" } : {},
-				);
-		} catch (e) {
-			void this.messages.warn(String(e));
-		}
+	// The files a submitted task wrote, in its worktree, for the human to read before deciding (ADR-132).
+	protected showFiles(worktree: string): Promise<void> {
+		const { files, quick, openers, messages } = this;
+		return showWorktreeFiles({ files, quick, openers, messages }, worktree);
 	}
 
 	protected override onAfterShow(msg: Message): void {
