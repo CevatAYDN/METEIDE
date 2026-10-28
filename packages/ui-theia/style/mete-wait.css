@@ -186,7 +186,9 @@
 	);
 }
 
+/* Stretched to the card's width, so an open Revise… or Answer… box narrows instead of sticking out. */
 .mete-wait-actions {
+	align-self: stretch;
 	margin-top: 14px;
 	display: flex;
 	flex-wrap: wrap;
@@ -205,6 +207,10 @@
 }
 
 /* Revise… and Give an instruction… open a form: the words, then the button that sends them. */
+.mete-wait-feedback {
+	max-width: 100%;
+}
+
 .mete-wait-feedback > summary {
 	list-style: none;
 }
