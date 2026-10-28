@@ -20,8 +20,9 @@ type Hit = Pick<KnowledgeHit, "path" | "title" | "snippet"> & {
 	readonly heading?: string | undefined;
 };
 
+// A snippet keeps its section's line breaks (a lesson's "Evidence:" paragraph); each hit stays one line.
 const line = (h: Hit) =>
-	`- ${h.title} (${h.path}${h.heading ? `, ${h.heading}` : ""}): ${h.snippet}`;
+	`- ${h.title} (${h.path}${h.heading ? `, ${h.heading}` : ""}): ${h.snippet.replace(/\s+/g, " ").trim()}`;
 
 /** The block of the lessons found, best first, or undefined when none was found. */
 export const notesBlock = (hits: readonly Hit[]) =>
