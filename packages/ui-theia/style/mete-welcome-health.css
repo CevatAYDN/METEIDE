@@ -19,8 +19,13 @@
 	color: var(--warn, var(--theia-editorWarning-foreground));
 }
 
+/* Mixed with the ink, as .mete-tile.bad is: the plain red fell under 4.5:1 on the light theme. */
 .mete-welcome-health.bad {
-	color: var(--bad, var(--theia-errorForeground));
+	color: color-mix(
+		in srgb,
+		var(--bad, var(--theia-errorForeground)) 65%,
+		var(--ink, var(--theia-foreground))
+	);
 }
 
 .mete-welcome-check {
