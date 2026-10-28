@@ -253,6 +253,9 @@ body{margin:0}
 
           <span aria-hidden="true" style="height:1.5px;background:var(--line-soft)"></span>
 
+          <!-- What the daemon says of the endpoint (ADR-154) -->
+          <p style="margin:0;font-size:13px;font-weight:600;line-height:1.4;color:var(--muted-2)">A key is saved; the field never shows it. custom:my-lab: ready</p>
+
           <!-- Key and Test -->
           <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start">
             <div style="display:flex;flex-direction:column;gap:5px">
@@ -280,6 +283,7 @@ body{margin:0}
 
           <!-- Test: the models METE loaded, picked ones probed -->
           <div style="background:var(--panel);border:1.5px solid var(--line-soft);border-radius:14px;padding:6px 6px 10px">
+            <p style="margin:6px 10px;font-size:13px;font-weight:600;line-height:1.45;color:var(--muted-2)">Runs skip a model marked so: METE knows no context window for it, or it is neither free nor priced. A row for it under models: custom:my-lab in settings.yaml gives those facts.</p>
             <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column">
               <li>
                 <label class="pick" style="display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:10px;cursor:pointer">
@@ -305,6 +309,8 @@ body{margin:0}
                 <label class="pick" style="display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:10px;cursor:pointer">
                   <input type="checkbox" style="flex:none;width:16px;height:16px;margin:0;accent-color:var(--accent)">
                   <span style="flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:500;color:var(--muted-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">mistral-small-24b-instruct</span>
+                  <!-- A model runs skip (ADR-154) -->
+                  <span style="flex:none;display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;background:color-mix(in srgb,var(--warn) 14%,var(--panel));color:color-mix(in srgb,var(--warn) 60%,var(--ink));font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;font-weight:500">runs skip it</span>
                 </label>
               </li>
             </ul>

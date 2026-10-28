@@ -14,12 +14,19 @@ const STATE: {
 	) => string;
 } = {
 	ready: (id) => nls.localize("mete/quota/ready", "{0}: ready", id),
+	// "METE: Set provider key" lists the built-in providers only, so an endpoint's key is on its card.
 	no_key: (id) =>
-		nls.localize(
-			"mete/quota/noKey",
-			"{0}: no key (METE: Set provider key)",
-			id,
-		),
+		id.startsWith("custom:")
+			? nls.localize(
+					"mete/quota/noKeyCustom",
+					"{0}: no key (Settings, its endpoint card, Set key)",
+					id,
+				)
+			: nls.localize(
+					"mete/quota/noKey",
+					"{0}: no key (METE: Set provider key)",
+					id,
+				),
 	inactive: (id) =>
 		nls.localize(
 			"mete/quota/inactive",

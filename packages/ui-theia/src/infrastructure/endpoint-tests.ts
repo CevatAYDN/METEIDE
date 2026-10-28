@@ -1,7 +1,10 @@
 import type { Result } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import { customId } from "../application/endpoint-key.js";
-import type { EndpointTestState } from "../application/endpoint-test.js";
+import {
+	type EndpointTestState,
+	runsSkip,
+} from "../application/endpoint-test.js";
 import { failureText } from "../application/status-text.js";
 import type {
 	DaemonFailure,
@@ -46,8 +49,14 @@ const listedState = (
 			: { kind: "failed", text: failureText(r.error) };
 	if ("failed" in r.value)
 		return { kind: "failed", text: listingText(r.value.failed) };
-	const models = r.value.models.map((m) => m.id);
-	return { kind: "listed", models, picked: [], testing: false };
+	const { models } = r.value;
+	return {
+		kind: "listed",
+		models: models.map((m) => m.id),
+		skipped: models.filter(runsSkip).map((m) => m.id),
+		picked: [],
+		testing: false,
+	};
 };
 
 /** Each endpoint's Test by slug. */

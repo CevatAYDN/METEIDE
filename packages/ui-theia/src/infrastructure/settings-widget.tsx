@@ -1,3 +1,4 @@
+import type { ProviderState } from "@mete/contracts";
 import { CommandService } from "@theia/core";
 import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import { ThemeService } from "@theia/core/lib/browser/theming";
@@ -59,6 +60,8 @@ export class MeteSettingsWidget extends MetePanelWidget {
 	protected mcp: McpForm | undefined;
 	protected keys: EndpointKeys | undefined;
 	protected tests: EndpointTests | undefined;
+	/** The providers' states from mete/quota, for the endpoints card (ADR-154). */
+	protected states: readonly ProviderState[] | undefined;
 	protected apply: ApplyState = { busy: false, activeRuns: 0 };
 	/** The group the screen shows; not kept after a restart (ADR-095, ADR-086). */
 	protected group: GroupId = "models";
@@ -107,8 +110,9 @@ export class MeteSettingsWidget extends MetePanelWidget {
 		const [root] = await this.workspace.roots;
 		if (!root) return this.setModel({ kind: "no_folder" });
 		const dir = root.resource.path.fsPath();
-		// A restarted daemon may have loaded other endpoints, so earlier Test answers go.
+		// A restarted daemon may have loaded other endpoints, so earlier Test answers and states go.
 		this.tests?.reset();
+		this.states = undefined;
 		this.apply = { ...this.apply, activeRuns: await this.activeRuns(dir) };
 		const r = await this.daemon.settings(dir);
 		this.setModel(
@@ -122,6 +126,10 @@ export class MeteSettingsWidget extends MetePanelWidget {
 		await this.endpoints?.load(root.resource, r.value.globalFile);
 		await this.bindings?.load(root.resource, r.value.globalFile);
 		await this.mcp?.load(root.resource, r.value.globalFile);
+		// The states wait on the daemon's first model listing, so they follow the forms (ADR-154).
+		const q = await this.daemon.quota(dir);
+		this.states = q.ok ? q.value.providers : undefined;
+		this.update();
 	}
 
 	// Runs a restart would pause (ADR-083): queued or running ones; none when the status fails.
@@ -162,6 +170,7 @@ export class MeteSettingsWidget extends MetePanelWidget {
 		return {
 			state: form.state,
 			actions: this.keyedActions(form.actions, keys),
+			states: this.states,
 			keys: {
 				stateOf: (slug: string) => keys.stateOf(slug),
 				onType: (slug: string, key: string) => keys.type(slug, key),

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { runsSkip } from "../src/application/endpoint-test.js";
 import type {
 	DaemonFailure,
 	EndpointModels,
@@ -43,6 +44,16 @@ const setup = (
 };
 
 describe("a custom endpoint's Test from the card", () => {
+	it("marks a model runs skip: no context window, or neither free nor priced (ADR-154)", () => {
+		const rowed = { ...model("r"), contextWindow: 128_000 };
+		expect(runsSkip(model("ids-only"))).toBe(true);
+		expect(runsSkip(rowed)).toBe(false);
+		expect(runsSkip({ ...rowed, free: false })).toBe(true);
+		expect(
+			runsSkip({ ...rowed, free: false, price: { input: 1, output: 2 } }),
+		).toBe(false);
+	});
+
 	it("lists the models on request, then probes the picked ones in order", async () => {
 		const results = [
 			{ modelId: "b", ok: true as const, ms: 7 },
@@ -62,6 +73,8 @@ describe("a custom endpoint's Test from the card", () => {
 		expect(tests.stateOf("my-lab")).toEqual({
 			kind: "listed",
 			models: ["a", "b"],
+			// An ids-only listing: no context window, so runs skip both (ADR-154).
+			skipped: ["a", "b"],
 			picked: [],
 			testing: false,
 		});
@@ -72,6 +85,7 @@ describe("a custom endpoint's Test from the card", () => {
 		expect(tests.stateOf("my-lab")).toEqual({
 			kind: "listed",
 			models: ["a", "b"],
+			skipped: ["a", "b"],
 			picked: ["b", "a"],
 			testing: false,
 			results,

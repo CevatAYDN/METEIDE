@@ -48,9 +48,16 @@
 }
 
 .mete-endpoint-test > p,
-.mete-endpoint-models {
+.mete-endpoint-models,
+.mete-endpoint-state {
 	grid-column: 1 / -1;
 	margin: 0;
+}
+
+/* What the daemon says of the endpoint (ADR-154), over its key and Test. */
+.mete-endpoint-state {
+	font-weight: 600;
+	color: var(--muted-2, var(--theia-descriptionForeground));
 }
 
 .mete-settings .mete-key-entry > .mete-button,
@@ -135,6 +142,10 @@
 		var(--tone) 60%,
 		var(--ink, var(--theia-foreground))
 	);
+}
+
+.mete-endpoint-result.skip {
+	--tone: var(--warn, var(--theia-editorWarning-foreground));
 }
 
 .mete-endpoint-result.bad {

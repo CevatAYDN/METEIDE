@@ -218,7 +218,8 @@
 			"unit": "Birim",
 			"units": "Kota birimleri",
 			"unusable": "{0}: modellerinden hiçbiri burada kullanılamıyor (gizlilik kuralları onları dışarıda bırakabilir: privacy.yaml içindeki allowTraining; model modu bırakabilir: gateway.yaml içindeki models; ya da anahtarı reddedildi)",
-			"used": "Kullanılan"
+			"used": "Kullanılan",
+			"noKeyCustom": "{0}: anahtar yok (Ayarlar, uç nokta kartı, Anahtarı kaydet)"
 		},
 		"rail": {
 			"activity": "Etkinlik",
@@ -399,7 +400,11 @@
 			"unset": "Bu bölümü hiçbir dosya ayarlamıyor; varsayılanları geçerli.",
 			"windowsShell": "Windows kabuğu",
 			"workspace": "Bu klasör:",
-			"yes": "Evet"
+			"yes": "Evet",
+			"keyNone": "Bunun için kayıtlı anahtar yok.",
+			"keySaved": "Bir anahtar kayıtlı; alan onu hiç göstermez. {0}",
+			"runsSkip": "işler bunu atlar",
+			"skipWhy": "İşler böyle işaretli bir modeli atlar: METE onun bağlam penceresini bilmiyor ya da model ne ücretsiz ne de fiyatlı. settings.yaml içinde models: {0} altına onun için bir satır bu bilgileri verir."
 		},
 		"status": {
 			"blocked": "METE daemon'u durup duruyor, bu yüzden METE onu şimdilik yeniden başlatmıyor: {0}",

@@ -1,3 +1,4 @@
+import type { ProviderState } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import type { ReactNode } from "react";
 import { stringify } from "yaml";
@@ -46,6 +47,7 @@ export type Endpoints = {
 	readonly actions: EndpointsActions;
 	readonly keys?: EndpointKeysView | undefined;
 	readonly tests?: EndpointTestsView | undefined;
+	readonly states?: readonly ProviderState[] | undefined;
 };
 
 /** The bindings card of the tools group (ADR-096): its state and actions. */

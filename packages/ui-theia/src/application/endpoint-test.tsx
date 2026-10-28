@@ -1,10 +1,17 @@
+import type { ModelInfo } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import type { EndpointTest } from "../domain/status-service.js";
 import { customId } from "./endpoint-key.js";
 import { Icon } from "./roster-look.js";
 
 // A custom endpoint's Test on its card (ADR-087): "Test…" lists the models METE loaded for it, the
-// user picks some, and "Test" sends one probe per picked model, only on that click (docs/09).
+// user picks some, and "Test" sends one probe per picked model, only on that click (docs/09). A model
+// runs skip whatever the settings is marked (ADR-154).
+
+/** A model no run chooses: a context window of 0 fits no tier, and one neither free nor priced is a
+ * candidate in no model mode (docs/09); a models row of the endpoint gives those facts. */
+export const runsSkip = (m: ModelInfo) =>
+	m.contextWindow === 0 || (!m.free && m.price === undefined);
 
 /** One endpoint's Test, from nothing asked yet to the probes' results. */
 export type EndpointTestState =
@@ -13,6 +20,8 @@ export type EndpointTestState =
 	| {
 			readonly kind: "listed";
 			readonly models: readonly string[];
+			/** The listed models runs skip (ADR-154). */
+			readonly skipped: readonly string[];
 			readonly picked: readonly string[];
 			readonly testing: boolean;
 			readonly results?: EndpointTest["results"];
@@ -57,6 +66,11 @@ const ModelRow = ({
 				onChange={(e) => tests.onPick(slug, model, e.target.checked)}
 			/>
 			<span className="mete-endpoint-model">{model}</span>
+			{state.skipped.includes(model) ? (
+				<span className="mete-endpoint-result skip">
+					{nls.localize("mete/settings/runsSkip", "runs skip it")}
+				</span>
+			) : null}
 			{result ? (
 				<span className={`mete-endpoint-result ${result.ok ? "good" : "bad"}`}>
 					<Icon name={result.ok ? "check" : "close"} />
@@ -82,6 +96,15 @@ const ListedModels = ({
 				{nls.localize(
 					"mete/settings/noModels",
 					"The endpoint lists no models.",
+				)}
+			</p>
+		) : null}
+		{state.skipped.length > 0 ? (
+			<p>
+				{nls.localize(
+					"mete/settings/skipWhy",
+					"Runs skip a model marked so: METE knows no context window for it, or it is neither free nor priced. A row for it under models: {0} in settings.yaml gives those facts.",
+					`custom:${slug}`,
 				)}
 			</p>
 		) : null}

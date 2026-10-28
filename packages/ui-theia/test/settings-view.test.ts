@@ -1,3 +1,4 @@
+import type { ProviderState } from "@mete/contracts";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -402,7 +403,10 @@ describe("the custom endpoints card (ADR-087)", () => {
 		target: "global" | "workspace",
 		activeRuns?: number,
 		dirty = false,
-		test?: EndpointTestState,
+		{
+			test,
+			states,
+		}: { test?: EndpointTestState; states?: ProviderState[] } = {},
 	) =>
 		renderToStaticMarkup(
 			createElement(SettingsView, {
@@ -431,6 +435,7 @@ describe("the custom endpoints card (ADR-087)", () => {
 						busy: false,
 						dirty,
 					},
+					...(states ? { states } : {}),
 					actions: {
 						onEdit: none,
 						onAdd: none,
@@ -510,40 +515,65 @@ describe("the custom endpoints card (ADR-087)", () => {
 	const listed = (picked: string[], testing: boolean): EndpointTestState => ({
 		kind: "listed",
 		models: ["lab-7b", "lab-70b"],
+		skipped: ["lab-70b"],
 		picked,
 		testing,
 		results: [{ modelId: "lab-7b", ok: true, ms: 840 }],
 	});
 
+	it("says whether a key is saved, in the Quota screen's words (ADR-154)", () => {
+		const at = (state: ProviderState["state"]) =>
+			withEndpoints("global", 0, false, {
+				states: [
+					{ id: "nvidia", state: "ready" },
+					{ id: "custom:my-lab", state } as ProviderState,
+				],
+			});
+		expect(at("ready")).toContain(
+			"A key is saved; the field never shows it. custom:my-lab: ready",
+		);
+		expect(at("no_key")).toContain("No key is saved for it.");
+		expect(at("no_key")).not.toContain("A key is saved");
+		const unloaded = withEndpoints("global", 0, false, {
+			states: [{ id: "custom:other", state: "ready" }],
+		});
+		expect(unloaded).not.toContain("key is saved");
+	});
+
 	it("says when METE has not loaded the endpoint", () => {
 		expect(
-			withEndpoints("global", undefined, false, { kind: "not_loaded" }),
+			withEndpoints("global", undefined, false, {
+				test: { kind: "not_loaded" },
+			}),
 		).toContain(
 			"METE has not loaded custom:my-lab: save it, set its API key and press Apply now.",
 		);
 	});
 
 	it("tests only picked models, says so while it runs, and shows each result", () => {
-		const none = withEndpoints("global", undefined, false, listed([], false));
+		const none = withEndpoints("global", undefined, false, {
+			test: listed([], false),
+		});
 		expect(none).toContain(
 			'<button type="button" class="mete-button quiet" disabled=""><span aria-hidden="true" class="codicon codicon-play"></span>Test</button>',
 		);
 		expect(none).toContain("ok, 840 ms");
-		const ready = withEndpoints(
-			"global",
-			undefined,
-			false,
-			listed(["lab-7b"], false),
+		// The model runs skip carries the mark, with the line that says why (ADR-154).
+		const mark = '</span><span class="mete-endpoint-result skip">runs skip it<';
+		expect(none).toContain(`lab-70b${mark}`);
+		expect(none).not.toContain(`lab-7b${mark}`);
+		expect(none).toContain(
+			"A row for it under models: custom:my-lab in settings.yaml",
 		);
+		const ready = withEndpoints("global", undefined, false, {
+			test: listed(["lab-7b"], false),
+		});
 		expect(ready).toContain(
 			'<button type="button" class="mete-button quiet"><span aria-hidden="true" class="codicon codicon-play"></span>Test</button>',
 		);
-		const running = withEndpoints(
-			"global",
-			undefined,
-			false,
-			listed(["lab-7b"], true),
-		);
+		const running = withEndpoints("global", undefined, false, {
+			test: listed(["lab-7b"], true),
+		});
 		expect(running).toContain(
 			'<button type="button" class="mete-button quiet" disabled=""><span aria-hidden="true" class="codicon codicon-loading codicon-modifier-spin"></span>Testing…</button>',
 		);

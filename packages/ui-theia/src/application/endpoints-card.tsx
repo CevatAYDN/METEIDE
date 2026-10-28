@@ -1,8 +1,9 @@
-import type { ProviderAdapter } from "@mete/contracts";
+import type { ProviderAdapter, ProviderState } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import { customId, type EndpointKeysView, KeyField } from "./endpoint-key.js";
 import { type EndpointTestsView, TestPanel } from "./endpoint-test.js";
 import type { EndpointDraft } from "./endpoints-draft.js";
+import { stateText } from "./quota-text.js";
 import { Icon } from "./roster-look.js";
 import type { Target } from "./section-draft.js";
 import { FormNote, type SaveNote } from "./settings-form.js";
@@ -164,7 +165,19 @@ type ChecksView = {
 	readonly tests?: EndpointTestsView | undefined;
 	/** The card has edits that are not saved; Set key would restart METE and drop them. */
 	readonly unsaved: boolean;
+	/** What mete/quota says of the endpoint (ADR-154); none while METE has not loaded it. */
+	readonly state?: ProviderState | undefined;
 };
+
+// A key is saved unless the daemon says no_key; the field is never filled (ADR-087).
+const keyState = (s: ProviderState) =>
+	s.state === "no_key"
+		? nls.localize("mete/settings/keyNone", "No key is saved for it.")
+		: nls.localize(
+				"mete/settings/keySaved",
+				"A key is saved; the field never shows it. {0}",
+				stateText(s),
+			);
 
 const Checks = ({
 	id,
@@ -176,6 +189,9 @@ const Checks = ({
 	readonly checks: ChecksView;
 }) => (
 	<div className="mete-endpoint-checks">
+		{checks.state ? (
+			<p className="mete-endpoint-state">{keyState(checks.state)}</p>
+		) : null}
 		{checks.keys ? (
 			<KeyField
 				id={id}
@@ -254,11 +270,14 @@ export const EndpointsCard = ({
 	actions,
 	keys,
 	tests,
+	states,
 }: {
 	readonly state: EndpointsState;
 	readonly actions: EndpointsActions;
 	readonly keys?: EndpointKeysView | undefined;
 	readonly tests?: EndpointTestsView | undefined;
+	/** The providers' states from mete/quota, the endpoints' among them (ADR-154). */
+	readonly states?: readonly ProviderState[] | undefined;
 }) => (
 	<div className="mete-endpoints">
 		{state.list.map((endpoint, i) => (
@@ -268,7 +287,12 @@ export const EndpointsCard = ({
 				index={i}
 				endpoint={endpoint}
 				actions={actions}
-				checks={{ keys, tests, unsaved: state.dirty }}
+				checks={{
+					keys,
+					tests,
+					unsaved: state.dirty,
+					state: states?.find((s) => s.id === customId(endpoint.slug)),
+				}}
 			/>
 		))}
 		<div className="mete-endpoints-foot">
