@@ -60,6 +60,15 @@ Writing rules, to keep the vault clean \[C\]:
 - Personal notes are retrieved only when relevant and are never copied into workspace files \[C\].
 - ai-memory MAY serve `knowledge.search@1`, `vault.read@1` and `vault.write@1` through an MCP mapping, as Graphify may serve `code.graph@1`; the built-in modules stay the default (ADR-041) \[C\].
 
+Both tools are model tools (`vault_read`, `vault_write`) over the workspace vault; their shapes are in tab 06 (ADR-145) \[D\]:
+
+- `vault.read@1` answers a note as written. A note with `private: true` is refused with `ignored`; a path that leaves the vault or enters `.history/` is `bad_input`.
+- `vault.write@1` writes a lesson, entity or decision note to `<folder>/<slug>.md` with `source: run/<run id>`, or appends `### <title>` and the body to the day's journal note. The slug is the title in NFKD without combining marks, lower case, each run of other characters than letters and digits one `-`, trimmed and cut at 60 characters; an empty slug is `bad_input`, and a Windows device name gets `-note` appended.
+- A note whose slug exists in its folder is updated instead: its body is replaced, `created` and `source` are kept, `updated` is set and the tags are merged. The title match stands in for the 0.85 similarity until embeddings come.
+- The 3-notes limit counts the run's new lesson, entity and decision notes, from its `vault.note.saved` events (`events.read@1`); a 4th is `bad_input`.
+- Notes are read and written through `fs.read@1` and `fs.write@1` without the task's worktree, so the policy, `.meteignore` and the audit apply (as `fs.write@1`), and a note lands in the workspace vault. Every write, run reports included, goes through one queue.
+- `scope: personal` answers `not_found` until the personal vault's folder is chosen at onboarding.
+
 ## Run reports
 
 When a run ends (`run.completed`, `run.failed` or `run.cancelled`) the vault module appends a section for it to the workspace vault's `journal/YYYY-MM-DD.md`, the local date of the ending event: goal, status, models used, tool calls per capability, failed calls with their error codes, checkpoints, changed files and the summary, built from the run's persisted events (`events.read@1`) without a model call, after its handoff is written, so the changed files are its `handoff.created` `files`. The section stays when the run is removed, as its artifacts do (ADR-143, ADR-144). Prompts and tool output are never copied. Run reports and handoffs (tab 08, Run memory) are written by METE itself (the core for handoffs, the vault module for run reports), not by agents, and do not count toward the 3-notes limit \[D\].

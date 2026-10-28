@@ -180,6 +180,17 @@ export type SeoScores = { performance: number; accessibility: number; bestPracti
 export type SeoAuditInput = { url: string } | { folder: string };
 export type SeoAuditOutput = { scores: SeoScores; audits: { id: string; title: string; score: number | null; details?: string }[];
   reportPath: string };                                             // score null: Lighthouse does not score that audit
+// vault.read@1 and vault.write@1, defined in @mete/contracts; rules in tab 11 (Vaults, ADR-145). They return ToolError too.
+export type VaultScope = "workspace" | "personal";                      // default workspace; personal is not_found until it is chosen
+export type VaultReadInput = { path: string; scope?: VaultScope };     // a .md path relative to the vault
+export type VaultReadOutput = { path: string; content: string };      // the note as written; a private note is refused
+export type VaultWriteInput = { type: "lesson" | "entity" | "decision" | "journal"; title: string; body: string;
+  tags?: string[]; scope?: VaultScope };
+export type VaultWriteOutput = { path: string; created: boolean };    // false: an existing note was updated or the journal appended
+// events.read@1, defined in @mete/contracts (ADR-144): one run's catalog events in seq order, and the rows that no longer parse.
+export type BrokenEvent = { seq: number; issues: string };
+export type RunEvents = { events: MeteEvent[]; broken: BrokenEvent[] };
+export interface EventsReadAdapter { read(runId: string): RunEvents }
 // mcp.tools@1, defined in @mete/contracts with McpConfigSchema for .mete/mcp.yaml (tab 10, MCP client); policy action mcp.call.
 export type McpServer =
   | { id: string; transport: "stdio"; runtime: "node" | "python" | "binary" | "container"; command: string; args?: string[];

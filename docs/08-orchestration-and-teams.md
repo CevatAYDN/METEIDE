@@ -136,7 +136,7 @@ Rules:
 5. Review: if `review` is set, the `pair_with` role reviews each submission (step 6) before the approver (step 7), as an approver role reviews (below), and core publishes `review.requested` and `review.completed` instead of `approval.*`. Its revise sends the task back with the feedback without counting toward the revision limit, at most `max_turns` times over the task's life; after that a submission goes straight to the approver. The pair's model comes from its role's tier, like any member's (ADR-136) \[D\].
 6. Submit: `task.status.changed` to `submitted`.
 7. Approve: the approver role (and the human when listed in `human_checkpoints`) approves or returns it with feedback.
-8. Remember: if enabled, lessons are written to the workspace vault.
+8. Remember: if `memory.write_lessons` is set, after approval the task's agent gets one more turn without tools for a `lesson@1`, read as the guardrail reads a report, which the core writes through `vault.write@1`. The turn counts as a cloud request of the budget, not as an agent turn; a lesson that cannot be had (no model, quota or budget, no `lesson@1`, no vault, a policy that asks or denies) is skipped with a warning and never pauses the run (ADR-145) \[D\].
 
 A task's `dependsOn` is its template task's `context`. A submitted task with no `approval` that is not in `human_checkpoints` is approved at once; with both, the approver role approves first and then the human; a revision forgets the approvals of the earlier submission. The core keeps the tasks and the template the run started from in the run snapshot, so a changed file does not change a running team \[D\].
 
@@ -185,7 +185,7 @@ Each model call receives only: role goal and backstory, the task, its acceptance
 
 Artifact types defined in `@mete/contracts`: `gdd@1`, `task-list@1`, `research-report@1`, `seo-audit@1`, `code-change@1`, `test-report@1`, `asset-spec@1`, `asset@1`, `lesson@1`.
 
-`research-report@1` is `{ title, summary, findings: [{ claim, sourceIds }], sources: [{ id, url, title }] }`: every finding cites at least one source, every cited id is in `sources`, source ids are unique and URLs are `http` or `https`; unknown keys are rejected. `artifactSchema(type)` in `@mete/contracts` returns a type's schema; the other types get theirs with their templates \[D\].
+`research-report@1` is `{ title, summary, findings: [{ claim, sourceIds }], sources: [{ id, url, title }] }`: every finding cites at least one source, every cited id is in `sources`, source ids are unique and URLs are `http` or `https`; unknown keys are rejected. `lesson@1` is `{ title, lesson, evidence, tags }`: what to do next time, what happened in the run that shows it, and its tags; unknown keys are rejected (ADR-145). `artifactSchema(type)` in `@mete/contracts` returns a type's schema; the other types get theirs with their templates \[D\].
 
 `seo-audit@1` is `{ url, summary, scores: { performance, accessibility, bestPractices, seo }, fixes: [{ priority, title, why, how, auditIds }] }`: scores are integers from 0 to 100, `priority` is `high`, `medium` or `low`, the fixes are in rank order with the most important first, and every fix names at least one Lighthouse audit id \[D\].
 
