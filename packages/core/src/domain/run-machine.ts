@@ -59,6 +59,8 @@ export type RunContext = {
 	readonly task?: string | undefined;
 	/** The approver role reviewing `task` in this conversation (docs/08, step 7). */
 	readonly review?: string | undefined;
+	/** The role answering `task`'s questions in this conversation (docs/08, step 1; ADR-142). */
+	readonly clarify?: string | undefined;
 	/** The start brief every conversation of the run opens with (docs/08, Run memory). */
 	readonly brief?: string | undefined;
 	/** The workspace block every task conversation and the single agent's open with (ADR-126). */
@@ -87,6 +89,7 @@ export type RunEvent =
 			team: TeamState;
 			messages: readonly ChatMessage[];
 			review?: string;
+			clarify?: string;
 	  }
 	| { type: "REVIEWED"; team: TeamState }
 	| { type: "CHECKPOINTED"; step: number; snapshot?: string }
@@ -191,6 +194,7 @@ export const runMachine = setup({
 				snapshot: undefined,
 				agent: undefined,
 				review: event.review,
+				clarify: event.clarify,
 				tainted: false,
 			})),
 		},

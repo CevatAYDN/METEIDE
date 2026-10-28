@@ -33,6 +33,7 @@ const TaskContextSchema = z.strictObject({
 			"revision_limit",
 		])
 		.optional(),
+	clarify: z.enum(["asking", "asked"]).optional(),
 });
 
 const TaskEntrySchema = z.strictObject({
@@ -141,6 +142,18 @@ export const withoutWorktree = (team: TeamState, id: string): TeamState => {
 				...entry,
 				context: { ...entry.context, worktree: undefined },
 			})
+		: team;
+};
+
+/** Moves a task's questions before the work on (ADR-142); undefined once they are answered. */
+export const withClarify = (
+	team: TeamState,
+	id: string,
+	clarify: "asking" | "asked" | undefined,
+): TeamState => {
+	const entry = team.tasks[id];
+	return entry
+		? withEntry(team, id, { ...entry, context: { ...entry.context, clarify } })
 		: team;
 };
 

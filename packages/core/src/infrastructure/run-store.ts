@@ -126,6 +126,7 @@ const PersistedSchema = z.object({
 		team: TeamStateSchema.optional(),
 		task: text1.optional(),
 		review: text1.optional(),
+		clarify: text1.optional(),
 		tainted: z.boolean().optional(),
 		brief: z.string().optional(),
 		workspace: z.string().optional(),

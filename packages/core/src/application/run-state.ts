@@ -237,3 +237,21 @@ export const hold = (s: EngineState, meta: RunMeta, snapshot: RunSnapshot) => {
 	s.live.set(meta.id, l);
 	return l;
 };
+
+// A team step that changes nothing would loop forever; that is a bug, so the run fails.
+export const stuck = (s: EngineState, l: Live) =>
+	apply(s, l, {
+		type: "FAIL",
+		at: s.deps.now(),
+		code: "internal",
+		message: "the team made no progress",
+	});
+
+// The platform a new conversation names; a broken shell setting fails the run.
+export const platform = (s: EngineState, l: Live) => {
+	const where = platformOf(s);
+	if (where.ok) return where.value;
+	const message = `${where.error.file}: ${where.error.path}: ${where.error.reason}`;
+	apply(s, l, { type: "FAIL", at: s.deps.now(), code: "bad_input", message });
+	return undefined;
+};

@@ -25,6 +25,8 @@ export type TaskContext = {
 	/** The approver's feedback or the human's instruction for the next attempt. */
 	readonly feedback?: string | undefined;
 	readonly blocked?: BlockReason | undefined;
+	/** Where the questions before the work stand (docs/08, step 1; ADR-142): being asked, or asked and awaiting answers. */
+	readonly clarify?: "asking" | "asked" | undefined;
 };
 
 /** What happens to a task. */

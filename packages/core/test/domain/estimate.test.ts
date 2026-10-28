@@ -35,9 +35,20 @@ const template = () => {
 			},
 		],
 		tasks: [
-			{ id: "plain", role: "tester", title: "Plain" },
+			{
+				id: "plain",
+				role: "tester",
+				title: "Plain",
+				before_start: { clarify_with: "lead" },
+			},
 			{ id: "art", role: "artist", title: "Art", approval: "lead" },
-			{ id: "human", role: "tester", title: "Human", approval: "human" },
+			{
+				id: "human",
+				role: "tester",
+				title: "Human",
+				approval: "human",
+				before_start: { clarify_with: "human" },
+			},
 			{
 				id: "paired",
 				role: "artist",
@@ -51,12 +62,14 @@ const template = () => {
 };
 
 describe("estimateRequests", () => {
-	it("counts 12 per task on its role's seat, 4 per review on the pair's and 3 per approval on the approver's, naming the role for its pin", () => {
+	it("counts 12 per task on its role's seat, 4 per clarification on the answering role's, 4 per review on the pair's and 3 per approval on the approver's, naming the role for its pin", () => {
 		expect(estimateRequests(template())).toEqual([
 			{ roleId: "tester", tier: "fast", needs: [], requests: 12 },
+			// A role answers the questions asked before the work (ADR-142).
+			{ roleId: "lead", tier: "reasoning", needs: [], requests: 4 },
 			{ roleId: "artist", tier: "vision", needs: ["vision"], requests: 12 },
 			{ roleId: "lead", tier: "reasoning", needs: [], requests: 3 },
-			// A human approves without a model request.
+			// A human approves, and answers, without a model request.
 			{ roleId: "tester", tier: "fast", needs: [], requests: 12 },
 			{ roleId: "artist", tier: "vision", needs: ["vision"], requests: 12 },
 			// Core runs pair review (ADR-136), so the review term counts.

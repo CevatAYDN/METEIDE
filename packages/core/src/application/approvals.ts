@@ -7,13 +7,13 @@ import {
 	type Result,
 } from "@mete/contracts";
 import { z } from "zod";
+import { openTask } from "../domain/clarify.js";
 import {
 	decide,
 	type TeamState,
 	waitingForHuman,
 	waitsToMerge,
 } from "../domain/team.js";
-import { taskConversation } from "../domain/team-run.js";
 import {
 	apply,
 	type EngineState,
@@ -74,8 +74,8 @@ const goOn = (
 			code: "bad_input",
 			message: `${where.error.file}: ${where.error.reason}`,
 		});
-	const messages = taskConversation(team, id, l.snapshot.context, where.value);
-	apply(s, l, { type: "SWITCH", task: id, team, messages });
+	const opened = openTask(team, id, l.snapshot.context, where.value);
+	apply(s, l, { type: "SWITCH", task: id, ...opened });
 	return ok(undefined);
 };
 

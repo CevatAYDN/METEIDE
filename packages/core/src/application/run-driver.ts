@@ -2,7 +2,8 @@ import type { LlmChunk } from "@mete/contracts";
 import { foldable, toSummarize } from "../domain/compact.js";
 import { type NextStep, nextStep } from "../domain/next-step.js";
 import { afterModelError } from "../domain/run-events.js";
-import { activeRole, activeSeat } from "../domain/team-run.js";
+import { activeRole, activeSeat, isAsking } from "../domain/team-run.js";
+import { answered, asked } from "./clarify.js";
 import { pinnedSeat, runPreferOf } from "./pinned.js";
 import {
 	apply,
@@ -204,6 +205,8 @@ const toolTurn = async (
 const finish = async (s: EngineState, l: Live, reply: string) => {
 	const c = l.snapshot.context;
 	if (c.review) return verdict(s, l, reply);
+	if (c.clarify) return answered(s, l, reply);
+	if (isAsking(c)) return asked(s, l, reply);
 	if (c.team) return submit(s, l, reply);
 	apply(s, l, { type: "COMPLETE", at: s.deps.now(), summary: reply });
 };

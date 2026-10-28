@@ -1,4 +1,5 @@
 import { REVIEW_REPAIRS } from "../defaults.js";
+import { openTask } from "../domain/clarify.js";
 import { checkReport, repairMessage } from "../domain/guardrail.js";
 import {
 	checkVerdict,
@@ -23,7 +24,6 @@ import {
 import {
 	guardrailOf,
 	isWriter,
-	taskConversation,
 	titleOf,
 	verifyOf,
 } from "../domain/team-run.js";
@@ -33,7 +33,8 @@ import {
 	type EngineState,
 	emit,
 	type Live,
-	platformOf,
+	platform,
+	stuck,
 	toolContext,
 } from "./run-state.js";
 import { afterApproval } from "./spawned.js";
@@ -61,15 +62,6 @@ const changed = (
 	if (change)
 		emit(s, l, { type: "task.status.changed", payload: change }, taskId);
 };
-
-// A team step that changes nothing would loop forever; that is a bug, so the run fails.
-const stuck = (s: EngineState, l: Live) =>
-	apply(s, l, {
-		type: "FAIL",
-		at: s.deps.now(),
-		code: "internal",
-		message: "the team made no progress",
-	});
 
 // Ends the attempt: its conversation (and Artifact) is kept and the task moves on.
 const endAttempt = (
@@ -155,21 +147,12 @@ export const submit = async (s: EngineState, l: Live, reply: string) => {
 	return endAttempt(s, l, { type: "BLOCK", reason: "guardrail" });
 };
 
-// The platform a new conversation names; a broken shell setting fails the run.
-const platform = (s: EngineState, l: Live) => {
-	const where = platformOf(s);
-	if (where.ok) return where.value;
-	const message = `${where.error.file}: ${where.error.path}: ${where.error.reason}`;
-	apply(s, l, { type: "FAIL", at: s.deps.now(), code: "bad_input", message });
-	return undefined;
-};
-
 // A task already in progress (after a block was resolved) keeps its agent and goes on.
 const open = (s: EngineState, l: Live, team: TeamState, id: string) => {
 	const where = platform(s, l);
 	if (!where) return false;
-	const messages = taskConversation(team, id, l.snapshot.context, where);
-	return apply(s, l, { type: "SWITCH", task: id, team, messages });
+	const opened = openTask(team, id, l.snapshot.context, where);
+	return apply(s, l, { type: "SWITCH", task: id, ...opened });
 };
 
 // A pair reviewer or an approver role reviews in a conversation of its own, with its own agent

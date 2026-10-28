@@ -42,10 +42,21 @@ const roleSeat = (team: TeamState, roleId: string | undefined): Seat => {
 	};
 };
 
-/** The seat of the run's active agent: its task's role, or the single agent. */
+/** Whether the active task's agent is asking its questions before the work (ADR-142). */
+export const isAsking = (c: RunContext) =>
+	!c.review &&
+	!c.clarify &&
+	c.team !== undefined &&
+	c.task !== undefined &&
+	c.team.tasks[c.task]?.context.clarify === "asking";
+
+/** The seat of the run's active agent: its task's role, a reviewer's or an answerer's, or the single agent. */
 export const activeSeat = (c: RunContext): Seat => {
 	if (!c.team || !c.task) return SINGLE_AGENT;
-	return roleSeat(c.team, c.review ?? taskOf(c.team, c.task)?.role);
+	const by = c.review ?? c.clarify;
+	const seat = roleSeat(c.team, by ?? taskOf(c.team, c.task)?.role);
+	// The questions are asked with no tools, so the agent cannot start the work first.
+	return isAsking(c) ? { ...seat, capabilities: [] } : seat;
 };
 
 /** The seat of a task's agent: its role's tier, needs and capabilities. */
@@ -56,10 +67,11 @@ export const seatOf = (team: TeamState, id: string): Seat =>
 export const activeRole = (c: RunContext) => {
 	const entry = c.team && c.task ? c.team.tasks[c.task] : undefined;
 	const roleId = c.team && c.task ? taskOf(c.team, c.task)?.role : undefined;
-	// A reviewer gets an agent of its own; the task's agent id is the worker's.
+	// A reviewer or an answerer gets an agent of its own; the task's agent id is the worker's.
+	const by = c.review ?? c.clarify;
 	return {
-		roleId: c.review ?? roleId ?? "assistant",
-		agentId: c.review ? undefined : entry?.context.agentId,
+		roleId: by ?? roleId ?? "assistant",
+		agentId: by ? undefined : entry?.context.agentId,
 		taskId: entry?.id,
 	};
 };
@@ -80,13 +92,13 @@ const system = (team: TeamState, id: string, where: Platform) => {
 };
 
 // The first sentence of a role's goal, at most 200 characters, so the roster stays short.
-const firstSentence = (goal: string) =>
+export const firstSentence = (goal: string) =>
 	(/^[\s\S]*?[.!?](?=\s|$)/.exec(goal.trim())?.[0] ?? goal.trim()).slice(
 		0,
 		200,
 	);
 
-const nameOf = (team: TeamState, roleId: string) =>
+export const nameOf = (team: TeamState, roleId: string) =>
 	roleId === "human"
 		? "The human"
 		: (team.template.roles.find((r) => r.id === roleId)?.name ?? roleId);
