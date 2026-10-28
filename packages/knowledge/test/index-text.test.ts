@@ -63,9 +63,9 @@ describe("noteFacts", () => {
 });
 
 describe("ftsQuery", () => {
-	it("makes each word a phrase, so the caller's text is never FTS5 syntax", () => {
-		expect(ftsQuery("  kahve  fiyatı ")).toBe('"kahve" "fiyatı"');
-		expect(ftsQuery('a"b OR c*')).toBe('"a""b" "OR" "c*"');
+	it("makes each word a phrase, so the caller's text is never FTS5 syntax, and any of them may match (ADR-151)", () => {
+		expect(ftsQuery("  kahve  fiyatı ")).toBe('"kahve" OR "fiyatı"');
+		expect(ftsQuery('a"b OR c*')).toBe('"a""b" OR "OR" OR "c*"');
 		expect(ftsQuery("... ?!")).toBeUndefined();
 	});
 });

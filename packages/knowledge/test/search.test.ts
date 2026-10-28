@@ -204,6 +204,18 @@ describe("knowledge.search@1", () => {
 		await s.close();
 	});
 
+	it("finds a note that holds any word of the query, the one with more of them first (ADR-151)", async () => {
+		const s = await setup();
+		await s.note("lessons/one.md", "mockup colors");
+		await s.note("lessons/both.md", "mockup prices in TL");
+		await s.note("lessons/none.md", "nothing here");
+		expect(paths(await s.search({ query: "mockup prices" }))).toEqual([
+			"lessons/both.md",
+			"lessons/one.md",
+		]);
+		await s.close();
+	});
+
 	it("answers no vault with nothing and refuses the personal vault and a query of no word", async () => {
 		const s = await setup();
 		expect(await s.search({ query: "x" })).toEqual(ok({ results: [] }));

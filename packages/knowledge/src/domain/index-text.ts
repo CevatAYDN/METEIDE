@@ -72,12 +72,12 @@ export const noteFacts = (
 	return { title, type };
 };
 
-/** Each word of the query as an FTS5 phrase; undefined when it holds no letter or digit. */
+/** Each word of the query as an FTS5 phrase, any of which may match (ADR-151); undefined when it holds no letter or digit. */
 export const ftsQuery = (query: string) =>
 	/[\p{L}\p{N}]/u.test(query)
 		? query
 				.trim()
 				.split(/\s+/)
 				.map((w) => `"${w.replaceAll('"', '""')}"`)
-				.join(" ")
+				.join(" OR ")
 		: undefined;
