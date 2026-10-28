@@ -18,7 +18,7 @@ import {
 	runMachine,
 } from "../domain/run-machine.js";
 import { TeamStateSchema } from "../domain/team.js";
-import { HANDOFF_MIGRATIONS } from "./handoff-store.js";
+import { HANDOFF_MIGRATIONS, handoffs } from "./handoff-store.js";
 
 // The runs and agents tables in the workspace database (docs/07, core-engine tables).
 
@@ -271,6 +271,14 @@ const unfinished = (orm: Orm) =>
 		.all()
 		.map((r) => r.id);
 
+// The run's own handoffs go with it; one another run accepted names that run, which keeps it (ADR-143).
+const remove = (orm: Orm, id: string) =>
+	orm.transaction((tx) => {
+		tx.delete(agents).where(eq(agents.runId, id)).run();
+		tx.delete(handoffs).where(eq(handoffs.runId, id)).run();
+		tx.delete(runs).where(eq(runs.id, id)).run();
+	});
+
 /** Reads and writes runs and agents rows. */
 export const createRunStore = (db: BetterSqlite3.Database) => {
 	const orm = drizzle(db);
@@ -281,6 +289,8 @@ export const createRunStore = (db: BetterSqlite3.Database) => {
 		list: (id?: string) => list(orm, id),
 		unfinished: () => unfinished(orm),
 		endedBefore: (iso: string) => endedBefore(orm, iso),
+		/** Deletes the run's row, its agents and its own handoffs (ADR-143). */
+		remove: (id: string) => remove(orm, id),
 	};
 };
 

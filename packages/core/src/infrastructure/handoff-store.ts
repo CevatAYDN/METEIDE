@@ -4,8 +4,8 @@ import { and, desc, eq, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-// The handoffs table of docs/07 (ADR-041, docs/08 Run memory). Rows are kept forever; a
-// handoff only moves from open to accepted or expired, never back.
+// The handoffs table of docs/07 (ADR-041, docs/08 Run memory). Rows are kept until the user removes
+// their run (ADR-143); a handoff only moves from open to accepted or expired, never back.
 
 /** core-engine's handoffs table, after the runs and agents tables. */
 export const HANDOFF_MIGRATIONS: ReadonlyArray<Migration> = [
@@ -25,7 +25,7 @@ export const HANDOFF_MIGRATIONS: ReadonlyArray<Migration> = [
 	},
 ];
 
-const handoffs = sqliteTable("handoffs", {
+export const handoffs = sqliteTable("handoffs", {
 	id: text("id").primaryKey(),
 	workspaceId: text("workspace_id").notNull(),
 	runId: text("run_id").notNull(),

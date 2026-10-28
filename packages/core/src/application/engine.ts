@@ -25,6 +25,7 @@ import {
 import { recordDecision } from "./approvals.js";
 import { type Opening, offerBrief, takeHandoff } from "./continue.js";
 import { nextPrefer, validateStartPrefer } from "./pinned.js";
+import { removeRun } from "./remove.js";
 import { createCheckpointRestore } from "./restore.js";
 import { pruneOldCheckpoints } from "./retention.js";
 import { routeFor } from "./route.js";
@@ -363,6 +364,7 @@ export const createEngine = (deps: EngineDeps) => {
 		status: (runId) => status(s, runId),
 		model: (runId, model, roleId) => updateModel(s, runId, model, roleId),
 		transcript: (runId) => readTranscript(s, runId),
+		remove: (runId) => removeRun(s, runId),
 	};
 	return {
 		engine,
