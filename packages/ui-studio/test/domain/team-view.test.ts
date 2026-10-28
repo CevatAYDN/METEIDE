@@ -147,6 +147,46 @@ describe("the team view fold", () => {
 		expect(decided.tasks[0]?.worktree).toBeUndefined();
 	});
 
+	it("keeps the question a task asks before its work until it is answered, by a role or the human (ADR-142)", () => {
+		const ask = (to: string) =>
+			event(
+				"task.clarification.requested",
+				{ toRoleId: to, question: "Which city?" },
+				NOTES,
+			);
+		const toRole = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			created(NOTES, "Take notes"),
+			moved(NOTES, "todo", "in_progress"),
+			ask("researcher"),
+		]);
+		expect(toRole.tasks[0]?.question).toEqual({
+			to: "researcher",
+			text: "Which city?",
+		});
+		const answer = {
+			messageId: crypto.randomUUID(),
+			from: AGENT,
+			to: AGENT,
+			kind: "answer",
+			summary: "Ankara.",
+		};
+		const answered = applyAll(RUN, toRole, [
+			event("agent.message.sent", answer, NOTES),
+		]);
+		expect(answered.tasks[0]?.question).toBeUndefined();
+		const toHuman = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			created(NOTES, "Take notes"),
+			moved(NOTES, "todo", "in_progress"),
+			ask("human"),
+			moved(NOTES, "in_progress", "blocked"),
+		]);
+		expect(toHuman.tasks[0]?.question?.to).toBe("human");
+		const back = applyAll(RUN, toHuman, [
+			moved(NOTES, "blocked", "in_progress"),
+		]);
+		expect(back.tasks[0]?.question).toBeUndefined();
+	});
+
 	it("keeps the files the human's latest request lists until the human decides (ADR-141)", () => {
 		const ask = (payload: object) =>
 			event("approval.requested", { approver: "human", ...payload }, NOTES);

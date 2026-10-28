@@ -33,6 +33,8 @@ export type TaskCard = {
 	readonly worktree?: string;
 	/** The files the task changed in that worktree, when the request lists them (ADR-141). */
 	readonly files?: readonly string[];
+	/** The questions the task asked before its work, and the role or "human" they went to, until answered (ADR-142). */
+	readonly question?: { readonly to: string; readonly text: string };
 	/** The task's latest report, relative to the workspace (docs/07, Artifact). */
 	readonly artifactPath?: string;
 	readonly status: TaskStatus;
@@ -138,6 +140,22 @@ const tasksAfter = (
 		}));
 	if (e.type === "approval.requested" || e.type === "approval.resolved")
 		return update(tasks, e.taskId, (t) => approvalAfter(t, e));
+	return questionAfter(tasks, e);
+};
+
+// The questions before the work (ADR-142) stand until a role's answer or the human's sends the
+// task to work.
+const questionAfter = (
+	tasks: readonly TaskCard[],
+	e: MeteEvent,
+): readonly TaskCard[] => {
+	if (e.type === "task.clarification.requested")
+		return update(tasks, e.taskId, (t) => ({
+			...t,
+			question: { to: e.payload.toRoleId, text: e.payload.question },
+		}));
+	if (e.type === "agent.message.sent" && e.payload.kind === "answer")
+		return update(tasks, e.taskId, ({ question: _, ...t }) => t);
 	return tasks;
 };
 
@@ -147,7 +165,7 @@ const tasksAfter = (
 const statusAfter = (t: TaskCard, to: TaskStatus): TaskCard => {
 	if (to === "blocked") return { ...t, status: to, waitsForHuman: true };
 	if (t.status !== "blocked") return { ...t, status: to };
-	const { waitsForHuman: _, ...rest } = t;
+	const { waitsForHuman: _, question: __, ...rest } = t;
 	return { ...rest, status: to };
 };
 
