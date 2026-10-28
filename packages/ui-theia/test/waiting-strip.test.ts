@@ -85,7 +85,8 @@ describe("the Waiting for you strip", () => {
 			created,
 			event(
 				"task.clarification.requested",
-				{ toRoleId: "human", question: "Which city?\nWhich prices?" },
+				// A model often numbers or bullets its questions; the list shows each once, unmarked.
+				{ toRoleId: "human", question: "1. Which city?\n- Which prices?" },
 				TASK,
 			),
 			event(

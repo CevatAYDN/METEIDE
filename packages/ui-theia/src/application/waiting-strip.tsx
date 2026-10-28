@@ -247,7 +247,8 @@ const Asking = ({
 		<ul className="mete-wait-questions">
 			{(task.question?.text ?? "")
 				.split("\n")
-				.filter((line) => line.trim() !== "")
+				.map((line) => line.trim().replace(/^(?:\d+[.)]|[-*])\s+/, ""))
+				.filter((line) => line !== "")
 				.map((line) => (
 					<li key={line}>{line}</li>
 				))}
