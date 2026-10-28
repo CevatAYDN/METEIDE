@@ -361,11 +361,13 @@ ul.mete-side-box {
 	gap: 8px;
 }
 
-/* An ended run's subtitle with Remove at its end, the same pill (ADR-143). */
+/* An ended run's subtitle with Remove at its end, the same pill (ADR-143); in a narrow side bar the
+   pill goes under the subtitle rather than past the edge. */
 .mete-run-sub {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
-	gap: 8px;
+	gap: 4px 8px;
 }
 
 .mete-side .mete-item:has(.mete-ws-name) > .mete-side-body {
