@@ -3,10 +3,13 @@ import { IdSchema } from "./ids.js";
 import {
 	type ChatChunk,
 	ChatRequestSchema,
+	type EmbedRequest,
+	type EmbedResponse,
 	type ProviderError,
 } from "./provider.js";
+import type { Result } from "./result.js";
 
-// llm.chat@2 from docs/06 (Kernel API) and docs/09 (Gateway, Privacy).
+// llm.chat@2 and llm.embed@1 from docs/06 (Kernel API) and docs/09 (Gateway, Privacy).
 
 const text = z.string().min(1);
 
@@ -78,6 +81,21 @@ export type LlmChunk =
 /** The gateway's adapter behind llm.chat@2. */
 export interface LlmChatAdapter {
 	chat(req: LlmChatRequest, signal: AbortSignal): AsyncIterable<LlmChunk>;
+}
+
+/** What a caller asks llm.embed@1: no tier and no pin, the embedding models the model mode and privacy allow (ADR-152). */
+export type LlmEmbedRequest = Omit<EmbedRequest, "model"> &
+	Pick<LlmChatRequest, "runId" | "priority">;
+
+/** The vectors and the model that made them, which stored vectors keep (docs/11, Indexing). */
+export type LlmEmbedResponse = EmbedResponse & { readonly model: ModelRef };
+
+/** The gateway's adapter behind llm.embed@1 (docs/09, Gateway; ADR-152). */
+export interface LlmEmbedAdapter {
+	embed(
+		req: LlmEmbedRequest,
+		signal: AbortSignal,
+	): Promise<Result<LlmEmbedResponse, LlmError>>;
 }
 
 /** The `privacy:` section of settings.yaml (docs/09, Privacy). */

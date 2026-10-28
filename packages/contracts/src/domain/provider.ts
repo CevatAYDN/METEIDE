@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { QuotaObservation, QuotaUnitSpec } from "./quota.js";
 import type { Result } from "./result.js";
 
-// provider.chat@2, provider.embed@1 and provider.rerank@1 from docs/06 (Kernel API)
+// provider.chat@2, provider.embed@2 and provider.rerank@1 from docs/06 (Kernel API)
 // and docs/09 (Provider adapter).
 
 const text = z.string().min(1);
@@ -158,7 +158,7 @@ export const PrivacySchema = z.strictObject({
 /** A model's privacy facts. */
 export type Privacy = z.infer<typeof PrivacySchema>;
 
-/** The adapter behind provider.chat@2, provider.embed@1 and provider.rerank@1. */
+/** The adapter behind provider.chat@2, provider.embed@2 and provider.rerank@1. */
 export interface ProviderAdapter {
 	/** "nvidia", "openrouter", "opencode-zen" or "custom:<slug>". */
 	readonly id: string;
@@ -169,6 +169,10 @@ export interface ProviderAdapter {
 		req: EmbedRequest,
 		signal: AbortSignal,
 	): Promise<Result<EmbedResponse, ProviderError>>;
+	/** provider.embed@2 (ADR-152): the provider's embedding models; `listModels` keeps the chat models. */
+	embedModels?(
+		signal: AbortSignal,
+	): Promise<Result<ModelInfo[], ProviderError>>;
 	rerank?(
 		req: RerankRequest,
 		signal: AbortSignal,
