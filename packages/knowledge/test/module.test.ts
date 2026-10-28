@@ -1,76 +1,8 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { type EventsReadAdapter, type MeteEvent, ok } from "@mete/contracts";
-import {
-	createCapabilityRegistry,
-	createEventBus,
-	type ModuleContext,
-} from "@mete/kernel";
-import { afterAll, describe, expect, it } from "vitest";
-import { createVaultModule } from "../src/module.js";
+import type { MeteEvent } from "@mete/contracts";
+import { describe, expect, it } from "vitest";
+import { day, setup, WS } from "./setup.js";
 
-// The vault module's run reports (docs/11, Run reports; ADR-144) over a fake events.read@1 that
-// answers what was published, as storage persists each event when it is published.
-
-const roots: string[] = [];
-afterAll(async () => {
-	await Promise.all(roots.map((r) => rm(r, { recursive: true, force: true })));
-});
-
-const WS = "11111111-1111-4111-8111-111111111111";
-const NOW = Date.parse("2026-10-28T12:00:00.000Z");
-
-const setup = async (read?: EventsReadAdapter["read"]) => {
-	const root = await mkdtemp(join(tmpdir(), "mete-vault-"));
-	roots.push(root);
-	const registry = createCapabilityRegistry(() => []);
-	const bus = createEventBus((e) => {
-		throw e;
-	});
-	const stored: MeteEvent[] = [];
-	const errors: string[] = [];
-	const impl: EventsReadAdapter = {
-		read:
-			read ??
-			((id) => ({ events: stored.filter((e) => e.runId === id), broken: [] })),
-	};
-	registry.provide("events.read@1", {
-		id: "storage",
-		trust: "core",
-		features: [],
-		impl,
-	});
-	const log = () => {};
-	const items: { dispose: () => void }[] = [];
-	const ctx: ModuleContext = {
-		capabilities: registry,
-		events: bus,
-		config: { get: () => ok(undefined as never) },
-		logger: {
-			error: (_o, m) => errors.push(String(m)),
-			warn: log,
-			info: log,
-			debug: log,
-		},
-		disposables: { add: (d) => items.push(d), dispose: () => {} },
-	};
-	const saved: MeteEvent[] = [];
-	bus.subscribe("vault.*", (e) => saved.push(e));
-	const publish = (e: MeteEvent) => {
-		stored.push(e);
-		bus.publish(e);
-	};
-	const mod = createVaultModule({
-		workspaceDir: root,
-		workspaceId: WS,
-		now: () => NOW,
-	});
-	await mod.activate(ctx);
-	const note = (day: string) =>
-		readFile(join(root, ".mete", "knowledge", "journal", `${day}.md`), "utf8");
-	return { mod, publish, saved, errors, note };
-};
+// The vault module's run reports (docs/11, Run reports; ADR-144).
 
 let n = 0;
 const ev = <T extends MeteEvent["type"]>(
@@ -91,10 +23,6 @@ const ev = <T extends MeteEvent["type"]>(
 	}) as MeteEvent;
 
 const tick = () => new Promise((r) => setImmediate(r));
-const day = (ts: string) => {
-	const d = new Date(ts);
-	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
 
 const RUN_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const RUN_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";

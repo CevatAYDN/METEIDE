@@ -19,6 +19,8 @@
 	},
 	"dependencies": {
 		"@mete/contracts": "workspace:*",
-		"@mete/kernel": "workspace:*"
+		"@mete/kernel": "workspace:*",
+		"yaml": "2.9.1",
+		"zod": "4.6.5"
 	}
 }
