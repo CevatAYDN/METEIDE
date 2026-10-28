@@ -27,11 +27,14 @@ const separateDataLines = () => {
 	});
 };
 
-/** A fetch whose event-stream answers have one event per `data:` line; other answers pass unchanged. */
+/**
+ * A fetch whose event-stream answers have one event per `data:` line; other answers pass unchanged.
+ * Without `fetch` it uses the global fetch of the moment of each call, as the SDK does.
+ */
 export const separatedEvents =
-	(fetch: typeof globalThis.fetch): typeof globalThis.fetch =>
+	(fetch: typeof globalThis.fetch | undefined): typeof globalThis.fetch =>
 	async (input, init) => {
-		const res = await fetch(input, init);
+		const res = await (fetch ?? globalThis.fetch)(input, init);
 		const type = res.headers.get("content-type") ?? "";
 		if (!res.body || !type.includes("text/event-stream")) return res;
 		const body = res.body
