@@ -272,7 +272,7 @@
 			"preferModel": "Tercih edilen model (isteğe bağlı)",
 			"remove": "Çalıştırmayı kaldır",
 			"removeOk": "Kaldır",
-			"removeText": "Geçmişi, çalışma ağaçları, dalları, kontrol noktaları ve model çağrıları silinir; denetim günlüğü yaptıklarını tutar. Bu geri alınamaz.",
+			"removeText": "Geçmişi, çalışma ağaçları, dalları, kontrol noktaları ve model çağrıları silinir; denetim günlüğü yaptıklarını tutar, raporları .mete/artifacts içinde kalır. Bu geri alınamaz.",
 			"removeTitle": "Bu çalıştırma kaldırılsın mı?",
 			"removed": "Çalıştırma kaldırıldı.",
 			"resume": "Çalıştırmayı sürdür",

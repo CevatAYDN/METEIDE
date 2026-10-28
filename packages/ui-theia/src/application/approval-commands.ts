@@ -92,7 +92,7 @@ export class MeteApprovalContribution implements CommandContribution {
 			title: nls.localize("mete/run/removeTitle", "Remove this run?"),
 			msg: nls.localize(
 				"mete/run/removeText",
-				"Its history, worktrees, branches, checkpoints and model calls are deleted; the audit log keeps what it did. Nothing undoes this.",
+				"Its history, worktrees, branches, checkpoints and model calls are deleted; the audit log keeps what it did and its reports stay in .mete/artifacts. Nothing undoes this.",
 			),
 			ok: nls.localize("mete/run/removeOk", "Remove"),
 		}).open();

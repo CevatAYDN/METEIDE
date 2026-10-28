@@ -272,7 +272,7 @@
 			"preferModel": "Preferred model (optional)",
 			"remove": "Remove run",
 			"removeOk": "Remove",
-			"removeText": "Its history, worktrees, branches, checkpoints and model calls are deleted; the audit log keeps what it did. Nothing undoes this.",
+			"removeText": "Its history, worktrees, branches, checkpoints and model calls are deleted; the audit log keeps what it did and its reports stay in .mete/artifacts. Nothing undoes this.",
 			"removeTitle": "Remove this run?",
 			"removed": "Run removed.",
 			"resume": "Resume run",
