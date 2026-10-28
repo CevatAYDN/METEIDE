@@ -45,6 +45,6 @@ describe("research-report@1", () => {
 
 describe("artifactSchema", () => {
 	it("knows no schema for a type that is not defined yet", () => {
-		expect(artifactSchema("lesson@1")).toBeUndefined();
+		expect(artifactSchema("asset@1")).toBeUndefined();
 	});
 });

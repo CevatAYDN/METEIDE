@@ -316,6 +316,17 @@ export {
 	type TranscriptStep,
 } from "./domain/transcript.js";
 export {
+	type Lesson,
+	LessonSchema,
+	type VaultReadInput,
+	VaultReadInputSchema,
+	type VaultReadOutput,
+	type VaultScope,
+	type VaultWriteInput,
+	VaultWriteInputSchema,
+	type VaultWriteOutput,
+} from "./domain/vault.js";
+export {
 	type WebFetchInput,
 	WebFetchInputSchema,
 	type WebFetchOutput,

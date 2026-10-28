@@ -68,12 +68,12 @@ describe("loadTemplate", () => {
 	it("refuses a guardrail whose artifact type has no schema yet", async () => {
 		const text = yaml("solo", "Mine").replace(
 			"title: Draft }",
-			"title: Draft, guardrail: { schema: lesson@1 } }",
+			"title: Draft, guardrail: { schema: asset@1 } }",
 		);
 		await put(teams(), "solo", text);
 		const r = await loadTemplate(dirs, "solo");
 		expect(r.ok ? [] : r.error).toMatchObject({
-			issues: ["tasks.0.guardrail.schema: lesson@1 has no schema yet"],
+			issues: ["tasks.0.guardrail.schema: asset@1 has no schema yet"],
 		});
 	});
 

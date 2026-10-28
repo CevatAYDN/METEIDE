@@ -62,7 +62,16 @@ describe("tool catalog", () => {
 	it("treats file writes, edits, commands and commits as writes", () => {
 		for (const name of ["fs_write", "fs_edit", "shell_exec"])
 			expect(isWrite(call(name))).toBe(true);
-		for (const name of ["fs_read", "fs_list", "fs_glob", "fs_grep", "nope"])
+		// Vault notes are not workspace changes (ADR-145).
+		for (const name of [
+			"fs_read",
+			"fs_list",
+			"fs_glob",
+			"fs_grep",
+			"vault_read",
+			"vault_write",
+			"nope",
+		])
 			expect(isWrite(call(name))).toBe(false);
 		expect(isWrite(call("vcs_git", { op: "commit", message: "m" }))).toBe(true);
 		expect(isWrite(call("vcs_git", { op: "status" }))).toBe(false);

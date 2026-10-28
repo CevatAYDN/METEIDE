@@ -24,6 +24,7 @@ import {
 	ShellExecInputSchema,
 	VcsGitInputSchema,
 } from "./tools.js";
+import { VaultReadInputSchema, VaultWriteInputSchema } from "./vault.js";
 import { WebFetchInputSchema, WebSearchInputSchema } from "./web.js";
 
 // The capabilities a model may call as tools (docs/08, Single agent): `fs.read@1` becomes `fs_read`,
@@ -111,6 +112,19 @@ export const TOOL_CATALOG: readonly ToolCatalogEntry[] = [
 		schema: WebFetchInputSchema,
 		description: "Fetch a public web page as Markdown.",
 		external: true,
+	},
+	// ADR-145: notes, not workspace changes, so no checkpoint before them.
+	{
+		ref: "vault.read@1",
+		schema: VaultReadInputSchema,
+		description:
+			"Read a note of the project's vault (.mete/knowledge/) by its path, such as lessons/write-tests-first.md.",
+	},
+	{
+		ref: "vault.write@1",
+		schema: VaultWriteInputSchema,
+		description:
+			"Save a lesson, entity or decision note to the project's vault, or add to today's journal note; a note with the same title is updated. At most 3 new notes per run.",
 	},
 	{
 		ref: "browser.screenshot@2",

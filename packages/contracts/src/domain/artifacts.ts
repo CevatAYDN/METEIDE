@@ -7,6 +7,7 @@ import {
 	TaskListSchema,
 	TestReportSchema,
 } from "./game-studio.js";
+import { LessonSchema } from "./vault.js";
 
 // Artifact type schemas from docs/08 (Built-in templates); a guardrail validates output against them.
 
@@ -79,9 +80,9 @@ export const SeoAuditReportSchema = z.strictObject({
 /** A validated SEO audit report; the fixes are in rank order, the most important first. */
 export type SeoAuditReport = z.output<typeof SeoAuditReportSchema>;
 
-// shortcut: asset@1 and lesson@1 have no schema yet: an asset is a file with a manifest line, and
-// lessons come with the retrospectives of Phase 6.
+// shortcut: asset@1 has no schema yet: an asset is a file with a manifest line.
 const SCHEMAS: Readonly<Record<string, z.ZodType>> = {
+	"lesson@1": LessonSchema,
 	"research-report@1": ResearchReportSchema,
 	"seo-audit@1": SeoAuditReportSchema,
 	"gdd@1": GddSchema,
