@@ -310,6 +310,35 @@ describe("llm.chat@2 pipeline", () => {
 		expect(await first()).toMatchObject({ providerId: "a" });
 	});
 
+	// A pinned model that kept dropping mid-answer led every retry of its paused run (docs/09).
+	it("counts a failure after streaming toward the three, so a model that keeps dropping mid-answer goes last", async () => {
+		const ok = [text("x"), done];
+		const drop = [text("par"), status(500)];
+		const a = fakeProvider("a", [drop, ok, drop, drop, drop]);
+		const b = fakeProvider("b", [ok]);
+		const { deps: d } = deps({
+			discover: async () => [
+				offer(a.adapter, "m", 100_000),
+				offer(b.adapter, "n"),
+			],
+			quota: fakeQuota().quota,
+		});
+		const chat = createLlmChat(d);
+		const first = async () => {
+			const out = await collect(chat.chat(req, signal()));
+			return out.find((c) => c.type === "model");
+		};
+		// One drop leaves a in its place, and its answer clears the count.
+		expect(await first()).toMatchObject({ providerId: "a" });
+		expect(await first()).toMatchObject({ providerId: "a" });
+		// Three drops in a row: each call still ends with its error, then b leads.
+		for (let i = 0; i < 3; i++)
+			expect(await first()).toMatchObject({ providerId: "a" });
+		expect(b.seen).toHaveLength(0);
+		expect(await first()).toMatchObject({ providerId: "b" });
+		expect(a.seen).toHaveLength(5);
+	});
+
 	it("does not count refused models against the four tried per call", async () => {
 		const refusing = ["r1", "r2", "r3", "r4", "r5"].map((id) =>
 			fakeProvider(id, [[status(403)]]),

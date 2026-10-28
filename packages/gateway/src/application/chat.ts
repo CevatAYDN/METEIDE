@@ -287,7 +287,11 @@ const onFailure = async (
 	{ o, outcome, observations }: Failed,
 	signal: AbortSignal,
 ): Promise<LlmError | undefined> => {
-	if (outcome.streamed) return outcome.error;
+	// The caller has the partial answer, so the call ends, but the failure still counts (docs/09).
+	if (outcome.streamed) {
+		blame(st.memory, keyOf(o), outcome.error);
+		return outcome.error;
+	}
 	const n = (st.failures.get(o) ?? 0) + 1;
 	st.failures.set(o, n);
 	const step = afterFailure(outcome.error, n, observations, deps.now());
