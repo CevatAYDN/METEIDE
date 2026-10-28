@@ -169,15 +169,18 @@ type ChecksView = {
 	readonly state?: ProviderState | undefined;
 };
 
-// A key is saved unless the daemon says no_key; the field is never filled (ADR-087).
-const keyState = (s: ProviderState) =>
-	s.state === "no_key"
-		? nls.localize("mete/settings/keyNone", "No key is saved for it.")
-		: nls.localize(
-				"mete/settings/keySaved",
-				"A key is saved; the field never shows it. {0}",
-				stateText(s),
-			);
+// A key is saved when the endpoint's adapter is registered (ready, unusable, exhausted); inactive may
+// be a keychain that could not be read, so it says its state only. The field is never filled (ADR-087).
+const keyState = (s: ProviderState) => {
+	if (s.state === "no_key")
+		return nls.localize("mete/settings/keyNone", "No key is saved for it.");
+	if (s.state === "inactive") return stateText(s);
+	return nls.localize(
+		"mete/settings/keySaved",
+		"A key is saved; the field never shows it. {0}",
+		stateText(s),
+	);
+};
 
 const Checks = ({
 	id,

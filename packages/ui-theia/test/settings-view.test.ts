@@ -534,6 +534,9 @@ describe("the custom endpoints card (ADR-087)", () => {
 		);
 		expect(at("no_key")).toContain("No key is saved for it.");
 		expect(at("no_key")).not.toContain("A key is saved");
+		// inactive is also a keychain that could not be read, so it claims no key.
+		expect(at("inactive")).toContain("custom:my-lab: not active");
+		expect(at("inactive")).not.toContain("key is saved");
 		const unloaded = withEndpoints("global", 0, false, {
 			states: [{ id: "custom:other", state: "ready" }],
 		});
