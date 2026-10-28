@@ -92,6 +92,8 @@ describe("the game-studio template", () => {
 	it("turns an idea into an approved design, spawned tasks and a game in the workspace", async () => {
 		const repo = await tempRepo({ "README.md": "# game\n" });
 		const script = [
+			// The designer asks the human before it writes (ADR-142) and has no questions.
+			say("none"),
 			say(GDD),
 			APPROVE,
 			say(TASKS),
