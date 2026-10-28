@@ -120,7 +120,7 @@ export const ProviderStateSchema = z.discriminatedUnion("state", [
 /** What `ProviderStateSchema` parses. */
 export type ProviderState = z.infer<typeof ProviderStateSchema>;
 
-/** Result of `mete/quota`: one entry per provider module, and the pool's units (ADR-054). */
+/** Result of `mete/quota`: one entry per provider module and per custom endpoint (ADR-154), and the pool's units (ADR-054). */
 export const DaemonQuotaResultSchema = z.strictObject({
 	providers: z.array(ProviderStateSchema),
 	/** quota.reserve@4 `usage()` as it is (ADR-054), history included since version 9 (ADR-055). */
