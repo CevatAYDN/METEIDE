@@ -111,6 +111,14 @@ export {
 	TimestampSchema,
 } from "./domain/ids.js";
 export {
+	type KnowledgeHit,
+	type KnowledgeSearchInput,
+	KnowledgeSearchInputSchema,
+	type KnowledgeSearchOutput,
+	type NoteType,
+	NoteTypeSchema,
+} from "./domain/knowledge.js";
+export {
 	type LlmChatAdapter,
 	type LlmChatRequest,
 	LlmChatRequestSchema,

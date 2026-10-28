@@ -18,6 +18,7 @@ describe("tool catalog", () => {
 		expect(toolName("shell.exec@1")).toBe("shell_exec");
 		expect(capabilityOf("vcs_git")).toBe("vcs.git@2");
 		expect(capabilityOf("web_fetch")).toBe("web.fetch@1");
+		expect(capabilityOf("knowledge_search")).toBe("knowledge.search@1");
 		expect(capabilityOf("mcp_call")).toBeUndefined();
 		// Gemini's function names start with a letter or _ (ADR-120).
 		expect(toolName("3d.cleanup@1")).toBe("_3d_cleanup");
@@ -70,6 +71,7 @@ describe("tool catalog", () => {
 			"fs_grep",
 			"vault_read",
 			"vault_write",
+			"knowledge_search",
 			"nope",
 		])
 			expect(isWrite(call(name))).toBe(false);

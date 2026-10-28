@@ -4,6 +4,7 @@ import {
 	SeoAuditInputSchema,
 } from "./browser.js";
 import type { CapabilityRef } from "./ids.js";
+import { KnowledgeSearchInputSchema } from "./knowledge.js";
 import {
 	Cleanup3dInputSchema,
 	Export3dInputSchema,
@@ -125,6 +126,13 @@ export const TOOL_CATALOG: readonly ToolCatalogEntry[] = [
 		schema: VaultWriteInputSchema,
 		description:
 			"Save a lesson, entity or decision note to the project's vault, or add to today's journal note; a note with the same title is updated. At most 3 new notes per run.",
+	},
+	// ADR-149: searching notes changes nothing.
+	{
+		ref: "knowledge.search@1",
+		schema: KnowledgeSearchInputSchema,
+		description:
+			"Search the project's vault notes (lessons, decisions, entities, journal) by keywords; returns each matching note's path, title, section heading and a short snippet. Read the whole note with vault_read.",
 	},
 	{
 		ref: "browser.screenshot@2",
