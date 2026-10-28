@@ -119,7 +119,7 @@ export const Count = (props: {
 	<label className="mete-count-field">
 		{props.label}
 		<input
-			className="mete-field mete-count"
+			className="mete-field mete-number"
 			type="number"
 			min={0}
 			value={props.value ?? ""}

@@ -135,6 +135,7 @@ select.mete-field {
 	gap: 4px;
 }
 
-.mete-count {
+/* Not `.mete-count`: that is the tab and title count chip (mete-run.css), and every sheet is global. */
+.mete-number {
 	width: 8em;
 }
