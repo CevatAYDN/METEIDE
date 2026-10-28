@@ -9,8 +9,10 @@ import {
 	narrowedTo,
 	optionsOf,
 	preferOf,
+	settledChoice,
 	singleAgentModels,
 	startOf,
+	withEstimate,
 } from "../src/application/composer.js";
 import type { MeteDaemonService } from "../src/domain/status-service.js";
 
@@ -32,6 +34,38 @@ const FAILED: EstimateReply = {
 	ok: false,
 	error: { code: "stopped", detail: "x" },
 };
+
+describe("an estimate asked again with the run's model choice (ADR-155)", () => {
+	it("replaces one option's line, and leaves it out when the answer failed", () => {
+		const NOXERY: EstimateReply = {
+			ok: true,
+			value: {
+				providers: [{ providerId: "custom:noxery", requests: 12 }],
+				unassigned: 0,
+			},
+		};
+		const options = optionsOf(TEMPLATES, [GROQ, GROQ, GROQ]);
+		expect(
+			withEstimate(options, "single", NOXERY).map((o) => o.estimate),
+		).toEqual([
+			undefined,
+			"15 requests: groq 15; tasks the team adds come on top",
+			"15 requests: groq 15; tasks the team adds come on top",
+			"12 requests: custom:noxery 12",
+		]);
+		expect(
+			withEstimate(options, "web-dev", FAILED)[2]?.estimate,
+		).toBeUndefined();
+	});
+
+	it("is asked once a typed choice is one of the listed models, or cleared", () => {
+		const listed = ["custom:noxery/glm-5.3-flash", "nvidia/m"];
+		expect(settledChoice("custom:noxery/glm-5.3-flash", listed)).toBe(true);
+		expect(settledChoice("", listed)).toBe(true);
+		expect(settledChoice("custom:noxery/glm", listed)).toBe(false);
+		expect(settledChoice("nvidia/m", undefined)).toBe(false);
+	});
+});
 
 describe("optionsOf", () => {
 	it("lists the router's choice, each template with its description, then a single agent", () => {

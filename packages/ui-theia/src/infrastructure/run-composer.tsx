@@ -1,3 +1,4 @@
+import type { RunPrefer } from "@mete/contracts";
 import { CommandService, MessageService } from "@theia/core";
 import { Emitter } from "@theia/core/lib/common/event";
 import { inject, injectable } from "@theia/core/shared/inversify";
@@ -9,8 +10,10 @@ import {
 	narrowedTo,
 	optionsOf,
 	preferOf,
+	settledChoice,
 	singleAgentModels,
 	startOf,
+	withEstimate,
 } from "../application/composer.js";
 import {
 	type ComposerModel,
@@ -56,6 +59,8 @@ export class MeteRunComposer {
 	protected goal = "";
 	protected selected = "choose";
 	protected singleModel: string | undefined;
+	/** Counts the estimates asked again, so an answer that came after a newer ask is dropped. */
+	protected estimateAsked = 0;
 	protected roleModels: Record<string, Record<string, string>> = {};
 	protected readonly chainCache = new Map<string, readonly string[]>();
 	protected busy = false;
@@ -115,25 +120,53 @@ export class MeteRunComposer {
 		this.busy = true;
 		this.error = undefined;
 		this.changed.fire();
-		const rolePrefs =
-			typeof option.templateId === "string"
-				? this.roleModels[option.key]
-				: undefined;
-		const prefer = preferOf(
-			option.templateId,
-			this.singleModel,
-			rolePrefs,
-			option.roles?.map((r) => r.id),
-		);
 		const r = await this.daemon.startRun(
 			dir,
-			startOf(this.goal, option, prefer),
+			startOf(this.goal, option, this.preferFor(option)),
 		);
 		this.busy = false;
 		if (r.ok) return this.started(dir, r.value.runId);
 		if (r.error.code === "choose_template") this.narrow(r.error.suggestions);
 		else this.error = failureText(r.error);
 		this.changed.fire();
+	}
+
+	// The model choice of an option: the single agent's, or its roles' (ADR-122).
+	protected preferFor(option: ComposerOption): RunPrefer | undefined {
+		const rolePrefs =
+			typeof option.templateId === "string"
+				? this.roleModels[option.key]
+				: undefined;
+		return preferOf(
+			option.templateId,
+			this.singleModel,
+			rolePrefs,
+			option.roles?.map((r) => r.id),
+		);
+	}
+
+	// The chosen option's estimate asked again with its model choice (ADR-155); the last ask wins.
+	protected async reestimate(): Promise<void> {
+		const option = this.options().find((o) => o.key === this.selected);
+		const dir = this.dir;
+		if (!dir || option?.templateId === undefined) return;
+		const asked = ++this.estimateAsked;
+		const prefer = this.preferFor(option);
+		const reply = await this.daemon.estimate(dir, option.templateId, prefer);
+		if (asked !== this.estimateAsked || this.model.kind !== "ready") return;
+		this.all = withEstimate(this.all, option.key, reply);
+		const options = withEstimate(this.model.options, option.key, reply);
+		this.setModel({ ...this.model, options });
+	}
+
+	// A typed choice asks again once it is a listed model or cleared, so typing sends nothing.
+	protected chose(model: string, listed: readonly string[] | undefined) {
+		this.changed.fire();
+		if (settledChoice(model, listed)) void this.reestimate();
+	}
+
+	protected chosen(): ComposerOption | undefined {
+		return this.options().find((o) => o.key === this.selected);
 	}
 
 	protected options(): readonly ComposerOption[] {
@@ -183,7 +216,7 @@ export class MeteRunComposer {
 				}}
 				onSingleModel={(model) => {
 					this.singleModel = model;
-					this.changed.fire();
+					this.chose(model, this.chosen()?.models);
 				}}
 				onRoleModel={(roleId, model) => {
 					const current = this.roleModels[this.selected] ?? {};
@@ -191,7 +224,8 @@ export class MeteRunComposer {
 						...this.roleModels,
 						[this.selected]: { ...current, [roleId]: model },
 					};
-					this.changed.fire();
+					const role = this.chosen()?.roles?.find((r) => r.id === roleId);
+					this.chose(model, role?.models);
 				}}
 				onStart={() => void this.start()}
 				onEdit={(id) =>

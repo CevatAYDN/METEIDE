@@ -153,6 +153,24 @@ export const optionsOf = (
 	},
 ];
 
+/** The options with one option's estimate line from a new answer, which a failed one leaves out (ADR-155). */
+export const withEstimate = (
+	options: readonly ComposerOption[],
+	key: string,
+	reply: EstimateReply,
+): ComposerOption[] =>
+	options.map((o) => {
+		if (o.key !== key) return o;
+		const { estimate: _replaced, ...rest } = o;
+		return { ...rest, ...lineOf(reply, o.templateId !== null) };
+	});
+
+/** A typed model choice the estimate is asked again for: cleared, or one of the listed models (ADR-155). */
+export const settledChoice = (
+	model: string,
+	listed: readonly string[] | undefined,
+) => model.trim() === "" || (listed ?? []).includes(model);
+
 /** The router's suggestions, then a single agent: what the list narrows to when the router is unsure. */
 export const narrowedTo = (
 	suggestions: readonly string[],

@@ -28,6 +28,7 @@ import {
 	ok,
 	parseEvent,
 	type Result,
+	type RunPrefer,
 	type RunStart,
 	type Tier,
 	TranscriptSchema,
@@ -293,8 +294,8 @@ const composing = (send: Send) => ({
 		send(dir, DAEMON_METHODS.templates, {}, (raw) =>
 			DaemonTemplatesResultSchema.safeParse(raw),
 		),
-	estimate: (dir: string, templateId: string | null) =>
-		send(dir, DAEMON_METHODS.estimate, { templateId }, (raw) =>
+	estimate: (dir: string, templateId: string | null, prefer?: RunPrefer) =>
+		send(dir, DAEMON_METHODS.estimate, { templateId, prefer }, (raw) =>
 			DaemonEstimateResultSchema.safeParse(raw),
 		),
 	readTemplate: (dir: string, id: string) =>

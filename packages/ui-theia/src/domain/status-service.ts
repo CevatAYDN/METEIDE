@@ -19,6 +19,7 @@ import type {
 	ProviderState,
 	QuotaUsage,
 	Result,
+	RunPrefer,
 	RunStart,
 	Tier,
 	Transcript,
@@ -191,10 +192,12 @@ export interface MeteDaemonService {
 			DaemonFailure
 		>
 	>;
-	/** The requests a template, or a single agent for null, is estimated to need per ready provider (ADR-068). */
+	/** The requests a template, or a single agent for null, is estimated to need per ready provider (ADR-068),
+	 * with the run's own model choice (ADR-155). */
 	estimate(
 		workspaceDir: string,
 		templateId: string | null,
+		prefer?: RunPrefer,
 	): Promise<Result<Estimate, DaemonFailure>>;
 	/** The models a tier's chain would try for the needs, for the team editor's pinned model (ADR-077). */
 	chain(

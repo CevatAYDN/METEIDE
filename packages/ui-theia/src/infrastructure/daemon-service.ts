@@ -2,6 +2,7 @@ import type {
 	AllowScope,
 	ApprovalInput,
 	ModelRef,
+	RunPrefer,
 	RunStart,
 	Tier,
 } from "@mete/contracts";
@@ -137,8 +138,12 @@ export class MeteDaemonBackend
 		return this.host.templates(workspaceDir);
 	}
 
-	estimate(workspaceDir: string, templateId: string | null) {
-		return this.host.estimate(workspaceDir, templateId);
+	estimate(
+		workspaceDir: string,
+		templateId: string | null,
+		prefer?: RunPrefer,
+	) {
+		return this.host.estimate(workspaceDir, templateId, prefer);
 	}
 
 	readTemplate(workspaceDir: string, id: string) {
