@@ -23,15 +23,10 @@ export type WorkspaceActions = {
 // tooltip keeps the whole path.
 const TAIL = 32;
 
-/**
- * The folder that holds a workspace, cut at the front: the segments next to its name tell folders
- * apart, the drive and the home folder they share do not.
- */
-export const parentTail = (w: Workspace) => {
-	const parent = w.path.slice(
-		0,
-		Math.max(0, w.path.length - w.name.length - 1),
-	);
+const parentOf = (w: Workspace) =>
+	w.path.slice(0, Math.max(0, w.path.length - w.name.length - 1));
+
+const cutFront = (parent: string) => {
 	if (parent.length <= TAIL) return parent;
 	// The cut starts at a separator, so no segment shows half its name.
 	const cut = parent.slice(-(TAIL - 1));
@@ -39,11 +34,38 @@ export const parentTail = (w: Workspace) => {
 	return `…${at >= 0 ? cut.slice(at) : cut}`;
 };
 
+// Where two folders first differ, backed up to the separator before it.
+const splitAt = (a: string, b: string) => {
+	let i = 0;
+	while (i < a.length && a[i] === b[i]) i++;
+	return Math.max(a.lastIndexOf("\\", i - 1), a.lastIndexOf("/", i - 1));
+};
+
+/**
+ * The folder that holds a workspace, cut at the front: the segments next to its name tell folders
+ * apart, the drive and the home folder they share do not. When a workspace of the same name in
+ * `all` cuts to the same text, the folder starts where the two differ instead; the line's ellipsis
+ * cuts its end.
+ */
+export const parentTail = (w: Workspace, all: readonly Workspace[] = []) => {
+	const parent = parentOf(w);
+	const tail = cutFront(parent);
+	const twins = all
+		.filter((o) => o.uri !== w.uri && o.name === w.name)
+		.map(parentOf)
+		.filter((p) => p !== parent && cutFront(p) === tail);
+	if (twins.length === 0) return tail;
+	const at = Math.min(...twins.map((p) => splitAt(parent, p)));
+	return at > 0 ? `…${parent.slice(at)}` : parent;
+};
+
 const Row = ({
 	w,
+	all,
 	actions,
 }: {
 	readonly w: Workspace;
+	readonly all: readonly Workspace[];
 	readonly actions: WorkspaceActions;
 }) => (
 	// The side view's row (ADR-109): a folder tile, the name as the title, the folder that holds it
@@ -88,7 +110,7 @@ const Row = ({
 					</button>
 				)}
 			</span>
-			<span className="mete-sub mete-mono">{parentTail(w)}</span>
+			<span className="mete-sub mete-mono">{parentTail(w, all)}</span>
 		</span>
 	</li>
 );
@@ -125,7 +147,7 @@ export const WorkspacesSection = ({
 		</div>
 		<ul className="mete-side-list">
 			{workspaces.map((w) => (
-				<Row key={w.uri} w={w} actions={actions} />
+				<Row key={w.uri} w={w} all={workspaces} actions={actions} />
 			))}
 		</ul>
 	</section>

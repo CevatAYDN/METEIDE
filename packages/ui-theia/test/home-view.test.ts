@@ -398,6 +398,33 @@ describe("the Home view", () => {
 		).toBe(String.raw`…\0123456789abcdef\scratchpad`);
 	});
 
+	it("starts the folder of two same-named workspaces where they differ, when their cut folders read the same", () => {
+		const ws = (path: string) => ({
+			uri: `file:///${path}`,
+			name: "site",
+			path,
+			current: false,
+		});
+		const far = [
+			ws(
+				String.raw`C:\Temp\claude\20fb7283-59c4-4286-bad4-f818c6158d24\scratchpad\site`,
+			),
+			ws(
+				String.raw`C:\Temp\claude\e04ca12a-421d-4ccd-9613-6dcde9bc40b6\scratchpad\site`,
+			),
+		];
+		expect(far.map((w) => parentTail(w, far))).toEqual([
+			String.raw`…\20fb7283-59c4-4286-bad4-f818c6158d24\scratchpad`,
+			String.raw`…\e04ca12a-421d-4ccd-9613-6dcde9bc40b6\scratchpad`,
+		]);
+		// Folders whose cut folders already differ keep them.
+		const near = [ws("/work/clientA/site"), ws("/work/clientB/site")];
+		expect(near.map((w) => parentTail(w, near))).toEqual([
+			"/work/clientA",
+			"/work/clientB",
+		]);
+	});
+
 	it("opens another folder in a new window only while a run here is running or queued", () => {
 		const of = (status: string) =>
 			runsHere(homeModel({ ok: true, value: [run(status, "g", null)] }, AT));
