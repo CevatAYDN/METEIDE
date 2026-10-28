@@ -111,11 +111,11 @@ describe("mete/provider.models and mete/provider.test", () => {
 		expect(tested.results).toEqual([
 			{ modelId: "coder-1", ok: true, ms: expect.any(Number) },
 		]);
+		// No token cap: a run sends none, and a capped stream may fail where runs work (ADR-153).
 		expect(seen).toEqual([
 			{
 				model: "coder-1",
 				messages: [{ role: "user", content: "ping" }],
-				maxTokens: 16,
 			},
 		]);
 	});

@@ -33,10 +33,7 @@ export const AUDIT_LIMIT = 200;
 /** The one user message of a custom endpoint's Test probe (04 Decisions, ADR-087). */
 export const PROBE_PROMPT = "ping";
 
-/** The most tokens a Test probe asks for (04 Decisions, ADR-087). */
-export const PROBE_MAX_TOKENS = 16;
-
-/** How long one Test probe may take before it is aborted (04 Decisions, ADR-087). */
+/** How long one Test probe may take before it is aborted; the probe has no token cap (04 Decisions, ADR-087, ADR-153). */
 export const PROBE_TIMEOUT_MS = 30_000;
 
 /** How long one `mete/changes` read of the working tree may take before it is aborted (04 Decisions, ADR-100). */

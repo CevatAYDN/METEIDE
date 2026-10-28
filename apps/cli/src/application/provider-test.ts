@@ -3,11 +3,7 @@ import type {
 	ProviderError,
 	SecretsMaskAdapter,
 } from "@mete/contracts";
-import {
-	PROBE_MAX_TOKENS,
-	PROBE_PROMPT,
-	PROBE_TIMEOUT_MS,
-} from "../defaults.js";
+import { PROBE_PROMPT, PROBE_TIMEOUT_MS } from "../defaults.js";
 import type { App } from "../infrastructure/app.js";
 import { LISTING_TIMEOUT_MS } from "./provider-states.js";
 
@@ -53,7 +49,6 @@ const probe = async (
 		{
 			model: modelId,
 			messages: [{ role: "user", content: PROBE_PROMPT }],
-			maxTokens: PROBE_MAX_TOKENS,
 		},
 		AbortSignal.timeout(PROBE_TIMEOUT_MS),
 	);
