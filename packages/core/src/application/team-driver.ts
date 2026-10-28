@@ -40,6 +40,7 @@ import { afterApproval } from "./spawned.js";
 import {
 	createCheckpoint,
 	dropWorktree,
+	humanRequest,
 	landWorktree,
 	runWorktreeSetup,
 	startWorktree,
@@ -353,28 +354,33 @@ const lastReport = (team: TeamState) => {
 };
 
 // Only the human can go on: a human approval, or a blocked task.
-const waitForHuman = (
+const waitForHuman = async (
 	s: EngineState,
 	l: Live,
 	team: TeamState,
 	ids: readonly string[],
 ) => {
-	const pause = {
-		type: "PAUSE",
-		at: s.deps.now(),
-		reason: "approval",
-	} as const;
-	if (!l.snapshot.can(pause)) return;
+	const pause = () =>
+		({ type: "PAUSE", at: s.deps.now(), reason: "approval" }) as const;
+	if (!l.snapshot.can(pause())) return;
+	const tasks = ids.flatMap((id) => team.tasks[id] ?? []);
+	const waiting = tasks.filter((t) => t.status === "submitted");
+	const asks = await Promise.all(
+		waiting.map(async (t) => ({
+			id: t.id,
+			payload: await humanRequest(
+				s.deps,
+				{ runId: l.meta.id, worktree: t.context.worktree },
+				l.all.signal,
+			),
+		})),
+	);
+	// Paused or cancelled while git worked: the next turn asks again.
+	if (l.snapshot.value !== "running" || !l.snapshot.can(pause())) return;
 	// Before the pause, so a terminal that stops following at the pause still shows them.
-	for (const id of ids) {
-		const task = team.tasks[id];
-		if (task?.status !== "submitted") continue;
-		// ADR-132: where the submitted files wait, for the human to read.
-		const { worktree } = task.context;
-		const payload = { approver: "human", ...(worktree ? { worktree } : {}) };
-		emit(s, l, { type: "approval.requested", payload }, task.id);
-	}
-	apply(s, l, pause);
+	for (const { id, payload } of asks)
+		emit(s, l, { type: "approval.requested", payload }, id);
+	apply(s, l, pause());
 };
 
 /** Moves a team run whose active task is not in progress. */

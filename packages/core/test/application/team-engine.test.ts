@@ -716,6 +716,59 @@ describe("worktrees of writing tasks", () => {
 		expect(asked?.payload).toEqual({ approver: "human", worktree: "/wt" });
 	});
 
+	it("lists on that request the files git sees changed in the worktree, not deleted ones, and none past the cap (ADR-141)", async () => {
+		await writeFile(
+			join(templates.builtIn, "duo.yaml"),
+			BUILDER.replace("title: Build }", "title: Build, approval: human }"),
+		);
+		const askedWith = async (files: readonly object[]) => {
+			const vcs = fakeVcs(() =>
+				ok({ op: "worktree.create", path: "/wt", branch: "b", sha: "s" }),
+			);
+			const at: (string | undefined)[] = [];
+			const git: Tool = async (input, ctx) => {
+				if ((input as { op: string }).op !== "status")
+					return vcs.run(input, ctx);
+				at.push(ctx.cwd);
+				return ok({ op: "status", branch: "b", files });
+			};
+			const h = engineHarness({
+				scripts: [WRITE, reply("built")],
+				tools: [
+					["fs.write@1", async () => ok({ bytes: 2 })],
+					["vcs.git@2", git],
+				],
+				templates,
+			});
+			const runId = await start(h);
+			await settled(h, runId, "paused");
+			expect(at).toEqual(["/wt"]);
+			return h.events.find((e) => e.type === "approval.requested")?.payload;
+		};
+		const row = (path: string, index: string, worktree: string) => ({
+			path,
+			index,
+			worktree,
+		});
+		expect(
+			await askedWith([
+				row("index.html", "?", "?"),
+				row("css/site.css", " ", "M"),
+				row("old.txt", " ", "D"),
+				row("gone.txt", "D", " "),
+			]),
+		).toEqual({
+			approver: "human",
+			worktree: "/wt",
+			files: ["index.html", "css/site.css"],
+		});
+		const many = Array.from({ length: 201 }, (_, i) => row(`f${i}`, "?", "?"));
+		expect(await askedWith(many)).toEqual({
+			approver: "human",
+			worktree: "/wt",
+		});
+	});
+
 	it("starts none without vcs.git@2 or when git cannot make one, and logs why", async () => {
 		await writeFile(join(templates.builtIn, "duo.yaml"), BUILDER);
 		const bare = engineHarness({

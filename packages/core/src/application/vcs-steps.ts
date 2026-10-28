@@ -7,6 +7,7 @@ import {
 	WorktreeConfigSchema,
 } from "@mete/contracts";
 import type { ConfigReader } from "@mete/kernel";
+import { APPROVAL_FILES_MAX } from "../defaults.js";
 import { ShellRunSchema } from "../domain/verify.js";
 import { type Emit, runCapability, type StepDeps } from "./steps.js";
 
@@ -205,4 +206,37 @@ export const dropWorktree = async (
 			{ ...ids, reason: removed.error.message },
 			"worktree not removed after its merge",
 		);
+};
+
+/**
+ * The files a task changed in its worktree, as git status lists them there: added, modified and
+ * renamed, not deleted, since there is nothing to open (ADR-141). Undefined without vcs.git@2, when
+ * status fails, or past APPROVAL_FILES_MAX, so the reader lists the folder itself.
+ */
+const worktreeChanges = async (
+	deps: StepDeps,
+	at: { readonly runId: string; readonly worktree: string },
+	signal: AbortSignal,
+): Promise<string[] | undefined> => {
+	const chain = deps.registry.resolve<VcsGitAdapter>("vcs.git@2");
+	if (!chain.ok) return undefined;
+	const ctx = { runId: at.runId, cwd: at.worktree, signal };
+	const r = await chain.value[0].impl.run({ op: "status" }, ctx);
+	if (!r.ok || r.value.op !== "status") return undefined;
+	const files = r.value.files
+		.filter((f) => f.index !== "D" && f.worktree !== "D")
+		.map((f) => f.path);
+	return files.length > APPROVAL_FILES_MAX ? undefined : files;
+};
+
+/** What `approval.requested` tells the human of a submission: where its files wait and which it changed (ADR-132, ADR-141). */
+export const humanRequest = async (
+	deps: StepDeps,
+	at: { readonly runId: string; readonly worktree?: string | undefined },
+	signal: AbortSignal,
+) => {
+	const { runId, worktree } = at;
+	if (!worktree) return { approver: "human" };
+	const files = await worktreeChanges(deps, { runId, worktree }, signal);
+	return { approver: "human", worktree, ...(files ? { files } : {}) };
 };

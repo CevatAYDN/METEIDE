@@ -42,3 +42,6 @@ export const CHECKPOINT_KEEP_DAYS = 14;
 
 /** Characters a transcript shows of one tool argument or result before it cuts the rest (ADR-125). */
 export const TRANSCRIPT_FIELD_MAX = 4000;
+
+/** Paths an approval request lists of the files a task changed in its worktree; past it the request names none (07 Domain model and events, Events; ADR-141). */
+export const APPROVAL_FILES_MAX = 200;
