@@ -187,6 +187,13 @@ export type VaultReadOutput = { path: string; content: string };      // the not
 export type VaultWriteInput = { type: "lesson" | "entity" | "decision" | "journal"; title: string; body: string;
   tags?: string[]; scope?: VaultScope };
 export type VaultWriteOutput = { path: string; created: boolean };    // false: an existing note was updated or the journal appended
+// knowledge.search@1, defined in @mete/contracts; rules in tab 11 (Hybrid search, ADR-149). It returns ToolError too.
+export type NoteType = "decision" | "lesson" | "entity" | "journal" | "inbox";
+export type KnowledgeSearchInput = { query: string; scope?: VaultScope | "all"; k?: number;   // scope all, k 8 (1-30)
+  type?: NoteType; path?: string };                                 // path: a prefix inside the vault
+export type KnowledgeHit = { path: string; scope: VaultScope; type: NoteType; title: string; heading?: string;
+  snippet: string; sources: { keyword?: number } };                 // snippet at most 40 tokens; 1-based rank per source
+export type KnowledgeSearchOutput = { results: KnowledgeHit[] };    // best first, at most k
 // events.read@1, defined in @mete/contracts (ADR-144): one run's catalog events in seq order, and the rows that no longer parse.
 export type BrokenEvent = { seq: number; issues: string };
 export type RunEvents = { events: MeteEvent[]; broken: BrokenEvent[] };
@@ -364,7 +371,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | registry | `@mete/mcp` | optional | `registry.search@1` | `policy.check@1` | none | in-process |
 | knowledge-graph | `@mete/knowledge` | optional | `code.graph@1` | `fs.read@1` | `llm.chat@2` | worker |
 | vault | `@mete/knowledge` | optional | `vault.read@1`, `vault.write@1` | `fs.read@1`, `fs.write@1`, `events.read@1` (ADR-144) | none | in-process |
-| knowledge-search | `@mete/knowledge` | optional | `knowledge.search@1`, `knowledge.index@1` | `fs.grep@1` | `llm.embed@1`, `llm.rerank@1`, `code.graph@1`, `vault.read@1` | worker |
+| knowledge-search | `@mete/knowledge` | optional | `knowledge.search@1`, `knowledge.index@1` (not yet, ADR-149) | `storage.sql@1`, `fs.glob@1`, `fs.read@1` (ADR-149) | `llm.embed@1`, `llm.rerank@1`, `code.graph@1`, `vault.read@1` | in-process while it indexes the vault's notes; a worker for code and embedding index jobs (ADR-149) |
 | core-engine | `@mete/core` | essential | `team.engine@2` (native), `checkpoint.restore@1`, runs, router, artifacts, checkpoints | `llm.chat@2`, `fs.*`, `policy.check@1`, `secrets.mask@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@2`, `web.fetch@1`, `web.search@1`, `mcp.tools@1`, `knowledge.search@1`, `vault.*` | in-process |
 | autonomy | `@mete/core` | optional | triggers, schedules | `team.engine@2` | `issues.source@1` | in-process |
 | browser | `@mete/tools` | optional | `browser.screenshot@2`, `seo.audit@2` | `policy.check@1` | none | in-process; each call in a child process; Chromium comes from Playwright's own installer, not `runtime.ensure@1` (tab 10) \[D\] |

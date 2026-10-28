@@ -97,12 +97,21 @@ Input: `query`, `scope` (`workspace` | `personal` | `all`, default `all`), `k` (
 
 Degradation: no embeddings → no vector source; no graph → no graph source; no vault → code only; no knowledge-search module → plain ripgrep \[C\].
 
+Output: the results best first, at most `k`, each with the note's path relative to the vault, its scope, type and title, the matching section's heading, a snippet of the section of at most 40 tokens (the whole note is read through `vault.read@1`) and its rank in each source that found it. Today the keyword source answers alone, over the workspace vault's notes (ADR-149) \[D\]:
+
+- The index is the FTS5 table `knowledge_chunks` and the table `knowledge_files` in the workspace `mete.db`: one row per heading section, a section over 1,000 tokens split into several rows, frontmatter left out, tokenizer `unicode61` with accents folded. The dotless `ı` is not folded into `i`.
+- A note's title is its frontmatter `title`, else its first `#` heading, else its file name; its type is its frontmatter `type` when that is one of the five above, else its folder's. A note with neither, such as a file at the vault's top, is not indexed; a workspace without a vault answers no results.
+- Before each search the vault's `.md` files are listed through `fs.glob@1` and read through `fs.read@1`, so `.meteignore` applies; a note whose SHA-256 is unchanged is not indexed again. `.history/` and notes with `private: true` are never indexed.
+- Each word of the query is searched as a phrase, never as FTS5 syntax; results are ordered by BM25, then by path.
+- `scope: personal` answers `not_found` until the personal vault's folder is chosen; `all` answers the workspace's results.
+- The model tool `knowledge_search` goes to a team role whose capabilities name `knowledge.search@1`; the single agent keeps the `fs`, `shell` and `vcs` tools (tab 08).
+
 ## Indexing
 
 - Chunking \[D\]: code by symbol up to 1,500 tokens; Markdown by heading section up to 1,000 tokens; other text in 1,000-token windows with 100 tokens of overlap.
 - Embedding cache key: SHA-256 of the chunk text plus the embedding model id. Only changed chunks are embedded, in batches of 32 \[D\].
 - Changing the embedding model triggers a background re-index; vectors store the model id that produced them \[C\].
-- Index jobs run in a worker thread at quota priority P2, so they never slow interactive work \[C\].
+- Index jobs run in a worker thread at quota priority P2, so they never slow interactive work \[C\]. The vault's keyword index runs in-process before each search until code and embeddings are indexed (ADR-149).
 - Notes with `private: true` and files matched by `.meteignore` are never embedded, because embedding sends their text to a provider \[D\].
 
 ## Shared memory server
