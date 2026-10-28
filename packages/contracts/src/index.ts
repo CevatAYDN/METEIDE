@@ -250,8 +250,11 @@ export {
 	TaskStatusSchema,
 } from "./domain/states.js";
 export type {
+	BrokenEvent,
+	EventsReadAdapter,
 	Migration,
 	MigrationError,
+	RunEvents,
 	ScopedStorage,
 	StorageScope,
 	StorageSqlAdapter,

@@ -1,4 +1,5 @@
 import type BetterSqlite3 from "better-sqlite3";
+import type { MeteEvent } from "./events.js";
 import type { Result } from "./result.js";
 
 // storage.sql@1 from docs/06-kernel-and-modules.md (Kernel API).
@@ -32,4 +33,18 @@ export interface ScopedStorage {
 /** The storage.sql@1 adapter; the composition root builds `ModuleContext.storage` with it. */
 export interface StorageSqlAdapter {
 	scopeFor(moduleId: string): ScopedStorage;
+}
+
+/** A persisted row that is no valid event any more; reported, never skipped in silence. */
+export type BrokenEvent = { readonly seq: number; readonly issues: string };
+
+/** One run's persisted catalog events in `seq` order, and the rows that no longer parse. */
+export type RunEvents = {
+	readonly events: readonly MeteEvent[];
+	readonly broken: readonly BrokenEvent[];
+};
+
+/** The events.read@1 adapter of the storage module (docs/06, Capability catalog; ADR-144). */
+export interface EventsReadAdapter {
+	read(runId: string): RunEvents;
 }
