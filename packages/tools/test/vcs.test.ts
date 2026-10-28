@@ -105,7 +105,8 @@ describe("vcs-git beyond the kit", () => {
 	});
 
 	// ADR-072: every .mete yaml file, team template and mapping file (ADR-120) is kept like the
-	// policy, and an agent's own output under .mete is restored like any other file.
+	// policy, and an agent's own output under .mete is restored like any other file, except the
+	// vault (ADR-146).
 	it("keeps every .mete yaml file, team template and mapping file as it is, and still undoes artifacts", async () => {
 		const { w, git, run } = await setup();
 		await w.put(".mete/privacy.yaml", "allowTraining: false\n");
@@ -128,6 +129,27 @@ describe("vcs-git beyond the kit", () => {
 		expect(await read(".mete/teams/new.yaml")).toBe("id: new\n");
 		expect(await read(".mete/adapters/m.yaml")).toBe("type: mcp\n");
 		expect(await read("a.txt")).toBe("a\n");
+		await expect(read(".mete/artifacts/out.md")).rejects.toThrow();
+	});
+
+	// ADR-146: notes are not workspace changes, so the vault's folders stay as they are now.
+	it("keeps the workspace vault as it is, notes written after the checkpoint included", async () => {
+		const { w, git, run } = await setup();
+		await w.put(".mete/knowledge/lessons/a.md", "a\n");
+		await git("add", "-A");
+		await git("commit", "-q", "-m", "base");
+		const ref = refOf(await run({ op: "checkpoint.create", runId: RUN }));
+		await w.put(".mete/knowledge/lessons/a.md", "a, updated\n");
+		await w.put(".mete/knowledge/lessons/b.md", "b\n");
+		await w.put(".mete/knowledge/journal/2026-10-28.md", "report\n");
+		await w.put(".mete/artifacts/out.md", "out\n");
+		expect((await run({ op: "checkpoint.restore", ref })).ok).toBe(true);
+		const read = (p: string) => readFile(join(w.workspaceDir, p), "utf8");
+		expect(await read(".mete/knowledge/lessons/a.md")).toBe("a, updated\n");
+		expect(await read(".mete/knowledge/lessons/b.md")).toBe("b\n");
+		expect(await read(".mete/knowledge/journal/2026-10-28.md")).toBe(
+			"report\n",
+		);
 		await expect(read(".mete/artifacts/out.md")).rejects.toThrow();
 	});
 

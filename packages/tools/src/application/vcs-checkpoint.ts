@@ -23,6 +23,9 @@ const isProtected = (p: string) =>
 	/^\.mete\/[^/]+\.yaml$/.test(p) ||
 	p.startsWith(".mete/teams/") ||
 	p.startsWith(".mete/adapters/");
+// A restore also leaves the workspace vault as it is: notes are not workspace changes (ADR-146; docs/11).
+const isKept = (p: string) =>
+	isProtected(p) || p.startsWith(".mete/knowledge/");
 // Exact bytes both ways: no line-ending conversion into the checkpoint or out of it.
 const RAW = ["-c", "core.autocrlf=false"];
 export const IDENTITY = {
@@ -109,9 +112,9 @@ const added = async (
 	const kept = new Set(names);
 	return ok({
 		extra: [...new Set(zList(now.value))].filter(
-			(p) => !kept.has(p) && !isProtected(p),
+			(p) => !kept.has(p) && !isKept(p),
 		),
-		held: names.filter(isProtected),
+		held: names.filter(isKept),
 	});
 };
 
@@ -136,8 +139,19 @@ export const restoreCheckpoint = async (
 	const steps = [
 		["read-tree", ref],
 		// Literal paths: a file name is never a pathspec pattern. Without a held file there is nothing to drop.
+		// -r: held names the checkpoint's folders too (ls-tree -t), such as the vault's lessons/.
 		...(held.length > 0
-			? [["--literal-pathspecs", "rm", "--cached", "--quiet", "--", ...held]]
+			? [
+					[
+						"--literal-pathspecs",
+						"rm",
+						"-r",
+						"--cached",
+						"--quiet",
+						"--",
+						...held,
+					],
+				]
 			: []),
 		[...RAW, "checkout-index", "--all", "--force"],
 	];
