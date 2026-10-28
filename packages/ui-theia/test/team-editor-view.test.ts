@@ -247,6 +247,10 @@ describe("the rules of the work", () => {
 
 	it("shows what a task list gives each member once a task spawns, and not in a team where none does", () => {
 		expect(game.match(/Tasks a task list gives this member/g)).toHaveLength(6);
+		// Each task and each member's spawn defaults has the lesson tick (ADR-145).
+		expect(game.match(/Writes a lesson to the vault/g)).toHaveLength(
+			teamOf(GAME.value).tasks.length + 6,
+		);
 		expect(html(ready(DOC))).not.toContain(
 			"Tasks a task list gives this member",
 		);
