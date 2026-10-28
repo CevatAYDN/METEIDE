@@ -242,3 +242,39 @@
 		animation: none;
 	}
 }
+
+/* The board's widths need a 1278 px card; a window snapped to half of a 2560 px screen leaves about
+   860 px, which pushed Resets and History out of sight. A narrower card gets the narrowest widths
+   that still hold each cell (the meter, a unit name, a provider id) and tighter padding.
+   shortcut: a card under about 850 px still scrolls sideways; stack the rows if that size matters. */
+@container (max-width: 1000px) {
+	.mete-quota-card thead th,
+	.mete-quota-card tbody td {
+		padding-left: 10px;
+		padding-right: 10px;
+	}
+
+	.mete-quota-card col.provider {
+		width: 124px;
+	}
+
+	.mete-quota-card col.unit {
+		width: 172px;
+	}
+
+	.mete-quota-card col.model {
+		width: 84px;
+	}
+
+	.mete-quota-card col.used {
+		width: 132px;
+	}
+
+	.mete-quota-card col.limit {
+		width: 86px;
+	}
+
+	.mete-quota-card col.reset {
+		width: 104px;
+	}
+}

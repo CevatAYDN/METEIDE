@@ -45,6 +45,30 @@ test("the status bar opens the main screens", async ({ mete }) => {
 	).toBeVisible({ timeout: 60_000 });
 });
 
+// A window snapped to half of a 2560 px screen leaves the Quota card about 860 px: every column,
+// Resets and History included, fits in it, with no sideways scroll hiding one.
+test("the Quota table fits a half-screen window", async ({ mete }) => {
+	const { page } = mete;
+	const cdp = await page.context().newCDPSession(page);
+	await cdp.send("Emulation.setDeviceMetricsOverride", {
+		width: 1280,
+		height: 1392,
+		deviceScaleFactor: 1,
+		mobile: false,
+	});
+	await runCommand(page, "METE: Open quota dashboard");
+	const card = page.getByRole("region", { name: "Quota units" });
+	await expect(card.locator("tbody tr").first()).toBeVisible({
+		timeout: 60_000,
+	});
+	const [client, scroll] = await card.evaluate((e) => [
+		e.clientWidth,
+		e.scrollWidth,
+	]);
+	expect(client).toBeLessThan(1000);
+	expect(scroll).toBeLessThanOrEqual(client + 2);
+});
+
 // A tool that saves an image under .mete/assets/ notes it in the manifest (packages/mcp); the
 // Assets view (docs/13; ADR-114) lists it with its picture and the call that saved it.
 const SHOT =
