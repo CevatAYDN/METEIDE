@@ -8,6 +8,7 @@ import {
 	type TeamState,
 	TeamStateSchema,
 	teamOf,
+	withLesson,
 } from "../../src/domain/team.js";
 
 const role = (id: string) => ({
@@ -181,6 +182,20 @@ describe("team state", () => {
 		expect(repaired.tasks.a?.repairs).toBe(2);
 		const submitted = run(repaired, "a", { type: "SUBMIT", report: "r" });
 		expect(submitted.tasks.a?.repairs).toBe(0);
+	});
+
+	// docs/08, step 8: an approved task's lesson comes before the next task, and is asked once.
+	it("asks an approved task's lesson before going on, once", () => {
+		const t0 = research();
+		const tasks = t0.tasks.map((x) =>
+			x.id === "a" ? { ...x, memory: { write_lessons: true } } : x,
+		);
+		let t = teamOf({ ...t0, tasks });
+		t = approve(done(t, "a"), "a", "system").team;
+		expect(nextTeamStep(t)).toEqual({ kind: "lesson", taskId: "a" });
+		t = withLesson(t, "a", "skipped");
+		expect(nextTeamStep(t)).toEqual({ kind: "start", taskId: "b" });
+		expect(TeamStateSchema.parse(JSON.parse(JSON.stringify(t)))).toEqual(t);
 	});
 
 	it("survives a JSON round trip through its schema", () => {

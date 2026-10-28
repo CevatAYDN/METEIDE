@@ -82,6 +82,7 @@ export type RunEvent =
 	| { type: "TEAM"; team: TeamState }
 	| { type: "PREFER"; prefer: RunPrefer | undefined }
 	| { type: "SUMMARIZED"; messages: readonly ChatMessage[] }
+	| { type: "LEARNED"; team: TeamState; replied: boolean }
 	| { type: "REPAIR"; team: TeamState; content: string }
 	| {
 			type: "SWITCH";
@@ -171,6 +172,13 @@ export const runMachine = setup({
 				requests: context.requests + 1,
 				checkpointed: -1,
 				snapshot: undefined,
+			})),
+		},
+		// The lesson turn after an approval (docs/08, step 8): a cloud request when a reply came, no turn.
+		LEARNED: {
+			actions: assign(({ context, event }) => ({
+				team: event.team,
+				requests: context.requests + (event.replied ? 1 : 0),
 			})),
 		},
 		// A guardrail repair stays in the attempt: one more user message, turns keep counting.

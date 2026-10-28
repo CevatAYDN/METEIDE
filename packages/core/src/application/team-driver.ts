@@ -28,6 +28,7 @@ import {
 	verifyOf,
 } from "../domain/team-run.js";
 import { announce, saveArtifact } from "./artifacts.js";
+import { lessonTurn } from "./lesson.js";
 import {
 	apply,
 	type EngineState,
@@ -373,6 +374,7 @@ export const teamTurn = (s: EngineState, l: Live, team: TeamState) => {
 	if (next.kind === "start") return start(s, l, team, next.taskId);
 	if (next.kind === "accept") return accept(s, l, team, next.taskId);
 	if (next.kind === "merge") return merge(s, l, team, next.taskId);
+	if (next.kind === "lesson") return lessonTurn(s, l, team, next.taskId);
 	if (next.kind === "approve") return openReview(s, l, team, next);
 	if (next.kind === "wait") return waitForHuman(s, l, team, next.taskIds);
 	const summary = lastReport(team);

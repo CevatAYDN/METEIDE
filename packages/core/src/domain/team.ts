@@ -47,6 +47,8 @@ const TaskEntrySchema = z.strictObject({
 	approvals: z.array(z.string()),
 	/** Guardrail repairs asked in the current attempt (docs/08, step 4). */
 	repairs: z.number().int().nonnegative(),
+	/** The lesson asked after approval (docs/08, step 8): written, or skipped for good. */
+	lesson: z.enum(["written", "skipped"]).optional(),
 	/** The Artifact (docs/07) of the task's expected_output, once submitted. */
 	artifact: z
 		.strictObject({
@@ -73,7 +75,7 @@ type TaskEntry = TeamState["tasks"][string];
 /** What the team does next. */
 export type TeamStep =
 	| {
-			readonly kind: "work" | "start" | "accept" | "merge";
+			readonly kind: "work" | "start" | "accept" | "merge" | "lesson";
 			readonly taskId: string;
 	  }
 	| { readonly kind: "approve"; readonly taskId: string; readonly by: string }
@@ -302,11 +304,33 @@ const unmerged = (team: TeamState, id: string) =>
 /** Whether an approved task still has its worktree to merge. */
 export const waitsToMerge = (team: TeamState, id: string) => unmerged(team, id);
 
-/** Decides the team's next step from its state alone, in template order; a pending merge comes first. */
+// An approved, merged task whose template asks for a lesson and has none yet (docs/08, step 8).
+const owesLesson = (team: TeamState, id: string) =>
+	statusOf(team, id) === "approved" &&
+	!unmerged(team, id) &&
+	team.tasks[id]?.lesson === undefined &&
+	team.template.tasks.find((t) => t.id === id)?.memory?.write_lessons === true;
+
+/** Records how a task's lesson ended, so it is asked once. */
+export const withLesson = (
+	team: TeamState,
+	id: string,
+	lesson: "written" | "skipped",
+): TeamState => {
+	const entry = team.tasks[id];
+	return entry ? withEntry(team, id, { ...entry, lesson }) : team;
+};
+
+/**
+ * Decides the team's next step from its state alone, in template order; a pending merge comes first,
+ * then an approved task's lesson, before the next task starts or the run completes.
+ */
 export const nextTeamStep = (team: TeamState): TeamStep => {
 	const ids = team.template.tasks.map((t) => t.id);
 	const landing = ids.find((id) => unmerged(team, id));
 	if (landing) return { kind: "merge", taskId: landing };
+	const learning = ids.find((id) => owesLesson(team, id));
+	if (learning) return { kind: "lesson", taskId: learning };
 	const working = ids.find((id) => statusOf(team, id) === "in_progress");
 	if (working) return { kind: "work", taskId: working };
 	const reviewed = review(team, ids);
