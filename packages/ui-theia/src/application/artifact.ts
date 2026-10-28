@@ -1,4 +1,4 @@
-import type { TeamView } from "@mete/ui-studio";
+import type { TaskCard, TeamView } from "@mete/ui-studio";
 
 // Which report the approvals inbox opens for a run (docs/13: approvals with an artifact preview):
 // the one of the task that waits for review, else the latest any task wrote. shortcut: the diff
@@ -13,6 +13,6 @@ export const artifactToOpen = (view: TeamView): string | undefined => {
 	return (waiting ?? latest)?.artifactPath?.replaceAll("\\", "/");
 };
 
-/** The worktree of the task that waits for the human, whose files the inbox lists when the run has no report (ADR-133). */
-export const worktreeToShow = (view: TeamView): string | undefined =>
-	view.tasks.find((t) => t.worktree)?.worktree;
+/** The task that waits for the human in a worktree, whose files the inbox lists when the run has no report (ADR-133, ADR-141). */
+export const worktreeTaskOf = (view: TeamView): TaskCard | undefined =>
+	view.tasks.find((t) => t.worktree);

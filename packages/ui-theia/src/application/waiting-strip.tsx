@@ -19,8 +19,8 @@ export type WaitingControls = {
 	readonly onRevise: (feedback: string) => void;
 	readonly onResume: () => void;
 	readonly onOpen: (path: string) => void;
-	/** Lists the files of a submitted task's worktree to open one (ADR-132). */
-	readonly onShowFiles: (worktree: string) => void;
+	/** Lists the files of a submitted task's worktree to open one: those it changed, when known (ADR-132, ADR-141). */
+	readonly onShowFiles: (worktree: string, files?: readonly string[]) => void;
 	readonly onAllow?:
 		| ((scope: AllowScope) => Promise<string | undefined>)
 		| undefined;
@@ -118,15 +118,17 @@ const ReportChip = ({
 // The files the task wrote, when it has a worktree, to read before approving (ADR-132).
 const ShowFiles = ({
 	worktree,
+	files,
 	onShow,
 }: {
 	readonly worktree: string;
-	readonly onShow: (worktree: string) => void;
+	readonly files: readonly string[] | undefined;
+	readonly onShow: WaitingControls["onShowFiles"];
 }) => (
 	<button
 		type="button"
 		className="mete-button quiet"
-		onClick={() => onShow(worktree)}
+		onClick={() => onShow(worktree, files)}
 	>
 		<Icon name="files" />
 		{nls.localize("mete/waiting/showFiles", "Show files")}
@@ -155,7 +157,11 @@ const Asked = ({
 	>
 		<ReportChip task={task} onOpen={controls.onOpen} />
 		{task.worktree ? (
-			<ShowFiles worktree={task.worktree} onShow={controls.onShowFiles} />
+			<ShowFiles
+				worktree={task.worktree}
+				files={task.files}
+				onShow={controls.onShowFiles}
+			/>
 		) : null}
 		<div className="mete-wait-actions">
 			<button

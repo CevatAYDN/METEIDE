@@ -47,4 +47,30 @@ describe("Show files (ADR-132)", () => {
 		expect(opened).toEqual(["index.html"]);
 		expect(tab.storeState()).toBeUndefined();
 	});
+
+	it("offers the files the request lists, pages first, without walking the folder, and an empty list as nothing to show (ADR-141)", async () => {
+		const offered: string[][] = [];
+		const said: string[] = [];
+		const deps = {
+			files: {
+				resolve: async () => {
+					throw new Error("walked");
+				},
+			},
+			quick: {
+				pick: async (items: { label: string }[]) => {
+					offered.push(items.map((i) => i.label));
+					return undefined;
+				},
+			},
+			messages: {
+				info: async (m: string) => void said.push(m),
+				warn: async (m: string) => void said.push(m),
+			},
+		} as unknown as ShowFilesDeps;
+		await showWorktreeFiles(deps, "/w/tree", ["styles.css", "index.html"]);
+		await showWorktreeFiles(deps, "/w/tree", []);
+		expect(offered).toEqual([["index.html", "styles.css"]]);
+		expect(said).toEqual(["This task has no files to show."]);
+	});
 });

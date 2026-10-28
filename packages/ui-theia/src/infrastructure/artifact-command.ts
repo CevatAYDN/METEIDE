@@ -11,7 +11,7 @@ import { QuickInputService } from "@theia/core/lib/common/quick-pick-service";
 import { inject, injectable } from "@theia/core/shared/inversify";
 import { FileService } from "@theia/filesystem/lib/browser/file-service";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
-import { artifactToOpen, worktreeToShow } from "../application/artifact.js";
+import { artifactToOpen, worktreeTaskOf } from "../application/artifact.js";
 import {
 	failureText,
 	noFolderText,
@@ -77,10 +77,11 @@ export class MeteArtifactContribution implements CommandContribution {
 		const view = applyAll(runId, EMPTY_TEAM_VIEW, r.value.events);
 		const path = artifactToOpen(view);
 		// No report: the files of the task that waits for the human, as its card's Show files (ADR-133).
-		const worktree = path ? undefined : worktreeToShow(view);
-		if (worktree) {
+		const task = path ? undefined : worktreeTaskOf(view);
+		if (task?.worktree) {
 			const { files, quick, openers, messages } = this;
-			return showWorktreeFiles({ files, quick, openers, messages }, worktree);
+			const deps = { files, quick, openers, messages };
+			return showWorktreeFiles(deps, task.worktree, task.files);
 		}
 		if (!path)
 			return void this.messages.info(

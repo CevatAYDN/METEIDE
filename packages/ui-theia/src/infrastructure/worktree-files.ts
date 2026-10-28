@@ -56,14 +56,20 @@ const notKept = (tab: unknown) => {
 		stateful.storeState = () => undefined;
 };
 
-/** Lists the files of a task's worktree and opens the one picked, a page rendered (ADR-129, ADR-132). */
+/**
+ * Lists the files of a task's worktree and opens the one picked, a page rendered (ADR-129, ADR-132):
+ * the files its request lists as changed, or without a list every file of the folder (ADR-141).
+ */
 export const showWorktreeFiles = async (
 	deps: ShowFilesDeps,
 	worktree: string,
+	changed?: readonly string[],
 ): Promise<void> => {
 	const dir = URI.fromFilePath(worktree);
 	try {
-		const names = await worktreeFiles(deps.files, dir);
+		const names = changed
+			? ranked(changed)
+			: await worktreeFiles(deps.files, dir);
 		if (names.length === 0)
 			return void deps.messages.info(
 				nls.localize("mete/waiting/noFiles", "This task has no files to show."),

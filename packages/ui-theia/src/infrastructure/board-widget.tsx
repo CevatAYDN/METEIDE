@@ -243,9 +243,13 @@ export class MeteBoardWidget extends MetePanelWidget {
 	}
 
 	// The files a submitted task wrote, in its worktree, for the human to read before deciding (ADR-132).
-	protected showFiles(worktree: string): Promise<void> {
+	protected showFiles(
+		worktree: string,
+		changed?: readonly string[],
+	): Promise<void> {
 		const { files, quick, openers, messages } = this;
-		return showWorktreeFiles({ files, quick, openers, messages }, worktree);
+		const deps = { files, quick, openers, messages };
+		return showWorktreeFiles(deps, worktree, changed);
 	}
 
 	protected override onAfterShow(msg: Message): void {
@@ -337,7 +341,8 @@ export class MeteBoardWidget extends MetePanelWidget {
 					void this.decide(REVISE_RUN_COMMAND.id, feedback),
 				onResume: () => void this.decide(RESUME_RUN_COMMAND.id),
 				onAllow: (scope) => this.allowShown(scope),
-				onShowFiles: (worktree) => void this.showFiles(worktree),
+				onShowFiles: (worktree, changed) =>
+					void this.showFiles(worktree, changed),
 			},
 		};
 	}
