@@ -116,6 +116,31 @@ describe("heroOf", () => {
 		);
 	});
 
+	it("tells how long an ended run was paused, from a minute on (ADR-139)", () => {
+		const done: RunEntry = {
+			...RUN,
+			status: "completed",
+			endedAt: "2026-10-24T15:14:20",
+		};
+		const pausedFor = (ms: number): TeamView => ({
+			...EMPTY_TEAM_VIEW,
+			signals: { ...EMPTY_TEAM_VIEW.signals, paused: ms },
+		});
+		expect(factTexts({ run: done }, pausedFor(12 * 60_000), NOW)).toEqual(
+			expect.arrayContaining(["took 14 min", "paused 12 min"]),
+		);
+		expect(factTexts({ run: done }, pausedFor(65 * 60_000), NOW)).toContain(
+			"paused 1 h 5 min",
+		);
+		// Ten seconds of waiting round to nothing, and a run not ended tells no pause.
+		expect(
+			factTexts({ run: done }, pausedFor(10_000), NOW).join(),
+		).not.toContain("paused");
+		expect(
+			factTexts({ run: RUN }, pausedFor(12 * 60_000), NOW).join(),
+		).not.toContain("paused");
+	});
+
 	it("words the team by its id until its file is read, and a run without a team as a single agent", () => {
 		expect(factTexts({ run: RUN }, EMPTY_TEAM_VIEW, NOW)).toContain("Web dev");
 		expect(

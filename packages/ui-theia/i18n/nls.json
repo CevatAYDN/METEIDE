@@ -438,6 +438,8 @@
 			"glance": "Team at a glance",
 			"limits": "up to {0} requests, {1} h",
 			"paused": "Paused",
+			"pausedHours": "paused {0} h {1} min",
+			"pausedMinutes": "paused {0} min",
 			"progress": "{0} of {1} tasks done",
 			"queued": "Queued",
 			"running": "Running",

@@ -438,6 +438,8 @@
 			"glance": "Ekibe bir bakış",
 			"limits": "en çok {0} istek, {1} sa",
 			"paused": "Duraklatıldı",
+			"pausedHours": "{0} sa {1} dk duraklatıldı",
+			"pausedMinutes": "{0} dk duraklatıldı",
 			"progress": "{1} görevden {0} tanesi bitti",
 			"queued": "Sırada",
 			"running": "Çalışıyor",

@@ -39,6 +39,20 @@ export const tookText = (ms: number): string => {
 	);
 };
 
+/** How long an ended run was paused, from a minute on (ADR-139); nothing for less. */
+export const pausedText = (ms: number): string | undefined => {
+	const minutes = Math.round(ms / 60_000);
+	if (minutes < 1) return undefined;
+	if (minutes < 60)
+		return nls.localize("mete/strip/pausedMinutes", "paused {0} min", minutes);
+	return nls.localize(
+		"mete/strip/pausedHours",
+		"paused {0} h {1} min",
+		Math.floor(minutes / 60),
+		minutes % 60,
+	);
+};
+
 /** A fact of the meta line, with the whole reading in its tooltip. */
 export type Fact = {
 	readonly key: string;
@@ -75,7 +89,8 @@ const teamFact = (facts: RunFacts, run: RunEntry): Fact => ({
 			: (facts.teamName ?? roleWords(run.templateId)),
 });
 
-const timeFacts = (run: RunEntry, now: Date): Fact[] => {
+// An ended run tells how long it took and, apart, how long of it was paused (ADR-139).
+const timeFacts = (run: RunEntry, now: Date, paused: number): Fact[] => {
 	const at = run.startedAt ?? run.createdAt;
 	const started: Fact = {
 		key: "started",
@@ -84,12 +99,22 @@ const timeFacts = (run: RunEntry, now: Date): Fact[] => {
 	};
 	if (!run.endedAt) return [started];
 	const took = tookText(Date.parse(run.endedAt) - Date.parse(at));
-	return [started, { key: "took", text: took }];
+	const pause = pausedText(paused);
+	return [
+		started,
+		{ key: "took", text: took },
+		...(pause ? [{ key: "paused", text: pause }] : []),
+	];
 };
 
-const factsOf = (facts: RunFacts, run: RunEntry, now: Date): Fact[] => [
+const factsOf = (
+	facts: RunFacts,
+	run: RunEntry,
+	now: Date,
+	paused: number,
+): Fact[] => [
 	teamFact(facts, run),
-	...timeFacts(run, now),
+	...timeFacts(run, now, paused),
 	{
 		key: "autonomy",
 		text: nls.localize(
@@ -152,7 +177,7 @@ export const heroOf = (
 					},
 				}
 			: {}),
-		facts: run ? factsOf(facts, run, now) : [],
+		facts: run ? factsOf(facts, run, now, view.signals.paused) : [],
 		tiles: tilesOf(view),
 		...(total > 0 ? { progress: { done, total } } : {}),
 	};
