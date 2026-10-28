@@ -98,7 +98,12 @@ const Row = ({
 						<span>{line.text}</span>
 					</span>
 					{line.quote ? (
-						<q style={{ ...MUTED, fontStyle: "italic" }}>{line.quote}</q>
+						// A task's questions and a human's feedback keep their lines.
+						<q
+							style={{ ...MUTED, fontStyle: "italic", whiteSpace: "pre-line" }}
+						>
+							{line.quote}
+						</q>
 					) : null}
 					{line.detail ? (
 						<MarkdownView text={line.detail} renderer={markdown} />
