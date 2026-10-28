@@ -174,7 +174,8 @@ const buildChat = (
 	});
 };
 
-// Prunes old rows; a failed write is reported, never thrown into the caller's stream.
+// Prunes old rows and a removed run's (ADR-143); a failed write is reported, never thrown into the
+// caller's stream.
 const openLog = (
 	ctx: ModuleContext,
 	db: Parameters<typeof createModelCallLog>[0],
@@ -182,6 +183,11 @@ const openLog = (
 ) => {
 	const log = createModelCallLog(db);
 	log.prune(new Date(now() - MODEL_CALL_RETENTION_DAYS * DAY_MS).toISOString());
+	ctx.disposables.add(
+		ctx.events.subscribe("run.removed", (e) => {
+			if (e.runId) log.removeRun(e.runId);
+		}),
+	);
 	return (c: ModelCall) => {
 		try {
 			log.write(c);

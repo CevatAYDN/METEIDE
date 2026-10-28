@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Migration, Tier } from "@mete/contracts";
 import type BetterSqlite3 from "better-sqlite3";
-import { lt } from "drizzle-orm";
+import { eq, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
@@ -76,6 +76,10 @@ export const createModelCallLog = (
 		/** Deletes rows written before `cutoff` (ISO 8601). */
 		prune: (cutoff: string) => {
 			orm.delete(modelCalls).where(lt(modelCalls.ts, cutoff)).run();
+		},
+		/** Deletes the rows of a run the user removed (ADR-143). */
+		removeRun: (runId: string) => {
+			orm.delete(modelCalls).where(eq(modelCalls.runId, runId)).run();
 		},
 	};
 };

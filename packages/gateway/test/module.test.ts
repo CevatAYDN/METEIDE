@@ -265,6 +265,32 @@ describe("gateway module", () => {
 		await s.close();
 	});
 
+	it("deletes a removed run's rows and keeps the others (ADR-143)", async () => {
+		const s = await setup();
+		await s.gateway.activate(s.ctx);
+		const insert = s.db.prepare(
+			"INSERT INTO model_calls VALUES (?, ?, ?, 'p', 'm', NULL, '{}', '{}', 0, 0, 0, 'stop')",
+		);
+		const ts = new Date(NOW).toISOString();
+		const gone = crypto.randomUUID();
+		insert.run("a", ts, gone);
+		insert.run("b", ts, crypto.randomUUID());
+		s.ctx.events.publish({
+			id: crypto.randomUUID(),
+			ts,
+			schema: 1,
+			workspaceId: crypto.randomUUID(),
+			runId: gone,
+			source: "core-engine",
+			type: "run.removed",
+			payload: {},
+		});
+		expect(s.db.prepare("SELECT id FROM model_calls").all()).toEqual([
+			{ id: "b" },
+		]);
+		await s.close();
+	});
+
 	it("defines provider units again for a restarted quota module", async () => {
 		const s = await setup();
 		await s.gateway.activate(s.ctx);
