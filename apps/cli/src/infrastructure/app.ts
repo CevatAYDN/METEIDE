@@ -24,7 +24,10 @@ import {
 	type MeteModule,
 	type ModuleContext,
 } from "@mete/kernel";
-import { createVaultModule } from "@mete/knowledge";
+import {
+	createKnowledgeSearchModule,
+	createVaultModule,
+} from "@mete/knowledge";
 import {
 	type Authorize,
 	type Confirm,
@@ -203,6 +206,8 @@ const modulesFor = (
 		}),
 		// Each ended run's report in the workspace journal (docs/11, Run reports; ADR-144).
 		createVaultModule({ workspaceDir: opts.workspaceDir, workspaceId }),
+		// The vault's notes by keywords (docs/11, Hybrid search; ADR-149).
+		createKnowledgeSearchModule(),
 		...servedBy(opts, registry),
 	].filter((m) => !opts.without?.includes(m.manifest.id));
 };
