@@ -24,6 +24,7 @@ import {
 	type MeteModule,
 	type ModuleContext,
 } from "@mete/kernel";
+import { createVaultModule } from "@mete/knowledge";
 import {
 	type Authorize,
 	type Confirm,
@@ -151,6 +152,15 @@ const servedBy = (opts: AppOptions, registry: CapabilityRegistry) =>
 			]
 		: [];
 
+const builtInProviders = () => [
+	createNvidiaModule(),
+	createOpenRouterModule(),
+	createOpenCodeZenModule(),
+	createGroqModule(),
+	createGoogleModule(),
+	createCustomModule(),
+];
+
 const modulesFor = (
 	opts: AppOptions,
 	workspaceId: string,
@@ -162,14 +172,7 @@ const modulesFor = (
 		createStorageModule(dirs),
 		createSecurityModule({ ...dirs, workspaceId }),
 		createQuotaModule({ workspaceId }),
-		...(opts.providers ?? [
-			createNvidiaModule(),
-			createOpenRouterModule(),
-			createOpenCodeZenModule(),
-			createGroqModule(),
-			createGoogleModule(),
-			createCustomModule(),
-		]),
+		...(opts.providers ?? builtInProviders()),
 		gateway,
 		createToolsFsModule(dirs),
 		createToolsShellModule(dirs),
@@ -198,6 +201,8 @@ const modulesFor = (
 			// The global snapshots/ folder (ARCHITECTURE, Global contents; ADR-080).
 			snapshotsDir: join(opts.globalDir, "snapshots"),
 		}),
+		// Each ended run's report in the workspace journal (docs/11, Run reports; ADR-144).
+		createVaultModule({ workspaceDir: opts.workspaceDir, workspaceId }),
 		...servedBy(opts, registry),
 	].filter((m) => !opts.without?.includes(m.manifest.id));
 };

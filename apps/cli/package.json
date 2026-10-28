@@ -26,6 +26,7 @@
 		"@mete/core": "workspace:*",
 		"@mete/gateway": "workspace:*",
 		"@mete/kernel": "workspace:*",
+		"@mete/knowledge": "workspace:*",
 		"@mete/mcp": "workspace:*",
 		"@mete/providers": "workspace:*",
 		"@mete/quota": "workspace:*",
