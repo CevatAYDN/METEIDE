@@ -1,6 +1,7 @@
 // MeteModule entry (docs/06-kernel-and-modules.md). Modules in this package: storage.
 import { join } from "node:path";
 import {
+	type EventsReadAdapter,
 	err,
 	type ModuleManifest,
 	ok,
@@ -13,6 +14,7 @@ import {
 	captureEvents,
 	EVENT_MIGRATIONS,
 	pruneEvents,
+	readRunEvents,
 } from "./infrastructure/event-log.js";
 import {
 	type Db,
@@ -33,7 +35,7 @@ const MANIFEST: ModuleManifest = {
 	displayName: "Storage",
 	class: "essential",
 	trust: "core",
-	provides: ["storage.sql@1"],
+	provides: ["storage.sql@1", "events.read@1"],
 	requires: [],
 	optional: [],
 	activation: ["onStartup"],
@@ -72,7 +74,7 @@ const scopeFor = (h: Handles, moduleId: string): ScopedStorage => ({
 	migrate: (scope, migrations) => runMigrations(h[scope], moduleId, migrations),
 });
 
-/** Creates the storage module, which provides storage.sql@1 and persists events. */
+/** Creates the storage module, which provides storage.sql@1, persists events and reads a run's back (events.read@1). */
 export const createStorageModule = (opts: StorageOptions): MeteModule => {
 	let handles: Handles | undefined;
 	let created: Disposable[] = [];
@@ -96,12 +98,21 @@ export const createStorageModule = (opts: StorageOptions): MeteModule => {
 			}
 			pruneEvents(h.workspace, (opts.now ?? Date.now)());
 			const impl: StorageSqlAdapter = { scopeFor: (id) => scopeFor(h, id) };
+			const reader: EventsReadAdapter = {
+				read: (runId) => readRunEvents(h.workspace, runId),
+			};
 			created = [
 				ctx.capabilities.provide("storage.sql@1", {
 					id: MANIFEST.id,
 					trust: "core",
 					features: [],
 					impl,
+				}),
+				ctx.capabilities.provide("events.read@1", {
+					id: MANIFEST.id,
+					trust: "core",
+					features: [],
+					impl: reader,
 				}),
 				...captureEvents(h.workspace, ctx.events),
 			];

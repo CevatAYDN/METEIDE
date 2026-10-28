@@ -1,8 +1,10 @@
 import {
+	type BrokenEvent,
 	EVENT_TYPES,
 	type MeteEvent,
 	type Migration,
 	parseEvent,
+	type RunEvents,
 } from "@mete/contracts";
 import type { Disposable, EventBus } from "@mete/kernel";
 import { EVENT_RETENTION_DAYS } from "../defaults.js";
@@ -73,9 +75,6 @@ export const pruneEvents = (db: Db, now: number) => {
 	db.prepare("DELETE FROM events WHERE ts < ?").run(cutoff);
 };
 
-/** A row that is no valid event any more; reported, never skipped in silence. */
-export type BrokenEvent = { readonly seq: number; readonly issues: string };
-
 type Row = {
 	seq: number;
 	id: string;
@@ -104,7 +103,7 @@ const envelopeOf = (r: Row) => ({
 });
 
 /** One run's persisted events in replay order, each checked against its schema again. */
-export const readRunEvents = (db: Db, runId: string) => {
+export const readRunEvents = (db: Db, runId: string): RunEvents => {
 	const rows = db
 		.prepare("SELECT * FROM events WHERE run_id = ? ORDER BY seq")
 		.all(runId) as Row[];

@@ -1,7 +1,12 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { type MeteEvent, ok, type StorageSqlAdapter } from "@mete/contracts";
+import {
+	type EventsReadAdapter,
+	type MeteEvent,
+	ok,
+	type StorageSqlAdapter,
+} from "@mete/contracts";
 import {
 	createCapabilityRegistry,
 	createEventBus,
@@ -107,6 +112,30 @@ describe("storage module", () => {
 			.all();
 		expect(ids).toEqual([kept.id]);
 		await mod.deactivate();
+	});
+
+	it("reads one run's events in order through events.read@1 (ADR-144)", async () => {
+		const s = await setup();
+		const mod = createStorageModule(s.dirs);
+		await mod.activate(s.ctx);
+		const first = runStarted();
+		const other = runStarted();
+		const second = {
+			...first,
+			id: crypto.randomUUID(),
+			type: "run.cancelled" as const,
+			payload: {},
+		};
+		s.events.publish(first);
+		s.events.publish(other);
+		s.events.publish(second);
+		const r = s.registry.resolve<EventsReadAdapter>("events.read@1");
+		if (!r.ok) throw new Error("events.read@1 missing");
+		const read = r.value[0].impl.read(first.runId ?? "");
+		expect(read.events.map((e) => e.id)).toEqual([first.id, second.id]);
+		expect(read.broken).toEqual([]);
+		await mod.deactivate();
+		expect(s.registry.has("events.read@1")).toBe(false);
 	});
 
 	it("lets a module migrate its own tables in either database", async () => {
