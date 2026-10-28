@@ -290,7 +290,8 @@ const serveModels = (conn: MessageConnection, app: App) =>
 		return { models: await app.info(models, signal) };
 	});
 
-// The composer's request estimate per provider (ADR-068): files and the gateway's listing only, so no
+// The composer's request estimate per provider (ADR-068), with the run's own model choice (ADR-155):
+// files and the gateway's listing only, so no
 // engine is needed; a template that does not load is not_found.
 const serveEstimate = (
 	conn: MessageConnection,
@@ -298,8 +299,10 @@ const serveEstimate = (
 	until: (id: string) => string | undefined,
 ) =>
 	conn.onRequest(DAEMON_METHODS.estimate, async (params: unknown) => {
-		const { templateId } = parsed(DaemonEstimateParamsSchema.safeParse(params));
-		const estimate = await estimateFor(app, templateId, until);
+		const { templateId, prefer } = parsed(
+			DaemonEstimateParamsSchema.safeParse(params),
+		);
+		const estimate = await estimateFor(app, templateId, until, prefer);
 		if (estimate) return estimate;
 		const data: DaemonErrorData = { code: "not_found" };
 		throw new ResponseError(

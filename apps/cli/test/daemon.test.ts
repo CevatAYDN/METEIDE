@@ -92,7 +92,10 @@ describe("mete daemon", () => {
 			"  - { id: write, role: writer, title: Write }",
 			"",
 		].join("\n");
-		const estimateWith = async (pins: string | undefined) => {
+		const estimateWith = async (
+			pins: string | undefined,
+			params: object = { templateId: "duo" },
+		) => {
 			const repo = await tempRepo({ "a.txt": "a\n" });
 			const meta = join(repo.workspaceDir, ".mete");
 			await mkdir(join(meta, "teams"), { recursive: true });
@@ -121,9 +124,7 @@ describe("mete daemon", () => {
 				},
 			);
 			const { c } = clientOf(toClient, toDaemon);
-			const answer = await c.sendRequest(DAEMON_METHODS.estimate, {
-				templateId: "duo",
-			});
+			const answer = await c.sendRequest(DAEMON_METHODS.estimate, params);
 			toDaemon.end();
 			await serving;
 			await app.value.stop();
@@ -134,7 +135,31 @@ describe("mete daemon", () => {
 			providers: [{ providerId: "fake", requests: 12 }],
 			unassigned: 0,
 		});
-		expect(await estimateWith("duo:\n  writer: other/coder-1\n")).toEqual({
+		const pinned = "duo:\n  writer: other/coder-1\n";
+		expect(await estimateWith(pinned)).toEqual({
+			providers: [{ providerId: "other", requests: 12 }],
+			unassigned: 0,
+		});
+		// The run's own choice leads the pin, as in the run (ADR-122, ADR-155); a team's run takes a
+		// choice per role, and the single agent one model.
+		const fake = { providerId: "fake", modelId: "coder-1" };
+		const other = { providerId: "other", modelId: "coder-1" };
+		const onFake = {
+			providers: [{ providerId: "fake", requests: 12 }],
+			unassigned: 0,
+		};
+		expect(
+			await estimateWith(pinned, {
+				templateId: "duo",
+				prefer: { writer: fake },
+			}),
+		).toEqual(onFake);
+		expect(
+			await estimateWith(undefined, { templateId: "duo", prefer: other }),
+		).toEqual(onFake);
+		expect(
+			await estimateWith(undefined, { templateId: null, prefer: other }),
+		).toEqual({
 			providers: [{ providerId: "other", requests: 12 }],
 			unassigned: 0,
 		});

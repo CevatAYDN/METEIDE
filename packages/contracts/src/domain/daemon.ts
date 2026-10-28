@@ -8,7 +8,7 @@ import { ModelInfoSchema } from "./provider.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol v24 (ARCHITECTURE.md, ADR-045..ADR-143); mete/event checked with MeteEventSchema.
+// Daemon protocol v25 (ARCHITECTURE.md, ADR-045..ADR-155); mete/event checked with MeteEventSchema.
 const text = z.string().min(1);
 
 /** The messages of version 24; the params of mete/run.start are RunStartSchema (engine.ts). */
@@ -184,9 +184,11 @@ export const DaemonStopAllResultSchema = z.strictObject({
 	cancelled: z.array(IdSchema),
 });
 
-/** Params of `mete/estimate`: a template by id, or null for a single agent (ADR-068). */
+/** Params of `mete/estimate`: a template by id, or null for a single agent (ADR-068), and the run's own
+ * model choice in mete/run.start's shape (ADR-122, ADR-155). */
 export const DaemonEstimateParamsSchema = z.strictObject({
 	templateId: text.nullable(),
+	prefer: RunPreferSchema.optional(),
 });
 
 /** Result of `mete/estimate`: requests per provider, in the order mete/quota lists them, and those no ready provider takes. */

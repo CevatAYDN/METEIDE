@@ -481,6 +481,18 @@ describe("daemon protocol version 24", () => {
 			templateId: null,
 		});
 		expect(DaemonEstimateParamsSchema.safeParse({}).success).toBe(false);
+		// The run's own model choice, in mete/run.start's shape (ADR-122, ADR-155).
+		const model = { providerId: "groq", modelId: "m" };
+		for (const prefer of [model, { writer: model }]) {
+			const ask = { templateId: null, prefer };
+			expect(DaemonEstimateParamsSchema.parse(ask)).toEqual(ask);
+		}
+		expect(
+			DaemonEstimateParamsSchema.safeParse({
+				templateId: null,
+				prefer: "groq/m",
+			}).success,
+		).toBe(false);
 		const answer = {
 			providers: [{ providerId: "groq", requests: 15 }],
 			unassigned: 3,
