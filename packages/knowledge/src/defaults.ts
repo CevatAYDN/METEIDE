@@ -5,3 +5,6 @@ export const NEW_NOTES_PER_RUN = 3;
 
 /** Characters a note's file name keeps of its title (11 Knowledge layer, Vaults; ADR-145). */
 export const SLUG_MAX = 60;
+
+/** Characters of one row of the keyword index: 1,000 tokens at 4 characters each (11 Knowledge layer, Indexing; ADR-149). */
+export const CHUNK_CHARS = 4000;
