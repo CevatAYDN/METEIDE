@@ -13,7 +13,13 @@ pre-commit:
     - name: lockfile
       run: git diff --quiet -- pnpm-lock.yaml ':(glob)**/package.json' && pnpm install --frozen-lockfile --offline
 pre-push:
+  # One failed job stops the rest.
+  piped: true
   jobs:
+    # Before the tests: about a second, and a refused push should not wait for them.
+    - name: secrets
+      use_stdin: true
+      run: node scripts/secret-scan.mjs
     # shortcut: runs all packages, not affected only, and vitest uses --passWithNoTests; switch to turbo --affected after the first commit and drop the flag once packages have tests.
     - name: tests
       run: pnpm exec turbo run test
