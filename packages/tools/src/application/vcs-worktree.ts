@@ -18,6 +18,7 @@ import { head, IDENTITY } from "./vcs-checkpoint.js";
 type Out = Promise<Result<VcsGitOutput, VcsError>>;
 type Where = { readonly worktreesDir: string };
 type Task = { readonly runId: string; readonly taskId: string };
+type Removal = Task & { readonly force?: boolean | undefined };
 type Merge = Extract<VcsGitInput, { op: "merge" }>;
 
 // The input names the run and the task only, so no path or branch comes from outside.
@@ -64,9 +65,13 @@ export const createWorktree = async (deps: Where, git: Git, t: Task): Out => {
 
 /**
  * Removes the worktree and deletes its branch when that was merged; a branch that was not merged
- * keeps its commits. Removing what is not there is not an error.
+ * keeps its commits unless `force` (Remove a run, ADR-143). Removing what is not there is not an error.
  */
-export const removeWorktree = async (deps: Where, git: Git, t: Task): Out => {
+export const removeWorktree = async (
+	deps: Where,
+	git: Git,
+	t: Removal,
+): Out => {
 	const { dir, branch } = place(deps, t);
 	const there = await exists(dir);
 	if (there) {
@@ -90,7 +95,7 @@ export const removeWorktree = async (deps: Where, git: Git, t: Task): Out => {
 	await git(["worktree", "prune"]);
 	// The run's folder goes with its last worktree; rmdir refuses one that still holds another.
 	await rmdir(dirname(dir)).catch(() => undefined);
-	await git(["branch", "-d", branch]);
+	await git(["branch", t.force ? "-D" : "-d", branch]);
 	return ok({ op: "worktree.remove", removed: there });
 };
 

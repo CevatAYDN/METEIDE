@@ -115,6 +115,43 @@ describe("vcs-worktree cleanup", () => {
 		expect(branch.ok && branch.value.trim()).toBe("");
 	});
 
+	it("keeps a branch that was not merged, unless forced (ADR-143)", async () => {
+		const { git, deps } = await setup();
+		const branchOf = async (taskId: string) => {
+			const t = { runId: RUN, taskId };
+			const created = await createWorktree(deps, git, t);
+			if (!created.ok || created.value.op !== "worktree.create")
+				throw new Error("worktree not created");
+			const wt = gitAt(created.value.path);
+			await writeFile(join(created.value.path, "work.txt"), "work\n");
+			await wt(["add", "work.txt"]);
+			await wt([
+				"-c",
+				"user.name=T",
+				"-c",
+				"user.email=t@e.x",
+				"commit",
+				"-m",
+				"w",
+			]);
+			return t;
+		};
+		const listed = async (taskId: string) => {
+			const r = await git(["branch", "--list", `mete/${RUN}/${taskId}`]);
+			return r.ok && r.value.trim() !== "";
+		};
+
+		await removeWorktree(deps, git, await branchOf(TASK1));
+		expect(await listed(TASK1)).toBe(true);
+
+		const forced = await removeWorktree(deps, git, {
+			...(await branchOf(TASK2)),
+			force: true,
+		});
+		expect(forced).toEqual(ok({ op: "worktree.remove", removed: true }));
+		expect(await listed(TASK2)).toBe(false);
+	});
+
 	it("keeps a junction's target when git refuses the removal and the folder is deleted", async () => {
 		const { w, git, deps } = await setup();
 		const created = await createWorktree(deps, git, {
