@@ -103,7 +103,7 @@ Third-party code still runs with the user's operating-system rights; METE enforc
 
 ## Audit log
 
-Every side-effect action writes a row to the workspace `mete.db`: time, run, agent, action, capability, adapter, SHA-256 of the arguments, decision and matching policy rule. The log is viewable and exportable as JSON \[C\]: `mete audit` prints it, and the desktop's "METE: Open audit log" lists it newest first, filtered by run, verdict and action, and exports the rows it shows as JSON to a file the user picks (ADR-053) \[D\]. `policy.check@1` writes the row in the same call, into the `audit_log` table, with `action` as the caller named it (a `fs.write` the policy treats as `fs.write.outside` is logged as `fs.write`); when the row cannot be written the check returns `audit_failed`, and callers MUST treat that as deny \[D\].
+Every side-effect action writes a row to the workspace `mete.db`: time, run, agent, action, capability, adapter, SHA-256 of the arguments, decision and matching policy rule. The log is viewable and exportable as JSON \[C\]: `mete audit` prints it, and the desktop's "METE: Open audit log" lists it newest first, filtered by run, verdict and action, and exports the rows it shows as JSON to a file the user picks (ADR-053) \[D\]. `policy.check@1` writes the row in the same call, into the `audit_log` table, with `action` as the caller named it (a `fs.write` the policy treats as `fs.write.outside` is logged as `fs.write`); when the row cannot be written the check returns `audit_failed`, and callers MUST treat that as deny \[D\]. Removing a run deletes its events, model calls and rows but never its audit rows: they record what was done in the folder (ADR-143) \[D\].
 
 ## Triggers
 

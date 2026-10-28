@@ -213,7 +213,8 @@ export type VcsGitInput =
   | { op: "checkpoint.restore"; ref: string }
   | { op: "checkpoint.prune"; runId: string }                 // core calls it 14 days after the run ends
   | { op: "worktree.create"; runId: string; taskId: string }  // new branch at HEAD; uncommitted changes are not in it
-  | { op: "worktree.remove"; runId: string; taskId: string }
+  | { op: "worktree.remove"; runId: string; taskId: string; force?: boolean }   // deletes the branch once merged, or
+                                                              // with force also unmerged (Remove a run, ADR-143)
   | { op: "merge"; runId: string; taskId: string; message: string };   // commits the worktree's changes, then merges its branch
 export type VcsGitOutput =
   | { op: "status"; branch: string | null; files: { path: string; index: string; worktree: string }[] }
@@ -269,6 +270,7 @@ export type ApprovalInput = { taskId?: string; decision: "approve" | "revise"; f
                                  // taskId is the template task id or the Task id; without it, the only task that waits
 export type EngineError =
   | { code: "bad_input" | "not_found" | "not_supported"; message: string }
+  | { code: "failed"; message: string }                              // remove: git refused; nothing was deleted
   | { code: "invalid_state"; message: string; status: RunStatus }    // the run's status does not allow the call
   | { code: "choose_template"; message: string; suggestions: string[] };   // the router was unsure; no run started
 export interface TeamEngineAdapter {
@@ -283,6 +285,8 @@ export interface TeamEngineAdapter {
                                                                // one run carries prefer, its model choice (ADR-125)
   model?(runId: string, model: ModelRef | null, roleId?: string): Promise<Result<void, EngineError>>;   // ADR-122
   transcript?(runId: string): Promise<Result<Transcript, EngineError>>;   // the steps of its saved conversation, masked (ADR-125)
+  remove?(runId: string): Promise<Result<void, EngineError>>;   // an ended run with its worktrees, branches, checkpoints and
+                                                               // rows, then run.removed (ADR-143)
 }
 
 export interface CapabilityRegistry {
