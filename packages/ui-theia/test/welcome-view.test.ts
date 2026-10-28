@@ -29,7 +29,12 @@ const html = (model: WelcomeModel, privacy?: WelcomePrivacy) =>
 				activeRuns: 0,
 			},
 			privacy,
-			actions: { onLanguage: none, onKeyPage: none, onStart: none },
+			actions: {
+				onLanguage: none,
+				onKeyPage: none,
+				onStart: none,
+				onCheck: none,
+			},
 		}),
 	);
 
@@ -100,6 +105,41 @@ describe("the Welcome screen", () => {
 		});
 		expect(form).toContain("Allow providers that may train on prompts");
 		expect(form).toContain("Saves to /g/settings.yaml");
+	});
+
+	it("says how each keyed model provider stands in the open folder, and checks again (ADR-147)", () => {
+		const keys: WelcomeModel = {
+			kind: "keys",
+			keys: [provider("nvidia", true), provider("groq", true)],
+		};
+		const out = renderToStaticMarkup(
+			createElement(WelcomeView, {
+				model: keys,
+				states: [
+					{ id: "nvidia", state: "ready" },
+					{ id: "groq", state: "unusable" },
+				],
+				keys: {
+					stateOf: () => ({ key: "", busy: false }),
+					onType: none,
+					onSet: none,
+					activeRuns: 0,
+				},
+				actions: {
+					onLanguage: none,
+					onKeyPage: none,
+					onStart: none,
+					onCheck: none,
+				},
+			}),
+		);
+		expect(out).toContain('class="mete-welcome-health good"');
+		expect(out).toContain("nvidia: ready");
+		expect(out).toContain("groq: none of its models can be used here");
+		expect(out).toContain("Check again");
+		// No folder, so no states: the rows say only whether a key is set.
+		expect(html(keys)).not.toContain("mete-welcome-health");
+		expect(html(keys)).not.toContain("Check again");
 	});
 
 	it("says why it cannot list the providers", () => {

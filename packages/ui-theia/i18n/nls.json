@@ -628,6 +628,7 @@
 		},
 		"welcome": {
 			"caption": "METE: keys, privacy and web search to start with",
+			"check": "Check again",
 			"getKey": "Get a key",
 			"keys": "Model provider keys",
 			"keysLead": "Set at least one. A key stays in the operating system keychain and never in a file.",

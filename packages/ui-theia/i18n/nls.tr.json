@@ -628,6 +628,7 @@
 		},
 		"welcome": {
 			"caption": "METE: başlamak için anahtarlar, gizlilik ve web araması",
+			"check": "Yeniden denetle",
 			"getKey": "Anahtar al",
 			"keys": "Model sağlayıcı anahtarları",
 			"keysLead": "En az birini girin. Anahtar işletim sisteminin anahtar zincirinde kalır, hiçbir dosyaya yazılmaz.",

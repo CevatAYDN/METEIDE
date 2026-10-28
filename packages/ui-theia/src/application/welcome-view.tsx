@@ -1,8 +1,10 @@
+import type { ProviderState } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import type { ReactNode } from "react";
 import type { ProviderKey } from "../domain/provider-keys.js";
 import type { DaemonFailure } from "../domain/status-service.js";
 import { type EndpointKeysView, KeyField } from "./endpoint-key.js";
+import { QUOTA_LOOK, stateText } from "./quota-text.js";
 import { Icon } from "./roster-look.js";
 import {
 	type FormActions,
@@ -14,7 +16,8 @@ import { failureText } from "./status-text.js";
 // The onboarding wizard of docs/13 as the Welcome screen (ADR-088): language, model provider keys,
 // privacy and web search on one page, in docs/13's order, then "Start a run". The look is the design
 // set's (ADR-128), in style/mete-welcome.css: a hero band with the first step beside the title, the
-// keys under it, privacy and web search side by side, then the start bar.
+// keys under it, privacy and web search side by side, then the start bar. With a folder open, a keyed
+// model provider's row says its state as mete/quota answers it, in the Quota screen's words (ADR-147).
 
 /** What the screen draws: the providers `mete key list` names. */
 export type WelcomeModel =
@@ -36,6 +39,8 @@ export type WelcomeActions = {
 	readonly onLanguage: () => void;
 	readonly onKeyPage: (url: string) => void;
 	readonly onStart: () => void;
+	/** Reads the keys and the providers' states again. */
+	readonly onCheck: () => void;
 };
 
 // shortcut: a custom:<slug> key does not count, since `mete key list` names only built-in providers.
@@ -81,12 +86,22 @@ const KeyState = ({ set }: { readonly set: boolean }) => (
 	</span>
 );
 
+// A refused key shows only when the provider's listing refused it; a call's refusal is not kept here.
+const Health = ({ state }: { readonly state: ProviderState }) => (
+	<p className={`mete-welcome-health ${QUOTA_LOOK[state.state].tone}`}>
+		<Icon name={QUOTA_LOOK[state.state].icon} />
+		{stateText(state)}
+	</p>
+);
+
 const ProviderRow = ({
 	provider,
+	state,
 	keys,
 	onKeyPage,
 }: {
 	readonly provider: ProviderKey;
+	readonly state?: ProviderState | undefined;
 	readonly keys: EndpointKeysView;
 	readonly onKeyPage: (url: string) => void;
 }) => (
@@ -112,6 +127,7 @@ const ProviderRow = ({
 			keys={keys}
 			locked={false}
 		/>
+		{provider.set && state ? <Health state={state} /> : null}
 	</li>
 );
 
@@ -151,9 +167,7 @@ const PrivacyStep = ({
 // A model provider's row lays its name, field and Set key out on one line; the search one stacks.
 const rowsOf = (
 	kind: ProviderKey["kind"],
-	providers: readonly ProviderKey[],
-	keys: EndpointKeysView,
-	onKeyPage: (url: string) => void,
+	{ providers, states, keys, actions }: StepsProps,
 ) => (
 	<ul className="mete-welcome-providers" data-kind={kind}>
 		{providers
@@ -162,24 +176,24 @@ const rowsOf = (
 				<ProviderRow
 					key={p.id}
 					provider={p}
+					state={states?.find((s) => s.id === p.id)}
 					keys={keys}
-					onKeyPage={onKeyPage}
+					onKeyPage={actions.onKeyPage}
 				/>
 			))}
 	</ul>
 );
 
-const Steps = ({
-	providers,
-	keys,
-	privacy,
-	actions,
-}: {
+type StepsProps = {
 	readonly providers: readonly ProviderKey[];
+	/** The providers' states in the open folder; none without a folder or an answer. */
+	readonly states?: readonly ProviderState[] | undefined;
 	readonly keys: EndpointKeysView;
 	readonly privacy?: WelcomePrivacy | undefined;
 	readonly actions: WelcomeActions;
-}) => (
+};
+
+const Steps = (props: StepsProps) => (
 	<>
 		<Step
 			n={2}
@@ -190,10 +204,22 @@ const Steps = ({
 				"Set at least one. A key stays in the operating system keychain and never in a file.",
 			)}
 		>
-			{rowsOf("model", providers, keys, actions.onKeyPage)}
+			{rowsOf("model", props)}
+			{props.states ? (
+				<div className="mete-welcome-check">
+					<button
+						type="button"
+						className="mete-button quiet"
+						onClick={props.actions.onCheck}
+					>
+						<Icon name="refresh" />
+						{nls.localize("mete/welcome/check", "Check again")}
+					</button>
+				</div>
+			) : null}
 		</Step>
 		<div className="mete-welcome-pair">
-			<PrivacyStep privacy={privacy} />
+			<PrivacyStep privacy={props.privacy} />
 			<Step
 				n={4}
 				icon="search"
@@ -203,7 +229,7 @@ const Steps = ({
 					"Exa MCP searches the web without a key; a Tavily key is optional.",
 				)}
 			>
-				{rowsOf("search", providers, keys, actions.onKeyPage)}
+				{rowsOf("search", props)}
 			</Step>
 		</div>
 	</>
@@ -279,11 +305,13 @@ const Hero = ({ onLanguage }: { readonly onLanguage: () => void }) => (
 /** The Welcome screen for a model. */
 export const WelcomeView = ({
 	model,
+	states,
 	keys,
 	privacy,
 	actions,
 }: {
 	readonly model: WelcomeModel;
+	readonly states?: readonly ProviderState[] | undefined;
 	readonly keys: EndpointKeysView;
 	readonly privacy?: WelcomePrivacy | undefined;
 	readonly actions: WelcomeActions;
@@ -302,6 +330,7 @@ export const WelcomeView = ({
 			<>
 				<Steps
 					providers={model.keys}
+					states={states}
 					keys={keys}
 					privacy={privacy}
 					actions={actions}

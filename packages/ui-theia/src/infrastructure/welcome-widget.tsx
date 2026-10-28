@@ -1,3 +1,4 @@
+import type { ProviderState } from "@mete/contracts";
 import { CommandService } from "@theia/core";
 import { ThemeService } from "@theia/core/lib/browser/theming";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
@@ -24,6 +25,7 @@ import { EndpointKeys } from "./endpoint-keys.js";
 import { MetePanelWidget } from "./panel-widget.js";
 import { SettingsForms } from "./settings-forms.js";
 import "../../style/mete-welcome.css";
+import "../../style/mete-welcome-health.css";
 
 // The Welcome screen (docs/13 Onboarding wizard; ADR-088) in Theia's main area: the providers of
 // `mete key list` with their key fields, and the privacy form once a folder is open.
@@ -48,6 +50,7 @@ export class MeteWelcomeWidget extends MetePanelWidget {
 	protected root: URI | undefined;
 	protected globalFile: string | undefined;
 	protected activeRuns = 0;
+	protected states: readonly ProviderState[] | undefined;
 
 	// No state, so a restored layout never brings it back by itself (ADR-086, ADR-088).
 	storeState(): undefined {
@@ -100,6 +103,14 @@ export class MeteWelcomeWidget extends MetePanelWidget {
 		this.globalFile = s.value.globalFile;
 		await this.forms?.load(root.resource, s.value.globalFile);
 		this.forms?.forms().privacy?.actions.onTarget("global");
+		await this.loadStates(root.resource.path.fsPath());
+	}
+
+	// The states wait on the daemon's first model listing, so they follow the keys and the privacy form.
+	protected async loadStates(dir: string): Promise<void> {
+		const r = await this.daemon.quota(dir);
+		this.states = r.ok ? r.value.providers : undefined;
+		this.update();
 	}
 
 	protected async folderRuns(): Promise<number> {
@@ -129,6 +140,7 @@ export class MeteWelcomeWidget extends MetePanelWidget {
 				{keys ? (
 					<WelcomeView
 						model={this.model}
+						states={this.root ? this.states : undefined}
 						keys={{
 							stateOf: (id) => keys.stateOf(id),
 							onType: (id, key) => keys.type(id, key),
@@ -142,6 +154,7 @@ export class MeteWelcomeWidget extends MetePanelWidget {
 							onKeyPage: (url) =>
 								this.windows.openNewWindow(url, { external: true }),
 							onStart: () => this.start(),
+							onCheck: () => void this.refresh(),
 						}}
 					/>
 				) : null}
