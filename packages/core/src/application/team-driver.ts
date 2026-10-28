@@ -29,6 +29,7 @@ import {
 } from "../domain/team-run.js";
 import { announce, saveArtifact } from "./artifacts.js";
 import { lessonTurn } from "./lesson.js";
+import { readNotes } from "./notes.js";
 import {
 	apply,
 	type EngineState,
@@ -148,12 +149,19 @@ export const submit = async (s: EngineState, l: Live, reply: string) => {
 	return endAttempt(s, l, { type: "BLOCK", reason: "guardrail" });
 };
 
-// A task already in progress (after a block was resolved) keeps its agent and goes on.
-const open = (s: EngineState, l: Live, team: TeamState, id: string) => {
+// A task already in progress (after a block was resolved) keeps its agent and goes on; a starting
+// one opens with the lessons its title finds (ADR-151).
+const open = (
+	s: EngineState,
+	l: Live,
+	team: TeamState,
+	task: { readonly id: string; readonly notes?: string | undefined },
+) => {
 	const where = platform(s, l);
 	if (!where) return false;
-	const opened = openTask(team, id, l.snapshot.context, where);
-	return apply(s, l, { type: "SWITCH", task: id, ...opened });
+	const run = { ...l.snapshot.context, notes: task.notes };
+	const opened = openTask(team, task.id, run, where);
+	return apply(s, l, { type: "SWITCH", task: task.id, ...opened });
 };
 
 // A pair reviewer or an approver role reviews in a conversation of its own, with its own agent
@@ -270,6 +278,8 @@ const worktreeOf = async (
 const start = async (s: EngineState, l: Live, team: TeamState, id: string) => {
 	const agentId = team.tasks[id]?.context.agentId ?? s.deps.newId();
 	const worktree = await worktreeOf(s, l, team, { id, agentId });
+	const ctx = { runId: l.meta.id, signal: l.all.signal };
+	const notes = await readNotes(s.deps, ctx, titleOf(team, id));
 	// Paused or cancelled while git worked: the next start finds the worktree it made.
 	if (l.snapshot.value !== "running") return;
 	const event = {
@@ -279,7 +289,7 @@ const start = async (s: EngineState, l: Live, team: TeamState, id: string) => {
 	} as const;
 	const r = applyTask(team, id, event);
 	if (!r.change) return stuck(s, l);
-	if (!open(s, l, r.team, id)) return;
+	if (!open(s, l, r.team, { id, notes })) return;
 	const taskId = team.tasks[id]?.id;
 	emit(s, l, { type: "task.assigned", payload: { agentId } }, taskId);
 	changed(s, l, taskId, r.change);
@@ -370,7 +380,7 @@ const waitForHuman = async (
 /** Moves a team run whose active task is not in progress. */
 export const teamTurn = (s: EngineState, l: Live, team: TeamState) => {
 	const next = nextTeamStep(team);
-	if (next.kind === "work") return open(s, l, team, next.taskId);
+	if (next.kind === "work") return open(s, l, team, { id: next.taskId });
 	if (next.kind === "start") return start(s, l, team, next.taskId);
 	if (next.kind === "accept") return accept(s, l, team, next.taskId);
 	if (next.kind === "merge") return merge(s, l, team, next.taskId);

@@ -34,6 +34,7 @@ type RunText = {
 	readonly goal: string;
 	readonly brief?: string | undefined;
 	readonly workspace?: string | undefined;
+	readonly notes?: string | undefined;
 };
 
 /**

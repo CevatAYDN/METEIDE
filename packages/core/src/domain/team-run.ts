@@ -163,10 +163,12 @@ export const taskConversation = (
 		goal,
 		brief,
 		workspace,
+		notes,
 	}: {
 		goal: string;
 		brief?: string | undefined;
 		workspace?: string | undefined;
+		notes?: string | undefined;
 	},
 	where: Platform,
 ): ChatMessage[] => {
@@ -187,6 +189,7 @@ export const taskConversation = (
 	const user = [
 		...(brief ? [brief] : []),
 		...(workspace ? [workspace] : []),
+		...(notes ? [notes] : []),
 		`Team goal: ${goal}`,
 		`Your task: ${taskOf(team, id)?.title ?? id}`,
 		...acceptance(team, id),
