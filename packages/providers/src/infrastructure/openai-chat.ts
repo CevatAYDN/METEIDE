@@ -9,6 +9,7 @@ import type {
 } from "@mete/contracts";
 import { err, ok } from "@mete/contracts";
 import { streamChat, toProviderError } from "./sdk-chat.js";
+import { separatedEvents } from "./sse-frames.js";
 
 // The `openai-chat` format (docs/09) on @ai-sdk/openai-compatible (ADR-039).
 
@@ -34,7 +35,7 @@ export const createOpenAIChat = (opts: OpenAIChatOptions) => {
 		// shortcut: every endpoint gets stream_options.include_usage; make it an option if one rejects it (a bad_request chunk).
 		includeUsage: true,
 		...(opts.headers ? { headers: opts.headers } : {}),
-		...(opts.fetch ? { fetch: opts.fetch } : {}),
+		fetch: separatedEvents(opts.fetch ?? globalThis.fetch),
 		...(extraBody
 			? { transformRequestBody: (body) => ({ ...body, ...extraBody }) }
 			: {}),
