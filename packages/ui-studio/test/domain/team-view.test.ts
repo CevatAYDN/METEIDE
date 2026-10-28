@@ -147,6 +147,27 @@ describe("the team view fold", () => {
 		expect(decided.tasks[0]?.worktree).toBeUndefined();
 	});
 
+	it("keeps the files the human's latest request lists until the human decides (ADR-141)", () => {
+		const ask = (payload: object) =>
+			event("approval.requested", { approver: "human", ...payload }, NOTES);
+		const listed = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			created(NOTES, "Take notes"),
+			ask({ worktree: "/w/r/t", files: ["index.html"] }),
+		]);
+		expect(listed.tasks[0]?.files).toEqual(["index.html"]);
+		// A request asked again without a list does not keep the older one.
+		const again = applyAll(RUN, listed, [ask({ worktree: "/w/r/t" })]);
+		expect(again.tasks[0]?.files).toBeUndefined();
+		const decided = applyAll(RUN, listed, [
+			event(
+				"approval.resolved",
+				{ approver: "human", decision: "approve" },
+				NOTES,
+			),
+		]);
+		expect(decided.tasks[0]?.files).toBeUndefined();
+	});
+
 	it("keeps the files of the run's latest handoff (ADR-133)", () => {
 		const handoff = (files?: string[]) =>
 			event("handoff.created", {

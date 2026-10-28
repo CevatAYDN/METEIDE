@@ -31,6 +31,8 @@ export type TaskCard = {
 	readonly waitsForHuman?: true;
 	/** The folder the submitted files wait in while the human decides, when the task has a worktree (ADR-132). */
 	readonly worktree?: string;
+	/** The files the task changed in that worktree, when the request lists them (ADR-141). */
+	readonly files?: readonly string[];
 	/** The task's latest report, relative to the workspace (docs/07, Artifact). */
 	readonly artifactPath?: string;
 	readonly status: TaskStatus;
@@ -159,14 +161,16 @@ const approvalAfter = (
 		return e.type === "approval.requested"
 			? { ...t, approver: e.payload.approver }
 			: t;
-	if (e.type === "approval.requested")
-		return {
-			...t,
-			waitsForHuman: true,
-			...(e.payload.worktree ? { worktree: e.payload.worktree } : {}),
-		};
-	const { waitsForHuman: _, worktree: __, ...rest } = t;
-	return rest;
+	// The latest request says where the files wait and which the task changed (ADR-132, ADR-141).
+	const { waitsForHuman: _, worktree: __, files: ___, ...rest } = t;
+	if (e.type === "approval.resolved") return rest;
+	const { worktree, files } = e.payload;
+	return {
+		...rest,
+		waitsForHuman: true,
+		...(worktree ? { worktree } : {}),
+		...(files ? { files } : {}),
+	};
 };
 
 // The run's own events, and the workspace's quota events, which name no run (ADR-052).
