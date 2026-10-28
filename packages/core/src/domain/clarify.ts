@@ -105,5 +105,11 @@ export const answerConversation = (
 export const answerLine = (team: TeamState, by: string, answer: string) =>
 	`Answers from ${nameOf(team, by)}: ${answer}`;
 
-/** A message's summary: its first sentence, cut to 80 characters with no model call (docs/07). */
-export const summaryOf = (text: string) => firstSentence(text).slice(0, 80);
+/**
+ * A message's summary: the first sentence of its first line, past a list marker ("1. …", as answers
+ * often start), cut to 80 characters with no model call (docs/07).
+ */
+export const summaryOf = (text: string) => {
+	const line = text.trim().split("\n")[0] ?? "";
+	return firstSentence(line.replace(/^(?:\d+[.)]|[-*])\s+/, "")).slice(0, 80);
+};
