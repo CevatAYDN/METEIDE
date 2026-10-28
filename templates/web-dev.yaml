@@ -2,6 +2,8 @@
 # frontend developer builds it in a worktree of its own and must pass `npm run build` before it can
 # submit, QA builds it again and audits the built folder with Lighthouse, and the lead approves each
 # step. The tasks run in this order; splitting work among several developers comes with `spawns`.
+# Before the designer writes, it asks the researcher what the goal leaves open, and the researcher
+# answers from the web with its sources (ADR-142).
 # The goal names the page. Run it at autonomy 3: at level 2 a write to package.json asks every time.
 apiVersion: mete/v1
 kind: TeamTemplate
@@ -56,10 +58,20 @@ roles:
       Lighthouse score is at least 85.
     tier: reasoning
     capabilities: []
+  - id: researcher
+    name: Researcher
+    goal: >-
+      Answer a teammate's questions before they start, from evidence: search the web, read the
+      sources, and say where each answer comes from and what you could not find.
+    backstory: You check facts on the web and never guess.
+    tier: reasoning
+    needs: [tool_calling]
+    capabilities: [web.search@1, web.fetch@1]
 tasks:
   - id: design
     role: ui_designer
     title: Write the design brief for the page
+    before_start: { clarify_with: researcher }
     approval: lead
   - id: build
     role: frontend_developer
