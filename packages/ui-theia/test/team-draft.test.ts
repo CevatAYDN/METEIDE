@@ -281,6 +281,7 @@ describe("roleNames", () => {
 			frontend_developer: "Frontend developer",
 			qa: "QA",
 			lead: "Lead",
+			researcher: "Researcher",
 		});
 		expect(roleNames("roles: [")).toEqual({});
 	});

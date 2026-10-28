@@ -82,6 +82,8 @@ test.use({
 	// The built-in team's calls in the order the engine makes them (docs/08, ADR-057).
 	script: {
 		turns: [
+			// The designer asks the human before it writes (ADR-142) and has no questions.
+			say("none"),
 			say(GDD),
 			APPROVE,
 			say(TASKS),
@@ -98,6 +100,8 @@ test.use({
 				["fs_write", { path: "game/game.js", content: "let score = 0;\n" }],
 			),
 			say("game/index.html, game/game.js"),
+			// The tester reviews the developer's game as its pair before the lead (ADR-136).
+			APPROVE,
 			APPROVE,
 			calls(["browser_screenshot", { folder: "game" }]),
 			say(REPORT),

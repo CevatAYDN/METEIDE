@@ -104,12 +104,12 @@ describe("TeamEditorView", () => {
 		expect(out.match(/Remove member/g)).toHaveLength(1);
 		expect(out).toMatch(/disabled="" value="qa"/);
 		expect(out).not.toMatch(/<input[^>]*value="frontend_developer"/);
-		// Four tiles, one for each member; the chosen tile is pressed.
+		// Five tiles, one for each member; the chosen tile is pressed.
 		expect(
 			out.match(
 				/<button type="button" class="mete-member-tile"[^>]*aria-pressed/g,
 			),
-		).toHaveLength(4);
+		).toHaveLength(5);
 		expect(
 			out.match(/class="mete-member-tile"[^>]*aria-pressed="true"/g),
 		).toHaveLength(1);
@@ -150,10 +150,10 @@ describe("TeamEditorView", () => {
 
 	it("tells a new member with no task how to give it work, and blocks Save on the schema's issues", () => {
 		const doc = addRole(DOC);
-		const out = html(ready(doc, { selected: 4 }));
+		const out = html(ready(doc, { selected: 5 }));
 		expect(out).toContain("No task names this member yet");
 		expect(out).toContain('role="alert"');
-		expect(out).toContain("roles.4.goal");
+		expect(out).toContain("roles.5.goal");
 		expect(out).toMatch(
 			/<button type="button" class="mete-button" disabled=""><span[^>]*><\/span>Save</,
 		);

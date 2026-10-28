@@ -103,6 +103,8 @@ describe("the web-dev template", () => {
 			"autonomy: 3\noverrides:\n  shell.exec@1: 2\n",
 		);
 		const script = [
+			// The designer asks the researcher before it writes (ADR-142) and has no questions.
+			say("none"),
 			say("Brief: one section with a heading."),
 			APPROVE,
 			calls(...SITE),

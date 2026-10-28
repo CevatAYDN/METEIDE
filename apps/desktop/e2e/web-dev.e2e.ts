@@ -82,6 +82,8 @@ test.use({
 	// The calls of the built-in web-dev team, in the order the engine makes them (docs/08).
 	script: {
 		turns: [
+			// The designer asks the researcher before it writes (ADR-142) and has no questions.
+			say("none"),
 			say("Brief: one section with a heading."),
 			APPROVE,
 			calls(...SITE),
