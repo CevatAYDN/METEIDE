@@ -2,7 +2,8 @@ import type { AgentCard, TaskCard, TeamView } from "@mete/ui-studio";
 
 // The Team view's rows (ADR-089): one per role of the run, from the fold the Board and the Studio
 // share. A role's state is the first that holds: waiting for the user, for quota, working on a tool
-// call, thinking, blocked, done, idle.
+// call, thinking, blocked, done, idle. A member with no task of its own, seen reviewing or approving,
+// is done once every task of the run is approved (ADR-138).
 
 /** What a member is doing, as the row says it. */
 export type MemberState =
@@ -66,8 +67,18 @@ const thinkingOf = (view: TeamView): MemberState =>
 		? { kind: "thinking", since: view.thinkingSince }
 		: { kind: "thinking" };
 
+const allApproved = (tasks: readonly TaskCard[]) =>
+	tasks.length > 0 && tasks.every((t) => t.status === "approved");
+
+// Every task of its own approved; with none of its own, it reviewed or approved and the run's are.
+const isDone = (view: TeamView, roleId: string, tasks: readonly TaskCard[]) =>
+	tasks.length > 0
+		? allApproved(tasks)
+		: view.signals.leadRoles.includes(roleId) && allApproved(view.tasks);
+
 const stateOf = (
 	view: TeamView,
+	roleId: string,
 	tasks: readonly TaskCard[],
 	agent: AgentCard | undefined,
 ): MemberState => {
@@ -80,8 +91,7 @@ const stateOf = (
 	if (agent?.tool) return { kind: "working", tool: agent.tool };
 	if (agent?.thinking) return thinkingOf(view);
 	if (tasks.some((t) => t.status === "blocked")) return { kind: "blocked" };
-	if (tasks.length > 0 && tasks.every((t) => t.status === "approved"))
-		return { kind: "done" };
+	if (isDone(view, roleId, tasks)) return { kind: "done" };
 	return { kind: "idle" };
 };
 
@@ -103,7 +113,7 @@ const memberOf = (view: TeamView, roleId: string): Member => {
 	return {
 		roleId,
 		...(agent ? { agent } : {}),
-		state: stateOf(view, tasks, agent),
+		state: stateOf(view, roleId, tasks, agent),
 		...(now ? { now } : {}),
 		done: tasks.filter((t) => t.status === "approved").length,
 		total: tasks.length,

@@ -203,6 +203,56 @@ describe("the Team view's roster", () => {
 		expect(rows[0]?.now).toBeUndefined();
 	});
 
+	it("calls a member with no task of its own done once it reviewed or approved and every task is approved (ADR-138)", () => {
+		const page = task("Build the page", "writer");
+		const second = task("Check the page", "writer", [page.id]);
+		const writer = agent("writer", page.id);
+		const editor = agent("editor", page.id);
+		const lead = agent("lead", page.id);
+		const reviewed = [
+			page.created,
+			second.created,
+			writer.created,
+			writer.on("agent.thinking.ended"),
+			page.to("submitted"),
+			event(
+				"review.requested",
+				{ reviewerRoleId: "editor" },
+				{ taskId: page.id },
+			),
+			editor.created,
+			editor.on("agent.thinking.ended"),
+			event(
+				"review.completed",
+				{ reviewerRoleId: "editor", decision: "approve" },
+				{ taskId: page.id },
+			),
+			event("approval.requested", { approver: "lead" }, { taskId: page.id }),
+			lead.created,
+			lead.on("agent.thinking.ended"),
+			event(
+				"approval.resolved",
+				{ approver: "lead", decision: "approve" },
+				{ taskId: page.id },
+			),
+			page.to("approved"),
+		];
+		// A task still open: between its reviews the Lead and the Editor are idle.
+		const midway = roster([...reviewed, second.to("in_progress")]);
+		expect(midway.map((m) => [m.roleId, m.state.kind])).toEqual([
+			["writer", "idle"],
+			["editor", "idle"],
+			["lead", "idle"],
+		]);
+		const ended = roster([...reviewed, second.to("approved")]);
+		expect(ended.map((m) => [m.roleId, m.state.kind])).toEqual([
+			["writer", "done"],
+			["editor", "done"],
+			["lead", "done"],
+		]);
+		expect(ended[1]).toMatchObject({ done: 0, total: 0 });
+	});
+
 	it("adds up the tokens and calls of every agent of a role (ADR-090)", () => {
 		const first = task("Draft", "writer");
 		const second = task("Edit", "writer");
