@@ -208,11 +208,13 @@ export class MeteSettingsWidget extends MetePanelWidget {
 		]);
 	}
 
-	// The save bar (ADR-095) saves every changed form and the two cards (ADR-096, ADR-097).
+	// The save bar (ADR-095) saves every changed form and the two cards (ADR-096, ADR-097), and the
+	// endpoints card to its own target (ADR-087) when it changed.
 	protected async saveAll(): Promise<void> {
 		await this.forms?.saveAll();
 		await this.bindings?.save();
 		await this.mcp?.save();
+		if (this.endpoints?.form()?.state.dirty) await this.endpoints.save();
 	}
 
 	protected setModel(model: SettingsModel): void {

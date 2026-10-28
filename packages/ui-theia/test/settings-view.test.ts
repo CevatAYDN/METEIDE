@@ -478,6 +478,17 @@ describe("the custom endpoints card (ADR-087)", () => {
 		);
 	});
 
+	// Filled in, the card was saved by nothing but its own Save, below the fold, while the bar said
+	// there was nothing to save.
+	it("is one of the forms the save bar saves, keeping its own target", () => {
+		expect(withEndpoints("global")).toContain("No unsaved changes");
+		const out = withEndpoints("global", undefined, true);
+		expect(out).toContain("Unsaved changes: providers");
+		expect(out).toMatch(/>Save changes</);
+		// The scope switch moves the forms only; the card has its own choice.
+		expect(out).not.toContain("All folders");
+	});
+
 	it("has a masked key field whose Set key waits while a run is queued or running", () => {
 		const idle = withEndpoints("global", 0);
 		expect(idle).toMatch(/<input id="mete-endpoint-0-key"[^>]*type="password"/);

@@ -112,9 +112,13 @@ const Loaded = ({
 }) => {
 	const groups = groupsOf(withForms(settings.sections));
 	const chosen = groups.find((g) => g.id === choice.group) ?? groups[0];
-	const saveables = saveablesOf(parts.forms, parts.bindings, parts.mcp);
+	const scoped = saveablesOf(parts.forms, parts.bindings, parts.mcp);
 	// The forms move together, so the first one tells where they all save.
-	const target = saveables[0]?.[1].state.target;
+	const target = scoped[0]?.[1].state.target;
+	// The endpoints card keeps its own target (ADR-087), but the bar saves it too (ADR-095).
+	const saveables: readonly SaveEntry[] = parts.endpoints
+		? [...scoped, ["providers", parts.endpoints]]
+		: scoped;
 	return (
 		<>
 			<Hero

@@ -101,7 +101,8 @@ export class EndpointsForm {
 		this.onChange();
 	}
 
-	protected async save() {
+	/** The card's Save and the save bar (ADR-095): writes the list to the card's own target. */
+	async save() {
 		const state = this.state;
 		const file = state && this.fileOf(state.target);
 		if (!state || !file || state.busy) return;
