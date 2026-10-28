@@ -131,7 +131,9 @@
 			"updates": "updates {0}",
 			"work": "Work",
 			"writes": "writes {0}",
-			"you": "You"
+			"you": "You",
+			"asksFirst": "asks before starting “{0}”",
+			"answers": "answers before “{0}”"
 		},
 		"groups": {
 			"changedHere": "A value of this group is set for this folder only",
@@ -605,7 +607,13 @@
 			"send": "Send back",
 			"sendInstruction": "Send the instruction",
 			"showFiles": "Show files",
-			"whichFile": "Which file?"
+			"whichFile": "Which file?",
+			"asksFirst": "{0} asks you before “{1}”",
+			"question": "Question",
+			"answer": "Answer…",
+			"yourAnswer": "Your answer",
+			"sendAnswer": "Send the answer",
+			"noAnswers": "Go on without answers"
 		},
 		"welcome": {
 			"caption": "METE: keys, privacy and web search to start with",

@@ -37,6 +37,8 @@ export type Feed = Extract<
 			| "approval.resolved"
 			| "review.requested"
 			| "review.completed"
+			| "task.clarification.requested"
+			| "agent.message.sent"
 			| "artifact.created"
 			| "artifact.updated"
 			| "agent.tool.completed"
@@ -77,6 +79,8 @@ const asks: Pick<
 	| "approval.resolved"
 	| "review.requested"
 	| "review.completed"
+	| "task.clarification.requested"
+	| "agent.message.sent"
 > = {
 	"task.assigned": (v, e) => ({
 		segment: "asks",
@@ -166,6 +170,31 @@ const asks: Pick<
 		who: e.payload.reviewerRoleId,
 		...opt("to", taskRole(v, e)),
 		...opt("quote", e.payload.feedback),
+	}),
+	// The questions a task asks before its work, and a role's answer (ADR-142).
+	"task.clarification.requested": (v, e) => ({
+		segment: "asks",
+		icon: "question",
+		...opt("who", taskRole(v, e)),
+		to: e.payload.toRoleId,
+		text: nls.localize(
+			"mete/feed/asksFirst",
+			"asks before starting “{0}”",
+			title(v, e),
+		),
+		quote: e.payload.question,
+	}),
+	"agent.message.sent": (v, e) => ({
+		segment: "asks",
+		icon: "comment",
+		...opt("who", v.agents.find((a) => a.id === e.payload.from)?.roleId),
+		...opt("to", taskRole(v, e)),
+		text: nls.localize(
+			"mete/feed/answers",
+			"answers before “{0}”",
+			title(v, e),
+		),
+		quote: e.payload.summary,
 	}),
 };
 
@@ -311,10 +340,11 @@ const run: Omit<
 
 const LINES: Lines = { ...asks, ...work, ...member, ...run };
 
-/** Whether the feed shows an event: a status change only when its task is blocked. */
+/** Whether the feed shows an event: a status change only when its task is blocked, a message only when it answers. */
 export const inFeed = (e: MeteEvent): e is Feed =>
 	Object.hasOwn(LINES, e.type) &&
-	(e.type !== "task.status.changed" || e.payload.to === "blocked");
+	(e.type !== "task.status.changed" || e.payload.to === "blocked") &&
+	(e.type !== "agent.message.sent" || e.payload.kind === "answer");
 
 /** What the feed's row for an event says. */
 export const feedLine = (v: TeamView, e: Feed): FeedLine =>

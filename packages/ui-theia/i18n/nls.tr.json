@@ -131,7 +131,9 @@
 			"updates": "{0} dosyasını güncelliyor",
 			"work": "İş",
 			"writes": "{0} dosyasını yazıyor",
-			"you": "Sen"
+			"you": "Sen",
+			"asksFirst": "“{0}” işine başlamadan önce soruyor",
+			"answers": "“{0}” işinden önce yanıtlıyor"
 		},
 		"groups": {
 			"changedHere": "Bu grubun bir değeri yalnız bu klasör için ayarlı",
@@ -605,7 +607,13 @@
 			"send": "Geri gönder",
 			"sendInstruction": "Talimatı gönder",
 			"showFiles": "Dosyaları göster",
-			"whichFile": "Hangi dosya?"
+			"whichFile": "Hangi dosya?",
+			"asksFirst": "{0}, “{1}” işinden önce sana soruyor",
+			"question": "Soru",
+			"answer": "Yanıtla…",
+			"yourAnswer": "Yanıtın",
+			"sendAnswer": "Yanıtı gönder",
+			"noAnswers": "Yanıtsız devam et"
 		},
 		"welcome": {
 			"caption": "METE: başlamak için anahtarlar, gizlilik ve web araması",

@@ -90,6 +90,42 @@ describe("the Activity feed", () => {
 		]);
 	});
 
+	it("shows the questions asked before the work and a role's answer, and no other message (ADR-142)", () => {
+		const helper = crypto.randomUUID();
+		const seated = applyAll(RUN, view, [
+			event(
+				"agent.created",
+				{ roleId: "researcher", providerId: "groq", modelId: "m" },
+				{ taskId: TASK, agentId: helper },
+			),
+		]);
+		const message = (kind: string) =>
+			event(
+				"agent.message.sent",
+				{
+					messageId: crypto.randomUUID(),
+					from: helper,
+					to: DEV,
+					kind,
+					summary: "Ankara.",
+				},
+				ofTask,
+			);
+		const asking = [
+			event(
+				"task.clarification.requested",
+				{ toRoleId: "researcher", question: "Which city?" },
+				ofTask,
+			),
+			message("answer"),
+		];
+		expect(lines(feedRows(seated, asking, "asks").rows)).toEqual([
+			["researcher", "dev", "answers before “Build”", "Ankara."],
+			["dev", "researcher", "asks before starting “Build”", "Which city?"],
+		]);
+		expect(inFeed(message("handoff"))).toBe(false);
+	});
+
 	it("carries the run's answer and a failure's message as the row's detail", () => {
 		const failed = event("run.failed", {
 			code: "unauthorized",

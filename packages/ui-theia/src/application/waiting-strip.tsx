@@ -222,6 +222,56 @@ const Blocked = ({
 	</Card>
 );
 
+// The questions a task asks the human before its work (docs/08, step 1; ADR-142): it goes on with
+// the answer, or without one.
+const Asking = ({
+	task,
+	name,
+	controls,
+}: {
+	readonly task: TaskCard;
+	readonly name: string;
+	readonly controls: WaitingControls;
+}) => (
+	<Card
+		tone="warn"
+		icon="question"
+		title={nls.localize(
+			"mete/waiting/asksFirst",
+			"{0} asks you before “{1}”",
+			name,
+			task.title,
+		)}
+		kind={{ word: nls.localize("mete/waiting/question", "Question") }}
+	>
+		<ul className="mete-wait-questions">
+			{(task.question?.text ?? "")
+				.split("\n")
+				.filter((line) => line.trim() !== "")
+				.map((line) => (
+					<li key={line}>{line}</li>
+				))}
+		</ul>
+		<div className="mete-wait-actions">
+			<Feedback
+				icon="comment"
+				open={nls.localize("mete/waiting/answer", "Answer…")}
+				placeholder={nls.localize("mete/waiting/yourAnswer", "Your answer")}
+				send={nls.localize("mete/waiting/sendAnswer", "Send the answer")}
+				onSend={controls.onRevise}
+			/>
+			<button
+				type="button"
+				className="mete-button quiet"
+				onClick={controls.onApprove}
+			>
+				<Icon name="debug-continue" />
+				{nls.localize("mete/waiting/noAnswers", "Go on without answers")}
+			</button>
+		</div>
+	</Card>
+);
+
 const TaskCardItem = ({
 	task,
 	name,
@@ -231,7 +281,9 @@ const TaskCardItem = ({
 	readonly name: string;
 	readonly controls: WaitingControls;
 }) =>
-	task.status === "blocked" ? (
+	task.status === "blocked" && task.question?.to === "human" ? (
+		<Asking task={task} name={name} controls={controls} />
+	) : task.status === "blocked" ? (
 		<Blocked task={task} name={name} controls={controls} />
 	) : (
 		<Asked task={task} name={name} controls={controls} />

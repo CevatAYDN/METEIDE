@@ -80,6 +80,28 @@ describe("the Waiting for you strip", () => {
 		expect(asked({ approver: "human" })).not.toContain("Show files");
 	});
 
+	it("puts the questions a task asks the human before its work on its card, with the answer that lifts them (ADR-142)", () => {
+		const out = strip([
+			created,
+			event(
+				"task.clarification.requested",
+				{ toRoleId: "human", question: "Which city?\nWhich prices?" },
+				TASK,
+			),
+			event(
+				"task.status.changed",
+				{ from: "in_progress", to: "blocked" },
+				TASK,
+			),
+			paused,
+		]);
+		expect(out).toContain("QA asks you before “Audit it”");
+		expect(out).toContain("<li>Which city?</li><li>Which prices?</li>");
+		expect(out).toContain("Answer…");
+		expect(out).toContain(">Go on without answers<");
+		expect(out).not.toContain("is blocked on");
+	});
+
 	it("names a blocked task and offers the instruction that lifts it (docs/07)", () => {
 		const out = strip([
 			created,
