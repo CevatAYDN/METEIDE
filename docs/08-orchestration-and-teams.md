@@ -129,7 +129,7 @@ Rules:
 
 ## Task execution sequence
 
-1. Clarify: if `before_start` is set, the agent sends questions; the task waits (`blocked` after the run's approval timeout, default 24 hours) \[D\].
+1. Clarify: if `before_start.clarify_with` is set, on its first start the task's agent lists its questions, with no tools, or replies none; a role answers them in a conversation of its own, with its capabilities, and the answers join the task's conversation; for `human` the task is `blocked` with reason `clarification` until the human answers (ADR-142) \[D\].
 2. Work: the agent loop runs with tools. Default maximum 25 model turns per attempt; at the limit the run pauses with reason `budget`, and a resume gives the attempt 25 more (ADR-126) \[D\].
 3. Verify: every gate runs; a failure is returned to the agent with its output as feedback.
 4. Guardrail: output is validated against its schema; up to `max_retries` repair attempts.
