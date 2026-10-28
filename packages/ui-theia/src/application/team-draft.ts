@@ -46,6 +46,7 @@ const WorkSchema = z.object({
 		.object({ pair_with: text, max_turns: number })
 		.optional()
 		.catch(undefined),
+	memory: z.object({ write_lessons: z.boolean() }).optional().catch(undefined),
 });
 const TaskSchema = WorkSchema.extend({
 	id: text,

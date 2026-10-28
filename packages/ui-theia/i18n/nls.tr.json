@@ -525,6 +525,7 @@
 			"idle": "Henüz hiçbir görev bu üyeyi adlandırmıyor; yalnızca bir görev listesi ona iş verirse çalışır. İş vermek için bir görev ekle.",
 			"issues": "Kaydetmeden önce bunları düzelt:",
 			"keep": "Düzenlemeye devam et",
+			"lessons": "Onaydan sonra vault'a bir ders notu yazar (bir istek daha)",
 			"loading": "METE takımı okuyor…",
 			"memberId": "Kimlik",
 			"memberName": "Ad",

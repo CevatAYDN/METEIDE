@@ -227,6 +227,17 @@ describe("the rules of the work", () => {
 		);
 	});
 
+	it("shows whether a task writes a lesson after approval, ticked once the file asks for one (ADR-145)", () => {
+		const label = "Writes a lesson to the vault after approval";
+		expect(everyMember(DOC)).toContain(`<input type="checkbox"/>${label}`);
+		const learning = edited(DOC, ["tasks", 0, "memory"], {
+			write_lessons: true,
+		});
+		expect(everyMember(learning)).toContain(
+			`<input type="checkbox" checked=""/>${label}`,
+		);
+	});
+
 	it("shows a guardrail with its repairs, the human checkpoint after a role, and the task list that spawns tasks", () => {
 		expect(game).toContain('value="gdd@1"');
 		const ticked = '<input type="checkbox" checked=""/>';

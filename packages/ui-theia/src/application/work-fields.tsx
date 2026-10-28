@@ -1,7 +1,7 @@
 import { TEMPLATE_DEFAULTS } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import { useId } from "react";
-import { Chips, Count, type OnEdit, orNone, Text } from "./fields.js";
+import { Chips, Count, type OnEdit, orNone, Text, Tick } from "./fields.js";
 import {
 	runsOf,
 	type TeamView,
@@ -11,7 +11,7 @@ import {
 
 // What the team editor asks of the work (docs/08, Task fields; ADR-075): a task's or a member's
 // spawn defaults' output, approver, whom it asks before starting (ADR-142), pair reviewer (ADR-136),
-// verify commands and guardrail, and the team's revision limit and budget. Only what core honors is
+// verify commands, guardrail and lesson (ADR-145), and the team's revision limit and budget. Only what core honors is
 // shown: capability gates are not yet; a pair's max_turns stays in the YAML.
 // The fields sit in the grid of `.mete-task-grid` (style/mete-team-form.css).
 
@@ -70,9 +70,32 @@ export const Work = (props: {
 				onChange={(v) => onEdit(at("verify"), withRuns(work.verify, v))}
 			/>
 			<Guardrail {...props} />
+			<Lesson {...props} />
 		</>
 	);
 };
+
+// After approval the task's agent writes one lesson to the vault, a cloud request more (ADR-145).
+const Lesson = ({
+	work,
+	base,
+	onEdit,
+}: {
+	readonly work: WorkView;
+	readonly base: Path;
+	readonly onEdit: OnEdit;
+}) => (
+	<Tick
+		label={nls.localize(
+			"mete/team/lessons",
+			"Writes a lesson to the vault after approval (one request more)",
+		)}
+		checked={work.memory?.write_lessons === true}
+		onChange={(c) =>
+			onEdit([...base, "memory"], c ? { write_lessons: true } : undefined)
+		}
+	/>
+);
 
 // Whom the task asks its questions before it works: a member, or the human (ADR-142).
 const Clarify = ({

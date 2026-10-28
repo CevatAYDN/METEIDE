@@ -525,6 +525,7 @@
 			"idle": "No task names this member yet, so it works only when a task list gives it one. Add a task to give it work.",
 			"issues": "Fix these before saving:",
 			"keep": "Keep editing",
+			"lessons": "Writes a lesson to the vault after approval (one request more)",
 			"loading": "METE is reading the team…",
 			"memberId": "Id",
 			"memberName": "Name",
