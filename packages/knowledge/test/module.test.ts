@@ -152,6 +152,19 @@ describe("vault module", () => {
 		expect(s.saved).toHaveLength(2);
 	});
 
+	// Stop all cancels every run in one call (ADR-065): each report still lands in the day's note.
+	it("keeps every report of runs that end together", async () => {
+		const s = await setup();
+		finish(s, RUN_A, "First");
+		finish(s, RUN_B, "Second");
+		await tick();
+		await s.mod.deactivate();
+		const text = await s.note(day("2026-10-28T09:30:00.000Z"));
+		expect(text.match(/^---$/gm)).toHaveLength(2);
+		expect(text).toContain("## First");
+		expect(text).toContain("## Second");
+	});
+
 	it("writes the report of a run that ends right before a stop", async () => {
 		const s = await setup();
 		finish(s, RUN_A, "Stopped soon");

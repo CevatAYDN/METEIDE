@@ -62,7 +62,7 @@ Writing rules, to keep the vault clean \[C\]:
 
 ## Run reports
 
-When a run ends (`run.completed`, `run.failed` or `run.cancelled`) the vault module appends a section for it to the workspace vault's `journal/YYYY-MM-DD.md`, the local date of the ending event: goal, status, models used, tool calls per capability, failed calls with their error codes, checkpoints, changed files and the summary, built from the run's persisted events (`events.read@1`) without a model call, after its handoff is written, so the changed files are its `handoff.created` `files`. The section stays when the run is removed, as its artifacts do (ADR-143, ADR-144). Prompts and tool output are never copied. Run reports and handoffs (tab 08, Run memory) are written by the core, not by agents, and do not count toward the 3-notes limit \[D\].
+When a run ends (`run.completed`, `run.failed` or `run.cancelled`) the vault module appends a section for it to the workspace vault's `journal/YYYY-MM-DD.md`, the local date of the ending event: goal, status, models used, tool calls per capability, failed calls with their error codes, checkpoints, changed files and the summary, built from the run's persisted events (`events.read@1`) without a model call, after its handoff is written, so the changed files are its `handoff.created` `files`. The section stays when the run is removed, as its artifacts do (ADR-143, ADR-144). Prompts and tool output are never copied. Run reports and handoffs (tab 08, Run memory) are written by METE itself (the core for handoffs, the vault module for run reports), not by agents, and do not count toward the 3-notes limit \[D\].
 
 ## Aging and restore
 

@@ -85,18 +85,19 @@ const report = async (
 /** Creates the vault module: each ended run leaves its report in the workspace journal (docs/11). */
 export const createVaultModule = (opts: VaultOptions): MeteModule => {
 	const queued = new Map<string, () => void>();
-	const writing = new Set<Promise<void>>();
+	// One report at a time: runs that end together (Stop all) would each read the day's note and
+	// write it back, and the last write would drop the others' sections.
+	let writing = Promise.resolve();
 	return {
 		manifest: MANIFEST,
 		async activate(ctx) {
 			const start = (e: MeteEvent) => {
 				queued.delete(e.runId ?? "");
-				const p = report(ctx, opts, e)
+				writing = writing
+					.then(() => report(ctx, opts, e))
 					.catch((err) =>
 						ctx.logger.error({ err, runId: e.runId }, "run report not written"),
-					)
-					.finally(() => writing.delete(p));
-				writing.add(p);
+					);
 			};
 			// The handoff is published right after the ending event, in the same call (docs/08), so the
 			// report waits one turn of the event loop to read it back.
@@ -114,7 +115,7 @@ export const createVaultModule = (opts: VaultOptions): MeteModule => {
 		// A stop right after a run ends still writes its report.
 		async deactivate() {
 			for (const now of [...queued.values()]) now();
-			await Promise.all(writing);
+			await writing;
 		},
 	};
 };
