@@ -39,7 +39,8 @@ const split = (messages: readonly ChatMessage[]): Split => {
 	const starts = messages.flatMap((m, i) =>
 		i >= 2 && m.role === "assistant" ? [i] : [],
 	);
-	const cut = starts.at(-SUMMARY_KEEP_TURNS) ?? messages.length;
+	// With SUMMARY_KEEP_TURNS turns or fewer, every turn is a newest one and none is folded.
+	const cut = starts.at(-SUMMARY_KEEP_TURNS) ?? 2;
 	return {
 		head: messages.slice(0, 2),
 		middle: messages.slice(2, Math.max(2, cut)),

@@ -353,10 +353,18 @@ describe("single-agent engine", () => {
 	});
 
 	it("summarizes older turns on the fast tier once the conversation passes 70% of the window", async () => {
-		const read = vi.fn<Tool>(async () => ok({ content: "z".repeat(100_000) }));
+		const read = vi
+			.fn<Tool>()
+			.mockResolvedValueOnce(ok({ content: "z".repeat(100_000) }))
+			.mockResolvedValue(ok({ content: "small" }));
+		const call = reply("", [{ name: "fs_read", args: { path: "big.log" } }]);
 		const h = engineHarness({
 			scripts: [
-				reply("", [{ name: "fs_read", args: { path: "big.log" } }]),
+				call,
+				call,
+				call,
+				call,
+				call,
 				reply("big.log is a long build log; the error is on line 12"),
 				reply("done"),
 			],
@@ -364,12 +372,15 @@ describe("single-agent engine", () => {
 		});
 		const runId = await begin(h);
 		await settled(h, runId, "completed");
-		const [, summary, after] = h.requests;
+		const summary = h.requests.at(-2);
+		const after = h.requests.at(-1);
 		expect(summary?.target).toEqual({ tier: "fast" });
 		expect(summary?.tools).toBeUndefined();
 		const sent = JSON.stringify(after?.messages);
 		expect(sent).toContain("<summary> Earlier turns");
 		expect(sent).not.toContain("zzzz");
+		// The four newest turns stay whole (docs/08).
+		expect(sent).toContain("small");
 		const done = h.events.find((e) => e.type === "run.summarized");
 		expect(done?.payload).toEqual({ messages: 2, chars: 52 });
 	});
