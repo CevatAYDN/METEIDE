@@ -4,6 +4,7 @@ import {
 	ok,
 	type Result,
 	TeamTemplateSchema,
+	TOOL_CATALOG,
 } from "@mete/contracts";
 import { Document, isNode, parseDocument } from "yaml";
 import { z } from "zod";
@@ -327,9 +328,14 @@ export const idleMembers = (team: TeamView): string[] =>
 		.map((r) => r.id)
 		.filter((id) => !team.tasks.some((t) => t.role === id));
 
-/** The capability ids the team's members use, once each and sorted, as suggestions. */
+/** Every model tool's capability id and the ids the team's members use, once each and sorted, as suggestions (ADR-150). */
 export const capabilityHints = (team: TeamView): string[] =>
-	[...new Set(team.roles.flatMap((r) => r.capabilities))].sort();
+	[
+		...new Set([
+			...TOOL_CATALOG.map((t) => t.ref),
+			...team.roles.flatMap((r) => r.capabilities),
+		]),
+	].sort();
 
 /** The artifact types the team's tasks produce that have a schema, as guardrail suggestions. */
 export const guardrailHints = (team: TeamView): string[] => {

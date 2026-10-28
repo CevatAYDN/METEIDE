@@ -156,6 +156,12 @@ describe("capabilityHints", () => {
 		expect(hints).toEqual([...new Set(hints)].sort());
 		expect(hints.length).toBeGreaterThan(0);
 	});
+
+	it("offers every model tool's capability too, which no member may name yet (ADR-150)", () => {
+		const hints = capabilityHints(teamOf(draft()));
+		expect(hints).toContain("knowledge.search@1");
+		expect(hints).toContain("fs.*@1");
+	});
 });
 
 const GAME = readFileSync(
