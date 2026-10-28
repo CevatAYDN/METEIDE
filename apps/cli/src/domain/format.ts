@@ -50,6 +50,35 @@ const agentLine = (e: MeteEvent): string | undefined => {
 	}
 };
 
+// A member asks another before the approver or before its work (ADR-136, ADR-142).
+const askLine = (e: MeteEvent, title: string): string | undefined => {
+	switch (e.type) {
+		// A pair reviewer looks before the approver (ADR-136).
+		case "review.requested":
+			return `review by ${e.payload.reviewerRoleId}: ${title}`;
+		case "review.completed": {
+			const what =
+				e.payload.decision === "revise"
+					? "asked for changes"
+					: "reviewed, no changes";
+			const why = e.payload.feedback ? ` (${e.payload.feedback})` : "";
+			return `${e.payload.reviewerRoleId} ${what}: ${title}${why}`;
+		}
+		// The questions a task asks before its work, and a role's answer (ADR-142).
+		case "task.clarification.requested": {
+			const lines = e.payload.question.split("\n").filter((q) => q.trim());
+			const asked = lines.map((q) => `      ${q.trim()}`).join("\n");
+			return `${title} asks ${e.payload.toRoleId} before starting:\n${asked}`;
+		}
+		case "agent.message.sent":
+			return e.payload.kind === "answer"
+				? `answered before ${title}: ${e.payload.summary}`
+				: undefined;
+		default:
+			return undefined;
+	}
+};
+
 // A team run's tasks are named by their titles, as task.created gave them.
 const teamLine = (e: MeteEvent, title: string): string | undefined => {
 	switch (e.type) {
@@ -67,17 +96,6 @@ const teamLine = (e: MeteEvent, title: string): string | undefined => {
 			const why = e.payload.feedback ? ` (${e.payload.feedback})` : "";
 			return `${e.payload.approver} ${what}: ${title}${why}`;
 		}
-		// A pair reviewer looks before the approver (ADR-136).
-		case "review.requested":
-			return `review by ${e.payload.reviewerRoleId}: ${title}`;
-		case "review.completed": {
-			const what =
-				e.payload.decision === "revise"
-					? "asked for changes"
-					: "reviewed, no changes";
-			const why = e.payload.feedback ? ` (${e.payload.feedback})` : "";
-			return `${e.payload.reviewerRoleId} ${what}: ${title}${why}`;
-		}
 		case "artifact.created":
 		case "artifact.updated":
 			return `artifact ${e.payload.path}`;
@@ -86,7 +104,7 @@ const teamLine = (e: MeteEvent, title: string): string | undefined => {
 		case "handoff.accepted":
 			return `handoff ${e.payload.handoffId} taken by run ${e.payload.byRunId}`;
 		default:
-			return undefined;
+			return askLine(e, title);
 	}
 };
 

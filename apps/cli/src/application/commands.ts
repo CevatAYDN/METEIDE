@@ -144,7 +144,7 @@ export const withEngine = async (
 const teamHint = (runId: string | undefined) => [
 	"A team task waits for you. Approve it with:",
 	`  mete approve ${runId} [<task id>]`,
-	"or send it back with feedback:",
+	"or send it back with feedback, or answer its questions, with:",
 	`  mete revise ${runId} <task id> "<feedback>"`,
 ];
 

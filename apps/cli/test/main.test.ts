@@ -275,6 +275,33 @@ describe("output lines", () => {
 		).toBe("editor reviewed, no changes: Write");
 	});
 
+	it("shows the questions a task asks before its work, one per line, and a role's answer (ADR-142)", () => {
+		const title = () => "Write";
+		expect(
+			eventLine(
+				event("task.clarification.requested", {
+					toRoleId: "human",
+					question: "Which city?\nWhich prices?",
+				}),
+				title,
+			),
+		).toBe(
+			"Write asks human before starting:\n      Which city?\n      Which prices?",
+		);
+		const message = (kind: string) =>
+			event("agent.message.sent", {
+				messageId: crypto.randomUUID(),
+				from: "a",
+				to: "b",
+				kind,
+				summary: "Ankara.",
+			});
+		expect(eventLine(message("answer"), title)).toBe(
+			"answered before Write: Ankara.",
+		);
+		expect(eventLine(message("handoff"), title)).toBeUndefined();
+	});
+
 	it("names what a policy ask is about: the command, the path, or else the capability (ADR-121)", () => {
 		const ask = {
 			action: "shell.exec",
