@@ -22,6 +22,7 @@ import { type DaemonStreams, daemonCommand } from "./application/daemon.js";
 import { terminalElicit } from "./application/elicit.js";
 import { keyCommand } from "./application/keys.js";
 import { registryAddCommand, registryCommand } from "./application/registry.js";
+import { removeCommand } from "./application/remove.js";
 import { rollbackCommand } from "./application/rollback.js";
 import { templateValidate } from "./application/templates.js";
 import {
@@ -163,11 +164,17 @@ const stop = (reader: AppOptions, io: Io, target: string | undefined) =>
 			)
 		: usage(io);
 
-// Restoring changes files, so no run may start meanwhile: it takes the lock as mete run does (ADR-079).
+// Restoring or removing changes files, so no run may start meanwhile: the lock of mete run (ADR-079, ADR-143).
 const rollback = (reader: AppOptions, io: Io, runId?: string, n?: string) =>
 	runId && n
 		? locked(reader, io, () =>
 				withApp(reader, io, (a) => rollbackCommand(a, io, runId, n)),
+			)
+		: usage(io);
+const remove = (reader: AppOptions, io: Io, runId?: string) =>
+	runId
+		? locked(reader, io, () =>
+				withApp(reader, io, (a) => removeCommand(a, io, runId)),
 			)
 		: usage(io);
 
@@ -260,6 +267,8 @@ const dispatch = (
 			return stop(reader, io, p.values.all ? "all" : rest[0]);
 		case "rollback":
 			return rollback(reader, io, rest[0], rest[1]);
+		case "remove":
+			return remove(reader, io, rest[0]);
 		case "mcp":
 			return mcp(opts, io, ends.serve, rest[0]);
 		case "daemon":

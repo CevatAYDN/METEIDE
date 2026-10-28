@@ -16,6 +16,7 @@ export const USAGE = [
 	"  mete template validate [<id>]   check the team templates a run may use, and name each issue",
 	"  mete stop <run id> | --all   cancel paused runs",
 	"  mete rollback <run id> <n>   restore a paused or ended run's checkpoint n; prints how to undo it",
+	"  mete remove <run id>         delete an ended run with its worktrees, branches, checkpoints and history; asks first",
 	"  mete mcp [<folder>]          serve this folder's teams to an MCP host (Claude Code, Cursor, Cline)",
 	"  mete daemon [<folder>]       serve this folder to the METE desktop over stdio (JSON-RPC)",
 	'  mete registry search "<words>"   find MCP servers in the official MCP registry; installs nothing',

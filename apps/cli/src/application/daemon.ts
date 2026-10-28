@@ -48,11 +48,12 @@ import {
 	trackExhausted,
 } from "./provider-states.js";
 import { customAdapter, endpointModels, probeModels } from "./provider-test.js";
+import { serveRemove } from "./remove.js";
 import { restoreCheckpoint } from "./rollback.js";
 import { settingsOf } from "./settings.js";
 import { serveTranscript } from "./transcript.js";
 
-// `mete daemon`: protocol version 23 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-125).
+// `mete daemon`: protocol version 24 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-143).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
@@ -345,6 +346,7 @@ const serveMethods = (conn: MessageConnection, app: App, io: Io) => {
 	serveStopAll(conn, app, io);
 	serveEvents(conn, app);
 	serveTranscript(conn, app);
+	serveRemove(conn, app);
 	serveAudit(conn, app);
 	serveTemplates(conn, app);
 	serveTemplateRead(conn, app);
