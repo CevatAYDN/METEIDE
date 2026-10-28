@@ -36,6 +36,7 @@ const MemberSchema = z.object({
 const WorkSchema = z.object({
 	expected_output: optional,
 	approval: optional,
+	before_start: z.object({ clarify_with: text }).optional().catch(undefined),
 	verify: z.array(z.record(z.string(), z.unknown())).catch([]),
 	guardrail: z
 		.object({ schema: text, max_retries: number })

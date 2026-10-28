@@ -218,6 +218,15 @@ describe("the rules of the work", () => {
 		expect(game).toContain("No pair review");
 	});
 
+	it("shows whom a task asks before starting, as the designer asks you (ADR-142)", () => {
+		expect(game).toContain("Asks before starting (optional)");
+		// No game-studio task is approved by the human, so this "You" is the designer's question.
+		expect(game).toContain('<option value="human" selected="">You</option>');
+		expect(everyMember(DOC)).toContain(
+			'<option value="" selected="">Asks no one</option>',
+		);
+	});
+
 	it("shows a guardrail with its repairs, the human checkpoint after a role, and the task list that spawns tasks", () => {
 		expect(game).toContain('value="gdd@1"');
 		const ticked = '<input type="checkbox" checked=""/>';
