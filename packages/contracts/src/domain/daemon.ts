@@ -8,10 +8,10 @@ import { ModelInfoSchema } from "./provider.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 
-// Daemon protocol v23 (ARCHITECTURE.md, ADR-045..ADR-125); mete/event checked with MeteEventSchema.
+// Daemon protocol v24 (ARCHITECTURE.md, ADR-045..ADR-143); mete/event checked with MeteEventSchema.
 const text = z.string().min(1);
 
-/** The messages of version 23; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 24; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
@@ -20,6 +20,7 @@ export const DAEMON_METHODS = {
 	runAllow: "mete/run.allow",
 	runModel: "mete/run.model",
 	runTranscript: "mete/run.transcript",
+	runRemove: "mete/run.remove",
 	quota: "mete/quota",
 	events: "mete/events",
 	audit: "mete/audit",

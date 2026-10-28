@@ -60,7 +60,7 @@ const run: RunView = {
 	prefer: { writer: { providerId: "groq", modelId: "llama-3.3-70b" } },
 };
 
-describe("daemon protocol version 23", () => {
+describe("daemon protocol version 24", () => {
 	it("answers mete/events with the run's events in order and the count of unreadable rows", () => {
 		const event = {
 			id: crypto.randomUUID(),
@@ -173,6 +173,7 @@ describe("daemon protocol version 23", () => {
 			runAllow: "mete/run.allow",
 			runModel: "mete/run.model",
 			runTranscript: "mete/run.transcript",
+			runRemove: "mete/run.remove",
 			quota: "mete/quota",
 			events: "mete/events",
 			audit: "mete/audit",

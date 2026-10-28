@@ -107,6 +107,15 @@ describe("RunPreferSchema (ADR-122)", () => {
 			model: async () => ({ ok: true, value: undefined }),
 		};
 		expect(typeof withModel.model).toBe("function");
+		expect(minimal.remove).toBeUndefined();
+		const withRemove: TeamEngineAdapter = {
+			...minimal,
+			remove: async () => ({
+				ok: false,
+				error: { code: "failed", message: "worktree not removed" },
+			}),
+		};
+		expect(typeof withRemove.remove).toBe("function");
 	});
 });
 

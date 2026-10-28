@@ -40,6 +40,8 @@ describe("parseEvent", () => {
 
 	it("accepts events whose payload is none", () => {
 		expect(parseEvent(envelope("network.lost", {})).ok).toBe(true);
+		expect(parseEvent(envelope("run.removed", {})).ok).toBe(true);
+		expect(parseEvent(envelope("run.removed", { runId: "r1" })).ok).toBe(false);
 	});
 
 	it("rejects an unknown event type", () => {
@@ -200,8 +202,8 @@ describe("parseEvent", () => {
 });
 
 describe("EVENT_TYPES", () => {
-	it("covers the 44 types of the catalog in tab 07, all well formed", () => {
-		expect(EVENT_TYPES).toHaveLength(44);
+	it("covers the 45 types of the catalog in tab 07, all well formed", () => {
+		expect(EVENT_TYPES).toHaveLength(45);
 		for (const t of EVENT_TYPES) expect(EventTypeSchema.parse(t)).toBe(t);
 	});
 });

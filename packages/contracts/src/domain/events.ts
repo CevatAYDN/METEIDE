@@ -62,6 +62,8 @@ const PAYLOADS = {
 	"run.completed": z.strictObject({ summary: z.string() }),
 	"run.failed": z.strictObject({ code: text, message: z.string() }),
 	"run.cancelled": none,
+	// The user removed an ended run (ADR-143); each module deletes its own rows of the run.
+	"run.removed": none,
 	// Older turns became one summary (docs/08, Agent context assembly): how many messages, how long.
 	"run.summarized": z.strictObject({
 		messages: z.number().int().positive(),

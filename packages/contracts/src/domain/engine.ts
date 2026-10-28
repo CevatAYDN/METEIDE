@@ -80,7 +80,7 @@ export type RunView = {
 /** Why an engine call was refused. */
 export type EngineError =
 	| {
-			readonly code: "bad_input" | "not_found" | "not_supported";
+			readonly code: "bad_input" | "not_found" | "not_supported" | "failed";
 			readonly message: string;
 	  }
 	| {
@@ -115,4 +115,6 @@ export interface TeamEngineAdapter {
 	): Promise<Result<void, EngineError>>;
 	/** The steps of the run's saved conversation, masked when read (ADR-125). */
 	transcript?(runId: string): Promise<Result<Transcript, EngineError>>;
+	/** Deletes an ended run with its worktrees, branches and checkpoints, then publishes run.removed (ADR-143). */
+	remove?(runId: string): Promise<Result<void, EngineError>>;
 }

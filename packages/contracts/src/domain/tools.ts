@@ -192,6 +192,8 @@ export const VcsGitInputSchema = z.discriminatedUnion("op", [
 		op: z.literal("worktree.remove"),
 		runId: IdSchema,
 		taskId: IdSchema,
+		// Also deletes a branch that was not merged (ADR-143, Remove a run).
+		force: z.boolean().optional(),
 	}),
 	z.strictObject({
 		op: z.literal("merge"),

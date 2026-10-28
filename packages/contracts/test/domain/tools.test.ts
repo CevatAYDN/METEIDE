@@ -119,6 +119,7 @@ describe("VcsGitInputSchema", () => {
 			{ op: "checkpoint.prune", runId: RUN },
 			{ op: "worktree.create", runId: RUN, taskId: TASK },
 			{ op: "worktree.remove", runId: RUN, taskId: TASK },
+			{ op: "worktree.remove", runId: RUN, taskId: TASK, force: true },
 			{ op: "merge", runId: RUN, taskId: TASK, message: "merge task" },
 		])
 			expect(VcsGitInputSchema.parse(good)).toEqual(good);
@@ -136,6 +137,7 @@ describe("VcsGitInputSchema", () => {
 			{ op: "checkpoint.create", runId: "x" },
 			{ op: "worktree.create", runId: "invalid-id", taskId: TASK },
 			{ op: "worktree.remove", runId: RUN, taskId: "" },
+			{ op: "worktree.remove", runId: RUN, taskId: TASK, force: "yes" },
 		])
 			expect(VcsGitInputSchema.safeParse(bad).success).toBe(false);
 	});
