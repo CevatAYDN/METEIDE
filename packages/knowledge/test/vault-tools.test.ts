@@ -136,6 +136,19 @@ describe("vault.write@1", () => {
 		).toEqual(["journal", "journal"]);
 	});
 
+	it("leaves a private note of the same title as it is", async () => {
+		const t = await tools();
+		const path = ".mete/knowledge/entities/me.md";
+		const text = "---\ntype: entity\nprivate: true\n---\n\nSecret.\n";
+		await mkdir(join(t.root, ".mete", "knowledge", "entities"), {
+			recursive: true,
+		});
+		await writeFile(join(t.root, path), text, "utf8");
+		const w = await t.write.run({ ...lesson("Me"), type: "entity" }, ctx());
+		expect(code(w)).toBe("ignored");
+		expect(await t.file(path)).toBe(text);
+	});
+
 	it("gives back the policy's ask and writes nothing", async () => {
 		const t = await tools();
 		t.policy.ask = true;

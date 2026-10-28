@@ -163,6 +163,9 @@ const updated = (
 ): Result<string, ToolError> => {
 	const parts = splitNote(was);
 	if (!parts) return bad("The note there has a frontmatter that is not YAML");
+	// A model never learns a private note's text, so it never replaces it either.
+	if (parts.data.private === true)
+		return err({ code: "ignored", message: "The note there is private" });
 	const tags = Array.isArray(parts.data.tags) ? parts.data.tags : [];
 	const data = {
 		...parts.data,
