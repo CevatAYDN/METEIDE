@@ -246,7 +246,7 @@
 /* The board's widths need a 1278 px card; a window snapped to half of a 2560 px screen leaves about
    860 px, which pushed Resets and History out of sight. A narrower card gets the narrowest widths
    that still hold each cell (the meter, a unit name, a provider id) and tighter padding.
-   shortcut: a card under about 850 px still scrolls sideways; stack the rows if that size matters. */
+   shortcut: a card under 766 px (the narrowed columns plus History) still scrolls sideways; stack the rows if that size matters. */
 @container (max-width: 1000px) {
 	.mete-quota-card thead th,
 	.mete-quota-card tbody td {
