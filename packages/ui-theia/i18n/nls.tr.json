@@ -624,7 +624,8 @@
 			"answer": "Yanıtla…",
 			"yourAnswer": "Yanıtın",
 			"sendAnswer": "Yanıtı gönder",
-			"noAnswers": "Yanıtsız devam et"
+			"noAnswers": "Yanıtsız devam et",
+			"pick": "“{0}” sorusunu {1} diye yanıtla"
 		},
 		"welcome": {
 			"caption": "METE: başlamak için anahtarlar, gizlilik ve web araması",

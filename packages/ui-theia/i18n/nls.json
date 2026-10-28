@@ -624,7 +624,8 @@
 			"answer": "Answer…",
 			"yourAnswer": "Your answer",
 			"sendAnswer": "Send the answer",
-			"noAnswers": "Go on without answers"
+			"noAnswers": "Go on without answers",
+			"pick": "Answer “{0}” with {1}"
 		},
 		"welcome": {
 			"caption": "METE: keys, privacy and web search to start with",

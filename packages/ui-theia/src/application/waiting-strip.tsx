@@ -1,8 +1,10 @@
 import type { AllowScope } from "@mete/contracts";
 import type { TaskCard, TeamView } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
-import { useId } from "react";
+import { useId, useState } from "react";
+import { questionsOf, withPick } from "../domain/questions.js";
 import { roleWords } from "../domain/roster.js";
+import { QuestionList } from "./question-list.js";
 import { openReportLabel, reportPath } from "./results-list.js";
 import { Icon } from "./roster-look.js";
 import { askKey, RunWaits } from "./run-waits.js";
@@ -26,6 +28,14 @@ export type WaitingControls = {
 		| undefined;
 };
 
+/** An answer its card holds, so a picked option fills it and opens it (ADR-148). */
+type Draft = {
+	readonly text: string;
+	readonly open: boolean;
+	readonly onText: (text: string) => void;
+	readonly onOpen: (open: boolean) => void;
+};
+
 // The answer field is required, so an empty answer is never sent (docs/08). One form for both
 // answers — the words that should change, and the instruction that lifts a block.
 const Feedback = ({
@@ -34,14 +44,20 @@ const Feedback = ({
 	placeholder,
 	send,
 	onSend,
+	draft,
 }: {
 	readonly icon: string;
 	readonly open: string;
 	readonly placeholder: string;
 	readonly send: string;
 	readonly onSend: (feedback: string) => void;
+	readonly draft?: Draft | undefined;
 }) => (
-	<details className="mete-wait-feedback">
+	<details
+		className="mete-wait-feedback"
+		open={draft?.open}
+		onToggle={(e) => draft?.onOpen(e.currentTarget.open)}
+	>
 		<summary className="mete-button quiet">
 			<Icon name={icon} />
 			{open}
@@ -58,6 +74,8 @@ const Feedback = ({
 				name="feedback"
 				required
 				rows={2}
+				value={draft?.text}
+				onChange={draft ? (e) => draft.onText(e.target.value) : undefined}
 				aria-label={placeholder}
 				placeholder={placeholder}
 			/>
@@ -223,7 +241,7 @@ const Blocked = ({
 );
 
 // The questions a task asks the human before its work (docs/08, step 1; ADR-142): it goes on with
-// the answer, or without one.
+// the answer, or without one. A picked option fills in the answer and opens it (ADR-148).
 const Asking = ({
 	task,
 	name,
@@ -232,46 +250,50 @@ const Asking = ({
 	readonly task: TaskCard;
 	readonly name: string;
 	readonly controls: WaitingControls;
-}) => (
-	<Card
-		tone="warn"
-		icon="question"
-		title={nls.localize(
-			"mete/waiting/asksFirst",
-			"{0} asks you before “{1}”",
-			name,
-			task.title,
-		)}
-		kind={{ word: nls.localize("mete/waiting/question", "Question") }}
-	>
-		<ul className="mete-wait-questions">
-			{(task.question?.text ?? "")
-				.split("\n")
-				.map((line) => line.trim().replace(/^(?:\d+[.)]|[-*])\s+/, ""))
-				.filter((line) => line !== "")
-				.map((line) => (
-					<li key={line}>{line}</li>
-				))}
-		</ul>
-		<div className="mete-wait-actions">
-			<Feedback
-				icon="comment"
-				open={nls.localize("mete/waiting/answer", "Answer…")}
-				placeholder={nls.localize("mete/waiting/yourAnswer", "Your answer")}
-				send={nls.localize("mete/waiting/sendAnswer", "Send the answer")}
-				onSend={controls.onRevise}
+}) => {
+	const [text, onText] = useState("");
+	const [open, onOpen] = useState(false);
+	const pick = (question: string, option: string) => {
+		onText((t) => withPick(t, question, option));
+		onOpen(true);
+	};
+	return (
+		<Card
+			tone="warn"
+			icon="question"
+			title={nls.localize(
+				"mete/waiting/asksFirst",
+				"{0} asks you before “{1}”",
+				name,
+				task.title,
+			)}
+			kind={{ word: nls.localize("mete/waiting/question", "Question") }}
+		>
+			<QuestionList
+				questions={questionsOf(task.question?.text ?? "")}
+				onPick={pick}
 			/>
-			<button
-				type="button"
-				className="mete-button quiet"
-				onClick={controls.onApprove}
-			>
-				<Icon name="debug-continue" />
-				{nls.localize("mete/waiting/noAnswers", "Go on without answers")}
-			</button>
-		</div>
-	</Card>
-);
+			<div className="mete-wait-actions">
+				<Feedback
+					icon="comment"
+					open={nls.localize("mete/waiting/answer", "Answer…")}
+					placeholder={nls.localize("mete/waiting/yourAnswer", "Your answer")}
+					send={nls.localize("mete/waiting/sendAnswer", "Send the answer")}
+					onSend={controls.onRevise}
+					draft={{ text, open, onText, onOpen }}
+				/>
+				<button
+					type="button"
+					className="mete-button quiet"
+					onClick={controls.onApprove}
+				>
+					<Icon name="debug-continue" />
+					{nls.localize("mete/waiting/noAnswers", "Go on without answers")}
+				</button>
+			</div>
+		</Card>
+	);
+};
 
 const TaskCardItem = ({
 	task,

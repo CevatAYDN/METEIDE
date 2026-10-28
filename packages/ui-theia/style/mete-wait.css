@@ -257,3 +257,17 @@
 	font-size: 13.5px;
 	line-height: 1.45;
 }
+
+/* The likely answers its agent offers after a question, each a chip button (ADR-148). */
+.mete-wait-options {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-left: 8px;
+	vertical-align: middle;
+}
+
+.mete-wait-options > .mete-chip {
+	font-size: 12.5px;
+	line-height: 1.6;
+}

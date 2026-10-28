@@ -3,6 +3,7 @@ import { applyAll, EMPTY_TEAM_VIEW } from "@mete/ui-studio";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { QuestionList } from "../src/application/question-list.js";
 import { AllowActions, RunWaits } from "../src/application/run-waits.js";
 import { WaitingStrip } from "../src/application/waiting-strip.js";
 
@@ -101,6 +102,41 @@ describe("the Waiting for you strip", () => {
 		expect(out).toContain("Answer…");
 		expect(out).toContain(">Go on without answers<");
 		expect(out).not.toContain("is blocked on");
+	});
+
+	it("offers each question's likely answers as buttons that fill in the answer (ADR-148)", () => {
+		const out = strip([
+			created,
+			event(
+				"task.clarification.requested",
+				{ toRoleId: "human", question: "Which city? [Ankara | Izmir]" },
+				TASK,
+			),
+			event(
+				"task.status.changed",
+				{ from: "in_progress", to: "blocked" },
+				TASK,
+			),
+			paused,
+		]);
+		expect(out).toContain("<li>Which city?<span");
+		expect(out).toContain(
+			'<button type="button" class="mete-chip" aria-label="Answer “Which city?” with Ankara">Ankara</button>',
+		);
+		expect(out).toContain('aria-label="Answer “Which city?” with Izmir"');
+		expect(out).not.toContain("[Ankara");
+	});
+
+	it("hands a clicked option to the card with its question, to fill in the answer (ADR-148)", () => {
+		const picks: string[] = [];
+		const list = QuestionList({
+			questions: [{ text: "Which city?", options: ["Ankara", "Izmir"] }],
+			onPick: (q, o) => picks.push(`${q} ${o}`),
+		});
+		const options = list.props.children[0].props.children[1];
+		const buttons = options.type(options.props).props.children;
+		buttons[1].props.onClick();
+		expect(picks).toEqual(["Which city? Izmir"]);
 	});
 
 	it("names a blocked task and offers the instruction that lifts it (docs/07)", () => {
