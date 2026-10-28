@@ -104,8 +104,8 @@ const whenVisible = (view: View, act: () => void): Disposable => {
 
 /**
  * Shows the Waiting for you part only while a run waits, so an empty inbox takes no height, with
- * `share` of the view's height; it changes only when the count crosses zero, so a user who hides
- * it meanwhile keeps it hidden.
+ * `share` of the view's height; it shows only when the count crosses zero, so a user who hides
+ * it meanwhile keeps it hidden, and it hides again whenever a restored layout shows it empty.
  */
 export const followWaiting = (
 	container: View,
@@ -117,9 +117,9 @@ export const followWaiting = (
 	let sizing = Disposable.NULL;
 	const follow = () => {
 		const now = waitingCount(store.model) > 0;
-		if (now === shown) return;
-		shown = now;
 		const part = container.getPartFor(waiting);
+		if (now === shown && (now || !part || part.isHidden)) return;
+		shown = now;
 		part?.setHidden(!now);
 		sizing.dispose();
 		if (now && part)

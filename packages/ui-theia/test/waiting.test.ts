@@ -157,6 +157,19 @@ describe("the Waiting for you part", () => {
 		expect(hidden).toEqual([true, false, true]);
 	});
 
+	it("hides again when a restored layout shows it while nothing waits, and keeps it hidden if the user hid it while runs wait", () => {
+		const { store, part, hidden } = fakeView(true);
+		store.set(waiting(0));
+		// Theia's layout restore shows the part as it was saved.
+		part.isHidden = false;
+		store.set(waiting(0));
+		expect(hidden).toEqual([true, true]);
+		store.set(waiting(1));
+		part.isHidden = true;
+		store.set(waiting(2));
+		expect(hidden).toEqual([true, true, false]);
+	});
+
 	it("comes back with its share of the height, the open parts keeping theirs", () => {
 		const { store, sized } = fakeView(true);
 		store.set(waiting(0));
