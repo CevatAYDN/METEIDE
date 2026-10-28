@@ -24,7 +24,7 @@ const NO_ANSWERS =
 
 const askLine = (team: TeamState, by: string) =>
 	[
-		`Before you start, write the questions whose answers you need to do this task well, one per line; ${nameOf(team, by)} answers them.`,
+		`Before you start, write the questions whose answers you need to do this task well, one per line. ${nameOf(team, by)} answers them.`,
 		"Ask only what the goal, the reports and the workspace above do not tell you. If you need nothing, reply with the single word none.",
 	].join(" ");
 
