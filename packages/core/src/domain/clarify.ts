@@ -1,6 +1,6 @@
 import type { ChatMessage } from "@mete/contracts";
 import type { Platform } from "./prompt.js";
-import { type TeamState, withClarify } from "./team.js";
+import { GO_ON, type TeamState, withClarify } from "./team.js";
 import { firstSentence, nameOf, taskConversation } from "./team-run.js";
 
 // The questions before the work (docs/08, step 1; ADR-142): a task with `before_start.clarify_with`
@@ -18,8 +18,9 @@ export const clarifierOf = (team: TeamState, id: string) =>
 export const noQuestions = (reply: string) =>
 	/^(none|no questions)?[.!]?$/i.test(reply.trim());
 
-/** What the task's agent hears when it has no questions. */
-export const GO_ON = "Go on with the task.";
+// A human who goes on without answers leaves the questions open, which the report names (ADR-135).
+const NO_ANSWERS =
+	"The human leaves your questions open. Go on with the task, and name what is still missing as an open question in your report.";
 
 const askLine = (team: TeamState, by: string) =>
 	[
@@ -55,7 +56,10 @@ export const openTask = (
 	}
 	const answer = entry?.context.feedback;
 	if (entry?.context.clarify === "asked" && answer) {
-		const said = `The human answers your questions: ${answer}`;
+		const said =
+			answer === GO_ON
+				? NO_ANSWERS
+				: `The human answers your questions: ${answer}`;
 		const messages = [
 			...entry.messages,
 			{ role: "user" as const, content: said },

@@ -120,6 +120,21 @@ describe("clarify before the work (ADR-142)", () => {
 		});
 	});
 
+	it("tells the writer its questions stay open when the human goes on without answers", async () => {
+		const { h, runId, settled } = await run("human", [
+			reply("Which city?"),
+			reply("done"),
+		]);
+		await settled("paused");
+		expect((await h.engine.approve(runId, { decision: "approve" })).ok).toBe(
+			true,
+		);
+		await settled("completed");
+		expect(String(h.requests[1]?.messages.at(-1)?.content)).toBe(
+			"The human leaves your questions open. Go on with the task, and name what is still missing as an open question in your report.",
+		);
+	});
+
 	it("goes on with the task when it has no questions", async () => {
 		const { h, settled } = await run("helper", [reply("None."), reply("done")]);
 		await settled("completed");

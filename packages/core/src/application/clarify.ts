@@ -2,12 +2,12 @@ import {
 	answerConversation,
 	answerLine,
 	clarifierOf,
-	GO_ON,
 	noQuestions,
 	summaryOf,
 } from "../domain/clarify.js";
 import {
 	applyTask,
+	GO_ON,
 	keepMessages,
 	type TeamState,
 	withClarify,

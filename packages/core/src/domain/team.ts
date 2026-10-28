@@ -145,6 +145,9 @@ export const withoutWorktree = (team: TeamState, id: string): TeamState => {
 		: team;
 };
 
+/** What a task hears when it goes on as it is: the human lifted its block without words (docs/08), or it had no questions (ADR-142). */
+export const GO_ON = "Go on with the task.";
+
 /** Moves a task's questions before the work on (ADR-142); undefined once they are answered. */
 export const withClarify = (
 	team: TeamState,
@@ -284,7 +287,7 @@ export const decide = (
 	if (statusOf(team, id) === "blocked")
 		return applyTask(team, id, {
 			type: "UNBLOCK",
-			instruction: feedback ?? "Go on with the task.",
+			instruction: feedback ?? GO_ON,
 		});
 	return decision === "approve"
 		? approve(team, id, "human")
