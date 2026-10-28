@@ -2,6 +2,7 @@ import type { TeamTemplate } from "@mete/contracts";
 import {
 	ESTIMATE_PER_APPROVAL,
 	ESTIMATE_PER_CLARIFY,
+	ESTIMATE_PER_LESSON,
 	ESTIMATE_PER_REVIEW,
 	ESTIMATE_PER_TASK,
 } from "../defaults.js";
@@ -9,8 +10,8 @@ import { type Seat, SINGLE_AGENT } from "./tools.js";
 
 // The request estimate before a run starts (docs/09, Scheduler, step 6; ADR-068), without history:
 // 12 per task on its role's seat, 4 per clarification on the answering role's (ADR-142), 4 per pair
-// review on the pair role's (ADR-136) and 3 per approval on the approver role's. A human approves and
-// answers without a model request. Pure.
+// review on the pair role's (ADR-136), 3 per approval on the approver role's and 1 per lesson on the
+// task's role's (ADR-145). A human approves and answers without a model request. Pure.
 
 /** Requests one seat is estimated to make; a team seat names its role, whose pin it may have (ADR-077). */
 export type EstimateEntry = Pick<Seat, "tier" | "needs"> & {
@@ -51,6 +52,9 @@ export const estimateRequests = (
 			: []),
 		...(t.review
 			? [{ ...seat(t.review.pair_with), requests: ESTIMATE_PER_REVIEW }]
+			: []),
+		...(t.memory?.write_lessons
+			? [{ ...seat(t.role), requests: ESTIMATE_PER_LESSON }]
 			: []),
 	]);
 };

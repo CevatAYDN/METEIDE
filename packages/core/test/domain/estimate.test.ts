@@ -54,6 +54,7 @@ const template = () => {
 				role: "artist",
 				title: "Paired",
 				review: { pair_with: "tester" },
+				memory: { write_lessons: true },
 			},
 		],
 	});
@@ -62,7 +63,7 @@ const template = () => {
 };
 
 describe("estimateRequests", () => {
-	it("counts 12 per task on its role's seat, 4 per clarification on the answering role's, 4 per review on the pair's and 3 per approval on the approver's, naming the role for its pin", () => {
+	it("counts 12 per task on its role's seat, 4 per clarification on the answering role's, 4 per review on the pair's, 3 per approval on the approver's and 1 per lesson on the task's role's, naming the role for its pin", () => {
 		expect(estimateRequests(template())).toEqual([
 			{ roleId: "tester", tier: "fast", needs: [], requests: 12 },
 			// A role answers the questions asked before the work (ADR-142).
@@ -74,6 +75,8 @@ describe("estimateRequests", () => {
 			{ roleId: "artist", tier: "vision", needs: ["vision"], requests: 12 },
 			// Core runs pair review (ADR-136), so the review term counts.
 			{ roleId: "tester", tier: "fast", needs: [], requests: 4 },
+			// The lesson after approval is one request of the task's agent (ADR-145).
+			{ roleId: "artist", tier: "vision", needs: ["vision"], requests: 1 },
 		]);
 	});
 

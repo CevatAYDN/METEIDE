@@ -12,6 +12,9 @@ export const ESTIMATE_PER_REVIEW = 4;
 /** Requests a role answering a task's questions is estimated to need before there is history (09 Models, providers and quota, Scheduler, step 6; ADR-142). */
 export const ESTIMATE_PER_CLARIFY = 4;
 
+/** Requests a task's lesson after approval takes: one turn without tools (09 Models, providers and quota, Scheduler, step 6; ADR-145). */
+export const ESTIMATE_PER_LESSON = 1;
+
 /** Model turns an attempt takes before its run pauses for the budget (docs/08, Task execution sequence and Single agent; ADR-126). */
 export const MAX_TURNS = 25;
 
