@@ -41,6 +41,29 @@ describe("the Studio's signals", () => {
 		expect(resumed.signals.pausedFor).toBeUndefined();
 	});
 
+	it("adds up how long the run was paused, each pause closed when the run goes on or ends (ADR-139)", () => {
+		const at = (type: string, ts: string, payload: object = {}) => ({
+			...event(type, payload),
+			ts,
+		});
+		expect(EMPTY_TEAM_VIEW.signals.paused).toBe(0);
+		const twice = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			at("run.started", "2026-10-23T10:00:00.000Z"),
+			at("run.paused", "2026-10-23T10:01:00.000Z", { reason: "approval" }),
+			at("run.resumed", "2026-10-23T10:39:00.000Z"),
+			at("run.paused", "2026-10-23T10:40:00.000Z", { reason: "quota" }),
+			at("run.cancelled", "2026-10-23T10:42:30.000Z"),
+		]);
+		expect(twice.signals.paused).toBe(40.5 * 60_000);
+		expect(twice.signals.pausedSince).toBeUndefined();
+		// A pause still open counts nothing yet and keeps when it began.
+		const open = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			at("run.paused", "2026-10-23T10:01:00.000Z", { reason: "approval" }),
+		]);
+		expect(open.signals.paused).toBe(0);
+		expect(open.signals.pausedSince).toBe("2026-10-23T10:01:00.000Z");
+	});
+
 	it("takes the workspace's quota events, which name no run, but no other run's events", () => {
 		const resetsAt = "2026-10-24T00:00:00.000Z";
 		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [
