@@ -149,9 +149,10 @@
 	margin: 0;
 }
 
-/* A team at a glance: the ring of its approved tasks, a rule, and one initial tile per member. */
+/* A team at a glance: the ring of its approved tasks, a rule, and one initial tile per member. It
+   shrinks with a narrow panel, so the members wrap instead of spilling past the band. */
 .mete-glance {
-	flex: none;
+	flex: 0 1 auto;
 	align-self: stretch;
 	display: flex;
 	align-items: center;
