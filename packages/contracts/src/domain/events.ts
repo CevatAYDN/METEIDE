@@ -39,8 +39,12 @@ const approval = z.strictObject({
 	decision: DecisionSchema.optional(),
 	feedback: z.string().optional(),
 });
-// The request names the worktree the submitted files wait in, so the human can read them (ADR-132).
-const approvalRequest = approval.extend({ worktree: text.optional() });
+// The request names the worktree the submitted files wait in, so the human can read them (ADR-132),
+// and the files the task changed there (ADR-141).
+const approvalRequest = approval.extend({
+	worktree: text.optional(),
+	files: z.array(text).optional(),
+});
 const quotaUnit = { providerId: text, unit: QuotaUnitSchema };
 const moduleChange = z.strictObject({
 	moduleId: ModuleIdSchema,

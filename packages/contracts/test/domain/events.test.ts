@@ -102,6 +102,22 @@ describe("parseEvent", () => {
 		).toBe(false);
 	});
 
+	it("takes the files a submission changed in its worktree on the request, or none, but not an empty path (ADR-141)", () => {
+		const asked = { approver: "human", worktree: "/w/run/task" };
+		for (const files of [[], ["index.html", "design/DESIGN.md"]])
+			expect(
+				parseEvent(envelope("approval.requested", { ...asked, files })).ok,
+			).toBe(true);
+		expect(
+			parseEvent(envelope("approval.requested", { ...asked, files: [""] })).ok,
+		).toBe(false);
+		expect(
+			parseEvent(
+				envelope("approval.resolved", { approver: "human", files: [] }),
+			).ok,
+		).toBe(false);
+	});
+
 	it("takes the files a handoff lists, or none, but not an empty path (ADR-133)", () => {
 		const handoffId = crypto.randomUUID();
 		for (const payload of [

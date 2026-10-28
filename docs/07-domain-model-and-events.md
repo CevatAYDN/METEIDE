@@ -129,7 +129,7 @@ From Phase 2, handoffs go into the workspace `handoffs` table: `id`, `workspace_
 | `artifact.created` / `artifact.updated` | artifactId, type, path | core-engine |
 | `verify.completed` | gate, ok, details | core-engine |
 | `review.requested` / `review.completed` | reviewerRoleId, decision?, feedback? (the pair reviewer's words with a revise, ADR-136) | core-engine |
-| `approval.requested` / `approval.resolved` | approver, decision?, feedback?; the request also carries worktree? (the absolute folder of the task's worktree, when the task has one, ADR-132) | core-engine |
+| `approval.requested` / `approval.resolved` | approver, decision?, feedback?; the request also carries worktree? (the absolute folder of the task's worktree, when the task has one, ADR-132) and files? (the paths the task changed in that worktree, from git status there at the request: added, modified and renamed, not deleted; left out when vcs.git@2 cannot read them or they are more than 200, ADR-141) | core-engine |
 | `quota.consumed` | providerId, unit, amount | quota |
 | `quota.exhausted` | providerId, unit, resetsAt | quota |
 | `quota.restored` | providerId, unit | quota |
