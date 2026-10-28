@@ -83,10 +83,11 @@ export type PolicyAsk = { action: PolicyAction; capability: CapabilityRef; adapt
 export interface PolicyGrantAdapter { grant(input: { runId: string; scope: GrantScope; ask: PolicyAsk }): void }
 export interface SecretsMaskAdapter { mask(text: string): Promise<{ text: string; masked: number }> }   // tab 09 replacement format
 
-// provider.chat@2, provider.embed@1 and provider.rerank@1, defined in @mete/contracts; ProviderAdapter and ModelInfo
+// provider.chat@2, provider.embed@2 and provider.rerank@1, defined in @mete/contracts; ProviderAdapter and ModelInfo
 // are in tab 09. Each provider module provides one adapter object under every ref it supports.
 // provider.chat@2 (ADR-042) adds the optional ModelInfo.price = { input, output }, US dollars per million tokens, for paid
-// models; quota.reserve@2 adds the unit usd_per_day.
+// models; quota.reserve@2 adds the unit usd_per_day. provider.embed@2 (ADR-152) adds embedModels, the provider's embedding
+// models as ModelInfo.
 export type ContentPart = { type: "text"; text: string } | { type: "image"; mediaType: string; data: string };   // base64 image
 export type ToolCall = { id: string; name: string; args: unknown };
 export type ChatMessage =
@@ -129,6 +130,14 @@ export type LlmChunk =
   | { type: "error"; error: LlmError };                    // the last chunk; chat never throws for a model failure
 export interface LlmChatAdapter {
   chat(req: LlmChatRequest, signal: AbortSignal): AsyncIterable<LlmChunk>;
+}
+
+// llm.embed@1, defined in @mete/contracts: the gateway's routed embeddings (tab 09, Gateway; ADR-152). Embedding is no
+// tier and takes no pin: the chain is the embedding models the model mode and the privacy filter allow.
+export type LlmEmbedRequest = Omit<EmbedRequest, "model"> & { runId: string; priority: 0 | 1 | 2 };
+export type LlmEmbedResponse = EmbedResponse & { model: ModelRef };   // the model that embedded them; vectors keep it (tab 11)
+export interface LlmEmbedAdapter {
+  embed(req: LlmEmbedRequest, signal: AbortSignal): Promise<Result<LlmEmbedResponse, LlmError>>;
 }
 
 // ModuleContext.secrets: the operating system keychain (tab 12), service "mete"; account names in tab 09.
@@ -355,13 +364,13 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | storage | `@mete/storage` | essential | `storage.sql@1`, `events.read@1` (ADR-144) | none | none | in-process |
 | security | `@mete/security` | essential | `policy.check@1`, `policy.grant@1` (ADR-121), `secrets.mask@1` | `storage.sql@1` | none | in-process |
 | quota | `@mete/quota` | essential | `quota.reserve@4` | `storage.sql@1` | none | in-process |
-| gateway | `@mete/gateway` | essential | `llm.chat@2` (routed), `llm.embed@1` (routed), `llm.rerank@1` (routed) | `storage.sql@1`, `quota.reserve@4`, `secrets.mask@1`, at least one `provider.chat@2` | `provider.embed@1`, `provider.rerank@1` | in-process |
-| provider-nvidia | `@mete/providers` | optional | `provider.chat@2`, `provider.embed@1`, `provider.rerank@1` | none | none | in-process |
+| gateway | `@mete/gateway` | essential | `llm.chat@2` (routed), `llm.embed@1` (routed, ADR-152), `llm.rerank@1` (routed, not yet, ADR-152) | `storage.sql@1`, `quota.reserve@4`, `secrets.mask@1`, at least one `provider.chat@2` | `provider.embed@2`, `provider.rerank@1` | in-process |
+| provider-nvidia | `@mete/providers` | optional | `provider.chat@2`, `provider.embed@2`, `provider.rerank@1` | none | none | in-process |
 | provider-openrouter | `@mete/providers` | optional | `provider.chat@2` | none | none | in-process |
 | provider-opencode-zen | `@mete/providers` | optional | `provider.chat@2` | none | none | in-process |
 | provider-groq | `@mete/providers` | optional | `provider.chat@2` | none | none | in-process |
 | provider-google | `@mete/providers` | optional | `provider.chat@2` | none | none | in-process |
-| provider-custom | `@mete/providers` | optional | `provider.chat@2`, `provider.embed@1` when the format supports it | none | none | in-process |
+| provider-custom | `@mete/providers` | optional | `provider.chat@2`, `provider.embed@2` when the format supports it | none | none | in-process |
 | tools-fs | `@mete/tools` | essential | `fs.read@1`, `fs.write@1`, `fs.edit@1`, `fs.list@1`, `fs.glob@1`, `fs.grep@1` | `policy.check@1` | none | in-process |
 | tools-shell | `@mete/tools` | essential | `shell.exec@1` | `policy.check@1` | none | in-process |
 | tools-web | `@mete/tools` | optional | `web.fetch@1`, `web.search@1` (HTTP adapters) | `policy.check@1` | `mcp.tools@1` | in-process |
@@ -371,7 +380,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | registry | `@mete/mcp` | optional | `registry.search@1` | `policy.check@1` | none | in-process |
 | knowledge-graph | `@mete/knowledge` | optional | `code.graph@1` | `fs.read@1` | `llm.chat@2` | worker |
 | vault | `@mete/knowledge` | optional | `vault.read@1`, `vault.write@1` | `fs.read@1`, `fs.write@1`, `events.read@1` (ADR-144) | none | in-process |
-| knowledge-search | `@mete/knowledge` | optional | `knowledge.search@1`, `knowledge.index@1` (not yet, ADR-149) | `storage.sql@1`, `fs.glob@1`, `fs.read@1` (ADR-149) | `llm.embed@1`, `llm.rerank@1`, `code.graph@1`, `vault.read@1` | in-process while it indexes the vault's notes; a worker for code and embedding index jobs (ADR-149) |
+| knowledge-search | `@mete/knowledge` | optional | `knowledge.search@1`, `knowledge.index@1` (not yet, ADR-149) | `storage.sql@1`, `fs.glob@1`, `fs.read@1` (ADR-149) | `llm.embed@1`, `llm.rerank@1`, `code.graph@1`, `vault.read@1` | in-process while it indexes the vault's notes and, in the background, embeds them (ADR-152); a worker for code index jobs (ADR-149) |
 | core-engine | `@mete/core` | essential | `team.engine@2` (native), `checkpoint.restore@1`, runs, router, artifacts, checkpoints | `llm.chat@2`, `fs.*`, `policy.check@1`, `secrets.mask@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@2`, `web.fetch@1`, `web.search@1`, `mcp.tools@1`, `knowledge.search@1`, `vault.*` | in-process |
 | autonomy | `@mete/core` | optional | triggers, schedules | `team.engine@2` | `issues.source@1` | in-process |
 | browser | `@mete/tools` | optional | `browser.screenshot@2`, `seo.audit@2` | `policy.check@1` | none | in-process; each call in a child process; Chromium comes from Playwright's own installer, not `runtime.ensure@1` (tab 10) \[D\] |
@@ -380,7 +389,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 
 Until a second view needs it as a module, the run view model these views share is a library in `@mete/ui-studio` (a fold over a run's events, depending only on `@mete/contracts`), and the Board is a widget of `@mete/ui-theia` (ADR-051). The Studio stage lives in `@mete/ui-studio` and loads `pixi.js` lazily, so the fold never loads it (ADR-052) \[D\].
 
-Until the knowledge layer, the gateway provides only `llm.chat@2`: no provider adapter lists its embedding or rerank models (`listModels` returns chat models), so `llm.embed@1`, `llm.rerank@1` and their gateway endpoints come with the knowledge layer, and their chains are empty until then \[D\].
+The gateway provides `llm.chat@2` and `llm.embed@1` (ADR-152): `listModels` answers a provider's chat models and `embedModels` (`provider.embed@2`) its embedding models. `llm.rerank@1` and the `/v1/embeddings` and `/v1/rerank` endpoints come with a caller that needs them, and the rerank chain is empty until then \[D\].
 
 The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools-shell, core-engine, plus at least one active `provider.chat@2` adapter. The UI MUST NOT allow uninstalling essential modules; it MAY show them as "built in".
 

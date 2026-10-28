@@ -13,6 +13,7 @@ interface ProviderAdapter {
   listModels(signal: AbortSignal): Promise<Result<ModelInfo[], ProviderError>>;
   chat(req: ChatRequest, signal: AbortSignal): AsyncIterable<ChatChunk>;
   embed?(req: EmbedRequest, signal: AbortSignal): Promise<Result<EmbedResponse, ProviderError>>;
+  embedModels?(signal: AbortSignal): Promise<Result<ModelInfo[], ProviderError>>;   // provider.embed@2 (ADR-152)
   rerank?(req: RerankRequest, signal: AbortSignal): Promise<Result<RerankResponse, ProviderError>>;
   quotaUnits(): QuotaUnitSpec[];
   observe(status: number, headers: Headers): QuotaObservation[];   // reads rate-limit headers and 429s
@@ -32,13 +33,14 @@ The shapes `chat`, `embed` and `rerank` use are in tab 06. `chat` streams chunks
 
 - A model the provider lists with neither metadata nor a row gets `contextWindow: 0` and `free: false`, so it fits no tier.
 - A `chat` or `embed` row whose id the provider no longer lists is not offered. NVIDIA lists no rerank models, so `rerank` rows are offered as shipped.
+- `listModels` answers the models of the `chat` rows and `embedModels` those of the `embed` rows (ADR-152); a custom endpoint lists only the embedding models a row of the user's `models.yaml` names.
 - `deprecated` comes only from provider metadata.
 - Ids are exact, never patterns; a new free model needs a new row.
 - Discovery sends no probe calls.
 - The shipped `models.yaml` and `tiers.yaml` live in `packages/providers/data/` and are read at runtime. `models.yaml` is keyed by provider and then exact model id, so the user's rows in the `models:` section of `settings.yaml` (or `.mete/models.yaml`) merge the usual way (ARCHITECTURE.md, Configuration): a row with a shipped id replaces it, any other id is added. The user's `tiers.yaml` rows go in the `tiers:` section the same way; its shape is set with the router.
 - Each shipped row names its source and the date it was checked; facts not in the provider's own documentation come from models.dev (MIT, THIRD_PARTY_NOTICES.md).
 
-API keys live in the operating system keychain through `ModuleContext.secrets` (tab 06), which the composition root builds from the keychain store in `@mete/security` on `@napi-rs/keyring`; it is not a capability. Keys are kept under service `mete` and account `providers/<providerId>/apiKey`, or `providers/custom:<slug>/apiKey` for a custom endpoint. A provider module whose key is missing fails activation with "no API key" and stays inactive until the user adds one. Provider modules declare the `net` and `secrets` permissions. Custom endpoints are kept in the `providers:` section of `settings.yaml` as `custom: [{ slug, name, baseUrl, format, headers }]`; their keys never go into a file. The `provider-custom` module provides one adapter per endpoint, registered as `custom:<slug>`: an endpoint without its key is skipped with a warning while the others activate, no endpoints means the module activates and provides nothing, and only `openai-chat` endpoints provide `provider.embed@1`. Each custom endpoint has one quota unit, `requests_per_minute` with limit `discover` and account scope, which a 429 closes like OpenCode Zen's; its privacy comes from the `models:` rows under provider id `custom:<slug>` and is unknown otherwise \[D\].
+API keys live in the operating system keychain through `ModuleContext.secrets` (tab 06), which the composition root builds from the keychain store in `@mete/security` on `@napi-rs/keyring`; it is not a capability. Keys are kept under service `mete` and account `providers/<providerId>/apiKey`, or `providers/custom:<slug>/apiKey` for a custom endpoint. A provider module whose key is missing fails activation with "no API key" and stays inactive until the user adds one. Provider modules declare the `net` and `secrets` permissions. Custom endpoints are kept in the `providers:` section of `settings.yaml` as `custom: [{ slug, name, baseUrl, format, headers }]`; their keys never go into a file. The `provider-custom` module provides one adapter per endpoint, registered as `custom:<slug>`: an endpoint without its key is skipped with a warning while the others activate, no endpoints means the module activates and provides nothing, and only `openai-chat` endpoints provide `provider.embed@2`. Each custom endpoint has one quota unit, `requests_per_minute` with limit `discover` and account scope, which a 429 closes like OpenCode Zen's; its privacy comes from the `models:` rows under provider id `custom:<slug>` and is unknown otherwise \[D\].
 
 Provider facts, checked on 2026-10-21 against each provider's documentation \[D\]:
 
@@ -72,7 +74,7 @@ Key pages, where `mete key list` and the Welcome screen send the user for a key 
 | `long-context` | Large documents and repository analysis | Context of 128k or more \[D\] |
 | `vision` | Screenshots, image review, asset work | Image input \[C\]; context of 32k or more (ADR-060) \[D\] |
 
-Embedding and reranking are provider capabilities (`provider.embed@1`, `provider.rerank@1`), not tiers. Image and 3D generation are `media.*` capabilities served through MCP (ADR-030).
+Embedding and reranking are provider capabilities (`provider.embed@2`, `provider.rerank@1`), not tiers. Image and 3D generation are `media.*` capabilities served through MCP (ADR-030).
 
 ## Tier resolution
 
@@ -113,7 +115,8 @@ With probability 0.05 the router tries an untested candidate instead of the best
 
 ## Gateway
 
-- Endpoints: `/v1/chat/completions`, `/v1/embeddings`, `/v1/rerank`, `/v1/models` \[D\]. `/v1/models` lists tier aliases (`mete/reasoning`, `mete/coder`, `mete/fast`, `mete/long-context`, `mete/vision`) and discovered models. `/v1/embeddings` and `/v1/rerank` come with the knowledge layer (tab 06, Module catalog).
+- Endpoints: `/v1/chat/completions`, `/v1/embeddings`, `/v1/rerank`, `/v1/models` \[D\]. `/v1/models` lists tier aliases (`mete/reasoning`, `mete/coder`, `mete/fast`, `mete/long-context`, `mete/vision`) and discovered models. `/v1/embeddings` and `/v1/rerank` come with a caller that needs them (tab 06, Module catalog; ADR-152).
+- Embeddings (`llm.embed@1`, ADR-152): the chain is the embedding models `embedModels` lists that the model mode allows (free by default, ADR-042), after the privacy filter, so NVIDIA's serve only when `allowTraining` is on and never in a `sensitive` workspace; there is no tier and no pin. A request reserves quota at its priority, like a chat call, and answers the vectors with the model that made them \[D\].
 - Request pipeline: session token → `llm` permission check → privacy filter → secret masking → quota reservation → provider call → quota observation → log.
 - Errors: on 429 or 5xx, wait for the reset header if it is under 90 seconds, otherwise back off 2, 8 and 30 seconds; after 3 failures on one model, move to the next model in the chain \[D\]. Tight retry loops are forbidden \[C\].
 - Stalls (ADR-062): a provider call that sends no chunk within 120 seconds of the request, or none for 60 seconds between two chunks, is aborted and fails with `network`, like a dropped connection: before anything was streamed the call moves to the next model, after that it ends with the error [D].

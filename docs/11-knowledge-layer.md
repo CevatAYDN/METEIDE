@@ -89,7 +89,7 @@ Memory ages without a model call (ADR-041, ideas from ai-memory) \[D\]:
 Input: `query`, `scope` (`workspace` | `personal` | `all`, default `all`), `k` (default 8), optional filters on note type and path.
 
 1. Keyword: FTS5 BM25 over code chunks and notes.
-2. Vector: sqlite-vec cosine similarity over `llm.embed@1` embeddings.
+2. Vector: sqlite-vec cosine similarity over `llm.embed@1` embeddings; the query is embedded by the model that embedded the stored vectors (ADR-152).
 3. Graph: one-hop expansion from the top results; `EXTRACTED` edges weigh 1.0, `INFERRED` edges 0.5 \[D\].
 4. Backlinks: notes that link to or from the top notes.
 5. Fusion: Reciprocal Rank Fusion with k = 60. Workspace results weigh 1.0, personal results 0.7 \[D\].
@@ -97,12 +97,14 @@ Input: `query`, `scope` (`workspace` | `personal` | `all`, default `all`), `k` (
 
 Degradation: no embeddings → no vector source; no graph → no graph source; no vault → code only; no knowledge-search module → plain ripgrep \[C\].
 
-Output: the results best first, at most `k`, each with the note's path relative to the vault, its scope, type and title, the matching section's heading, a snippet of the section of at most 40 tokens (the whole note is read through `vault.read@1`) and its rank in each source that found it. Today the keyword source answers alone, over the workspace vault's notes (ADR-149) \[D\]:
+Output: the results best first, at most `k`, each with the note's path relative to the vault, its scope, type and title, the matching section's heading, a snippet of the section of at most 40 tokens (the whole note is read through `vault.read@1`) and its rank in each source that found it. Today the keyword and vector sources answer, over the workspace vault's notes (ADR-149, ADR-152); the ranks hold the keyword rank only until `knowledge.search@2`, so a result only the vector source found has none \[D\]:
 
 - The index is the FTS5 table `knowledge_chunks` and the table `knowledge_files` in the workspace `mete.db`: one row per heading section, a section over 1,000 tokens split into several rows, frontmatter left out, tokenizer `unicode61` with accents folded. The dotless `ı` is not folded into `i`.
 - A note's title is its frontmatter `title`, else its first `#` heading, else its file name; its type is its frontmatter `type` when that is one of the five above, else its folder's. A note with neither, such as a file at the vault's top, is not indexed; a workspace without a vault answers no results.
 - Before each search the vault's `.md` files are listed through `fs.glob@1` and read through `fs.read@1`, so `.meteignore` applies; a note whose SHA-256 is unchanged is not indexed again. `.history/` and notes with `private: true` are never indexed.
 - Each word of the query is searched as a phrase, never as FTS5 syntax, and a note matches when it holds any of them; results are ordered by BM25, which ranks first the sections that hold more of the words and rarer ones, then by path (ADR-151).
+- Vector source (ADR-152): once the keyword index is up to date, the sections without a vector from the embedding model are embedded in the background at priority 2, under the nil run id `00000000-0000-0000-0000-000000000000`, which no run has, into one sqlite-vec table per model, sized by its first answer; until a section's vector is stored, the keyword source finds it alone. A search embeds its query once, under the caller's run id and priority, with the model the stored vectors came from, and fuses both sources' ranks with Reciprocal Rank Fusion, k = 60. Neither embed counts toward a run's `budget.cloud_requests`.
+- No `llm.embed@1`, no model in its chain, a failed embed or no stored vector leaves the keyword source answering alone, without an error; `quota_exhausted` never pauses the run that searched, and stops the background embedding until `resumesAt` (ADR-152).
 - `scope: personal` answers `not_found` until the personal vault's folder is chosen; `all` answers the workspace's results.
 - The model tool `knowledge_search` goes to a team role whose capabilities name `knowledge.search@1`; the single agent keeps the `fs`, `shell` and `vcs` tools (tab 08).
 
@@ -111,7 +113,7 @@ Output: the results best first, at most `k`, each with the note's path relative 
 - Chunking \[D\]: code by symbol up to 1,500 tokens; Markdown by heading section up to 1,000 tokens; other text in 1,000-token windows with 100 tokens of overlap.
 - Embedding cache key: SHA-256 of the chunk text plus the embedding model id. Only changed chunks are embedded, in batches of 32 \[D\].
 - Changing the embedding model triggers a background re-index; vectors store the model id that produced them \[C\].
-- Index jobs run in a worker thread at quota priority P2, so they never slow interactive work \[C\]. The vault's keyword index runs in-process before each search until code and embeddings are indexed (ADR-149).
+- Index jobs run in a worker thread at quota priority P2, so they never slow interactive work \[C\]. The vault's keyword index runs in-process before each search until code is indexed (ADR-149), and the vault's embeddings are a background job in-process at P2, since a worker thread cannot call capabilities; a worker serves the code index (ADR-152) \[D\].
 - Notes with `private: true` and files matched by `.meteignore` are never embedded, because embedding sends their text to a provider \[D\].
 
 ## Shared memory server
