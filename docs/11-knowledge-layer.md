@@ -82,6 +82,7 @@ Memory ages without a model call (ADR-041, ideas from ai-memory) \[D\]:
 - A note whose score falls below 0.20 is cold: hybrid search ranks it after the others, and nothing is deleted.
 - The weekly consolidation proposes, for the user to approve: compacting a cold note to its frontmatter, title, first paragraph and extracted facts (file paths, error codes, capability ids, decisions); merging notes with similarity 0.85 or more; and flagging likely contradictions, notes of the same type that share a tag with similarity from 0.40 to 0.75. A flag is advice; it changes nothing by itself.
 - Before any automated rewrite or merge, the previous version is copied to `<vault>/.history/<note path>/<timestamp>.md`; `vault restore` brings a version back. Nothing is deleted without the user's approval.
+- A checkpoint rollback (tab 10) leaves the workspace vault as it is, so the notes and run reports written after the checkpoint stay (ADR-146).
 
 ## Hybrid search (`knowledge.search@1`)
 
