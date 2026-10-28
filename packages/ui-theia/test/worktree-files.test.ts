@@ -1,5 +1,10 @@
+import type URI from "@theia/core/lib/common/uri";
 import { describe, expect, it } from "vitest";
 import { hidden, ranked } from "../src/application/worktree-files.js";
+import {
+	type ShowFilesDeps,
+	showWorktreeFiles,
+} from "../src/infrastructure/worktree-files.js";
 
 describe("the files of a task's worktree the human can open (ADR-132)", () => {
 	it("puts pages first, then the rest by name", () => {
@@ -14,5 +19,32 @@ describe("the files of a task's worktree the human can open (ADR-132)", () => {
 			"node_modules",
 			".mete",
 		]);
+	});
+});
+
+describe("Show files (ADR-132)", () => {
+	it("opens the picked file and keeps no tab of it across restarts, since the worktree goes when its task lands (ADR-140)", async () => {
+		const tab = { storeState: () => ({ props: {} }), restoreState: () => {} };
+		const opened: string[] = [];
+		const deps = {
+			files: {
+				resolve: async () => ({
+					children: [{ name: "index.html", isDirectory: false }],
+				}),
+			},
+			quick: { pick: async <T>(items: T[]) => items[0] },
+			openers: {
+				getOpener: async () => ({
+					open: async (uri: URI) => {
+						opened.push(uri.path.base);
+						return tab;
+					},
+				}),
+			},
+			messages: { info: async () => undefined, warn: async () => undefined },
+		} as unknown as ShowFilesDeps;
+		await showWorktreeFiles(deps, "/w/tree");
+		expect(opened).toEqual(["index.html"]);
+		expect(tab.storeState()).toBeUndefined();
 	});
 });

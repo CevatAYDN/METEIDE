@@ -3,6 +3,7 @@ import {
 	type OpenerService,
 	open,
 } from "@theia/core/lib/browser/opener-service";
+import type { StatefulWidget } from "@theia/core/lib/browser/shell/shell-layout-restorer";
 import { nls } from "@theia/core/lib/common/nls";
 import type { QuickInputService } from "@theia/core/lib/common/quick-pick-service";
 import URI from "@theia/core/lib/common/uri";
@@ -47,6 +48,14 @@ export type ShowFilesDeps = {
 	readonly messages: MessageService;
 };
 
+// A worktree goes when its task lands, so a tab into it is not kept across restarts (ADR-140): the
+// layout skips a widget whose state is undefined, where it would come back as "Not Found".
+const notKept = (tab: unknown) => {
+	const stateful = tab as Partial<StatefulWidget> | undefined;
+	if (typeof stateful?.storeState === "function")
+		stateful.storeState = () => undefined;
+};
+
 /** Lists the files of a task's worktree and opens the one picked, a page rendered (ADR-129, ADR-132). */
 export const showWorktreeFiles = async (
 	deps: ShowFilesDeps,
@@ -64,10 +73,12 @@ export const showWorktreeFiles = async (
 			{ placeHolder: nls.localize("mete/waiting/whichFile", "Which file?") },
 		);
 		if (pick)
-			await open(
-				deps.openers,
-				dir.resolve(pick.label),
-				isPage(pick.label) ? { openFor: "preview" } : {},
+			notKept(
+				await open(
+					deps.openers,
+					dir.resolve(pick.label),
+					isPage(pick.label) ? { openFor: "preview" } : {},
+				),
 			);
 	} catch (e) {
 		void deps.messages.warn(String(e));
