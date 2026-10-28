@@ -60,6 +60,10 @@ describe("clarify before the work (ADR-142)", () => {
 		const [ask, answer, work] = h.requests;
 		expect(ask?.tools).toBeUndefined();
 		expect(String(ask?.messages.at(-1)?.content)).toContain("Researcher");
+		// Likely answers ride in the question's text, for the card to offer (ADR-148).
+		expect(String(ask?.messages.at(-1)?.content)).toContain(
+			"in square brackets separated by |, as in: Which city? [Ankara | Izmir]",
+		);
 		expect(answer?.tools?.length).toBeGreaterThan(0);
 		expect(String(answer?.messages[0]?.content)).toContain(
 			"You are Researcher",

@@ -25,6 +25,8 @@ const NO_ANSWERS =
 const askLine = (team: TeamState, by: string) =>
 	[
 		`Before you start, write the questions whose answers you need to do this task well, one per line. ${nameOf(team, by)} answers them.`,
+		// The human's card shows these as buttons (ADR-148).
+		"When a question has two or three likely short answers, put them after it in square brackets separated by |, as in: Which city? [Ankara | Izmir]",
 		"Ask only what the goal, the reports and the workspace above do not tell you. If you need nothing, reply with the single word none.",
 	].join(" ");
 
