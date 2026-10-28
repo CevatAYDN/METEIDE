@@ -102,7 +102,7 @@ Output: the results best first, at most `k`, each with the note's path relative 
 - The index is the FTS5 table `knowledge_chunks` and the table `knowledge_files` in the workspace `mete.db`: one row per heading section, a section over 1,000 tokens split into several rows, frontmatter left out, tokenizer `unicode61` with accents folded. The dotless `ı` is not folded into `i`.
 - A note's title is its frontmatter `title`, else its first `#` heading, else its file name; its type is its frontmatter `type` when that is one of the five above, else its folder's. A note with neither, such as a file at the vault's top, is not indexed; a workspace without a vault answers no results.
 - Before each search the vault's `.md` files are listed through `fs.glob@1` and read through `fs.read@1`, so `.meteignore` applies; a note whose SHA-256 is unchanged is not indexed again. `.history/` and notes with `private: true` are never indexed.
-- Each word of the query is searched as a phrase, never as FTS5 syntax; results are ordered by BM25, then by path.
+- Each word of the query is searched as a phrase, never as FTS5 syntax, and a note matches when it holds any of them; results are ordered by BM25, which ranks first the sections that hold more of the words and rarer ones, then by path (ADR-151).
 - `scope: personal` answers `not_found` until the personal vault's folder is chosen; `all` answers the workspace's results.
 - The model tool `knowledge_search` goes to a team role whose capabilities name `knowledge.search@1`; the single agent keeps the `fs`, `shell` and `vcs` tools (tab 08).
 
