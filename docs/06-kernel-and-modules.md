@@ -334,7 +334,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 
 | Module | Package | Class | Provides | Requires | Optional | Isolation |
 | --- | --- | --- | --- | --- | --- | --- |
-| storage | `@mete/storage` | essential | `storage.sql@1` | none | none | in-process |
+| storage | `@mete/storage` | essential | `storage.sql@1`, `events.read@1` (ADR-144) | none | none | in-process |
 | security | `@mete/security` | essential | `policy.check@1`, `policy.grant@1` (ADR-121), `secrets.mask@1` | `storage.sql@1` | none | in-process |
 | quota | `@mete/quota` | essential | `quota.reserve@4` | `storage.sql@1` | none | in-process |
 | gateway | `@mete/gateway` | essential | `llm.chat@2` (routed), `llm.embed@1` (routed), `llm.rerank@1` (routed) | `storage.sql@1`, `quota.reserve@4`, `secrets.mask@1`, at least one `provider.chat@2` | `provider.embed@1`, `provider.rerank@1` | in-process |
@@ -352,7 +352,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | mcp-server | `@mete/mcp` | optional | METE as an MCP server | `team.engine@2` | `knowledge.search@1` | in-process |
 | registry | `@mete/mcp` | optional | `registry.search@1` | `policy.check@1` | none | in-process |
 | knowledge-graph | `@mete/knowledge` | optional | `code.graph@1` | `fs.read@1` | `llm.chat@2` | worker |
-| vault | `@mete/knowledge` | optional | `vault.read@1`, `vault.write@1` | `fs.read@1`, `fs.write@1` | none | in-process |
+| vault | `@mete/knowledge` | optional | `vault.read@1`, `vault.write@1` | `fs.read@1`, `fs.write@1`, `events.read@1` (ADR-144) | none | in-process |
 | knowledge-search | `@mete/knowledge` | optional | `knowledge.search@1`, `knowledge.index@1` | `fs.grep@1` | `llm.embed@1`, `llm.rerank@1`, `code.graph@1`, `vault.read@1` | worker |
 | core-engine | `@mete/core` | essential | `team.engine@2` (native), `checkpoint.restore@1`, runs, router, artifacts, checkpoints | `llm.chat@2`, `fs.*`, `policy.check@1`, `secrets.mask@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@2`, `web.fetch@1`, `web.search@1`, `mcp.tools@1`, `knowledge.search@1`, `vault.*` | in-process |
 | autonomy | `@mete/core` | optional | triggers, schedules | `team.engine@2` | `issues.source@1` | in-process |
@@ -371,6 +371,7 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 | Capability | Purpose | Default adapters, in fallback order | When the chain is empty |
 | --- | --- | --- | --- |
 | `storage.sql@1` | The workspace and global SQLite databases, with per-module migrations | Native (storage module) | Never empty (essential) |
+| `events.read@1` | One run's persisted catalog events in `seq` order, and the rows that no longer parse (ADR-144) | Native (storage module) | Never empty (essential) |
 | `policy.check@1` | Allow, ask or deny a side-effect action, and write its audit row | Native (security module) | Never empty (essential) |
 | `policy.grant@1` | Let a run do what the policy asked about, once or for the rest of the run (ADR-121) | Native (security module) | Never empty (essential) |
 | `secrets.mask@1` | Replace secrets in outbound text | Native (security module, secretlint) | Never empty (essential) |

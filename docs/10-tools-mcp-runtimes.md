@@ -63,7 +63,7 @@ Sampling is offered under the same commands. A request spends the budget of the 
 
 A remote server with `auth: oauth` needs one sign-in. The client registers itself dynamically as a public client with PKCE, at a fixed redirect address, `http://127.0.0.1/callback`, on which nothing listens. `mete run`, `mete approve` and `mete revise` print the address to open and ask you to paste the address your browser ends up on, a connection-error page whose address carries the code; METE opens no browser, and it takes the code only from an address that carries the state it sent. The tokens and the registration go to the keychain under the server's origin, not its `mcp.yaml` id, in numbered pieces because the Windows keychain keeps at most 1280 characters in one entry, and every later connection, `mete mcp` and piped runs included, reuses them without asking. Without saved tokens and without a terminal the error says to sign in once with `mete run` in a terminal, and a server that does not offer dynamic registration cannot be signed in to yet \[D\].
 
-A stdio server starts in the workspace folder, not in the folder `mete` was launched from, and the client tells every server that folder as its one root \[D\]; the vault roots join it in Phase 6.
+A stdio server starts in the workspace folder, not in the folder `mete` was launched from, and the client tells every server that folder as its one root \[D\]; the vault roots join it with the vaults (ADR-144).
 
 Server configuration lives in `.mete/mcp.yaml` (workspace) and in global settings:
 
@@ -187,7 +187,7 @@ The mcp-server module (`@mete/mcp`) serves these tools over the transport its ho
 | `mete_run_team` | `{goal, templateId?}` | `{runId}` at once; the run goes on in the background |
 | `mete_task_status` | `{runId}` | `{status, reason?, tasks: [{id, title, status}], output?, artifacts: [path]}`; `reason` is the pause reason or the failure, `output` the summary of a completed run, tasks and artifacts come from the run's events |
 | `mete_approve` | `{runId, taskId?, decision: approve\|revise, feedback?}` | `{runId}`; a revision needs feedback (`team.engine@2` approve) |
-| `mete_knowledge_search` | `{query}` | always an error until the knowledge base exists (Phase 6) |
+| `mete_knowledge_search` | `{query}` | always an error until the knowledge base exists (ADR-144) |
 
 Every refusal of `team.engine@2` is a tool result with `isError` and the text `<code>: <message>`; a router that is unsure lists the templates to choose from.
 
