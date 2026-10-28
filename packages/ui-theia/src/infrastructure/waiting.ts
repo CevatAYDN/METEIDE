@@ -83,18 +83,23 @@ const giveShare = (view: View, part: ViewContainerPart, share: number) => {
 	);
 };
 
-// Sizes need the view on screen: a view in a hidden side bar measures nothing.
+// Sizes need the view on screen: a view in a hidden side bar measures nothing. Its show event comes
+// before Lumino fits the side bar, on the frame already queued, so the measurement waits one frame.
 const whenVisible = (view: View, act: () => void): Disposable => {
 	if (view.isVisible) {
 		act();
 		return Disposable.NULL;
 	}
+	let frame = 0;
 	const once = view.onDidChangeVisibility((visible) => {
 		if (!visible) return;
 		once.dispose();
-		act();
+		frame = requestAnimationFrame(act);
 	});
-	return once;
+	return Disposable.create(() => {
+		once.dispose();
+		cancelAnimationFrame(frame);
+	});
 };
 
 /**

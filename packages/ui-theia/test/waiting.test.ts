@@ -165,8 +165,14 @@ describe("the Waiting for you part", () => {
 		expect(sized).toEqual([[150, 450, undefined, 150]]);
 	});
 
-	it("takes its share when the view shows, since a hidden side bar measures nothing", () => {
-		const { store, sized, show } = fakeView(false);
+	it("takes its share a frame after the view shows, since a hidden side bar measures nothing and a shown one is fitted on that frame", () => {
+		const frames = new Map<number, () => void>();
+		vi.stubGlobal("requestAnimationFrame", (f: () => void) => {
+			frames.set(frames.size + 1, f);
+			return frames.size;
+		});
+		vi.stubGlobal("cancelAnimationFrame", (id: number) => frames.delete(id));
+		const { store, sized, show, close } = fakeView(false);
 		store.set(waiting(0));
 		store.set(waiting(1));
 		store.set(waiting(0));
@@ -174,7 +180,19 @@ describe("the Waiting for you part", () => {
 		expect(sized).toEqual([]);
 		show();
 		show();
+		expect(sized).toEqual([]);
+		for (const f of frames.values()) f();
 		expect(sized).toEqual([[150, 450, undefined, 150]]);
+		frames.clear();
+		// A view closed between its show and the frame sizes nothing.
+		const late = fakeView(false);
+		late.store.set(waiting(1));
+		late.show();
+		late.close();
+		for (const f of frames.values()) f();
+		expect(late.sized).toEqual([]);
+		close();
+		vi.unstubAllGlobals();
 	});
 
 	it("leaves a part the user collapsed at its header", () => {
