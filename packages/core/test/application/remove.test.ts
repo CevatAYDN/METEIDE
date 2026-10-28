@@ -110,9 +110,12 @@ describe("remove a run (ADR-143)", () => {
 
 		expect(await h.engine.remove?.(runId)).toEqual(ok(undefined));
 
+		// The worktree is named by the task's id, which events carry, not by its key in the template.
+		const created = h.events.find((e) => e.type === "task.created");
 		const removed = vcs.calls.filter((c) => c.op === "worktree.remove");
-		expect(removed).toHaveLength(1);
-		expect(removed[0]).toMatchObject({ runId, force: true });
+		expect(removed).toEqual([
+			{ op: "worktree.remove", runId, taskId: created?.taskId, force: true },
+		]);
 	});
 
 	it("keeps the run when git refuses, so it can be removed again", async () => {

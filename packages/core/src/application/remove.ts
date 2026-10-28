@@ -24,11 +24,12 @@ const GIT_TIMEOUT_MS = 120_000;
 const removals = (s: EngineState, runId: string): VcsGitInput[] => {
 	const snapshot = peek(s, runId);
 	const tasks = snapshot.ok ? snapshot.value.context.team?.tasks : undefined;
+	// A worktree is named by the task's id, not by its key, the template's task id.
 	return [
-		...Object.keys(tasks ?? {}).map((taskId) => ({
+		...Object.values(tasks ?? {}).map((t) => ({
 			op: "worktree.remove" as const,
 			runId,
-			taskId,
+			taskId: t.id,
 			force: true,
 		})),
 		{ op: "checkpoint.prune", runId },
