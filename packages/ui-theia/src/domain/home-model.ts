@@ -6,7 +6,13 @@ import type { DaemonFailure, StatusRuns } from "./status-service.js";
 // taken travels with it.
 
 /** What a button of the Home inbox asks for. */
-export type HomeAction = "approve" | "revise" | "resume" | "open" | "artifact";
+export type HomeAction =
+	| "approve"
+	| "revise"
+	| "resume"
+	| "open"
+	| "artifact"
+	| "remove";
 
 /** One run as the panel lists it. */
 export type HomeRow = {
@@ -59,6 +65,10 @@ export const waitsForUser = (r: StatusRuns[number]) =>
 /** A run paused for its budget goes on only when resumed, after its turns or with a raised budget (ADR-126). */
 export const waitsForBudget = (r: StatusRuns[number]) =>
 	r.status === "paused" && r.pauseReason === "budget";
+
+/** Only a run that ended can be removed; a paused one is stopped first (ADR-143). */
+export const hasEnded = (r: Pick<StatusRuns[number], "status">) =>
+	r.status === "completed" || r.status === "failed" || r.status === "cancelled";
 
 /** A run paused for quota goes on by itself once a provider can carry it. */
 export const waitsForQuota = (r: StatusRuns[number]) =>

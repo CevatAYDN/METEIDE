@@ -11,6 +11,7 @@ import { FileDialogService } from "@theia/filesystem/lib/browser/file-dialog/fil
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import {
 	APPROVE_RUN_COMMAND,
+	REMOVE_RUN_COMMAND,
 	RESUME_RUN_COMMAND,
 	REVISE_RUN_COMMAND,
 } from "../application/approval-commands.js";
@@ -110,6 +111,7 @@ export class MeteHomeStore {
 			resume: RESUME_RUN_COMMAND.id,
 			open: OPEN_BOARD_COMMAND.id,
 			artifact: OPEN_ARTIFACT_COMMAND.id,
+			remove: REMOVE_RUN_COMMAND.id,
 		}[action];
 		return this.commands.executeCommand(id, runId);
 	}

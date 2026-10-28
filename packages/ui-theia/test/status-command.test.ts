@@ -26,6 +26,10 @@ import frontendModule from "../src/infrastructure/frontend-module.js";
 vi.mock("@theia/workspace/lib/browser/workspace-service", () => ({
 	WorkspaceService: class WorkspaceService {},
 }));
+// Remove's confirm dialog loads lumino too; test/approval-commands.test.ts covers the question.
+vi.mock("@theia/core/lib/browser/dialogs", () => ({
+	ConfirmDialog: class ConfirmDialog {},
+}));
 // The Home view's bindings load lumino widgets; test/home-view.test.ts covers the view itself.
 vi.mock("../src/infrastructure/home-contribution.js", () => ({
 	bindHome: () => {},

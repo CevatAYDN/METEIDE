@@ -345,6 +345,9 @@ const steering = (
 		send(dir, DAEMON_METHODS.runApprove, { runId, input }, done),
 	resume: (dir: string, runId: string) =>
 		send(dir, DAEMON_METHODS.runResume, { runId }, done),
+	/** Deletes an ended run (ADR-143); run.removed follows through onEvent. */
+	remove: (dir: string, runId: string) =>
+		send(dir, DAEMON_METHODS.runRemove, { runId }, done),
 	/** Grants a policy ask and resumes (ADR-121). */
 	allow: (dir: string, runId: string, scope: AllowScope) =>
 		send(dir, DAEMON_METHODS.runAllow, { runId, scope }, done),

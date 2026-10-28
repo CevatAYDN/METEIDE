@@ -361,6 +361,13 @@ ul.mete-side-box {
 	gap: 8px;
 }
 
+/* An ended run's subtitle with Remove at its end, the same pill (ADR-143). */
+.mete-run-sub {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
 .mete-side .mete-item:has(.mete-ws-name) > .mete-side-body {
 	gap: 2px;
 }

@@ -1,6 +1,10 @@
 import type { ProviderState } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
-import type { HomeAction, HomeRow } from "../domain/home-model.js";
+import {
+	type HomeAction,
+	type HomeRow,
+	hasEnded,
+} from "../domain/home-model.js";
 import { roleWords } from "../domain/roster.js";
 import { QUOTA_LOOK, stateText } from "./quota-text.js";
 import { Icon } from "./roster-look.js";
@@ -117,6 +121,19 @@ const OpenGoal = ({
 	</button>
 );
 
+// An ended run's Remove, the small pill a workspace's Forget is (ADR-084, ADR-143); the command asks
+// before anything goes.
+const Remove = ({ row, act }: { readonly row: HomeRow; readonly act: Act }) => (
+	<button
+		type="button"
+		className="mete-forget"
+		aria-label={nls.localize("mete/home/removeRun", "Remove {0}", row.goal)}
+		onClick={() => act("remove", row.id)}
+	>
+		{nls.localize("mete/home/remove", "Remove")}
+	</button>
+);
+
 // A run's state as a chip: a waiting run asks for a look, the rest takes its status's tone.
 const toneOf = (row: HomeRow) =>
 	row.waiting ? "warn" : statusTone(row.status);
@@ -162,14 +179,17 @@ const RunItem = ({
 			<span className="mete-clamp" title={row.goal}>
 				<OpenGoal row={row} act={act} />
 			</span>
-			<span className="mete-sub">
-				<span className={`mete-chip ${toneOf(row)}`}>
-					{statusWord(row.status)}
+			<span className="mete-sub mete-run-sub">
+				<span>
+					<span className={`mete-chip ${toneOf(row)}`}>
+						{statusWord(row.status)}
+					</span>
+					{row.templateId ? ` · ${roleWords(row.templateId)}` : ""} ·{" "}
+					<span className="mete-mono" title={when(row.createdAt)}>
+						{shortWhen(row.createdAt)}
+					</span>
 				</span>
-				{row.templateId ? ` · ${roleWords(row.templateId)}` : ""} ·{" "}
-				<span className="mete-mono" title={when(row.createdAt)}>
-					{shortWhen(row.createdAt)}
-				</span>
+				{hasEnded(row) ? <Remove row={row} act={act} /> : null}
 			</span>
 			{row.quotaPaused && blocked.length > 0 ? (
 				<Blocked providers={blocked} />

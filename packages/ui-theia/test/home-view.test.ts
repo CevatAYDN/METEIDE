@@ -322,6 +322,22 @@ describe("the Home view", () => {
 		expect(out).toContain(">Resume</button>");
 	});
 
+	it("offers Remove on an ended run only, named for its goal (ADR-143)", () => {
+		const value = [
+			run("paused", "paused goal", null, "user"),
+			run("running", "running goal", null),
+			run("completed", "done goal", null),
+			run("failed", "failed goal", null),
+			run("cancelled", "cancelled goal", null),
+		];
+		const out = html(homeModel({ ok: true, value }, AT));
+		expect(out.match(/>Remove<\/button>/g)).toHaveLength(3);
+		for (const goal of ["done goal", "failed goal", "cancelled goal"])
+			expect(out).toContain(`aria-label="Remove ${goal}"`);
+		expect(out).not.toContain('aria-label="Remove paused goal"');
+		expect(out).not.toContain('aria-label="Remove running goal"');
+	});
+
 	it("lets each run's goal open the run in the team panel", () => {
 		const r = run("completed", "notes", null);
 		const out = html(homeModel({ ok: true, value: [r] }, AT));

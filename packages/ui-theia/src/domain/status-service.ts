@@ -134,6 +134,11 @@ export interface MeteDaemonService {
 		workspaceDir: string,
 		runId: string,
 	): Promise<Result<null, DaemonFailure>>;
+	/** Deletes an ended run with its worktrees, branches, checkpoints and history (ADR-143). */
+	remove(
+		workspaceDir: string,
+		runId: string,
+	): Promise<Result<null, DaemonFailure>>;
 	/** Grants the run's pending ask (once, run, or a command always) and resumes (ADR-121). */
 	allow(
 		workspaceDir: string,

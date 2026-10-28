@@ -83,6 +83,10 @@ export class MeteDaemonBackend
 		return this.host.resume(workspaceDir, runId);
 	}
 
+	remove(workspaceDir: string, runId: string) {
+		return this.host.remove(workspaceDir, runId);
+	}
+
 	allow(workspaceDir: string, runId: string, scope: AllowScope) {
 		return this.host.allow(workspaceDir, runId, scope);
 	}

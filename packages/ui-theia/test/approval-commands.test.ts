@@ -22,6 +22,16 @@ import {
 vi.mock("@theia/workspace/lib/browser/workspace-service", () => ({
 	WorkspaceService: class WorkspaceService {},
 }));
+// The dialog needs a DOM too; the user's answer to Remove's question is set per test.
+const dialog = vi.hoisted(() => ({ yes: true, asked: [] as string[] }));
+vi.mock("@theia/core/lib/browser/dialogs", () => ({
+	ConfirmDialog: class {
+		constructor(props: { title: string }) {
+			dialog.asked.push(props.title);
+		}
+		open = async () => dialog.yes;
+	},
+}));
 
 type Done = { ok: true; value: null } | { ok: false; error: DaemonFailure };
 
@@ -72,6 +82,10 @@ const setup = (opts: {
 		},
 		resume: async (_dir: string, runId: string) => {
 			calls.push({ kind: "resume", runId });
+			return answer;
+		},
+		remove: async (_dir: string, runId: string) => {
+			calls.push({ kind: "remove", runId });
 			return answer;
 		},
 	});
@@ -157,6 +171,30 @@ describe("the approvals inbox commands", () => {
 		const noPick = setup({ runs: [run("a", "first", "approval")] });
 		await noPick.exec("mete.run.approve");
 		expect([...noFeedback.calls, ...noPick.calls]).toEqual([]);
+	});
+
+	it("removes an ended run only after the user's yes, and offers ended runs only (ADR-143)", async () => {
+		dialog.asked.length = 0;
+		dialog.yes = false;
+		const no = setup({});
+		await no.exec("mete.run.remove", "r1");
+		expect(dialog.asked).toEqual(["Remove this run?"]);
+		expect(no.calls).toEqual([]);
+
+		dialog.yes = true;
+		const done = { ...run("d", "done goal", "user"), status: "completed" };
+		const t = setup({
+			runs: [run("p", "paused goal", "user"), done as StatusRuns[number]],
+			pick: 0,
+		});
+		await t.exec("mete.run.remove");
+		expect(t.picked).toEqual([["done goal"]]);
+		expect(t.calls).toEqual([{ kind: "remove", runId: "d" }]);
+		expect(t.info).toEqual(["Run removed."]);
+
+		const none = setup({ runs: [run("p", "paused goal", "user")] });
+		await none.exec("mete.run.remove");
+		expect(none.info).toEqual(["No run has ended."]);
 	});
 
 	it("shows the engine's refusal", async () => {

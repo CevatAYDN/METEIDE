@@ -5,6 +5,7 @@ import {
 	type CommandRegistry,
 	MessageService,
 } from "@theia/core";
+import { ConfirmDialog } from "@theia/core/lib/browser/dialogs";
 import { nls } from "@theia/core/lib/common/nls";
 import {
 	QuickInputService,
@@ -13,6 +14,7 @@ import {
 import { inject, injectable } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import {
+	hasEnded,
 	waitsForBudget,
 	waitsForQuota,
 	waitsForUser,
@@ -25,8 +27,9 @@ import {
 } from "../domain/status-service.js";
 import { failureText, noFolderText, plain } from "./status-text.js";
 
-// The approvals inbox's actions (ADR-048), as palette commands so the keyboard reaches them; the
-// Home view's buttons run the same commands with the run id. Without one they ask which run.
+// The approvals inbox's actions (ADR-048) and Remove (ADR-143), as palette commands so the keyboard
+// reaches them; the Home view's buttons run the same commands with the run id. Without one they ask
+// which run.
 
 // Written out one by one, so Theia's nls-extract can read each label and key.
 /** "METE: Approve run". */
@@ -45,6 +48,12 @@ export const REVISE_RUN_COMMAND: Command = Command.toLocalizedCommand(
 export const RESUME_RUN_COMMAND: Command = Command.toLocalizedCommand(
 	{ id: "mete.run.resume", category: "METE", label: "Resume run" },
 	"mete/run/resume",
+	"mete/category",
+);
+/** "METE: Remove run": deletes an ended run after the user's yes (ADR-143). */
+export const REMOVE_RUN_COMMAND: Command = Command.toLocalizedCommand(
+	{ id: "mete.run.remove", category: "METE", label: "Remove run" },
+	"mete/run/remove",
 	"mete/category",
 );
 
@@ -69,6 +78,27 @@ export class MeteApprovalContribution implements CommandContribution {
 		commands.registerCommand(RESUME_RUN_COMMAND, {
 			execute: (runId?: unknown) => this.resume(runId),
 		});
+		commands.registerCommand(REMOVE_RUN_COMMAND, {
+			execute: (runId?: unknown) => this.remove(runId),
+		});
+	}
+
+	// Nothing undoes a removal, so it asks first and names what goes and what stays (ADR-143).
+	protected async remove(given: unknown) {
+		const none = nls.localize("mete/run/noneEnded", "No run has ended.");
+		const t = await this.target(given, hasEnded, none);
+		if (!t) return;
+		const yes = await new ConfirmDialog({
+			title: nls.localize("mete/run/removeTitle", "Remove this run?"),
+			msg: nls.localize(
+				"mete/run/removeText",
+				"Its history, worktrees, branches, checkpoints and model calls are deleted; the audit log keeps what it did. Nothing undoes this.",
+			),
+			ok: nls.localize("mete/run/removeOk", "Remove"),
+		}).open();
+		if (!yes) return;
+		const r = await this.daemon.remove(t.dir, t.runId);
+		this.report(r, nls.localize("mete/run/removed", "Run removed."));
 	}
 
 	// Revise's feedback comes typed from the Team panel's strip (ADR-091), or else from a quick input.
@@ -126,6 +156,7 @@ export class MeteApprovalContribution implements CommandContribution {
 	protected async target(
 		given: unknown,
 		offered: (r: StatusRuns[number]) => boolean,
+		none = nls.localize("mete/run/noneWaiting", "No run waits for you."),
 	): Promise<Target | undefined> {
 		const root = this.workspace.tryGetRoots()[0];
 		if (!root) return void this.messages.info(noFolderText());
@@ -139,10 +170,7 @@ export class MeteApprovalContribution implements CommandContribution {
 				r.templateId ?? nls.localize("mete/run/single", "Single agent"),
 			runId: r.id,
 		}));
-		if (picks.length === 0)
-			return void this.messages.info(
-				nls.localize("mete/run/noneWaiting", "No run waits for you."),
-			);
+		if (picks.length === 0) return void this.messages.info(none);
 		const pick = await this.quick.pick(picks, {
 			placeHolder: nls.localize("mete/run/which", "Which run?"),
 		});

@@ -1,4 +1,4 @@
-import type { AllowScope, ModelRef } from "@mete/contracts";
+import type { AllowScope, MeteEvent, ModelRef } from "@mete/contracts";
 import { CommandService, MessageService } from "@theia/core";
 import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import { ThemeService } from "@theia/core/lib/browser/theming";
@@ -115,12 +115,8 @@ export class MeteBoardWidget extends MetePanelWidget {
 				this.setSession(receiveBoard(this.session, workspaceDir, event));
 				this.transcripts.onEvent(event);
 				const shown = this.session.shown;
-				if (shown && event.runId === shown.runId) {
-					if (event.type === "run.created")
-						this.models.setTemplate(event.payload.templateId);
-					if (event.type.startsWith("run."))
-						void this.loadRun(shown.dir, shown.runId);
-				}
+				if (shown && event.runId === shown.runId)
+					this.onShownEvent(shown.dir, shown.runId, event);
 			}),
 			this.composer.onDidChange(() => this.update()),
 			this.composer.onDidStart(
@@ -131,6 +127,15 @@ export class MeteBoardWidget extends MetePanelWidget {
 		]);
 		void this.composer.reopen();
 		this.update();
+	}
+
+	// An event of the shown run: run.created names its team, a run event reads its entry again, and a
+	// removed run has nothing left to show, so the composer takes its place (ADR-143).
+	protected onShownEvent(dir: string, runId: string, event: MeteEvent) {
+		if (event.type === "run.created")
+			this.models.setTemplate(event.payload.templateId);
+		if (event.type === "run.removed") void this.showComposer();
+		else if (event.type.startsWith("run.")) void this.loadRun(dir, runId);
 	}
 
 	/** Shows the run composer in place of the run. */
