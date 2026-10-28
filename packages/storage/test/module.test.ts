@@ -85,6 +85,30 @@ describe("storage module", () => {
 		await mod.deactivate();
 	});
 
+	it("deletes a removed run's events, its run.removed too, and keeps other runs' (ADR-143)", async () => {
+		const s = await setup();
+		const mod = createStorageModule(s.dirs);
+		await mod.activate(s.ctx);
+		const gone = runStarted();
+		const kept = runStarted();
+		s.events.publish(gone);
+		s.events.publish(kept);
+		s.events.publish({
+			...gone,
+			id: crypto.randomUUID(),
+			type: "run.removed",
+			payload: {},
+		});
+		const ids = s
+			.adapter()
+			.scopeFor("core-engine")
+			.workspace.prepare("SELECT id FROM events")
+			.pluck()
+			.all();
+		expect(ids).toEqual([kept.id]);
+		await mod.deactivate();
+	});
+
 	it("lets a module migrate its own tables in either database", async () => {
 		const s = await setup();
 		const mod = createStorageModule(s.dirs);

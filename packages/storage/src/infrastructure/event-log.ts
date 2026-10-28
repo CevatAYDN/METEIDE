@@ -35,12 +35,20 @@ export const EVENT_MIGRATIONS: ReadonlyArray<Migration> = [
 // The bus has no catch-all pattern, so storage listens once per catalog domain.
 const DOMAINS = [...new Set(EVENT_TYPES.map((t) => t.split(".")[0]))];
 
-/** Inserts every published catalog event; a failed insert throws to the bus error sink. */
+/**
+ * Inserts every published catalog event; a failed insert throws to the bus error sink. A run.removed
+ * deletes its run's events instead and is not kept itself (ADR-143).
+ */
 export const captureEvents = (db: Db, events: EventBus): Disposable[] => {
 	const insert = db.prepare(`INSERT INTO events
 		(id, type, ts, schema, workspace_id, run_id, task_id, agent_id, source, payload)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+	const removeRun = db.prepare("DELETE FROM events WHERE run_id = ?");
 	const write = (e: MeteEvent) => {
+		if (e.type === "run.removed") {
+			if (e.runId) removeRun.run(e.runId);
+			return;
+		}
 		insert.run(
 			e.id,
 			e.type,
