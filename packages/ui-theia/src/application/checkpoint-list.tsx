@@ -43,7 +43,7 @@ export const CheckpointList = ({
 			<p style={MUTED}>
 				{nls.localize(
 					"mete/checkpoint/hint",
-					"Restore puts this folder's files back as they were at a checkpoint, for a paused or ended run; the files as they are now are kept as a new checkpoint first, so a restore can be undone.",
+					"Restore puts this folder's files back as they were at a checkpoint, for a paused or ended run, and leaves the notes and run reports in .mete/knowledge as they are; the files as they are now are kept as a new checkpoint first, so a restore can be undone.",
 				)}
 			</p>
 			<ul style={LIST}>

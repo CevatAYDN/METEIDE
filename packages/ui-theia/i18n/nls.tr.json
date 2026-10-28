@@ -87,7 +87,7 @@
 		"checkpoint": {
 			"command": "Kontrol noktasını geri yükle",
 			"done": "#{0} kontrol noktası geri yüklendi; #{1} bunu geri alır.",
-			"hint": "Geri yükle, duraklamış ya da bitmiş bir çalıştırmada bu klasörün dosyalarını bir kontrol noktasındaki hâline döndürür; dosyaların şimdiki hâli önce yeni bir kontrol noktası olarak saklanır, böylece geri yükleme geri alınabilir.",
+			"hint": "Geri yükle, duraklamış ya da bitmiş bir çalıştırmada bu klasörün dosyalarını bir kontrol noktasındaki hâline döndürür, .mete/knowledge içindeki notlara ve çalıştırma raporlarına dokunmaz; dosyaların şimdiki hâli önce yeni bir kontrol noktası olarak saklanır, böylece geri yükleme geri alınabilir.",
 			"none": "Bu çalıştırmanın kontrol noktası yok.",
 			"restore": "Geri yükle",
 			"restored": "{0} geri yüklendi",
