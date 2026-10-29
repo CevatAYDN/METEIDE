@@ -166,15 +166,59 @@
 	color: var(--muted-2, var(--theia-descriptionForeground));
 }
 
+/* The estimate: the total, a chip per provider's share, the unassigned one in the warning tone. */
 .mete-composer .mete-composer-estimate {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
 	margin-left: 28px;
 	padding: 10px 0 0;
 	border-top: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	font-size: 12.5px;
 }
 
 .mete-composer .mete-composer-option.wide .mete-composer-estimate {
 	margin-left: auto;
 	padding: 0;
 	border-top: 0;
+}
+
+.mete-composer .mete-composer-total,
+.mete-composer .mete-composer-share {
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-variant-numeric: tabular-nums;
+}
+
+.mete-composer .mete-composer-total {
+	margin-right: 4px;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--ink, var(--theia-foreground));
+}
+
+.mete-composer .mete-composer-share {
+	padding: 1px 8px;
+	border-radius: 999px;
+	font-size: 11.5px;
+	background: var(--chip, var(--theia-badge-background));
+}
+
+.mete-composer .mete-composer-share.unassigned {
+	font-weight: 700;
+	color: color-mix(
+		in srgb,
+		var(--warn, var(--theia-editorWarning-foreground)) 45%,
+		var(--ink, var(--theia-foreground))
+	);
+	background: color-mix(
+		in srgb,
+		var(--warn, var(--theia-editorWarning-foreground)) 14%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+}
+
+.mete-composer .mete-composer-note {
+	flex-basis: 100%;
+	font-size: 12.5px;
+	line-height: 1.4;
 }

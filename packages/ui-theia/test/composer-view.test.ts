@@ -49,7 +49,9 @@ describe("ComposerView", () => {
 			"Let METE choose",
 			"Web development",
 			"Sites",
-			"15 requests: groq 15; tasks the team adds come on top",
+			"15 requests",
+			"groq 15",
+			"tasks the team adds come on top",
 			"Single agent",
 			"New team",
 			"Start run",
@@ -73,6 +75,24 @@ describe("ComposerView", () => {
 			out.indexOf('<section class="mete-composer-teams"'),
 		);
 		expect(teams.slice(0, teams.indexOf("</section>"))).not.toContain("style=");
+	});
+
+	it("shows an estimate as its total and one chip per share, what no provider takes marked", () => {
+		const options = optionsOf(
+			[{ id: "web-dev", name: "Web development" }],
+			[
+				{
+					ok: true,
+					value: {
+						providers: [{ providerId: "groq", requests: 15 }],
+						unassigned: 4,
+					},
+				},
+			],
+		);
+		expect(html({ kind: "ready", options, unsure: false })).toContain(
+			'<span class="mete-composer-estimate"><span class="mete-composer-total">19 requests</span><span class="mete-composer-share">groq 15</span><span class="mete-composer-share unassigned">4 unassigned</span><span class="mete-composer-note">tasks the team adds come on top</span></span>',
+		);
 	});
 
 	// The design's goal box (docs/design/Composer.dc.html) shows an example goal; an empty box left

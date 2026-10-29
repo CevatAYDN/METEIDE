@@ -12,7 +12,7 @@ import type {
 	Estimate,
 	MeteDaemonService,
 } from "../domain/status-service.js";
-import { estimateText } from "./estimate-text.js";
+import { type EstimateLine, estimateLine } from "./estimate-text.js";
 import { chainKey } from "./pins-draft.js";
 import { draftOf, teamOf } from "./team-draft.js";
 
@@ -32,8 +32,8 @@ export type ComposerOption = {
 	readonly templateId: string | null | undefined;
 	readonly label: string;
 	readonly description?: string;
-	/** The request estimate line; the router's choice has none, and a failed estimate leaves it out. */
-	readonly estimate?: string;
+	/** The request estimate; the router's choice has none, and a failed estimate leaves it out. */
+	readonly estimate?: EstimateLine;
 	/** Team roles when a template was picked (ADR-122). */
 	readonly roles?: readonly ComposerRole[];
 	/** Available models for selection (ADR-122). */
@@ -120,7 +120,7 @@ export const loadRoles = async (
 	);
 
 const lineOf = (reply: EstimateReply | undefined, team: boolean) =>
-	reply?.ok ? { estimate: estimateText(reply.value, team) } : {};
+	reply?.ok ? { estimate: estimateLine(reply.value, team) } : {};
 
 /**
  * "Let METE choose", each template by name with its description, "Single agent" (ADR-058); the

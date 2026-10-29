@@ -1,6 +1,7 @@
 import { nls } from "@theia/core/lib/common/nls";
 import { useId } from "react";
 import type { ComposerOption } from "./composer.js";
+import type { EstimateLine } from "./estimate-text.js";
 import { Icon } from "./roster-look.js";
 
 // The composer's teams in the Composer board's look (ADR-128): a heading with New team over a grid
@@ -16,6 +17,26 @@ const iconOf = (o: ComposerOption) =>
 		: o.templateId === null
 			? "person"
 			: "organization";
+
+// The board's estimate: the total, a chip per share, the one no provider takes marked, then the note.
+const Estimate = ({ line }: { readonly line: EstimateLine }) => (
+	<span className="mete-composer-estimate">
+		<span className="mete-composer-total">{line.total}</span>
+		{line.shares.map((s) => (
+			<span
+				key={s.text}
+				className={
+					s.unassigned
+						? "mete-composer-share unassigned"
+						: "mete-composer-share"
+				}
+			>
+				{s.text}
+			</span>
+		))}
+		{line.note ? <span className="mete-composer-note">{line.note}</span> : null}
+	</span>
+);
 
 const Card = ({
 	option,
@@ -44,9 +65,7 @@ const Card = ({
 		{option.description ? (
 			<span className="mete-composer-about">{option.description}</span>
 		) : null}
-		{option.estimate ? (
-			<span className="mete-composer-estimate">{option.estimate}</span>
-		) : null}
+		{option.estimate ? <Estimate line={option.estimate} /> : null}
 	</label>
 );
 

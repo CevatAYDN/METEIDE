@@ -30,6 +30,11 @@ const GROQ: EstimateReply = {
 	ok: true,
 	value: { providers: [{ providerId: "groq", requests: 15 }], unassigned: 0 },
 };
+const TEAM_15 = {
+	total: "15 requests",
+	shares: [{ text: "groq 15" }],
+	note: "tasks the team adds come on top",
+};
 const FAILED: EstimateReply = {
 	ok: false,
 	error: { code: "stopped", detail: "x" },
@@ -49,9 +54,9 @@ describe("an estimate asked again with the run's model choice (ADR-155)", () => 
 			withEstimate(options, "single", NOXERY).map((o) => o.estimate),
 		).toEqual([
 			undefined,
-			"15 requests: groq 15; tasks the team adds come on top",
-			"15 requests: groq 15; tasks the team adds come on top",
-			"12 requests: custom:noxery 12",
+			TEAM_15,
+			TEAM_15,
+			{ total: "12 requests", shares: [{ text: "custom:noxery 12" }] },
 		]);
 		expect(
 			withEstimate(options, "web-dev", FAILED)[2]?.estimate,
@@ -88,9 +93,9 @@ describe("optionsOf", () => {
 		const options = optionsOf(TEMPLATES, [GROQ, GROQ, GROQ]);
 		expect(options.map((o) => o.estimate)).toEqual([
 			undefined,
-			"15 requests: groq 15; tasks the team adds come on top",
-			"15 requests: groq 15; tasks the team adds come on top",
-			"15 requests: groq 15",
+			TEAM_15,
+			TEAM_15,
+			{ total: "15 requests", shares: [{ text: "groq 15" }] },
 		]);
 	});
 
@@ -98,7 +103,7 @@ describe("optionsOf", () => {
 		const options = optionsOf(TEMPLATES, [GROQ, FAILED]);
 		expect(options.map((o) => o.estimate)).toEqual([
 			undefined,
-			"15 requests: groq 15; tasks the team adds come on top",
+			TEAM_15,
 			undefined,
 			undefined,
 		]);
@@ -119,7 +124,7 @@ describe("narrowedTo", () => {
 			"game-studio",
 			"single",
 		]);
-		expect(narrowed[0]?.estimate).toContain("15 requests");
+		expect(narrowed[0]?.estimate).toEqual(TEAM_15);
 	});
 
 	it("shows a suggestion the template list does not know by its id", () => {
