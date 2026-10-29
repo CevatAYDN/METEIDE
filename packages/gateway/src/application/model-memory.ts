@@ -83,7 +83,7 @@ export const refuse = (
 	memory.refused.add(who.key);
 	warn(
 		{ ...who.fields, ...why(e) },
-		"model refused the key; left out until the gateway restarts",
+		"model refused the key or is not served; left out until the gateway restarts",
 	);
 };
 
