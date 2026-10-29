@@ -202,7 +202,7 @@ const modelList = (refs: readonly ModelRef[]) => ({
 	],
 });
 
-/** The Hono app behind the endpoints; `/v1/embeddings` and `/v1/rerank` come with the knowledge layer. */
+/** The Hono app behind the endpoints; `/v1/embeddings` and `/v1/rerank` come with a caller that needs them (ADR-152). */
 export const createGatewayApp = (options: GatewayServerOptions) => {
 	const opts = {
 		now: Date.now,

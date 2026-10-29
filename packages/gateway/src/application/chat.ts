@@ -188,7 +188,7 @@ async function* settled(
 	}
 }
 
-const refOf = (o: Offered) => ({
+export const refOf = (o: Offered) => ({
 	providerId: o.model.providerId,
 	modelId: o.model.id,
 });
@@ -199,7 +199,7 @@ const entryOf = (o: Offered, tokens: Walk["tokens"]) => {
 	return { ...refOf(o), ...("usd_per_day" in cost ? { estimate: cost } : {}) };
 };
 
-type WalkState = {
+export type WalkState = {
 	remaining: readonly Offered[];
 	/** Models that failed for a reason other than a refused key (CHAIN_LENGTH). */
 	tried: number;
@@ -219,9 +219,11 @@ type Failed = {
 	readonly observations: readonly QuotaObservation[];
 };
 
-const grant = async (
+export const grant = async (
 	deps: ChatDeps,
-	w: Walk,
+	w: Pick<Walk, "estimate" | "tokens"> & {
+		readonly req: Pick<LlmChatRequest, "runId" | "priority">;
+	},
 	remaining: readonly Offered[],
 	signal: AbortSignal,
 ): Promise<Result<{ o: Offered; id: string }, LlmError>> => {
@@ -256,7 +258,7 @@ const nameModel = (st: WalkState, o: Offered, first: Offered | undefined) => {
 	return { type: "model", ...refOf(o), reason } as const;
 };
 
-const keyOf = (o: Offered) => `${o.model.providerId}/${o.model.id}`;
+export const keyOf = (o: Offered) => `${o.model.providerId}/${o.model.id}`;
 
 const whoOf = (o: Offered) => ({ key: keyOf(o), fields: refOf(o) });
 
@@ -281,7 +283,7 @@ const moveOn = (
 };
 
 // The error that ends the call, or undefined to reserve again.
-const onFailure = async (
+export const onFailure = async (
 	deps: ChatDeps,
 	st: WalkState,
 	{ o, outcome, observations }: Failed,

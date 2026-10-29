@@ -1,16 +1,20 @@
 import {
 	type ChatChunk,
 	type ChatRequest,
+	type EmbedRequest,
+	type EmbedResponse,
 	err,
 	type LlmChunk,
 	type ModelInfo,
 	ok,
 	type ProviderAdapter,
+	type ProviderError,
 	type QuotaAmounts,
 	type QuotaObservation,
 	type QuotaRequest,
 	type QuotaReserveAdapter,
 	type ReserveFailed,
+	type Result,
 } from "@mete/contracts";
 import type { ChatDeps } from "../../src/application/chat.js";
 import type { ModelCall } from "../../src/infrastructure/model-calls.js";
@@ -67,6 +71,36 @@ export const fakeProvider = (
 		quotaUnits: () => [],
 		observe: (s) => observe(s),
 		privacy: () => ({ trains: false, logs: false, publishes: false }),
+	};
+	return { adapter, seen };
+};
+
+/** A failed provider call with this HTTP status, mapped as `status` maps it. */
+export const failure = (code: number): ProviderError => {
+	const c = status(code);
+	if (c.type !== "error") throw new Error("status gives an error chunk");
+	return c.error;
+};
+
+export const vectors = (n: number): EmbedResponse => ({
+	vectors: Array.from({ length: n }, () => [0.1, 0.2]),
+});
+
+/** A provider.embed@2 adapter whose embeds answer from `script`, the last one repeating. */
+export const fakeEmbedder = (
+	id: string,
+	script: Result<EmbedResponse, ProviderError>[],
+) => {
+	const seen: EmbedRequest[] = [];
+	const adapter: ProviderAdapter = {
+		...fakeProvider(id, []).adapter,
+		embedModels: async () => ok([]),
+		embed: async (req) => {
+			seen.push(req);
+			const r = script[Math.min(seen.length, script.length) - 1];
+			if (!r) throw new Error("fake embedder: empty script");
+			return r;
+		},
 	};
 	return { adapter, seen };
 };

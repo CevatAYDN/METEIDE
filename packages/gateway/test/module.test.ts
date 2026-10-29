@@ -4,6 +4,8 @@ import { join } from "node:path";
 import {
 	type LlmChatAdapter,
 	type LlmChatRequest,
+	type LlmEmbedAdapter,
+	type LlmEmbedRequest,
 	ok,
 	type ProviderAdapter,
 	type QuotaUnitSpec,
@@ -22,11 +24,13 @@ import { createGatewayModule } from "../src/module.js";
 import {
 	collect,
 	done,
+	fakeEmbedder,
 	fakeProvider,
 	fakeQuota,
 	NOW,
 	RUN,
 	text,
+	vectors,
 } from "./application/fakes.js";
 
 // Real storage in a temp folder; providers, quota and masking are fakes behind the registry.
@@ -176,6 +180,35 @@ describe("gateway module", () => {
 		expect(
 			s.db.prepare("SELECT provider_id, outcome FROM model_calls").all(),
 		).toEqual([{ provider_id: "a", outcome: "stop" }]);
+		await s.close();
+	});
+
+	it("provides llm.embed@1 over the models provider.embed@2 lists and logs each call (ADR-152)", async () => {
+		const s = await setup();
+		const e = fakeEmbedder("e", [ok(vectors(1))]);
+		const impl = { ...e.adapter, embedModels: async () => ok([model("e")]) };
+		s.registry.provide("provider.embed@2", {
+			id: "e",
+			trust: "first-party",
+			features: [],
+			impl,
+		});
+		await s.gateway.activate(s.ctx);
+		const r = s.registry.resolve<LlmEmbedAdapter>("llm.embed@1");
+		if (!r.ok) throw new Error("llm.embed@1 missing");
+		const ask: LlmEmbedRequest = {
+			input: ["hi"],
+			purpose: "query",
+			runId: RUN,
+			priority: 2,
+		};
+		const out = await r.value[0].impl.embed(ask, new AbortController().signal);
+		const embedder = { providerId: "e", modelId: "m" };
+		expect(out).toEqual(ok({ ...vectors(1), model: embedder }));
+		// The chat provider "a" offers no provider.embed@2, so its models never embed.
+		expect(
+			s.db.prepare("SELECT provider_id, outcome FROM model_calls").all(),
+		).toEqual([{ provider_id: "e", outcome: "stop" }]);
 		await s.close();
 	});
 

@@ -3,7 +3,9 @@ import type {
 	ContentPart,
 	ModelInfo,
 	ProviderAdapter,
+	ProviderError,
 	QuotaUnitSpec,
+	Result,
 	SecretsMaskAdapter,
 	ToolCall,
 } from "@mete/contracts";
@@ -15,8 +17,13 @@ import type { Discovered } from "../domain/resolve.js";
 export type Offered = Discovered & { readonly adapter: ProviderAdapter };
 
 export type DiscoveryDeps = {
-	/** The provider.chat@2 adapters registered now. */
+	/** The provider.chat@2 or provider.embed@2 adapters registered now. */
 	readonly providers: () => readonly ProviderAdapter[];
+	/** How an adapter lists its models; `listModels`, the chat models, when left out. */
+	readonly list?: (
+		a: ProviderAdapter,
+		signal: AbortSignal,
+	) => Promise<Result<ModelInfo[], ProviderError>>;
 	readonly define: (specs: readonly QuotaUnitSpec[]) => void;
 	readonly warn: (msg: string) => void;
 };
@@ -31,7 +38,7 @@ export const createDiscovery = (deps: DiscoveryDeps) => {
 	const list = async (a: ProviderAdapter, signal: AbortSignal) => {
 		const known = listed.get(a.id);
 		if (known) return known;
-		const r = await a.listModels(signal);
+		const r = await (deps.list?.(a, signal) ?? a.listModels(signal));
 		if (!r.ok) {
 			deps.warn(`${a.id}: listing models failed: ${r.error.message}`);
 			return [];

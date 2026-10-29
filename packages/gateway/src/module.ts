@@ -4,7 +4,6 @@ import {
 	type CapabilityRef,
 	err,
 	GatewaySettingsSchema,
-	type LlmChatAdapter,
 	type LlmChatRequest,
 	type ModelInfo,
 	type ModelRef,
@@ -22,7 +21,8 @@ import type {
 	ModuleError,
 } from "@mete/kernel";
 import { z } from "zod";
-import { createLlmChat } from "./application/chat.js";
+import { type ChatDeps, createLlmChat } from "./application/chat.js";
+import { createLlmEmbed } from "./application/embed.js";
 import { createDiscovery } from "./application/prepare.js";
 import { MODEL_CALL_RETENTION_DAYS } from "./defaults.js";
 import {
@@ -49,14 +49,14 @@ const MANIFEST: ModuleManifest = {
 	displayName: "Gateway",
 	class: "essential",
 	trust: "core",
-	provides: ["llm.chat@2"],
+	provides: ["llm.chat@2", "llm.embed@1"],
 	requires: [
 		"storage.sql@1",
 		"quota.reserve@4",
 		"secrets.mask@1",
 		"provider.chat@2",
 	],
-	optional: ["provider.embed@1", "provider.rerank@1"],
+	optional: ["provider.embed@2", "provider.rerank@1"],
 	activation: ["onStartup"],
 	isolation: "in-process",
 	permissions: [],
@@ -107,19 +107,19 @@ const readRules = (ctx: ModuleContext) => {
 	});
 };
 
-// Listings are kept per quota adapter: a restarted quota module has no units defined.
+type Discover = ReturnType<typeof createDiscovery>;
+
+// Listings are kept per quota adapter: a restarted quota module has no units defined. The chat
+// models come from provider.chat@2, the embedding models from provider.embed@2 (ADR-152).
 const discovery = (ctx: ModuleContext, dailySpendUsd: number) => {
 	let kept:
-		| {
-				quota: QuotaReserveAdapter;
-				discover: ReturnType<typeof createDiscovery>;
-		  }
+		| { quota: QuotaReserveAdapter; chat: Discover; embed: Discover }
 		| undefined;
-	const providers = () => {
-		const r = ctx.capabilities.resolve<ProviderAdapter>("provider.chat@2");
+	const providers = (ref: CapabilityRef) => () => {
+		const r = ctx.capabilities.resolve<ProviderAdapter>(ref);
 		return r.ok ? r.value.map((a) => a.impl) : [];
 	};
-	return (signal: AbortSignal) => {
+	const keep = () => {
 		const quota = first<QuotaReserveAdapter>(
 			ctx.capabilities,
 			"quota.reserve@4",
@@ -128,35 +128,46 @@ const discovery = (ctx: ModuleContext, dailySpendUsd: number) => {
 			// The spending cap is METE's own unit over every provider (ADR-042).
 			quota.define([spendSpec(dailySpendUsd)]);
 			const warn = (msg: string) => ctx.logger.warn({}, msg);
+			const define = (s: Parameters<typeof quota.define>[0]) => quota.define(s);
+			const chat = providers("provider.chat@2");
+			const embed = providers("provider.embed@2");
 			kept = {
 				quota,
-				discover: createDiscovery({
-					providers,
-					define: (s) => quota.define(s),
+				chat: createDiscovery({ providers: chat, define, warn }),
+				embed: createDiscovery({
+					providers: embed,
+					define,
 					warn,
+					list: (a, signal) => a.embedModels?.(signal) ?? listsNone(),
 				}),
 			};
 		}
-		return kept.discover(signal);
+		return kept;
+	};
+	return {
+		chat: (signal: AbortSignal) => keep().chat(signal),
+		embed: (signal: AbortSignal) => keep().embed(signal),
 	};
 };
 
+const listsNone = async () => ok<ModelInfo[]>([]);
+
 // What an active gateway serves from: its discovery and the privacy rules read at activation.
 type Live = {
-	readonly discover: ReturnType<typeof discovery>;
+	readonly discover: Discover;
 	readonly rules: PrivacyRules;
 };
 
-const buildChat = (
+// What the chat and embed pipelines share; each adds its own discovery.
+const pipelineDeps = (
 	ctx: ModuleContext,
 	live: Live,
 	opts: Required<GatewayOptions>,
 	write: (c: ModelCall) => void,
-): LlmChatAdapter => {
+): Omit<ChatDeps, "discover"> => {
 	const quota = () =>
 		first<QuotaReserveAdapter>(ctx.capabilities, "quota.reserve@4");
-	return createLlmChat({
-		discover: live.discover,
+	return {
 		quota: {
 			define: (s) => quota().define(s),
 			reserve: (req, signal) => quota().reserve(req, signal),
@@ -171,7 +182,7 @@ const buildChat = (
 		sleep: opts.sleep,
 		now: opts.now,
 		record: write,
-	});
+	};
 };
 
 // Prunes old rows and a removed run's (ADR-143); a failed write is reported, never thrown into the
@@ -251,7 +262,17 @@ export type GatewayModule = MeteModule & {
 	info(refs: readonly ModelRef[], signal: AbortSignal): Promise<ModelInfo[]>;
 };
 
-/** Creates the gateway module, which provides llm.chat@2. */
+const provide = (ctx: ModuleContext, ref: CapabilityRef, impl: unknown) =>
+	ctx.disposables.add(
+		ctx.capabilities.provide(ref, {
+			id: MANIFEST.id,
+			trust: "core",
+			features: [],
+			impl,
+		}),
+	);
+
+/** Creates the gateway module, which provides llm.chat@2 and llm.embed@1. */
 export const createGatewayModule = (
 	options: GatewayOptions = {},
 ): GatewayModule => {
@@ -275,20 +296,16 @@ export const createGatewayModule = (
 				return err(failed(`${file} ${path}: ${reason}`));
 			}
 			const write = openLog(ctx, ctx.storage.workspace, opts.now);
-			const { dailySpendUsd } = rules.value;
+			const found = discovery(ctx, rules.value.dailySpendUsd);
 			live = {
-				discover: discovery(ctx, dailySpendUsd),
+				discover: found.chat,
 				rules: rules.value.rules,
 			};
-			const impl = buildChat(ctx, live, opts, write);
-			ctx.disposables.add(
-				ctx.capabilities.provide("llm.chat@2", {
-					id: MANIFEST.id,
-					trust: "core",
-					features: [],
-					impl,
-				}),
-			);
+			const shared = pipelineDeps(ctx, live, opts, write);
+			const chat = createLlmChat({ ...shared, discover: live.discover });
+			const embed = createLlmEmbed({ ...shared, discover: found.embed });
+			provide(ctx, "llm.chat@2", chat);
+			provide(ctx, "llm.embed@1", embed);
 			return ok(undefined);
 		},
 		async deactivate() {
