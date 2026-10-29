@@ -30,6 +30,10 @@ export {
 	providerChatContract,
 } from "./provider-chat.contract.js";
 export {
+	type ProviderEmbedHarness,
+	providerEmbedContract,
+} from "./provider-embed.contract.js";
+export {
 	QUOTA_KIT_NOW,
 	type QuotaReserveHarness,
 	quotaReserveContract,
