@@ -51,7 +51,7 @@ minimumReleaseAge: 20160
 # the pinned built-ins at build time, ADR-103) has no fixed release.
 overrides:
   dompurify: 3.4.17
-  electron: 42.11.12
+  electron: 42.11.14
   serialize-javascript: ^7.1.2
   "undici@<6.29.1": 6.29.1
   "undici@>=7.0.0 <7.30.1": 7.30.1

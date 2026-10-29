@@ -70,18 +70,18 @@
 		"@theia/search-in-workspace": "1.76.0",
 		"@theia/terminal": "1.76.0",
 		"@theia/workspace": "1.76.0",
-		"react": "19.3.0",
-		"react-dom": "19.3.0"
+		"react": "19.3.1",
+		"react-dom": "19.3.1"
 	},
 	"devDependencies": {
 		"@mete/contracts": "workspace:*",
-		"@playwright/test": "1.64.0",
+		"@playwright/test": "1.64.1",
 		"@theia/bundle-plugin": "1.76.0",
 		"@theia/cli": "1.76.0",
 		"@types/react": "19.3.0",
 		"@types/react-dom": "19.3.0",
-		"axe-core": "4.13.0",
-		"electron": "42.11.12",
+		"axe-core": "4.14.0",
+		"electron": "42.11.14",
 		"electron-builder": "26.17.0",
 		"esbuild": "0.28.2",
 		"esbuild-plugin-copy": "2.1.1",

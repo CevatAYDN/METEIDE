@@ -19,9 +19,9 @@
 		"test": "vitest run --coverage"
 	},
 	"dependencies": {
-		"@ai-sdk/anthropic": "4.0.73",
-		"@ai-sdk/google": "4.0.89",
-		"@ai-sdk/openai-compatible": "3.0.64",
+		"@ai-sdk/anthropic": "4.0.81",
+		"@ai-sdk/google": "4.0.97",
+		"@ai-sdk/openai-compatible": "3.0.70",
 		"@mete/contracts": "workspace:*",
 		"@mete/kernel": "workspace:*",
 		"yaml": "2.9.1",

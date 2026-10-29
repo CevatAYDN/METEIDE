@@ -25,7 +25,7 @@
 		"ignore": "7.0.12",
 		"lighthouse": "13.5.0",
 		"linkedom": "0.18.13",
-		"playwright-core": "1.64.0",
+		"playwright-core": "1.64.1",
 		"simple-git": "4.0.2",
 		"turndown": "7.2.4",
 		"zod": "4.6.7"

@@ -20,11 +20,11 @@
 	"dependencies": {
 		"@mete/contracts": "workspace:*",
 		"@mete/kernel": "workspace:*",
-		"@napi-rs/keyring": "2.1.0",
+		"@napi-rs/keyring": "2.1.1",
 		"@secretlint/core": "13.0.7",
 		"@secretlint/secretlint-rule-preset-recommend": "13.0.7",
 		"better-sqlite3": "13.0.3",
-		"drizzle-orm": "0.45.3",
+		"drizzle-orm": "0.45.4",
 		"yaml": "2.9.1"
 	},
 	"devDependencies": {
