@@ -225,6 +225,7 @@
 	font-size: 11.5px;
 	font-weight: 500;
 	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
 }
 
 .mete-side .mete-sub.mete-mono {
@@ -371,14 +372,10 @@ ul.mete-side-box {
 }
 
 /* A flex item does not shrink below its text, so a long subtitle was cut at the side bar's edge
-   mid-time; it wraps before the when instead, which stays whole. */
+   mid-time; it wraps before the when instead, which stays whole (`.mete-sub .mete-mono`). */
 .mete-run-sub > span:first-child {
 	min-width: 0;
 	white-space: normal;
-}
-
-.mete-run-sub .mete-mono {
-	white-space: nowrap;
 }
 
 .mete-side .mete-item:has(.mete-ws-name) > .mete-side-body {
