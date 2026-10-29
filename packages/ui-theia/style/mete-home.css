@@ -370,6 +370,17 @@ ul.mete-side-box {
 	gap: 4px 8px;
 }
 
+/* A flex item does not shrink below its text, so a long subtitle was cut at the side bar's edge
+   mid-time; it wraps before the when instead, which stays whole. */
+.mete-run-sub > span:first-child {
+	min-width: 0;
+	white-space: normal;
+}
+
+.mete-run-sub .mete-mono {
+	white-space: nowrap;
+}
+
 .mete-side .mete-item:has(.mete-ws-name) > .mete-side-body {
 	gap: 2px;
 }
