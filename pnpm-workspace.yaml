@@ -44,13 +44,17 @@ minimumReleaseAge: 20160
 # Security overrides (the audit of 2026-10-23), each at least 14 days old as docs/05 requires:
 # Electron >= 42.11.9 closes the sandbox, protocol-handler and code-cache advisories of 42.8.1 (Theia
 # 1.76 pins 42.8.1 as a peer; a patch release of the same major is accepted); serialize-javascript
-# >= 7.0.3 (mocha, through @theia/cli) closes an RCE in its deserializer. dompurify 3.4.17 and
-# markdown-it 14.3.3 (Theia's markdown view) close critical and high advisories but are younger than
-# 14 days on that date: adopt them on 2026-10-26 and 2026-10-30. decompress (theia download:plugins,
-# which unpacks the pinned built-ins at build time, ADR-103) has no fixed release.
+# >= 7.0.3 (mocha, through @theia/cli) closes an RCE in its deserializer. dompurify 3.4.17 (Theia's
+# markdown view and monaco) closes a high advisory. undici 6.29.1 and 7.30.1 (2026-10-29 audit) close
+# GHSA-qrxm-fqhp-jwvm on each major line without moving a dependent to the other major. markdown-it
+# 14.3.3 is younger than 14 days until 2026-10-30. decompress (theia download:plugins, which unpacks
+# the pinned built-ins at build time, ADR-103) has no fixed release.
 overrides:
+  dompurify: 3.4.17
   electron: 42.11.12
   serialize-javascript: ^7.1.2
+  "undici@<6.29.1": 6.29.1
+  "undici@>=7.0.0 <7.30.1": 7.30.1
 # Drops SpectreMitigation from the proxy agent's binding.gyp so it compiles with the plain
 # VS C++ Build Tools the Theia build already requires (ADR-103).
 patchedDependencies:
@@ -59,3 +63,10 @@ patchedDependencies:
   # @electron/rebuild compiles it for Electron's ABI during packaging, so the attribute goes as in
   # the proxy agent's patch (ADR-103, ADR-115).
   'node-pty@1.2.0-beta.12': patches/node-pty@1.2.0-beta.12.patch
+# decompress's two critical advisories have no fixed release; it unpacks only the pinned built-ins at
+# build time (ADR-103), so `pnpm audit` (and the release check's audit step, docs/15) skips them.
+# `pnpm audit --ignore <id>` writes here too.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-mp2f-45pm-3cg9
+    - GHSA-hrh2-vp3x-79xf
