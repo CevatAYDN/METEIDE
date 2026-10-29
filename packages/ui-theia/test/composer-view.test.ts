@@ -77,6 +77,27 @@ describe("ComposerView", () => {
 		expect(teams.slice(0, teams.indexOf("</section>"))).not.toContain("style=");
 	});
 
+	// The board's page: the goal on top, then the teams beside a column with the chosen team's
+	// preferred models, the uncommitted line and Start; a narrow panel stacks them (style sheet).
+	it("puts the goal on top and the preferences, the uncommitted line and Start beside the teams", () => {
+		const out = html(READY, { selected: "web-dev", uncommitted: 2 });
+		const order = [
+			"Start a run",
+			"<textarea",
+			"Which team should work on it?",
+			'<aside class="mete-composer-side"',
+			"This folder has 2 uncommitted changes.",
+			"Start run</button>",
+		].map((s) => out.indexOf(s));
+		expect(order.every((at, i) => at >= 0 && at > (order[i - 1] ?? -1))).toBe(
+			true,
+		);
+		expect(out).toMatch(
+			/<button type="button" class="mete-button mete-composer-start"/,
+		);
+		expect(out).not.toContain("style=");
+	});
+
 	it("shows an estimate as its total and one chip per share, what no provider takes marked", () => {
 		const options = optionsOf(
 			[{ id: "web-dev", name: "Web development" }],

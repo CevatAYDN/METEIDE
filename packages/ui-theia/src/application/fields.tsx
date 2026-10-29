@@ -11,11 +11,6 @@ export type OnEdit = (
 	value: unknown,
 ) => void;
 
-export const FIELD = {
-	display: "flex",
-	flexDirection: "column",
-	gap: "4px",
-} as const;
 export const orNone = (v: string) => (v.trim() ? v : undefined);
 export const orEmpty = (v: readonly string[]) => (v.length > 0 ? v : undefined);
 

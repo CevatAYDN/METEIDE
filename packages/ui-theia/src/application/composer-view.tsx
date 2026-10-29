@@ -1,13 +1,12 @@
 import { nls } from "@theia/core/lib/common/nls";
-import { useId } from "react";
 import type { ComposerOption } from "./composer.js";
+import { Side } from "./composer-side.js";
 import { Teams } from "./composer-teams.js";
-import { FIELD } from "./fields.js";
-import { MUTED, ROW } from "./look.js";
 import { noFolderText } from "./status-text.js";
 
-// The run composer's screen (docs/13, Run composer; ADR-071): the goal, the teams to pick from with
-// their request estimates, and Start. The view holds no state: the widget passes it and the actions.
+// The run composer's screen (docs/13, Run composer; ADR-071) in the Composer board's look (ADR-128):
+// the goal on top, then the teams to pick from with their request estimates beside the side column
+// with Start. The view holds no state: the widget passes it and the actions.
 // Text is shown as it is: React escapes it, Markdown is not involved.
 
 /** What the screen is showing: waiting for the lists, no folder, or the teams on offer. */
@@ -52,140 +51,6 @@ const Message = ({ children }: { readonly children: string }) => (
 	</section>
 );
 
-const ModelChoice = ({
-	label,
-	value,
-	models,
-	onChange,
-}: {
-	readonly label: string;
-	readonly value?: string | undefined;
-	readonly models: readonly string[];
-	readonly onChange: (value: string) => void;
-}) => {
-	const list = useId();
-	return (
-		<label style={FIELD}>
-			<span>{label}</span>
-			<input
-				className="mete-field"
-				list={list}
-				value={value ?? ""}
-				placeholder="providerId/modelId"
-				onChange={(e) => onChange(e.target.value)}
-			/>
-			<datalist id={list}>
-				{models.map((m) => (
-					<option key={m} value={m} />
-				))}
-			</datalist>
-		</label>
-	);
-};
-
-const SinglePreference = ({
-	singleModel,
-	models,
-	onSingleModel,
-}: {
-	readonly singleModel?: string | undefined;
-	readonly models: readonly string[];
-	readonly onSingleModel?: ((model: string) => void) | undefined;
-}) => (
-	<ModelChoice
-		label={nls.localize("mete/run/preferModel", "Preferred model (optional)")}
-		value={singleModel}
-		models={models}
-		onChange={(v) => onSingleModel?.(v)}
-	/>
-);
-
-const TeamPreferences = ({
-	roles,
-	roleModels,
-	onRoleModel,
-}: {
-	readonly roles: NonNullable<ComposerOption["roles"]>;
-	readonly roleModels?: Readonly<Record<string, string>> | undefined;
-	readonly onRoleModel?: ((roleId: string, model: string) => void) | undefined;
-}) => (
-	<div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-		{roles.map((r) => (
-			<ModelChoice
-				key={r.id}
-				label={
-					r.name
-						? `${r.name} · ${nls.localize("mete/run/preferModel", "Preferred model (optional)")}`
-						: nls.localize("mete/run/preferModel", "Preferred model (optional)")
-				}
-				value={roleModels?.[r.id]}
-				models={r.models ?? []}
-				onChange={(v) => onRoleModel?.(r.id, v)}
-			/>
-		))}
-	</div>
-);
-
-const Preferences = ({
-	chosen,
-	singleModel,
-	roleModels,
-	onSingleModel,
-	onRoleModel,
-}: {
-	readonly chosen: ComposerOption | undefined;
-	readonly singleModel?: string | undefined;
-	readonly roleModels?: Readonly<Record<string, string>> | undefined;
-	readonly onSingleModel?: ((model: string) => void) | undefined;
-	readonly onRoleModel?: ((roleId: string, model: string) => void) | undefined;
-}) => {
-	if (!chosen || chosen.templateId === undefined) return null;
-	if (chosen.templateId === null) {
-		return (
-			<SinglePreference
-				singleModel={singleModel}
-				models={chosen.models ?? []}
-				onSingleModel={onSingleModel}
-			/>
-		);
-	}
-	return chosen.roles?.length ? (
-		<TeamPreferences
-			roles={chosen.roles}
-			roleModels={roleModels}
-			onRoleModel={onRoleModel}
-		/>
-	) : null;
-};
-
-// A team works in worktrees cut at the last commit (docs/10), so the folder's own edits are not in
-// them; the single agent works in the folder itself and needs no line (ADR-156).
-const Uncommitted = ({
-	chosen,
-	count,
-}: {
-	readonly chosen: ComposerOption | undefined;
-	readonly count: number | undefined;
-}) => {
-	if (!count || !chosen || chosen.templateId === null) return null;
-	const has =
-		count === 1
-			? nls.localize(
-					"mete/run/uncommittedOne",
-					"This folder has 1 uncommitted change.",
-				)
-			: nls.localize(
-					"mete/run/uncommitted",
-					"This folder has {0} uncommitted changes.",
-					count,
-				);
-	const why = nls.localize(
-		"mete/run/uncommittedWhy",
-		"A team starts from the last commit, so its members do not see them; commit them first if the team needs them.",
-	);
-	return <p style={MUTED}>{`${has} ${why}`}</p>;
-};
-
 const GoalField = ({
 	goal,
 	ready,
@@ -197,7 +62,7 @@ const GoalField = ({
 	readonly onGoal: (goal: string) => void;
 	readonly onStart: () => void;
 }) => (
-	<label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+	<label className="mete-composer-field">
 		{nls.localize("mete/run/goal", "What should METE do in this folder?")}
 		<textarea
 			className="mete-field"
@@ -213,32 +78,6 @@ const GoalField = ({
 			}}
 		/>
 	</label>
-);
-
-const ComposerActions = ({
-	ready,
-	busy,
-	onStart,
-}: {
-	readonly ready: boolean;
-	readonly busy: boolean;
-	readonly onStart: () => void;
-}) => (
-	<div style={ROW}>
-		<button
-			type="button"
-			className="mete-button"
-			disabled={!ready}
-			onClick={onStart}
-		>
-			{nls.localize("mete/run/start", "Start run")}
-		</button>
-		{busy ? (
-			<span style={MUTED} role="status">
-				{nls.localize("mete/run/starting", "METE is starting the run…")}
-			</span>
-		) : null}
-	</div>
 );
 
 /** The composer for a model and the user's input; Ctrl+Enter in the goal starts the run. */
@@ -257,36 +96,39 @@ export const ComposerView = (props: Props) => {
 	const ready = goal.trim().length > 0 && !busy;
 	return (
 		<section className="mete-composer">
-			<h2 className="mete-composer-title">
-				{nls.localize("mete/composer/title", "Start a run")}
-			</h2>
-			<GoalField
-				goal={goal}
-				ready={ready}
-				onGoal={props.onGoal}
-				onStart={props.onStart}
-			/>
-			<Teams
-				options={model.options}
-				unsure={model.unsure}
-				selected={selected}
-				onSelect={props.onSelect}
-				onEdit={props.onEdit}
-				onNewTeam={props.onNewTeam}
-			/>
-			<Preferences
-				chosen={model.options.find((o) => o.key === selected)}
-				singleModel={props.singleModel}
-				roleModels={props.roleModels}
-				onSingleModel={props.onSingleModel}
-				onRoleModel={props.onRoleModel}
-			/>
-			<Uncommitted
-				chosen={model.options.find((o) => o.key === selected)}
-				count={props.uncommitted}
-			/>
-			<ComposerActions ready={ready} busy={busy} onStart={props.onStart} />
-			{error ? <p role="alert">{error}</p> : null}
+			<header className="mete-composer-goal">
+				<h2 className="mete-composer-title">
+					{nls.localize("mete/composer/title", "Start a run")}
+				</h2>
+				<GoalField
+					goal={goal}
+					ready={ready}
+					onGoal={props.onGoal}
+					onStart={props.onStart}
+				/>
+			</header>
+			<div className="mete-composer-columns">
+				<Teams
+					options={model.options}
+					unsure={model.unsure}
+					selected={selected}
+					onSelect={props.onSelect}
+					onEdit={props.onEdit}
+					onNewTeam={props.onNewTeam}
+				/>
+				<Side
+					chosen={model.options.find((o) => o.key === selected)}
+					singleModel={props.singleModel}
+					roleModels={props.roleModels}
+					onSingleModel={props.onSingleModel}
+					onRoleModel={props.onRoleModel}
+					uncommitted={props.uncommitted}
+					ready={ready}
+					busy={busy}
+					error={error}
+					onStart={props.onStart}
+				/>
+			</div>
 		</section>
 	);
 };

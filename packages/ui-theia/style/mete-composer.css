@@ -1,17 +1,141 @@
 /* The run composer in the Composer board's look (docs/design/Composer.dc.html, ADR-128). Every rule
    hangs off its root, `.mete-composer`, since every sheet is global. */
 .mete-composer {
+	container-type: inline-size;
 	display: flex;
 	flex-direction: column;
-	gap: 14px;
-	padding: 16px;
+	gap: 16px;
+	padding: 20px;
+	font-size: 14px;
+	line-height: 1.4;
 	color: var(--ink, var(--theia-foreground));
+}
+
+/* The goal: the hero of the composer. */
+.mete-composer .mete-composer-goal {
+	padding: 24px 26px 26px;
+	background: var(--raised, var(--theia-sideBar-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+	border-radius: 16px;
 }
 
 .mete-composer .mete-composer-title {
 	margin: 0;
-	font-size: 1.15em;
+	font-size: 28px;
+	font-weight: 800;
+	line-height: 1.2;
+}
+
+.mete-composer .mete-composer-field {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 14px;
+	font-size: 15px;
 	font-weight: 700;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-composer .mete-composer-field > textarea {
+	box-sizing: border-box;
+	min-height: 128px;
+	padding: 14px 18px;
+	font-size: 19px;
+	font-weight: 600;
+	line-height: 1.5;
+	border-radius: 14px;
+	color: var(--ink, var(--theia-foreground));
+}
+
+/* The teams beside the side column (ADR-119: under them below 900 px, at the end of this sheet). */
+.mete-composer .mete-composer-columns {
+	display: flex;
+	align-items: flex-start;
+	gap: 20px;
+}
+
+.mete-composer .mete-composer-teams {
+	flex: 1;
+	min-width: 0;
+}
+
+/* The side column: the chosen option's preferred models, the uncommitted line, and Start. */
+.mete-composer .mete-composer-side {
+	box-sizing: border-box;
+	flex: none;
+	width: 380px;
+	max-width: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	padding: 18px;
+	background: var(--side, var(--theia-sideBar-background));
+	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 16px;
+}
+
+.mete-composer .mete-composer-side p {
+	margin: 0;
+}
+
+.mete-composer .mete-composer-prefer {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.mete-composer .mete-composer-prefer > h3 {
+	margin: 0 0 -9px;
+	font-size: 15px;
+	font-weight: 800;
+	line-height: 1.3;
+}
+
+.mete-composer .mete-composer-hint {
+	font-size: 12px;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-composer .mete-composer-prefer > .mete-composer-hint {
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+}
+
+.mete-composer .mete-composer-model {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-composer .mete-composer-model > input {
+	box-sizing: border-box;
+	height: 36px;
+	padding: 0 12px;
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	font-size: 12.5px;
+	font-weight: 400;
+	border-radius: 10px;
+	color: var(--ink, var(--theia-foreground));
+}
+
+.mete-composer .mete-composer-uncommitted {
+	padding-top: 14px;
+	border-top: 1.5px solid var(--line, var(--theia-panel-border));
+	font-size: 12.5px;
+	line-height: 1.5;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+/* Start: the page's one primary act, across the column. */
+.mete-composer .mete-composer-start {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	height: 42px;
+	font-size: 15px;
 }
 
 .mete-composer .mete-button > .codicon {
@@ -221,4 +345,23 @@
 	flex-basis: 100%;
 	font-size: 12.5px;
 	line-height: 1.4;
+}
+
+/* A narrow panel puts the side column under the teams, and a very narrow one the cards in one column;
+   last, so they win over the rules above. */
+@container (max-width: 899px) {
+	.mete-composer .mete-composer-columns {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.mete-composer .mete-composer-side {
+		width: auto;
+	}
+}
+
+@container (max-width: 599px) {
+	.mete-composer .mete-composer-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
 }
