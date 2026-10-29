@@ -58,6 +58,23 @@ describe("ComposerView", () => {
 		expect(out.match(/type="radio"/g)).toHaveLength(3);
 	});
 
+	// The Composer board (ADR-128): a grid of team cards under a heading with New team, each team's
+	// Edit inside its card. A button inside a label is not valid HTML, so Edit is the label's sibling.
+	it("draws each team as a card with its Edit beside the label, under a heading with New team", () => {
+		const out = html(READY);
+		expect(out).toMatch(
+			/<div class="mete-composer-team"><label class="[^"]*mete-composer-option[^"]*"><span class="mete-composer-head">.*?Web development.*?<\/label><button type="button" class="[^"]*mete-composer-edit[^"]*" aria-label="Edit Web development">/,
+		);
+		expect(out).toMatch(/role="radiogroup" aria-labelledby="[^"]+"/);
+		expect(out.indexOf("New team")).toBeLessThan(
+			out.indexOf("Let METE choose"),
+		);
+		const teams = out.slice(
+			out.indexOf('<section class="mete-composer-teams"'),
+		);
+		expect(teams.slice(0, teams.indexOf("</section>"))).not.toContain("style=");
+	});
+
 	// The design's goal box (docs/design/Composer.dc.html) shows an example goal; an empty box left
 	// users asking where to type.
 	it("shows an example goal in the empty goal field", () => {

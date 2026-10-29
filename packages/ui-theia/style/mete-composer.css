@@ -1,0 +1,180 @@
+/* The run composer in the Composer board's look (docs/design/Composer.dc.html, ADR-128). Every rule
+   hangs off its root, `.mete-composer`, since every sheet is global. */
+.mete-composer {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	padding: 16px;
+	color: var(--ink, var(--theia-foreground));
+}
+
+.mete-composer .mete-composer-title {
+	margin: 0;
+	font-size: 1.15em;
+	font-weight: 700;
+}
+
+.mete-composer .mete-button > .codicon {
+	font-size: 16px;
+}
+
+.mete-composer .mete-composer-edit,
+.mete-composer .mete-composer-teams-head > .mete-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 28px;
+	padding: 0 10px 0 8px;
+	background: var(--panel, var(--theia-editorWidget-background));
+}
+
+/* The teams: a heading with New team over a grid of cards, two to a row. */
+.mete-composer .mete-composer-teams {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.mete-composer .mete-composer-teams-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.mete-composer .mete-composer-teams-head > h3 {
+	margin: 0;
+	font-size: 17px;
+	font-weight: 800;
+	line-height: 1.3;
+}
+
+.mete-composer .mete-composer-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12px;
+}
+
+.mete-composer .mete-composer-team {
+	position: relative;
+}
+
+.mete-composer .mete-composer-edit {
+	position: absolute;
+	top: 13px;
+	right: 13px;
+	font-size: 12.5px;
+}
+
+/* A card: the radio, the tile and the name on one line, the description and the estimate under them. */
+.mete-composer .mete-composer-option {
+	box-sizing: border-box;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 14px 16px 15px;
+	border-color: var(--line-soft, var(--theia-panel-border));
+	cursor: pointer;
+}
+
+.mete-composer .mete-composer-option:hover {
+	border-color: var(--muted, var(--theia-descriptionForeground));
+}
+
+.mete-composer .mete-composer-option:has(input:checked) {
+	background: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 7%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	border-color: var(
+		--accent,
+		var(--theia-contrastActiveBorder, var(--theia-focusBorder))
+	);
+}
+
+/* Let METE choose and Single agent: one line across the grid. */
+.mete-composer .mete-composer-option.wide {
+	grid-column: 1 / -1;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	padding: 14px 16px;
+}
+
+.mete-composer .mete-composer-head {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
+}
+
+.mete-composer .mete-composer-team .mete-composer-head {
+	padding-right: 64px;
+}
+
+.mete-composer .mete-composer-head > input {
+	flex: none;
+	margin: 0;
+	width: 16px;
+	height: 16px;
+	accent-color: var(--accent, var(--theia-focusBorder));
+}
+
+.mete-composer .mete-composer-head > strong {
+	min-width: 0;
+	font-size: 15px;
+	line-height: 1.3;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.mete-composer .mete-composer-tile {
+	flex: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 10px;
+	background: var(--chip, var(--theia-badge-background));
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-composer .mete-composer-option:has(input:checked) .mete-composer-tile {
+	background: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 18%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	color: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 70%,
+		var(--ink, var(--theia-foreground))
+	);
+}
+
+/* Under the name, in line with it past the radio. */
+.mete-composer .mete-composer-about,
+.mete-composer .mete-composer-estimate {
+	padding-left: 28px;
+	font-size: 13.5px;
+	font-weight: 500;
+	line-height: 1.45;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-composer .mete-composer-estimate {
+	margin-left: 28px;
+	padding: 10px 0 0;
+	border-top: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	font-size: 12.5px;
+}
+
+.mete-composer .mete-composer-option.wide .mete-composer-estimate {
+	margin-left: auto;
+	padding: 0;
+	border-top: 0;
+}
