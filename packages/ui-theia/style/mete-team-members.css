@@ -254,7 +254,7 @@
 	background: var(--line, var(--theia-panel-border));
 }
 
-.mete-step {
+.mete-order-step {
 	position: relative;
 	width: 100%;
 	display: flex;
@@ -270,11 +270,11 @@
 	cursor: pointer;
 }
 
-.mete-step:disabled {
+.mete-order-step:disabled {
 	cursor: default;
 }
 
-.mete-step:not(:disabled):hover {
+.mete-order-step:not(:disabled):hover {
 	background: var(--raised, var(--theia-list-hoverBackground));
 }
 

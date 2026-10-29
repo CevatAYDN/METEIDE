@@ -308,10 +308,13 @@ describe("Order of work (ADR-093)", () => {
 		expect(out).toContain("Order of work");
 		const rows = [
 			...out.matchAll(
-				/<li><button[^>]*class="mete-step"[^>]*>(.*?)<\/button><\/li>/g,
+				/<li><button[^>]*class="mete-order-step"[^>]*>(.*?)<\/button><\/li>/g,
 			),
 		];
 		expect(rows).toHaveLength(3);
+		// Every sheet is global: the run's Steps list (mete-steps.css) owns the bare class, and
+		// sharing it once stacked these rows' numbers above their text.
+		expect(out).not.toMatch(/class="[^"]*\bmete-step(?![\w-])/);
 		expect(rows[0]?.[1]).toMatch(
 			/>1<\/span><span class="mete-step-text"><strong>[^<]+<\/strong><span class="mete-step-by">UI designer</,
 		);

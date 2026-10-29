@@ -41,7 +41,7 @@ const StepRow = (props: {
 		<li>
 			<button
 				type="button"
-				className="mete-step"
+				className="mete-order-step"
 				disabled={step.member < 0}
 				onClick={() => props.onSelect(step.member)}
 			>
