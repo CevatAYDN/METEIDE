@@ -1,11 +1,15 @@
-import { ok, type ProviderAdapter } from "@mete/contracts";
+import { type CapabilityRef, ok, type ProviderAdapter } from "@mete/contracts";
 import {
 	createCapabilityRegistry,
 	createConfigReader,
 	createEventBus,
 	type ModuleContext,
 } from "@mete/kernel";
-import { type ProviderScenario, providerChatContract } from "@mete/testing";
+import {
+	type ProviderScenario,
+	providerChatContract,
+	providerEmbedContract,
+} from "@mete/testing";
 import type { ProviderDefinition } from "../src/application/provider-module.js";
 import { createCustomModule } from "../src/providers/custom.js";
 import { GOOGLE } from "../src/providers/google.js";
@@ -149,55 +153,115 @@ builtIn(OPENCODE_ZEN);
 builtIn(GROQ);
 builtIn(GOOGLE);
 
-const custom = (format: string, stream: () => Response) =>
-	providerChatContract(`custom ${format}`, async (scenario) => {
-		const registry = createCapabilityRegistry(() => []);
-		const log = () => {};
-		const ctx: ModuleContext = {
-			capabilities: registry,
-			events: createEventBus((e) => {
-				throw e;
-			}),
-			config: createConfigReader({
-				global: {
-					file: "settings.yaml",
-					sections: {
-						providers: {
-							custom: [
-								{
-									slug: "lab",
-									name: "Lab",
-									baseUrl: "https://lab.test/v1",
-									format,
-								},
-							],
-						},
+// One custom endpoint "lab" in the given format, its adapter under `capability`.
+const openCustom = async (
+	format: string,
+	fetch: typeof globalThis.fetch,
+	capability: CapabilityRef,
+	models: unknown = {},
+) => {
+	const registry = createCapabilityRegistry(() => []);
+	const log = () => {};
+	const ctx: ModuleContext = {
+		capabilities: registry,
+		events: createEventBus((e) => {
+			throw e;
+		}),
+		config: createConfigReader({
+			global: {
+				file: "settings.yaml",
+				sections: {
+					providers: {
+						custom: [
+							{
+								slug: "lab",
+								name: "Lab",
+								baseUrl: "https://lab.test/v1",
+								format,
+							},
+						],
 					},
+					models,
 				},
-				workspace: {},
-			}),
-			logger: { error: log, warn: log, info: log, debug: log },
-			disposables: { add: () => {}, dispose: () => {} },
-			secrets: {
-				get: async () => ok("k"),
-				set: async () => ok(undefined),
-				delete: async () => ok(false),
 			},
-		};
-		const module = createCustomModule({
-			fetch: fakeFetch(scenario, stream),
-			now: () => NOW,
-		});
-		await module.activate(ctx);
-		const r = registry.resolve<ProviderAdapter>("provider.chat@2");
-		if (!r.ok || !r.value[0]) throw new Error("no custom adapter");
-		return {
-			adapter: r.value[0].impl,
-			model: "m",
-			close: () => module.deactivate(),
-		};
-	});
+			workspace: {},
+		}),
+		logger: { error: log, warn: log, info: log, debug: log },
+		disposables: { add: () => {}, dispose: () => {} },
+		secrets: {
+			get: async () => ok("k"),
+			set: async () => ok(undefined),
+			delete: async () => ok(false),
+		},
+	};
+	const module = createCustomModule({ fetch, now: () => NOW });
+	await module.activate(ctx);
+	const r = registry.resolve<ProviderAdapter>(capability);
+	if (!r.ok || !r.value[0]) throw new Error("no custom adapter");
+	return { adapter: r.value[0].impl, close: () => module.deactivate() };
+};
+
+const custom = (format: string, stream: () => Response) =>
+	providerChatContract(`custom ${format}`, async (scenario) => ({
+		...(await openCustom(
+			format,
+			fakeFetch(scenario, stream),
+			"provider.chat@2",
+		)),
+		model: "m",
+	}));
 
 custom("openai-chat", openaiStream);
 custom("anthropic-messages", anthropicStream);
 custom("google-gemini", googleStream);
+
+// The provider.embed@2 kit: an embedding endpoint in the OpenAI shape NVIDIA shares, and
+// a row that names model "e" as an embedding model.
+const EMBED_ROW = {
+	capability: "embed",
+	contextWindow: 8_192,
+	toolCalling: false,
+	vision: false,
+	free: true,
+	family: "e",
+} as const;
+
+const embedFetch =
+	(scenario: ProviderScenario) =>
+	async (url: RequestInfo | URL, init?: RequestInit) => {
+		if (/\/models(\?|$)/.test(String(url)))
+			return Response.json({ data: [{ id: "e" }, { id: "m" }] });
+		if (scenario === "rate-limited") return tooMany();
+		const { input } = JSON.parse(String(init?.body)) as { input: string[] };
+		return Response.json({
+			object: "list",
+			model: "e",
+			data: input.map((_, index) => ({
+				object: "embedding",
+				index,
+				embedding: [index, 0.5],
+			})),
+			usage: { prompt_tokens: 2, total_tokens: 2 },
+		});
+	};
+
+providerEmbedContract(NVIDIA.displayName, async (scenario) => ({
+	adapter: NVIDIA.build({
+		apiKey: "k",
+		models: { e: EMBED_ROW },
+		fetch: embedFetch(scenario),
+		now: () => NOW,
+	}),
+	model: "e",
+	close: async () => {},
+}));
+
+providerEmbedContract("custom openai-chat", async (scenario) => ({
+	...(await openCustom(
+		"openai-chat",
+		embedFetch(scenario),
+		"provider.embed@2",
+		{ "custom:lab": { e: EMBED_ROW } },
+	)),
+	model: "e",
+}));

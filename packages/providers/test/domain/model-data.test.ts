@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	chatModels,
+	embedModels,
 	type ModelRow,
 	mergeModelData,
 } from "../../src/domain/model-data.js";
@@ -80,5 +81,34 @@ describe("chatModels", () => {
 
 	it("does not read inherited properties as rows", () => {
 		expect(chatModels("p", ["constructor"], {})[0]?.contextWindow).toBe(0);
+	});
+});
+
+describe("embedModels", () => {
+	it("answers the listed ids of embed rows only (ADR-152)", () => {
+		const rows = {
+			embedder: row({ capability: "embed", contextWindow: 32_768 }),
+			gone: row({ capability: "embed" }),
+			chatter: row(),
+			ranker: row({ capability: "rerank" }),
+		};
+		expect(
+			embedModels(
+				"nvidia",
+				["embedder", "chatter", "ranker", "stranger", "constructor"],
+				rows,
+			),
+		).toEqual([
+			{
+				id: "embedder",
+				providerId: "nvidia",
+				family: "glm",
+				contextWindow: 32_768,
+				toolCalling: true,
+				vision: false,
+				free: true,
+				deprecated: false,
+			},
+		]);
 	});
 });

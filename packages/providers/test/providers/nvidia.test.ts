@@ -71,6 +71,13 @@ describe("NVIDIA", () => {
 		]);
 	});
 
+	it("lists only the embed rows' models it serves as its embedding models (ADR-152)", async () => {
+		const r = await adapter([]).embedModels?.(signal());
+		expect(r?.ok && r.value.map((m) => [m.id, m.contextWindow])).toEqual([
+			["nvidia/embedder", 262_144],
+		]);
+	});
+
 	it("embeds with input_type from the purpose and returns vectors in input order", async () => {
 		const sent: Sent[] = [];
 		const a = adapter(sent);
@@ -147,7 +154,7 @@ describe("NVIDIA", () => {
 		});
 		expect(createNvidiaModule().manifest).toMatchObject({
 			id: "provider-nvidia",
-			provides: ["provider.chat@2", "provider.embed@1", "provider.rerank@1"],
+			provides: ["provider.chat@2", "provider.embed@2", "provider.rerank@1"],
 		});
 	});
 });

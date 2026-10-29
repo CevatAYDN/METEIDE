@@ -86,7 +86,7 @@ describe("custom endpoints", () => {
 			value: undefined,
 		});
 		expect(adapters(s)).toEqual(["custom:lab", "custom:claude"]);
-		const embed = s.registry.resolve<ProviderAdapter>("provider.embed@1");
+		const embed = s.registry.resolve<ProviderAdapter>("provider.embed@2");
 		expect(embed.ok && embed.value.map((a) => a.id)).toEqual(["custom:lab"]);
 		expect(s.warnings).toEqual([
 			{ endpoint: "custom:nokey", reason: "no API key" },
@@ -208,5 +208,33 @@ describe("custom endpoints", () => {
 			logs: false,
 			publishes: false,
 		});
+	});
+
+	it("lists as embedding models only the listed ids a user's embed row names (ADR-152)", async () => {
+		const embedRow = {
+			capability: "embed",
+			contextWindow: 8_192,
+			toolCalling: false,
+			vision: false,
+			free: true,
+			family: "lab",
+		};
+		const s = setup(
+			{ custom: [endpoint("lab")] },
+			{ "providers/custom:lab/apiKey": "k1" },
+			{ "custom:lab": { "lab-model": embedRow, "lab-gone": embedRow } },
+		);
+		await s.module.activate(s.ctx);
+		const r = s.registry.resolve<ProviderAdapter>("provider.embed@2");
+		const adapter = r.ok ? r.value[0]?.impl : undefined;
+		if (!adapter) throw new Error("no adapter");
+		const signal = new AbortController().signal;
+		const embedding = await adapter.embedModels?.(signal);
+		expect(embedding?.ok && embedding.value.map((m) => m.id)).toEqual([
+			"lab-model",
+		]);
+		const chat = await adapter.listModels(signal);
+		expect(chat.ok && chat.value).toEqual([]);
+		await s.module.deactivate();
 	});
 });

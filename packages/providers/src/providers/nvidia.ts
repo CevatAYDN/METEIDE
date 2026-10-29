@@ -11,7 +11,7 @@ import {
 	NVIDIA_QUOTA,
 	NVIDIA_RERANK_URL,
 } from "../defaults.js";
-import { chatModels } from "../domain/model-data.js";
+import { chatModels, embedModels } from "../domain/model-data.js";
 import { observeMinute429 } from "../domain/observe.js";
 import { listModelIds } from "../infrastructure/model-list.js";
 import {
@@ -35,23 +35,24 @@ const build = (env: ProviderEnv): ProviderAdapter => {
 		apiKey: env.apiKey,
 		...(env.fetch ? { fetch: env.fetch } : {}),
 	});
+	const listed = (signal: AbortSignal) =>
+		listModelIds(`${NVIDIA_BASE_URL}/models`, env.apiKey, signal, {
+			fetch: env.fetch,
+		});
 	return {
 		id: ID,
 		format: "openai-chat",
 		async listModels(signal) {
-			const ids = await listModelIds(
-				`${NVIDIA_BASE_URL}/models`,
-				env.apiKey,
-				signal,
-				{
-					fetch: env.fetch,
-				},
-			);
+			const ids = await listed(signal);
 			return ids.ok ? ok(chatModels(ID, ids.value, env.models)) : ids;
 		},
 		chat,
 		embed: (req, signal) =>
 			nvidiaEmbed(`${NVIDIA_BASE_URL}/embeddings`, req, signal, call),
+		async embedModels(signal) {
+			const ids = await listed(signal);
+			return ids.ok ? ok(embedModels(ID, ids.value, env.models)) : ids;
+		},
 		rerank: (req, signal) =>
 			nvidiaRerank(NVIDIA_RERANK_URL(req.model), req, signal, call),
 		quotaUnits: () => [...NVIDIA_QUOTA],
@@ -65,7 +66,7 @@ export const NVIDIA: ProviderDefinition = {
 	providerId: ID,
 	moduleId: "provider-nvidia",
 	displayName: "NVIDIA Build",
-	provides: ["provider.chat@2", "provider.embed@1", "provider.rerank@1"],
+	provides: ["provider.chat@2", "provider.embed@2", "provider.rerank@1"],
 	build,
 };
 

@@ -19,6 +19,7 @@ import {
 import { customQuota } from "../defaults.js";
 import {
 	chatModels,
+	embedModels,
 	type ModelData,
 	ModelDataSchema,
 	type ModelRow,
@@ -45,7 +46,7 @@ const MANIFEST: ModuleManifest = {
 	displayName: "Custom endpoints",
 	class: "optional",
 	trust: "first-party",
-	provides: ["provider.chat@2", "provider.embed@1"],
+	provides: ["provider.chat@2", "provider.embed@2"],
 	requires: [],
 	optional: [],
 	activation: ["onStartup"],
@@ -60,7 +61,10 @@ type Env = {
 	readonly now: () => number;
 };
 
-type Served = Pick<ProviderAdapter, "chat" | "embed" | "listModels">;
+type Served = Pick<
+	ProviderAdapter,
+	"chat" | "embed" | "embedModels" | "listModels"
+>;
 
 // What each format serves: openai-chat also embeds; the others list rich metadata
 // that a user row may still override (docs/09, provider facts and API keys).
@@ -91,6 +95,11 @@ const serve = (ep: CustomEndpoint, env: Env, id: string): Served => {
 			chat: googleChat(call),
 			listModels: rowsOver((s) => listGoogleModels(call, s)),
 		};
+	return serveOpenAI(ep, env, id);
+};
+
+// An openai-chat endpoint chats, embeds and lists ids only, so rows give the facts.
+const serveOpenAI = (ep: CustomEndpoint, env: Env, id: string): Served => {
 	const { chat, embed } = createOpenAIChat({
 		name: id,
 		baseURL: ep.baseUrl,
@@ -98,20 +107,22 @@ const serve = (ep: CustomEndpoint, env: Env, id: string): Served => {
 		headers: ep.headers,
 		...(env.fetch ? { fetch: env.fetch } : {}),
 	});
+	const listed = (signal: AbortSignal) =>
+		listModelIds(`${ep.baseUrl}/models`, env.apiKey, signal, {
+			fetch: env.fetch,
+			headers: ep.headers,
+		});
 	return {
 		chat,
 		embed,
 		async listModels(signal) {
-			const ids = await listModelIds(
-				`${ep.baseUrl}/models`,
-				env.apiKey,
-				signal,
-				{
-					fetch: env.fetch,
-					headers: ep.headers,
-				},
-			);
+			const ids = await listed(signal);
 			return ids.ok ? ok(chatModels(id, ids.value, env.models)) : ids;
+		},
+		// Only the user's embed rows name embedding models here (docs/09, provider facts).
+		async embedModels(signal) {
+			const ids = await listed(signal);
+			return ids.ok ? ok(embedModels(id, ids.value, env.models)) : ids;
 		},
 	};
 };
@@ -150,7 +161,7 @@ const keyFor = async (ctx: ModuleContext, ep: CustomEndpoint): Promise<Key> => {
 // Only openai-chat endpoints embed (docs/09, API keys).
 const provideAll = (ctx: ModuleContext, id: string, adapter: ProviderAdapter) =>
 	MANIFEST.provides
-		.filter((ref) => ref !== "provider.embed@1" || adapter.embed)
+		.filter((ref) => ref !== "provider.embed@2" || adapter.embedModels)
 		.map((ref) =>
 			ctx.capabilities.provide(ref, {
 				id,

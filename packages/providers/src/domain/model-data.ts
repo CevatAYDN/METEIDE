@@ -58,20 +58,38 @@ export const chatModels = (
 	rows: Readonly<Record<string, ModelRow>>,
 ): ModelInfo[] =>
 	listed.flatMap((id): ModelInfo[] => {
-		const row = Object.hasOwn(rows, id) ? rows[id] : undefined;
+		const row = rowOf(rows, id);
 		if (row && row.capability !== "chat") return [];
-		const bare: ModelInfo = {
-			id,
-			providerId,
-			family: "",
-			contextWindow: 0,
-			toolCalling: "unknown",
-			vision: "unknown",
-			free: false,
-			deprecated: false,
-		};
-		return [withRow(bare, row)];
+		return [withRow(bare(providerId, id), row)];
 	});
+
+/** The embedding models a provider lists: only ids an `embed` row names (ADR-152). */
+export const embedModels = (
+	providerId: string,
+	listed: readonly string[],
+	rows: Readonly<Record<string, ModelRow>>,
+): ModelInfo[] =>
+	listed.flatMap((id): ModelInfo[] => {
+		const row = rowOf(rows, id);
+		return row?.capability === "embed"
+			? [withRow(bare(providerId, id), row)]
+			: [];
+	});
+
+const rowOf = (rows: Readonly<Record<string, ModelRow>>, id: string) =>
+	Object.hasOwn(rows, id) ? rows[id] : undefined;
+
+// A listed model with no facts yet: no context window and not free, so it fits no tier.
+const bare = (providerId: string, id: string): ModelInfo => ({
+	id,
+	providerId,
+	family: "",
+	contextWindow: 0,
+	toolCalling: "unknown",
+	vision: "unknown",
+	free: false,
+	deprecated: false,
+});
 
 /** A provider's own facts about a model, overridden by a row the user or models.yaml gives. */
 export const withRow = (
