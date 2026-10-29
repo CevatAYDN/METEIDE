@@ -28,10 +28,14 @@ export const missingApp = (): string | undefined => {
 export const appCommand = (
 	port: number,
 	workspace: string,
+	userData: string,
 ): [string, string[]] => [
 	PACKAGED ? EXE : String(REQUIRE("electron")),
 	[
 		...(PACKAGED ? [] : [MAIN]),
+		// Electron finds its data folder (window state, single-instance lock) through Windows' known
+		// folder, not APPDATA, so a test would open at the size the developer's own window was left at.
+		`--user-data-dir=${userData}`,
 		`--remote-debugging-port=${port}`,
 		`--plugins=local-dir:${PLUGINS}`,
 		workspace,

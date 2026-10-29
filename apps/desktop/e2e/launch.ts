@@ -187,9 +187,13 @@ const removeDir = async (dir: string) => {
 	rmSync(dir, { recursive: true, force: true });
 };
 
-const startApp = async (workspace: string, env: NodeJS.ProcessEnv) => {
+const startApp = async (
+	workspace: string,
+	global: string,
+	env: NodeJS.ProcessEnv,
+) => {
 	const port = await freePort();
-	const [command, args] = appCommand(port, workspace);
+	const [command, args] = appCommand(port, workspace, join(global, "electron"));
 	const child = spawn(command, args, {
 		stdio: ["ignore", "ignore", "pipe"],
 		env,
@@ -318,7 +322,7 @@ export const test = base.extend<MeteOptions & { mete: Launch }>({
 			...(webScript ? { web: webScript } : {}),
 			...(browserFile ? { browser: browserFile } : {}),
 		});
-		const { port, child, tail } = await startApp(workspace, env);
+		const { port, child, tail } = await startApp(workspace, global, env);
 		const stop = async (browser?: Browser) => {
 			await browser?.close().catch(() => undefined);
 			killTree(child.pid);
