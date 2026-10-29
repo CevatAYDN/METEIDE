@@ -158,13 +158,11 @@ describe("the Waiting for you strip", () => {
 		expect(out).not.toContain("The run waits for you.");
 	});
 
-	it("says the run waits, with Resume and the 3-answer hint, when no task asks the human and no ask has arrived", () => {
+	it("says the run waits, with Resume and no allow hint, when no task asks the human and no ask has arrived (ADR-121)", () => {
 		const out = strip([created, paused]);
 		expect(out).toContain("The run waits for you.");
 		expect(out).toContain(">Resume<");
-		expect(out).toContain(
-			"Allow the action once, for the rest of this run, or always in .mete/policy.yaml.",
-		);
+		expect(out).not.toContain("Allow the action once");
 		expect(out).not.toContain(">Approve<");
 		expect(out).not.toContain("Allow once");
 	});

@@ -30,8 +30,9 @@
 
 .mete-wait-cards {
 	display: grid;
-	/* auto-fill keeps the empty tracks, so one card takes one column instead of the whole width. */
-	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	/* auto-fit drops the empty tracks, so a lone card spans the strip as every design board draws it
+	   and an asked command is not cut at 300 px (ADR-128, ADR-121). */
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 	gap: 12px;
 	align-items: start;
 	margin: 0;

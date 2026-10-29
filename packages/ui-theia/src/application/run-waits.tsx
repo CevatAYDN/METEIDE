@@ -104,13 +104,18 @@ export const RunWaits = ({
 			icon="debug-pause"
 			title={nls.localize("mete/waiting/run", "The run waits for you.")}
 		>
-			{asked ? <AskLine ask={asked} /> : null}
-			<p className="mete-wait-note">
-				{nls.localize(
-					"mete/waiting/allowHint",
-					"Allow the action once, for the rest of this run, or always in .mete/policy.yaml.",
-				)}
-			</p>
+			{asked ? (
+				<>
+					<AskLine ask={asked} />
+					{/* The hint names the allow buttons; without an ask the card keeps Resume (ADR-121). */}
+					<p className="mete-wait-note">
+						{nls.localize(
+							"mete/waiting/allowHint",
+							"Allow the action once, for the rest of this run, or always in .mete/policy.yaml.",
+						)}
+					</p>
+				</>
+			) : null}
 			{error ? (
 				<p
 					className="mete-wait-note"
