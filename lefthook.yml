@@ -2,7 +2,7 @@
 pre-commit:
   jobs:
     - name: biome
-      glob: "*.{ts,tsx,js,json,jsonc}"
+      glob: "*.{ts,mts,tsx,js,mjs,json,jsonc}"
       run: pnpm exec biome check --no-errors-on-unmatched {staged_files}
     # shortcut: tsc -b checks every package and emits dist; tab 15 wants --noEmit on affected packages, switch when builds get slow.
     - name: typecheck

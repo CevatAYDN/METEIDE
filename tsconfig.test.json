@@ -17,6 +17,7 @@
 		"packages/*/test",
 		"apps/*/test",
 		"packages/*/vitest.config.ts",
+		"packages/*/vitest.config.mts",
 		"packages/ui-theia/src/css.d.ts"
 	]
 }

@@ -68,7 +68,11 @@
 			}
 		},
 		{
-			"includes": ["**/vitest.config.ts", "**/vitest.*.config.ts"],
+			"includes": [
+				"**/vitest.config.ts",
+				"**/vitest.config.mts",
+				"**/vitest.*.config.ts"
+			],
 			"linter": {
 				"rules": {
 					"style": {
