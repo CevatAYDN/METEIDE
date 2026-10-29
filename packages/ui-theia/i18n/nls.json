@@ -631,7 +631,11 @@
 			"yourAnswer": "Your answer",
 			"sendAnswer": "Send the answer",
 			"noAnswers": "Go on without answers",
-			"pick": "Answer “{0}” with {1}"
+			"pick": "Answer “{0}” with {1}",
+			"mergeAgain": "Try the merge again",
+			"mergeCommit": "Commit or move your own changes to {0}, then try the merge again.",
+			"mergeCommitAll": "Commit or move your own uncommitted changes in this folder, then try the merge again.",
+			"notMerged": "“{0}” did not merge"
 		},
 		"welcome": {
 			"caption": "METE: keys, privacy and web search to start with",

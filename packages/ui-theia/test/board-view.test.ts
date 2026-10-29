@@ -383,6 +383,29 @@ describe("the Board view", () => {
 		expect(out).not.toContain("could not be read");
 	});
 
+	it("marks a task whose merge did not land Not merged in Done, on the Board and in the Tasks tab (ADR-156)", () => {
+		const ship = task("Ship");
+		const out = html({
+			kind: "board",
+			goal: "g",
+			view: applyAll(RUN, EMPTY_TEAM_VIEW, [
+				ship.created,
+				ship.to("submitted", "approved"),
+				event(
+					"task.merge.failed",
+					{ code: "io", message: "git merge failed", branch: "mete/r/t" },
+					ship.id,
+				),
+			]),
+			unreadable: 0,
+			recent: [],
+			feed: [],
+		});
+		expect(section(out, "Done")).toContain("writer · Not merged");
+		const tasks = out.slice(out.indexOf('data-tab="tasks"'));
+		expect(tasks).toContain("Not merged · Copy writer");
+	});
+
 	it("switches between the Board and the Flow graph of the same view", () => {
 		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [task("Notes").created]);
 		const model: BoardModel = {

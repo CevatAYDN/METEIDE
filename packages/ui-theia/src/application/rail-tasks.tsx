@@ -1,7 +1,7 @@
 import type { Transcript } from "@mete/contracts";
 import {
 	type Place,
-	placeOf,
+	placeOfTask,
 	type TaskCard,
 	type TeamView,
 } from "@mete/ui-studio";
@@ -49,7 +49,7 @@ const Head = ({
 	readonly task: TaskCard;
 	readonly member: string;
 }) => {
-	const place = placeOf(task.status);
+	const place = placeOfTask(task);
 	const look = LOOKS[place.marker ?? place.column];
 	return (
 		<>

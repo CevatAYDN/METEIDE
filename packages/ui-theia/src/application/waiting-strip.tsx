@@ -4,6 +4,7 @@ import { nls } from "@theia/core/lib/common/nls";
 import { useId, useState } from "react";
 import { questionsOf, withPick } from "../domain/questions.js";
 import { roleWords } from "../domain/roster.js";
+import { NotMerged } from "./merge-waits.js";
 import { QuestionList } from "./question-list.js";
 import { openReportLabel, reportPath } from "./results-list.js";
 import { Icon } from "./roster-look.js";
@@ -12,8 +13,8 @@ import { Card } from "./wait-card.js";
 
 // The Team panel's Waiting for you strip for the run it shows (ADR-091): a card for each task that
 // waits for the human — one asking to be approved, or one blocked until the human answers (docs/07)
-// — naming its member, or one card for a run that waits for anything else. The cards wear the
-// redesign's look, laid out by style/mete-run.css (ADR-119).
+// — naming its member, or one whose merge did not land (ADR-156), or one card for a run that waits
+// for anything else. The cards wear the redesign's look, laid out by style/mete-run.css (ADR-119).
 
 /** What the strip's buttons do: ADR-048's commands, for the run the panel shows. */
 export type WaitingControls = {
@@ -304,7 +305,9 @@ const TaskCardItem = ({
 	readonly name: string;
 	readonly controls: WaitingControls;
 }) =>
-	task.status === "blocked" && task.question?.to === "human" ? (
+	task.merge ? (
+		<NotMerged task={task} onApprove={controls.onApprove} />
+	) : task.status === "blocked" && task.question?.to === "human" ? (
 		<Asking task={task} name={name} controls={controls} />
 	) : task.status === "blocked" ? (
 		<Blocked task={task} name={name} controls={controls} />

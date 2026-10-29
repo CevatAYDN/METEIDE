@@ -631,7 +631,11 @@
 			"yourAnswer": "Yanıtın",
 			"sendAnswer": "Yanıtı gönder",
 			"noAnswers": "Yanıtsız devam et",
-			"pick": "“{0}” sorusunu {1} diye yanıtla"
+			"pick": "“{0}” sorusunu {1} diye yanıtla",
+			"mergeAgain": "Birleştirmeyi yeniden dene",
+			"mergeCommit": "{0} dosyalarındaki kendi değişikliklerinizi commit edin ya da taşıyın, sonra birleştirmeyi yeniden deneyin.",
+			"mergeCommitAll": "Bu klasördeki commit edilmemiş kendi değişikliklerinizi commit edin ya da taşıyın, sonra birleştirmeyi yeniden deneyin.",
+			"notMerged": "“{0}” birleşmedi"
 		},
 		"welcome": {
 			"caption": "METE: başlamak için anahtarlar, gizlilik ve web araması",

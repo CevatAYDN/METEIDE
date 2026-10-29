@@ -139,6 +139,11 @@
 	color: var(--muted-2, var(--theia-descriptionForeground));
 }
 
+/* A path named in a note breaks anywhere, so a deep one never pushes the card wider (ADR-156). */
+.mete-wait-note > .mete-mono {
+	overflow-wrap: anywhere;
+}
+
 .mete-wait-body > .mete-file-chip {
 	margin-top: 10px;
 }

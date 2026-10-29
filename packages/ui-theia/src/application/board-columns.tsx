@@ -1,6 +1,6 @@
 import {
 	type Place,
-	placeOf,
+	placeOfTask,
 	type TaskCard,
 	type TeamView,
 } from "@mete/ui-studio";
@@ -34,7 +34,7 @@ const Card = ({
 	readonly task: TaskCard;
 	readonly onOpen: (path: string) => void;
 }) => {
-	const { column, marker } = placeOf(task.status);
+	const { column, marker } = placeOfTask(task);
 	const path = column === "done" ? reportPath(task) : undefined;
 	return (
 		<li className="mete-card" style={CARD}>
@@ -97,7 +97,7 @@ export const Columns = ({
 			<Column
 				key={column}
 				column={column}
-				tasks={view.tasks.filter((t) => placeOf(t.status).column === column)}
+				tasks={view.tasks.filter((t) => placeOfTask(t).column === column)}
 				onOpen={onOpen}
 			/>
 		))}

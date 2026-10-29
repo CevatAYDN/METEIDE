@@ -3,6 +3,7 @@ import { applyAll, EMPTY_TEAM_VIEW } from "@mete/ui-studio";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { NotMerged } from "../src/application/merge-waits.js";
 import { QuestionList } from "../src/application/question-list.js";
 import { AllowActions, RunWaits } from "../src/application/run-waits.js";
 import { WaitingStrip } from "../src/application/waiting-strip.js";
@@ -287,6 +288,69 @@ describe("the Waiting for you strip", () => {
 		const run = strip([created, paused]);
 		expect(run).toContain("Waiting for you");
 		expect(run).not.toContain("mete-count");
+	});
+
+	it("says a task whose merge did not land, git's cause and the files in the way, with Try the merge again in place of Resume (ADR-156)", () => {
+		const approved = event(
+			"task.status.changed",
+			{ from: "submitted", to: "approved" },
+			TASK,
+		);
+		const failed = (payload: object) =>
+			strip([
+				created,
+				approved,
+				event(
+					"task.merge.failed",
+					{ branch: `mete/${RUN}/${TASK}`, ...payload },
+					TASK,
+				),
+				paused,
+			]);
+		const out = failed({
+			code: "merge_conflict",
+			message: "merging README.md conflicts with the workspace",
+			paths: ["README.md", "docs/a.md"],
+		});
+		expect(out).toContain('data-tone="bad"');
+		expect(out).toContain("Not merged<");
+		expect(out).toContain("“Audit it” did not merge");
+		expect(out).toContain("merging README.md conflicts with the workspace");
+		expect(out).toContain(
+			'Commit or move your own changes to <span class="mete-mono">README.md, docs/a.md</span>, then try the merge again.',
+		);
+		expect(out).toContain(">Try the merge again<");
+		expect(out).toContain('<span class="mete-count">1</span>');
+		for (const absent of [
+			"The run waits for you.",
+			">Resume<",
+			"Allow the action once",
+			">Approve<",
+			"Revise…",
+		])
+			expect(out).not.toContain(absent);
+		// An io failure names no files.
+		expect(failed({ code: "io", message: "git merge failed" })).toContain(
+			"Commit or move your own uncommitted changes in this folder, then try the merge again.",
+		);
+	});
+
+	it("tries the merge again by approving the task (ADR-156)", () => {
+		const approved: string[] = [];
+		const card = NotMerged({
+			task: {
+				id: TASK,
+				title: "Audit it",
+				roleId: "qa",
+				dependsOn: [],
+				status: "approved",
+				merge: { message: "git merge failed" },
+			},
+			onApprove: () => approved.push(TASK),
+		});
+		const actions = card.props.children.at(-1);
+		actions.props.children.props.onClick();
+		expect(approved).toEqual([TASK]);
 	});
 
 	it("draws nothing while the run is not paused for approval", () => {

@@ -253,6 +253,22 @@ describe("the Team view's roster", () => {
 		expect(ended[1]).toMatchObject({ done: 0, total: 0 });
 	});
 
+	it("says the member of an approved task whose merge did not land waits for you, not done (ADR-156)", () => {
+		const page = task("Build the page", "frontend_developer");
+		const merged = [page.created, page.to("approved")];
+		expect(roster(merged)[0]?.state).toEqual({ kind: "done" });
+		const failed = roster([
+			...merged,
+			event(
+				"task.merge.failed",
+				{ code: "io", message: "git merge failed", branch: "mete/r/t" },
+				{ taskId: page.id },
+			),
+			event("run.paused", { reason: "approval" }),
+		]);
+		expect(failed[0]?.state).toEqual({ kind: "waits_for_you" });
+	});
+
 	it("adds up the tokens and calls of every agent of a role (ADR-090)", () => {
 		const first = task("Draft", "writer");
 		const second = task("Edit", "writer");
