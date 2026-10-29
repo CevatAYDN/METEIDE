@@ -7,7 +7,7 @@ The canonical look of METE's desktop screens (ADR-128; docs/13, Design system). 
 
 | Page | Boards |
 | --- | --- |
-| Team panel | `Main` (a team run waiting for you), `SingleRunning`, `SingleDone`, `TeamRoster` (the Team view), `TeamFlow`, `TeamStudio`, `TeamTasks` (the rail's Tasks tab), `TeamBlocked`, `TeamPolicyAsk`, `TeamFailed` (a failed single agent), `Composer` (the run composer), `TeamNarrow` (a panel under 900 px) |
+| Team panel | `Main` (a team run waiting for you), `SingleRunning`, `SingleDone`, `TeamRoster` (the Team view), `TeamFlow`, `TeamStudio`, `TeamTasks` (the rail's Tasks tab), `TeamBlocked`, `TeamPolicyAsk`, `TeamMergeFailed` (a task whose merge did not land, ADR-156), `TeamFailed` (a failed single agent), `Composer` (the run composer), `TeamNarrow` (a panel under 900 px) |
 | Home and welcome | `HomeActive`, `HomeEmpty` (the METE side view), `Welcome` |
 | Settings and team editor | `Settings` (Models and keys), `TeamEditor` |
 | Dashboards | `Quota`, `Audit`, `Assets`, `Changes` |

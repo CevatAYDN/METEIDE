@@ -99,6 +99,14 @@
       "title": "Policy ask (dark)",
       "page": "team"
     },
+    "TeamMergeFailed.dc.html": {
+      "x": 5600,
+      "y": 1446,
+      "w": 1320,
+      "h": 1164,
+      "title": "Merge failed (dark)",
+      "page": "team"
+    },
     "TeamFailed.dc.html": {
       "x": 2800,
       "y": 3275,
@@ -206,6 +214,7 @@
     "TeamTasks.dc.html",
     "TeamBlocked.dc.html",
     "TeamPolicyAsk.dc.html",
+    "TeamMergeFailed.dc.html",
     "TeamFailed.dc.html",
     "Composer.dc.html",
     "TeamNarrow.dc.html",
