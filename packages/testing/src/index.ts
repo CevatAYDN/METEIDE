@@ -17,6 +17,10 @@ export {
 	llmChatContract,
 } from "./llm-chat.contract.js";
 export {
+	type LlmEmbedHarness,
+	llmEmbedContract,
+} from "./llm-embed.contract.js";
+export {
 	type PolicyCheckHarness,
 	policyCheckContract,
 } from "./policy-check.contract.js";
