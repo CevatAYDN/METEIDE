@@ -27,7 +27,10 @@ roles:
     capabilities: []
   - id: lead
     name: Lead
-    goal: Approve a report whose every claim is backed by its sources and answers the topic, or return it with what to fix
+    goal: >-
+      Approve a report whose every finding cites at least one listed source and whose summary answers
+      the topic, or return it with exactly what to fix. You see the report, not the pages: the
+      researchers read the sources and you did not, so never dispute a claim from your own memory.
     tier: reasoning
     capabilities: []
 tasks:
