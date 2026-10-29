@@ -286,7 +286,10 @@
 			"started": "Run started: {0}",
 			"starting": "METE is starting the run…",
 			"unassigned": "{0} unassigned",
-			"which": "Which run?"
+			"which": "Which run?",
+			"uncommitted": "This folder has {0} uncommitted changes.",
+			"uncommittedOne": "This folder has 1 uncommitted change.",
+			"uncommittedWhy": "A team starts from the last commit, so its members do not see them; commit them first if the team needs them."
 		},
 		"screens": {
 			"audit": "Audit",

@@ -161,4 +161,24 @@ describe("ComposerView", () => {
 		const out = html(READY, { selected: "choose" });
 		expect(out).not.toContain("Preferred model (optional)");
 	});
+
+	it("counts the folder's uncommitted changes for a team or Let METE choose, which a team's worktree does not hold (ADR-156)", () => {
+		const line =
+			"A team starts from the last commit, so its members do not see them; commit them first if the team needs them.";
+		for (const selected of ["choose", "web-dev"]) {
+			const out = html(READY, { selected, uncommitted: 3 });
+			expect(out).toContain(`This folder has 3 uncommitted changes. ${line}`);
+		}
+		expect(html(READY, { selected: "web-dev", uncommitted: 1 })).toContain(
+			`This folder has 1 uncommitted change. ${line}`,
+		);
+		// The single agent works in the folder itself; a clean folder needs no line.
+		expect(html(READY, { selected: "single", uncommitted: 3 })).not.toContain(
+			line,
+		);
+		expect(html(READY, { selected: "web-dev", uncommitted: 0 })).not.toContain(
+			line,
+		);
+		expect(html(READY, { selected: "web-dev" })).not.toContain(line);
+	});
 });

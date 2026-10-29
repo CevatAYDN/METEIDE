@@ -199,6 +199,8 @@ body{margin:0}
       </div>
 
       <div style="margin-top:auto;padding-top:14px;border-top:1.5px solid var(--line)">
+        <!-- The folder's own edits, which a team's worktree does not hold (ADR-156) -->
+        <p style="margin:0 0 12px;font-size:13px;font-weight:500;line-height:1.45;color:var(--muted-2)">This folder has 3 uncommitted changes. A team starts from the last commit, so its members do not see them; commit them first if the team needs them.</p>
         <button type="button" class="b-p" style="width:100%;font:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 18px;border-radius:10px;font-size:15px;font-weight:800;background:var(--accent);border:1.5px solid var(--accent);color:var(--panel)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3.25v9.5l7.5-4.75z"></path></svg>
           Start run

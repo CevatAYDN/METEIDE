@@ -59,6 +59,8 @@ export class MeteRunComposer {
 	protected goal = "";
 	protected selected = "choose";
 	protected singleModel: string | undefined;
+	/** The folder's uncommitted changes, which a team's worktree does not hold (ADR-156). */
+	protected uncommitted = 0;
 	/** Counts the estimates asked again, so an answer that came after a newer ask is dropped. */
 	protected estimateAsked = 0;
 	protected roleModels: Record<string, Record<string, string>> = {};
@@ -97,14 +99,16 @@ export class MeteRunComposer {
 			dir,
 			cache: this.chainCache,
 		};
-		const [templates, singleModels, ...estimates] = await Promise.all([
+		const [templates, singleModels, changes, ...estimates] = await Promise.all([
 			loadRoles(ctx, raw),
 			singleAgentModels(ctx),
+			this.daemon.changes(dir),
 			...[...raw.map((t) => t.id), null].map((id) =>
 				this.daemon.estimate(dir, id),
 			),
 		]);
 		this.all = optionsOf(templates, estimates, singleModels);
+		this.uncommitted = changes.ok ? changes.value.files.length : 0;
 		this.selected = this.all.some((o) => o.key === this.selected)
 			? this.selected
 			: "choose";
@@ -205,6 +209,7 @@ export class MeteRunComposer {
 				busy={this.busy}
 				error={this.error}
 				singleModel={this.singleModel}
+				uncommitted={this.uncommitted}
 				roleModels={this.selected ? this.roleModels[this.selected] : undefined}
 				onGoal={(goal) => {
 					this.goal = goal;

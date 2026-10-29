@@ -286,7 +286,10 @@
 			"started": "Çalıştırma başladı: {0}",
 			"starting": "METE çalıştırmayı başlatıyor…",
 			"unassigned": "{0} atanmamış",
-			"which": "Hangi çalıştırma?"
+			"which": "Hangi çalıştırma?",
+			"uncommitted": "Bu klasörde commit edilmemiş {0} değişiklik var.",
+			"uncommittedOne": "Bu klasörde commit edilmemiş 1 değişiklik var.",
+			"uncommittedWhy": "Bir ekip son commit'ten başlar, bu yüzden üyeleri bunları görmez; ekibin onlara ihtiyacı varsa önce commit edin."
 		},
 		"screens": {
 			"audit": "Denetim",

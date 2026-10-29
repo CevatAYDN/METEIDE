@@ -28,6 +28,8 @@ export type ComposerInput = {
 	readonly error?: string | undefined;
 	readonly singleModel?: string | undefined;
 	readonly roleModels?: Readonly<Record<string, string>> | undefined;
+	/** The folder's uncommitted changes, as `mete/changes` lists them (ADR-156). */
+	readonly uncommitted?: number | undefined;
 };
 
 type Props = ComposerInput & {
@@ -234,6 +236,34 @@ const Preferences = ({
 	) : null;
 };
 
+// A team works in worktrees cut at the last commit (docs/10), so the folder's own edits are not in
+// them; the single agent works in the folder itself and needs no line (ADR-156).
+const Uncommitted = ({
+	chosen,
+	count,
+}: {
+	readonly chosen: ComposerOption | undefined;
+	readonly count: number | undefined;
+}) => {
+	if (!count || !chosen || chosen.templateId === null) return null;
+	const has =
+		count === 1
+			? nls.localize(
+					"mete/run/uncommittedOne",
+					"This folder has 1 uncommitted change.",
+				)
+			: nls.localize(
+					"mete/run/uncommitted",
+					"This folder has {0} uncommitted changes.",
+					count,
+				);
+	const why = nls.localize(
+		"mete/run/uncommittedWhy",
+		"A team starts from the last commit, so its members do not see them; commit them first if the team needs them.",
+	);
+	return <p style={MUTED}>{`${has} ${why}`}</p>;
+};
+
 const GoalField = ({
 	goal,
 	ready,
@@ -335,6 +365,10 @@ export const ComposerView = (props: Props) => {
 				roleModels={props.roleModels}
 				onSingleModel={props.onSingleModel}
 				onRoleModel={props.onRoleModel}
+			/>
+			<Uncommitted
+				chosen={model.options.find((o) => o.key === selected)}
+				count={props.uncommitted}
 			/>
 			<ComposerActions
 				ready={ready}
