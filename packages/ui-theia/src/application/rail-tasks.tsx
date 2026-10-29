@@ -30,6 +30,7 @@ const LOOKS: Readonly<
 	in_review: { icon: "eye", tone: "accent" },
 	changes_asked: { icon: "comment", tone: "warn" },
 	blocked: { icon: "error", tone: "bad" },
+	not_merged: { icon: "git-merge", tone: "bad" },
 };
 
 /** What a task's steps need: the run's transcript, the Markdown renderer, and whether the run is running. */

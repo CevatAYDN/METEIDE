@@ -46,6 +46,7 @@
 			"inReview": "In review",
 			"loading": "Reading the run's events…",
 			"noTasks": "This run has no tasks: a single agent works without a board, and its answer appears here when the run finishes.",
+			"notMerged": "Not merged",
 			"now": "Now",
 			"open": "Open team panel",
 			"openFile": "Open {0}",

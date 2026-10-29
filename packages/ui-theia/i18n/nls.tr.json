@@ -46,6 +46,7 @@
 			"inReview": "İncelemede",
 			"loading": "Çalıştırmanın olayları okunuyor…",
 			"noTasks": "Bu çalıştırmanın görevi yok: tek bir ajan panosuz çalışır ve yanıtı çalıştırma bitince burada görünür.",
+			"notMerged": "Birleşmedi",
 			"now": "Şimdi",
 			"open": "Ekip panelini aç",
 			"openFile": "{0} dosyasını aç",

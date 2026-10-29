@@ -16,6 +16,7 @@ export const markerText = (marker: NonNullable<Place["marker"]>) =>
 		in_review: nls.localize("mete/board/inReview", "In review"),
 		changes_asked: nls.localize("mete/board/changesAsked", "Changes asked"),
 		blocked: nls.localize("mete/board/blocked", "Blocked"),
+		not_merged: nls.localize("mete/board/notMerged", "Not merged"),
 	})[marker];
 
 /** Where a task stands in one word: its marker when it has one, else its column. */

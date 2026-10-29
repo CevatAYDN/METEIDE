@@ -39,6 +39,7 @@ export {
 	EMPTY_TEAM_VIEW,
 	type Place,
 	placeOf,
+	placeOfTask,
 	type TaskCard,
 	type TaskStatus,
 	type TeamView,

@@ -6,9 +6,9 @@ import { NO_SIGNALS, type RunSignals, signalsAfter } from "./signals.js";
 // The view model the Team panel's views share (ADR-051, docs/13): a pure fold over one run's
 // events. The panel feeds it the run's history (mete/events) and then the live stream; a live event
 // can also be in the history (storage records an event as the bus publishes it, before the daemon
-// forwards it), so each event id is applied once. A card's place comes from its status alone, the
-// task state machine of docs/07; task.assigned only names the agent (the core publishes it just
-// before the change to in_progress). Agents follow their own events (agents.ts), and the Studio's
+// forwards it), so each event id is applied once. A card's place comes from its status, the
+// task state machine of docs/07, or a merge that did not land (ADR-156); task.assigned only names
+// the agent (the core publishes it just before the change to in_progress). Agents follow their own events (agents.ts), and the Studio's
 // signals theirs (signals.ts), the checkpoint list its own (checkpoints.ts). shortcut: messages come with the Studio's animations.
 
 /** A task state of docs/07, as task.status.changed carries it. */
@@ -35,6 +35,11 @@ export type TaskCard = {
 	readonly files?: readonly string[];
 	/** The questions the task asked before its work, and the role or "human" they went to, until answered (ADR-142). */
 	readonly question?: { readonly to: string; readonly text: string };
+	/** Why the approved task's merge did not land, and the files in its way, until the run resumes (ADR-156). */
+	readonly merge?: {
+		readonly message: string;
+		readonly paths?: readonly string[];
+	};
 	/** The task's latest report, relative to the workspace (docs/07, Artifact). */
 	readonly artifactPath?: string;
 	readonly status: TaskStatus;
@@ -90,7 +95,7 @@ export const EMPTY_TEAM_VIEW: TeamView = {
 /** A Board column, and the marker a card in it carries (ADR-051). */
 export type Place = {
 	readonly column: "todo" | "in_progress" | "done";
-	readonly marker?: "in_review" | "changes_asked" | "blocked";
+	readonly marker?: "in_review" | "changes_asked" | "blocked" | "not_merged";
 };
 
 const PLACES: Readonly<Record<TaskStatus, Place>> = {
@@ -104,6 +109,10 @@ const PLACES: Readonly<Record<TaskStatus, Place>> = {
 
 /** Where a task of this status sits on the Board. */
 export const placeOf = (status: TaskStatus): Place => PLACES[status];
+
+/** Where a task sits on the Board: its status's place, or Done marked Not merged while its merge waits (ADR-156). */
+export const placeOfTask = (t: TaskCard): Place =>
+	t.merge ? { column: "done", marker: "not_merged" } : placeOf(t.status);
 
 const update = (
 	tasks: readonly TaskCard[],
@@ -156,7 +165,29 @@ const questionAfter = (
 		}));
 	if (e.type === "agent.message.sent" && e.payload.kind === "answer")
 		return update(tasks, e.taskId, ({ question: _, ...t }) => t);
-	return tasks;
+	return mergeAfter(tasks, e);
+};
+
+// An approved task whose merge failed waits for the human until the run resumes, which tries the
+// merge again; a retry that fails publishes the event again (docs/08, ADR-156).
+const mergeAfter = (
+	tasks: readonly TaskCard[],
+	e: MeteEvent,
+): readonly TaskCard[] => {
+	// Only a failed merge's wait ends here; a task asking the human still waits after a Resume.
+	if (e.type === "run.resumed")
+		return tasks.map((t) => {
+			if (!t.merge) return t;
+			const { waitsForHuman: _, merge: __, ...rest } = t;
+			return rest;
+		});
+	if (e.type !== "task.merge.failed") return tasks;
+	const { message, paths } = e.payload;
+	return update(tasks, e.taskId, (t) => ({
+		...t,
+		waitsForHuman: true,
+		merge: { message, ...(paths ? { paths } : {}) },
+	}));
 };
 
 // A blocked task waits for the human (docs/07, Task state machine): the run pauses for approval,

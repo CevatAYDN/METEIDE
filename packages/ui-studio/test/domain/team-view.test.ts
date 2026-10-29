@@ -5,6 +5,7 @@ import {
 	applyEvent,
 	EMPTY_TEAM_VIEW,
 	placeOf,
+	placeOfTask,
 } from "../../src/domain/team-view.js";
 
 // The fold over hand-written events: no daemon, no storage, only the catalog's shapes.
@@ -251,6 +252,78 @@ describe("the team view fold", () => {
 		expect(again.tasks[0]?.status).toBe("in_progress");
 	});
 
+	it("marks an approved task whose merge failed as waiting for the human, with git's cause and the files in the way (ADR-156)", () => {
+		const approved = [
+			created(NOTES, "Take notes"),
+			moved(NOTES, "submitted", "approved"),
+		];
+		const failed = (payload: object) =>
+			applyAll(RUN, EMPTY_TEAM_VIEW, [
+				...approved,
+				event("task.merge.failed", payload, NOTES),
+			]).tasks[0];
+		const branch = `mete/${RUN}/${NOTES}`;
+		expect(
+			failed({
+				code: "merge_conflict",
+				message: "merging README.md conflicts with the workspace",
+				branch,
+				paths: ["README.md"],
+			}),
+		).toMatchObject({
+			status: "approved",
+			waitsForHuman: true,
+			merge: {
+				message: "merging README.md conflicts with the workspace",
+				paths: ["README.md"],
+			},
+		});
+		// An io failure names no files.
+		const io = failed({ code: "io", message: "git merge failed", branch });
+		expect(io?.merge).toEqual({ message: "git merge failed" });
+		expect(io?.waitsForHuman).toBe(true);
+	});
+
+	it("clears a failed merge when the run resumes to try it again, marks a retry that fails, and keeps another task's wait (ADR-156)", () => {
+		const conflict = {
+			code: "merge_conflict",
+			message: "merging README.md conflicts with the workspace",
+			branch: `mete/${RUN}/${NOTES}`,
+			paths: ["README.md"],
+		};
+		const failed = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			created(NOTES, "Take notes"),
+			created(SUMMARY, "Summarize"),
+			moved(NOTES, "submitted", "approved"),
+			event("task.merge.failed", conflict, NOTES),
+			event("approval.requested", { approver: "human" }, SUMMARY),
+			event("run.paused", { reason: "approval" }),
+		]);
+		// Try the merge again: the human's approval, then the run resumes.
+		const resumed = applyAll(RUN, failed, [
+			event(
+				"approval.resolved",
+				{ approver: "human", decision: "approve" },
+				NOTES,
+			),
+			event("run.resumed", {}),
+		]);
+		expect(resumed.tasks[0]?.merge).toBeUndefined();
+		expect(resumed.tasks[0]?.waitsForHuman).toBeUndefined();
+		expect(resumed.tasks[1]?.waitsForHuman).toBe(true);
+		// Resume alone tries the merge again too, with no approval event.
+		const bare = applyAll(RUN, failed, [event("run.resumed", {})]);
+		expect(bare.tasks[0]?.merge).toBeUndefined();
+		expect(bare.tasks[0]?.waitsForHuman).toBeUndefined();
+		const again = applyAll(RUN, bare, [
+			event("task.merge.failed", conflict, NOTES),
+		]);
+		expect(again.tasks[0]).toMatchObject({
+			waitsForHuman: true,
+			merge: { paths: ["README.md"] },
+		});
+	});
+
 	it("keeps each task's latest artifact path", () => {
 		const art = (type: string, path: string) =>
 			event(
@@ -313,5 +386,22 @@ describe("the team view fold", () => {
 			marker: "blocked",
 		});
 		expect(placeOf("approved")).toEqual({ column: "done" });
+	});
+
+	it("puts an approved task whose merge failed in Done, marked Not merged (ADR-156)", () => {
+		const task = {
+			id: NOTES,
+			title: "Take notes",
+			roleId: "writer",
+			dependsOn: [],
+			status: "approved",
+		} as const;
+		expect(placeOfTask(task)).toEqual({ column: "done" });
+		expect(
+			placeOfTask({ ...task, merge: { message: "git merge failed" } }),
+		).toEqual({
+			column: "done",
+			marker: "not_merged",
+		});
 	});
 });
