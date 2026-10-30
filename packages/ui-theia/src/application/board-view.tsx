@@ -7,6 +7,7 @@ import { rosterOf } from "../domain/roster.js";
 import type { DaemonFailure } from "../domain/status-service.js";
 import { Columns } from "./board-columns.js";
 import { CheckpointList, type RestoreControls } from "./checkpoint-list.js";
+import type { PickerFacts } from "./composer.js";
 import type { Windows } from "./context-meter.js";
 import { MUTED, PANEL } from "./look.js";
 import { NowSlot } from "./now-slot.js";
@@ -96,6 +97,8 @@ export type TeamControls = {
 		| undefined;
 	/** Preferred models per role (ADR-122). */
 	readonly preferredModels?: Readonly<Record<string, string>> | undefined;
+	/** The candidates' facts and the providers' states, for the model picker (ADR-161). */
+	readonly modelFacts?: PickerFacts | undefined;
 	/** The shown run's steps and why their latest read failed (ADR-125). */
 	readonly transcript: TranscriptState;
 };
@@ -226,6 +229,7 @@ const Shown = ({
 				windows={controls.windows}
 				candidateModels={controls.candidateModels}
 				preferredModels={controls.preferredModels}
+				modelFacts={controls.modelFacts}
 				{...(steer ? { onModel: steer } : {})}
 			/>
 		);

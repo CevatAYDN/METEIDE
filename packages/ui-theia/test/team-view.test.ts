@@ -6,7 +6,6 @@ import { tokenCount } from "../src/application/numbers.js";
 import {
 	commitModel,
 	ModelChoice,
-	ModelChoiceField,
 	RevertButton,
 	TeamView,
 } from "../src/application/team-view.js";
@@ -194,7 +193,7 @@ describe("team-view model selection (ADR-122)", () => {
 		).not.toThrow();
 	});
 
-	it("renders model input with datalist candidates and revert button when preferredModel is set", () => {
+	it("renders the model picker with the candidates, their facts and Revert when preferredModel is set (ADR-161)", () => {
 		const members: Member[] = [
 			{
 				roleId: "developer",
@@ -214,14 +213,21 @@ describe("team-view model selection (ADR-122)", () => {
 					developer: ["groq/llama-3.3-70b", "gemini/gemini-2.0-flash"],
 				},
 				preferredModels: { developer: "groq/llama-3.3-70b" },
+				modelFacts: {
+					facts: [],
+					states: [{ id: "gemini", state: "no_key" }],
+				},
 				onModel,
 			}),
 		);
 		expect(out).toContain("Preferred model (optional)");
+		expect(out).toContain('role="combobox"');
 		expect(out).toContain('value="groq/llama-3.3-70b"');
-		expect(out).toContain('<option value="gemini/gemini-2.0-flash"');
+		expect(out).toContain(
+			'<span class="mete-picker-id">gemini-2.0-flash</span>',
+		);
+		expect(out).toContain("gemini: no key (METE: Set provider key)");
 		expect(out).toContain("Revert to default");
-		expect(out).toContain('title="Change model"');
 	});
 
 	it("omits model input when onModel is not provided", () => {
@@ -266,7 +272,7 @@ describe("team-view model selection (ADR-122)", () => {
 				onModel,
 			}),
 		);
-		expect(out).toContain('<option value="groq/llama-3.3-70b"');
+		expect(out).toContain('<span class="mete-picker-id">llama-3.3-70b</span>');
 		expect(out).not.toContain("Revert to default");
 	});
 
@@ -294,44 +300,6 @@ describe("team-view model selection (ADR-122)", () => {
 		expect(out).toContain("Assistant");
 		expect(out).toContain('value="openrouter/auto"');
 		expect(out).toContain("Revert to default");
-	});
-
-	it("invokes ModelChoiceField events: onChange, onKeyDown, onBlur", () => {
-		const onDraft = vi.fn();
-		const onCommit = vi.fn();
-		const field = ModelChoiceField({
-			roleId: "developer",
-			draft: "groq/llama",
-			models: ["groq/llama-3.3-70b"],
-			onDraft,
-			onCommit,
-		});
-
-		const input = field.props.children[1];
-		// 1. onChange with non-candidate model updates draft only
-		input.props.onChange({ target: { value: "gemini/flash" } });
-		expect(onDraft).toHaveBeenCalledWith("gemini/flash");
-		expect(onCommit).not.toHaveBeenCalled();
-
-		// 2. onChange with candidate model updates draft and commits
-		input.props.onChange({ target: { value: "groq/llama-3.3-70b" } });
-		expect(onDraft).toHaveBeenCalledWith("groq/llama-3.3-70b");
-		expect(onCommit).toHaveBeenCalledWith("groq/llama-3.3-70b");
-
-		// 3. onKeyDown with Enter commits draft
-		onCommit.mockClear();
-		input.props.onKeyDown({ key: "Enter" });
-		expect(onCommit).toHaveBeenCalledWith("groq/llama");
-
-		// 4. onKeyDown with other keys does not commit
-		onCommit.mockClear();
-		input.props.onKeyDown({ key: "Escape" });
-		expect(onCommit).not.toHaveBeenCalled();
-
-		// 5. onBlur commits draft
-		onCommit.mockClear();
-		input.props.onBlur();
-		expect(onCommit).toHaveBeenCalledWith("groq/llama");
 	});
 
 	it("invokes RevertButton onClick and prevents default on mouseDown", () => {

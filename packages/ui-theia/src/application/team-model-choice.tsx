@@ -1,7 +1,8 @@
 import type { ModelRef } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
-import { useRef, useState } from "react";
-import { modelRefOf } from "./composer.js";
+import { useId, useRef, useState } from "react";
+import { modelRefOf, type PickerFacts } from "./composer.js";
+import { ModelPicker } from "./model-picker.js";
 
 /**
  * Commits a model the run does not already prefer and answers the preference now in force: empty
@@ -25,64 +26,11 @@ export type ModelChoiceProps = {
 	readonly roleId: string;
 	readonly value?: string | undefined;
 	readonly models: readonly string[];
+	/** The candidates' facts and the providers' states (ADR-161). */
+	readonly picker?: PickerFacts | undefined;
 	readonly onModel?:
 		| ((roleId: string, model: ModelRef | null) => void)
 		| undefined;
-};
-
-export const ModelList = ({
-	id,
-	models,
-}: {
-	readonly id: string;
-	readonly models: readonly string[];
-}) => (
-	<datalist id={id}>
-		{models.map((m) => (
-			<option key={m} value={m} />
-		))}
-	</datalist>
-);
-
-export const ModelChoiceField = ({
-	roleId,
-	draft,
-	models,
-	onDraft,
-	onCommit,
-}: {
-	readonly roleId: string;
-	readonly draft: string;
-	readonly models: readonly string[];
-	readonly onDraft: (v: string) => void;
-	readonly onCommit: (v: string) => void;
-}) => {
-	const listId = `roster-models-${roleId}`;
-	return (
-		<label className="mete-model-field">
-			<span className="mete-model-label">
-				{nls.localize("mete/roster/preferModel", "Preferred model (optional)")}
-			</span>
-			<input
-				className="mete-field"
-				list={listId}
-				value={draft}
-				placeholder="providerId/modelId"
-				title={nls.localize("mete/roster/changeModel", "Change model")}
-				aria-label={nls.localize(
-					"mete/roster/preferModel",
-					"Preferred model (optional)",
-				)}
-				onChange={(e) => {
-					onDraft(e.target.value);
-					if (models.includes(e.target.value)) onCommit(e.target.value);
-				}}
-				onKeyDown={(e) => e.key === "Enter" && onCommit(draft)}
-				onBlur={() => onCommit(draft)}
-			/>
-			<ModelList id={listId} models={models} />
-		</label>
-	);
 };
 
 export const RevertButton = ({
@@ -101,13 +49,21 @@ export const RevertButton = ({
 	</button>
 );
 
+// A pick is sent at once and Let METE choose is Revert, since only Revert clears (ADR-122, ADR-161);
+// typed text is sent when the field is left or Enter meets no row.
 export const ModelChoiceInput = ({
 	roleId,
 	value,
 	models,
+	picker,
 	onModel,
 }: ModelChoiceProps) => {
 	const [draft, setDraft] = useState(value ?? "");
+	const id = useId();
+	const label = nls.localize(
+		"mete/roster/preferModel",
+		"Preferred model (optional)",
+	);
 	// What the field last sent: a blur after a pick would otherwise send the same model again.
 	const sent = useRef<string | undefined>(value ?? "");
 	const revert = () => {
@@ -116,17 +72,31 @@ export const ModelChoiceInput = ({
 		sent.current = "";
 		onModel?.(roleId, null);
 	};
+	const commit = (text: string) => {
+		sent.current = commitModel(roleId, text, sent.current, onModel);
+	};
 	return (
 		<div className="mete-model-choice">
-			<ModelChoiceField
-				roleId={roleId}
-				draft={draft}
-				models={models}
-				onDraft={setDraft}
-				onCommit={(v) => {
-					sent.current = commitModel(roleId, v, sent.current, onModel);
-				}}
-			/>
+			<div className="mete-model-field">
+				<label className="mete-model-label" htmlFor={id}>
+					{label}
+				</label>
+				<ModelPicker
+					id={id}
+					label={label}
+					value={draft}
+					models={models}
+					facts={picker?.facts ?? []}
+					states={picker?.states ?? []}
+					onChange={setDraft}
+					onPick={(ref) => {
+						if (ref === null) return revert();
+						setDraft(ref);
+						commit(ref);
+					}}
+					onCommit={() => commit(draft)}
+				/>
+			</div>
 			{draft ? <RevertButton onRevert={revert} /> : null}
 		</div>
 	);

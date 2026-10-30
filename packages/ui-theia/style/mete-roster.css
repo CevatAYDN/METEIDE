@@ -243,8 +243,11 @@
 	color: var(--muted-2, var(--theia-descriptionForeground));
 }
 
-.mete-model-field > input {
+.mete-model-field > .mete-picker {
 	grid-area: input;
+}
+
+.mete-model-field input {
 	box-sizing: border-box;
 	width: 100%;
 	min-height: 32px;

@@ -2,13 +2,13 @@ import type { ModelRef, Tier } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import { type Member, type MemberState, roleWords } from "../domain/roster.js";
 import { Avatar } from "./avatar.js";
+import type { PickerFacts } from "./composer.js";
 import { Context, type Windows } from "./context-meter.js";
 import { stateLook, TIER_ICONS, tierLabel } from "./member-look.js";
 import { Icon } from "./roster-look.js";
 import {
 	commitModel,
 	ModelChoice,
-	ModelChoiceField,
 	ModelChoiceInput,
 	type ModelChoiceProps,
 	RevertButton,
@@ -18,7 +18,6 @@ import { toneStyle } from "./tone.js";
 export {
 	commitModel,
 	ModelChoice,
-	ModelChoiceField,
 	ModelChoiceInput,
 	type ModelChoiceProps,
 	RevertButton,
@@ -70,6 +69,7 @@ type MemberRowProps = {
 	readonly name: string;
 	readonly windows: Windows;
 	readonly models: readonly string[];
+	readonly picker?: PickerFacts | undefined;
 	readonly value?: string | undefined;
 	readonly onModel?:
 		| ((roleId: string, model: ModelRef | null) => void)
@@ -121,7 +121,14 @@ const Head = ({
 
 // The strip under the head: what the member does now, its context and tokens (ADR-090) and the run's
 // model choice (ADR-122); none while it has none of them.
-const Strip = ({ member, windows, models, value, onModel }: MemberRowProps) =>
+const Strip = ({
+	member,
+	windows,
+	models,
+	picker,
+	value,
+	onModel,
+}: MemberRowProps) =>
 	member.now || member.used || onModel ? (
 		<div className="mete-roster-strip">
 			{member.now ? <Now now={member.now} /> : null}
@@ -131,6 +138,7 @@ const Strip = ({ member, windows, models, value, onModel }: MemberRowProps) =>
 					roleId={member.roleId}
 					value={value}
 					models={models}
+					picker={picker}
 					onModel={onModel}
 				/>
 			) : null}
@@ -175,6 +183,8 @@ export type TeamViewProps = {
 		| Readonly<Record<string, readonly string[]>>
 		| undefined;
 	readonly preferredModels?: Readonly<Record<string, string>> | undefined;
+	/** The candidates' facts and the providers' states, for the model picker (ADR-161). */
+	readonly modelFacts?: PickerFacts | undefined;
 	readonly onModel?:
 		| ((roleId: string, model: ModelRef | null) => void)
 		| undefined;
@@ -187,6 +197,7 @@ export const TeamView = ({
 	windows,
 	candidateModels,
 	preferredModels,
+	modelFacts,
 	onModel,
 }: TeamViewProps) => (
 	<section
@@ -206,6 +217,7 @@ export const TeamView = ({
 						(m.agent?.tier ? candidateModels?.[m.agent.tier] : undefined) ??
 						[]
 					}
+					picker={modelFacts}
 					value={preferredModels?.[m.roleId]}
 					onModel={onModel}
 				/>

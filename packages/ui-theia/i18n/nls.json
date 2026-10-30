@@ -266,7 +266,6 @@
 		},
 		"roster": {
 			"blocked": "Blocked",
-			"changeModel": "Change model",
 			"coder": "Coder",
 			"contextLabel": "Context",
 			"contextShare": "{0}% · {1} of {2}",

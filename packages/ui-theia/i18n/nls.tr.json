@@ -266,7 +266,6 @@
 		},
 		"roster": {
 			"blocked": "Engellendi",
-			"changeModel": "Modeli değiştir",
 			"coder": "Kodcu",
 			"contextLabel": "Bağlam",
 			"contextShare": "%{0} · {2} içinde {1}",

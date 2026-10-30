@@ -1,7 +1,12 @@
 import type { ModelRef } from "@mete/contracts";
 import type { AgentCard } from "@mete/ui-studio";
 import type { MeteDaemonService } from "../domain/status-service.js";
-import { type ChainContext, fetchChain } from "./composer.js";
+import {
+	type ChainContext,
+	fetchChain,
+	type PickerFacts,
+	pickerFacts,
+} from "./composer.js";
 import {
 	chainsOfRoles,
 	needsFor,
@@ -32,6 +37,8 @@ type Box = {
 	preferred: Readonly<Record<string, string>>;
 	cache: Map<string, readonly string[]>;
 	asked: Set<string>;
+	/** The candidates' facts and the providers' states (ADR-161). */
+	picker?: PickerFacts | undefined;
 };
 
 const fresh = (shown?: Run): Box => ({
@@ -50,10 +57,20 @@ const ctxOf = (deps: Deps, b: Box, run: Run): ChainContext => ({
 	cache: b.cache,
 });
 
+// The candidates' facts and the providers' states, asked again each time new candidates came (ADR-161).
+const askFacts = async (deps: Deps, b: Box, run: Run) => {
+	const listed = Object.values(b.candidates).flat();
+	const picker = await pickerFacts(deps.daemon, run.dir, listed);
+	if (b.shown !== run) return;
+	b.picker = picker;
+	deps.onChange();
+};
+
 // Each member's chain, asked for the needs its role names, or the single agent's tool calling.
 const askChains = async (deps: Deps, b: Box, agents: readonly AgentCard[]) => {
 	const run = b.shown;
 	if (!run) return;
+	const before = Object.keys(b.candidates).length;
 	for (const a of agents) {
 		if (b.candidates[a.roleId] || b.asked.has(a.roleId)) continue;
 		b.asked.add(a.roleId);
@@ -66,6 +83,7 @@ const askChains = async (deps: Deps, b: Box, agents: readonly AgentCard[]) => {
 		b.candidates = { ...b.candidates, [a.roleId]: models };
 		deps.onChange();
 	}
+	if (Object.keys(b.candidates).length > before) await askFacts(deps, b, run);
 };
 
 // Every role of the team file at once, so a member shows its choice before its first agent starts.
@@ -78,6 +96,7 @@ const loadTemplate = async (deps: Deps, b: Box, yaml: string) => {
 	for (const id of Object.keys(models)) b.asked.add(id);
 	b.candidates = { ...b.candidates, ...models };
 	deps.onChange();
+	await askFacts(deps, b, run);
 };
 
 // A single agent's run takes one model; a team's takes it for the role.
@@ -109,6 +128,9 @@ export const createModelSession = (deps: Deps) => {
 		},
 		get preferred(): Readonly<Record<string, string>> {
 			return b.preferred;
+		},
+		get picker(): PickerFacts | undefined {
+			return b.picker;
 		},
 		/** Shows a run: what the last one asked is forgotten. */
 		show: (dir: string, runId: string) => {

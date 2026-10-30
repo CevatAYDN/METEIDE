@@ -56,6 +56,7 @@ import "../../style/mete-avatar.css";
 import "../../style/mete-feed.css";
 import "../../style/mete-hero.css";
 import "../../style/mete-now.css";
+import "../../style/mete-picker.css";
 import "../../style/mete-roster.css";
 import "../../style/mete-run.css";
 import "../../style/mete-side.css";
@@ -346,6 +347,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 			onModel: (roleId, model) => void this.models.setModel(roleId, model),
 			candidateModels: this.models.candidates,
 			preferredModels: this.models.preferred,
+			modelFacts: this.models.picker,
 			transcript: this.transcripts.state,
 			waiting: {
 				onApprove: () => void this.decide(APPROVE_RUN_COMMAND.id),

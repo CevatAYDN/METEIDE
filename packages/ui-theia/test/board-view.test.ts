@@ -490,7 +490,7 @@ describe("the Board view", () => {
 		const out = teamMarkup({ run: runEntry("running") });
 		expect(out).toContain("Preferred model (optional)");
 		expect(out).toContain('value="groq/llama-3.3-70b"');
-		expect(out).toContain('<option value="groq/llama-3.3-70b"');
+		expect(out).toContain('<span class="mete-picker-id">llama-3.3-70b</span>');
 		expect(out).toContain("Revert to default");
 	});
 
