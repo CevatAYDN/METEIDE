@@ -1,6 +1,7 @@
 import { tmpdir } from "node:os";
 import {
 	err,
+	type McpStatusAdapter,
 	type McpToolsAdapter,
 	ok,
 	type SecretStore,
@@ -210,7 +211,10 @@ const start = async (
 		const block = out.value.content[0];
 		return block?.type === "text" ? block.text : "";
 	};
-	return { module, echo };
+	const st = registry.resolve<McpStatusAdapter>("mcp.status@1");
+	const status = () =>
+		(st.ok ? st.value[0].impl : undefined)?.test("remote", signal);
+	return { module, echo, status };
 };
 
 describe("mcp-client OAuth", () => {
@@ -369,5 +373,25 @@ describe("mcp-client OAuth", () => {
 		const s = await start(server, memorySecrets());
 		expect(await s.echo()).toMatch(/sign in.*mete run.*terminal/);
 		await s.module.deactivate();
+	});
+
+	it("tells the Settings card's Test to sign in once in a terminal, and the tools once signed in (ADR-164)", async () => {
+		const server = await remoteServer();
+		const secrets = memorySecrets();
+		const bare = await start(server, secrets);
+		const before = await bare.status();
+		expect(!before?.ok && before?.error.message).toMatch(
+			/sign in.*mete run.*terminal/,
+		);
+		await bare.module.deactivate();
+		const signedIn = await start(server, secrets, {
+			authorize: async (_id, url) => landing(url),
+		});
+		expect(await signedIn.echo()).toBe("hi");
+		const again = await start(server, secrets);
+		const after = await again.status();
+		expect(after?.ok && after.value.tools).toEqual(["echo"]);
+		await signedIn.module.deactivate();
+		await again.module.deactivate();
 	});
 });

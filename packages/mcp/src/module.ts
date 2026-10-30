@@ -19,6 +19,7 @@ import type {
 } from "@mete/kernel";
 import { type Calls, createCalls } from "./application/calls.js";
 import type { ShellExec } from "./application/cli-mapped.js";
+import { mcpStatus } from "./application/mcp-status.js";
 import { mcpTools } from "./application/mcp-tools.js";
 import { provideMappings } from "./application/provide-mappings.js";
 import { createRuntimeEnsure } from "./application/runtime-ensure.js";
@@ -81,7 +82,7 @@ const MANIFEST: ModuleManifest = {
 	displayName: "MCP client",
 	class: "optional",
 	trust: "core",
-	provides: ["mcp.tools@1", "runtime.ensure@1"],
+	provides: ["mcp.tools@1", "mcp.status@1", "runtime.ensure@1"],
 	requires: ["policy.check@1"],
 	optional: ["registry.search@1", "llm.chat@2", "shell.exec@1"],
 	activation: ["onStartup"],
@@ -161,6 +162,17 @@ const provideAll = async (
 	await provideMappings(ctx, deps, dirs);
 };
 
+// mcp.status@1 for the Settings card's Test (ADR-164).
+const provideStatus = (ctx: ModuleContext, sessions: Sessions) =>
+	ctx.disposables.add(
+		ctx.capabilities.provide("mcp.status@1", {
+			id: MANIFEST.id,
+			trust: "core",
+			features: [],
+			impl: mcpStatus(sessions),
+		}),
+	);
+
 // runtime.ensure@1 for this module's stdio servers and for other modules (docs/10, Managed runtimes).
 const runtimeEnsure = (ctx: ModuleContext, opts: McpClientOptions) => {
 	if (!opts.globalDir) return undefined;
@@ -230,7 +242,7 @@ const publishProgress =
 			payload: step,
 		});
 
-/** The mcp-client module: mcp.tools@1 over the servers of mcp.yaml (docs/10, MCP client). */
+/** The mcp-client module: mcp.tools@1 and mcp.status@1 over the servers of mcp.yaml (docs/10, MCP client). */
 export const createMcpClientModule = (opts: McpClientOptions): MeteModule => {
 	let sessions: Sessions | undefined;
 	return {
@@ -251,6 +263,7 @@ export const createMcpClientModule = (opts: McpClientOptions): MeteModule => {
 			);
 			sessions = openSessions(ctx, opts, servers);
 			await provideAll(ctx, opts, servers, sessions);
+			provideStatus(ctx, sessions);
 			return ok(undefined);
 		},
 		async deactivate() {
