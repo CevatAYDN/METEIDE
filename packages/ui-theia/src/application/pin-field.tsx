@@ -1,10 +1,12 @@
 import { nls } from "@theia/core/lib/common/nls";
 import { useId, useState } from "react";
+import type { PickerFacts } from "./composer.js";
+import { ModelPicker } from "./model-picker.js";
 
 // A member's pinned model (ADR-077): this folder's setting in .mete/pins.yaml, not the team file's,
-// saved when the field is left or Enter is pressed, apart from the team's Save. It offers the models
-// of the member's tier and needs and takes any `<providerId>/<modelId>` typed, since no list is
-// complete while a provider has no key yet.
+// saved on a pick in the model picker (ADR-161), or when typed text is left or Enter is pressed,
+// apart from the team's Save. It offers the models of the member's tier and needs and takes any
+// `<providerId>/<modelId>` typed, since no list is complete while a provider has no key yet.
 // shortcut: a member added in this session gets its pin after the team is saved, since a pin is keyed
 // by the id the saved team gives the member; a pin that follows a rename comes with a pins rename.
 
@@ -14,39 +16,35 @@ type Props = {
 	readonly value?: string | undefined;
 	/** `<providerId>/<modelId>` of the models the member's tier would try, best first. */
 	readonly models: readonly string[];
+	readonly picker?: PickerFacts | undefined;
 	readonly onPin: (value: string | undefined) => void;
 };
 
-const PinInput = ({ value, models, onPin }: Omit<Props, "fixed">) => {
+const PinInput = ({ value, models, picker, onPin }: Omit<Props, "fixed">) => {
 	const [draft, setDraft] = useState(value ?? "");
-	const list = useId();
 	const id = useId();
-	const commit = () => {
-		const next = draft.trim() || undefined;
+	const label = nls.localize("mete/team/pin", "Pinned model (optional)");
+	const commit = (text: string) => {
+		const next = text.trim() || undefined;
 		if (next !== value) onPin(next);
 	};
 	return (
 		<div className="mete-pin">
-			<label htmlFor={id}>
-				{nls.localize("mete/team/pin", "Pinned model (optional)")}
-			</label>
-			<input
+			<label htmlFor={id}>{label}</label>
+			<ModelPicker
 				id={id}
-				className="mete-field mono"
-				list={list}
+				label={label}
 				value={draft}
-				placeholder="providerId/modelId"
-				onChange={(e) => setDraft(e.target.value)}
-				onKeyDown={(e) => {
-					if (e.key === "Enter") commit();
+				models={models}
+				facts={picker?.facts ?? []}
+				states={picker?.states ?? []}
+				onChange={setDraft}
+				onPick={(ref) => {
+					setDraft(ref ?? "");
+					commit(ref ?? "");
 				}}
-				onBlur={commit}
+				onCommit={() => commit(draft)}
 			/>
-			<datalist id={list}>
-				{models.map((m) => (
-					<option key={m} value={m} />
-				))}
-			</datalist>
 			<p>
 				{models.length === 0
 					? nls.localize(
@@ -70,6 +68,7 @@ export const PinField = (props: Props) =>
 			key={props.value ?? ""}
 			value={props.value}
 			models={props.models}
+			picker={props.picker}
 			onPin={props.onPin}
 		/>
 	) : (

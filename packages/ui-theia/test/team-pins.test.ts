@@ -34,6 +34,11 @@ const fake = (
 			asked.push([tier, ...needs].join("|"));
 			return chain;
 		},
+		models: async (_dir: string, refs: readonly unknown[]) => {
+			asked.push(`models:${refs.length}`);
+			return ok({ models: [] });
+		},
+		quota: async () => ok({ providers: [{ id: "groq", state: "ready" }] }),
 	} as unknown as MeteDaemonService;
 	return { pins: new TeamPins({ files, messages, daemon }), disk, said, asked };
 };
@@ -79,10 +84,12 @@ describe("TeamPins", () => {
 		if (!doc.ok) throw new Error(doc.error);
 		const team = teamOf(doc.value);
 		expect(await pins.fetchChains(ROOT, team)).toBe(true);
-		expect(asked).toEqual(["coder|tool_calling"]);
+		// The picker's facts and states follow the chains, once (ADR-161).
+		expect(asked).toEqual(["coder|tool_calling", "models:1"]);
 		expect([...pins.chains]).toEqual([["coder|tool_calling", ["groq/m"]]]);
+		expect(pins.picker?.states).toEqual([{ id: "groq", state: "ready" }]);
 		expect(await pins.fetchChains(ROOT, team)).toBe(false);
-		expect(asked).toHaveLength(1);
+		expect(asked).toHaveLength(2);
 	});
 
 	it("offers no models for a tier whose ask failed, and does not ask again", async () => {

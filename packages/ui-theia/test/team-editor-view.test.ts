@@ -263,11 +263,18 @@ describe("a member's pinned model (ADR-077)", () => {
 		const more = {
 			pins: { qa: "groq/fast-one" },
 			chains: { "coder|tool_calling": ["groq/fast-one", "nvidia/big"] },
+			picker: {
+				facts: [],
+				states: [{ id: "nvidia", state: "inactive" as const }],
+			},
 		};
 		const qa = html(ready(doc, { ...more, selected: IDS.indexOf("qa") }));
 		expect(qa).toContain("Pinned model (optional)");
+		// The model picker of ADR-161, its pinned row chosen and a provider's state named.
+		expect(qa).toContain('role="combobox"');
 		expect(qa).toContain('value="groq/fast-one"');
-		expect(qa).toContain('<option value="nvidia/big">');
+		expect(qa).toContain('<span class="mete-picker-id">big</span>');
+		expect(qa).toContain("nvidia: not active; the log says why");
 		expect(qa).toContain("not the team file");
 		expect(qa).not.toContain("Save the team to pin this member");
 		const added = html(ready(doc, { ...more, selected: IDS.length }));

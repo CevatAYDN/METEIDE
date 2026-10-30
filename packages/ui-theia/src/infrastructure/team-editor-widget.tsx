@@ -20,6 +20,7 @@ import "../../style/mete-team.css";
 import "../../style/mete-team-members.css";
 import "../../style/mete-team-form.css";
 import "../../style/mete-team-tasks.css";
+import "../../style/mete-picker.css";
 import { draftIdea, withDraft } from "../application/member-draft.js";
 import { panelRoot } from "../application/panel-root.js";
 import { failureText } from "../application/status-text.js";
@@ -145,6 +146,7 @@ export class MeteTeamEditorWidget
 				this.setModel({
 					...this.model,
 					chains: Object.fromEntries(this.pinned.chains),
+					picker: this.pinned.picker,
 				});
 	}
 
@@ -210,6 +212,7 @@ export class MeteTeamEditorWidget
 			selected: Math.min(this.selected, team.roles.length - 1),
 			pins: this.pinned.of(team.metadata.id),
 			chains: Object.fromEntries(this.pinned.chains),
+			picker: this.pinned.picker,
 			draft: {
 				busy: this.drafting,
 				filled: this.draftFilled,

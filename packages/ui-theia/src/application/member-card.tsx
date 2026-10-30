@@ -1,6 +1,7 @@
 import { NeedSchema } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import { useState } from "react";
+import type { PickerFacts } from "./composer.js";
 import { Chips, type OnEdit, orEmpty, orNone, Text, Ticks } from "./fields.js";
 import { SpawnDefaults, TaskRow } from "./member-tasks.js";
 import { PinField } from "./pin-field.js";
@@ -20,8 +21,12 @@ type MemberProps = {
 	readonly fixed: boolean;
 	readonly hints: readonly string[];
 	readonly onRename: (id: string) => void;
-	/** The member's pinned model in this folder, and the models its tier offers (ADR-077). */
-	readonly pin: { readonly value?: string; readonly models: readonly string[] };
+	/** The member's pinned model in this folder, the models its tier offers (ADR-077) and their facts (ADR-161). */
+	readonly pin: {
+		readonly value?: string;
+		readonly models: readonly string[];
+		readonly picker?: PickerFacts | undefined;
+	};
 	readonly onPin: (value: string | undefined) => void;
 	/** Artifact types with a schema, offered as guardrails. */
 	readonly outputs: readonly string[];

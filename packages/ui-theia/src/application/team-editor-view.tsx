@@ -69,6 +69,7 @@ const Members = ({
 						pin={{
 							...(model.pins[r.id] ? { value: model.pins[r.id] } : {}),
 							models: model.chains[chainKey(r.tier, r.needs)] ?? [],
+							picker: model.picker,
 						}}
 						onPin={(v) => actions.onPin(r.id, v)}
 						onAddTask={() => actions.onAddTask(r.id)}

@@ -1,3 +1,4 @@
+import type { PickerFacts } from "./composer.js";
 import type { OnEdit } from "./fields.js";
 import type { TeamView } from "./team-draft.js";
 
@@ -24,6 +25,8 @@ export type TeamEditorModel =
 			readonly pins: Readonly<Record<string, string>>;
 			/** `<providerId>/<modelId>` of each tier's chain, by chainKey. */
 			readonly chains: Readonly<Record<string, readonly string[]>>;
+			/** The listed models' facts and the providers' states, for the pin's picker (ADR-161). */
+			readonly picker?: PickerFacts | undefined;
 			/** The selected member's model draft: busy while it runs, what it filled, a note when it failed (ADR-108). */
 			readonly draft: {
 				readonly busy: boolean;

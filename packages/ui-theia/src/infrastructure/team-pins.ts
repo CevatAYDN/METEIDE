@@ -3,6 +3,7 @@ import type { MessageService } from "@theia/core";
 import { nls } from "@theia/core/lib/common/nls";
 import type URI from "@theia/core/lib/common/uri";
 import type { FileService } from "@theia/filesystem/lib/browser/file-service";
+import { type PickerFacts, pickerFacts } from "../application/composer.js";
 import {
 	chainKey,
 	isEmpty,
@@ -32,6 +33,8 @@ export class TeamPins {
 	protected error: string | undefined;
 	/** Each tier's chain for the pin's suggestions, fetched once per tier and needs. */
 	readonly chains = new Map<string, readonly string[]>();
+	/** The chains' facts and the providers' states, asked again each time a new chain came (ADR-161). */
+	picker: PickerFacts | undefined;
 
 	constructor(protected readonly deps: Deps) {}
 
@@ -83,6 +86,12 @@ export class TeamPins {
 			);
 			fetched = true;
 		}
+		if (fetched)
+			this.picker = await pickerFacts(
+				this.deps.daemon,
+				root.path.fsPath(),
+				[...this.chains.values()].flat(),
+			);
 		return fetched;
 	}
 
