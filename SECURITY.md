@@ -36,7 +36,7 @@ never_allow:
   - { action: shell.exec, command: "*.Kill*" }
 shell:
   allow: ["pnpm *", "npm test", "npm run *", "git status", "git diff *"]
-  always: []                                  # exact commands the user allowed for good (ADR-121)
+  always: []                                  # commands or patterns the user allowed for good (ADR-121, ADR-158)
 budget: { cloud_requests_per_run: 150, max_hours: 6 }
 approval_timeout_hours: 24
 ```
@@ -59,7 +59,7 @@ Action ids used by the policy: `fs.write`, `fs.delete` (a `fs.write@1` call with
 5. Level 0: deny, because suggest mode writes nothing.
 6. Level 3: allow, except `fs.write` or `fs.delete` outside the workspace and the global `worktrees/` and `snapshots/` folders, which is denied because level 3 never asks.
 7. The action is in `always_ask`: ask.
-8. A `shell.exec` whose command, trimmed and with collapsed spaces, is in `shell.always`, on a step that is not tainted: allow (ADR-121). It is matched exactly, never as a pattern.
+8. A `shell.exec` whose command, trimmed and with collapsed spaces, matches an entry of `shell.always`, on a step that is not tainted: allow (ADR-121). An entry without `*` is matched exactly; an entry with `*` is a pattern, as in `shell.allow`, and never matches a command with a shell operator (ADR-158).
 9. Level 1: ask.
 10. Level 2: allow `fs.write` inside the workspace or the global `worktrees/` and `snapshots/` folders, except a write to a script manifest (`package.json`, `.npmrc`, `pnpm-workspace.yaml`, `.pnpmfile.cjs`, `lefthook.yml`, `.husky/`, `.git/hooks/` or `.git/config`, anywhere under the workspace folder), which asks, because it changes which program an allow-listed command runs; allow `shell.exec` matching `shell.allow`, `git.commit`, `net.fetch` (its result is tainted external content) and `runtime.install` (runtimes download by themselves, tab 18); ask for everything else, including `fs.write.outside`.
 11. An ask (steps 7, 9 and 10) that a grant of the run matches: allow. Grants never change a deny.

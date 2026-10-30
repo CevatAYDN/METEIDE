@@ -72,7 +72,7 @@ Each answer is binding and names the tab that holds the full rule. A question no
 | Question | Answer | Tab |
 | --- | --- | --- |
 | What is the default autonomy? | Level 2: reads, workspace writes and allow-listed commands run; risky actions ask | 12 |
-| How do I answer a command approval? | Allow once, Allow for this run, or Always allow (which adds the exact command to shell.always in .mete/policy.yaml, ADR-121) | 12 |
+| How do I answer a command approval? | Allow once, Allow for this run, or Always allow (which adds the command to shell.always in .mete/policy.yaml, ADR-121, or its first two words and `*` when that cannot run any program, named on the button, ADR-158) | 12 |
 | How do I undo agent changes? | Restore a checkpoint with one click | 12 |
 | How do I stop everything? | "Stop all" or `Ctrl+Shift+.` | 12 |
 | Can agents change their own permissions? | No. The policy, bindings, MCP and every other `.mete/*.yaml` settings file, the team templates and `.meteignore` are protected paths (ADR-072) | 12 |
