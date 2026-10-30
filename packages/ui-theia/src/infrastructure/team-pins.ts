@@ -34,6 +34,8 @@ export class TeamPins {
 	/** Each tier's chain for the pin's suggestions, fetched once per tier and needs. */
 	readonly chains = new Map<string, readonly string[]>();
 	/** The chains' facts and the providers' states, asked again each time a new chain came (ADR-161). */
+	// shortcut: a key set or a quota reset while the editor stays open shows only once a new chain is
+	// asked; ask again on each open of a pin's list if users read a stale state there.
 	picker: PickerFacts | undefined;
 
 	constructor(protected readonly deps: Deps) {}
