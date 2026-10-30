@@ -269,3 +269,13 @@
 		transition: none;
 	}
 }
+
+/* Under the status of a run someone must go on with: what its side-bar row shows (docs/13). */
+.mete-hero-paused {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8px;
+	max-width: 640px;
+	margin: 10px 0 4px;
+}

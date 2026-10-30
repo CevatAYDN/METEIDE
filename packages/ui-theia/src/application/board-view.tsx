@@ -287,6 +287,7 @@ const Board = ({
 			facts={controls.run}
 			view={model.view}
 			names={controls.names}
+			onResume={controls.waiting.onResume}
 		/>
 		{model.unreadable > 0 ? (
 			<p style={MUTED}>

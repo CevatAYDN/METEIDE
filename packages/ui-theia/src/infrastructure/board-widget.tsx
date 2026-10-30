@@ -43,6 +43,7 @@ import { failureText, plain } from "../application/status-text.js";
 import { roleNames, teamName } from "../application/team-draft.js";
 import { createTranscriptSession } from "../application/transcript-session.js";
 import { isPage } from "../application/worktree-files.js";
+import { waitsForQuota } from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { FlowView } from "./flow-view.js";
 import { MetePanelWidget } from "./panel-widget.js";
@@ -178,7 +179,13 @@ export class MeteBoardWidget extends MetePanelWidget {
 		if (!r.ok || this.shownRun.runId !== runId) return;
 		const run = r.value.find((x) => x.id === runId);
 		if (!run) return;
-		this.run = { ...this.run, run };
+		// The hero lists the providers that cannot carry a quota pause on, as the side-bar row does.
+		const q = waitsForQuota(run) ? await this.daemon.quota(dir) : undefined;
+		if (this.shownRun.runId !== runId) return;
+		const blocked = q?.ok
+			? q.value.providers.filter((p) => p.state !== "ready")
+			: [];
+		this.run = { ...this.run, run, blocked };
 		this.models.onRun(run, this.session.view.agents[0]?.roleId ?? "assistant");
 		this.update();
 	}

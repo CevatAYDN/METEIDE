@@ -1,3 +1,4 @@
+import type { ProviderState } from "@mete/contracts";
 import type { TeamView } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
 import { roleWords } from "../domain/roster.js";
@@ -17,6 +18,8 @@ export type RunFacts = {
 	readonly run?: RunEntry;
 	/** The team's name from its team file, when that was read. */
 	readonly teamName?: string;
+	/** Why each provider cannot carry the run on now, asked while it is paused for quota (ADR-050). */
+	readonly blocked?: readonly ProviderState[];
 };
 
 /** A run as `mete/status` answers it. */

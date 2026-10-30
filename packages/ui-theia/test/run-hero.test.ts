@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
 	heroOf,
 	type RunEntry,
+	type RunFacts,
 	tookText,
 } from "../src/application/run-hero.js";
 import { RunHero } from "../src/application/run-hero-view.js";
@@ -195,6 +196,7 @@ describe("RunHero", () => {
 				facts: { run: RUN },
 				view: TEAM,
 				names: { developer: "Frontend developer" },
+				onResume: () => {},
 			}),
 		);
 		expect(out.indexOf('role="status"')).toBeLessThan(out.indexOf("<h2"));
@@ -208,6 +210,7 @@ describe("RunHero", () => {
 				facts: {},
 				view: VIEW,
 				names: {},
+				onResume: () => {},
 			}),
 		);
 		expect(single).not.toContain("Team at a glance");
@@ -222,6 +225,7 @@ describe("RunHero", () => {
 					facts: { run },
 					view,
 					names: {},
+					onResume: () => {},
 				}),
 			);
 		const done = hero({ ...RUN, templateId: null, status: "completed" }, VIEW);
@@ -232,5 +236,63 @@ describe("RunHero", () => {
 		const team = hero(RUN, TEAM);
 		expect(team).toMatch(/data-status="running"[^>]*>Running</);
 		expect(team).toMatch(/<dl class="mete-tiles">[\s\S]*<\/dl><\/div><section/);
+	});
+});
+
+describe("RunHero under a pause someone must go on with (docs/13, Team panel; ADR-126)", () => {
+	const paused = (
+		pauseReason: NonNullable<RunEntry["pauseReason"]>,
+		blocked: RunFacts["blocked"] = [],
+	) =>
+		renderToStaticMarkup(
+			createElement(RunHero, {
+				goal: "Build a page",
+				facts: { run: { ...RUN, status: "paused", pauseReason }, blocked },
+				view: TEAM,
+				names: {},
+				onResume: () => {},
+			}),
+		);
+
+	it("shows the side-bar row's Resume under a user's pause", () => {
+		const out = paused("user");
+		expect(out.match(/>Resume<\/button>/g)).toHaveLength(1);
+		expect(out).not.toContain("It used its budget");
+		expect(out.indexOf('role="status"')).toBeLessThan(out.indexOf(">Resume<"));
+	});
+
+	it("names the budget before Resume under a budget pause", () => {
+		const out = paused("budget");
+		expect(out).toContain("It used its budget: 25 model turns at a time");
+		expect(out.indexOf("It used its budget")).toBeLessThan(
+			out.indexOf(">Resume</button>"),
+		);
+	});
+
+	it("lists why each provider cannot carry a quota pause on, then Resume now", () => {
+		const out = paused("quota", [
+			{ id: "groq", state: "no_key" },
+			{ id: "custom:x", state: "unusable" },
+		]);
+		expect(out).toContain("groq: no key");
+		expect(out).toContain("custom:x: none of its models can be used here");
+		expect(out).toContain(">Resume now</button>");
+	});
+
+	it("offers nothing to a running run, an approval pause or a network pause", () => {
+		for (const out of [
+			renderToStaticMarkup(
+				createElement(RunHero, {
+					goal: "Build a page",
+					facts: { run: RUN },
+					view: TEAM,
+					names: {},
+					onResume: () => {},
+				}),
+			),
+			paused("approval"),
+			paused("network"),
+		])
+			expect(out).not.toContain(">Resume");
 	});
 });

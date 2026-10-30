@@ -75,12 +75,29 @@ const Blocked = ({
 	</ul>
 );
 
-// A paused run someone must go on with: a quota pause before its reset (ADR-059), a user's pause
-// (ADR-061), or a budget pause, which names its budget first (ADR-126).
-const Resume = ({ row, act }: { readonly row: HomeRow; readonly act: Act }) =>
-	row.userPaused || row.quotaPaused || row.budgetPaused ? (
+/** Why a paused run waits for someone to go on with it. */
+export type PausedFor = "quota" | "user" | "budget";
+
+/**
+ * Under a run someone must go on with: a quota pause before its reset with why each provider cannot
+ * carry it on (ADR-059, ADR-050), a user's pause (ADR-061), or a budget pause, which names its budget
+ * first (ADR-126). The side-bar row and the Team panel's hero band show the same (docs/13).
+ */
+export const PausedRun = ({
+	reason,
+	blocked,
+	onResume,
+}: {
+	readonly reason: PausedFor | undefined;
+	readonly blocked: readonly ProviderState[];
+	readonly onResume: () => void;
+}) =>
+	reason ? (
 		<>
-			{row.budgetPaused ? (
+			{reason === "quota" && blocked.length > 0 ? (
+				<Blocked providers={blocked} />
+			) : null}
+			{reason === "budget" ? (
 				<p className="mete-side-box">
 					{nls.localize(
 						"mete/home/budgetPaused",
@@ -91,17 +108,23 @@ const Resume = ({ row, act }: { readonly row: HomeRow; readonly act: Act }) =>
 			<div className="mete-side-actions">
 				<Button
 					label={
-						row.quotaPaused
+						reason === "quota"
 							? nls.localize("mete/home/resumeNow", "Resume now")
 							: nls.localize("mete/home/resume", "Resume")
 					}
-					onClick={() => act("resume", row.id)}
+					onClick={onResume}
 					icon="play"
 					quiet
 				/>
 			</div>
 		</>
 	) : null;
+
+const pausedFor = (row: HomeRow): PausedFor | undefined => {
+	if (row.quotaPaused) return "quota";
+	if (row.userPaused) return "user";
+	return row.budgetPaused ? "budget" : undefined;
+};
 
 // A run's goal opens it in the Team panel (ADR-051); a button styled as a link keeps the keyboard.
 const OpenGoal = ({
@@ -191,10 +214,11 @@ const RunItem = ({
 				</span>
 				{hasEnded(row) ? <Remove row={row} act={act} /> : null}
 			</span>
-			{row.quotaPaused && blocked.length > 0 ? (
-				<Blocked providers={blocked} />
-			) : null}
-			<Resume row={row} act={act} />
+			<PausedRun
+				reason={pausedFor(row)}
+				blocked={blocked}
+				onResume={() => act("resume", row.id)}
+			/>
 		</span>
 	</li>
 );

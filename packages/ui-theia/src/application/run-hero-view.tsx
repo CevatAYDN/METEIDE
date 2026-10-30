@@ -1,15 +1,23 @@
 import type { TeamView } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
+import type { ReactNode } from "react";
+import {
+	waitsForBudget,
+	waitsForQuota,
+	waitsForUser,
+} from "../domain/home-model.js";
 import { type Member, roleWords, rosterOf } from "../domain/roster.js";
 import { Avatar } from "./avatar.js";
 import { stateLook } from "./member-look.js";
 import { Icon } from "./roster-look.js";
-import { type Hero, heroOf, type RunFacts } from "./run-hero.js";
+import { type Hero, heroOf, type RunEntry, type RunFacts } from "./run-hero.js";
+import { type PausedFor, PausedRun } from "./runs-list.js";
 import { toneStyle } from "./tone.js";
 
 // The Team panel's hero band (ADR-094, ADR-127): the run's status as a wash pill over its goal, the
 // meta line, the number tiles, and in a team run the ring of its approved tasks beside one initial
-// tile per member. The look lives in style/mete-hero.css; a tone is passed as `--tone`.
+// tile per member. A run paused for quota, by the user or for its budget shows under its status what
+// its side-bar row shows (docs/13). The look lives in style/mete-hero.css; a tone is passed as `--tone`.
 
 // The ring's circumference for its radius of 31 in a 76 wide box.
 const ROUND = 2 * Math.PI * 31;
@@ -131,15 +139,25 @@ const Tiles = ({ tiles }: { readonly tiles: Hero["tiles"] }) => (
 	</dl>
 );
 
+const pausedFor = (run: RunEntry | undefined): PausedFor | undefined => {
+	if (!run) return undefined;
+	if (waitsForQuota(run)) return "quota";
+	if (waitsForUser(run)) return "user";
+	return waitsForBudget(run) ? "budget" : undefined;
+};
+
 const Main = ({
 	goal,
 	hero,
+	paused,
 }: {
 	readonly goal: string;
 	readonly hero: Hero;
+	readonly paused: ReactNode;
 }) => (
 	<div className="mete-hero-main">
 		{hero.status ? <Pill status={hero.status} /> : null}
+		{paused}
 		<h2 className="mete-hero-goal" title={goal}>
 			{goal}
 		</h2>
@@ -162,16 +180,28 @@ export const RunHero = ({
 	facts,
 	view,
 	names,
+	onResume,
 }: {
 	readonly goal: string;
 	readonly facts: RunFacts;
 	readonly view: TeamView;
 	readonly names: Readonly<Record<string, string>>;
+	readonly onResume: () => void;
 }) => {
 	const hero = heroOf(facts, view);
+	const reason = pausedFor(facts.run);
+	const paused = reason ? (
+		<div className="mete-hero-paused">
+			<PausedRun
+				reason={reason}
+				blocked={facts.blocked ?? []}
+				onResume={onResume}
+			/>
+		</div>
+	) : null;
 	return (
 		<header className="mete-hero">
-			<Main goal={goal} hero={hero} />
+			<Main goal={goal} hero={hero} paused={paused} />
 			{hero.progress ? (
 				<Glance progress={hero.progress} view={view} names={names} />
 			) : (
