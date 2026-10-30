@@ -109,7 +109,7 @@ const writeAlways = async (
 		return err({
 			code: "bad_input",
 			message:
-				"Always allow takes a command whose text was not masked; allow it once or for the run",
+				"Always allow takes a command whose text was not masked and holds no *; allow it once or for the run",
 		});
 	const r = await allowCommandForGood(app.workspaceDir, ask.command);
 	return r.ok ? r : err({ code: "bad_input", message: r.error });
