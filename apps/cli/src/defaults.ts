@@ -53,3 +53,6 @@ export const DRAFT_TIMEOUT_MS = 90_000;
 
 /** How many web results a member draft reads (04 Decisions, ADR-108). */
 export const DRAFT_SEARCH_RESULTS = 5;
+
+/** 04 Decisions (ADR-160): the key exchange groups every TLS connection offers, the hybrid post-quantum one first. */
+export const TLS_KEY_EXCHANGE = "X25519MLKEM768:X25519:P-256:P-384";
