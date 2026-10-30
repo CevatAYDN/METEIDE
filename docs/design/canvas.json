@@ -131,6 +131,14 @@
       "title": "Narrow panel (light)",
       "page": "team"
     },
+    "ModelPicker.dc.html": {
+      "x": 6440,
+      "y": 3275,
+      "w": 1320,
+      "h": 600,
+      "title": "Model picker — open list, a typed id, no match (light)",
+      "page": "team"
+    },
     "HomeActive.dc.html": {
       "x": 0,
       "y": 0,
@@ -218,6 +226,7 @@
     "TeamFailed.dc.html",
     "Composer.dc.html",
     "TeamNarrow.dc.html",
+    "ModelPicker.dc.html",
     "HomeActive.dc.html",
     "HomeEmpty.dc.html",
     "Welcome.dc.html",

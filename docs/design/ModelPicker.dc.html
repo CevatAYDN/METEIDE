@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Model picker — open list, a typed id, no match</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mete.light{--bg:#ECEAF4;--panel:#F8F7FC;--line:#DAD6EA;--ink:#24223A;--muted:#6B6785;--accent:#5B4BD6;--good:#2FA38A;--warn:#E3A13A;--bad:#D9544A;--chip:#E4E0F3;--chrome:#DCD8EC;--side:#E6E3F2;--raised:#EFEDF8;--line-soft:#E2DEF0;--muted-2:#524E6E}
+.mete .field{box-sizing:border-box;width:100%;height:36px;margin:0;padding:0 12px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;background:var(--panel);border:1.5px solid var(--line);border-radius:10px;color:var(--ink)}
+.mete .field[aria-expanded="true"]{border-color:var(--accent);outline:3px solid color-mix(in srgb,var(--accent) 16%,transparent)}
+.mete .list{margin:6px 0 0;padding:6px;list-style:none;background:var(--panel);border:1.5px solid var(--line);border-radius:12px;box-shadow:0 10px 24px color-mix(in srgb,var(--ink) 14%,transparent)}
+.mete .opt{display:flex;flex-direction:column;gap:3px;padding:7px 10px;border-radius:8px;cursor:pointer}
+.mete .opt:hover{background:var(--raised)}
+.mete .opt.active{background:color-mix(in srgb,var(--accent) 12%,var(--panel));box-shadow:inset 0 0 0 1.5px var(--accent)}
+.mete .id{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500;overflow-wrap:anywhere}
+.mete .facts{display:flex;flex-wrap:wrap;gap:5px}
+.mete .chip{font-size:11.5px;font-weight:700;line-height:1;padding:4px 7px;border-radius:999px;background:var(--chip);color:var(--muted-2);white-space:nowrap}
+.mete .opt.active .chip{background:var(--panel)}
+.mete .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mete .head{padding:9px 10px 3px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;font-weight:700;color:var(--muted-2)}
+.mete .state{padding:0 10px 4px;font-size:12px;font-weight:600;line-height:1.35;color:var(--muted-2)}
+.mete .note{margin:0;padding:8px 10px;font-size:12.5px;font-weight:500;line-height:1.45;color:var(--muted-2)}
+@media (prefers-reduced-motion:reduce){.mete *{animation:none!important}}
+</style>
+</helmet>
+<div class="mete light" style="width:1320px;height:600px;box-sizing:border-box;padding:20px;background:var(--bg);color:var(--ink);font-family:'Baloo 2',system-ui,sans-serif;font-size:14px;line-height:1.4;display:grid;grid-template-columns:repeat(3,380px);gap:40px;align-items:start">
+
+  <!-- The list open on Down: Let METE choose, then the role's chain under a heading per provider -->
+  <aside style="box-sizing:border-box;background:var(--side);border:1.5px solid var(--line-soft);border-radius:16px;padding:18px">
+    <h2 style="margin:0 0 12px;font-size:15px;font-weight:800;line-height:1.3">Preferred model (optional)</h2>
+    <label for="pick-1" style="display:block;margin-bottom:5px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Frontend developer</label>
+    <input id="pick-1" class="field" role="combobox" aria-expanded="true" aria-controls="list-1" aria-activedescendant="o-1-2" aria-autocomplete="list" value="custom:noxery/glm-5.3-flash">
+    <ul id="list-1" class="list" role="listbox" aria-label="Frontend developer · Preferred model (optional)">
+      <li id="o-1-0" class="opt" role="option" aria-selected="false"><span style="font-size:13.5px;font-weight:700">Let METE choose</span></li>
+      <li role="presentation"><div class="head" aria-hidden="true">custom:noxery</div>
+        <ul role="group" aria-label="custom:noxery" style="margin:0;padding:0;list-style:none">
+          <li id="o-1-1" class="opt" role="option" aria-selected="true"><span class="row"><span class="id">glm-5.3-flash</span><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"></path></svg></span><span class="facts"><span class="chip">free</span><span class="chip">1M</span><span class="chip">tools</span></span></li>
+          <li id="o-1-2" class="opt active" role="option" aria-selected="false"><span class="id">mimo-v2.6-pro</span><span class="facts"><span class="chip">free</span><span class="chip">256k</span><span class="chip">tools</span></span></li>
+          <li id="o-1-3" class="opt" role="option" aria-selected="false"><span class="id">deepseek-v4-pro-202606</span><span class="facts"><span class="chip">free</span><span class="chip">200k</span><span class="chip">tools</span></span></li>
+        </ul>
+      </li>
+      <li role="presentation"><div class="head" aria-hidden="true">nvidia</div>
+        <div class="state">nvidia: its free quota is used up until 30.10.2026 18:00:00</div>
+        <ul role="group" aria-label="nvidia" style="margin:0;padding:0;list-style:none">
+          <li id="o-1-4" class="opt" role="option" aria-selected="false"><span class="id">qwen/qwen3-coder-480b-a35b-instruct</span><span class="facts"><span class="chip">free</span><span class="chip">262k</span><span class="chip">tools</span></span></li>
+        </ul>
+      </li>
+      <li role="presentation"><div class="head" aria-hidden="true">groq</div>
+        <ul role="group" aria-label="groq" style="margin:0;padding:0;list-style:none">
+          <li id="o-1-5" class="opt" role="option" aria-selected="false"><span class="id">openai/gpt-oss-120b</span><span class="facts"><span class="chip">free</span><span class="chip">131k</span><span class="chip">tools</span></span></li>
+        </ul>
+      </li>
+    </ul>
+  </aside>
+
+  <!-- A typed id the list does not hold (ADR-077) -->
+  <aside style="box-sizing:border-box;background:var(--side);border:1.5px solid var(--line-soft);border-radius:16px;padding:18px">
+    <h2 style="margin:0 0 12px;font-size:15px;font-weight:800;line-height:1.3">Preferred model (optional)</h2>
+    <label for="pick-2" style="display:block;margin-bottom:5px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">Lead</label>
+    <input id="pick-2" class="field" role="combobox" aria-expanded="true" aria-controls="list-2" aria-activedescendant="o-2-1" aria-autocomplete="list" value="custom:noxery/kimi-k2.6">
+    <ul id="list-2" class="list" role="listbox" aria-label="Lead · Preferred model (optional)">
+      <li id="o-2-0" class="opt" role="option" aria-selected="false"><span style="font-size:13.5px;font-weight:700">Let METE choose</span></li>
+      <li id="o-2-1" class="opt active" role="option" aria-selected="false"><span style="font-size:13.5px;font-weight:700">Use “<span class="id">custom:noxery/kimi-k2.6</span>”</span><span style="font-size:12px;font-weight:600;color:var(--muted-2)">Not listed for this role: it leads only if it can serve it</span></li>
+    </ul>
+  </aside>
+
+  <!-- Text that matches nothing and is no full id -->
+  <aside style="box-sizing:border-box;background:var(--side);border:1.5px solid var(--line-soft);border-radius:16px;padding:18px">
+    <h2 style="margin:0 0 12px;font-size:15px;font-weight:800;line-height:1.3">Pinned model (optional)</h2>
+    <label for="pick-3" style="display:block;margin-bottom:5px;font-size:13px;font-weight:700;line-height:1.3;color:var(--muted-2)">QA</label>
+    <input id="pick-3" class="field" role="combobox" aria-expanded="true" aria-controls="list-3" aria-autocomplete="list" value="claude">
+    <ul id="list-3" class="list" role="listbox" aria-label="QA · Pinned model (optional)">
+      <li id="o-3-0" class="opt" role="option" aria-selected="false"><span style="font-size:13.5px;font-weight:700">Let METE choose</span></li>
+      <li role="presentation"><p class="note" role="status">No model matches “claude”. Models come from the providers in Settings, Models and keys, where Test… lists an endpoint's models; the Quota chip says why a provider cannot serve.</p></li>
+    </ul>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":600}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
