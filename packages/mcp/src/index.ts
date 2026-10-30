@@ -1,10 +1,10 @@
 // Public API of this package: types, contracts and the module (CONTRIBUTING.md).
 
-export type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 export type {
 	ElicitRequestFormParams,
 	ElicitResult,
 } from "@modelcontextprotocol/sdk/types.js";
+export type { Transport } from "@modelcontextprotocol/server";
 export type { RunHistory } from "./application/mete-tools.js";
 export { officialInstall } from "./application/registry-add.js";
 export type { RegistryDeps } from "./application/registry-search.js";

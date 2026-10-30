@@ -8,8 +8,7 @@ import {
 	type RunView,
 	type TeamEngineAdapter,
 } from "@mete/contracts";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { runProgress } from "../src/domain/run-view.js";
 import { createMcpServerModule } from "../src/server-module.js";

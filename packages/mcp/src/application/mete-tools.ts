@@ -10,8 +10,7 @@ import {
 	type TeamEngineAdapter,
 } from "@mete/contracts";
 import type { Logger } from "@mete/kernel";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult, McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { runProgress } from "../domain/run-view.js";
 
@@ -53,7 +52,7 @@ const answer = <T extends Record<string, unknown>>(
 
 const NO_ENGINE = "team.engine@2 is not active";
 
-const StatusOutput = {
+const StatusOutput = z.object({
 	status: RunStatusSchema,
 	reason: z.string().optional(),
 	tasks: z.array(
@@ -61,7 +60,7 @@ const StatusOutput = {
 	),
 	output: z.string().optional(),
 	artifacts: z.array(z.string()),
-};
+});
 
 const runTeam =
 	(deps: MeteToolDeps) =>
@@ -124,11 +123,11 @@ export const registerMeteTools = (server: McpServer, deps: MeteToolDeps) => {
 		{
 			description:
 				"Start a METE team run on a goal; returns its runId at once. Poll mete_task_status.",
-			inputSchema: {
+			inputSchema: z.object({
 				goal: z.string().trim().min(1),
 				templateId: z.string().min(1).optional(),
-			},
-			outputSchema: { runId: z.string() },
+			}),
+			outputSchema: z.object({ runId: z.string() }),
 		},
 		runTeam(deps),
 	);
@@ -137,7 +136,7 @@ export const registerMeteTools = (server: McpServer, deps: MeteToolDeps) => {
 		{
 			description:
 				"A run's status, its tasks, its output once completed and its artifact paths.",
-			inputSchema: { runId: z.string().min(1) },
+			inputSchema: z.object({ runId: z.string().min(1) }),
 			outputSchema: StatusOutput,
 		},
 		taskStatus(deps),
@@ -147,13 +146,13 @@ export const registerMeteTools = (server: McpServer, deps: MeteToolDeps) => {
 		{
 			description:
 				"Approve or revise the task a paused run waits on; a revision needs feedback.",
-			inputSchema: {
+			inputSchema: z.object({
 				runId: z.string().min(1),
 				taskId: z.string().min(1).optional(),
 				decision: DecisionSchema,
 				feedback: z.string().optional(),
-			},
-			outputSchema: { runId: z.string() },
+			}),
+			outputSchema: z.object({ runId: z.string() }),
 		},
 		approve(deps),
 	);
@@ -162,7 +161,7 @@ export const registerMeteTools = (server: McpServer, deps: MeteToolDeps) => {
 		{
 			description:
 				"Search the workspace knowledge base. Not available until Phase 4.",
-			inputSchema: { query: z.string().min(1) },
+			inputSchema: z.object({ query: z.string().min(1) }),
 		},
 		async () => failed("not_supported: knowledge search comes in Phase 4"),
 	);

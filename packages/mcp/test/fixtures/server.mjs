@@ -1,6 +1,6 @@
 // A small MCP server over stdio for the client tests: echo, fail, pixel, where and an Exa-like search.
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { McpServer } from "@modelcontextprotocol/server";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { z } from "zod";
 
 // A 1x1 PNG.
@@ -10,7 +10,10 @@ const PIXEL =
 const server = new McpServer({ name: "fixture", version: "1.0.0" });
 server.registerTool(
 	"echo",
-	{ description: "Echoes the text", inputSchema: { text: z.string() } },
+	{
+		description: "Echoes the text",
+		inputSchema: z.object({ text: z.string() }),
+	},
 	async ({ text }) => ({ content: [{ type: "text", text }] }),
 );
 server.registerTool("fail", { description: "Always fails" }, async () => ({
@@ -28,10 +31,10 @@ server.registerTool("where", { description: "Cwd and roots" }, async () => {
 });
 // A call that runs until the client cancels it; `cancelled` says how many it saw cancelled.
 let cancelled = 0;
-server.registerTool("slow", { description: "Waits 5 s" }, async (extra) => {
+server.registerTool("slow", { description: "Waits 5 s" }, async (ctx) => {
 	await new Promise((resolve) => {
 		const timer = setTimeout(resolve, 5000);
-		extra.signal.addEventListener("abort", () => {
+		ctx.mcpReq.signal.addEventListener("abort", () => {
 			cancelled += 1;
 			clearTimeout(timer);
 			resolve();
@@ -75,10 +78,10 @@ server.registerTool("ask", { description: "Asks a name" }, async () => {
 	return { content: [{ type: "text", text }] };
 });
 // Reports two progress steps when the client asked for progress.
-server.registerTool("steps", { description: "Two steps" }, async (extra) => {
-	const progressToken = extra._meta?.progressToken;
+server.registerTool("steps", { description: "Two steps" }, async (ctx) => {
+	const progressToken = ctx.mcpReq._meta?.progressToken;
 	for (const progress of [1, 2]) {
-		await extra.sendNotification({
+		await ctx.mcpReq.notify({
 			method: "notifications/progress",
 			params: {
 				progressToken,
@@ -97,12 +100,12 @@ server.registerTool(
 	"web_search_advanced_exa",
 	{
 		description: "JSON results",
-		inputSchema: { query: z.string(), numResults: z.number() },
+		inputSchema: z.object({ query: z.string(), numResults: z.number() }),
 	},
-	async ({ query, numResults }, extra) => {
-		const progressToken = extra._meta?.progressToken;
+	async ({ query, numResults }, ctx) => {
+		const progressToken = ctx.mcpReq._meta?.progressToken;
 		if (progressToken !== undefined) {
-			await extra.sendNotification({
+			await ctx.mcpReq.notify({
 				method: "notifications/progress",
 				params: { progressToken, progress: 1, total: 1 },
 			});
