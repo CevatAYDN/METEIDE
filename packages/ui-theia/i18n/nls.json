@@ -223,6 +223,13 @@
 			"show": "Show",
 			"title": "Memory"
 		},
+		"picker": {
+			"empty": "No model can serve this role now.",
+			"noMatch": "No model matches “{0}”.",
+			"notListed": "Not listed for this role: it leads only if it can serve it",
+			"use": "Use “{0}”",
+			"where": "Models come from the providers in Settings, Models and keys, where Test… lists an endpoint's models; the Quota chip says why a provider cannot serve."
+		},
 		"quota": {
 			"amounts": "{0} amount(s)",
 			"anyProvider": "Every paid model",

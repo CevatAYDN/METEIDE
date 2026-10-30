@@ -223,6 +223,13 @@
 			"show": "Göster",
 			"title": "Bellek"
 		},
+		"picker": {
+			"empty": "Şu an bu role hiçbir model hizmet edemiyor.",
+			"noMatch": "“{0}” ile eşleşen model yok.",
+			"notListed": "Bu rol için listede yok: ancak ona hizmet edebiliyorsa başa geçer",
+			"use": "“{0}” kullan",
+			"where": "Modeller Ayarlar, Modeller ve anahtarlar içindeki sağlayıcılardan gelir; Test et… bir uç noktanın modellerini listeler. Bir sağlayıcının neden hizmet edemediğini Kota çipi söyler."
+		},
 		"quota": {
 			"amounts": "{0} miktar",
 			"anyProvider": "Tüm ücretli modeller",

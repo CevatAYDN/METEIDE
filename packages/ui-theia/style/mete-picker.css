@@ -1,0 +1,140 @@
+/* The model picker of ADR-161, as the design set's ModelPicker board draws it: the list opens below
+   the field over what follows it, eight model rows tall at most, then scrolls. */
+.mete-picker {
+	position: relative;
+}
+
+.mete-picker-field[aria-expanded="true"] {
+	border-color: var(--accent, var(--theia-focusBorder));
+	outline: 3px solid
+		color-mix(in srgb, var(--accent, var(--theia-focusBorder)) 16%, transparent);
+}
+
+.mete-picker-list {
+	position: absolute;
+	z-index: 10;
+	inset-inline: 0;
+	top: 100%;
+	/* Eight model rows of about 54 px. */
+	max-height: 432px;
+	overflow-y: auto;
+	box-sizing: border-box;
+	margin: 6px 0 0;
+	padding: 6px;
+	list-style: none;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid
+		var(--line, var(--theia-contrastBorder, var(--theia-editorWidget-border)));
+	border-radius: 12px;
+	box-shadow: 0 10px 24px
+		color-mix(in srgb, var(--ink, var(--theia-widget-shadow)) 14%, transparent);
+}
+
+.mete-picker-list ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.mete-picker-opt {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	padding: 7px 10px;
+	border-radius: 8px;
+	cursor: pointer;
+}
+
+.mete-picker-opt:hover {
+	background: var(--raised, var(--theia-list-hoverBackground));
+}
+
+.mete-picker-opt.active {
+	background: color-mix(
+		in srgb,
+		var(--accent, var(--theia-focusBorder)) 12%,
+		var(--panel, var(--theia-editorWidget-background))
+	);
+	box-shadow: inset 0 0 0 1.5px var(--accent, var(--theia-focusBorder));
+}
+
+.mete-picker-choose {
+	font-size: 13.5px;
+	font-weight: 700;
+	overflow-wrap: anywhere;
+}
+
+.mete-picker-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.mete-picker-row .codicon {
+	color: var(--accent, var(--theia-focusBorder));
+}
+
+.mete-picker-id,
+.mete-picker-head {
+	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
+	overflow-wrap: anywhere;
+}
+
+.mete-picker-id {
+	font-size: 12.5px;
+	font-weight: 500;
+}
+
+.mete-picker-facts {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+}
+
+.mete-picker-chip {
+	font-size: 11.5px;
+	font-weight: 700;
+	line-height: 1;
+	padding: 4px 7px;
+	border-radius: 999px;
+	background: var(--chip, var(--theia-badge-background));
+	color: var(--muted-2, var(--theia-badge-foreground));
+	white-space: nowrap;
+}
+
+.mete-picker-opt.active .mete-picker-chip {
+	background: var(--panel, var(--theia-editorWidget-background));
+}
+
+.mete-picker-head,
+.mete-picker-state,
+.mete-picker-hint,
+.mete-picker-note {
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-picker-head {
+	padding: 9px 10px 3px;
+	font-size: 11.5px;
+	font-weight: 700;
+}
+
+.mete-picker-state,
+.mete-picker-hint {
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.35;
+}
+
+.mete-picker-state {
+	padding: 0 10px 4px;
+}
+
+.mete-picker-note {
+	margin: 0;
+	padding: 8px 10px;
+	font-size: 12.5px;
+	font-weight: 500;
+	line-height: 1.45;
+}
