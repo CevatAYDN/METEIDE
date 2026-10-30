@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { parse } from "yaml";
 import { allowCommandForGood } from "../../src/infrastructure/policy-file.js";
 
-// Always allow (ADR-121) writes the exact command to shell.always in the folder's policy file.
+// Always allow (ADR-121, ADR-158) writes the command or its pattern to shell.always in the folder's policy file.
 
 let root: string | undefined;
 afterEach(async () => {
@@ -59,8 +59,20 @@ describe("allowCommandForGood", () => {
 		}
 	});
 
-	it("refuses an empty command", async () => {
+	it("refuses an empty command and one holding *, which the list reads as a pattern", async () => {
 		const f = await folder();
 		expect((await allowCommandForGood(f.dir, "  ")).ok).toBe(false);
+		expect((await allowCommandForGood(f.dir, "rm *.tmp")).ok).toBe(false);
+	});
+
+	it("writes the pattern of ADR-158 for a program run with changing arguments", async () => {
+		const f = await folder();
+		await allowCommandForGood(f.dir, "npm test src/a.test.ts");
+		await allowCommandForGood(f.dir, "node -e console.log(1)");
+		const policy = PolicySchema.parse(parse(await readFile(f.file, "utf8")));
+		expect(policy.shell.always).toEqual([
+			"npm test *",
+			"node -e console.log(1)",
+		]);
 	});
 });

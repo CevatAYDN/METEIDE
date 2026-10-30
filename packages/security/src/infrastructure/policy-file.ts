@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { err, ok, type Result } from "@mete/contracts";
+import { alwaysEntry, err, ok, type Result } from "@mete/contracts";
 import { withLockRetry } from "@mete/kernel";
 import { isMap, isSeq, parseDocument } from "yaml";
 import { collapse } from "../domain/patterns.js";
@@ -30,21 +30,26 @@ const replace = async (file: string, text: string) => {
 	}
 };
 
-/** Adds the command, trimmed and with collapsed spaces; the file's path, or why it was not written. */
+/** Adds the command's entry of ADR-158, its pattern or the command collapsed; the file's path, or why it was not written. */
 export const allowCommandForGood = async (
 	workspaceDir: string,
 	command: string,
 ): Promise<Result<string, string>> => {
 	const file = join(workspaceDir, ".mete", "policy.yaml");
-	const exact = collapse(command);
-	if (exact === "") return err("an empty command cannot be allowed");
+	if (collapse(command) === "")
+		return err("an empty command cannot be allowed");
+	if (command.includes("*"))
+		return err(
+			"a command with * cannot be allowed for good; allow it once or for the run",
+		);
+	const entry = alwaysEntry(command);
 	const doc = parseDocument(await load(file));
 	if (doc.errors.length > 0) return err(`${file}: ${doc.errors[0]?.message}`);
 	if (doc.contents !== null && !isMap(doc.contents))
 		return err(`${file} is not a map of settings`);
 	const always = doc.getIn(["shell", "always"]);
-	if (!isSeq(always)) doc.setIn(["shell", "always"], doc.createNode([exact]));
-	else if (!always.toJSON().includes(exact)) always.add(exact);
+	if (!isSeq(always)) doc.setIn(["shell", "always"], doc.createNode([entry]));
+	else if (!always.toJSON().includes(entry)) always.add(entry);
 	else return ok(file);
 	await mkdir(dirname(file), { recursive: true });
 	await replace(file, doc.toString());

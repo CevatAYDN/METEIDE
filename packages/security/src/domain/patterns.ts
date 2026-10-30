@@ -26,13 +26,10 @@ export const commandMatches = (
 	return new RegExp(`^${body}$`, flags).test(collapse(command));
 };
 
-// Commands run in a shell (docs/10), so these characters can chain, redirect or run more.
-const SHELL_OPERATOR = /[&|;\r\n`()<>]/;
-const PART_BREAK = /&&|\|\||[;&|\r\n`()]/;
+// Shared with alwaysEntry, which must not write a pattern for a chained command (ADR-158).
+export { hasShellOperator } from "@mete/contracts";
 
-/** True when the command could do more than one thing; quotes are not parsed, so it fails closed. */
-export const hasShellOperator = (command: string): boolean =>
-	SHELL_OPERATOR.test(command);
+const PART_BREAK = /&&|\|\||[;&|\r\n`()]/;
 
 /** The parts a command chains, substitutes or groups, each trimmed and collapsed. */
 export const commandParts = (command: string): string[] =>

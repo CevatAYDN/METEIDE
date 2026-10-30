@@ -47,8 +47,15 @@ describe("decide: shell.always", () => {
 		});
 	});
 
-	it("is matched exactly, never as a pattern", () => {
-		expect(decide(shell("npm x"), always(["npm *"])).rule).toBe("autonomy:1");
+	it("matches an entry with * as a pattern, only on a command with no shell operator (ADR-158)", () => {
+		const e = always(["npm test *"]);
+		expect(decide(shell("npm test src/a.test.ts"), e).rule).toBe(
+			"shell.always",
+		);
+		expect(decide(shell("npm test a.ts && rm -rf ."), e).rule).toBe(
+			"autonomy:1",
+		);
+		expect(decide(shell("npm install"), e).rule).toBe("autonomy:1");
 	});
 
 	it("asks again on a tainted step", () => {

@@ -6,7 +6,6 @@ import type {
 } from "@mete/contracts";
 import { PROTECTED_PATHS, SCRIPT_MANIFESTS } from "../defaults.js";
 import {
-	collapse,
 	commandMatches,
 	commandParts,
 	hasShellOperator,
@@ -117,11 +116,16 @@ const hardDeny = (s: Subject, env: CheckerEnv): PolicyVerdict | undefined => {
 const isScriptManifest = (path: string, env: CheckerEnv) =>
 	SCRIPT_MANIFESTS.some((p) => pathMatches(p, path, env));
 
-// Step 8: a command the user allowed for good (ADR-121), matched exactly and not on a tainted step.
+// Step 8: a command the user allowed for good (ADR-121), not on a tainted step; an entry with `*`
+// is a pattern (ADR-158) and, as in shell.allow, never covers a command with a shell operator.
 const allowedForGood = (s: Subject, tainted: boolean, env: CheckerEnv) =>
 	s.action === "shell.exec" &&
 	!tainted &&
-	env.policy.shell.always.some((c) => collapse(c) === collapse(s.command));
+	env.policy.shell.always.some(
+		(c) =>
+			commandMatches(c, s.command) &&
+			(!c.includes("*") || !hasShellOperator(s.command)),
+	);
 
 // Step 10: level 2 allowances; anything else asks.
 const levelTwo = (s: Subject, env: CheckerEnv) => {
