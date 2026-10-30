@@ -56,6 +56,15 @@ describe("task machine", () => {
 		expect(back.context.blocked).toBeUndefined();
 	});
 
+	it("approves a task blocked by its revision limit with its last submission, and no other block (ADR-157)", () => {
+		const s = apply(fresh(0), start, submit, revise, { type: "APPROVE" });
+		expect(s.value).toBe("approved");
+		expect(s.context).toMatchObject({ report: "done", agentId: "a1" });
+		expect(s.context.blocked).toBeUndefined();
+		const asked = apply(fresh(), start, { type: "BLOCK", reason: "guardrail" });
+		expect(apply(asked, { type: "APPROVE" }).value).toBe("blocked");
+	});
+
 	it("ignores events the docs/07 table does not allow", () => {
 		expect(apply(fresh(), submit, { type: "APPROVE" }).value).toBe("todo");
 		expect(apply(fresh(), start, { type: "APPROVE" }).value).toBe(

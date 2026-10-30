@@ -271,26 +271,33 @@ export const waitingForHuman = (team: TeamState) =>
 			);
 		});
 
-/**
- * Applies the human's decision to a task that waits for them; undefined when it does not wait.
- * A blocked task goes back to work with the feedback as its instruction, whatever the decision.
- */
-export const decide = (
-	team: TeamState,
-	id: string,
-	{
-		decision,
-		feedback,
-	}: { decision: "approve" | "revise"; feedback?: string | undefined },
-) => {
+/** The human's answer to a task that waits for them. */
+type Decision = {
+	readonly decision: "approve" | "revise";
+	readonly feedback?: string | undefined;
+};
+
+// A blocked task goes back to work with the feedback as its instruction, whatever the decision,
+// except that approve accepts the submission a revision-limit block kept, the human's approval
+// standing for the approvers it still waited for (ADR-157).
+const unblock = (team: TeamState, id: string, entry: TaskEntry, d: Decision) =>
+	d.decision === "approve" && entry.context.blocked === "revision_limit"
+		? applyTask(withEntry(team, id, { ...entry, approvals: ["human"] }), id, {
+				type: "APPROVE",
+			})
+		: applyTask(team, id, {
+				type: "UNBLOCK",
+				instruction: d.feedback ?? GO_ON,
+			});
+
+/** Applies the human's decision to a task that waits for them; undefined when it does not wait. */
+export const decide = (team: TeamState, id: string, d: Decision) => {
+	const { decision, feedback } = d;
 	if (!waitingForHuman(team).includes(id)) return undefined;
 	// A failed merge is tried again by approving; there is nothing to revise.
 	if (unmerged(team, id)) return decision === "approve" ? { team } : undefined;
-	if (statusOf(team, id) === "blocked")
-		return applyTask(team, id, {
-			type: "UNBLOCK",
-			instruction: feedback ?? GO_ON,
-		});
+	const entry = team.tasks[id];
+	if (entry?.status === "blocked") return unblock(team, id, entry, d);
 	return decision === "approve"
 		? approve(team, id, "human")
 		: applyTask(team, id, { type: "REVISE", feedback: feedback ?? "" });

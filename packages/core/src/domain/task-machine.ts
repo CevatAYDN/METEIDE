@@ -49,6 +49,7 @@ export const taskMachine = setup({
 	guards: {
 		withinLimit: ({ context }) =>
 			context.revisions + 1 <= context.revisionLimit,
+		revisionLimited: ({ context }) => context.blocked === "revision_limit",
 	},
 }).createMachine({
 	id: "task",
@@ -124,6 +125,12 @@ export const taskMachine = setup({
 		},
 		blocked: {
 			on: {
+				// The human accepts the submission a revision-limit block kept (ADR-157).
+				APPROVE: {
+					guard: "revisionLimited",
+					target: "approved",
+					actions: assign({ blocked: undefined }),
+				},
 				UNBLOCK: {
 					target: "in_progress",
 					actions: assign(({ event }) => ({

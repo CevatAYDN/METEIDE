@@ -226,6 +226,56 @@ describe("team runs", () => {
 		expect(last?.payload).toEqual({ from: "submitted", to: "blocked" });
 	});
 
+	it("accepts the last submission of a task blocked by its revision limit when the human approves (ADR-157)", async () => {
+		await useLead("policies: { revision_limit: 0 }\n");
+		const h = engineHarness({
+			scripts: [
+				reply("facts"),
+				reply("draft"),
+				reply('{"decision":"revise","feedback":"cite sources"}'),
+			],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "paused");
+		const r = await h.engine.approve(runId, { decision: "approve" });
+		expect(r.ok ? "ok" : r.error.message).toBe("ok");
+		await settled(h, runId, "completed");
+		expect(h.requests).toHaveLength(3);
+		const changes = h.events
+			.filter((e) => e.type === "task.status.changed")
+			.map((e) => e.payload);
+		expect(changes.at(-1)).toEqual({ from: "blocked", to: "approved" });
+		expect(h.events.at(-1)?.payload).toEqual({ summary: "draft" });
+	});
+
+	it("sends a task blocked by its revision limit back to work when the human revises", async () => {
+		await useLead("policies: { revision_limit: 0 }\n");
+		const h = engineHarness({
+			scripts: [
+				reply("facts"),
+				reply("draft"),
+				reply('{"decision":"revise","feedback":"cite sources"}'),
+				reply("draft 2"),
+				reply('{"decision":"approve"}'),
+			],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "paused");
+		const r = await h.engine.approve(runId, {
+			decision: "revise",
+			feedback: "Keep the 2026 sources",
+		});
+		expect(r.ok).toBe(true);
+		await settled(h, runId, "completed");
+		expect(h.requests[3]?.messages.at(-1)).toEqual({
+			role: "user",
+			content: "Feedback on your last submission: Keep the 2026 sources",
+		});
+		expect(h.events.at(-1)?.payload).toEqual({ summary: "draft 2" });
+	});
+
 	it("keeps each submission as the task's artifact and announces created, then updated", async () => {
 		await writeFile(
 			join(templates.builtIn, "duo.yaml"),
