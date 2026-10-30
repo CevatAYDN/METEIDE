@@ -59,6 +59,24 @@ describe("the Memory screen's search", () => {
 		expect(out).not.toContain(">All 1<");
 	});
 
+	it("leaves out a heading that only repeats the title", () => {
+		const out = html({
+			kind: "hits",
+			query: "build",
+			hits: [
+				{
+					path: "lessons/b.md",
+					type: "lesson",
+					title: "Check the build",
+					heading: "Check the build",
+					snippet: "The build failed.",
+					url: "file:///w/.mete/knowledge/lessons/b.md",
+				},
+			],
+		});
+		expect(out).toContain('class="mete-memory-meta">Lesson<');
+	});
+
 	it("says when it searches, finds nothing or fails", () => {
 		expect(html({ kind: "searching", query: "x" })).toContain("Searching…");
 		expect(html({ kind: "hits", query: "ship", hits: [] })).toContain(

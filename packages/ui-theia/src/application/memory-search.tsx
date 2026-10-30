@@ -86,7 +86,9 @@ const Hit = ({
 		<div className="mete-memory-main">
 			<span className="mete-memory-title">{hit.title}</span>
 			<span className="mete-memory-meta">
-				{[typeName(hit.type), hit.heading].filter(Boolean).join(" · ")}
+				{[typeName(hit.type), hit.heading !== hit.title && hit.heading]
+					.filter(Boolean)
+					.join(" · ")}
 			</span>
 			<p className="mete-memory-snippet">{hit.snippet}</p>
 		</div>
