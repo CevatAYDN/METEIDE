@@ -33,6 +33,8 @@ export type TaskCard = {
 	readonly worktree?: string;
 	/** The files the task changed in that worktree, when the request lists them (ADR-141). */
 	readonly files?: readonly string[];
+	/** Blocked by its revision limit, it keeps its last submission, which the human may accept as it is (ADR-157). */
+	readonly keptSubmission?: true;
 	/** The questions the task asked before its work, and the role or "human" they went to, until answered (ADR-142). */
 	readonly question?: { readonly to: string; readonly text: string };
 	/** Why the approved task's merge did not land, and the files in its way, until the run resumes (ADR-156). */
@@ -141,7 +143,7 @@ const tasksAfter = (
 			agentId: e.payload.agentId,
 		}));
 	if (e.type === "task.status.changed")
-		return update(tasks, e.taskId, (t) => statusAfter(t, e.payload.to));
+		return update(tasks, e.taskId, (t) => statusAfter(t, e.payload));
 	if (e.type === "artifact.created" || e.type === "artifact.updated")
 		return update(tasks, e.taskId, (t) => ({
 			...t,
@@ -191,12 +193,23 @@ const mergeAfter = (
 };
 
 // A blocked task waits for the human (docs/07, Task state machine): the run pauses for approval,
-// and only the human's instruction sends the task back to work (docs/08). Going back to work
-// clears the mark; every other status leaves the approval mark alone, since it is the human's.
-const statusAfter = (t: TaskCard, to: TaskStatus): TaskCard => {
-	if (to === "blocked") return { ...t, status: to, waitsForHuman: true };
+// and the human's decision sends the task back to work or, for a revision-limit block, accepts it
+// (docs/08). Only submitted -> blocked is the revision limit; in_progress -> blocked is every other
+// block (docs/07). Leaving the block clears the marks; every other status leaves the approval mark
+// alone, since it is the human's.
+const statusAfter = (
+	t: TaskCard,
+	{ from, to }: { readonly from: TaskStatus; readonly to: TaskStatus },
+): TaskCard => {
+	if (to === "blocked")
+		return {
+			...t,
+			status: to,
+			waitsForHuman: true,
+			...(from === "submitted" ? { keptSubmission: true as const } : {}),
+		};
 	if (t.status !== "blocked") return { ...t, status: to };
-	const { waitsForHuman: _, question: __, ...rest } = t;
+	const { waitsForHuman: _, question: __, keptSubmission: ___, ...rest } = t;
 	return { ...rest, status: to };
 };
 

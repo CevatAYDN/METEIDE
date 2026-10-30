@@ -250,6 +250,26 @@ describe("the team view fold", () => {
 		]);
 		expect(again.tasks[0]?.waitsForHuman).toBeUndefined();
 		expect(again.tasks[0]?.status).toBe("in_progress");
+		expect(blocked.tasks[0]?.keptSubmission).toBeUndefined();
+	});
+
+	it("marks a task blocked from its submission, by its revision limit, as keeping that submission (ADR-157)", () => {
+		const limited = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			created(NOTES, "Take notes"),
+			moved(NOTES, "in_progress", "submitted"),
+			moved(NOTES, "submitted", "blocked"),
+		]);
+		expect(limited.tasks[0]).toMatchObject({
+			status: "blocked",
+			waitsForHuman: true,
+			keptSubmission: true,
+		});
+		const accepted = applyAll(RUN, limited, [
+			moved(NOTES, "blocked", "approved"),
+		]);
+		expect(accepted.tasks[0]?.status).toBe("approved");
+		expect(accepted.tasks[0]?.keptSubmission).toBeUndefined();
+		expect(accepted.tasks[0]?.waitsForHuman).toBeUndefined();
 	});
 
 	it("marks an approved task whose merge failed as waiting for the human, with git's cause and the files in the way (ADR-156)", () => {
