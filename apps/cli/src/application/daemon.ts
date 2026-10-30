@@ -37,6 +37,7 @@ import { allowAndResume } from "./allow.js";
 import { changesOf } from "./changes.js";
 import type { Io } from "./commands.js";
 import { parsed, readyEngine, refused } from "./daemon-errors.js";
+import { serveMcpTest } from "./daemon-mcp.js";
 import { serveAudit, serveKnowledgeSearch } from "./daemon-reads.js";
 import { estimateFor } from "./estimate.js";
 import { draftMember } from "./member-draft.js";
@@ -346,6 +347,7 @@ const serveMethods = (conn: MessageConnection, app: App, io: Io) => {
 	serveMemberDraft(conn, app);
 	serveSettings(conn, app);
 	serveProviders(conn, app);
+	serveMcpTest(conn, app);
 };
 
 /**
