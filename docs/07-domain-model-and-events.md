@@ -63,6 +63,7 @@ A team task with an `expected_output` keeps each submitted report as its Artifac
 | submitted | changes\_requested | The task's pair reviewer asks for a revision (`revisions` does not increment; ADR-136) |
 | changes\_requested | in\_progress | The agent resumes with the feedback |
 | blocked | in\_progress | The human resolves the block (answer, new instruction, capability installed) |
+| blocked | approved | The human approves a task blocked by its revision limit, whose last submission it kept (ADR-157) |
 
 Default revision limit: 3 \[D\]. `approved` is final for a task. A blocked task records why: `clarification`, `capability_missing`, `guardrail` or `revision_limit`; the human's answer or instruction that resolves it, like an approver's feedback, goes to the next attempt \[D\].
 
