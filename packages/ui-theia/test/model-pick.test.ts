@@ -9,7 +9,11 @@ import {
 	startActive,
 	valuesOf,
 } from "../src/application/model-pick.js";
-import { ModelPicker, PickOptions } from "../src/application/model-picker.js";
+import {
+	ModelPicker,
+	PickNote,
+	PickOptions,
+} from "../src/application/model-picker.js";
 
 // The model picker of ADR-161: the role's chain under a heading per provider with each model's
 // facts, Use “…” for a typed id, and the keys of the open list.
@@ -169,7 +173,11 @@ describe("the model picker's rows", () => {
 		expect(use).toContain('id="l-1"');
 		expect(use).toContain("Use “custom:noxery/kimi-k2.6”");
 		expect(use).toContain("Not listed for this role");
-		const none = options("claude");
+		// The listbox owns options only: the note why nothing matches sits beside it.
+		expect(options("claude")).not.toContain('role="status"');
+		const none = renderToStaticMarkup(
+			createElement(PickNote, { query: "claude" }),
+		);
 		expect(none).toContain('role="status"');
 		expect(none).toContain("No model matches “claude”.");
 		expect(none).toContain("Settings, Models and keys");
@@ -193,9 +201,12 @@ describe("the model picker's rows", () => {
 		);
 		const list = /aria-controls="([^"]+)"/.exec(out)?.[1];
 		expect(out).toContain(`id="${list}"`);
+		expect(out).toContain('class="mete-picker-list" hidden=""');
 		expect(out).toContain(
-			'role="listbox" aria-label="Lead · Preferred model (optional)" hidden=""',
+			'role="listbox" aria-label="Lead · Preferred model (optional)"',
 		);
-		expect(out).toContain("No model can serve this role now.");
+		expect(out).toMatch(
+			/<\/ul><p class="mete-picker-note" role="status">No model can serve this role now\./,
+		);
 	});
 });

@@ -127,23 +127,19 @@ const where = () =>
 		"Models come from the providers in Settings, Models and keys, where Test… lists an endpoint's models; the Quota chip says why a provider cannot serve.",
 	);
 
-const Nothing = ({ query }: { readonly query: string }) => (
-	<li role="presentation">
-		<p className="mete-picker-note" role="status">
-			{`${
-				query.trim()
-					? nls.localize(
-							"mete/picker/noMatch",
-							"No model matches “{0}”.",
-							query.trim(),
-						)
-					: nls.localize(
-							"mete/picker/empty",
-							"No model can serve this role now.",
-						)
-			} ${where()}`}
-		</p>
-	</li>
+/** Why the list holds no model: beside the listbox, which may own options and groups only. */
+export const PickNote = ({ query }: { readonly query: string }) => (
+	<p className="mete-picker-note" role="status">
+		{`${
+			query.trim()
+				? nls.localize(
+						"mete/picker/noMatch",
+						"No model matches “{0}”.",
+						query.trim(),
+					)
+				: nls.localize("mete/picker/empty", "No model can serve this role now.")
+		} ${where()}`}
+	</p>
 );
 
 const Use = ({
@@ -168,7 +164,7 @@ const Use = ({
 	</Option>
 );
 
-/** Let METE choose, the chain under a heading per provider, Use “…”, or why nothing is listed. */
+/** Let METE choose, the chain under a heading per provider, and Use “…”. */
 export const PickOptions = (o: OptionsProps) => {
 	let next = 1;
 	const groups = o.list.groups.map((g) => {
@@ -185,7 +181,6 @@ export const PickOptions = (o: OptionsProps) => {
 			</Option>
 			{groups}
 			{o.list.use ? <Use at={next} o={o} use={o.list.use} /> : null}
-			{next === 1 && !o.list.use ? <Nothing query={o.query} /> : null}
 		</>
 	);
 };
@@ -280,25 +275,32 @@ export const ModelPicker = (p: PickerProps) => {
 	return (
 		<div className="mete-picker">
 			<Field p={p} s={s} listId={listId} />
-			<ul
-				id={listId}
-				ref={listRef}
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: the popup (the listbox, and the note why it holds no model) only keeps the field's focus on a mousedown; the field holds its keys. */}
+			<div
 				className="mete-picker-list"
-				// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: the combobox's own list, not a select (ADR-161 rejects the native one).
-				role="listbox"
-				aria-label={p.label}
 				hidden={s.open === undefined}
 				onMouseDown={keep}
 			>
-				<PickOptions
+				<ul
 					id={listId}
-					list={s.list}
-					value={p.value}
-					query={s.open?.query ?? ""}
-					active={s.open?.active}
-					onPick={s.pick}
-				/>
-			</ul>
+					ref={listRef}
+					// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: the combobox's own list, not a select (ADR-161 rejects the native one).
+					role="listbox"
+					aria-label={p.label}
+				>
+					<PickOptions
+						id={listId}
+						list={s.list}
+						value={p.value}
+						query={s.open?.query ?? ""}
+						active={s.open?.active}
+						onPick={s.pick}
+					/>
+				</ul>
+				{s.list.groups.length === 0 && !s.list.use ? (
+					<PickNote query={s.open?.query ?? ""} />
+				) : null}
+			</div>
 		</div>
 	);
 };
