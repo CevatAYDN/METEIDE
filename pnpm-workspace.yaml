@@ -47,11 +47,13 @@ minimumReleaseAge: 20160
 # >= 7.0.3 (mocha, through @theia/cli) closes an RCE in its deserializer. dompurify 3.4.17 (Theia's
 # markdown view and monaco) closes a high advisory. undici 6.29.1 and 7.30.1 (2026-10-29 audit) close
 # GHSA-qrxm-fqhp-jwvm on each major line without moving a dependent to the other major. markdown-it
-# 14.3.3 is younger than 14 days until 2026-10-30. decompress (theia download:plugins, which unpacks
-# the pinned built-ins at build time, ADR-103) has no fixed release.
+# 14.3.3 (@theia/core, 2026-10-30 audit) closes GHSA-gfr2-rv44-r23c and GHSA-vfgh-jcmw-g37q.
+# decompress (theia download:plugins, which unpacks the pinned built-ins at build time, ADR-103) has
+# no fixed release.
 overrides:
   dompurify: 3.4.17
   electron: 42.11.14
+  "markdown-it@>=14.1.0 <14.3.3": 14.3.3
   serialize-javascript: ^7.1.2
   "undici@<6.29.1": 6.29.1
   "undici@>=7.0.0 <7.30.1": 7.30.1
