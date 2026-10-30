@@ -2,6 +2,11 @@ import { type NoteType, NoteTypeSchema } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import { useState } from "react";
 import { type MemoryNote, sortNotes, typeCounts } from "../domain/memory.js";
+import {
+	type MemorySearch,
+	SearchBox,
+	SearchResults,
+} from "./memory-search.js";
 import { Icon } from "./roster-look.js";
 import { ScreenHero } from "./screen-hero.js";
 import { noFolderText } from "./status-text.js";
@@ -173,14 +178,29 @@ const Notes = (props: {
 	readonly notes: readonly MemoryItem[];
 	readonly onOpen: (url: string) => void;
 	readonly onNewRun: () => void;
+	readonly search?: MemorySearch | undefined;
+	readonly onSearch: (query: string) => void;
 }) => {
 	const [filter, setFilter] = useState<Filter>("all");
 	if (props.notes.length === 0) return <Empty onNewRun={props.onNewRun} />;
 	const shown = sortNotes(props.notes).filter(
 		(n) => filter === "all" || n.type === filter,
 	);
+	const box = <SearchBox onSearch={props.onSearch} />;
+	if (props.search)
+		return (
+			<>
+				{box}
+				<SearchResults
+					search={props.search}
+					typeName={typeName}
+					onOpen={props.onOpen}
+				/>
+			</>
+		);
 	return (
 		<>
+			{box}
 			<Chips notes={props.notes} filter={filter} onFilter={setFilter} />
 			<ul
 				className="mete-memory-list"
@@ -194,12 +214,17 @@ const Notes = (props: {
 	);
 };
 
-const Body = (props: {
-	readonly model: MemoryModel;
+type Actions = {
 	readonly onOpen: (url: string) => void;
 	readonly onNewRun: () => void;
-}) => {
-	const { model } = props;
+	readonly search?: MemorySearch | undefined;
+	readonly onSearch: (query: string) => void;
+};
+
+const Body = ({
+	model,
+	...actions
+}: Actions & { readonly model: MemoryModel }) => {
 	if (model.kind === "loading")
 		return (
 			<p className="mete-assets-state">
@@ -214,21 +239,16 @@ const Body = (props: {
 				{model.message}
 			</p>
 		);
-	return (
-		<Notes
-			notes={model.notes}
-			onOpen={props.onOpen}
-			onNewRun={props.onNewRun}
-		/>
-	);
+	return <Notes notes={model.notes} {...actions} />;
 };
 
-/** The Memory screen for a model, with its Refresh button. */
-export const MemoryView = (props: {
+/** The Memory screen for a model, with its Refresh button and the search it shows, if any. */
+export const MemoryView = ({
+	onRefresh,
+	...props
+}: Actions & {
 	readonly model: MemoryModel;
-	readonly onOpen: (url: string) => void;
 	readonly onRefresh: () => void;
-	readonly onNewRun: () => void;
 }) => (
 	<section className="mete-screen mete-memory" aria-live="polite">
 		<ScreenHero
@@ -240,16 +260,12 @@ export const MemoryView = (props: {
 				"METE: what the agents learned and what the runs left",
 			)}
 			actions={
-				<button
-					type="button"
-					className="mete-button quiet"
-					onClick={props.onRefresh}
-				>
+				<button type="button" className="mete-button quiet" onClick={onRefresh}>
 					<Icon name="refresh" />
 					{nls.localize("mete/home/refresh", "Refresh")}
 				</button>
 			}
 		/>
-		<Body model={props.model} onOpen={props.onOpen} onNewRun={props.onNewRun} />
+		<Body {...props} />
 	</section>
 );

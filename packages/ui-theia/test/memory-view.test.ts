@@ -30,6 +30,7 @@ const html = (model: MemoryModel) =>
 			onOpen: () => {},
 			onRefresh: () => {},
 			onNewRun: () => {},
+			onSearch: () => {},
 		}),
 	);
 

@@ -117,6 +117,10 @@ export class MeteDaemonBackend
 		return this.host.audit(workspaceDir, filter);
 	}
 
+	knowledgeSearch(workspaceDir: string, query: string) {
+		return this.host.knowledgeSearch(workspaceDir, query);
+	}
+
 	changes(workspaceDir: string, path?: string) {
 		return this.host.changes(workspaceDir, path);
 	}

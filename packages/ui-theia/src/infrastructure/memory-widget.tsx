@@ -12,13 +12,16 @@ import {
 } from "@theia/core/shared/inversify";
 import { FileService } from "@theia/filesystem/lib/browser/file-service";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
+import type { MemorySearch } from "../application/memory-search.js";
 import {
 	type MemoryItem,
 	type MemoryModel,
 	MemoryView,
 } from "../application/memory-view.js";
 import { panelRoot } from "../application/panel-root.js";
+import { failureText } from "../application/status-text.js";
 import { NOTE_FOLDERS, noteOf } from "../domain/memory.js";
+import { MeteDaemonService } from "../domain/status-service.js";
 import { START_RUN_COMMAND } from "./board-contribution.js";
 import { MetePanelWidget } from "./panel-widget.js";
 import "../../style/mete.css";
@@ -28,7 +31,8 @@ import "../../style/mete-memory.css";
 
 // The Memory screen in Theia's main area (docs/13, Knowledge; ADR-159): the notes of the first open
 // folder's workspace vault, .mete/knowledge/, read through Theia's file service as the Assets view
-// reads .mete/assets/. A refresh and coming back to the screen read them again.
+// reads .mete/assets/. A refresh and coming back to the screen read them again. A search asks the
+// daemon's mete/knowledge.search; an answer to an older query is dropped.
 
 /** The METE Memory screen in Theia's main area. */
 @injectable()
@@ -40,8 +44,10 @@ export class MeteMemoryWidget extends MetePanelWidget {
 	@inject(OpenerService) protected readonly openers!: OpenerService;
 	@inject(ThemeService) protected readonly themes!: ThemeService;
 	@inject(CommandService) protected readonly commands!: CommandService;
+	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;
 
 	protected model: MemoryModel = { kind: "loading" };
+	protected search: MemorySearch | undefined;
 
 	@postConstruct()
 	protected init(): void {
@@ -99,6 +105,35 @@ export class MeteMemoryWidget extends MetePanelWidget {
 		return notes.filter((n) => n !== undefined);
 	}
 
+	/** Searches the vault; an empty query shows the notes again. */
+	async runSearch(query: string): Promise<void> {
+		const [root] = await this.workspace.roots;
+		if (!root || query === "") return this.setSearch(undefined);
+		this.setSearch({ kind: "searching", query });
+		const r = await this.daemon.knowledgeSearch(
+			root.resource.path.fsPath(),
+			query,
+		);
+		if (this.search?.query !== query) return;
+		if (!r.ok)
+			return this.setSearch({
+				kind: "failed",
+				query,
+				message: failureText(r.error),
+			});
+		const vault = root.resource.resolve(".mete/knowledge");
+		const hits = r.value.results.map((h) => ({
+			...h,
+			url: vault.resolve(h.path).toString(),
+		}));
+		this.setSearch({ kind: "hits", query, hits });
+	}
+
+	protected setSearch(search: MemorySearch | undefined): void {
+		this.search = search;
+		this.update();
+	}
+
 	protected setModel(model: MemoryModel): void {
 		this.model = model;
 		this.update();
@@ -109,6 +144,8 @@ export class MeteMemoryWidget extends MetePanelWidget {
 			<div {...panelRoot(this.themes.getCurrentTheme().type)}>
 				<MemoryView
 					model={this.model}
+					search={this.search}
+					onSearch={(q) => void this.runSearch(q)}
 					onOpen={(url) => void open(this.openers, new URI(url))}
 					onRefresh={() => void this.refresh()}
 					onNewRun={() =>

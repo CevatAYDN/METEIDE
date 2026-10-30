@@ -11,6 +11,7 @@ import {
 	DaemonErrorDataSchema,
 	DaemonEstimateResultSchema,
 	DaemonEventsResultSchema,
+	DaemonKnowledgeSearchResultSchema,
 	DaemonMemberDraftResultSchema,
 	DaemonModelsResultSchema,
 	DaemonProviderModelsResultSchema,
@@ -230,8 +231,8 @@ type Send = <T>(
 	parse: (raw: unknown) => Parsed<T>,
 ) => Promise<Result<T, DaemonFailure>>;
 
-// The requests that only read: the runs, one run's events (ADR-051), the providers' states (ADR-050)
-// and the audit log (ADR-053).
+// The requests that only read: the runs, one run's events (ADR-051), the providers' states (ADR-050),
+// the audit log (ADR-053) and the workspace vault's search for the Memory screen (ADR-159).
 const reads = (send: Send) => ({
 	status: (dir: string, runId?: string) =>
 		send(
@@ -254,6 +255,10 @@ const reads = (send: Send) => ({
 	audit: (dir: string, filter: object) =>
 		send(dir, DAEMON_METHODS.audit, filter, (raw) =>
 			DaemonAuditResultSchema.safeParse(raw),
+		),
+	knowledgeSearch: (dir: string, query: string) =>
+		send(dir, DAEMON_METHODS.knowledgeSearch, { query }, (raw) =>
+			DaemonKnowledgeSearchResultSchema.safeParse(raw),
 		),
 	/** The folder's working tree, for the Changes panel (ADR-100). */
 	changes: (dir: string, path?: string) =>

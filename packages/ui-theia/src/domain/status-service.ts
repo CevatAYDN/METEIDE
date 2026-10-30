@@ -6,6 +6,7 @@ import type {
 	DaemonChangesResultSchema,
 	DaemonCheckpointRestoreResultSchema,
 	DaemonEstimateResultSchema,
+	DaemonKnowledgeSearchResultSchema,
 	DaemonMemberDraftResult,
 	DaemonModelsResultSchema,
 	DaemonProviderModelsResultSchema,
@@ -56,6 +57,11 @@ export type Restored = ReturnType<
 
 /** What `mete/changes` answers (ADR-100): the folder's working tree and one file's diff. */
 export type Changes = ReturnType<typeof DaemonChangesResultSchema.parse>;
+
+/** What `mete/knowledge.search` answers (ADR-159): the workspace vault's hits, best first. */
+export type KnowledgeHits = ReturnType<
+	typeof DaemonKnowledgeSearchResultSchema.parse
+>;
 
 /** What `mete/member.draft` answers (ADR-108): drafted member fields and the pages the draft read. */
 export type MemberDraft = DaemonMemberDraftResult;
@@ -230,6 +236,11 @@ export interface MeteDaemonService {
 		workspaceDir: string,
 		path?: string,
 	): Promise<Result<Changes, DaemonFailure>>;
+	/** The workspace vault's notes that match the words, best first (ADR-159). */
+	knowledgeSearch(
+		workspaceDir: string,
+		query: string,
+	): Promise<Result<KnowledgeHits, DaemonFailure>>;
 	/** One member drafted from the user's idea (ADR-108): every field a suggestion for review. */
 	memberDraft(
 		workspaceDir: string,
