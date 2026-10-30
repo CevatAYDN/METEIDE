@@ -17,3 +17,6 @@ export const RRF_K = 60;
 
 /** Sections one embedding request sends (11 Knowledge layer, Indexing; ADR-152). */
 export const EMBED_BATCH = 32;
+
+/** Cosine distance past which the vector source finds nothing, measured on NVIDIA's embedding model (11 Knowledge layer, Hybrid search). */
+export const VECTOR_MAX_DISTANCE = 0.85;

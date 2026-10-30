@@ -4,6 +4,7 @@ import type BetterSqlite3 from "better-sqlite3";
 import { desc, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { VECTOR_MAX_DISTANCE } from "../defaults.js";
 
 // The vector source's storage (docs/11, Hybrid search; ADR-152): one sqlite-vec table per embedding
 // model, each vector under its cache key, the SHA-256 of its section's text and the model id (docs/11,
@@ -111,7 +112,8 @@ const insert = (
 	}
 };
 
-// A query vector comes from a provider; one of another size than the table's finds nothing.
+// A query vector comes from a provider; one of another size than the table's finds nothing, and
+// so does a vector farther than VECTOR_MAX_DISTANCE from every stored one (docs/11).
 const knn = (
 	orm: Orm,
 	tbl: string | undefined,
@@ -121,9 +123,10 @@ const knn = (
 	if (!tbl) return [];
 	try {
 		return orm
-			.all<{ key: string }>(
-				sql`SELECT key FROM ${sql.identifier(tbl)} WHERE embedding MATCH ${new Float32Array(vector)} AND k = ${k} ORDER BY distance`,
+			.all<{ key: string; distance: number }>(
+				sql`SELECT key, distance FROM ${sql.identifier(tbl)} WHERE embedding MATCH ${new Float32Array(vector)} AND k = ${k} ORDER BY distance`,
 			)
+			.filter((r) => r.distance <= VECTOR_MAX_DISTANCE)
 			.map((r) => r.key);
 	} catch {
 		return [];
@@ -151,7 +154,7 @@ export const vectorIndex = (db: BetterSqlite3.Database) => {
 		/** Stores one model's vectors, each key once; a vector of another size refuses the whole batch. */
 		put: (model: string, rows: readonly Keyed[]): Result<void, string> =>
 			available ? insert(orm, model, rows) : err("sqlite-vec is not loaded"),
-		/** The keys of the model's vectors nearest to `vector`, nearest first; none without its table or of another size. */
+		/** The keys of the model's vectors nearest to `vector`, nearest first; none without its table, of another size or far from them. */
 		nearest: (model: string, vector: readonly number[], k: number): string[] =>
 			knn(orm, tbl(model), vector, k),
 	};

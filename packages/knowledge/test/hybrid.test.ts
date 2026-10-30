@@ -51,7 +51,7 @@ const fakeEmbed = () => {
 const lesson = (body: string) => `---\ntype: lesson\n---\n\n${body}\n`;
 
 describe("knowledge.search@1 with the vector source", () => {
-	it("finds a section by meaning, once the background job has embedded it", async () => {
+	it("finds a section by meaning, once the background job has embedded it, and none far from it", async () => {
 		const e = fakeEmbed();
 		const s = await setup({ embed: e.embed });
 		await s.note(
@@ -62,7 +62,7 @@ describe("knowledge.search@1 with the vector source", () => {
 		expect(paths(await s.search({ query: "compilation" }))).toEqual([]);
 		await vi.waitFor(() => expect(e.documents()).toHaveLength(1));
 		const r = await s.search({ query: "compilation" });
-		expect(paths(r)).toEqual(["lessons/build.md", "lessons/colors.md"]);
+		expect(paths(r)).toEqual(["lessons/build.md"]);
 		expect(r.ok && r.value.results[0]).toMatchObject({
 			snippet: "The tsc step failed on an import.",
 			sources: {},
@@ -85,10 +85,9 @@ describe("knowledge.search@1 with the vector source", () => {
 		await s.search({ query: "tsc" });
 		await vi.waitFor(() => expect(e.documents()).toHaveLength(1));
 		const r = await s.search({ query: "tsc" });
-		expect(paths(r)).toEqual(["lessons/x.md", "lessons/y.md", "lessons/z.md"]);
+		expect(paths(r)).toEqual(["lessons/x.md", "lessons/y.md"]);
 		expect(r.ok && r.value.results.map((h) => h.sources)).toEqual([
 			{ keyword: 1 },
-			{},
 			{},
 		]);
 		await s.close();
