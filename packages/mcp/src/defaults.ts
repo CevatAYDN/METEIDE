@@ -96,3 +96,6 @@ export const SAMPLING_PRIORITY = 1;
 
 /** Tab 10, MCP client (ADR-067): a call publishes a progress step at most this often. */
 export const PROGRESS_EVERY_MS = 1_000;
+
+/** Tab 10, MCP client (Authentication): how many sign-in addresses one connection asks for while each is refused. */
+export const SIGN_IN_ATTEMPTS = 3;

@@ -20,12 +20,12 @@ import type {
 	Progress,
 	Tool,
 } from "@modelcontextprotocol/client";
-import { PROGRESS_EVERY_MS } from "../defaults.js";
+import { PROGRESS_EVERY_MS, SIGN_IN_ATTEMPTS } from "../defaults.js";
 import { oauthSignIn, type SignInFlow } from "../infrastructure/oauth.js";
 import type { Opened, OpenTransport } from "../infrastructure/transport.js";
 import type { Calls } from "./calls.js";
 import type { Sample } from "./sampling.js";
-import { type Authorize, signIn } from "./sign-in.js";
+import { type Authorize, type SignInMemory, signIn } from "./sign-in.js";
 
 // One connection per configured server, opened on first use so a run pays only for the
 // servers it calls; a closed connection is dropped and the next call reconnects (docs/10).
@@ -175,11 +175,12 @@ const newClient = (
 	return client;
 };
 
-/** The server to connect to, how to stop waiting for it, and what to do when its connection closes. */
+/** The server to connect to, how to stop waiting for it, what to do when its connection closes, and its sign-ins so far. */
 type Target = {
 	readonly server: McpServer;
 	readonly signal: AbortSignal;
 	readonly closed: (stderr: string) => void;
+	readonly signIns: SignInMemory;
 };
 
 // A remote server with `auth: oauth` signs in through the keychain (docs/10, Authentication).
@@ -240,22 +241,44 @@ const attempt = async (
 	}
 };
 
-// A server that wants a sign-in gets one, then one more try with the tokens it earned.
+type Round = {
+	readonly result: Result<Session, ToolError>;
+	/** The pasted address was refused, so another address may be asked for. */
+	readonly again: boolean;
+};
+
+// One try with a sign-in flow of its own, so every address asked for has a fresh state and PKCE: a
+// server that wants a sign-in gets one, then one more try with the tokens it earned.
+const round = async (deps: SessionDeps, at: Target): Promise<Round> => {
+	const flow = oauthFlow(deps, at.server);
+	if (!flow.ok) return { result: flow, again: false };
+	const tried = await attempt(deps, at, flow.value);
+	if (!tried.refused || !flow.value)
+		return { result: tried.result, again: false };
+	const refused = {
+		server: at.server,
+		flow: flow.value,
+		opened: tried.refused,
+	};
+	const done = await signIn(deps.authorize, refused, at.signal, at.signIns);
+	if (done.kind === "ok")
+		return {
+			result: (await attempt(deps, at, flow.value)).result,
+			again: false,
+		};
+	return { result: err(done.error), again: done.kind === "refused" };
+};
+
+// A refused address is asked for again at once, up to SIGN_IN_ATTEMPTS addresses per connection (docs/10).
 const connect = async (
 	deps: SessionDeps,
 	at: Target,
 ): Promise<Result<Session, ToolError>> => {
-	const flow = oauthFlow(deps, at.server);
-	if (!flow.ok) return flow;
-	const first = await attempt(deps, at, flow.value);
-	if (!first.refused || !flow.value) return first.result;
-	const refused = {
-		server: at.server,
-		flow: flow.value,
-		opened: first.refused,
-	};
-	const done = await signIn(deps.authorize, refused, at.signal);
-	return done.ok ? (await attempt(deps, at, flow.value)).result : done;
+	for (let asked = 1; ; asked++) {
+		const r = await round(deps, at);
+		if (!r.again || asked >= SIGN_IN_ATTEMPTS || at.signal.aborted)
+			return r.result;
+	}
 };
 
 const notConfigured = (id: string) =>
@@ -306,8 +329,18 @@ const callOptions =
 		};
 	};
 
+// A server's sign-ins outlive its connections, so a refusal or a give-up is remembered (docs/10).
+const remembered = (all: Map<string, SignInMemory>, id: string) => {
+	const known = all.get(id);
+	if (known) return known;
+	const fresh: SignInMemory = { refused: undefined, declined: false };
+	all.set(id, fresh);
+	return fresh;
+};
+
 export const createSessions = (deps: SessionDeps) => {
 	const live = new Map<string, Promise<Result<Session, ToolError>>>();
+	const signIns = new Map<string, SignInMemory>();
 	let closing = false;
 
 	const get = (id: string, signal: AbortSignal) => {
@@ -327,7 +360,8 @@ export const createSessions = (deps: SessionDeps) => {
 				"MCP server connection closed",
 			);
 		};
-		const opening = connect(deps, { server, signal, closed }).then((r) => {
+		const at = { server, signal, closed, signIns: remembered(signIns, id) };
+		const opening = connect(deps, at).then((r) => {
 			if (!r.ok) forget();
 			return r;
 		});

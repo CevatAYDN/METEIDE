@@ -306,6 +306,64 @@ describe("mcp-client OAuth", () => {
 		await named.module.deactivate();
 	});
 
+	it("asks again at once, with a fresh address, after a refused one and tells the host why", async () => {
+		const server = await remoteServer();
+		const asked: { url: string; refused: string | undefined }[] = [];
+		const answers = [
+			(url: string) =>
+				landing(url, "good-code", undefined, "https://evil.example"),
+			(url: string) => landing(url),
+		];
+		const s = await start(server, memorySecrets(), {
+			authorize: async (_id, url, _signal, refused) => {
+				asked.push({ url, refused });
+				return answers[asked.length - 1]?.(url);
+			},
+		});
+		expect(await s.echo()).toBe("hi");
+		expect(asked).toHaveLength(2);
+		expect(asked[0]?.refused).toBeUndefined();
+		expect(asked[1]?.refused).toMatch(/issuer/i);
+		const state = (u?: string) => new URL(u ?? "").searchParams.get("state");
+		expect(state(asked[1]?.url)).not.toBe(state(asked[0]?.url));
+		expect(server.seen.tokens).toBe(1);
+		await s.module.deactivate();
+	});
+
+	it("stops after three refused addresses and asks again, with the reason, on the next connection", async () => {
+		const server = await remoteServer();
+		const reasons: (string | undefined)[] = [];
+		const s = await start(server, memorySecrets(), {
+			authorize: async (_id, url, _signal, refused) => {
+				reasons.push(refused);
+				return landing(url, "good-code", "forged");
+			},
+		});
+		expect(await s.echo()).toMatch(/does not belong to this sign-in/);
+		expect(reasons).toHaveLength(3);
+		expect(await s.echo()).toMatch(/does not belong to this sign-in/);
+		expect(reasons).toHaveLength(6);
+		expect(reasons[3]).toMatch(/does not belong to this sign-in/);
+		expect(server.seen.tokens).toBe(0);
+		await s.module.deactivate();
+	});
+
+	it("does not ask again for a sign-in the user gave up", async () => {
+		const server = await remoteServer();
+		let asked = 0;
+		const s = await start(server, memorySecrets(), {
+			authorize: async () => {
+				asked += 1;
+				return undefined;
+			},
+		});
+		expect(await s.echo()).toMatch(/no sign-in was given/);
+		expect(await s.echo()).toMatch(/no sign-in was given/);
+		expect(asked).toBe(1);
+		expect(server.seen.tokens).toBe(0);
+		await s.module.deactivate();
+	});
+
 	it("says to sign in once in a terminal when there is neither a host nor saved tokens", async () => {
 		const server = await remoteServer();
 		const s = await start(server, memorySecrets());

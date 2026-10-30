@@ -22,6 +22,32 @@ describe("terminal sign-in", () => {
 		expect(t.prompts).toEqual(["Address: "]);
 	});
 
+	it("says why the last address was refused before asking again", async () => {
+		const t = recordingIo("", ["http://127.0.0.1/callback?code=c&state=s1"]);
+		await terminalAuthorize(t.io)(
+			"remote",
+			URL_TO_OPEN,
+			signal,
+			"the address does not belong to this sign-in",
+		);
+		expect(t.out).toEqual([
+			"The last address was refused: the address does not belong to this sign-in",
+			"MCP server remote needs you to sign in:",
+			`  ${URL_TO_OPEN}`,
+			"Open it, allow access, then paste the address your browser ends up on (it shows a connection error).",
+		]);
+	});
+
+	it("says the server's tools are left out when the input ends instead of an address", async () => {
+		const t = recordingIo("", [undefined]);
+		expect(await terminalAuthorize(t.io)("remote", URL_TO_OPEN, signal)).toBe(
+			undefined,
+		);
+		expect(t.out.at(-1)).toBe(
+			"Not signed in: MCP server remote's tools are left out of this command.",
+		);
+	});
+
 	it("gives nothing back, and prints nothing, without a terminal", async () => {
 		const t = recordingIo();
 		expect(await terminalAuthorize(t.io)("remote", URL_TO_OPEN, signal)).toBe(
@@ -77,7 +103,7 @@ let close = async () => {};
 afterEach(() => close());
 
 describe("sign-in through the app", () => {
-	it("lets the user sign in to a remote MCP server in the terminal", async () => {
+	it("asks in the terminal, says why an address is refused, and stops when the input ends", async () => {
 		const mcp = `servers:
   - id: remote
     transport: streamable-http
@@ -114,11 +140,19 @@ describe("sign-in through the app", () => {
 			{ signal },
 		);
 		expect(out.ok === false && out.error.message).toMatch(
-			/^MCP server remote: paste the whole address/,
+			/^MCP server remote: no sign-in was given/,
 		);
 		expect(t.out[0]).toBe("MCP server remote needs you to sign in:");
 		expect(t.out[1]).toMatch(
 			/^ {2}https:\/\/mcp\.example\/authorize\?.*client_id=client-1/,
+		);
+		// The refused address is asked for again at once, with why; the input then ends.
+		expect(t.prompts).toEqual(["Address: ", "Address: "]);
+		expect(t.out[3]).toMatch(
+			/^The last address was refused: paste the whole address/,
+		);
+		expect(t.out.at(-1)).toBe(
+			"Not signed in: MCP server remote's tools are left out of this command.",
 		);
 	});
 });
