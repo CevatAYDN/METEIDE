@@ -11,3 +11,9 @@ export const CHUNK_CHARS = 4000;
 
 /** Tokens of a search result's snippet (11 Knowledge layer, Hybrid search; ADR-149). */
 export const SNIPPET_TOKENS = 40;
+
+/** The k of Reciprocal Rank Fusion that joins the keyword and vector ranks (11 Knowledge layer, Hybrid search; ADR-152). */
+export const RRF_K = 60;
+
+/** Sections one embedding request sends (11 Knowledge layer, Indexing; ADR-152). */
+export const EMBED_BATCH = 32;
