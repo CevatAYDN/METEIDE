@@ -224,3 +224,22 @@
 		grid-template-columns: minmax(0, 1fr);
 	}
 }
+
+/* An MCP server's Test on its card (ADR-164): the button, then the answer, wrapping on a narrow panel. */
+.mete-mcp-test,
+.mete-mcp-answer {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+
+.mete-mcp-answer {
+	flex: 1 1 240px;
+}
+
+.mete-mcp-answer > span:not(.mete-endpoint-result) {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}

@@ -14,11 +14,8 @@ import {
 	DaemonKnowledgeSearchResultSchema,
 	DaemonMemberDraftResultSchema,
 	DaemonModelsResultSchema,
-	DaemonProviderModelsResultSchema,
-	DaemonProviderTestResultSchema,
 	DaemonQuotaResultSchema,
 	DaemonRunStartResultSchema,
-	DaemonSettingsResultSchema,
 	DaemonStatusResultSchema,
 	DaemonStopAllResultSchema,
 	DaemonTemplateReadResultSchema,
@@ -44,6 +41,11 @@ import {
 import { STDERR_TAIL_LINES } from "../defaults.js";
 import type { RestartPolicy } from "../domain/restart-policy.js";
 import type { DaemonFailure, Need } from "../domain/status-service.js";
+import {
+	type Parsed,
+	type Send,
+	settingsRequests,
+} from "./settings-requests.js";
 
 // Owns the `mete daemon` child of one folder: starts it on the first call, talks the daemon protocol
 // to it and starts it again after a crash, within the restart policy (ARCHITECTURE.md, Failure handling).
@@ -163,10 +165,6 @@ const refusal = (e: ResponseError<unknown>): Result<never, DaemonFailure> => {
 	return err({ code: "not_ready", detail: reasons.join("; ") });
 };
 
-type Parsed<T> =
-	| { readonly success: true; readonly data: T }
-	| { readonly success: false; readonly error: { readonly message: string } };
-
 // One request to the daemon; its answer is parsed with the protocol schema (each side validates).
 const call = async <T>(
 	live: Live,
@@ -223,13 +221,6 @@ const ensure = (
 	});
 	return ok(slot.live);
 };
-
-type Send = <T>(
-	dir: string,
-	method: string,
-	params: object,
-	parse: (raw: unknown) => Parsed<T>,
-) => Promise<Result<T, DaemonFailure>>;
 
 // The requests that only read: the runs, one run's events (ADR-051), the providers' states (ADR-050),
 // the audit log (ADR-053) and the workspace vault's search for the Memory screen (ADR-159).
@@ -293,7 +284,7 @@ const draftRead = (send: Send) => ({
 
 // What the run composer asks before Start: the team templates (ADR-058) and each one's request
 // estimate (ADR-068); and the text of one template and a tier's models for the team editor
-// (ADR-075, ADR-077); and Settings: what was loaded, and a custom endpoint's models and Test (ADR-087).
+// (ADR-075, ADR-077).
 const composing = (send: Send) => ({
 	templates: (dir: string) =>
 		send(dir, DAEMON_METHODS.templates, {}, (raw) =>
@@ -314,18 +305,6 @@ const composing = (send: Send) => ({
 	models: (dir: string, models: readonly ModelRef[]) =>
 		send(dir, DAEMON_METHODS.models, { models }, (raw) =>
 			DaemonModelsResultSchema.safeParse(raw),
-		),
-	settings: (dir: string) =>
-		send(dir, DAEMON_METHODS.settings, {}, (raw) =>
-			DaemonSettingsResultSchema.safeParse(raw),
-		),
-	providerModels: (dir: string, providerId: string) =>
-		send(dir, DAEMON_METHODS.providerModels, { providerId }, (raw) =>
-			DaemonProviderModelsResultSchema.safeParse(raw),
-		),
-	providerTest: (dir: string, providerId: string, models: readonly string[]) =>
-		send(dir, DAEMON_METHODS.providerTest, { providerId, models }, (raw) =>
-			DaemonProviderTestResultSchema.safeParse(raw),
 		),
 	checkpointRestore: (dir: string, runId: string, checkpointId: string) =>
 		send(
@@ -385,6 +364,7 @@ export const createDaemonHost = (deps: HostDeps) => {
 		...reads(send),
 		...draftRead(send),
 		...composing(send),
+		...settingsRequests(send),
 		...steering(send, done),
 		/** Cancels every run of the folder that has not ended (ADR-065). */
 		stopAll: (dir: string) =>

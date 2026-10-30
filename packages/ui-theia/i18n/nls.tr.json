@@ -442,7 +442,11 @@
 			"keyNone": "Bunun için kayıtlı anahtar yok.",
 			"keySaved": "Bir anahtar kayıtlı; alan onu hiç göstermez. {0}",
 			"runsSkip": "işler bunu atlar",
-			"skipWhy": "İşler böyle işaretli bir modeli atlar: METE onun bağlam penceresini bilmiyor ya da model ne ücretsiz ne de fiyatlı. settings.yaml içinde models: {0} altına onun için bir satır bu bilgileri verir."
+			"skipWhy": "İşler böyle işaretli bir modeli atlar: METE onun bağlam penceresini bilmiyor ya da model ne ücretsiz ne de fiyatlı. settings.yaml içinde models: {0} altına onun için bir satır bu bilgileri verir.",
+			"mcpTools": "Araçlar ({0}): {1}",
+			"mcpNoTools": "Sunucu hiç araç listelemiyor.",
+			"mcpNotLoaded": "METE {0} sunucusunu yüklemedi: {1}.",
+			"mcpTestHint": "Test et, sunucuya METE’nin yüklediği haliyle bağlanır: bir düzenlemeden sonra önce kaydedin ve Hemen uygula’ya basın."
 		},
 		"status": {
 			"blocked": "METE daemon'u durup duruyor, bu yüzden METE onu şimdilik yeniden başlatmıyor: {0}",

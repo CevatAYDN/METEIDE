@@ -182,6 +182,10 @@ export class MeteDaemonBackend
 		return this.host.providerTest(workspaceDir, providerId, models);
 	}
 
+	mcpTest(workspaceDir: string, id: string) {
+		return this.host.mcpTest(workspaceDir, id);
+	}
+
 	checkpointRestore(workspaceDir: string, runId: string, checkpointId: string) {
 		return this.host.checkpointRestore(workspaceDir, runId, checkpointId);
 	}

@@ -442,7 +442,11 @@
 			"keyNone": "No key is saved for it.",
 			"keySaved": "A key is saved; the field never shows it. {0}",
 			"runsSkip": "runs skip it",
-			"skipWhy": "Runs skip a model marked so: METE knows no context window for it, or it is neither free nor priced. A row for it under models: {0} in settings.yaml gives those facts."
+			"skipWhy": "Runs skip a model marked so: METE knows no context window for it, or it is neither free nor priced. A row for it under models: {0} in settings.yaml gives those facts.",
+			"mcpTools": "Tools ({0}): {1}",
+			"mcpNoTools": "The server lists no tools.",
+			"mcpNotLoaded": "METE has not loaded {0}: {1}.",
+			"mcpTestHint": "Test connects to a server as METE loaded it: after an edit, save and press Apply now first."
 		},
 		"status": {
 			"blocked": "The METE daemon keeps stopping, so METE does not start it again for now: {0}",

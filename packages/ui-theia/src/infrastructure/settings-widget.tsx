@@ -28,6 +28,7 @@ import { EndpointKeys } from "./endpoint-keys.js";
 import { EndpointTests } from "./endpoint-tests.js";
 import { EndpointsForm } from "./endpoints-form.js";
 import { McpForm } from "./mcp-form.js";
+import { McpTests } from "./mcp-tests.js";
 import { MetePanelWidget } from "./panel-widget.js";
 import { SettingsForms } from "./settings-forms.js";
 import "../../style/mete.css";
@@ -60,6 +61,7 @@ export class MeteSettingsWidget extends MetePanelWidget {
 	protected mcp: McpForm | undefined;
 	protected keys: EndpointKeys | undefined;
 	protected tests: EndpointTests | undefined;
+	protected mcpTests: McpTests | undefined;
 	/** The providers' states from mete/quota, for the endpoints card (ADR-154). */
 	protected states: readonly ProviderState[] | undefined;
 	protected apply: ApplyState = { busy: false, activeRuns: 0 };
@@ -102,6 +104,10 @@ export class MeteSettingsWidget extends MetePanelWidget {
 				this.daemon.providerTest(await this.folderDir(), id, models),
 			onChange: () => this.update(),
 		});
+		this.mcpTests = new McpTests({
+			test: async (id) => this.daemon.mcpTest(await this.folderDir(), id),
+			onChange: () => this.update(),
+		});
 		void this.refresh();
 	}
 
@@ -110,8 +116,10 @@ export class MeteSettingsWidget extends MetePanelWidget {
 		const [root] = await this.workspace.roots;
 		if (!root) return this.setModel({ kind: "no_folder" });
 		const dir = root.resource.path.fsPath();
-		// A restarted daemon may have loaded other endpoints, so earlier Test answers and states go.
+		// A restarted daemon may have loaded other endpoints and servers, so earlier Test answers and
+		// states go.
 		this.tests?.reset();
+		this.mcpTests?.reset();
 		this.states = undefined;
 		this.apply = { ...this.apply, activeRuns: await this.activeRuns(dir) };
 		const r = await this.daemon.settings(dir);
@@ -187,6 +195,20 @@ export class MeteSettingsWidget extends MetePanelWidget {
 		};
 	}
 
+	// The MCP servers card with each server's Test (ADR-164).
+	protected mcpView() {
+		const form = this.mcp?.form();
+		const tests = this.mcpTests;
+		if (!form || !tests) return form;
+		return {
+			...form,
+			tests: {
+				stateOf: (id: string) => tests.stateOf(id),
+				onTest: (id: string) => void tests.test(id),
+			},
+		};
+	}
+
 	// Typed keys are kept by slug, so they follow a slug edit and go with a removed endpoint.
 	protected keyedActions(
 		actions: EndpointsActions,
@@ -239,7 +261,7 @@ export class MeteSettingsWidget extends MetePanelWidget {
 					forms={this.forms?.forms() ?? {}}
 					endpoints={this.endpointsView()}
 					bindings={this.bindings?.form()}
-					mcp={this.mcp?.form()}
+					mcp={this.mcpView()}
 					apply={this.apply}
 					choice={{
 						group: this.group,

@@ -16,6 +16,7 @@ import {
 	type EndpointsState,
 } from "./endpoints-card.js";
 import { type McpActions, McpCard, type McpState } from "./mcp-card.js";
+import type { McpTestsView } from "./mcp-test.js";
 import { type FormSection, layerOf } from "./section-draft.js";
 import { Origin, SectionForm } from "./section-form.js";
 import {
@@ -56,10 +57,12 @@ export type Bindings = {
 	readonly actions: BindingsActions;
 };
 
-/** The MCP servers card of the tools group (ADR-097): its state and actions. */
+/** The MCP servers card of the tools group (ADR-097): its state and actions, and each server's Test
+ * (ADR-164). */
 export type Mcp = {
 	readonly state: McpState;
 	readonly actions: McpActions;
+	readonly tests?: McpTestsView | undefined;
 };
 
 // The sections with a form or a card always show, also when no file sets them.

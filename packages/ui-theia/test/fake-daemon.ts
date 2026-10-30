@@ -76,6 +76,10 @@ conn.onRequest("mete/provider.models", (p) => {
 	return { failed: { code: "unauthorized", message: "bad key", status: 401 } };
 });
 conn.onRequest("mete/provider.test", (p) => ({ results: p.models.map((modelId) => ({ modelId, ok: true, ms: 5 })) }));
+conn.onRequest("mete/mcp.test", (p) => {
+	if (p.id === "later") throw new ResponseError(-32000, "no MCP server later in mcp.yaml", { code: "not_found" });
+	return p.id === "odd" ? { id: "odd", ok: true } : { id: p.id, ok: true, tools: ["echo"], ms: 7 };
+});
 conn.onRequest("mete/stop.all", () => ({ cancelled: [run.id] }));
 conn.onRequest("mete/estimate", (p) => (p.templateId === "bad" ? { providers: "x" } : { providers: [{ providerId: "groq", requests: 15 }], unassigned: 3 }));
 conn.onRequest("mete/quota", () =>

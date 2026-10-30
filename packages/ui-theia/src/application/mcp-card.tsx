@@ -9,6 +9,7 @@ import {
 	RUNTIMES,
 	TRANSPORTS,
 } from "./mcp-draft.js";
+import { McpTestPanel, type McpTestsView } from "./mcp-test.js";
 import type { Target } from "./section-draft.js";
 import { FormNote, type SaveNote } from "./settings-form.js";
 import { Select, TextArea, TextField } from "./text-field.js";
@@ -201,10 +202,12 @@ const ServerCard = ({
 	index,
 	server,
 	actions,
+	tests,
 }: {
 	readonly index: number;
 	readonly server: McpServerDraft;
 	readonly actions: McpActions;
+	readonly tests?: McpTestsView | undefined;
 }) => {
 	const id = (field: string) => `mete-mcp-${index}-${field}`;
 	const edit = (field: McpTextField) => (value: string) =>
@@ -239,6 +242,9 @@ const ServerCard = ({
 					actions.onPermission(index, permission, on)
 				}
 			/>
+			{tests ? (
+				<McpTestPanel id={server.id.trim()} field={id} tests={tests} />
+			) : null}
 			<div style={ROW}>
 				<button
 					type="button"
@@ -256,9 +262,11 @@ const ServerCard = ({
 export const McpCard = ({
 	state,
 	actions,
+	tests,
 }: {
 	readonly state: McpState;
 	readonly actions: McpActions;
+	readonly tests?: McpTestsView | undefined;
 }) => (
 	<div style={{ ...COLUMN, gap: "8px" }}>
 		<span style={MUTED}>
@@ -267,9 +275,23 @@ export const McpCard = ({
 				"One card per server: a local one runs a command, a remote one answers at a URL. The built-in Exa server is not a card until a file names it.",
 			)}
 		</span>
+		{tests ? (
+			<span style={MUTED}>
+				{nls.localize(
+					"mete/settings/mcpTestHint",
+					"Test connects to a server as METE loaded it: after an edit, save and press Apply now first.",
+				)}
+			</span>
+		) : null}
 		{state.servers.map((server, i) => (
-			// biome-ignore lint/suspicious/noArrayIndexKey: a server has no stable id while its id is typed
-			<ServerCard key={i} index={i} server={server} actions={actions} />
+			<ServerCard
+				// biome-ignore lint/suspicious/noArrayIndexKey: a server has no stable id while its id is typed
+				key={i}
+				index={i}
+				server={server}
+				actions={actions}
+				tests={tests}
+			/>
 		))}
 		<div style={ROW}>
 			<button

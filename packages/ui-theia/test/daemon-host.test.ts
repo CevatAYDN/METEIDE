@@ -266,6 +266,21 @@ describe("the daemon host", () => {
 		});
 	});
 
+	it("tests an MCP server, and a server METE has not loaded as refused (ADR-164)", async () => {
+		const { host } = await setup();
+		expect(await host.mcpTest("/w", "demo")).toEqual({
+			ok: true,
+			value: { id: "demo", ok: true, tools: ["echo"], ms: 7 },
+		});
+		const later = await host.mcpTest("/w", "later");
+		expect(!later.ok && later.error).toEqual({
+			code: "refused",
+			detail: "no MCP server later in mcp.yaml",
+		});
+		const odd = await host.mcpTest("/w", "odd");
+		expect(!odd.ok && odd.error.code).toBe("protocol");
+	});
+
 	it("sends Stop all and returns the runs the daemon cancelled (ADR-065)", async () => {
 		const { host } = await setup();
 		expect(await host.stopAll("/w")).toEqual({

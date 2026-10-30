@@ -7,6 +7,7 @@ import type {
 	DaemonCheckpointRestoreResultSchema,
 	DaemonEstimateResultSchema,
 	DaemonKnowledgeSearchResultSchema,
+	DaemonMcpTestResultSchema,
 	DaemonMemberDraftResult,
 	DaemonModelsResultSchema,
 	DaemonProviderModelsResultSchema,
@@ -78,6 +79,9 @@ export type EndpointModels = ReturnType<
 export type EndpointTest = ReturnType<
 	typeof DaemonProviderTestResultSchema.parse
 >;
+
+/** What `mete/mcp.test` answers (ADR-164): a server's tools, or why connecting to it failed. */
+export type McpTest = ReturnType<typeof DaemonMcpTestResultSchema.parse>;
 
 /** What `mete/estimate` answers (ADR-068), as the daemon protocol schema parses it. */
 export type Estimate = ReturnType<typeof DaemonEstimateResultSchema.parse>;
@@ -231,6 +235,12 @@ export interface MeteDaemonService {
 		providerId: string,
 		models: readonly string[],
 	): Promise<Result<EndpointTest, DaemonFailure>>;
+	/** Connects to one loaded MCP server and lists its tools, only when the user presses Test; refused
+	 * while METE has not loaded it (ADR-164). */
+	mcpTest(
+		workspaceDir: string,
+		id: string,
+	): Promise<Result<McpTest, DaemonFailure>>;
 	/** The open folder's working tree, and one file's diff when `path` names it (ADR-100). */
 	changes(
 		workspaceDir: string,

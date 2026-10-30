@@ -4,6 +4,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { EndpointTestState } from "../src/application/endpoint-test.js";
 import { SET_KEY_COMMAND } from "../src/application/key-command.js";
+import type {
+	McpTestState,
+	McpTestsView,
+} from "../src/application/mcp-test.js";
 import type { Target } from "../src/application/section-draft.js";
 import { type FormState, shortPath } from "../src/application/settings-form.js";
 import type { GroupId } from "../src/application/settings-groups.js";
@@ -666,6 +670,7 @@ describe("the MCP servers card (ADR-097)", () => {
 	const withMcp = (
 		servers: ReturnType<typeof server>[],
 		state: Partial<{ dirty: boolean; busy: boolean }> = {},
+		tests?: McpTestsView,
 	) =>
 		renderToStaticMarkup(
 			createElement(SettingsView, {
@@ -693,10 +698,65 @@ describe("the MCP servers card (ADR-097)", () => {
 						onAdd: none,
 						onRemove: none,
 					},
+					tests,
 				},
 				choice: { group: "tools", onGroup: none },
 			}),
 		);
+
+	it("tests a server as METE loaded it and says what it lists, or why not (ADR-164)", () => {
+		const states: Record<string, McpTestState> = {
+			demo: {
+				kind: "done",
+				answer: { id: "demo", ok: true, tools: ["echo", "add"], ms: 412 },
+			},
+			remote: {
+				kind: "done",
+				answer: {
+					id: "remote",
+					ok: false,
+					failed: { code: "io", message: "MCP server remote: sign in" },
+				},
+			},
+			later: { kind: "not_loaded", detail: "no MCP server later in mcp.yaml" },
+			slow: { kind: "testing" },
+		};
+		const tests: McpTestsView = {
+			stateOf: (id) => states[id] ?? { kind: "idle" },
+			onTest: none,
+		};
+		const out = withMcp(
+			["demo", "remote", "later", "slow", ""].map((id) => server({ id })),
+			{},
+			tests,
+		);
+		const card = out.slice(out.indexOf('aria-label="MCP servers"'));
+		expect(card).toContain("Test connects to a server as METE loaded it");
+		// The button is named by its word and the server's id as typed: "Test demo".
+		expect(card).toContain(
+			'id="mete-mcp-0-test" class="mete-button quiet" aria-labelledby="mete-mcp-0-test mete-mcp-0-id">',
+		);
+		expect(card).toContain(
+			'<div role="status" class="mete-mcp-answer"><span class="mete-endpoint-result"><span aria-hidden="true" class="codicon codicon-check"></span>ok, 412 ms</span><span>Tools (2): echo, add</span></div>',
+		);
+		expect(card).toContain(
+			'<div role="status" class="mete-mcp-answer"><span class="mete-endpoint-result bad"><span aria-hidden="true" class="codicon codicon-close"></span>io</span><span>MCP server remote: sign in</span></div>',
+		);
+		expect(card).toContain(
+			"METE has not loaded later: no MCP server later in mcp.yaml.",
+		);
+		expect(card).toContain(
+			'aria-labelledby="mete-mcp-3-test mete-mcp-3-id" disabled=""><span aria-hidden="true" class="codicon codicon-loading codicon-modifier-spin"></span>Testing…</button>',
+		);
+		// A card without an id has nothing to test yet.
+		expect(card).toContain(
+			'aria-labelledby="mete-mcp-4-test mete-mcp-4-id" disabled=""><span aria-hidden="true" class="codicon codicon-beaker"></span>Test</button>',
+		);
+		// Without a Test (no daemon yet) the card has no button and no hint.
+		const bare = withMcp([server({ id: "demo" })]);
+		expect(bare).not.toContain("mete-mcp-test");
+		expect(bare).not.toContain("Test connects");
+	});
 
 	it("shows a local server's command, arguments, environment and permissions", () => {
 		const out = withMcp([
