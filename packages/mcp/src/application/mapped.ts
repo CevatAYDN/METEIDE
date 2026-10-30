@@ -80,7 +80,6 @@ const callTool = async (
 		const r = await deps.sessions.calls.during(t.mapping.server, ctx, () =>
 			s.value.client.callTool(
 				{ name: t.entry.tool, arguments: args as Record<string, unknown> },
-				undefined,
 				options,
 			),
 		);

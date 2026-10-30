@@ -57,7 +57,7 @@ export const signIn = async (
 	const code = flow.codeFrom(pasted);
 	if (!code.ok) return err(failed(server, code.error));
 	try {
-		await opened.finishAuth?.(code.value);
+		await opened.finishAuth?.(code.value.code, code.value.iss);
 		return ok(undefined);
 	} catch (e) {
 		return err(failed(server, e instanceof Error ? e.message : String(e)));

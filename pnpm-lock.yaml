@@ -330,6 +330,12 @@ importers:
       '@mete/kernel':
         specifier: workspace:*
         version: link:../kernel
+      '@modelcontextprotocol/client':
+        specifier: 2.3.1
+        version: 2.3.1
+      '@modelcontextprotocol/core':
+        specifier: 2.3.1
+        version: 2.3.1
       '@modelcontextprotocol/sdk':
         specifier: 1.32.1
         version: 1.32.1(supports-color@8.1.1)(zod@4.6.7)
@@ -346,9 +352,6 @@ importers:
       '@mete/testing':
         specifier: workspace:*
         version: link:../testing
-      '@modelcontextprotocol/client':
-        specifier: 2.3.1
-        version: 2.3.1
 
   packages/providers:
     dependencies:

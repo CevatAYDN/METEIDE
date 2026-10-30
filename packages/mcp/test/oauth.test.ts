@@ -5,8 +5,10 @@ import {
 	ok,
 	type SecretStore,
 } from "@mete/contracts";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import {
+	McpServer,
+	WebStandardStreamableHTTPServerTransport,
+} from "@modelcontextprotocol/server";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { createMcpClientModule, type McpClientOptions } from "../src/module.js";
@@ -43,7 +45,10 @@ const remoteServer = async () => {
 		const mcp = new McpServer({ name: "remote", version: "1.0.0" });
 		mcp.registerTool(
 			"echo",
-			{ description: "Echoes", inputSchema: { text: z.string() } },
+			{
+				description: "Echoes",
+				inputSchema: z.object({ text: z.string() }),
+			},
 			async ({ text }) => ({ content: [{ type: "text", text }] }),
 		);
 		const transport = new WebStandardStreamableHTTPServerTransport({
@@ -54,6 +59,8 @@ const remoteServer = async () => {
 		return transport;
 	};
 	const seen = { registered: 0, tokens: 0, refreshes: 0 };
+	// What the client registered as: the spec asks a native client to say so (ADR-163).
+	const registration: { application_type?: unknown } = {};
 	// The one access token the server accepts; `expire` makes the one it handed out stop working.
 	const accepted = { token: TOKEN };
 	const metadata = (pathname: string) => {
@@ -94,7 +101,9 @@ const remoteServer = async () => {
 	const oauth = async (req: Request, pathname: string) => {
 		if (pathname === "/register") {
 			seen.registered += 1;
-			return json({ ...(await req.json()), client_id: "client-1" }, 201);
+			const body = await req.json();
+			registration.application_type = body.application_type;
+			return json({ ...body, client_id: "client-1" }, 201);
 		}
 		if (pathname !== "/token") return undefined;
 		seen.tokens += 1;
@@ -126,6 +135,7 @@ const remoteServer = async () => {
 	return {
 		fetch: fetchFake,
 		seen,
+		registration,
 		expire: () => {
 			accepted.token = "expired";
 		},
@@ -159,10 +169,17 @@ const savedTokens = async (secrets: SecretStore) => {
 		.parse(JSON.parse(text));
 };
 
-// What the browser lands on after the user allows access: the code, and the state the sign-in sent.
-const landing = (authUrl: string, code = "good-code", state?: string) => {
+// What the browser lands on after the user allows access: the code, the state the sign-in sent and,
+// from a server that names itself (RFC 9207), its issuer.
+const landing = (
+	authUrl: string,
+	code = "good-code",
+	state?: string,
+	iss?: string,
+) => {
 	const sent = new URL(authUrl).searchParams.get("state") ?? "";
-	return `http://127.0.0.1/callback?code=${code}&state=${state ?? sent}`;
+	const named = iss ? `&iss=${encodeURIComponent(iss)}` : "";
+	return `http://127.0.0.1/callback?code=${code}&state=${state ?? sent}${named}`;
 };
 
 const start = async (
@@ -212,6 +229,7 @@ describe("mcp-client OAuth", () => {
 		expect(sent.get("client_id")).toBe("client-1");
 		expect(sent.get("code_challenge_method")).toBe("S256");
 		expect(sent.get("redirect_uri")).toBe("http://127.0.0.1/callback");
+		expect(server.registration.application_type).toBe("native");
 		// The token is longer than one keychain entry, so it is stored in numbered pieces.
 		const names = secrets.names();
 		expect(names).toContain(`mcp/${BASE}/client`);
@@ -270,6 +288,22 @@ describe("mcp-client OAuth", () => {
 		});
 		expect(await bare.echo()).toMatch(/whole address/);
 		await bare.module.deactivate();
+	});
+
+	it("takes the code only from the issuer it signs in to, when the address names one", async () => {
+		const mixed = await remoteServer();
+		const other = await start(mixed, memorySecrets(), {
+			authorize: async (_id, url) =>
+				landing(url, "good-code", undefined, "https://evil.example"),
+		});
+		expect(await other.echo()).toMatch(/issuer/i);
+		expect(mixed.seen.tokens).toBe(0);
+		await other.module.deactivate();
+		const named = await start(await remoteServer(), memorySecrets(), {
+			authorize: async (_id, url) => landing(url, "good-code", undefined, BASE),
+		});
+		expect(await named.echo()).toBe("hi");
+		await named.module.deactivate();
 	});
 
 	it("says to sign in once in a terminal when there is neither a host nor saved tokens", async () => {

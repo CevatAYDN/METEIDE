@@ -3,7 +3,7 @@ import type {
 	CreateMessageRequestParams,
 	ModelPreferences,
 	SamplingMessage,
-} from "@modelcontextprotocol/sdk/types.js";
+} from "@modelcontextprotocol/client";
 import { SAMPLING_PRIORITY_HIGH } from "../defaults.js";
 
 // What a server's sampling request becomes for llm.chat@2 (docs/10, MCP client).

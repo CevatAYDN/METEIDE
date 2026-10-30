@@ -3,7 +3,7 @@
 export type {
 	ElicitRequestFormParams,
 	ElicitResult,
-} from "@modelcontextprotocol/sdk/types.js";
+} from "@modelcontextprotocol/client";
 export type { Transport } from "@modelcontextprotocol/server";
 export type { RunHistory } from "./application/mete-tools.js";
 export { officialInstall } from "./application/registry-add.js";

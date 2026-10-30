@@ -1,10 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { err, ok, type Result, type SecretStore } from "@mete/contracts";
-import type { OAuthClientProvider } from "@modelcontextprotocol/sdk/client/auth.js";
+import type {
+	OAuthClientProvider,
+	OAuthDiscoveryState,
+} from "@modelcontextprotocol/client";
 import {
 	OAuthClientInformationSchema,
 	OAuthTokensSchema,
-} from "@modelcontextprotocol/sdk/shared/auth.js";
+} from "@modelcontextprotocol/core";
 import type { z } from "zod";
 
 // OAuth for a remote MCP server (docs/10, MCP client, Authentication): the SDK's provider over the
@@ -14,18 +17,21 @@ import type { z } from "zod";
 /** The redirect address registered for every server; the browser shows a connection error there. */
 export const REDIRECT_URL = "http://127.0.0.1/callback";
 
+/** The code the browser came back with, and the issuer it names, which the SDK checks (RFC 9207, ADR-163). */
+export type Callback = { readonly code: string; readonly iss?: string };
+
 /** A sign-in in progress: the provider the transport asks, the address it wants opened, and the check of the pasted one. */
 export type SignInFlow = {
 	readonly provider: OAuthClientProvider;
 	readonly url: () => URL | undefined;
-	readonly codeFrom: (pasted: string) => Result<string, string>;
+	readonly codeFrom: (pasted: string) => Result<Callback, string>;
 };
 
 /** The authorization code in the address the browser landed on, if it belongs to the sign-in with `state`. */
 export const codeFromAddress = (
 	pasted: string,
 	state: string,
-): Result<string, string> => {
+): Result<Callback, string> => {
 	let address: URL;
 	try {
 		address = new URL(pasted.trim());
@@ -38,7 +44,9 @@ export const codeFromAddress = (
 	const refused = params.get("error");
 	if (refused) return err(`the server refused the sign-in: ${refused}`);
 	const code = params.get("code");
-	return code ? ok(code) : err("that address carries no code");
+	if (!code) return err("that address carries no code");
+	const iss = params.get("iss");
+	return ok(iss ? { code, iss } : { code });
 };
 
 // One keychain entry per resource server, not per mcp.yaml id: tokens belong to the server,
@@ -99,6 +107,16 @@ const read = async <T>(
 	}
 };
 
+// How METE registers: a native public client with PKCE, at the fixed redirect address (ADR-163).
+const CLIENT: OAuthClientProvider["clientMetadata"] = {
+	client_name: "METE",
+	application_type: "native",
+	redirect_uris: [REDIRECT_URL],
+	grant_types: ["authorization_code", "refresh_token"],
+	response_types: ["code"],
+	token_endpoint_auth_method: "none",
+};
+
 /**
  * The sign-in of one resource server: a public client with PKCE, registered dynamically.
  * Tokens and the client are read from the keychain once and written through when they change.
@@ -113,18 +131,14 @@ export const oauthSignIn = (
 		client: entry(resource.origin, "client"),
 	};
 	let verifier = "";
+	// Kept beside the verifier: the SDK checks the callback's issuer against the one it found (ADR-163).
+	let discovery: OAuthDiscoveryState | undefined;
 	let pending: URL | undefined;
 	let tokens: z.infer<typeof OAuthTokensSchema> | undefined;
 	let client: z.infer<typeof OAuthClientInformationSchema> | undefined;
 	const provider: OAuthClientProvider = {
 		redirectUrl: REDIRECT_URL,
-		clientMetadata: {
-			client_name: "METE",
-			redirect_uris: [REDIRECT_URL],
-			grant_types: ["authorization_code", "refresh_token"],
-			response_types: ["code"],
-			token_endpoint_auth_method: "none",
-		},
+		clientMetadata: CLIENT,
 		state: () => state,
 		clientInformation: async () =>
 			(client ??= await read(
@@ -149,6 +163,10 @@ export const oauthSignIn = (
 			verifier = v;
 		},
 		codeVerifier: () => verifier,
+		saveDiscoveryState: (found) => {
+			discovery = found;
+		},
+		discoveryState: () => discovery,
 	};
 	return {
 		provider,

@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { McpContent } from "@mete/contracts";
-import type { ContentBlock } from "@modelcontextprotocol/sdk/types.js";
+import type { ContentBlock } from "@modelcontextprotocol/client";
 import { type AssetSink, saveAsset } from "../infrastructure/assets.js";
 
 // A tool result's content blocks as McpContent (docs/10, content types). Images are saved and

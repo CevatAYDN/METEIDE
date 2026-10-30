@@ -1,9 +1,11 @@
 import type { McpServer } from "@mete/contracts";
-import type { OAuthClientProvider } from "@modelcontextprotocol/sdk/client/auth.js";
-import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import {
+	type OAuthClientProvider,
+	SSEClientTransport,
+	StreamableHTTPClientTransport,
+	type Transport,
+} from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { STDERR_TAIL_CHARS } from "../defaults.js";
 
 // Transports of docs/10 (MCP client): stdio, Streamable HTTP and legacy SSE.
@@ -12,8 +14,8 @@ import { STDERR_TAIL_CHARS } from "../defaults.js";
 export type Opened = {
 	readonly transport: Transport;
 	readonly stderr: () => string;
-	/** Remote transports only: exchanges the authorization code for tokens, so the next connection is signed in. */
-	readonly finishAuth?: (code: string) => Promise<void>;
+	/** Remote transports only: exchanges the authorization code for tokens, so the next connection is signed in; the SDK checks `iss` against the server's issuer (RFC 9207). */
+	readonly finishAuth?: (code: string, iss?: string) => Promise<void>;
 };
 
 /** What a transport is opened with: a fake fetch for remote servers, the folder a stdio server starts in, an OAuth provider. */
@@ -57,10 +59,9 @@ export const openTransport: OpenTransport = (server, opts = {}) => {
 		server.transport === "sse"
 			? new SSEClientTransport(url, more)
 			: new StreamableHTTPClientTransport(url, more);
-	// The SDK types `sessionId?: string` without exactOptionalPropertyTypes; the value is the same.
 	return {
-		transport: transport as Transport,
+		transport,
 		stderr: () => "",
-		finishAuth: (code) => transport.finishAuth(code),
+		finishAuth: (code, iss) => transport.finishAuth(code, iss),
 	};
 };

@@ -11,7 +11,6 @@ import {
 	type ToolError,
 } from "@mete/contracts";
 import type { Logger } from "@mete/kernel";
-import type { ContentBlock } from "@modelcontextprotocol/sdk/types.js";
 import { toContent } from "./content.js";
 import { permit } from "./permit.js";
 import type { Session, Sessions } from "./sessions.js";
@@ -99,19 +98,14 @@ const invoke = async (
 		const r = await deps.sessions.calls.during(input.server, ctx, () =>
 			session.client.callTool(
 				{ name: input.tool, arguments: input.args },
-				undefined,
 				options,
 			),
 		);
-		// A server on the old protocol answers with toolResult instead of content.
-		const blocks = (r.content ?? [
-			{ type: "text", text: JSON.stringify(r.toolResult) },
-		]) as ContentBlock[];
 		const { server, tool } = input;
 		const origin = { server, tool, ...(ctx.runId ? { runId: ctx.runId } : {}) };
 		const content = await toContent(
 			{ workspaceDir: deps.workspaceDir, origin },
-			blocks,
+			r.content,
 		);
 		return ok({ content, isError: r.isError === true });
 	} catch (e) {

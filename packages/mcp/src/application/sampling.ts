@@ -5,12 +5,10 @@ import type {
 	PolicyCheckAdapter,
 	ToolContext,
 } from "@mete/contracts";
-import {
-	type CreateMessageRequestParams,
-	type CreateMessageResult,
-	ErrorCode,
-	McpError,
-} from "@modelcontextprotocol/sdk/types.js";
+import type {
+	CreateMessageRequestParams,
+	CreateMessageResult,
+} from "@modelcontextprotocol/client";
 import { SAMPLING_PRIORITY } from "../defaults.js";
 import { messagesOf, samplingRefusal, tierOf } from "../domain/sampling.js";
 import { permit } from "./permit.js";
@@ -26,7 +24,7 @@ export type Confirm = (
 	signal: AbortSignal,
 ) => Promise<boolean>;
 
-/** Answers one sampling request of `server`; a refusal is thrown as an McpError, so the server sees it. */
+/** Answers one sampling request of `server`; a refusal is thrown with its JSON-RPC code, so the server sees it. */
 export type Sample = (
 	server: string,
 	params: CreateMessageRequestParams,
@@ -41,11 +39,15 @@ export type SamplingDeps = {
 	readonly current: (server: string) => ToolContext | undefined;
 };
 
-// The code of the MCP specification for a user who rejected a sampling request.
+// The code of the MCP specification for a user who rejected a sampling request, and JSON-RPC's.
 const USER_REJECTED = -1;
+const INVALID_REQUEST = -32600;
+const INTERNAL_ERROR = -32603;
 
-const refuse = (message: string, code: number = ErrorCode.InvalidRequest) =>
-	new McpError(code, message);
+// The SDK answers a handler's error with its numeric `code` (ADR-163), so no SDK class loads with the
+// module: the client's graph waits for the first connection (docs/15, cold start).
+const refuse = (message: string, code = INVALID_REQUEST) =>
+	Object.assign(new Error(message), { code });
 
 const request = (
 	p: CreateMessageRequestParams,
@@ -67,10 +69,7 @@ const hear = (heard: Heard, c: LlmChunk) => {
 	else if (c.type === "model") heard.model = `${c.providerId}/${c.modelId}`;
 	else if (c.type === "finish") heard.reason = c.reason;
 	else if (c.type === "error")
-		throw refuse(
-			`the model call failed: ${c.error.message}`,
-			ErrorCode.InternalError,
-		);
+		throw refuse(`the model call failed: ${c.error.message}`, INTERNAL_ERROR);
 };
 
 const answer = async (
@@ -80,7 +79,7 @@ const answer = async (
 ): Promise<CreateMessageResult> => {
 	const heard: Heard = { text: "", model: "", reason: "stop" };
 	for await (const c of chat.chat(req, signal)) hear(heard, c);
-	if (!heard.model) throw refuse("no model answered", ErrorCode.InternalError);
+	if (!heard.model) throw refuse("no model answered", INTERNAL_ERROR);
 	return {
 		role: "assistant",
 		content: { type: "text", text: heard.text },

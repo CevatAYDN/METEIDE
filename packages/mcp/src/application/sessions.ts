@@ -12,14 +12,14 @@ import {
 	type ToolError,
 } from "@mete/contracts";
 import type { Logger } from "@mete/kernel";
-import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type {
+	Client,
 	ElicitRequestFormParams,
 	ElicitResult,
 	ListChangedCallback,
 	Progress,
 	Tool,
-} from "@modelcontextprotocol/sdk/types.js";
+} from "@modelcontextprotocol/client";
 import { PROGRESS_EVERY_MS } from "../defaults.js";
 import { oauthSignIn, type SignInFlow } from "../infrastructure/oauth.js";
 import type { Opened, OpenTransport } from "../infrastructure/transport.js";
@@ -33,28 +33,11 @@ import { type Authorize, signIn } from "./sign-in.js";
 // The SDK client loads on the first connection, not with the package: a `mete status` run talks to
 // no server, and the client's graph is the largest this package would otherwise read at start
 // (docs/15, cold start).
-type ClientSdk = {
-	readonly Client: typeof import("@modelcontextprotocol/sdk/client/index.js").Client;
-	readonly UnauthorizedError: typeof import("@modelcontextprotocol/sdk/client/auth.js").UnauthorizedError;
-	readonly ListRootsRequestSchema: typeof import("@modelcontextprotocol/sdk/types.js").ListRootsRequestSchema;
-	readonly CreateMessageRequestSchema: typeof import("@modelcontextprotocol/sdk/types.js").CreateMessageRequestSchema;
-	readonly ElicitRequestSchema: typeof import("@modelcontextprotocol/sdk/types.js").ElicitRequestSchema;
-};
+type ClientSdk = typeof import("@modelcontextprotocol/client");
 
 let loading: Promise<ClientSdk> | undefined;
 
-const clientSdk = () =>
-	(loading ??= Promise.all([
-		import("@modelcontextprotocol/sdk/client/index.js"),
-		import("@modelcontextprotocol/sdk/client/auth.js"),
-		import("@modelcontextprotocol/sdk/types.js"),
-	]).then(([client, auth, types]) => ({
-		Client: client.Client,
-		UnauthorizedError: auth.UnauthorizedError,
-		ListRootsRequestSchema: types.ListRootsRequestSchema,
-		CreateMessageRequestSchema: types.CreateMessageRequestSchema,
-		ElicitRequestSchema: types.ElicitRequestSchema,
-	})));
+const clientSdk = () => (loading ??= import("@modelcontextprotocol/client"));
 
 /** A connected server and the tools it listed when it connected. */
 export type Session = {
@@ -156,12 +139,7 @@ const newClient = (
 	deps: SessionDeps,
 	server: McpServer,
 	state: { tools: readonly Tool[] },
-	{
-		Client,
-		ListRootsRequestSchema,
-		CreateMessageRequestSchema,
-		ElicitRequestSchema,
-	}: ClientSdk,
+	{ Client }: ClientSdk,
 ) => {
 	const { elicit, sample } = deps;
 	const client = new Client(
@@ -183,16 +161,16 @@ const newClient = (
 		uri: pathToFileURL(deps.workspaceDir).href,
 		name: "workspace",
 	};
-	client.setRequestHandler(ListRootsRequestSchema, () => ({ roots: [root] }));
+	client.setRequestHandler("roots/list", () => ({ roots: [root] }));
 	if (sample)
-		client.setRequestHandler(CreateMessageRequestSchema, ({ params }, extra) =>
-			sample(server.id, params, extra.signal),
+		client.setRequestHandler("sampling/createMessage", ({ params }, ctx) =>
+			sample(server.id, params, ctx.mcpReq.signal),
 		);
 	if (elicit)
-		client.setRequestHandler(ElicitRequestSchema, ({ params }, extra) =>
+		client.setRequestHandler("elicitation/create", ({ params }, ctx) =>
 			params.mode === "url"
 				? { action: "decline" }
-				: elicit(server.id, params, extra.signal),
+				: elicit(server.id, params, ctx.mcpReq.signal),
 		);
 	return client;
 };
