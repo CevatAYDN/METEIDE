@@ -2,13 +2,15 @@ import { z } from "zod";
 import { ApprovalInputSchema, RunPreferSchema } from "./engine.js";
 import { type MeteEvent, MeteEventSchema } from "./events.js";
 import { CapabilityRefSchema, IdSchema, TimestampSchema } from "./ids.js";
+import { NoteTypeSchema } from "./knowledge.js";
 import { ModelRefSchema, NeedSchema, TierSchema } from "./llm.js";
 import { PolicyActionSchema, PolicyVerdictSchema } from "./policy.js";
 import { ModelInfoSchema } from "./provider.js";
 import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
+import { VaultScopeSchema } from "./vault.js";
 
-// Daemon protocol v25 (ARCHITECTURE.md, ADR-045..ADR-155); mete/event checked with MeteEventSchema.
+// Daemon protocol v26 (ARCHITECTURE.md, ADR-045..ADR-159); mete/event checked with MeteEventSchema.
 const text = z.string().min(1);
 
 /** The messages of version 24; the params of mete/run.start are RunStartSchema (engine.ts). */
@@ -36,6 +38,7 @@ export const DAEMON_METHODS = {
 	providerTest: "mete/provider.test",
 	models: "mete/models",
 	memberDraft: "mete/member.draft",
+	knowledgeSearch: "mete/knowledge.search",
 	event: "mete/event",
 } as const;
 
@@ -278,6 +281,28 @@ export const DaemonMemberDraftResultSchema = z.strictObject({
 export type DaemonMemberDraftResult = z.infer<
 	typeof DaemonMemberDraftResultSchema
 >;
+
+/** Params of `mete/knowledge.search` (ADR-159): the words to look for and a note type to keep. */
+export const DaemonKnowledgeSearchParamsSchema = z.strictObject({
+	query: z.string().trim().min(1),
+	type: NoteTypeSchema.optional(),
+});
+
+/** One hit of `mete/knowledge.search`, as knowledge.search@1 gives it (docs/11, Hybrid search). */
+export const KnowledgeHitSchema = z.strictObject({
+	path: text,
+	scope: VaultScopeSchema,
+	type: NoteTypeSchema,
+	title: text,
+	heading: text.optional(),
+	snippet: z.string(),
+	sources: z.object({ keyword: z.number().int().positive().optional() }),
+});
+
+/** What `mete/knowledge.search` answers: the workspace vault's hits, best first. */
+export const DaemonKnowledgeSearchResultSchema = z.strictObject({
+	results: z.array(KnowledgeHitSchema),
+});
 
 /** How a changed file stands, from `vcs.git@2`'s porcelain letters (ADR-100). */
 export const ChangedFileSchema = z.strictObject({

@@ -17,6 +17,8 @@ import {
 	DaemonEstimateParamsSchema,
 	DaemonEstimateResultSchema,
 	DaemonEventsResultSchema,
+	DaemonKnowledgeSearchParamsSchema,
+	DaemonKnowledgeSearchResultSchema,
 	DaemonModelsParamsSchema,
 	DaemonModelsResultSchema,
 	DaemonQuotaResultSchema,
@@ -189,8 +191,41 @@ describe("daemon protocol version 24", () => {
 			providerTest: "mete/provider.test",
 			models: "mete/models",
 			memberDraft: "mete/member.draft",
+			knowledgeSearch: "mete/knowledge.search",
 			event: "mete/event",
 		});
+	});
+
+	it("takes the words and an optional note type for mete/knowledge.search, and reads its hits (ADR-159)", () => {
+		expect(
+			DaemonKnowledgeSearchParamsSchema.parse({
+				query: " build ",
+				type: "lesson",
+			}),
+		).toEqual({ query: "build", type: "lesson" });
+		for (const bad of [{}, { query: "  " }, { query: "x", type: "recipe" }])
+			expect(DaemonKnowledgeSearchParamsSchema.safeParse(bad).success).toBe(
+				false,
+			);
+		const hit = {
+			path: "lessons/a.md",
+			scope: "workspace",
+			type: "lesson",
+			title: "A",
+			heading: "Why",
+			snippet: "the build failed",
+			sources: { keyword: 1 },
+		};
+		expect(DaemonKnowledgeSearchResultSchema.parse({ results: [hit] })).toEqual(
+			{
+				results: [hit],
+			},
+		);
+		expect(
+			DaemonKnowledgeSearchResultSchema.safeParse({
+				results: [{ ...hit, type: "recipe" }],
+			}).success,
+		).toBe(false);
 	});
 
 	it("takes the file whose diff to include for mete/changes", () => {

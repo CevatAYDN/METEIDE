@@ -49,6 +49,8 @@ export {
 	DaemonEstimateParamsSchema,
 	DaemonEstimateResultSchema,
 	DaemonEventsResultSchema,
+	DaemonKnowledgeSearchParamsSchema,
+	DaemonKnowledgeSearchResultSchema,
 	DaemonMemberDraftParamsSchema,
 	type DaemonMemberDraftResult,
 	DaemonMemberDraftResultSchema,
