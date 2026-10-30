@@ -246,7 +246,7 @@
 			"title": "Kota",
 			"unit": "Birim",
 			"units": "Kota birimleri",
-			"unusable": "{0}: modellerinden hiçbiri burada kullanılamıyor (gizlilik kuralları onları dışarıda bırakabilir: privacy.yaml içindeki allowTraining; model modu bırakabilir: gateway.yaml içindeki models; ya da anahtarı reddedildi)",
+			"unusable": "{0}: modellerinden hiçbiri burada kullanılamıyor. Model listesi alınamadı ya da anahtarı reddedildi: bir uç noktada hangisi olduğunu Ayarlar, Modeller ve anahtarlar içindeki Test et… söyler, değilse günlük söyler. Ya da gizlilik kuralları onları dışarıda bırakıyor (privacy.yaml içindeki allowTraining) ya da model modu bırakıyor (gateway.yaml içindeki models)",
 			"used": "Kullanılan",
 			"noKeyCustom": "{0}: anahtar yok (Ayarlar, uç nokta kartı, Anahtarı kaydet)"
 		},

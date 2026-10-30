@@ -43,7 +43,7 @@ const STATE: {
 	unusable: (id) =>
 		nls.localize(
 			"mete/quota/unusable",
-			"{0}: none of its models can be used here (the privacy rules may leave them out: allowTraining in privacy.yaml; the model mode may: models in gateway.yaml; or its key was refused)",
+			"{0}: none of its models can be used here. Its model list did not load or its key was refused: for an endpoint, Test… in Settings, Models and keys, says which, else the log does. Or the privacy rules leave them out (allowTraining in privacy.yaml), or the model mode does (models in gateway.yaml)",
 			id,
 		),
 };
