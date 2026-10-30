@@ -168,6 +168,39 @@ describe("parseEvent", () => {
 		).toBe(false);
 	});
 
+	it("takes the attempt an agent works, k of n with n at least 2, or none (ADR-162)", () => {
+		const agent = { roleId: "dev", providerId: "groq", modelId: "m" };
+		const created = (attempt: unknown) =>
+			parseEvent(envelope("agent.created", { ...agent, attempt })).ok;
+		expect(created({ k: 1, n: 2 })).toBe(true);
+		expect(created({ k: 3, n: 3 })).toBe(true);
+		for (const bad of [
+			{ k: 0, n: 2 },
+			{ k: 3, n: 2 },
+			{ k: 1, n: 1 },
+			{ k: 1.5, n: 2 },
+			{ k: 1 },
+		])
+			expect(created(bad)).toBe(false);
+	});
+
+	it("says which attempt goes on, chosen by the checks or a judge's words (ADR-162)", () => {
+		const chosen = (payload: unknown) =>
+			parseEvent(envelope("task.attempt.chosen", payload)).ok;
+		expect(chosen({ attempt: 2, of: 3, by: "checks" })).toBe(true);
+		expect(
+			chosen({ attempt: 1, of: 2, by: "judge", reason: "smaller diff" }),
+		).toBe(true);
+		for (const bad of [
+			{ attempt: 3, of: 2, by: "checks" },
+			{ attempt: 1, of: 1, by: "checks" },
+			{ attempt: 1, of: 2, by: "human" },
+			{ attempt: 1, of: 2, by: "judge", reason: "" },
+			{ attempt: 1, of: 2 },
+		])
+			expect(chosen(bad)).toBe(false);
+	});
+
 	it("ends a model call with or without its usage, in whole tokens (ADR-090)", () => {
 		expect(parseEvent(envelope("agent.thinking.ended", {})).ok).toBe(true);
 		const usage = { prompt: 61_000, completion: 900 };
@@ -202,8 +235,8 @@ describe("parseEvent", () => {
 });
 
 describe("EVENT_TYPES", () => {
-	it("covers the 45 types of the catalog in tab 07, all well formed", () => {
-		expect(EVENT_TYPES).toHaveLength(45);
+	it("covers the 46 types of the catalog in tab 07, all well formed", () => {
+		expect(EVENT_TYPES).toHaveLength(46);
 		for (const t of EVENT_TYPES) expect(EventTypeSchema.parse(t)).toBe(t);
 	});
 });

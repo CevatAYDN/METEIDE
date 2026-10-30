@@ -46,6 +46,12 @@ const approvalRequest = approval.extend({
 	files: z.array(text).optional(),
 });
 const quotaUnit = { providerId: text, unit: QuotaUnitSchema };
+// Attempt k of a best-of-N task's n (ADR-162); a task of one attempt names none.
+const nth = z.number().int().positive();
+const of = z.number().int().min(2);
+const attempt = z
+	.strictObject({ k: nth, n: of })
+	.refine((a) => a.k <= a.n, "k is at most n");
 const moduleChange = z.strictObject({
 	moduleId: ModuleIdSchema,
 	reason: z.string().optional(),
@@ -90,12 +96,23 @@ const PAYLOADS = {
 		toRoleId: text,
 		question: text,
 	}),
+	// Which attempt of a best-of-N task goes on, chosen by its checks or by a judge's words (ADR-162).
+	"task.attempt.chosen": z
+		.strictObject({
+			attempt: nth,
+			of,
+			by: z.enum(["checks", "judge"]),
+			reason: text.optional(),
+		})
+		.refine((c) => c.attempt <= c.of, "attempt is at most of"),
 	"agent.created": z.strictObject({
 		roleId: text,
 		providerId: text,
 		modelId: text,
 		/** The role's tier, for the Studio card (ADR-077). */
 		tier: TierSchema.optional(),
+		/** The attempt of a best-of-N task this agent works (ADR-162). */
+		attempt: attempt.optional(),
 	}),
 	"agent.model.changed": z.strictObject({
 		from: model,
