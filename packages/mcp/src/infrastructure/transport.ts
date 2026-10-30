@@ -1,14 +1,12 @@
 import type { McpServer } from "@mete/contracts";
-import {
-	type OAuthClientProvider,
-	SSEClientTransport,
-	StreamableHTTPClientTransport,
-	type Transport,
+import type {
+	OAuthClientProvider,
+	Transport,
 } from "@modelcontextprotocol/client";
-import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { STDERR_TAIL_CHARS } from "../defaults.js";
 
-// Transports of docs/10 (MCP client): stdio, Streamable HTTP and legacy SSE.
+// Transports of docs/10 (MCP client): stdio, Streamable HTTP and legacy SSE. The SDK loads on the
+// first connection, not when a command starts (docs/15, CLI cold start).
 
 /** A server's transport, the tail of what it wrote to stderr for error messages, and how to finish a sign-in. */
 export type Opened = {
@@ -26,12 +24,18 @@ export type OpenOptions = {
 };
 
 /** Opens one configured server; tests swap it. */
-export type OpenTransport = (server: McpServer, opts?: OpenOptions) => Opened;
+export type OpenTransport = (
+	server: McpServer,
+	opts?: OpenOptions,
+) => Opened | Promise<Opened>;
 
-const stdio = (
+const stdio = async (
 	server: Extract<McpServer, { transport: "stdio" }>,
 	cwd?: string,
-): Opened => {
+): Promise<Opened> => {
+	const { StdioClientTransport } = await import(
+		"@modelcontextprotocol/client/stdio"
+	);
 	const transport = new StdioClientTransport({
 		command: server.command,
 		args: [...server.args],
@@ -47,8 +51,11 @@ const stdio = (
 };
 
 /** The SDK transport for a server's `transport` setting. */
-export const openTransport: OpenTransport = (server, opts = {}) => {
+export const openTransport: OpenTransport = async (server, opts = {}) => {
 	if (server.transport === "stdio") return stdio(server, opts.cwd);
+	const { SSEClientTransport, StreamableHTTPClientTransport } = await import(
+		"@modelcontextprotocol/client"
+	);
 	const url = new URL(server.url);
 	const more = {
 		...(opts.fetch ? { fetch: opts.fetch } : {}),

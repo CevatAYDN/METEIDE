@@ -30,9 +30,8 @@ import { type Authorize, type SignInMemory, signIn } from "./sign-in.js";
 // One connection per configured server, opened on first use so a run pays only for the
 // servers it calls; a closed connection is dropped and the next call reconnects (docs/10).
 
-// The SDK client is imported on the first connection, but transport.ts already loads the same
-// `@modelcontextprotocol/client` entry at start: SDK v2 has no subpath for its HTTP transports
-// (ADR-163, docs/15 cold start).
+// The SDK client is imported on the first connection, as transport.ts imports the transports, so a
+// command that calls no server never loads the SDK (ADR-163, docs/15 cold start).
 type ClientSdk = typeof import("@modelcontextprotocol/client");
 
 let loading: Promise<ClientSdk> | undefined;
@@ -211,7 +210,7 @@ const attempt = async (
 ): Promise<Tried> => {
 	const ready = await withRuntime(deps, server, signal);
 	if (!ready.ok) return { result: ready };
-	const opened = deps.open(ready.value, {
+	const opened = await deps.open(ready.value, {
 		cwd: deps.workspaceDir,
 		...(deps.fetch ? { fetch: deps.fetch } : {}),
 		...(flow ? { auth: flow.provider } : {}),

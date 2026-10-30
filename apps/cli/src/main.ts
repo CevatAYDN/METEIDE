@@ -187,8 +187,8 @@ const inFolder = (opts: AppOptions, folder?: string) => ({
 // The lock and recovery as for mete run: this process drives the runs it starts until the host leaves.
 const mcp = (opts: AppOptions, io: Io, serve: Serve, folder?: string) => {
 	const at = inFolder(opts, folder);
-	return locked(at, io, () => {
-		const { transport, closed } = serve();
+	return locked(at, io, async () => {
+		const { transport, closed } = await serve();
 		return withApp({ ...at, serve: transport }, io, (a) =>
 			mcpCommand(a, io, at.workspaceDir, closed),
 		);
@@ -292,7 +292,8 @@ const usage = (io: Io, asked = false) => {
 	return asked ? 0 : 1;
 };
 
-type Serve = () => { transport: Transport; closed: Promise<void> };
+type Served = { transport: Transport; closed: Promise<void> };
+type Serve = () => Served | Promise<Served>;
 
 // The two ways a command talks to another program instead of the terminal.
 type Ends = { readonly serve: Serve; readonly daemon: () => DaemonStreams };

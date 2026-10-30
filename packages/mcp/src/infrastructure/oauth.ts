@@ -4,7 +4,7 @@ import type {
 	OAuthClientProvider,
 	OAuthDiscoveryState,
 } from "@modelcontextprotocol/client";
-import {
+import type {
 	OAuthClientInformationSchema,
 	OAuthTokensSchema,
 } from "@modelcontextprotocol/core";
@@ -92,6 +92,9 @@ const readText = async (secrets: SecretStore, name: string) => {
 	return text;
 };
 
+// The SDK's schemas load with the first keychain read, not when a command starts (docs/15, CLI cold start).
+const schemas = () => import("@modelcontextprotocol/core");
+
 const read = async <T>(
 	secrets: SecretStore,
 	name: string,
@@ -117,6 +120,43 @@ const CLIENT: OAuthClientProvider["clientMetadata"] = {
 	token_endpoint_auth_method: "none",
 };
 
+type Saved = Pick<
+	OAuthClientProvider,
+	"clientInformation" | "saveClientInformation" | "tokens" | "saveTokens"
+>;
+
+// The tokens and the client of one origin, read from the keychain once and written through when they change.
+const saved = (secrets: SecretStore, origin: string): Saved => {
+	const names = {
+		tokens: entry(origin, "tokens"),
+		client: entry(origin, "client"),
+	};
+	let tokens: z.infer<typeof OAuthTokensSchema> | undefined;
+	let client: z.infer<typeof OAuthClientInformationSchema> | undefined;
+	return {
+		clientInformation: async () =>
+			(client ??= await read(
+				secrets,
+				names.client,
+				(await schemas()).OAuthClientInformationSchema,
+			)),
+		saveClientInformation: async (info) => {
+			client = info;
+			await write(secrets, names.client, info);
+		},
+		tokens: async () =>
+			(tokens ??= await read(
+				secrets,
+				names.tokens,
+				(await schemas()).OAuthTokensSchema,
+			)),
+		saveTokens: async (next) => {
+			tokens = next;
+			await write(secrets, names.tokens, next);
+		},
+	};
+};
+
 /**
  * The sign-in of one resource server: a public client with PKCE, registered dynamically.
  * Tokens and the client are read from the keychain once and written through when they change.
@@ -126,36 +166,15 @@ export const oauthSignIn = (
 	resource: URL,
 ): SignInFlow => {
 	const state = randomUUID();
-	const names = {
-		tokens: entry(resource.origin, "tokens"),
-		client: entry(resource.origin, "client"),
-	};
 	let verifier = "";
 	// Kept beside the verifier: the SDK checks the callback's issuer against the one it found (ADR-163).
 	let discovery: OAuthDiscoveryState | undefined;
 	let pending: URL | undefined;
-	let tokens: z.infer<typeof OAuthTokensSchema> | undefined;
-	let client: z.infer<typeof OAuthClientInformationSchema> | undefined;
 	const provider: OAuthClientProvider = {
 		redirectUrl: REDIRECT_URL,
 		clientMetadata: CLIENT,
 		state: () => state,
-		clientInformation: async () =>
-			(client ??= await read(
-				secrets,
-				names.client,
-				OAuthClientInformationSchema,
-			)),
-		saveClientInformation: async (info) => {
-			client = info;
-			await write(secrets, names.client, info);
-		},
-		tokens: async () =>
-			(tokens ??= await read(secrets, names.tokens, OAuthTokensSchema)),
-		saveTokens: async (saved) => {
-			tokens = saved;
-			await write(secrets, names.tokens, saved);
-		},
+		...saved(secrets, resource.origin),
 		redirectToAuthorization: (url) => {
 			pending = url;
 		},
