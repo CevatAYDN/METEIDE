@@ -33,7 +33,7 @@ export const serveMcpTest = (conn: MessageConnection, app: App) =>
 		if (!status.ok)
 			throw refused({
 				code: "not_supported",
-				message: "mcp.status@1 is not active",
+				message: "the MCP client is not running",
 			});
 		const mask = maskerOf(app);
 		// No timeout of its own: the SDK ends the handshake and the listing after its 60 s request
