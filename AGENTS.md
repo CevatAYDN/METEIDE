@@ -64,7 +64,8 @@ Prefer Node.js APIs over shell commands.
 Conventional Commits with the package as scope, for example: fix(gateway): honor reset header on 429
 
 ## Third-party code
-Ideas from ChatDev, CrewAI and MetaGPT may be reimplemented freely.
+Ideas from ChatDev, CrewAI and MetaGPT may be reimplemented freely, and so may ideas from
+openai/codex and microsoft/TokenEconomizer (both Apache-2.0).
 Before copying any text or code from another repository, read its LICENSE file and add an entry
 to THIRD_PARTY_NOTICES.md (project, license, files, changes).
 
