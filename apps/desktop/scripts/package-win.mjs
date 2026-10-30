@@ -8,6 +8,7 @@ import {
 	rmSync,
 	writeFileSync,
 } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -120,4 +121,20 @@ try {
 } finally {
 	if (state) writeFileSync(STATE, state);
 	removeStage(stage);
+}
+
+// sqlite-vec's library comes in an optional platform package; without it the daemon warns once and
+// search falls back to words alone (ADR-152), so it is resolved here as the packed daemon resolves
+// it, from @mete/storage, and only inside the packed app.
+const packed = join(output, "win-unpacked", "resources", "app", "node_modules");
+try {
+	const from = join(packed, "@mete", "storage", "package.json");
+	const vec = createRequire(from).resolve("sqlite-vec");
+	const dll = createRequire(vec).resolve("sqlite-vec-windows-x64/vec0.dll");
+	if (!dll.startsWith(packed)) throw new Error(dll);
+} catch {
+	console.error(
+		`${packed} has no sqlite-vec vec0.dll: do not ship this installer`,
+	);
+	process.exit(1);
 }
