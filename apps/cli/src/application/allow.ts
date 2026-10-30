@@ -1,5 +1,6 @@
 import {
 	type AllowScope,
+	alwaysEntry,
 	canAlways,
 	type EngineError,
 	err,
@@ -54,8 +55,12 @@ export const waitForAsk = (app: App, runId: string, ms = ASK_WAIT_MS) =>
 		if (seen) done(seen);
 	});
 
-const WITH_ALWAYS =
-	"Allow once (o), for this run (r), always (a) or keep it paused (Enter)? ";
+// The question names a pattern Always would write, so the user sees what is granted (ADR-158).
+const withAlways = (command: string) => {
+	const entry = alwaysEntry(command);
+	const as = entry.includes("*") ? ` as ${entry}` : "";
+	return `Allow once (o), for this run (r), always${as} (a) or keep it paused (Enter)? `;
+};
 const WITHOUT_ALWAYS =
 	"Allow once (o), for this run (r) or keep it paused (Enter)? ";
 
@@ -65,9 +70,11 @@ export const askScope = async (
 	ask: PolicyAsk,
 ): Promise<AllowScope | undefined> => {
 	const always = canAlways(ask);
-	const answer = (await read(always ? WITH_ALWAYS : WITHOUT_ALWAYS))
-		?.trim()
-		.toLowerCase();
+	const question =
+		always && ask.command !== undefined
+			? withAlways(ask.command)
+			: WITHOUT_ALWAYS;
+	const answer = (await read(question))?.trim().toLowerCase();
 	if (answer === "o") return "once";
 	if (answer === "r") return "run";
 	return answer === "a" && always ? "always" : undefined;

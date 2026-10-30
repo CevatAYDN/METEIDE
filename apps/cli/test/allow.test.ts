@@ -15,6 +15,7 @@ import {
 	StreamMessageReader,
 	StreamMessageWriter,
 } from "vscode-jsonrpc/node";
+import { askScope } from "../src/application/allow.js";
 import { runCommand } from "../src/application/commands.js";
 import { daemonCommand } from "../src/application/daemon.js";
 import { createApp } from "../src/infrastructure/app.js";
@@ -88,6 +89,26 @@ const paused = async (app: Awaited<ReturnType<typeof setup>>["app"]) => {
 
 const WITH_ALWAYS =
 	"Allow once (o), for this run (r), always (a) or keep it paused (Enter)? ";
+
+describe("askScope", () => {
+	it("names the pattern Always would write (ADR-158)", async () => {
+		const prompts: string[] = [];
+		const read = async (prompt: string) => {
+			prompts.push(prompt);
+			return "a";
+		};
+		const ask = {
+			action: "shell.exec",
+			capability: "shell.exec@1",
+			adapterId: "tools-shell",
+			command: "npm test src/a.test.ts",
+		} as const;
+		expect(await askScope(read, ask)).toBe("always");
+		expect(prompts).toEqual([
+			"Allow once (o), for this run (r), always as npm test * (a) or keep it paused (Enter)? ",
+		]);
+	});
+});
 
 describe("answering a policy ask", { timeout: 30_000 }, () => {
 	it("asks in a terminal and finishes the run on an answer of once", async () => {
