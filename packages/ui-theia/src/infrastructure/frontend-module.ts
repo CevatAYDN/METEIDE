@@ -15,6 +15,7 @@ import { bindAudit } from "./audit-contribution.js";
 import { bindBoard } from "./board-contribution.js";
 import { bindChanges } from "./changes-contribution.js";
 import { bindHome } from "./home-contribution.js";
+import { bindMemory } from "./memory-contribution.js";
 import { bindQuota } from "./quota-contribution.js";
 import { bindSettings } from "./settings-contribution.js";
 import { bindShell } from "./shell-contribution.js";
@@ -45,6 +46,7 @@ export default new ContainerModule((bind) => {
 	bindChanges(bind);
 	bindAudit(bind);
 	bindAssets(bind);
+	bindMemory(bind);
 	bindQuota(bind);
 	bindStopAll(bind);
 	bindTeamEditor(bind);

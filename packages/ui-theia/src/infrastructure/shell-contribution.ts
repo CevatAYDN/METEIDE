@@ -10,6 +10,7 @@ import { OPEN_ASSETS_COMMAND } from "./assets-contribution.js";
 import { OPEN_AUDIT_COMMAND } from "./audit-contribution.js";
 import { OPEN_BOARD_COMMAND, START_RUN_COMMAND } from "./board-contribution.js";
 import { OPEN_CHANGES_COMMAND } from "./changes-contribution.js";
+import { OPEN_MEMORY_COMMAND } from "./memory-contribution.js";
 import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
 import { MeteScreensStatusBar } from "./screens-status-bar.js";
 import { SHOW_SETTINGS_COMMAND } from "./settings-contribution.js";
@@ -33,6 +34,7 @@ const ITEMS = [
 		"2_screens",
 		[
 			OPEN_CHANGES_COMMAND,
+			OPEN_MEMORY_COMMAND,
 			OPEN_QUOTA_COMMAND,
 			OPEN_AUDIT_COMMAND,
 			OPEN_ASSETS_COMMAND,

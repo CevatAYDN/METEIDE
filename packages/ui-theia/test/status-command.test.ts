@@ -50,6 +50,10 @@ vi.mock("../src/infrastructure/audit-contribution.js", () => ({
 vi.mock("../src/infrastructure/assets-contribution.js", () => ({
 	bindAssets: () => {},
 }));
+// The Memory screen loads lumino and the filesystem browser too; test/memory-view.test.ts covers it.
+vi.mock("../src/infrastructure/memory-contribution.js", () => ({
+	bindMemory: () => {},
+}));
 vi.mock("../src/infrastructure/quota-contribution.js", () => ({
 	bindQuota: () => {},
 }));

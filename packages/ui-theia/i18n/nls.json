@@ -195,6 +195,28 @@
 			"set": "Set provider key",
 			"which": "Which provider's key?"
 		},
+		"memory": {
+			"all": "All",
+			"caption": "METE: what the agents learned and what the runs left",
+			"chip": "{0} {1}",
+			"decision": "Decision",
+			"decisions": "Decisions",
+			"entities": "Entities",
+			"entity": "Entity",
+			"fromRun": "From run {0}",
+			"fromYou": "Written by you",
+			"inbox": "Inbox",
+			"journal": "Journal",
+			"lesson": "Lesson",
+			"lessons": "Lessons",
+			"loading": "Reading the memory…",
+			"none": "No notes yet. When a run ends, its report is written to the journal; a team task that keeps lessons saves what it learned; agents can save decisions and notes. They all appear here.",
+			"open": "Open memory",
+			"openNamed": "Open {0}",
+			"private": "Private",
+			"show": "Show",
+			"title": "Memory"
+		},
 		"quota": {
 			"amounts": "{0} amount(s)",
 			"anyProvider": "Every paid model",

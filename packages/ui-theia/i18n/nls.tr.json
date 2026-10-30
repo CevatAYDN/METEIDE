@@ -195,6 +195,28 @@
 			"set": "Sağlayıcı anahtarı ayarla",
 			"which": "Hangi sağlayıcının anahtarı?"
 		},
+		"memory": {
+			"all": "Tümü",
+			"caption": "METE: ajanların öğrendikleri ve çalıştırmaların bıraktıkları",
+			"chip": "{0} {1}",
+			"decision": "Karar",
+			"decisions": "Kararlar",
+			"entities": "Öğeler",
+			"entity": "Öğe",
+			"fromRun": "{0} çalıştırmasından",
+			"fromYou": "Sizin yazdığınız",
+			"inbox": "Gelen kutusu",
+			"journal": "Günlük",
+			"lesson": "Ders",
+			"lessons": "Dersler",
+			"loading": "Bellek okunuyor…",
+			"none": "Henüz not yok. Bir çalıştırma bittiğinde raporu günlüğe yazılır; ders tutan bir takım görevi öğrendiklerini kaydeder; ajanlar karar ve not kaydedebilir. Hepsi burada görünür.",
+			"open": "Belleği aç",
+			"openNamed": "{0} notunu aç",
+			"private": "Gizli",
+			"show": "Göster",
+			"title": "Bellek"
+		},
 		"quota": {
 			"amounts": "{0} miktar",
 			"anyProvider": "Tüm ücretli modeller",

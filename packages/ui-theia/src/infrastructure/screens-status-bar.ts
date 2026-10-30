@@ -9,12 +9,13 @@ import { inject, injectable } from "@theia/core/shared/inversify";
 import { OPEN_AUDIT_COMMAND } from "./audit-contribution.js";
 import { OPEN_BOARD_COMMAND, START_RUN_COMMAND } from "./board-contribution.js";
 import { OPEN_CHANGES_COMMAND } from "./changes-contribution.js";
+import { OPEN_MEMORY_COMMAND } from "./memory-contribution.js";
 import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
 import { SHOW_SETTINGS_COMMAND } from "./settings-contribution.js";
 
 // METE's screens one click away (docs/13, Screens; ADR-118): the status bar carries new run (the
-// composer) beside the team panel, changes, quota, audit log and settings, each running the command
-// the palette offers. A screen is therefore never reachable only from the palette, which stays the
+// composer) beside the team panel, changes, memory (ADR-159), quota, audit log and settings, each
+// running the command the palette offers. A screen is therefore never reachable only from the palette, which stays the
 // keyboard path (ADR-045 made every action a command; ADR-112 made a panel take focus when it opens).
 
 /** One button of the row: its element id, icon, label and the command it runs. */
@@ -43,6 +44,12 @@ const SCREENS: readonly Screen[] = [
 		icon: "diff",
 		label: () => nls.localize("mete/screens/changes", "Changes"),
 		command: OPEN_CHANGES_COMMAND,
+	},
+	{
+		id: "mete-screens-memory",
+		icon: "book",
+		label: () => nls.localize("mete/memory/title", "Memory"),
+		command: OPEN_MEMORY_COMMAND,
 	},
 	{
 		id: "mete-screens-quota",
