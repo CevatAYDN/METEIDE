@@ -192,6 +192,7 @@ describe("daemon protocol version 24", () => {
 			models: "mete/models",
 			memberDraft: "mete/member.draft",
 			knowledgeSearch: "mete/knowledge.search",
+			mcpTest: "mete/mcp.test",
 			event: "mete/event",
 		});
 	});

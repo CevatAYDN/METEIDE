@@ -107,6 +107,20 @@ export type McpCallOutput = {
 	readonly isError: boolean;
 };
 
+/** What mcp.status@1 found: the names of the tools the server lists, in its order, and how long connecting took. */
+export type McpServerTest = {
+	readonly tools: readonly string[];
+	readonly ms: number;
+};
+
+/** mcp.status@1: connects to one configured server as mcp.tools@1 does (ADR-164); `not_found` for an id not loaded. */
+export interface McpStatusAdapter {
+	test(
+		server: string,
+		signal: AbortSignal,
+	): Promise<Result<McpServerTest, ToolError>>;
+}
+
 /** mcp.tools@1: lists and calls the tools of the configured servers (docs/10, level 1). */
 export interface McpToolsAdapter {
 	list(signal: AbortSignal): Promise<Result<McpToolInfo[], ToolError>>;

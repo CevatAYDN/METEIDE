@@ -75,6 +75,10 @@ export {
 	RunViewSchema,
 } from "./domain/daemon.js";
 export {
+	DaemonMcpTestParamsSchema,
+	DaemonMcpTestResultSchema,
+} from "./domain/daemon-mcp.js";
+export {
 	DaemonProviderModelsParamsSchema,
 	DaemonProviderModelsResultSchema,
 	DaemonProviderTestParamsSchema,
@@ -171,6 +175,8 @@ export {
 	type McpContent,
 	type McpServer,
 	McpServerSchema,
+	type McpServerTest,
+	type McpStatusAdapter,
 	type McpToolInfo,
 	type McpToolsAdapter,
 } from "./domain/mcp.js";
