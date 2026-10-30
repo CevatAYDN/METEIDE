@@ -75,7 +75,7 @@ This is the only valid technology list. Anything not listed here needs an ADR be
 | Terminal | node-pty | Interactive terminal; `shell.exec@1` uses `node:child_process` instead, because a PTY merges stdout and stderr |
 | Git | simple-git (git CLI) | Status, diff, worktrees, checkpoints |
 | Diff | diff (jsdiff) | Edit application and diff views |
-| MCP | `@modelcontextprotocol/sdk` | Client and server |
+| MCP | `@modelcontextprotocol/client`, `@modelcontextprotocol/server` and `@modelcontextprotocol/core` (SDK v2, ADR-163) | Client and server |
 | Code parsing | web-tree-sitter (WASM grammars) | Code graph, no native builds |
 | Graph in memory | graphology | Traversal |
 | Markdown | unified, remark, gray-matter | Vault parsing, wikilinks, frontmatter |
