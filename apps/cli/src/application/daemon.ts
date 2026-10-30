@@ -2,7 +2,6 @@ import type { Readable, Writable } from "node:stream";
 import {
 	DAEMON_ERROR_CODE,
 	DAEMON_METHODS,
-	DaemonAuditParamsSchema,
 	DaemonChainParamsSchema,
 	DaemonChangesParamsSchema,
 	DaemonCheckpointRestoreParamsSchema,
@@ -35,10 +34,10 @@ import {
 import { type App, engineOf, notReadyLines } from "../infrastructure/app.js";
 import { runHistory } from "../infrastructure/history.js";
 import { allowAndResume } from "./allow.js";
-import { auditEntries } from "./audit.js";
 import { changesOf } from "./changes.js";
 import type { Io } from "./commands.js";
 import { parsed, readyEngine, refused } from "./daemon-errors.js";
+import { serveAudit, serveKnowledgeSearch } from "./daemon-reads.js";
 import { estimateFor } from "./estimate.js";
 import { draftMember } from "./member-draft.js";
 import {
@@ -227,20 +226,6 @@ const serveProviders = (conn: MessageConnection, app: App) => {
 	});
 };
 
-// The workspace audit log (ADR-053); it needs storage only, so it answers while core-engine is not
-// active too, as mete/quota does.
-const serveAudit = (conn: MessageConnection, app: App) =>
-	conn.onRequest(DAEMON_METHODS.audit, (params: unknown) => {
-		const p = parsed(DaemonAuditParamsSchema.safeParse(params ?? {}));
-		const entries = auditEntries(app, p);
-		if (!entries)
-			throw new ResponseError(
-				ErrorCodes.InternalError,
-				"storage is not active",
-			);
-		return { entries };
-	});
-
 // The templates the composer offers (ADR-058): files only, so no engine is needed.
 const serveTemplates = (conn: MessageConnection, app: App) =>
 	conn.onRequest(DAEMON_METHODS.templates, async () => {
@@ -351,6 +336,7 @@ const serveMethods = (conn: MessageConnection, app: App, io: Io) => {
 	serveTranscript(conn, app);
 	serveRemove(conn, app);
 	serveAudit(conn, app);
+	serveKnowledgeSearch(conn, app);
 	serveTemplates(conn, app);
 	serveTemplateRead(conn, app);
 	serveChain(conn, app);

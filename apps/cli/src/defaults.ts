@@ -27,6 +27,12 @@ export const ASK_WAIT_MS = 10_000;
 /** Tab 10, MCP client (Elicitation): how many times the terminal asks one field before it declines the request. */
 export const ELICIT_TRIES = 2;
 
+/** Tab 13, Knowledge (ADR-159): the hits mete/knowledge.search answers at most, knowledge.search@1's own limit. */
+export const SEARCH_K = 30;
+
+/** Tab 13, Knowledge (ADR-159): how long mete/knowledge.search may take before it is aborted. */
+export const SEARCH_TIMEOUT_MS = 15_000;
+
 /** Audit rows `mete audit` and mete/audit show at most, newest first (04 Decisions, ADR-053). */
 export const AUDIT_LIMIT = 200;
 
