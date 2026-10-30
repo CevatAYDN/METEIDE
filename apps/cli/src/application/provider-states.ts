@@ -125,6 +125,6 @@ export const stateLine = (s: ProviderState): string | undefined => {
 	if (s.state === "exhausted")
 		return `${s.id}: its free quota is used up until ${new Date(s.resetsAt).toLocaleString()}`;
 	if (s.state === "unusable")
-		return `${s.id}: none of its models can be used here (the privacy rules may leave them out: allowTraining in privacy.yaml; the model mode may: models in gateway.yaml; or its key was refused)`;
+		return `${s.id}: none of its models can be used here (its model list did not load or its key was refused: the log says which; or the privacy rules leave them out: allowTraining in privacy.yaml; or the model mode does: models in gateway.yaml)`;
 	return undefined;
 };
