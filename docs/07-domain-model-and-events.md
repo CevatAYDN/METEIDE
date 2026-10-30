@@ -121,7 +121,8 @@ From Phase 2, handoffs go into the workspace `handoffs` table: `id`, `workspace_
 | `task.status.changed` | from, to | core-engine |
 | `task.merge.failed` | code (`merge_conflict` or `io`), message, branch, paths (the conflicting files) | core-engine |
 | `task.clarification.requested` | toRoleId, question | core-engine |
-| `agent.created` | roleId, providerId, modelId, tier? (the role's tier, ADR-077) | core-engine |
+| `task.attempt.chosen` | attempt, of, by (`checks` or `judge`), reason? (the judge's words, ADR-162) | core-engine |
+| `agent.created` | roleId, providerId, modelId, tier? (the role's tier, ADR-077), attempt? `{ k, n }` (the attempt of a best-of-N task it works, ADR-162) | core-engine |
 | `agent.model.changed` | from, to, reason (such as `user`, `quota`, `failed`, ADR-122) | core-engine |
 | `agent.thinking.started` / `agent.thinking.ended` | none; `agent.thinking.ended` has usage? `{ prompt, completion }`, the token counts of the model call it closes, when the call finished (ADR-090) | core-engine |
 | `agent.message.sent` | messageId, from, to, kind, summary | core-engine |
