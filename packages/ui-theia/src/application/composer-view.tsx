@@ -1,5 +1,5 @@
 import { nls } from "@theia/core/lib/common/nls";
-import type { ComposerOption } from "./composer.js";
+import type { ComposerOption, PickerFacts } from "./composer.js";
 import { Side } from "./composer-side.js";
 import { Teams } from "./composer-teams.js";
 import { noFolderText } from "./status-text.js";
@@ -30,6 +30,8 @@ export type ComposerInput = {
 	readonly roleModels?: Readonly<Record<string, string>> | undefined;
 	/** The folder's uncommitted changes, as `mete/changes` lists them (ADR-156). */
 	readonly uncommitted?: number | undefined;
+	/** The listed models' facts and the providers' states, for the model picker (ADR-161). */
+	readonly picker?: PickerFacts | undefined;
 };
 
 type Props = ComposerInput & {
@@ -120,6 +122,7 @@ export const ComposerView = (props: Props) => {
 					chosen={model.options.find((o) => o.key === selected)}
 					singleModel={props.singleModel}
 					roleModels={props.roleModels}
+					picker={props.picker}
 					onSingleModel={props.onSingleModel}
 					onRoleModel={props.onRoleModel}
 					uncommitted={props.uncommitted}

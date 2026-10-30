@@ -1,7 +1,9 @@
 import {
+	type ModelInfo,
 	type ModelRef,
 	ModelRefSchema,
 	NeedSchema,
+	type ProviderState,
 	type RunPrefer,
 	type RunStart,
 	TierSchema,
@@ -85,6 +87,29 @@ export const fetchChain = async (
 	} catch {
 		return [];
 	}
+};
+
+/** The model picker's facts of the listed models and the providers' states (ADR-161 (5)). */
+export type PickerFacts = {
+	readonly facts: readonly ModelInfo[];
+	readonly states: readonly ProviderState[];
+};
+
+/** One `mete/models` for the listed `providerId/modelId`s, each once, and one `mete/quota`. */
+export const pickerFacts = async (
+	daemon: MeteDaemonService,
+	dir: string,
+	listed: readonly string[],
+): Promise<PickerFacts> => {
+	const refs = [...new Set(listed)].flatMap((m) => modelRefOf(m) ?? []);
+	const [models, quota] = await Promise.all([
+		daemon.models(dir, refs),
+		daemon.quota(dir),
+	]);
+	return {
+		facts: models.ok ? models.value.models : [],
+		states: quota.ok ? quota.value.providers : [],
+	};
 };
 
 /** The models a single-agent run can use: the coder tier, which needs tool calling (docs/08). */

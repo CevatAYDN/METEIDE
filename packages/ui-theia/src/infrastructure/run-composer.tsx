@@ -9,6 +9,8 @@ import {
 	loadRoles,
 	narrowedTo,
 	optionsOf,
+	type PickerFacts,
+	pickerFacts,
 	preferOf,
 	settledChoice,
 	singleAgentModels,
@@ -26,6 +28,7 @@ import {
 	NEW_TEAM_COMMAND,
 } from "./team-editor-contribution.js";
 import "../../style/mete-composer.css";
+import "../../style/mete-picker.css";
 
 // The run composer (docs/13, Run composer; ADR-071) of the first open folder, shown by the Team panel
 // while it shows no run (ADR-078): it asks the daemon for the templates and each one's estimate every
@@ -66,6 +69,8 @@ export class MeteRunComposer {
 	protected estimateAsked = 0;
 	protected roleModels: Record<string, Record<string, string>> = {};
 	protected readonly chainCache = new Map<string, readonly string[]>();
+	/** The model picker's facts and states, asked once the chains came (ADR-161 (5)). */
+	protected picker: PickerFacts | undefined;
 	protected busy = false;
 	protected error: string | undefined;
 	protected pending: Promise<void> | undefined;
@@ -114,6 +119,10 @@ export class MeteRunComposer {
 			? this.selected
 			: "choose";
 		this.setModel({ kind: "ready", options: this.all, unsure: false });
+		// The list shows before the facts, which only add words to its rows.
+		const chains = [...this.chainCache.values()].flat();
+		this.picker = await pickerFacts(this.daemon, dir, chains);
+		this.changed.fire();
 	}
 
 	// Start sends the goal and the pick; an unsure router narrows the list in place (ADR-047), and a
@@ -211,6 +220,7 @@ export class MeteRunComposer {
 				error={this.error}
 				singleModel={this.singleModel}
 				uncommitted={this.uncommitted}
+				picker={this.picker}
 				roleModels={this.selected ? this.roleModels[this.selected] : undefined}
 				onGoal={(goal) => {
 					this.goal = goal;

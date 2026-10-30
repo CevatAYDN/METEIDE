@@ -8,6 +8,7 @@ import {
 	modelRefOf,
 	narrowedTo,
 	optionsOf,
+	pickerFacts,
 	preferOf,
 	settledChoice,
 	singleAgentModels,
@@ -436,5 +437,38 @@ describe("loadRoles", () => {
 		};
 		const enriched = await loadRoles(ctx, [{ id: "missing", name: "Missing" }]);
 		expect(enriched[0]?.roles).toBeUndefined();
+	});
+});
+
+describe("pickerFacts", () => {
+	it("asks one mete/models for the listed models, each once, and one mete/quota (ADR-161)", async () => {
+		const models = vi.fn(async () => ok({ models: [] }));
+		const quota = vi.fn(async () =>
+			ok({ providers: [{ id: "groq", state: "ready" as const }], units: [] }),
+		);
+		const daemon = fakeDaemon({ models, quota });
+		const got = await pickerFacts(daemon, "/workspace", [
+			"groq/llama",
+			"custom:noxery/glm",
+			"groq/llama",
+			"not-an-id",
+		]);
+		expect(models).toHaveBeenCalledWith("/workspace", [
+			{ providerId: "groq", modelId: "llama" },
+			{ providerId: "custom:noxery", modelId: "glm" },
+		]);
+		expect(quota).toHaveBeenCalledTimes(1);
+		expect(got.states).toEqual([{ id: "groq", state: "ready" }]);
+	});
+
+	it("leaves the facts and the states empty when the daemon refuses them", async () => {
+		const no = vi.fn(async () =>
+			err({ code: "refused" as const, detail: "x" }),
+		);
+		const daemon = fakeDaemon({ models: no, quota: no });
+		expect(await pickerFacts(daemon, "/workspace", ["groq/llama"])).toEqual({
+			facts: [],
+			states: [],
+		});
 	});
 });

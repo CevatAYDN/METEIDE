@@ -1,11 +1,12 @@
 import { nls } from "@theia/core/lib/common/nls";
 import { useId } from "react";
-import type { ComposerOption } from "./composer.js";
+import type { ComposerOption, PickerFacts } from "./composer.js";
+import { ModelPicker } from "./model-picker.js";
 import { Icon } from "./roster-look.js";
 
 // The composer's side column in the Composer board's look (ADR-128): the chosen option's preferred
-// models (ADR-122), the folder's uncommitted changes for a team (ADR-156), and Start. Laid out by
-// style/mete-composer.css.
+// models (ADR-122) in the model picker (ADR-161), the folder's uncommitted changes for a team
+// (ADR-156), and Start. Laid out by style/mete-composer.css.
 
 const prefer = () =>
 	nls.localize("mete/run/preferModel", "Preferred model (optional)");
@@ -18,25 +19,29 @@ type Choice = {
 	readonly onChange: (value: string) => void;
 };
 
-const ModelChoice = ({ choice }: { readonly choice: Choice }) => {
-	const list = useId();
+// The composer takes a pick or a typed text at once (ADR-161 (4)); Let METE choose clears it.
+const ModelChoice = ({
+	choice,
+	picker,
+}: {
+	readonly choice: Choice;
+	readonly picker: PickerFacts | undefined;
+}) => {
+	const id = useId();
 	return (
-		<label className="mete-composer-model">
-			<span>{choice.label}</span>
-			<input
-				className="mete-field"
-				list={list}
+		<div className="mete-composer-model">
+			<label htmlFor={id}>{choice.label}</label>
+			<ModelPicker
+				id={id}
+				label={`${choice.label} · ${prefer()}`}
 				value={choice.value ?? ""}
-				placeholder="providerId/modelId"
-				aria-label={`${choice.label} · ${prefer()}`}
-				onChange={(e) => choice.onChange(e.target.value)}
+				models={choice.models}
+				facts={picker?.facts ?? []}
+				states={picker?.states ?? []}
+				onChange={choice.onChange}
+				onPick={(ref) => choice.onChange(ref ?? "")}
 			/>
-			<datalist id={list}>
-				{choice.models.map((m) => (
-					<option key={m} value={m} />
-				))}
-			</datalist>
-		</label>
+		</div>
 	);
 };
 
@@ -44,6 +49,7 @@ type SideProps = {
 	readonly chosen: ComposerOption | undefined;
 	readonly singleModel?: string | undefined;
 	readonly roleModels?: Readonly<Record<string, string>> | undefined;
+	readonly picker?: PickerFacts | undefined;
 	readonly onSingleModel?: ((model: string) => void) | undefined;
 	readonly onRoleModel?: ((roleId: string, model: string) => void) | undefined;
 	/** The folder's uncommitted changes (ADR-156). */
@@ -77,13 +83,19 @@ const choicesOf = (p: SideProps): readonly Choice[] => {
 	}));
 };
 
-const Preferences = ({ choices }: { readonly choices: readonly Choice[] }) =>
+const Preferences = ({
+	choices,
+	picker,
+}: {
+	readonly choices: readonly Choice[];
+	readonly picker: PickerFacts | undefined;
+}) =>
 	choices.length === 0 ? null : (
 		<div className="mete-composer-prefer">
 			<h3>{prefer()}</h3>
 			<p className="mete-composer-hint">providerId/modelId</p>
 			{choices.map((c) => (
-				<ModelChoice key={c.key} choice={c} />
+				<ModelChoice key={c.key} choice={c} picker={picker} />
 			))}
 		</div>
 	);
@@ -113,7 +125,7 @@ const Uncommitted = ({ chosen, uncommitted: count }: SideProps) => {
 /** The chosen option's preferred models, the uncommitted line and Start, beside the teams. */
 export const Side = (props: SideProps) => (
 	<aside className="mete-composer-side">
-		<Preferences choices={choicesOf(props)} />
+		<Preferences choices={choicesOf(props)} picker={props.picker} />
 		<Uncommitted {...props} />
 		<button
 			type="button"

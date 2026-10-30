@@ -165,7 +165,7 @@ describe("ComposerView", () => {
 		expect(html({ kind: "no_folder" })).not.toContain("<textarea");
 	});
 
-	it("renders preferred model field with datalist when single agent is selected", () => {
+	it("renders the preferred model as the model picker when single agent is selected (ADR-161)", () => {
 		const singleOptions = optionsOf(
 			[],
 			[undefined],
@@ -176,9 +176,43 @@ describe("ComposerView", () => {
 			{ selected: "single", singleModel: "groq/llama-3.3-70b-versatile" },
 		);
 		expect(out).toContain("Preferred model (optional)");
+		expect(out).toContain('role="combobox"');
 		expect(out).toContain('value="groq/llama-3.3-70b-versatile"');
-		expect(out).toContain('value="gemini/gemini-2.0-flash"');
-		expect(out).toContain("<datalist");
+		expect(out).toContain('role="group" aria-label="gemini"');
+		expect(out).toContain(
+			'<span class="mete-picker-id">gemini-2.0-flash</span>',
+		);
+		expect(out).not.toContain("<datalist");
+	});
+
+	it("gives the picker the listed models' facts and the providers' states (ADR-161)", () => {
+		const out = html(
+			{
+				kind: "ready",
+				options: optionsOf([], [undefined], ["groq/llama"]),
+				unsure: false,
+			},
+			{
+				selected: "single",
+				picker: {
+					facts: [
+						{
+							id: "llama",
+							providerId: "groq",
+							family: "",
+							contextWindow: 131_072,
+							toolCalling: true,
+							vision: false,
+							free: true,
+							deprecated: false,
+						},
+					],
+					states: [{ id: "groq", state: "no_key" }],
+				},
+			},
+		);
+		expect(out).toContain('<span class="mete-picker-chip">131k</span>');
+		expect(out).toContain("groq: no key (METE: Set provider key)");
 	});
 
 	it("renders preferred model fields per role when a team is selected", () => {
