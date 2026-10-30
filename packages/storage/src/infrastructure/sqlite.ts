@@ -9,6 +9,7 @@ import {
 } from "@mete/contracts";
 import { withLockRetry } from "@mete/kernel";
 import Database from "better-sqlite3";
+import * as sqliteVec from "sqlite-vec";
 import { BUSY_TIMEOUT_MS } from "../defaults.js";
 
 // SQLite access from docs/05 (Database) and docs/06 (storage.sql@1).
@@ -24,6 +25,19 @@ export const openDatabase = async (file: string): Promise<Db> => {
 	db.pragma(`busy_timeout = ${BUSY_TIMEOUT_MS}`);
 	db.pragma("journal_mode = WAL");
 	return db;
+};
+
+/** Loads sqlite-vec into a database (ADR-152); why it failed, else undefined. A failure leaves the database as it was. */
+export const loadVector = (
+	db: Db,
+	load: (db: Db) => void = sqliteVec.load,
+): string | undefined => {
+	try {
+		load(db);
+		return undefined;
+	} catch (e) {
+		return e instanceof Error ? e.message : String(e);
+	}
 };
 
 const LEDGER = `CREATE TABLE IF NOT EXISTS storage_migrations (

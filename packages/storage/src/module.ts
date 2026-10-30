@@ -9,7 +9,12 @@ import {
 	type ScopedStorage,
 	type StorageSqlAdapter,
 } from "@mete/contracts";
-import type { Disposable, MeteModule, ModuleError } from "@mete/kernel";
+import type {
+	Disposable,
+	MeteModule,
+	ModuleContext,
+	ModuleError,
+} from "@mete/kernel";
 import {
 	captureEvents,
 	EVENT_MIGRATIONS,
@@ -18,6 +23,7 @@ import {
 } from "./infrastructure/event-log.js";
 import {
 	type Db,
+	loadVector,
 	openDatabase,
 	runMigrations,
 } from "./infrastructure/sqlite.js";
@@ -27,6 +33,8 @@ export type StorageOptions = {
 	readonly workspaceDir: string;
 	readonly globalDir: string;
 	readonly now?: () => number;
+	/** Loads sqlite-vec into a database; tests make it fail. */
+	readonly loadVector?: (db: Db) => void;
 };
 
 const MANIFEST: ModuleManifest = {
@@ -51,8 +59,26 @@ const failed = (message: string): ModuleError => ({
 	message,
 });
 
+// sqlite-vec in both databases (ADR-152), before any migration; a failed load leaves vector tables
+// unavailable, never the database, and both load the same file, so one warning says it.
+const loadVectors = (
+	h: Handles,
+	opts: StorageOptions,
+	logger: ModuleContext["logger"],
+) => {
+	const failure = [h.workspace, h.global]
+		.map((db) => loadVector(db, opts.loadVector))
+		.find((m) => m !== undefined);
+	if (failure !== undefined)
+		logger.warn(
+			{ error: failure },
+			"sqlite-vec did not load; vector search is off",
+		);
+};
+
 const openBoth = async (
 	opts: StorageOptions,
+	logger: ModuleContext["logger"],
 ): Promise<Result<Handles, ModuleError>> => {
 	const opened: Db[] = [];
 	try {
@@ -61,6 +87,7 @@ const openBoth = async (
 		);
 		opened.push(await openDatabase(join(opts.globalDir, "mete.db")));
 		const [workspace, global] = opened as [Db, Db];
+		loadVectors({ workspace, global }, opts, logger);
 		return ok({ workspace, global });
 	} catch (e) {
 		for (const db of opened) db.close();
@@ -87,7 +114,7 @@ export const createStorageModule = (opts: StorageOptions): MeteModule => {
 	return {
 		manifest: MANIFEST,
 		async activate(ctx) {
-			const opened = await openBoth(opts);
+			const opened = await openBoth(opts, ctx.logger);
 			if (!opened.ok) return opened;
 			const h = opened.value;
 			handles = h;

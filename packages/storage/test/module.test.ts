@@ -192,6 +192,49 @@ describe("storage module", () => {
 		expect(() => s.events.publish(runStarted())).not.toThrow();
 	});
 
+	it("loads sqlite-vec into both databases, so a vec0 table finds the nearest vector (ADR-152)", async () => {
+		const s = await setup();
+		const mod = createStorageModule(s.dirs);
+		await mod.activate(s.ctx);
+		const scope = s.adapter().scopeFor("knowledge-search");
+		for (const db of [scope.workspace, scope.global])
+			expect(db.prepare("SELECT vec_version()").pluck().get()).toMatch(/^v/);
+		const db = scope.workspace;
+		db.exec(
+			"CREATE VIRTUAL TABLE v USING vec0(e float[2] distance_metric=cosine)",
+		);
+		const put = db.prepare("INSERT INTO v(rowid, e) VALUES (?, ?)");
+		// vec0 takes only integer row ids, which better-sqlite3 sends for a BigInt.
+		put.run(1n, JSON.stringify([1, 0]));
+		put.run(2n, JSON.stringify([0, 1]));
+		const near = db.prepare("SELECT rowid FROM v WHERE e MATCH ? AND k = 1");
+		expect(near.pluck().all(JSON.stringify([0.9, 0.1]))).toEqual([1]);
+		await mod.deactivate();
+	});
+
+	it("keeps both databases and warns once when sqlite-vec does not load (ADR-152)", async () => {
+		const s = await setup();
+		const warned: string[] = [];
+		const warn = (fields: object, msg: string) =>
+			void warned.push(`${msg} ${JSON.stringify(fields)}`);
+		const ctx = { ...s.ctx, logger: { ...s.ctx.logger, warn } };
+		const mod = createStorageModule({
+			...s.dirs,
+			loadVector: () => {
+				throw new Error("no vec0 here");
+			},
+		});
+		expect(await mod.activate(ctx)).toEqual(ok(undefined));
+		const scope = s.adapter().scopeFor("knowledge-search");
+		for (const db of [scope.workspace, scope.global]) {
+			expect(db.prepare("SELECT 1").pluck().get()).toBe(1);
+			expect(() => db.prepare("SELECT vec_version()")).toThrow();
+		}
+		expect(warned).toHaveLength(1);
+		expect(warned[0]).toContain("no vec0 here");
+		await mod.deactivate();
+	});
+
 	it("fails activation when a database cannot be opened", async () => {
 		const s = await setup();
 		await writeFile(join(s.root, "a-file"), "");
