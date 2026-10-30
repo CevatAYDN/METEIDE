@@ -228,6 +228,80 @@ test.describe("a run that reads and searches the workspace", () => {
 	});
 });
 
+// A run that calls an MCP server's tool: a packaged run proves the daemon starts a stdio server and
+// talks to it through the SDK the package carries (ADR-163). The server is packages/mcp's fixture,
+// started with the Node that runs the tests; Playwright runs from this package's root.
+const FIXTURE = join(
+	process.cwd(),
+	"..",
+	"..",
+	"packages",
+	"mcp",
+	"test",
+	"fixtures",
+	"server.mjs",
+);
+const ECHO = "METE_E2E_MCP_ECHO";
+
+// The single agent has no MCP tools (docs/08); a role gets them by listing mcp.tools@1.
+const RELAY = `apiVersion: mete/v1
+kind: TeamTemplate
+metadata: { id: relay, name: Relay, version: 1.0.0, description: One MCP call }
+pattern: single
+roles:
+  - { id: caller, name: Caller, goal: Call the tool, tier: fast, capabilities: [mcp.tools@1] }
+tasks:
+  - { id: echo, role: caller, title: Echo the token }
+`;
+
+test.describe("a run that calls an MCP server's tool", () => {
+	test.use({
+		files: {
+			".mete/teams/relay.yaml": RELAY,
+			".mete/mcp.yaml": `servers:
+  - id: demo
+    transport: stdio
+    runtime: node
+    command: ${JSON.stringify(process.execPath)}
+    args: [${JSON.stringify(FIXTURE)}]
+`,
+			// A raw MCP call is asked at autonomy 2 and allowed at 3 (SECURITY.md).
+			".mete/policy.yaml": "autonomy: 3\n",
+		},
+		script: {
+			turns: [
+				[
+					{
+						type: "tool-call",
+						id: "echo",
+						name: "mcp_demo_echo",
+						args: { text: ECHO },
+					},
+					{
+						type: "finish",
+						reason: "tool-calls",
+						usage: { prompt: 12, completion: 4 },
+					},
+				],
+				say(`The server answered ${ECHO}.`),
+			],
+		},
+	});
+
+	test("runs the tool and answers", async ({ mete }) => {
+		const { page } = mete;
+		await startRun(page, { goal: "echo the token", team: /relay/i });
+		// A finished call prints its time; a failed one says "which fails" instead.
+		await expect(page.getByText(/uses mcp\.tools@1 · \d+ ms/)).toBeVisible({
+			timeout: 90_000,
+		});
+		// A team run has no Answer panel; the Activity feed ends with the run's summary.
+		await expect(
+			page.getByText(`The server answered ${ECHO}.`).first(),
+		).toBeVisible({ timeout: 60_000 });
+	});
+});
+
 test.describe("a run whose provider quota is spent", () => {
 	test.use({
 		files: { ".mete/teams/pair.yaml": PAIR },

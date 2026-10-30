@@ -12,7 +12,8 @@ const cli = createRequire(join(app, "package.json")).resolve(
 	"@playwright/test/cli",
 );
 
-// Onboarding and a run that reads the workspace: the two flows a package can break on its own.
+// Onboarding and the runs of run-flow (reading the workspace, calling an MCP server): flows a package
+// can break on its own.
 const result = spawnSync(
 	process.execPath,
 	[cli, "test", "e2e/onboarding.e2e.ts", "e2e/run-flow.e2e.ts"],
