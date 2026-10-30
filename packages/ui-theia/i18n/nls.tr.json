@@ -613,6 +613,7 @@
 		},
 		"waiting": {
 			"allowAlways": "Her zaman izin ver",
+			"allowAlwaysAs": "Her zaman izin ver: {0}",
 			"allowHint": "Bu eyleme bir kez, bu çalıştırma boyunca ya da .mete/policy.yaml dosyasında her zaman izin verin.",
 			"allowOnce": "Bir kez izin ver",
 			"allowRun": "Bu çalıştırma için izin ver",

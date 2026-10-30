@@ -613,6 +613,7 @@
 		},
 		"waiting": {
 			"allowAlways": "Always allow",
+			"allowAlwaysAs": "Always allow {0}",
 			"allowHint": "Allow the action once, for the rest of this run, or always in .mete/policy.yaml.",
 			"allowOnce": "Allow once",
 			"allowRun": "Allow for this run",

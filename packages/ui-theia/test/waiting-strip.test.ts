@@ -213,6 +213,21 @@ describe("the Waiting for you strip", () => {
 		expect(out).not.toContain(">Resume<");
 	});
 
+	it("names on Always allow the pattern it writes (ADR-158)", () => {
+		const out = renderToStaticMarkup(
+			createElement(RunWaits, {
+				asked: {
+					action: "shell.exec",
+					capability: "shell.exec@1",
+					adapterId: "tools",
+					command: "npm test src/a.test.ts",
+				},
+				onResume: () => {},
+			}),
+		);
+		expect(out).toContain(">Always allow npm test *<");
+	});
+
 	it("renders the engine error message on the card for a refused allow", () => {
 		const out = renderToStaticMarkup(
 			createElement(RunWaits, {

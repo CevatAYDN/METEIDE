@@ -1,4 +1,9 @@
-import { type AllowScope, canAlways, type PolicyAsk } from "@mete/contracts";
+import {
+	type AllowScope,
+	alwaysEntry,
+	canAlways,
+	type PolicyAsk,
+} from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import { useState } from "react";
 import { Icon } from "./roster-look.js";
@@ -25,6 +30,14 @@ const AskLine = ({ ask }: { readonly ask: PolicyAsk }) => (
 		</code>
 	</div>
 );
+
+// A pattern Always would write is named on the button, so the user sees what is granted (ADR-158).
+const AlwaysLabel = ({ command }: { readonly command: string }) => {
+	const entry = alwaysEntry(command);
+	return entry.includes("*")
+		? nls.localize("mete/waiting/allowAlwaysAs", "Always allow {0}", entry)
+		: nls.localize("mete/waiting/allowAlways", "Always allow");
+};
 
 export const askKey = (ask?: PolicyAsk) =>
 	ask ? `${ask.action}:${ask.command ?? ask.path ?? ask.capability}` : "none";
@@ -65,7 +78,7 @@ export const AllowActions = ({
 						onClick={() => onAct("always")}
 					>
 						<Icon name="shield" />
-						{nls.localize("mete/waiting/allowAlways", "Always allow")}
+						<AlwaysLabel command={asked.command ?? ""} />
 					</button>
 				) : null}
 			</>
