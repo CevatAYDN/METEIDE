@@ -48,8 +48,9 @@ minimumReleaseAge: 20160
 # markdown view and monaco) closes a high advisory. undici 6.29.1 and 7.30.1 (2026-10-29 audit) close
 # GHSA-qrxm-fqhp-jwvm on each major line without moving a dependent to the other major. markdown-it
 # 14.3.3 (@theia/core, 2026-10-30 audit) closes GHSA-gfr2-rv44-r23c and GHSA-vfgh-jcmw-g37q.
-# ip-address 10.7.4 and qs 6.16.1 (MCP SDK v1's express, 2026-10-30 audit) close GHSA-rxp7-6hxx-x8q5
-# and GHSA-6pq8-jhm2-2vcw.
+# ip-address 10.7.4 and qs 6.16.1 (2026-10-30 audit) close GHSA-rxp7-6hxx-x8q5 and GHSA-6pq8-jhm2-2vcw
+# under Theia: both through the MCP SDK v1 that @theia/ai-mcp still brings (METE's own packages left it,
+# ADR-163), qs also through @theia/core's express and ip-address through @vscode/proxy-agent's socks.
 # decompress (theia download:plugins, which unpacks the pinned built-ins at build time, ADR-103) has
 # no fixed release.
 overrides:

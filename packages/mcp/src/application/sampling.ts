@@ -44,8 +44,7 @@ const USER_REJECTED = -1;
 const INVALID_REQUEST = -32600;
 const INTERNAL_ERROR = -32603;
 
-// The SDK answers a handler's error with its numeric `code` (ADR-163), so no SDK class loads with the
-// module: the client's graph waits for the first connection (docs/15, cold start).
+// The SDK answers a handler's error with its numeric `code` (ADR-163), so this module loads no SDK class.
 const refuse = (message: string, code = INVALID_REQUEST) =>
 	Object.assign(new Error(message), { code });
 

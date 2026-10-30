@@ -30,9 +30,9 @@ import { type Authorize, signIn } from "./sign-in.js";
 // One connection per configured server, opened on first use so a run pays only for the
 // servers it calls; a closed connection is dropped and the next call reconnects (docs/10).
 
-// The SDK client loads on the first connection, not with the package: a `mete status` run talks to
-// no server, and the client's graph is the largest this package would otherwise read at start
-// (docs/15, cold start).
+// The SDK client is imported on the first connection, but transport.ts already loads the same
+// `@modelcontextprotocol/client` entry at start: SDK v2 has no subpath for its HTTP transports
+// (ADR-163, docs/15 cold start).
 type ClientSdk = typeof import("@modelcontextprotocol/client");
 
 let loading: Promise<ClientSdk> | undefined;
