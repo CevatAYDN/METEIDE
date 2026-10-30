@@ -175,7 +175,9 @@ export {
 export { type Pins, PinsSchema, pinOf } from "./domain/pins.js";
 export {
 	type AuditFailed,
+	alwaysEntry,
 	canAlways,
+	hasShellOperator,
 	type MaskResult,
 	type Policy,
 	type PolicyAction,

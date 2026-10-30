@@ -150,11 +150,48 @@ export const PolicyAskSchema = z.strictObject({
 /** An ask the human answered; a later check of the run may match it (SECURITY.md, Answering an ask). */
 export type PolicyAsk = z.infer<typeof PolicyAskSchema>;
 
-/** Whether Always may be offered (ADR-121): a command whose text the event did not mask. */
+/** Whether Always may be offered (ADR-121): a command whose text the event did not mask and with no `*`, which `shell.always` reads as a pattern (ADR-158). */
 export const canAlways = (ask: PolicyAsk) =>
 	ask.action === "shell.exec" &&
 	ask.command !== undefined &&
-	!ask.command.includes("[SECRET:");
+	!ask.command.includes("[SECRET:") &&
+	!ask.command.includes("*");
+
+// Commands run in a shell (docs/10), so these characters can chain, redirect or run more.
+const SHELL_OPERATOR = /[&|;\r\n`()<>]/;
+
+/** True when the command could do more than one thing; quotes are not parsed, so it fails closed. */
+export const hasShellOperator = (command: string): boolean =>
+	SHELL_OPERATOR.test(command);
+
+// ADR-158: a second word that runs any program or package, and a first word that runs the rest as a command.
+const RUNS_ANY = new Set(["exec", "dlx", "x", "eval", "run"]);
+const WRAPPERS = new Set(
+	"env cross-env sudo doas nohup time timeout nice xargs exec eval command start call iex invoke-expression start-process invoke-command runas".split(
+		" ",
+	),
+);
+
+// A flag may run its argument or change nothing (`node -e`, `pwsh -NoProfile`, `cmd /c`), a quote splits a program's path.
+const patternIsSafe = (words: readonly string[], command: string) => {
+	const [prog = "", sub = ""] = words.map((w) => w.toLowerCase());
+	return (
+		words.length >= 3 &&
+		!hasShellOperator(command) &&
+		!/["']/.test(`${prog} ${sub}`) &&
+		!/^[-/]/.test(sub) &&
+		!RUNS_ANY.has(sub) &&
+		!WRAPPERS.has(prog)
+	);
+};
+
+/** What Always allow writes to `shell.always` (ADR-158): the first two words and ` *`, or the exact command when a pattern could run anything. */
+export const alwaysEntry = (command: string): string => {
+	const words = command.trim().split(/\s+/);
+	return patternIsSafe(words, command)
+		? `${words[0]} ${words[1]} *`
+		: words.join(" ");
+};
 
 /** Input of policy.grant@1: once (used up by the first match) or for the rest of the run. */
 export const PolicyGrantInputSchema = z.strictObject({

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+	alwaysEntry,
 	canAlways,
 	PolicyCheckInputSchema,
 	PolicyGrantInputSchema,
@@ -168,5 +169,45 @@ describe("canAlways", () => {
 		expect(canAlways({ ...base, action: "fs.write", path: "a.txt" })).toBe(
 			false,
 		);
+	});
+
+	it("never offers Always for a command holding *, which shell.always would read as a pattern (ADR-158)", () => {
+		expect(
+			canAlways({
+				capability: "shell.exec@1",
+				adapterId: "tools-shell",
+				action: "shell.exec",
+				command: "rm *.tmp",
+			}),
+		).toBe(false);
+	});
+});
+
+describe("alwaysEntry", () => {
+	it("writes the first two words and * for a command that runs one program with changing arguments", () => {
+		expect(alwaysEntry("  npm   test src/a.test.ts ")).toBe("npm test *");
+		expect(alwaysEntry("git diff --stat src")).toBe("git diff *");
+		expect(alwaysEntry("node scripts/build.js --watch")).toBe(
+			"node scripts/build.js *",
+		);
+	});
+
+	it("keeps the exact command when a pattern could run anything (ADR-158)", () => {
+		for (const command of [
+			"npm test",
+			"node -e console.log(1)",
+			"node --test a.test.js",
+			"python -c print(1)",
+			"pwsh -NoProfile -Command Get-Date",
+			"cmd /c dir x",
+			"pnpm dlx create-vite app",
+			"npm exec foo bar",
+			"uv run python x.py",
+			"env A=1 node x.js",
+			"Start-Process node x.js",
+			"npm test a.js && rm -rf .",
+			'"C:\\Program Files\\nodejs\\node.exe" x.js y',
+		])
+			expect(alwaysEntry(command)).toBe(command.trim());
 	});
 });
