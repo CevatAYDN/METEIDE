@@ -263,12 +263,17 @@ const Field = ({
 /** A model field whose list opens below it and filters as the user types (ADR-161). */
 export const ModelPicker = (p: PickerProps) => {
 	const listId = useId();
-	const listRef = useRef<HTMLUListElement>(null);
+	const popup = useRef<HTMLDivElement>(null);
 	const s = usePicker(p, listId);
+	const opened = s.open !== undefined;
+	// A field low in a short panel opens its list below the fold: the panel scrolls it into sight.
+	useEffect(() => {
+		if (opened) popup.current?.scrollIntoView({ block: "nearest" });
+	}, [opened]);
 	// Eight rows show, then the list scrolls; the active row stays in sight.
 	useEffect(() => {
 		if (s.activeId)
-			listRef.current?.ownerDocument
+			popup.current?.ownerDocument
 				.getElementById(s.activeId)
 				?.scrollIntoView({ block: "nearest" });
 	}, [s.activeId]);
@@ -277,13 +282,13 @@ export const ModelPicker = (p: PickerProps) => {
 			<Field p={p} s={s} listId={listId} />
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: the popup (the listbox, and the note why it holds no model) only keeps the field's focus on a mousedown; the field holds its keys. */}
 			<div
+				ref={popup}
 				className="mete-picker-list"
-				hidden={s.open === undefined}
+				hidden={!opened}
 				onMouseDown={keep}
 			>
 				<ul
 					id={listId}
-					ref={listRef}
 					// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: the combobox's own list, not a select (ADR-161 rejects the native one).
 					role="listbox"
 					aria-label={p.label}
