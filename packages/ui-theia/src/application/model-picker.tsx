@@ -50,7 +50,7 @@ export type OptionsProps = {
 	readonly onPick: (at: number) => void;
 };
 
-// A row keeps the field's focus, so picking it does not first leave the field.
+// The list keeps the field's focus, so a pick, a heading or its scroll bar does not leave the field.
 const keep = (e: MouseEvent) => e.preventDefault();
 
 const Option = ({
@@ -71,7 +71,6 @@ const Option = ({
 		// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: an option of the combobox's own list, as the board draws it.
 		role="option"
 		aria-selected={selected}
-		onMouseDown={keep}
 		onClick={() => o.onPick(at)}
 	>
 		{children}
@@ -197,9 +196,10 @@ const usePicker = (p: PickerProps, listId: string) => {
 	const [open, setOpen] = useState<Open>();
 	const list = pickList(p.models, p.facts, p.states, open?.query ?? "");
 	const values = valuesOf(list);
-	const show = (query: string) => {
+	// `value` is the field's text now: while typing, the prop still holds the text before it.
+	const show = (query: string, value: string) => {
 		const shown = valuesOf(pickList(p.models, p.facts, p.states, query));
-		setOpen({ query, active: startActive(shown, p.value, query) });
+		setOpen({ query, active: startActive(shown, value, query) });
 	};
 	const pick = (at: number | undefined) => {
 		setOpen(undefined);
@@ -209,7 +209,7 @@ const usePicker = (p: PickerProps, listId: string) => {
 	};
 	const keys: Readonly<Record<string, () => void>> = open
 		? { Escape: () => setOpen(undefined), Enter: () => pick(open.active) }
-		: { ArrowDown: () => show(""), Enter: () => p.onCommit?.() };
+		: { ArrowDown: () => show("", p.value), Enter: () => p.onCommit?.() };
 	const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
 		const to = open ? nextActive(e.key, open.active, values.length) : undefined;
 		const act =
@@ -252,11 +252,11 @@ const Field = ({
 		placeholder="providerId/modelId"
 		onChange={(e) => {
 			p.onChange(e.target.value);
-			s.show(e.target.value);
+			s.show(e.target.value, e.target.value);
 		}}
 		onKeyDown={s.onKeyDown}
 		onClick={() => {
-			if (!s.open) s.show("");
+			if (!s.open) s.show("", p.value);
 		}}
 		onBlur={() => {
 			if (s.open) s.pick(undefined);
@@ -288,6 +288,7 @@ export const ModelPicker = (p: PickerProps) => {
 				role="listbox"
 				aria-label={p.label}
 				hidden={s.open === undefined}
+				onMouseDown={keep}
 			>
 				<PickOptions
 					id={listId}
