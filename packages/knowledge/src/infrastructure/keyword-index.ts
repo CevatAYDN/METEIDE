@@ -87,10 +87,11 @@ export const keywordIndex = (db: BetterSqlite3.Database) => {
 						.run();
 				for (const n of changed) put(tx, n);
 			}),
-		/** The best sections first: BM25, then path, so equal scores keep one order. */
+		/** The best sections first: BM25, then path, so equal scores keep one order. The snippet is
+		 * always of the body (column 5), not of a title or heading the word matched (docs/11). */
 		search: (q: Query): IndexRow[] =>
 			orm.all<IndexRow>(sql`SELECT path, type, title, heading,
-				snippet(knowledge_chunks, -1, '', '', '…', ${SNIPPET_TOKENS}) AS snippet
+				snippet(knowledge_chunks, 5, '', '', '…', ${SNIPPET_TOKENS}) AS snippet
 				FROM knowledge_chunks WHERE knowledge_chunks MATCH ${q.match}
 				AND (${q.type ?? null} IS NULL OR type = ${q.type ?? null})
 				AND (${q.path ?? null} IS NULL OR substr(path, 1, length(${q.path ?? null})) = ${q.path ?? null})

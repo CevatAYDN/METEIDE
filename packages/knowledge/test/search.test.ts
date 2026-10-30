@@ -151,6 +151,19 @@ describe("knowledge.search@1", () => {
 		await s.close();
 	});
 
+	it("snips the section's text even when the word is in the title", async () => {
+		const s = await setup();
+		await s.note(
+			"lessons/build.md",
+			"---\ntype: lesson\ntitle: Check the build\n---\n\n# Check the build\n\nThe page passed review but the build failed.\n",
+		);
+		const r = await s.search({ query: "check" });
+		expect(r.ok && r.value.results.map((h) => h.snippet)).toEqual([
+			"The page passed review but the build failed.",
+		]);
+		await s.close();
+	});
+
 	it("never finds a private note, the history, a note of no type or an ignored file", async () => {
 		const s = await setup();
 		await s.note("lessons/a.md", "---\nprivate: true\n---\nsecret word");
