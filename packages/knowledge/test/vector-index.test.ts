@@ -77,6 +77,7 @@ describe("the vector index", () => {
 		expect([...v.stored(A, ["k1", "k9", "k2"])].sort()).toEqual(["k1", "k2"]);
 		const wrong = v.put(A, [{ key: "k4", vector: [1, 0] }]);
 		expect(wrong.ok).toBe(false);
+		expect(v.nearest(A, [1, 0], 2)).toEqual([]);
 		await s.close();
 	});
 

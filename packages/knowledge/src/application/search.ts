@@ -13,25 +13,27 @@ import {
 	type ToolError,
 } from "@mete/contracts";
 import type { CapabilityRegistry } from "@mete/kernel";
+import { fuse } from "../domain/fusion.js";
 import { ftsQuery, noteFacts, sectionsOf } from "../domain/index-text.js";
 import { VAULT } from "../domain/note.js";
 import { splitNote } from "../infrastructure/frontmatter.js";
 import type {
+	Chunk,
 	IndexedNote,
 	IndexRow,
-	KeywordIndex,
 	Query,
 } from "../infrastructure/keyword-index.js";
+import { nearSections, type VectorDeps, vectorHit } from "./vector-source.js";
 
-// knowledge.search@1 (docs/11, Hybrid search; ADR-149): before each search the vault's notes are
-// read through fs.glob@1 and fs.read@1, so .meteignore applies, and the changed ones indexed again.
+// knowledge.search@1 (docs/11, Hybrid search; ADR-149, ADR-152): before each search the vault's notes
+// are read through fs.glob@1 and fs.read@1, so .meteignore applies, and the changed ones indexed
+// again; then the background job embeds what changed, and the keyword and vector ranks are fused.
 
 type Out<T> = Promise<Result<T, ToolError>>;
 
 /** What the search needs from its module. */
-export type SearchDeps = {
+export type SearchDeps = VectorDeps & {
 	readonly registry: CapabilityRegistry;
-	readonly index: KeywordIndex;
 };
 
 const bad = (message: string) => err<ToolError>({ code: "bad_input", message });
@@ -105,8 +107,24 @@ const hitOf = (row: IndexRow, rank: number): KnowledgeHit => ({
 	sources: { keyword: rank },
 });
 
-// The search an input asks for, or why it asks for none.
-const queryOf = (input: unknown): Result<Query, ToolError> => {
+// The keyword hits keep their rank and FTS5 snippet; a section only the vector source found has none.
+const fused = (
+	rows: readonly IndexRow[],
+	near: readonly Chunk[],
+	k: number,
+) => {
+	const kw = new Map(rows.map((r, n) => [String(r.rowid), hitOf(r, n + 1)]));
+	const vec = new Map(near.map((c) => [String(c.rowid), c]));
+	return fuse([...kw.keys()], [...vec.keys()], k).flatMap((id) => {
+		const c = vec.get(id);
+		return kw.get(id) ?? (c ? vectorHit(c) : []);
+	});
+};
+
+// The search an input asks for, with the query's own words for the vector source, or why it asks for none.
+const queryOf = (
+	input: unknown,
+): Result<Query & { readonly text: string }, ToolError> => {
 	const i = KnowledgeSearchInputSchema.safeParse(input);
 	if (!i.success) return bad(i.error.message);
 	if (i.data.scope === "personal")
@@ -118,6 +136,7 @@ const queryOf = (input: unknown): Result<Query, ToolError> => {
 	if (!match) return bad("The query holds no word to search for");
 	const { k, type, path } = i.data;
 	return ok({
+		text: i.data.query,
 		match,
 		k,
 		...(type ? { type } : {}),
@@ -133,6 +152,8 @@ export const searchNotes =
 		if (!q.ok) return q;
 		const fresh = await refresh(deps, inWorkspace(ctx));
 		if (!fresh.ok) return fresh;
+		deps.job.kick();
 		const rows = deps.index.search(q.value);
-		return ok({ results: rows.map((r, n) => hitOf(r, n + 1)) });
+		const near = await nearSections(deps, q.value, ctx);
+		return ok({ results: fused(rows, near, q.value.k) });
 	};

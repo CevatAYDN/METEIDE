@@ -111,19 +111,24 @@ const insert = (
 	}
 };
 
+// A query vector comes from a provider; one of another size than the table's finds nothing.
 const knn = (
 	orm: Orm,
 	tbl: string | undefined,
 	vector: readonly number[],
 	k: number,
-) =>
-	tbl
-		? orm
-				.all<{ key: string }>(
-					sql`SELECT key FROM ${sql.identifier(tbl)} WHERE embedding MATCH ${new Float32Array(vector)} AND k = ${k} ORDER BY distance`,
-				)
-				.map((r) => r.key)
-		: [];
+) => {
+	if (!tbl) return [];
+	try {
+		return orm
+			.all<{ key: string }>(
+				sql`SELECT key FROM ${sql.identifier(tbl)} WHERE embedding MATCH ${new Float32Array(vector)} AND k = ${k} ORDER BY distance`,
+			)
+			.map((r) => r.key);
+	} catch {
+		return [];
+	}
+};
 
 /** The vector index over one workspace database. */
 export type VectorIndex = ReturnType<typeof vectorIndex>;
@@ -146,7 +151,7 @@ export const vectorIndex = (db: BetterSqlite3.Database) => {
 		/** Stores one model's vectors, each key once; a vector of another size refuses the whole batch. */
 		put: (model: string, rows: readonly Keyed[]): Result<void, string> =>
 			available ? insert(orm, model, rows) : err("sqlite-vec is not loaded"),
-		/** The keys of the model's vectors nearest to `vector`, nearest first; none without its table. */
+		/** The keys of the model's vectors nearest to `vector`, nearest first; none without its table or of another size. */
 		nearest: (model: string, vector: readonly number[], k: number): string[] =>
 			knn(orm, tbl(model), vector, k),
 	};

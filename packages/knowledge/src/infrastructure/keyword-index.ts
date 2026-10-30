@@ -45,12 +45,21 @@ export type Query = {
 
 /** A matching section; heading is "" for the text before a note's first heading. */
 export type IndexRow = {
+	readonly rowid: number;
 	readonly path: string;
 	readonly type: NoteType;
 	readonly title: string;
 	readonly heading: string;
 	readonly snippet: string;
 };
+
+/** An indexed section with its whole text, which the vector source embeds (ADR-152). */
+export type Chunk = Omit<IndexRow, "snippet"> & { readonly body: string };
+
+// The caller's type and folder filters.
+const within = (q: Pick<Query, "type" | "path">) =>
+	sql`(${q.type ?? null} IS NULL OR type = ${q.type ?? null})
+		AND (${q.path ?? null} IS NULL OR substr(path, 1, length(${q.path ?? null})) = ${q.path ?? null})`;
 
 /** The keyword index over one workspace database. */
 export type KeywordIndex = ReturnType<typeof keywordIndex>;
@@ -90,11 +99,13 @@ export const keywordIndex = (db: BetterSqlite3.Database) => {
 		/** The best sections first: BM25, then path, so equal scores keep one order. The snippet is
 		 * always of the body (column 5), not of a title or heading the word matched (docs/11). */
 		search: (q: Query): IndexRow[] =>
-			orm.all<IndexRow>(sql`SELECT path, type, title, heading,
+			orm.all<IndexRow>(sql`SELECT rowid, path, type, title, heading,
 				snippet(knowledge_chunks, 5, '', '', '…', ${SNIPPET_TOKENS}) AS snippet
-				FROM knowledge_chunks WHERE knowledge_chunks MATCH ${q.match}
-				AND (${q.type ?? null} IS NULL OR type = ${q.type ?? null})
-				AND (${q.path ?? null} IS NULL OR substr(path, 1, length(${q.path ?? null})) = ${q.path ?? null})
+				FROM knowledge_chunks WHERE knowledge_chunks MATCH ${q.match} AND ${within(q)}
 				ORDER BY bm25(knowledge_chunks), path LIMIT ${q.k}`),
+		/** Every indexed section under the filters, in the index's order. */
+		chunks: (q: Pick<Query, "type" | "path">): Chunk[] =>
+			orm.all<Chunk>(sql`SELECT rowid, path, type, title, heading, body
+				FROM knowledge_chunks WHERE ${within(q)}`),
 	};
 };
