@@ -4,7 +4,7 @@
 appId: ide.mete.app
 productName: METE IDE
 # The staged package.json carries production dependencies only, so the Electron version is named here.
-electronVersion: 42.11.12
+electronVersion: 42.11.14
 directories:
   output: dist/installer
 # Theia loads native modules and spawns from the app folder, so nothing is archived.
