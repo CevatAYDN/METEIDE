@@ -640,6 +640,7 @@
 			"unpublished": "Henüz yayımlanmış bir METE IDE sürümü yok, güncellenecek bir şey bulunmuyor. Bu sürüm: {0}."
 		},
 		"waiting": {
+			"acceptKept": "Olduğu gibi kabul et",
 			"allowAlways": "Her zaman izin ver",
 			"allowAlwaysAs": "Her zaman izin ver: {0}",
 			"allowHint": "Bu eyleme bir kez, bu çalıştırma boyunca ya da .mete/policy.yaml dosyasında her zaman izin verin.",
@@ -651,6 +652,7 @@
 			"goOn": "Devam et",
 			"instruct": "Talimat ver…",
 			"instruction": "Ne yapmalı?",
+			"keptHint": "Gözden geçirenler onu ekibin izin verdiği kadar geri gönderdi. Son raporunu olduğu gibi kabul edin ya da bir talimatla geri gönderin.",
 			"noFiles": "Bu görevin gösterilecek dosyası yok.",
 			"review": "İnceleme",
 			"run": "Çalıştırma seni bekliyor.",

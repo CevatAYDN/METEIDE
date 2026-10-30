@@ -196,8 +196,9 @@ const Asked = ({
 	</Card>
 );
 
-// A blocked task (docs/07, Task state machine): a guardrail's retries ran out or a capability is
-// missing, and the run paused for the human. It goes on as it is, or with the human's instruction.
+// A blocked task (docs/07, Task state machine): a guardrail's retries ran out, a capability is
+// missing or its revision limit is reached, and the run paused for the human. It goes on as it is,
+// or with the human's instruction; one blocked by its revision limit is accepted as it is (ADR-157).
 const Blocked = ({
 	task,
 	name,
@@ -222,10 +223,15 @@ const Blocked = ({
 		}}
 	>
 		<p className="mete-wait-note">
-			{nls.localize(
-				"mete/waiting/blockedHint",
-				"It goes on when you answer: send an instruction, or let it go on as it is.",
-			)}
+			{task.keptSubmission
+				? nls.localize(
+						"mete/waiting/keptHint",
+						"The reviewers sent it back as many times as the team allows. Accept its last report as it is, or send it back with an instruction.",
+					)
+				: nls.localize(
+						"mete/waiting/blockedHint",
+						"It goes on when you answer: send an instruction, or let it go on as it is.",
+					)}
 		</p>
 		<div className="mete-wait-actions">
 			<button
@@ -233,8 +239,10 @@ const Blocked = ({
 				className="mete-button quiet"
 				onClick={controls.onApprove}
 			>
-				<Icon name="debug-continue" />
-				{nls.localize("mete/waiting/goOn", "Go on")}
+				<Icon name={task.keptSubmission ? "check" : "debug-continue"} />
+				{task.keptSubmission
+					? nls.localize("mete/waiting/acceptKept", "Accept as it is")
+					: nls.localize("mete/waiting/goOn", "Go on")}
 			</button>
 			<Instruct onRevise={controls.onRevise} />
 		</div>

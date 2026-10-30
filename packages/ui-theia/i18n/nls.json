@@ -640,6 +640,7 @@
 			"unpublished": "No METE IDE release has been published yet, so there is nothing to update to. This is version {0}."
 		},
 		"waiting": {
+			"acceptKept": "Accept as it is",
 			"allowAlways": "Always allow",
 			"allowAlwaysAs": "Always allow {0}",
 			"allowHint": "Allow the action once, for the rest of this run, or always in .mete/policy.yaml.",
@@ -651,6 +652,7 @@
 			"goOn": "Go on",
 			"instruct": "Give an instruction…",
 			"instruction": "What should it do?",
+			"keptHint": "The reviewers sent it back as many times as the team allows. Accept its last report as it is, or send it back with an instruction.",
 			"noFiles": "This task has no files to show.",
 			"review": "Review",
 			"run": "The run waits for you.",

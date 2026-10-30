@@ -159,6 +159,21 @@ describe("the Waiting for you strip", () => {
 		expect(out).not.toContain("The run waits for you.");
 	});
 
+	it("offers to accept as it is a task blocked by its revision limit (ADR-157)", () => {
+		const out = strip([
+			created,
+			event("task.status.changed", { from: "submitted", to: "blocked" }, TASK),
+			paused,
+		]);
+		expect(out).toContain("QA is blocked on “Audit it”");
+		expect(out).toContain(
+			"The reviewers sent it back as many times as the team allows. Accept its last report as it is, or send it back with an instruction.",
+		);
+		expect(out).toContain(">Accept as it is<");
+		expect(out).not.toContain(">Go on<");
+		expect(out).toContain("Give an instruction…");
+	});
+
 	it("says the run waits, with Resume and no allow hint, when no task asks the human and no ask has arrived (ADR-121)", () => {
 		const out = strip([created, paused]);
 		expect(out).toContain("The run waits for you.");
