@@ -24,7 +24,8 @@ export type Verdict = z.output<typeof VerdictSchema>;
 // Every fenced block of a reply; the verdict comes after the findings, which may quote code (ADR-134).
 const FENCES = /```[^\n]*\r?\n([\s\S]*?)\r?\n[ \t]*```/g;
 
-const verdictJson = (reply: string) =>
+/** The JSON of a verdict: the whole reply, or the last fenced block that parses. */
+export const verdictJson = (reply: string) =>
 	jsonOf(reply) ??
 	[...reply.matchAll(FENCES)].flatMap((m) => jsonOf(m[1] ?? "") ?? []).at(-1);
 

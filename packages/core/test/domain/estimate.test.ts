@@ -80,6 +80,29 @@ describe("estimateRequests", () => {
 		]);
 	});
 
+	it("counts a best-of-N task's work n times on its role's seat and 1 request for its judge, which has no role (ADR-162)", () => {
+		const t = template();
+		const human = t.tasks.find((x) => x.id === "human");
+		if (!human) throw new Error("no human task");
+		const best = (n: number) =>
+			estimateRequests({
+				...t,
+				tasks: [
+					{
+						...human,
+						attempts: { n, distinct_families: true, judge_tier: "reasoning" },
+					},
+				],
+			});
+		expect(best(3)).toEqual([
+			{ roleId: "tester", tier: "fast", needs: [], requests: 36 },
+			{ tier: "reasoning", needs: [], requests: 1 },
+		]);
+		expect(best(1)).toEqual([
+			{ roleId: "tester", tier: "fast", needs: [], requests: 12 },
+		]);
+	});
+
 	it("counts one task on the single agent's seat when no template is given", () => {
 		expect(estimateRequests(null)).toEqual([
 			{ tier: "coder", needs: ["tool_calling"], requests: 12 },

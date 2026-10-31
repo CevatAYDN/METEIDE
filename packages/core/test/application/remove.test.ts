@@ -128,7 +128,11 @@ describe("remove a run (ADR-143)", () => {
 		);
 		const vcs = recordingVcs();
 		const h = engineHarness({
-			scripts: [reply("built"), reply("built again")],
+			scripts: [
+				reply("built"),
+				reply("built again"),
+				reply('```json\n{"attempt": 2, "reason": "newer"}\n```'),
+			],
 			tools: [["vcs.git@2", vcs.run]],
 			templates,
 		});

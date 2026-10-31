@@ -1,4 +1,3 @@
-import type { ChatMessage } from "@mete/contracts";
 import { REVIEW_REPAIRS } from "../defaults.js";
 import { attempting, withOpening } from "../domain/attempts.js";
 import { openTask } from "../domain/clarify.js";
@@ -9,22 +8,17 @@ import {
 	verdictRepair,
 } from "../domain/review.js";
 import { checkSpawns } from "../domain/spawn.js";
-import type { TaskEvent } from "../domain/task-machine.js";
 import {
-	type ArtifactMeta,
 	applyTask,
 	approve,
 	isPair,
-	keepMessages,
 	nextTeamStep,
 	setRepairs,
-	type TaskChange,
 	type TeamState,
-	withArtifact,
 } from "../domain/team.js";
 import { guardrailOf, titleOf, verifyOf } from "../domain/team-run.js";
-import { announce, saveArtifact } from "./artifacts.js";
-import { afterAttempt, dropLeftBehind } from "./attempts.js";
+import { afterAttempt, settle } from "./attempts.js";
+import { openJudge } from "./judge.js";
 import { lessonTurn } from "./lesson.js";
 import { readNotes } from "./notes.js";
 import {
@@ -37,6 +31,7 @@ import {
 	toolContext,
 } from "./run-state.js";
 import { afterApproval } from "./spawned.js";
+import { changed, endAttempt, land } from "./submission.js";
 import { humanRequest } from "./vcs-steps.js";
 import { verifyGates } from "./verify.js";
 import { merge, worktreeOf } from "./worktrees.js";
@@ -44,43 +39,6 @@ import { merge, worktreeOf } from "./worktrees.js";
 // A team run between attempts (docs/08, Task execution sequence): start the next ready task,
 // accept a submission, let an approver role review it, wait for the human, or complete once
 // every task is approved.
-
-// Events name a task by its Task id, not by its template id.
-const changed = (
-	s: EngineState,
-	l: Live,
-	taskId?: string,
-	change?: TaskChange,
-) => {
-	if (change)
-		emit(s, l, { type: "task.status.changed", payload: change }, taskId);
-};
-
-// Ends the attempt: its conversation (and Artifact) is kept and the task moves on. A best-of-N task
-// keeps the conversation of the attempt that goes on, which may be an earlier one (ADR-162).
-const endAttempt = (
-	s: EngineState,
-	l: Live,
-	event: TaskEvent,
-	end: {
-		readonly artifact?: ArtifactMeta | undefined;
-		readonly messages?: readonly ChatMessage[];
-	} = {},
-) => {
-	const { team, task, messages } = l.snapshot.context;
-	if (!team || !task) return stuck(s, l);
-	const { artifact } = end;
-	const kept = keepMessages(team, task, end.messages ?? messages);
-	const r = applyTask(
-		artifact ? withArtifact(kept, task, artifact) : kept,
-		task,
-		event,
-	);
-	if (!r.change) return stuck(s, l);
-	apply(s, l, { type: "TEAM", team: r.team });
-	if (artifact) announce(s, l, team, { task, artifact });
-	changed(s, l, team.tasks[task]?.id, r.change);
-};
 
 // Runs the task's verify gates before the guardrail (docs/08, step 3); true when the report may go
 // on. A failed gate is one more user message in the attempt, with no repair counted, so the
@@ -152,31 +110,13 @@ const spent = (s: EngineState, l: Live) =>
 		? attempted(s, l)
 		: endAttempt(s, l, { type: "BLOCK", reason: "guardrail" });
 
-// Submits a report that passed its checks, kept as the task's artifact.
-const land = async (
-	s: EngineState,
-	l: Live,
-	sent: { readonly report: string; readonly messages?: readonly ChatMessage[] },
-) => {
-	const { team, task } = l.snapshot.context;
-	const json = team && task ? guardrailOf(team, task) !== undefined : false;
-	const artifact = await saveArtifact(s, l, { report: sent.report, json });
-	if (artifact === false) return; // the write failed the run
-	const end = {
-		artifact,
-		...(sent.messages ? { messages: sent.messages } : {}),
-	};
-	endAttempt(s, l, { type: "SUBMIT", report: sent.report }, end);
-};
-
-// A best-of-N task's attempt is checked (ADR-162): the next one starts, or the one that goes on is
-// submitted, or the last is blocked with its problems; the others' worktrees go after the record.
+// A best-of-N task's attempt is checked (ADR-162): the next one starts, a judge chooses among the
+// candidates, or the one that goes on is submitted, or the last is blocked with its problems.
 const attempted = async (s: EngineState, l: Live, report?: string) => {
 	const then = afterAttempt(s, l, report);
 	if (then.kind === "next") return;
-	if (then.kind === "submit") await land(s, l, then);
-	else endAttempt(s, l, { type: "BLOCK", reason: "guardrail" }, then);
-	await dropLeftBehind(s, l);
+	if (then.kind === "judging") return openJudge(s, l);
+	await settle(s, l, then);
 };
 
 // A task already in progress (after a block was resolved) keeps its agent and goes on; a starting

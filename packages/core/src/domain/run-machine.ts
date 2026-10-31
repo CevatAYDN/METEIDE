@@ -61,6 +61,8 @@ export type RunContext = {
 	readonly review?: string | undefined;
 	/** The role answering `task`'s questions in this conversation (docs/08, step 1; ADR-142). */
 	readonly clarify?: string | undefined;
+	/** A judge chooses among `task`'s attempts in this conversation (ADR-162). */
+	readonly judge?: boolean | undefined;
 	/** The start brief every conversation of the run opens with (docs/08, Run memory). */
 	readonly brief?: string | undefined;
 	/** The workspace block every task conversation and the single agent's open with (ADR-126). */
@@ -91,6 +93,7 @@ export type RunEvent =
 			messages: readonly ChatMessage[];
 			review?: string;
 			clarify?: string;
+			judge?: boolean;
 	  }
 	| { type: "REVIEWED"; team: TeamState }
 	| { type: "CHECKPOINTED"; step: number; snapshot?: string }
@@ -203,11 +206,17 @@ export const runMachine = setup({
 				agent: undefined,
 				review: event.review,
 				clarify: event.clarify,
+				judge: event.judge,
 				tainted: false,
 			})),
 		},
+		// A review's or a judge's verdict is recorded with the conversation it ends (ADR-162).
 		REVIEWED: {
-			actions: assign(({ event }) => ({ team: event.team, review: undefined })),
+			actions: assign(({ event }) => ({
+				team: event.team,
+				review: undefined,
+				judge: undefined,
+			})),
 		},
 		TOOL_DONE: {
 			actions: assign({

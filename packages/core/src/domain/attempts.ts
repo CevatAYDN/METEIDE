@@ -52,7 +52,8 @@ export const attemptIds = (entry: Entry) => [
 /** The attempt the working agent of the run works, for agent.created; none outside best-of-N. */
 export const attemptOf = (c: RunContext) => {
 	const entry = c.team && c.task ? c.team.tasks[c.task] : undefined;
-	if (!c.team || !c.task || !entry || c.review || c.clarify) return undefined;
+	if (!c.team || !c.task || !entry || c.review || c.clarify || c.judge)
+		return undefined;
 	const n = attemptsOf(c.team, c.task);
 	if (n < 2) return undefined;
 	const k =

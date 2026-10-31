@@ -53,6 +53,9 @@ export const isAsking = (c: RunContext) =>
 /** The seat of the run's active agent: its task's role, a reviewer's or an answerer's, or the single agent. */
 export const activeSeat = (c: RunContext): Seat => {
 	if (!c.team || !c.task) return SINGLE_AGENT;
+	// A best-of-N task's judge: its tier, no tools (ADR-162).
+	const judge = taskOf(c.team, c.task)?.attempts?.judge_tier;
+	if (c.judge && judge) return { tier: judge, needs: [], capabilities: [] };
 	const by = c.review ?? c.clarify;
 	const seat = roleSeat(c.team, by ?? taskOf(c.team, c.task)?.role);
 	// The questions are asked with no tools, so the agent cannot start the work first.
@@ -67,8 +70,8 @@ export const seatOf = (team: TeamState, id: string): Seat =>
 export const activeRole = (c: RunContext) => {
 	const entry = c.team && c.task ? c.team.tasks[c.task] : undefined;
 	const roleId = c.team && c.task ? taskOf(c.team, c.task)?.role : undefined;
-	// A reviewer or an answerer gets an agent of its own; the task's agent id is the worker's.
-	const by = c.review ?? c.clarify;
+	// A reviewer, an answerer or a judge gets an agent of its own; the task's agent id is the worker's.
+	const by = c.review ?? c.clarify ?? (c.judge ? "judge" : undefined);
 	return {
 		roleId: by ?? roleId ?? "assistant",
 		agentId: by ? undefined : entry?.context.agentId,

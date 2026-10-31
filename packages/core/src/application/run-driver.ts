@@ -5,6 +5,7 @@ import { type NextStep, nextStep } from "../domain/next-step.js";
 import { afterModelError } from "../domain/run-events.js";
 import { activeRole, activeSeat, isAsking } from "../domain/team-run.js";
 import { answered, asked } from "./clarify.js";
+import { judged } from "./judge.js";
 import { pinnedSeat, runPreferOf } from "./pinned.js";
 import {
 	apply,
@@ -199,9 +200,11 @@ const toolTurn = async (
 		apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
 };
 
-// A reply that ends a conversation: a review's verdict, a task's report, or a single agent's summary.
+// A reply that ends a conversation: a judge's choice, a review's verdict, a task's report, or a single
+// agent's summary.
 const finish = async (s: EngineState, l: Live, reply: string) => {
 	const c = l.snapshot.context;
+	if (c.judge) return judged(s, l, reply);
 	if (c.review) return verdict(s, l, reply);
 	if (c.clarify) return answered(s, l, reply);
 	if (isAsking(c)) return asked(s, l, reply);

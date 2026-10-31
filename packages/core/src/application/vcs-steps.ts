@@ -213,7 +213,7 @@ export const dropWorktree = async (
  * renamed, not deleted, since there is nothing to open (ADR-141). Undefined without vcs.git@2, when
  * status fails, or past APPROVAL_FILES_MAX, so the reader lists the folder itself.
  */
-const worktreeChanges = async (
+export const worktreeChanges = async (
 	deps: StepDeps,
 	at: { readonly runId: string; readonly worktree: string },
 	signal: AbortSignal,
@@ -239,4 +239,22 @@ export const humanRequest = async (
 	if (!worktree) return { approver: "human" };
 	const files = await worktreeChanges(deps, { runId, worktree }, signal);
 	return { approver: "human", worktree, ...(files ? { files } : {}) };
+};
+
+/**
+ * What git diff shows in a task's worktree, for the judge of a best-of-N task (ADR-162); undefined
+ * without vcs.git@2 or when diff fails.
+ * shortcut: new files show by name only (git diff skips untracked files); read them when judges keep
+ * missing what they hold.
+ */
+export const worktreeDiff = async (
+	deps: StepDeps,
+	at: { readonly runId: string; readonly worktree: string },
+	signal: AbortSignal,
+) => {
+	const chain = deps.registry.resolve<VcsGitAdapter>("vcs.git@2");
+	if (!chain.ok) return undefined;
+	const ctx = { runId: at.runId, cwd: at.worktree, signal };
+	const r = await chain.value[0].impl.run({ op: "diff" }, ctx);
+	return r.ok && r.value.op === "diff" ? r.value.diff : undefined;
 };

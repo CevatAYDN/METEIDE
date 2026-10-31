@@ -127,6 +127,7 @@ const PersistedSchema = z.object({
 		task: text1.optional(),
 		review: text1.optional(),
 		clarify: text1.optional(),
+		judge: z.boolean().optional(),
 		tainted: z.boolean().optional(),
 		brief: z.string().optional(),
 		workspace: z.string().optional(),

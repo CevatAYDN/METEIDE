@@ -15,6 +15,15 @@ export const ESTIMATE_PER_CLARIFY = 4;
 /** Requests a task's lesson after approval takes: one turn without tools (09 Models, providers and quota, Scheduler, step 6; ADR-145). */
 export const ESTIMATE_PER_LESSON = 1;
 
+/** Requests the judge of a best-of-N task's attempts is estimated to need (09 Models, providers and quota, Scheduler, step 6; ADR-162). */
+export const ESTIMATE_PER_JUDGE = 1;
+
+/** Characters of each candidate's part the judge of a best-of-N task reads (08 Orchestration and teams, Task execution sequence; ADR-162). */
+export const JUDGE_CANDIDATE_CHARS = 4000;
+
+/** Times a judge whose reply holds no verdict is asked again before the first candidate goes on (08 Orchestration and teams, Task execution sequence; ADR-162). */
+export const JUDGE_REPAIRS = 1;
+
 /** Model turns an attempt takes before its run pauses for the budget (docs/08, Task execution sequence and Single agent; ADR-126). */
 export const MAX_TURNS = 25;
 
