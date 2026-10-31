@@ -236,17 +236,23 @@ export const createGatewayApp = (options: GatewayServerOptions) => {
 
 /** Serves the endpoints on 127.0.0.1 on a free port. */
 export const serveGateway = (options: GatewayServerOptions) =>
-	new Promise<{ port: number; close: () => Promise<void> }>((resolve) => {
-		const app = createGatewayApp(options);
-		const server = serve(
-			{ fetch: app.fetch, hostname: "127.0.0.1", port: 0 },
-			(info: AddressInfo) =>
-				resolve({
-					port: info.port,
-					close: () =>
-						new Promise<void>((done, fail) =>
-							server.close((e) => (e ? fail(e) : done())),
-						),
-				}),
-		);
-	});
+	new Promise<{ port: number; close: () => Promise<void> }>(
+		(resolve, reject) => {
+			const app = createGatewayApp(options);
+			const server = serve(
+				{ fetch: app.fetch, hostname: "127.0.0.1", port: 0 },
+				(info: AddressInfo) => {
+					server.off("error", reject);
+					resolve({
+						port: info.port,
+						close: () =>
+							new Promise<void>((done, fail) =>
+								server.close((e) => (e ? fail(e) : done())),
+							),
+					});
+				},
+			);
+			// A port that cannot be listened on rejects instead of leaving the caller waiting.
+			server.once("error", reject);
+		},
+	);
