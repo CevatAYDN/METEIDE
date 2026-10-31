@@ -12,7 +12,7 @@ import {
 } from "@mete/contracts";
 import { CHARS_PER_TOKEN } from "../defaults.js";
 import { ABORTED, chainEnd } from "../domain/llm-errors.js";
-import { usableModels } from "../domain/resolve.js";
+import { type PrivacyRules, usableModels } from "../domain/resolve.js";
 import { costOf } from "../domain/spend.js";
 import type { ModelCall } from "../infrastructure/model-calls.js";
 import {
@@ -49,20 +49,27 @@ type Answer = {
 	readonly observations: readonly QuotaObservation[];
 };
 
-// The models the mode and the privacy filter allow, free first (ADR-042), the failing ones last.
+/** The embedding models the mode and the privacy filter allow, free first (ADR-042), each in listed order. */
+export const embedOrder = (
+	found: readonly Offered[],
+	rules: PrivacyRules,
+): Offered[] => {
+	const models = usableModels(found, rules);
+	const ordered = [
+		...models.filter((m) => m.free),
+		...models.filter((m) => !m.free),
+	];
+	return ordered.flatMap((m) => found.filter((o) => o.model === m));
+};
+
+// The models that did not refuse their key, the failing ones last.
 const chainOf = (
 	found: readonly Offered[],
 	memory: Memory,
 	deps: EmbedDeps,
 ) => {
 	const offered = found.filter((o) => !memory.refused.has(keyOf(o)));
-	const models = usableModels(offered, deps.rules());
-	const ordered = [
-		...models.filter((m) => m.free),
-		...models.filter((m) => !m.free),
-	];
-	const chain = ordered.flatMap((m) => offered.filter((o) => o.model === m));
-	return demoted(chain, memory, keyOf);
+	return demoted(embedOrder(offered, deps.rules()), memory, keyOf);
 };
 
 const row = (

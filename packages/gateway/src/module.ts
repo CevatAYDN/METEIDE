@@ -22,7 +22,7 @@ import type {
 } from "@mete/kernel";
 import { z } from "zod";
 import { type ChatDeps, createLlmChat } from "./application/chat.js";
-import { createLlmEmbed } from "./application/embed.js";
+import { createLlmEmbed, embedOrder } from "./application/embed.js";
 import { createDiscovery } from "./application/prepare.js";
 import { MODEL_CALL_RETENTION_DAYS } from "./defaults.js";
 import {
@@ -152,9 +152,11 @@ const discovery = (ctx: ModuleContext, dailySpendUsd: number) => {
 
 const listsNone = async () => ok<ModelInfo[]>([]);
 
-// What an active gateway serves from: its discovery and the privacy rules read at activation.
+// What an active gateway serves from: its chat and embedding discovery and the privacy rules read at
+// activation.
 type Live = {
 	readonly discover: Discover;
+	readonly embed: Discover;
 	readonly rules: PrivacyRules;
 };
 
@@ -234,6 +236,20 @@ const chainRefs = async (
 	}));
 };
 
+// The chain an llm.embed@1 call would try, best first, from the cached listing: no model call and no
+// quota reservation (ADR-152, the composer's estimate).
+const embedRefs = async (
+	live: Live | undefined,
+	signal: AbortSignal,
+): Promise<ModelRef[]> => {
+	if (!live) return [];
+	const found = await live.embed(signal);
+	return embedOrder(found, live.rules).map((o) => ({
+		providerId: o.model.providerId,
+		modelId: o.model.id,
+	}));
+};
+
 // The listed facts of the asked models, in the order asked, from the cached listing: no model call
 // and no quota reservation (ADR-090, the Team view's context share).
 const infoOf = async (
@@ -260,6 +276,8 @@ export type GatewayModule = MeteModule & {
 	): Promise<ModelRef[]>;
 	/** The listed facts of the asked models, in the order asked; empty while inactive. */
 	info(refs: readonly ModelRef[], signal: AbortSignal): Promise<ModelInfo[]>;
+	/** The chain an llm.embed@1 call would try, best first; empty while inactive (ADR-152). */
+	embedChain(signal: AbortSignal): Promise<ModelRef[]>;
 };
 
 const provide = (ctx: ModuleContext, ref: CapabilityRef, impl: unknown) =>
@@ -286,6 +304,7 @@ export const createGatewayModule = (
 		models: (signal) => usableRefs(live, signal),
 		chain: (...args) => chainRefs(live, args),
 		info: (refs, signal) => infoOf(live, refs, signal),
+		embedChain: (signal) => embedRefs(live, signal),
 		async activate(ctx) {
 			if (!ctx.storage) return err(failed("storage.sql@1 was not provided"));
 			const migrated = ctx.storage.migrate("workspace", MODEL_CALL_MIGRATIONS);
@@ -299,11 +318,12 @@ export const createGatewayModule = (
 			const found = discovery(ctx, rules.value.dailySpendUsd);
 			live = {
 				discover: found.chat,
+				embed: found.embed,
 				rules: rules.value.rules,
 			};
 			const shared = pipelineDeps(ctx, live, opts, write);
 			const chat = createLlmChat({ ...shared, discover: live.discover });
-			const embed = createLlmEmbed({ ...shared, discover: found.embed });
+			const embed = createLlmEmbed({ ...shared, discover: live.embed });
 			provide(ctx, "llm.chat@2", chat);
 			provide(ctx, "llm.embed@1", embed);
 			return ok(undefined);

@@ -212,6 +212,37 @@ describe("gateway module", () => {
 		await s.close();
 	});
 
+	it("lists the embedding chain without a model call, after the privacy filter, and none while inactive (ADR-152)", async () => {
+		const s = await setup();
+		const signal = new AbortController().signal;
+		const offer = (id: string, trains: boolean) => {
+			const e = fakeEmbedder(id, []).adapter;
+			const impl = {
+				...e,
+				embedModels: async () => ok([model(id)]),
+				privacy: () => ({ trains, logs: false, publishes: false }),
+			};
+			s.registry.provide("provider.embed@2", {
+				id,
+				trust: "first-party",
+				features: [],
+				impl,
+			});
+		};
+		offer("t", true);
+		offer("e", false);
+		expect(await s.gateway.embedChain(signal)).toEqual([]);
+		await s.gateway.activate(s.ctx);
+		// The provider that trains on what it receives waits for allowTraining.
+		expect(await s.gateway.embedChain(signal)).toEqual([
+			{ providerId: "e", modelId: "m" },
+		]);
+		expect(s.db.prepare("SELECT count(*) AS n FROM model_calls").get()).toEqual(
+			{ n: 0 },
+		);
+		await s.close();
+	});
+
 	it("excludes training providers by default and admits them when the user allows it", async () => {
 		const deny = await setup();
 		deny.registry.provide("provider.chat@2", {
