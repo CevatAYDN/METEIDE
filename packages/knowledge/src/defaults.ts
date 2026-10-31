@@ -18,5 +18,11 @@ export const RRF_K = 60;
 /** Sections one embedding request sends (11 Knowledge layer, Indexing; ADR-152). */
 export const EMBED_BATCH = 32;
 
+/** Retention score below which a note is cold and ranked after the others (11 Knowledge layer, Aging and restore; ADR-173). */
+export const COLD_BELOW = 0.2;
+
+/** Time within which a note's second access is not counted (11 Knowledge layer, Aging and restore; ADR-173). */
+export const ACCESS_GAP_MS = 60_000;
+
 /** Cosine distance past which the vector source finds nothing, measured on NVIDIA's embedding model (11 Knowledge layer, Hybrid search). */
 export const VECTOR_MAX_DISTANCE = 0.85;

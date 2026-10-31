@@ -8,8 +8,15 @@ import { CHUNK_CHARS } from "../defaults.js";
 /** One heading section of a note, or a piece of one over CHUNK_CHARS. */
 export type Section = { readonly heading?: string; readonly text: string };
 
-/** What the index keeps of a note besides its sections. */
-export type NoteFacts = { readonly title: string; readonly type: NoteType };
+/** What the index keeps of a note besides its sections; `born` and `pinned` are what aging reads (ADR-173). */
+export type NoteFacts = {
+	readonly title: string;
+	readonly type: NoteType;
+	readonly born?: string;
+	readonly pinned: boolean;
+};
+
+const textOf = (v: unknown) => (typeof v === "string" ? v : undefined);
 
 const HEADING = /^#{1,6}[ \t]+(.+?)[ \t#]*$/;
 const FENCE = /^[ \t]*(```|~~~)/;
@@ -69,7 +76,13 @@ export const noteFacts = (
 	if (!type) return undefined;
 	const given = typeof data.title === "string" ? data.title.trim() : "";
 	const title = given || (H1.exec(body)?.[1] ?? posix.basename(path, ".md"));
-	return { title, type };
+	const born = textOf(data.created) ?? textOf(data.updated);
+	return {
+		title,
+		type,
+		...(born ? { born } : {}),
+		pinned: data.pinned === true,
+	};
 };
 
 /** Each word of the query as an FTS5 phrase, any of which may match (ADR-151); undefined when it holds no letter or digit. */

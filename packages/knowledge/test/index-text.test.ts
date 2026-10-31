@@ -60,6 +60,19 @@ describe("noteFacts", () => {
 		expect(noteFacts("other/a.md", {}, "")).toBeUndefined();
 		expect(noteFacts("lessons/a.md", { private: true }, "")).toBeUndefined();
 	});
+
+	it("keeps when the note was written, created before updated, and whether it is pinned (ADR-173)", () => {
+		const both = { created: "2026-01-01", updated: "2026-06-01", pinned: true };
+		expect(noteFacts("lessons/a.md", both, "")).toMatchObject({
+			born: "2026-01-01",
+			pinned: true,
+		});
+		const late = noteFacts("lessons/a.md", { updated: "2026-06-01" }, "");
+		expect(late).toMatchObject({ born: "2026-06-01", pinned: false });
+		expect(
+			noteFacts("lessons/a.md", { pinned: "yes" }, "")?.born,
+		).toBeUndefined();
+	});
 });
 
 describe("ftsQuery", () => {
