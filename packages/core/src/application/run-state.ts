@@ -141,8 +141,22 @@ export const emit = (
 	l: Live,
 	body: EventBody,
 	taskId?: string,
+) =>
+	emitAs(s, l, body, {
+		taskId,
+		agentId: l.snapshot.context.agent?.id ?? l.nextAgent,
+	});
+
+/** An event of a named agent: a step that runs for a task after its agent left the run's context. */
+export const emitAs = (
+	s: EngineState,
+	l: Live,
+	body: EventBody,
+	{
+		taskId,
+		agentId,
+	}: { taskId?: string | undefined; agentId?: string | undefined },
 ) => {
-	const agentId = l.snapshot.context.agent?.id ?? l.nextAgent;
 	s.deps.events.publish({
 		id: s.deps.newId(),
 		ts: iso(s.deps.now()),

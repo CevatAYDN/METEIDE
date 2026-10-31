@@ -89,6 +89,42 @@ describe("lessons after approval", () => {
 		expect(skipped(h)).toEqual([]);
 	});
 
+	it("names the task's agent on the lesson's events after the lead approved, thinking included", async () => {
+		await writeFile(
+			join(templates.builtIn, "learner.yaml"),
+			TEAM.replace(
+				"capabilities: [] }",
+				"capabilities: [] }\n  - { id: lead, name: Lead, goal: Review, tier: reasoning, capabilities: [] }",
+			).replace(
+				"memory: { write_lessons: true } }",
+				"approval: lead, memory: { write_lessons: true } }",
+			),
+		);
+		const vault = recording();
+		const { h } = await run({
+			scripts: [
+				reply("Built it."),
+				reply('{"decision":"approve"}'),
+				reply(JSON.stringify(LESSON)),
+			],
+			tools: [["vault.write@1", vault.tool]],
+		});
+		const assigned = h.events.find((e) => e.type === "task.assigned");
+		const worker =
+			assigned?.type === "task.assigned" ? assigned.payload.agentId : "";
+		const lessonEvents = h.events.filter(
+			(e) =>
+				(e.type === "agent.tool.called" || e.type === "agent.tool.completed") &&
+				e.payload.capability === "vault.write@1",
+		);
+		expect(lessonEvents).toHaveLength(2);
+		for (const e of lessonEvents) expect(e.agentId).toBe(worker);
+		const ended = h.events.filter((e) => e.type === "agent.thinking.ended");
+		expect(ended).toHaveLength(3);
+		expect(ended.at(-1)?.agentId).toBe(worker);
+		expect(ended.at(-2)?.agentId).not.toBe(worker);
+	});
+
 	it("skips a reply that is no lesson, without asking again", async () => {
 		const vault = recording();
 		const { h } = await run({
