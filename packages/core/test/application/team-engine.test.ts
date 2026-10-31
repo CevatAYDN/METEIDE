@@ -312,6 +312,36 @@ describe("team runs", () => {
 		expect(await readFile(join(root, path), "utf8")).toBe("draft 2");
 	});
 
+	it("completes with the last artifact's one line, and keeps a report that is no artifact JSON (ADR-172)", async () => {
+		await writeFile(
+			join(templates.builtIn, "duo.yaml"),
+			PIPELINE.replace(
+				"context: [find] }",
+				"context: [find], expected_output: artifact:research-report@1 }",
+			),
+		);
+		const report = {
+			title: "Free models",
+			summary: "Two providers offer free models.",
+			findings: [{ claim: "OpenRouter lists free models.", sourceIds: ["s1"] }],
+			sources: [
+				{ id: "s1", url: "https://openrouter.ai/", title: "OpenRouter" },
+			],
+		};
+		for (const [text, summary] of [
+			[`\`\`\`json\n${JSON.stringify(report)}\n\`\`\``, report.summary],
+			["draft", "draft"],
+		]) {
+			const h = engineHarness({
+				scripts: [reply("facts"), reply(text ?? "")],
+				templates,
+			});
+			const runId = await start(h);
+			await settled(h, runId, "completed");
+			expect(h.events.at(-1)?.payload).toEqual({ summary });
+		}
+	});
+
 	it("waits for the human at a checkpoint and goes on once they approve", async () => {
 		await writeFile(
 			join(templates.builtIn, "duo.yaml"),

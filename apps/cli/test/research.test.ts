@@ -119,7 +119,7 @@ describe("the research template", () => {
 				"tool  web.search@1",
 				"tool  web.fetch@1",
 				"lead approved: Write the cited research report",
-				`completed\n${REPORT}`,
+				"completed\nOpenRouter and NVIDIA offer free chat models.",
 			]),
 		);
 	});
@@ -147,7 +147,9 @@ describe("the research template", () => {
 		};
 		const runId = runIdOf(t.out);
 		expect(await runCommand(app, after.io, { approve: runId, input })).toBe(0);
-		expect(after.out.at(-1)).toBe(`completed\n${REPORT}`);
+		expect(after.out.at(-1)).toBe(
+			"completed\nOpenRouter and NVIDIA offer free chat models.",
+		);
 		const history = recordingIo();
 		expect(eventsCommand(app, history.io, runId)).toBe(0);
 		// --json prints what mete/events answers: the events and the count that no longer parse.

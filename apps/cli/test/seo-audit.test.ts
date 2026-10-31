@@ -174,7 +174,7 @@ describe("the seo-audit template", () => {
 				"tool  seo.audit@2",
 				"tool  browser.screenshot@2",
 				"tool  web.fetch@1",
-				`completed\n${REPORT}`,
+				"completed\nThe page is crawlable but lacks a meta description and image alt text.",
 			]),
 		);
 		// The built-in Exa server answers 404 here, so the search falls back to Tavily.

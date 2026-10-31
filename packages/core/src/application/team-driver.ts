@@ -1,7 +1,8 @@
+import { artifactLine } from "@mete/contracts";
 import { REVIEW_REPAIRS } from "../defaults.js";
 import { attempting } from "../domain/attempts.js";
 import { openTask } from "../domain/clarify.js";
-import { checkReport, repairMessage } from "../domain/guardrail.js";
+import { checkReport, jsonOf, repairMessage } from "../domain/guardrail.js";
 import {
 	checkVerdict,
 	reviewConversation,
@@ -245,9 +246,13 @@ const accept = (s: EngineState, l: Live, team: TeamState, id: string) => {
 	after.announce();
 };
 
+// The run's summary: the last task's report, or its artifact's one line (ADR-172).
 const lastReport = (team: TeamState) => {
-	const last = team.template.tasks.at(-1)?.id;
-	return (last && team.tasks[last]?.context.report) || "";
+	const last = team.template.tasks.at(-1);
+	const report = (last && team.tasks[last.id]?.context.report) || "";
+	const type = last?.expected_output?.replace(/^artifact:/, "");
+	const json = type ? jsonOf(report) : undefined;
+	return (type && json && artifactLine(type, json.value)) || report;
 };
 
 // Only the human can go on: a human approval, or a blocked task.
