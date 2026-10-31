@@ -52,8 +52,8 @@ const readYaml = (file: string): unknown => {
 const isMapping = (v: unknown): v is Record<string, unknown> =>
 	typeof v === "object" && v !== null && !Array.isArray(v);
 
-// Throws a message naming the file; the kernel's reader merges and validates the sections.
-const readPolicy = (dirs: PolicyDirs): Policy => {
+/** The policy the two files give now; throws a message naming the file. The kernel's reader merges and validates the sections. */
+export const readPolicy = (dirs: PolicyDirs): Policy => {
 	const f = files(dirs);
 	const global = readYaml(f.global) ?? {};
 	if (!isMapping(global))
