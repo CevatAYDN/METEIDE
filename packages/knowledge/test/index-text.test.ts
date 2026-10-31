@@ -73,6 +73,14 @@ describe("noteFacts", () => {
 			noteFacts("lessons/a.md", { pinned: "yes" }, "")?.born,
 		).toBeUndefined();
 	});
+
+	it("counts a date that does not parse as missing, so a good updated still counts (ADR-173)", () => {
+		const odd = { created: "last week", updated: "2026-06-01" };
+		expect(noteFacts("lessons/a.md", odd, "")?.born).toBe("2026-06-01");
+		expect(
+			noteFacts("lessons/a.md", { created: "soon" }, "")?.born,
+		).toBeUndefined();
+	});
 });
 
 describe("ftsQuery", () => {

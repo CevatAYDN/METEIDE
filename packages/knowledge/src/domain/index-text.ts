@@ -16,7 +16,9 @@ export type NoteFacts = {
 	readonly pinned: boolean;
 };
 
-const textOf = (v: unknown) => (typeof v === "string" ? v : undefined);
+// docs/11: a date that does not parse counts as missing (ADR-173).
+const dateOf = (v: unknown) =>
+	typeof v === "string" && !Number.isNaN(Date.parse(v)) ? v : undefined;
 
 const HEADING = /^#{1,6}[ \t]+(.+?)[ \t#]*$/;
 const FENCE = /^[ \t]*(```|~~~)/;
@@ -76,7 +78,7 @@ export const noteFacts = (
 	if (!type) return undefined;
 	const given = typeof data.title === "string" ? data.title.trim() : "";
 	const title = given || (H1.exec(body)?.[1] ?? posix.basename(path, ".md"));
-	const born = textOf(data.created) ?? textOf(data.updated);
+	const born = dateOf(data.created) ?? dateOf(data.updated);
 	return {
 		title,
 		type,
