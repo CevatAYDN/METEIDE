@@ -158,6 +158,13 @@
 	grid-column: 1 / -1;
 }
 
+/* A narrow panel stacks a task's fields; here, since this file loads after mete-team-form.css. */
+@container (max-width: 760px) {
+	.mete-task-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
 /* A ghost button: a small outlined act beside what it acts on, such as Remove. */
 .mete-team .mete-button.ghost {
 	height: 28px;

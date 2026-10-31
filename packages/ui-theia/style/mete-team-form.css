@@ -342,8 +342,7 @@
 @container (max-width: 760px) {
 	.mete-member-fields,
 	.mete-member-pair,
-	.mete-reach-pair,
-	.mete-task-grid {
+	.mete-reach-pair {
 		grid-template-columns: minmax(0, 1fr);
 	}
 
