@@ -118,6 +118,30 @@ const added = async (
 	});
 };
 
+/** The git steps that put the checkpoint into the private index and the working tree. */
+const restoreSteps = (ref: string, held: readonly string[]) => [
+	["read-tree", ref],
+	// Literal paths: a file name is never a pathspec pattern. Without a held file there is nothing to drop.
+	// -r: held names the checkpoint's folders too (ls-tree -t), such as the vault's lessons/.
+	// --force: a held file untracked by HEAD that changed since the checkpoint (the journal) differs
+	// from both, which git rm refuses; --cached drops it from the private index only.
+	...(held.length > 0
+		? [
+				[
+					"--literal-pathspecs",
+					"rm",
+					"-r",
+					"--cached",
+					"--force",
+					"--quiet",
+					"--",
+					...held,
+				],
+			]
+		: []),
+	[...RAW, "checkout-index", "--all", "--force"],
+];
+
 export const restoreCheckpoint = async (
 	root: string,
 	git: Git,
@@ -136,26 +160,7 @@ export const restoreCheckpoint = async (
 	if (!listed.ok) return listed;
 	const { extra, held } = listed.value;
 	const env = { GIT_INDEX_FILE: index };
-	const steps = [
-		["read-tree", ref],
-		// Literal paths: a file name is never a pathspec pattern. Without a held file there is nothing to drop.
-		// -r: held names the checkpoint's folders too (ls-tree -t), such as the vault's lessons/.
-		...(held.length > 0
-			? [
-					[
-						"--literal-pathspecs",
-						"rm",
-						"-r",
-						"--cached",
-						"--quiet",
-						"--",
-						...held,
-					],
-				]
-			: []),
-		[...RAW, "checkout-index", "--all", "--force"],
-	];
-	for (const args of steps) {
+	for (const args of restoreSteps(ref, held)) {
 		const r = await git(args, env);
 		if (!r.ok) return r;
 	}

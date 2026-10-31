@@ -153,6 +153,27 @@ describe("vcs-git beyond the kit", () => {
 		await expect(read(".mete/artifacts/out.md")).rejects.toThrow();
 	});
 
+	// A vault git does not track grows after the last checkpoint (the run's journal), so the
+	// checkpoint's copy differs from both HEAD and the file: the restore still keeps the file.
+	it("keeps an untracked vault note that changed after the checkpoint", async () => {
+		const { w, git, run } = await setup();
+		await w.put("a.txt", "a\n");
+		await git("add", "a.txt");
+		await git("commit", "-q", "-m", "base");
+		await w.put(".mete/knowledge/journal/2026-10-31.md", "first run\n");
+		const ref = refOf(await run({ op: "checkpoint.create", runId: RUN }));
+		await w.put(".mete/knowledge/journal/2026-10-31.md", "first run\nlater\n");
+		await w.put("a.txt", "changed\n");
+		expect(await run({ op: "checkpoint.restore", ref })).toEqual(
+			ok({ op: "checkpoint.restore", ref }),
+		);
+		const read = (p: string) => readFile(join(w.workspaceDir, p), "utf8");
+		expect(await read(".mete/knowledge/journal/2026-10-31.md")).toBe(
+			"first run\nlater\n",
+		);
+		expect(await read("a.txt")).toBe("a\n");
+	});
+
 	it("restores a folder that became a file, and a file that became a folder", async () => {
 		const { w, run } = await setup();
 		await w.put("d/b.txt", "b\n");
