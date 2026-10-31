@@ -18,8 +18,18 @@ export type Draft = Document;
 
 const text = z.string().catch("");
 const optional = z.string().optional().catch(undefined);
-const list = z.array(z.string()).catch([]);
 const number = z.number().optional().catch(undefined);
+// A list keeps every entry the file has, a lone value included: the screen writes a list back whole,
+// so an entry dropped here would be dropped from the file. A bad entry shows as its text, and the
+// schema still names it, so Save stays blocked.
+const entries = (v: unknown): unknown[] =>
+	Array.isArray(v) ? v : v === undefined || v === null ? [] : [v];
+const list = z
+	.unknown()
+	.optional()
+	.transform((v) =>
+		entries(v).map((e) => (typeof e === "string" ? e : JSON.stringify(e))),
+	);
 
 // A lenient reading for the screen: a half-edited team still shows; the schema says what is wrong.
 const MemberSchema = z.object({
@@ -38,7 +48,7 @@ const WorkSchema = z.object({
 	expected_output: optional,
 	approval: optional,
 	before_start: z.object({ clarify_with: text }).optional().catch(undefined),
-	verify: z.array(z.record(z.string(), z.unknown())).catch([]),
+	verify: z.unknown().optional().transform(entries),
 	guardrail: z
 		.object({ schema: text, max_retries: number })
 		.optional()
@@ -308,7 +318,15 @@ export const withCheckpoint = (doc: Draft, taskId: string, on: boolean) => {
 
 /** The shell commands among a task's verify gates. */
 export const runsOf = (verify: readonly Gate[]): string[] =>
-	verify.flatMap((g) => (typeof g.run === "string" ? [g.run] : []));
+	verify.flatMap((g) => {
+		const run = commandOf(g);
+		return run === undefined ? [] : [run];
+	});
+
+const commandOf = (g: Gate) =>
+	typeof g === "object" && g !== null && "run" in g && typeof g.run === "string"
+		? g.run
+		: undefined;
 
 /**
  * The verify gates with these commands: the capability gates come first, as the file has them,
@@ -316,7 +334,7 @@ export const runsOf = (verify: readonly Gate[]): string[] =>
  */
 export const withRuns = (verify: readonly Gate[], runs: readonly string[]) => {
 	const next = [
-		...verify.filter((g) => typeof g.run !== "string"),
+		...verify.filter((g) => commandOf(g) === undefined),
 		...runs.map((run) => ({ run })),
 	];
 	return next.length > 0 ? next : undefined;

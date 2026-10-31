@@ -59,6 +59,49 @@ describe("draftOf and teamOf", () => {
 		});
 		expect(issuesOf(odd).length).toBeGreaterThan(0);
 	});
+
+	it("keeps every entry of a list with a bad one, so an edit of that list never drops what the file holds", () => {
+		const doc = draft(
+			WEB_DEV.replace(
+				"capabilities: [fs.*@1, shell.exec@1]",
+				"capabilities: [fs.*@1, 42]",
+			),
+		);
+		const shown = teamOf(doc).roles[1]?.capabilities ?? [];
+		expect(shown).toEqual(["fs.*@1", "42"]);
+		expect(issuesOf(doc).length).toBeGreaterThan(0);
+		const after = edited(
+			doc,
+			["roles", 1, "capabilities"],
+			[...shown, "fs.write@1"],
+		);
+		expect(teamOf(after).roles[1]?.capabilities).toEqual([
+			"fs.*@1",
+			"42",
+			"fs.write@1",
+		]);
+		expect(issuesOf(after).length).toBeGreaterThan(0);
+		const one = draft(
+			WEB_DEV.replace(
+				"capabilities: [fs.*@1, shell.exec@1]",
+				"capabilities: shell.exec@1",
+			),
+		);
+		expect(teamOf(one).roles[1]?.capabilities).toEqual(["shell.exec@1"]);
+	});
+
+	it("keeps a verify entry it cannot read when the commands change", () => {
+		const verify = teamOf(
+			draft(
+				"tasks:\n  - id: t\n    verify:\n      - run: npm test\n      - oops\n",
+			),
+		).tasks[0]?.verify;
+		expect(runsOf(verify ?? [])).toEqual(["npm test"]);
+		expect(withRuns(verify ?? [], ["npm run build"])).toEqual([
+			"oops",
+			{ run: "npm run build" },
+		]);
+	});
 });
 
 describe("editing", () => {
