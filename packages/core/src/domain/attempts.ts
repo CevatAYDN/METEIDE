@@ -61,6 +61,19 @@ export const attemptOf = (c: RunContext) => {
 	return { k, n };
 };
 
+/**
+ * The families a later attempt of a task with `distinct_families` avoids: those the attempts before
+ * it ran on, also when it goes on and is revised; undefined when the task's pin may lead.
+ */
+export const avoidedFamilies = (c: RunContext) => {
+	const at = attemptOf(c);
+	const entry = c.team && c.task ? c.team.tasks[c.task] : undefined;
+	const task = c.team?.template.tasks.find((t) => t.id === c.task);
+	if (!at || at.k < 2 || !task?.attempts?.distinct_families) return undefined;
+	const earlier = entry?.attempts?.finished.slice(0, at.k - 1) ?? [];
+	return [...new Set(earlier.flatMap((f) => (f.family ? [f.family] : [])))];
+};
+
 /** Records how the work opened after its questions, once, for a task with attempts. */
 export const withOpening = (
 	team: TeamState,
@@ -74,28 +87,35 @@ export const withOpening = (
 				attempts: { ...attempts, opening: [...opening] },
 			}));
 
+type Done = {
+	readonly messages: readonly ChatMessage[];
+	readonly report?: string | undefined;
+	readonly family?: string | undefined;
+};
+
+// The record of the live attempt as it ends.
+const recordOf = (entry: Entry, attempts: Attempts, done: Done) => ({
+	id: attempts.id ?? entry.id,
+	agentId: entry.context.agentId ?? "",
+	messages: [...done.messages],
+	...(done.report !== undefined ? { report: done.report } : {}),
+	...(entry.context.worktree ? { worktree: entry.context.worktree } : {}),
+	...(done.family ? { family: done.family } : {}),
+});
+
 /**
- * Ends the live attempt: it joins the finished ones with its conversation, and its report when it
- * passed. With `next`, the task starts its next attempt under that id: no agent and no worktree yet,
- * so the next step starts one, and the conversation as the work opened.
+ * Ends the live attempt: it joins the finished ones with its conversation, its report when it passed
+ * and the family of its model. With `next`, the task starts its next attempt under that id: no agent
+ * and no worktree yet, so the next step starts one, and the conversation as the work opened.
  */
 export const finishAttempt = (
 	team: TeamState,
 	key: string,
-	done: {
-		readonly messages: readonly ChatMessage[];
-		readonly report?: string | undefined;
-	},
+	done: Done,
 	next?: string,
 ): TeamState =>
 	withAttempts(team, key, (entry, attempts) => {
-		const finished = {
-			id: attempts.id ?? entry.id,
-			agentId: entry.context.agentId ?? "",
-			messages: [...done.messages],
-			...(done.report !== undefined ? { report: done.report } : {}),
-			...(entry.context.worktree ? { worktree: entry.context.worktree } : {}),
-		};
+		const finished = recordOf(entry, attempts, done);
 		const kept = { ...attempts, finished: [...attempts.finished, finished] };
 		if (next === undefined) return { ...entry, attempts: kept };
 		return {

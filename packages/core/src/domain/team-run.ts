@@ -1,4 +1,5 @@
 import type { ChatMessage } from "@mete/contracts";
+import { avoidedFamilies } from "./attempts.js";
 import type { Platform } from "./prompt.js";
 import type { RunContext } from "./run-machine.js";
 import { acceptanceOf, spawnGuardrail } from "./spawn.js";
@@ -59,7 +60,9 @@ export const activeSeat = (c: RunContext): Seat => {
 	const by = c.review ?? c.clarify;
 	const seat = roleSeat(c.team, by ?? taskOf(c.team, c.task)?.role);
 	// The questions are asked with no tools, so the agent cannot start the work first.
-	return isAsking(c) ? { ...seat, capabilities: [] } : seat;
+	if (isAsking(c)) return { ...seat, capabilities: [] };
+	const avoid = avoidedFamilies(c);
+	return avoid ? { ...seat, avoidFamilies: avoid } : seat;
 };
 
 /** The seat of a task's agent: its role's tier, needs and capabilities. */

@@ -156,11 +156,12 @@ export const callModel = async (
 	)
 		.map((s) => s.spec)
 		.concat(Array.isArray(mcp) ? mcp : await mcp);
-	const needs = run.seat.needs;
+	const { needs, avoidFamilies: avoid = [] } = run.seat;
 	const chunks = chain.value[0].impl.chat(
 		{
 			target: { tier: run.seat.tier },
 			...(needs.length > 0 ? { needs: [...needs] } : {}),
+			...(avoid.length > 0 ? { avoidFamilies: [...avoid] } : {}),
 			...(run.seat.prefer ? { prefer: run.seat.prefer } : {}),
 			runId: run.runId,
 			priority: run.priority,

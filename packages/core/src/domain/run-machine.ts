@@ -24,6 +24,8 @@ export type AgentRef = {
 	readonly roleId?: string | undefined;
 	readonly providerId: string;
 	readonly modelId: string;
+	/** The model's family, when the gateway named it (ADR-162). */
+	readonly family?: string | undefined;
 };
 
 /** Everything a run needs to continue after a restart; times are epoch milliseconds. */

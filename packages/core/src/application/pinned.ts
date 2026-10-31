@@ -146,6 +146,8 @@ const resolvePrefer = async (
 export const pinnedSeat = async (s: EngineState, l: Live): Promise<Seat> => {
 	const c = l.snapshot.context;
 	const seat = activeSeat(c);
+	// A later attempt of another family takes no pin: the gateway puts a pin ahead of avoidFamilies (ADR-162).
+	if (seat.avoidFamilies) return seat;
 	const { key, roleId } = activeKey(c);
 	const revision = c.preferRevision ?? 0;
 	if (l.pin?.key === key && l.pin.revision === revision)

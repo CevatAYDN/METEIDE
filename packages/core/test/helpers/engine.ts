@@ -57,8 +57,15 @@ export const reply = (
 	text: string,
 	calls: { name: string; args: unknown }[] = [],
 	model = "m1",
+	family?: string,
 ): LlmChunk[] => [
-	{ type: "model", providerId: "p", modelId: model, reason: "first" },
+	{
+		type: "model",
+		providerId: "p",
+		modelId: model,
+		...(family ? { family } : {}),
+		reason: "first",
+	},
 	...(text ? [{ type: "text" as const, text }] : []),
 	...calls.map((c, i) => ({
 		type: "tool-call" as const,

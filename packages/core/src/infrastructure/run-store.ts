@@ -111,6 +111,7 @@ const PersistedSchema = z.object({
 				roleId: text1.optional(),
 				providerId: text1,
 				modelId: text1,
+				family: text1.optional(),
 			})
 			.optional(),
 		pause: z

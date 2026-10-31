@@ -27,15 +27,26 @@ const owns = (l: Live, token: object) =>
 
 type ModelChunk = Extract<LlmChunk, { type: "model" }>;
 
+// The agent a model chunk names: the run's, the task's or a new one, on the chunk's model and family.
+const agentOf = (s: EngineState, l: Live, c: ModelChunk) => {
+	const { roleId, agentId, taskId } = activeRole(l.snapshot.context);
+	return {
+		id: l.snapshot.context.agent?.id ?? agentId ?? s.deps.newId(),
+		...(taskId ? { roleId } : {}),
+		providerId: c.providerId,
+		modelId: c.modelId,
+		...(c.family ? { family: c.family } : {}),
+	};
+};
+
 // agent.created for the first model, agent.model.changed when a later call uses another one.
 const onModel = (s: EngineState, l: Live, c: ModelChunk) => {
 	const agent = l.snapshot.context.agent;
-	const { roleId, agentId, taskId } = activeRole(l.snapshot.context);
+	const { roleId, taskId } = activeRole(l.snapshot.context);
 	const to = { providerId: c.providerId, modelId: c.modelId };
 	if (agent?.providerId === to.providerId && agent.modelId === to.modelId)
 		return;
-	const id = agent?.id ?? agentId ?? s.deps.newId();
-	const next = { id, ...(taskId ? { roleId } : {}), ...to };
+	const next = agentOf(s, l, c);
 	if (!apply(s, l, { type: "MODEL", agent: next })) return; // a done run
 	if (!agent) {
 		const { tier } = activeSeat(l.snapshot.context);

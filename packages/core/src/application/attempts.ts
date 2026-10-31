@@ -70,11 +70,11 @@ export const afterAttempt = (
 	l: Live,
 	report?: string,
 ): AfterAttempt => {
-	const { team, task, messages } = l.snapshot.context;
+	const { team, task, messages, agent } = l.snapshot.context;
 	if (!team || !task) return { kind: "next" };
 	const n = attemptsOf(team, task);
 	const k = (team.tasks[task]?.attempts?.finished.length ?? 0) + 1;
-	const done = { messages, report };
+	const done = { messages, report, family: agent?.family };
 	if (k < n) {
 		const next = finishAttempt(team, task, done, s.deps.newId());
 		apply(s, l, { type: "TEAM", team: next });

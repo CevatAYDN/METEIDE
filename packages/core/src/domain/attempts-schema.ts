@@ -13,6 +13,8 @@ const FinishedSchema = z.strictObject({
 	/** The report, when the attempt's verify gates and guardrail passed. */
 	report: z.string().optional(),
 	worktree: z.string().optional(),
+	/** The family of the model it last ran on, which made its report (ADR-162). */
+	family: z.string().optional(),
 });
 
 /** A best-of-N task's attempts, as the run snapshot keeps them. */

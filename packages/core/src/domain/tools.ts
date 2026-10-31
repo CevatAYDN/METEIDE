@@ -14,6 +14,8 @@ export type Seat = {
 	readonly prefer?: ModelRef;
 	readonly needs: NonNullable<LlmChatRequest["needs"]>;
 	readonly capabilities?: readonly string[];
+	/** The families a later best-of-N attempt avoids; such a seat takes no pin (ADR-162). */
+	readonly avoidFamilies?: readonly string[];
 };
 
 /** The single agent of docs/08: the coder tier, tool calling and the fs, shell and vcs tools. */
