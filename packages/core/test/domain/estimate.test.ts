@@ -1,4 +1,4 @@
-import { parseTemplate } from "@mete/contracts";
+import { parseTemplate, type TeamTemplate } from "@mete/contracts";
 import { describe, expect, it } from "vitest";
 import { estimateRequests } from "../../src/domain/estimate.js";
 
@@ -100,6 +100,27 @@ describe("estimateRequests", () => {
 		]);
 		expect(best(1)).toEqual([
 			{ roleId: "tester", tier: "fast", needs: [], requests: 12 },
+		]);
+	});
+
+	it("counts 1 query embedding per start of a team task's work when embedding is on, never for the single agent (ADR-152)", () => {
+		const t = template();
+		const [plain] = t.tasks;
+		if (!plain) throw new Error("no task");
+		const attempts = {
+			n: 2,
+			distinct_families: false,
+			judge_tier: "fast",
+		} as const;
+		const embeds = (tasks: TeamTemplate["tasks"], embed: boolean) =>
+			estimateRequests({ ...t, tasks }, embed).filter((e) => "embed" in e);
+		expect(embeds([plain, { ...plain, attempts }], true)).toEqual([
+			{ embed: true, requests: 1 },
+			{ embed: true, requests: 2 },
+		]);
+		expect(embeds([plain], false)).toEqual([]);
+		expect(estimateRequests(null, true)).toEqual([
+			{ tier: "coder", needs: ["tool_calling"], requests: 12 },
 		]);
 	});
 

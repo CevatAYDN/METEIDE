@@ -121,6 +121,8 @@ export type App = {
 	readonly chain: GatewayModule["chain"];
 	/** The listed facts of asked models, from the same listing (ADR-090). */
 	readonly info: GatewayModule["info"];
+	/** The chain an embedding would try, from the same listing (ADR-152). */
+	readonly embedChain: GatewayModule["embedChain"];
 	/** The template folders core-engine reads, which mete/templates lists (ADR-058). */
 	readonly templates: TemplateDirs;
 	/** The configuration files as loaded, and when (ADR-081). */
@@ -285,6 +287,7 @@ export const createApp = async (
 		models: gateway.models,
 		chain: gateway.chain,
 		info: gateway.info,
+		embedChain: gateway.embedChain,
 		templates: templatesOf(opts),
 		config: { layers, loadedAt },
 		stop: lifecycle.stop,

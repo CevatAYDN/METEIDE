@@ -18,6 +18,9 @@ export const ESTIMATE_PER_LESSON = 1;
 /** Requests the judge of a best-of-N task's attempts is estimated to need (09 Models, providers and quota, Scheduler, step 6; ADR-162). */
 export const ESTIMATE_PER_JUDGE = 1;
 
+/** Requests embedding the query of a team task's lessons search takes, per start of its work (09 Models, providers and quota, Scheduler, step 6; ADR-152). */
+export const ESTIMATE_PER_EMBED = 1;
+
 /** Characters of each candidate's part the judge of a best-of-N task reads (08 Orchestration and teams, Task execution sequence; ADR-162). */
 export const JUDGE_CANDIDATE_CHARS = 4000;
 

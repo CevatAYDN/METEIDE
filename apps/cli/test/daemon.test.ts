@@ -95,6 +95,7 @@ describe("mete daemon", () => {
 		const estimateWith = async (
 			pins: string | undefined,
 			params: object = { templateId: "duo" },
+			embeds = false,
 		) => {
 			const repo = await tempRepo({ "a.txt": "a\n" });
 			const meta = join(repo.workspaceDir, ".mete");
@@ -108,7 +109,7 @@ describe("mete daemon", () => {
 				logger: silent,
 				secrets: memorySecrets(),
 				providers: [
-					scriptedProvider({ script: [] }),
+					scriptedProvider({ script: [] }, { embeds }),
 					scriptedProvider({ script: [] }, { id: "other" }),
 				],
 			});
@@ -163,6 +164,18 @@ describe("mete daemon", () => {
 			providers: [{ providerId: "other", requests: 12 }],
 			unassigned: 0,
 		});
+		// A team task's lessons search embeds its query on the embedding chain, not the role's
+		// (ADR-152); the single agent searches no lessons.
+		expect(await estimateWith(pinned, { templateId: "duo" }, true)).toEqual({
+			providers: [
+				{ providerId: "fake", requests: 1 },
+				{ providerId: "other", requests: 12 },
+			],
+			unassigned: 0,
+		});
+		expect(await estimateWith(pinned, { templateId: null }, true)).toEqual(
+			onFake,
+		);
 	});
 
 	it("answers mete/status, forwards every event in order and stops when the client leaves", async () => {

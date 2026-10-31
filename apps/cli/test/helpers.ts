@@ -113,11 +113,29 @@ export type Behaviour =
 	| { noModels: true }
 	| { hang: true };
 
-/** The provider's id (default fake), its request limit (default 20) and whether it is a daily one. */
+/** The provider's id (default fake), its request limit (default 20), whether it is a daily one and whether it also embeds (provider.embed@2). */
 export type FakeShape = {
 	readonly id?: string;
 	readonly limit?: number;
 	readonly daily?: boolean;
+	readonly embeds?: boolean;
+};
+
+// One embedding model whose vectors are all the same; enough for listing and fusion, never meaning.
+const embedding = (providerId: string) => ({
+	embedModels: async () =>
+		ok([{ ...FAKE_MODEL, id: "embed-1", providerId, toolCalling: false }]),
+	embed: async (req: { readonly input: readonly string[] }) =>
+		ok({ vectors: req.input.map(() => [1, 0]) }),
+});
+
+const FAKE_MODEL = {
+	family: "fake",
+	contextWindow: 64_000,
+	toolCalling: true,
+	vision: false,
+	free: true,
+	deprecated: false,
 };
 
 /** A provider module behind the gateway that answers from a script; no network. */
@@ -127,17 +145,9 @@ export const scriptedProvider = (
 ): MeteModule => {
 	const id = shape.id ?? "fake";
 	let calls = 0;
-	const model = {
-		id: "coder-1",
-		providerId: id,
-		family: "fake",
-		contextWindow: 64_000,
-		toolCalling: true,
-		vision: false,
-		free: true,
-		deprecated: false,
-	};
+	const model = { ...FAKE_MODEL, id: "coder-1", providerId: id };
 	const adapter: ProviderAdapter = {
+		...(shape.embeds ? embedding(id) : {}),
 		id,
 		format: "openai-chat",
 		listModels: async () => ok("noModels" in b ? [] : [model]),
@@ -164,17 +174,25 @@ export const scriptedProvider = (
 		observe: () => [],
 		privacy: () => ({ trains: false, logs: false, publishes: false }),
 	};
+	const manifest: ModuleManifest = {
+		...MANIFEST,
+		id: `provider-${id}`,
+		provides: shape.embeds
+			? ["provider.chat@2", "provider.embed@2"]
+			: ["provider.chat@2"],
+	};
 	return {
-		manifest: { ...MANIFEST, id: `provider-${id}` },
+		manifest,
 		async activate(ctx) {
-			ctx.disposables.add(
-				ctx.capabilities.provide("provider.chat@2", {
-					id,
-					trust: "first-party",
-					features: [],
-					impl: adapter,
-				}),
-			);
+			for (const ref of manifest.provides)
+				ctx.disposables.add(
+					ctx.capabilities.provide(ref, {
+						id,
+						trust: "first-party",
+						features: [],
+						impl: adapter,
+					}),
+				);
 			return ok(undefined);
 		},
 		async deactivate() {},
