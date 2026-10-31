@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { EVENT_TYPES, parseEvent } from "../../src/domain/events.js";
 import { EventTypeSchema } from "../../src/domain/ids.js";
@@ -244,5 +246,25 @@ describe("EVENT_TYPES", () => {
 	it("covers the 46 types of the catalog in tab 07, all well formed", () => {
 		expect(EVENT_TYPES).toHaveLength(46);
 		for (const t of EVENT_TYPES) expect(EventTypeSchema.parse(t)).toBe(t);
+	});
+
+	// AGENTS.md rule 10: no event without a row in docs/07, and no row without its schema.
+	it("names the same types as the Event catalog table of docs/07, both ways", () => {
+		const doc = readFileSync(
+			fileURLToPath(
+				new URL(
+					"../../../../docs/07-domain-model-and-events.md",
+					import.meta.url,
+				),
+			),
+			"utf8",
+		);
+		const table = doc.split("## Event catalog")[1]?.split("\n## ")[0] ?? "";
+		const named = table
+			.split("\n")
+			.filter((line) => line.startsWith("| `"))
+			.flatMap((line) => [...(line.split("|")[1] ?? "").matchAll(/`([^`]+)`/g)])
+			.map((m) => m[1]);
+		expect([...named].sort()).toEqual([...EVENT_TYPES].sort());
 	});
 });
