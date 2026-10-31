@@ -4,6 +4,7 @@ import { err, type ModuleManifest, ok } from "@mete/contracts";
 import type { MeteModule } from "@mete/kernel";
 import { type EmbedJob, embedJob } from "./application/embed-job.js";
 import { searchNotes } from "./application/search.js";
+import { ACCESS_MIGRATION, accessLog } from "./infrastructure/access-log.js";
 import {
 	INDEX_MIGRATIONS,
 	keywordIndex,
@@ -45,6 +46,7 @@ export const createKnowledgeSearchModule = (
 			const migrated = ctx.storage.migrate("workspace", [
 				...INDEX_MIGRATIONS,
 				...VECTOR_MIGRATIONS,
+				ACCESS_MIGRATION,
 			]);
 			if (!migrated.ok) return err(failed(migrated.error.message));
 			const registry = ctx.capabilities;
@@ -54,7 +56,8 @@ export const createKnowledgeSearchModule = (
 			const warn = (m: string) =>
 				ctx.logger.warn({}, `embedding the vault: ${m}`);
 			job = embedJob({ registry, index, vectors, now, warn });
-			const run = searchNotes({ registry, index, vectors, job });
+			const access = accessLog(ctx.storage.workspace);
+			const run = searchNotes({ registry, index, vectors, job, access, now });
 			ctx.disposables.add(
 				ctx.capabilities.provide("knowledge.search@1", {
 					id: MANIFEST.id,

@@ -1,8 +1,8 @@
 import type { Migration, NoteType } from "@mete/contracts";
 import type BetterSqlite3 from "better-sqlite3";
-import { inArray, sql } from "drizzle-orm";
+import { inArray, isNotNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { SNIPPET_TOKENS } from "../defaults.js";
 import type { NoteFacts, Section } from "../domain/index-text.js";
 
@@ -20,12 +20,30 @@ CREATE VIRTUAL TABLE knowledge_chunks USING fts5(
 	tokenize = 'unicode61 remove_diacritics 2'
 );`,
 	},
+	// What aging reads of each note (ADR-173); emptied shas index every note again, so its facts are read.
+	{
+		id: "003-knowledge-aging",
+		sql: `ALTER TABLE knowledge_files ADD COLUMN type TEXT;
+ALTER TABLE knowledge_files ADD COLUMN born TEXT;
+ALTER TABLE knowledge_files ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;
+UPDATE knowledge_files SET sha = '';`,
+	},
 ];
 
 const files = sqliteTable("knowledge_files", {
 	path: text("path").primaryKey(),
 	sha: text("sha").notNull(),
+	type: text("type").$type<NoteType>(),
+	born: text("born"),
+	pinned: integer("pinned", { mode: "boolean" }).notNull().default(false),
 });
+
+/** A note's type, its frontmatter `created` (else `updated`) and its pin, as aging reads them (ADR-173). */
+export type NoteAge = {
+	readonly type: NoteType;
+	readonly born?: string;
+	readonly pinned: boolean;
+};
 
 /** A note read from the vault; no facts for a note the index leaves out. */
 export type IndexedNote = {
@@ -64,17 +82,40 @@ const within = (q: Pick<Query, "type" | "path">) =>
 /** The keyword index over one workspace database. */
 export type KeywordIndex = ReturnType<typeof keywordIndex>;
 
+type Orm = ReturnType<typeof drizzle>;
+
+// A note's sections and its row of knowledge_files.
+const put = (tx: Pick<Orm, "run" | "insert">, n: IndexedNote) => {
+	for (const s of n.facts ? n.sections : [])
+		tx.run(sql`INSERT INTO knowledge_chunks VALUES (${n.path}, 'workspace',
+			${n.facts?.type}, ${n.facts?.title}, ${s.heading ?? ""}, ${s.text})`);
+	const row = {
+		sha: n.sha,
+		type: n.facts?.type ?? null,
+		born: n.facts?.born ?? null,
+		pinned: n.facts?.pinned ?? false,
+	};
+	tx.insert(files)
+		.values({ path: n.path, ...row })
+		.onConflictDoUpdate({ target: files.path, set: row })
+		.run();
+};
+
+// Every indexed note's type, when it was written and whether it is pinned, by path (ADR-173).
+const agesOf = (orm: Orm): Map<string, NoteAge> =>
+	new Map(
+		orm
+			.select()
+			.from(files)
+			.where(isNotNull(files.type))
+			.all()
+			.flatMap(({ path, type, born, pinned }) =>
+				type ? [[path, { type, pinned, ...(born ? { born } : {}) }]] : [],
+			),
+	);
+
 export const keywordIndex = (db: BetterSqlite3.Database) => {
 	const orm = drizzle(db);
-	const put = (tx: Pick<typeof orm, "run" | "insert">, n: IndexedNote) => {
-		for (const s of n.facts ? n.sections : [])
-			tx.run(sql`INSERT INTO knowledge_chunks VALUES (${n.path}, 'workspace',
-				${n.facts?.type}, ${n.facts?.title}, ${s.heading ?? ""}, ${s.text})`);
-		tx.insert(files)
-			.values({ path: n.path, sha: n.sha })
-			.onConflictDoUpdate({ target: files.path, set: { sha: n.sha } })
-			.run();
-	};
 	return {
 		/** The SHA-256 of each note indexed, by its path in the vault. */
 		shas: () =>
@@ -85,6 +126,8 @@ export const keywordIndex = (db: BetterSqlite3.Database) => {
 					.all()
 					.map((f) => [f.path, f.sha]),
 			),
+		/** Every indexed note's type, when it was written and whether it is pinned, by path. */
+		ages: () => agesOf(orm),
 		/** Indexes the changed notes again and drops the gone ones, all in one transaction. */
 		update: (changed: readonly IndexedNote[], gone: readonly string[]) =>
 			orm.transaction((tx) => {

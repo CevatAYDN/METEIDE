@@ -109,10 +109,8 @@ export const setup = async (opts: SetupOptions = {}) => {
 			impl,
 		});
 	const mod = createKnowledgeSearchModule(opts.now ? { now: opts.now } : {});
-	const activated = await mod.activate({
-		...base,
-		storage: sql.value[0].impl.scopeFor("knowledge-search"),
-	});
+	const scoped = sql.value[0].impl.scopeFor("knowledge-search");
+	const activated = await mod.activate({ ...base, storage: scoped });
 	const tool =
 		registry.resolve<ToolAdapter<unknown, KnowledgeSearchOutput>>(
 			"knowledge.search@1",
@@ -133,7 +131,16 @@ export const setup = async (opts: SetupOptions = {}) => {
 		await mod.deactivate();
 		await storage.deactivate();
 	};
-	return { activated, base, search, note, remove, hidden, close };
+	return {
+		activated,
+		base,
+		search,
+		note,
+		remove,
+		hidden,
+		close,
+		db: scoped.workspace,
+	};
 };
 
 export const paths = (r: Result<KnowledgeSearchOutput, ToolError>) =>

@@ -16,6 +16,8 @@ import type { CapabilityRegistry } from "@mete/kernel";
 import { fuse } from "../domain/fusion.js";
 import { ftsQuery, noteFacts, sectionsOf } from "../domain/index-text.js";
 import { VAULT } from "../domain/note.js";
+import { isCold } from "../domain/retention.js";
+import type { AccessLog } from "../infrastructure/access-log.js";
 import { splitNote } from "../infrastructure/frontmatter.js";
 import type {
 	Chunk,
@@ -31,9 +33,11 @@ import { nearSections, type VectorDeps, vectorHit } from "./vector-source.js";
 
 type Out<T> = Promise<Result<T, ToolError>>;
 
-/** What the search needs from its module. */
+/** What the search needs from its module; `now` is the clock aging reads. */
 export type SearchDeps = VectorDeps & {
 	readonly registry: CapabilityRegistry;
+	readonly access: AccessLog;
+	readonly now: () => number;
 };
 
 const bad = (message: string) => err<ToolError>({ code: "bad_input", message });
@@ -90,11 +94,38 @@ const refresh = async (deps: SearchDeps, ctx: ToolContext): Out<void> => {
 	const present = notes.filter((n) => n !== undefined);
 	const changed = present.filter((n) => known.get(n.path) !== n.sha);
 	const kept = new Set(present.map((n) => n.path));
+	const gone = [...known.keys()].filter((p) => !kept.has(p));
 	deps.index.update(
 		changed.map((n) => indexed(n.path, n.sha, n.text)),
-		[...known.keys()].filter((p) => !kept.has(p)),
+		gone,
 	);
+	deps.access.drop(gone);
 	return ok(undefined);
+};
+
+// The vault's cold notes, as their index facts and accesses stand now (ADR-173).
+const coldPaths = (deps: SearchDeps) => {
+	const ages = deps.index.ages();
+	const seen = deps.access.of([...ages.keys()]);
+	const now = deps.now();
+	const cold = [...ages].filter(([path, age]) =>
+		isCold({ ...age, accesses: 0, ...seen.get(path) }, now),
+	);
+	return new Set(cold.map(([path]) => path));
+};
+
+// docs/11: every warm hit before every cold one, each group in its order, then the best k, so a
+// cold note never takes a warm one's place.
+const warmFirst = <T extends { readonly path: string }>(
+	cold: ReadonlySet<string>,
+	hits: readonly T[],
+	k: number,
+) => {
+	const isWarm = (h: T) => !cold.has(h.path);
+	return [...hits.filter(isWarm), ...hits.filter((h) => !isWarm(h))].slice(
+		0,
+		k,
+	);
 };
 
 const hitOf = (row: IndexRow, rank: number): KnowledgeHit => ({
@@ -153,7 +184,17 @@ export const searchNotes =
 		const fresh = await refresh(deps, inWorkspace(ctx));
 		if (!fresh.ok) return fresh;
 		deps.job.kick();
-		const rows = deps.index.search(q.value);
-		const near = await nearSections(deps, q.value, ctx);
-		return ok({ results: fused(rows, near, q.value.k) });
+		// Each source gives its best k warm-first, so it fetches k more for every cold note (ADR-173).
+		const cold = coldPaths(deps);
+		const { k } = q.value;
+		const pool = { ...q.value, k: k + cold.size };
+		const rows = warmFirst(cold, deps.index.search(pool), k);
+		const near = warmFirst(cold, await nearSections(deps, pool, ctx), k);
+		const all = fused(rows, near, rows.length + near.length);
+		const results = warmFirst(cold, all, k);
+		deps.access.touch(
+			results.map((h) => h.path),
+			deps.now(),
+		);
+		return ok({ results });
 	};
