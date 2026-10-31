@@ -61,7 +61,8 @@ const created = (
 			...(e.payload.attempt ? { attempt: e.payload.attempt } : {}),
 			...(e.taskId ? { taskId: e.taskId } : {}),
 			// The core creates the agent at its first model reply, inside the turn whose
-			// agent.thinking.started carried no agent id yet: the agent is thinking.
+			// agent.thinking.started came before it, with the agent's id or, in an older run, none:
+			// the agent is thinking.
 			thinking: true,
 		},
 	];
