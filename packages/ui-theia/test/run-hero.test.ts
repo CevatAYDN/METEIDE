@@ -103,6 +103,15 @@ describe("heroOf", () => {
 		]);
 	});
 
+	it("marks the tokens with ~ while one agent's sum holds the gateway's estimate (ADR-168)", () => {
+		const estimated = { ...usage(1, 900), estimated: true as const };
+		const view = { ...VIEW, agents: [...VIEW.agents, agent("x", estimated)] };
+		const tokens = (v: typeof VIEW) =>
+			heroOf({ run: RUN }, v, NOW).tiles.find((t) => t.key === "tokens");
+		expect(tokens(view)?.value).toMatch(/^~/);
+		expect(tokens(VIEW)?.value).not.toMatch(/^~/);
+	});
+
 	it("tells how long a run took once it ended, and not before", () => {
 		const done: RunEntry = {
 			...RUN,

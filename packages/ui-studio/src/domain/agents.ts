@@ -37,6 +37,8 @@ export type Usage = {
 		readonly providerId: string;
 		readonly modelId: string;
 	};
+	/** Some call reported no usage, so `tokens` holds the gateway's estimate for it (ADR-168). */
+	readonly estimated?: true;
 };
 
 const change = (
@@ -79,6 +81,7 @@ const ended = (
 		calls: (a.usage?.calls ?? 0) + 1,
 		tokens: (a.usage?.tokens ?? 0) + u.prompt + u.completion,
 		last: { prompt: u.prompt, providerId: a.providerId, modelId: a.modelId },
+		...(a.usage?.estimated || u.estimated ? { estimated: true as const } : {}),
 	};
 	return { ...a, thinking: false, usage };
 };

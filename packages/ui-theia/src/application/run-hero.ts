@@ -142,6 +142,7 @@ const tilesOf = (view: TeamView): Tile[] => {
 	const used = view.agents.flatMap((a) => (a.usage ? [a.usage] : []));
 	const sum = (n: (u: (typeof used)[number]) => number) =>
 		used.reduce((total, u) => total + n(u), 0);
+	const tokens = tokenCount(sum((u) => u.tokens));
 	return [
 		{
 			key: "calls",
@@ -151,7 +152,10 @@ const tilesOf = (view: TeamView): Tile[] => {
 		{
 			key: "tokens",
 			caption: nls.localize("mete/strip/tokens", "Tokens"),
-			value: tokenCount(sum((u) => u.tokens)),
+			// `~` while a provider's missing counts are the gateway's estimate (ADR-168).
+			value: used.some((u) => u.estimated)
+				? nls.localize("mete/strip/tokensEstimated", "~{0}", tokens)
+				: tokens,
 		},
 		{
 			key: "checkpoints",

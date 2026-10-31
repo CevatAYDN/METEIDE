@@ -507,6 +507,7 @@
 			"started": "started {0}",
 			"tasks": "tasks",
 			"tokens": "Tokens",
+			"tokensEstimated": "~{0}",
 			"tookHours": "took {0} h {1} min",
 			"tookMinutes": "took {0} min",
 			"tookShort": "took under a minute"

@@ -1,8 +1,10 @@
 import type {
+	ChatChunk,
 	ChatMessage,
 	ChatRequest,
 	ProviderError,
 	QuotaObservation,
+	ToolCall,
 } from "@mete/contracts";
 import {
 	BACKOFF_MS,
@@ -67,4 +69,27 @@ export const estimateTokens = (
 		req.messages.reduce((n, m) => n + messageChars(m), 0) +
 		(req.tools ? JSON.stringify(req.tools).length : 0);
 	return Math.ceil(chars / CHARS_PER_TOKEN) + (req.maxTokens ?? 0);
+};
+
+type Usage = Extract<ChatChunk, { type: "finish" }>["usage"];
+
+/**
+ * A finish's usage as the gateway passes it on: as reported, or, when its prompt count is 0, the
+ * estimate marked as such, since no chat completion has an empty prompt (ADR-168).
+ */
+export const usageOf = (
+	reported: Usage,
+	call: Pick<ChatRequest, "messages" | "tools">,
+	seen: { readonly text: string; readonly toolCalls: readonly ToolCall[] },
+): Usage => {
+	if (reported.prompt > 0) return reported;
+	const calls = seen.toolCalls.length ? JSON.stringify(seen.toolCalls) : "";
+	return {
+		prompt: estimateTokens({
+			messages: call.messages,
+			...(call.tools ? { tools: call.tools } : {}),
+		}),
+		completion: Math.ceil((seen.text.length + calls.length) / CHARS_PER_TOKEN),
+		estimated: true,
+	};
 };

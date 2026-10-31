@@ -89,6 +89,7 @@ const row = (
 		: {},
 	promptTokens: 0,
 	completionTokens: 0,
+	tokensEstimated: false,
 	latencyMs: times.end - times.start,
 	outcome: r.ok ? "stop" : r.error.code,
 });

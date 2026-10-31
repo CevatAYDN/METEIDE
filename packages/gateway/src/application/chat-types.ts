@@ -16,7 +16,7 @@ export type Outcome =
 	| {
 			readonly kind: "finish";
 			readonly reason: Extract<ChatChunk, { type: "finish" }>["reason"];
-			readonly usage: { prompt: number; completion: number };
+			readonly usage: Extract<ChatChunk, { type: "finish" }>["usage"];
 	  }
 	| {
 			readonly kind: "error";

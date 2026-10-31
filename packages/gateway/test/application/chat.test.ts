@@ -609,6 +609,7 @@ describe("llm.chat@2 model_calls rows", () => {
 				response: { text: "ok", toolCalls: [] },
 				promptTokens: 3,
 				completionTokens: 2,
+				tokensEstimated: false,
 				latencyMs: 0,
 				outcome: "stop",
 			},
@@ -650,6 +651,30 @@ describe("llm.chat@2 model_calls rows", () => {
 				outcome: "stop",
 				promptTokens: 3,
 				completionTokens: 2,
+			}),
+		]);
+	});
+
+	it("passes on, settles and records the estimate, marked, when the finish reports no usage (ADR-168)", async () => {
+		const unreported = { ...done, usage: { prompt: 0, completion: 0 } };
+		const a = fakeProvider("a", [[text("12345678"), unreported]]);
+		const q = fakeQuota();
+		const { deps: d, calls } = deps({
+			discover: async () => [offer(a.adapter, "m")],
+			quota: q.quota,
+		});
+		const chunks = await collect(createLlmChat(d).chat(req, signal()));
+		// "hello sk-live" is masked to "hello [SECRET:x]": 16 characters, 4 tokens; "12345678" is 2.
+		const usage = { prompt: 4, completion: 2, estimated: true };
+		expect(chunks.at(-1)).toEqual({ ...unreported, usage });
+		expect(q.settled).toEqual([
+			{ id: "r1", actual: { tokens_per_minute: 6 }, observations: [] },
+		]);
+		expect(calls).toEqual([
+			expect.objectContaining({
+				promptTokens: 4,
+				completionTokens: 2,
+				tokensEstimated: true,
 			}),
 		]);
 	});

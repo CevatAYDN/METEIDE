@@ -23,7 +23,7 @@ import {
 	unavailable,
 } from "../domain/llm-errors.js";
 import { type PrivacyRules, resolveChain } from "../domain/resolve.js";
-import { afterFailure, estimateTokens } from "../domain/retry.js";
+import { afterFailure, estimateTokens, usageOf } from "../domain/retry.js";
 import { costOf } from "../domain/spend.js";
 import type { ModelCall } from "../infrastructure/model-calls.js";
 import type {
@@ -94,8 +94,14 @@ async function* attempt(
 ): AsyncGenerator<LlmChunk, Outcome> {
 	let streamed = false;
 	const open = (s: AbortSignal) => t.o.adapter.chat(t.call, s);
-	for await (const c of watched(open, signal, t.stall)) {
-		if (c.type === "error") return { kind: "error", error: c.error, streamed };
+	for await (const raw of watched(open, signal, t.stall)) {
+		if (raw.type === "error")
+			return { kind: "error", error: raw.error, streamed };
+		// A finish that reports no usage passes on the estimate, so quota and cost settle it (ADR-168).
+		const c =
+			raw.type === "finish"
+				? { ...raw, usage: usageOf(raw.usage, t.call, seen) }
+				: raw;
 		ended.outcome = keep(seen, c);
 		yield c;
 		if (ended.outcome) return ended.outcome;
@@ -144,6 +150,8 @@ const callRow = (
 	response: seen,
 	promptTokens: outcome?.kind === "finish" ? outcome.usage.prompt : 0,
 	completionTokens: outcome?.kind === "finish" ? outcome.usage.completion : 0,
+	tokensEstimated:
+		outcome?.kind === "finish" && outcome.usage.estimated === true,
 	latencyMs: times.end - times.start,
 	outcome:
 		outcome === undefined

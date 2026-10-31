@@ -207,7 +207,13 @@ describe("parseEvent", () => {
 		expect(parseEvent(envelope("agent.thinking.ended", { usage })).ok).toBe(
 			true,
 		);
+		// The gateway's estimate for a provider that reported none (ADR-168).
+		const estimated = { ...usage, estimated: true };
+		expect(
+			parseEvent(envelope("agent.thinking.ended", { usage: estimated })).ok,
+		).toBe(true);
 		for (const bad of [
+			{ prompt: 1, completion: 0, estimated: false },
 			{ prompt: 1 },
 			{ prompt: -1, completion: 0 },
 			{ prompt: 1.5, completion: 0 },

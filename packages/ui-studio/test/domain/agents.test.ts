@@ -135,6 +135,21 @@ describe("the agents of the team view", () => {
 				last: { prompt: 3_000, providerId: "nvidia", modelId: "nemotron" },
 			},
 		});
+		expect("estimated" in (view.agents[0]?.usage ?? {})).toBe(false);
+		// One call the gateway estimated marks the agent's sum from then on (ADR-168).
+		const marked = applyAll(RUN, view, [
+			event("agent.thinking.started", {}),
+			event("agent.thinking.ended", {
+				usage: { prompt: 500, completion: 50, estimated: true },
+			}),
+			event("agent.thinking.started", {}),
+			usage(100, 10),
+		]);
+		expect(marked.agents[0]?.usage).toMatchObject({
+			calls: 4,
+			tokens: 4_960,
+			estimated: true,
+		});
 		// A run recorded before ADR-090 has no usage at all.
 		expect(
 			"usage" in

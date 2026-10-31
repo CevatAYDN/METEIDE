@@ -507,6 +507,7 @@
 			"started": "{0} başladı",
 			"tasks": "görev",
 			"tokens": "Token",
+			"tokensEstimated": "~{0}",
 			"tookHours": "{0} sa {1} dk sürdü",
 			"tookMinutes": "{0} dk sürdü",
 			"tookShort": "bir dakikadan az sürdü"

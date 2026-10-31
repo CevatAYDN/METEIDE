@@ -126,6 +126,8 @@ const PAYLOADS = {
 			.strictObject({
 				prompt: z.number().int().nonnegative(),
 				completion: z.number().int().nonnegative(),
+				/** The provider reported none: the counts are the gateway's estimate (ADR-168). */
+				estimated: z.literal(true).optional(),
 			})
 			.optional(),
 	}),

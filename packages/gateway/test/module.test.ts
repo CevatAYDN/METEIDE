@@ -316,7 +316,7 @@ describe("gateway module", () => {
 		const s = await setup();
 		await s.gateway.activate(s.ctx);
 		const insert = s.db.prepare(
-			"INSERT INTO model_calls VALUES (?, ?, 'r', 'p', 'm', NULL, '{}', '{}', 0, 0, 0, 'stop')",
+			"INSERT INTO model_calls VALUES (?, ?, 'r', 'p', 'm', NULL, '{}', '{}', 0, 0, 0, 'stop', 0)",
 		);
 		insert.run("old", new Date(NOW - 91 * 86_400_000).toISOString());
 		insert.run("new", new Date(NOW - 89 * 86_400_000).toISOString());
@@ -333,7 +333,7 @@ describe("gateway module", () => {
 		const s = await setup();
 		await s.gateway.activate(s.ctx);
 		const insert = s.db.prepare(
-			"INSERT INTO model_calls VALUES (?, ?, ?, 'p', 'm', NULL, '{}', '{}', 0, 0, 0, 'stop')",
+			"INSERT INTO model_calls VALUES (?, ?, ?, 'p', 'm', NULL, '{}', '{}', 0, 0, 0, 'stop', 0)",
 		);
 		const ts = new Date(NOW).toISOString();
 		const gone = crypto.randomUUID();

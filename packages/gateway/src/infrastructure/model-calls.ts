@@ -27,6 +27,11 @@ export const MODEL_CALL_MIGRATIONS: ReadonlyArray<Migration> = [
 		);
 		CREATE INDEX model_calls_run_ts ON model_calls (run_id, ts)`,
 	},
+	{
+		// 1 when the finish reported no usage and the counts are the gateway's estimate (ADR-168).
+		id: "002-model-calls-tokens-estimated",
+		sql: "ALTER TABLE model_calls ADD COLUMN tokens_estimated INTEGER NOT NULL DEFAULT 0",
+	},
 ];
 
 const modelCalls = sqliteTable("model_calls", {
@@ -40,6 +45,7 @@ const modelCalls = sqliteTable("model_calls", {
 	response: text("response", { mode: "json" }).notNull(),
 	promptTokens: integer("prompt_tokens").notNull(),
 	completionTokens: integer("completion_tokens").notNull(),
+	tokensEstimated: integer("tokens_estimated", { mode: "boolean" }).notNull(),
 	latencyMs: integer("latency_ms").notNull(),
 	outcome: text("outcome").notNull(),
 });
@@ -55,6 +61,8 @@ export type ModelCall = {
 	readonly response: unknown;
 	readonly promptTokens: number;
 	readonly completionTokens: number;
+	/** The counts are the gateway's estimate: the finish reported no usage (ADR-168). */
+	readonly tokensEstimated: boolean;
 	readonly latencyMs: number;
 	/** The finish reason or the error code. */
 	readonly outcome: string;

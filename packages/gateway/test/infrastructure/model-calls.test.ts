@@ -16,6 +16,7 @@ const call = (ts: string): ModelCall => ({
 	response: { text: "ok", toolCalls: [] },
 	promptTokens: 3,
 	completionTokens: 2,
+	tokensEstimated: true,
 	latencyMs: 40,
 	outcome: "stop",
 });
@@ -43,6 +44,7 @@ describe("model_calls log", () => {
 				response: '{"text":"ok","toolCalls":[]}',
 				prompt_tokens: 3,
 				completion_tokens: 2,
+				tokens_estimated: 1,
 				latency_ms: 40,
 				outcome: "stop",
 			},

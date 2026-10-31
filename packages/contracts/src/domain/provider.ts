@@ -101,7 +101,12 @@ export type ChatChunk =
 				| "tool-calls"
 				| "content-filter"
 				| "other";
-			readonly usage: { readonly prompt: number; readonly completion: number };
+			readonly usage: {
+				readonly prompt: number;
+				readonly completion: number;
+				/** The provider reported no usage and the gateway estimated these counts (ADR-168). */
+				readonly estimated?: true;
+			};
 	  }
 	| { readonly type: "error"; readonly error: ProviderError };
 
