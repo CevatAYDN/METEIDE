@@ -114,6 +114,36 @@ describe("single-agent engine", () => {
 		});
 	});
 
+	it("names the same agent on a first call that failed and its retry (docs/07)", async () => {
+		const resumesAt = new Date(T0 + 60_000).toISOString();
+		const h = engineHarness({
+			scripts: [
+				[
+					{
+						type: "error",
+						error: { code: "quota_exhausted", message: "q", resumesAt },
+					},
+				],
+				reply("done"),
+			],
+		});
+		const runId = await begin(h);
+		await settled(h, runId, "paused");
+		h.clock.now = T0 + 60_000;
+		h.timers[0]?.fn();
+		await settled(h, runId, "completed");
+		const created = h.events.filter((e) => e.type === "agent.created");
+		const started = h.events.filter((e) => e.type === "agent.thinking.started");
+		expect(created).toHaveLength(1);
+		expect(started.map((e) => e.agentId)).toEqual([
+			created[0]?.agentId,
+			created[0]?.agentId,
+		]);
+		// Between the two calls no agent exists, so the pause names none.
+		const paused = h.events.find((e) => e.type === "run.paused");
+		expect(paused?.agentId).toBeUndefined();
+	});
+
 	it("pauses on exhausted quota and resumes by itself at the reset", async () => {
 		const resumesAt = new Date(T0 + 60_000).toISOString();
 		const h = engineHarness({

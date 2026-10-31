@@ -66,6 +66,8 @@ export type Live = {
 	model?: AbortController | undefined;
 	/** The id of the agent a model call makes, from its start until agent.created makes it (docs/07). */
 	nextAgent?: string | undefined;
+	/** That id after a call that made no agent, so the call that runs again names the same agent. */
+	retryAgent?: string | undefined;
 	cancelTimer?: (() => void) | undefined;
 	/** The preferred model or pin read for the agent seated now (ADR-122). */
 	pin?:

@@ -83,9 +83,12 @@ const think = async (
 	},
 ) => {
 	// A call before the agent exists names the agent it makes: the task's worker keeps its id, a
-	// reviewer, an answerer or a judge gets a new one.
+	// reviewer, an answerer, a judge or the single agent gets a new one, kept until the agent is made,
+	// so a first call that failed and runs again names the same agent (docs/07).
+	// shortcut: a restart forgets the kept id, so a retry after one names a new agent.
 	if (!l.snapshot.context.agent)
-		l.nextAgent = activeRole(l.snapshot.context).agentId ?? s.deps.newId();
+		l.nextAgent =
+			activeRole(l.snapshot.context).agentId ?? l.retryAgent ?? s.deps.newId();
 	emit(s, l, { type: "agent.thinking.started", payload: {} }, call.task);
 	let usage: Extract<ModelOutcome, { kind: "replied" }>["usage"] | undefined;
 	try {
@@ -101,6 +104,7 @@ const think = async (
 		l.model = undefined;
 		const payload = usage ? { usage } : {};
 		emit(s, l, { type: "agent.thinking.ended", payload }, call.task);
+		l.retryAgent = l.snapshot.context.agent ? undefined : l.nextAgent;
 		l.nextAgent = undefined;
 	}
 };
