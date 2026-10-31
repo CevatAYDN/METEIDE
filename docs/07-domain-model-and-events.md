@@ -124,7 +124,7 @@ From Phase 2, handoffs go into the workspace `handoffs` table: `id`, `workspace_
 | `task.attempt.chosen` | attempt, of, by (`checks` or `judge`), reason? (the judge's words, ADR-162) | core-engine |
 | `agent.created` | roleId, providerId, modelId, tier? (the role's tier, ADR-077), attempt? `{ k, n }` (the attempt of a best-of-N task it works, ADR-162) | core-engine |
 | `agent.model.changed` | from, to, reason (such as `user`, `quota`, `failed`, ADR-122) | core-engine |
-| `agent.thinking.started` / `agent.thinking.ended` | none; `agent.thinking.ended` has usage? `{ prompt, completion }`, the token counts of the model call it closes, when the call finished (ADR-090); both carry the agent's `agentId`, the first call's too, before `agent.created` makes that agent (ADR-162: one task may have several agents) | core-engine |
+| `agent.thinking.started` / `agent.thinking.ended` | none; `agent.thinking.ended` has usage? `{ prompt, completion }`, the token counts of the model call it closes, when the call finished (ADR-090); both carry the agent's `agentId`, the first call's too, before `agent.created` makes that agent (ADR-136, ADR-162: one task may have several agents) | core-engine |
 | `agent.message.sent` | messageId, from, to, kind, summary | core-engine |
 | `agent.tool.called` | capability, adapterId | core-engine |
 | `agent.tool.progress` | capability, progress, total? (an MCP server's progress step, never its message; at most once a second per call, ADR-067) | mcp-client |
