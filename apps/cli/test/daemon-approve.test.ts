@@ -163,13 +163,13 @@ describe("mete daemon approvals", () => {
 			expect.arrayContaining(["in_progress", "approved"]),
 		);
 		// The fold's rule (ui-studio agents.ts): each agent is created inside its first model turn,
-		// whose thinking.started carries no agent id yet.
+		// whose thinking.started already names it (docs/07).
 		for (const e of history.events.filter((x) => x.type === "agent.created")) {
 			const turn = history.events.filter((x) => x.taskId === e.taskId);
 			const at = turn.indexOf(e);
 			const start = turn.findIndex((x) => x.type === "agent.thinking.started");
 			const end = turn.findIndex((x) => x.type === "agent.thinking.ended");
-			expect(turn[start]?.agentId).toBeUndefined();
+			expect(turn[start]?.agentId).toBe(e.agentId);
 			expect(start < at && at < end).toBe(true);
 		}
 		// The views join a task to its agent: task.assigned names the id agent.created then carries.
