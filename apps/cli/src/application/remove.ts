@@ -30,6 +30,12 @@ export const removeCommand = (app: App, io: Io, runId: string) =>
 			io.err("removing runs is not supported");
 			return 1;
 		}
+		if (!io.readLine) {
+			io.err(
+				"nothing removed: no terminal to ask; run mete remove in a terminal",
+			);
+			return 1;
+		}
 		const question = `Remove run ${runId} with its worktrees, branches, checkpoints, events and model calls? Nothing undoes it`;
 		const never = new AbortController().signal;
 		const yes = await terminalConfirm(io)("mete", question, never);

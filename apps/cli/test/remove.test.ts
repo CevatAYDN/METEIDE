@@ -112,13 +112,17 @@ describe("mete remove (ADR-143)", () => {
 		expect(count(app, "audit_log", runId)).toBe(audited);
 	});
 
-	it("removes nothing without a yes", async () => {
+	// Without a terminal nobody can say yes, and the line says so (piped or redirected input).
+	it("removes nothing without a yes, and says when no terminal was there to ask", async () => {
 		const { app, runId } = await endedRun();
-		for (const answers of [["n"], undefined]) {
-			const t = recordingIo("", answers);
-			expect(await removeCommand(app, t.io, runId)).toBe(1);
-			expect(t.err).toEqual(["nothing removed"]);
-		}
+		const no = recordingIo("", ["n"]);
+		expect(await removeCommand(app, no.io, runId)).toBe(1);
+		expect(no.err).toEqual(["nothing removed"]);
+		const piped = recordingIo("");
+		expect(await removeCommand(app, piped.io, runId)).toBe(1);
+		expect(piped.err).toEqual([
+			"nothing removed: no terminal to ask; run mete remove in a terminal",
+		]);
 		expect(count(app, "runs", runId)).toBe(1);
 	});
 });
