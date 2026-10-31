@@ -71,6 +71,9 @@ const start = async (
 		globalDir,
 		run,
 		chromium,
+		// A hand-written resolver: inside.example points at a local address (ADR-171).
+		lookup: async (host) =>
+			host === "inside.example" ? ["10.0.0.7"] : ["93.184.216.34"],
 	}).activate(ctx);
 	const tool = (ref: "browser.screenshot@2" | "seo.audit@2") => {
 		const r = registry.resolve<ToolAdapter<unknown, unknown>>(ref);
@@ -122,6 +125,19 @@ describe("browser.screenshot@2", () => {
 			{ signal },
 		);
 		expect(r?.ok === false && r.error.code).toBe("approval_required");
+		expect(asked).toEqual([]);
+	});
+
+	it("refuses a name that resolves to a local address, for a screenshot and an audit (ADR-171)", async () => {
+		asked.length = 0;
+		const tool = await start("allow", async () => "");
+		for (const ref of ["browser.screenshot@2", "seo.audit@2"] as const) {
+			const r = await tool(ref)?.run(
+				{ url: "https://inside.example/" },
+				{ signal },
+			);
+			expect(r?.ok === false && r.error.code).toBe("bad_input");
+		}
 		expect(asked).toEqual([]);
 	});
 });

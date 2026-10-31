@@ -28,6 +28,7 @@ import {
 	rules,
 	scoped,
 } from "./fs-common.js";
+import { checkHost, type Lookup } from "./host-check.js";
 
 // browser.screenshot@2 and seo.audit@2 (docs/10, Built-in tools): a public http or https page,
 // policy.check@1 with net.fetch, the work in a child process, the files in .mete/assets/.
@@ -39,25 +40,30 @@ export type BrowserDeps = {
 	readonly policy: () => PolicyCheckAdapter | undefined;
 	readonly run: RunBrowser;
 	readonly chromium: Chromium;
+	readonly lookup: Lookup;
 };
 
 type Out<T> = Promise<Result<T, ToolError>>;
 
 const io = (message: string): ToolError => ({ code: "io", message });
 
-const allow = (
+// The literal check first, then the policy, then the name is resolved, so a refused ask resolves nothing (ADR-171).
+const allow = async (
 	deps: BrowserDeps,
 	capability: "browser.screenshot@2" | "seo.audit@2",
 	args: { url: string },
 	ctx: ToolContext,
-): Result<void, ToolError> => {
+): Promise<Result<void, ToolError>> => {
 	const { hostname } = new URL(args.url);
 	if (!isPublicHost(hostname))
 		return err({
 			code: "bad_input",
 			message: `${hostname} is not a public address`,
 		});
-	return permit(deps, { action: "net.fetch", capability, args }, ctx);
+	const allowed = permit(deps, { action: "net.fetch", capability, args }, ctx);
+	if (!allowed.ok) return allowed;
+	const refused = await checkHost(deps.lookup, hostname);
+	return refused ? err(refused) : allowed;
 };
 
 // A built site's folder: inside the workspace or the task's worktree, not excluded by .meteignore,
@@ -92,7 +98,7 @@ const targetOf = async (
 	ctx: ToolContext,
 ): Out<Target> => {
 	if ("folder" in input) return folderTarget(deps, input.folder, ctx);
-	const allowed = allow(deps, capability, input, ctx);
+	const allowed = await allow(deps, capability, input, ctx);
 	return allowed.ok ? ok({ url: input.url }) : allowed;
 };
 

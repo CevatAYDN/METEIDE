@@ -40,3 +40,18 @@ export const checkHost = async (
 				message: `${host} resolves to ${local}, which is not a public address`,
 			};
 };
+
+/** Whether a page's request may go out: to the folder's own server, or a host checkHost lets through. */
+export const requestGate = (lookup: Lookup, own: string | undefined) => {
+	// One lookup per host for the page: a page asks the same hosts many times.
+	const seen = new Map<string, Promise<boolean>>();
+	return (url: string): Promise<boolean> => {
+		const { hostname, origin } = new URL(url);
+		if (origin === own) return Promise.resolve(true);
+		const known = seen.get(hostname);
+		if (known) return known;
+		const pass = checkHost(lookup, hostname).then((e) => e === undefined);
+		seen.set(hostname, pass);
+		return pass;
+	};
+};

@@ -13,11 +13,13 @@ import {
 	type BrowserDeps,
 	screenshotTool,
 } from "./application/browser.js";
+import type { Lookup } from "./application/host-check.js";
 import {
 	type Chromium,
 	playwrightChromium,
 } from "./infrastructure/chromium.js";
 import { realTarget } from "./infrastructure/files.js";
+import { lookupAll } from "./infrastructure/lookup.js";
 import { forkRunner, type RunBrowser } from "./infrastructure/runner.js";
 import { policyOf } from "./module.js";
 
@@ -27,6 +29,7 @@ export type BrowserOptions = {
 	readonly globalDir: string;
 	readonly run?: RunBrowser;
 	readonly chromium?: Chromium;
+	readonly lookup?: Lookup;
 };
 
 const MANIFEST: ModuleManifest = {
@@ -68,6 +71,7 @@ export const createBrowserModule = (opts: BrowserOptions): MeteModule => ({
 			policy: policyOf(ctx.capabilities),
 			run: opts.run ?? forkRunner,
 			chromium: opts.chromium ?? playwrightChromium(),
+			lookup: opts.lookup ?? lookupAll,
 		};
 		provide(ctx, "browser.screenshot@2", {
 			run: (input, c) => screenshotTool(deps, input, c),

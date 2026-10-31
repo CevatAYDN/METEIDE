@@ -5,7 +5,8 @@ import { writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import lighthouse from "lighthouse";
 import { chromium } from "playwright-core";
-import { isPublicHost } from "../domain/addresses.js";
+import { requestGate } from "../application/host-check.js";
+import { lookupAll } from "./lookup.js";
 import type { RunnerReply, RunnerRequest, Target } from "./runner.js";
 import { serveFolder } from "./static-server.js";
 
@@ -40,15 +41,15 @@ const screenshot = async (
 	try {
 		await opened(req.target, async (url) => {
 			const page = await browser.newPage();
-			// Every request the page makes must go to a public address, like web.fetch@1's hops, or to
-			// the file server of the folder being shown, which serves that folder and nothing else.
+			// Every request the page makes must go to a public address, like web.fetch@1's hops (ADR-171),
+			// or to the file server of the folder being shown, which serves that folder and nothing else.
 			const own = "folder" in req.target ? new URL(url).origin : undefined;
-			await page.route("**/*", (route) => {
-				const { hostname, origin } = new URL(route.request().url());
-				return isPublicHost(hostname) || origin === own
+			const pass = requestGate(lookupAll, own);
+			await page.route("**/*", async (route) =>
+				(await pass(route.request().url()))
 					? route.continue()
-					: route.abort("blockedbyclient");
-			});
+					: route.abort("blockedbyclient"),
+			);
 			await page.goto(url, { waitUntil: "load" });
 			await page.screenshot({ path: req.out, fullPage: req.fullPage });
 		});

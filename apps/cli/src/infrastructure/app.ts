@@ -167,6 +167,21 @@ const builtInProviders = () => [
 	createCustomModule(),
 ];
 
+// A fetch given in place of the network, or a runner in place of Chromium, comes without DNS (ADR-171).
+const webModules = (
+	opts: AppOptions,
+	dirs: { readonly workspaceDir: string; readonly globalDir: string },
+) => [
+	createToolsWebModule(
+		opts.fetch ? { fetch: opts.fetch, lookup: offlineLookup } : {},
+	),
+	createBrowserModule({
+		...dirs,
+		...(opts.browser?.run ? { lookup: offlineLookup } : {}),
+		...opts.browser,
+	}),
+];
+
 const modulesFor = (
 	opts: AppOptions,
 	workspaceId: string,
@@ -183,10 +198,7 @@ const modulesFor = (
 		createToolsFsModule(dirs),
 		createToolsShellModule(dirs),
 		createVcsGitModule(dirs),
-		createToolsWebModule(
-			opts.fetch ? { fetch: opts.fetch, lookup: offlineLookup } : {},
-		),
-		createBrowserModule({ ...dirs, ...opts.browser }),
+		...webModules(opts, dirs),
 		createRegistryModule({
 			globalDir: opts.globalDir,
 			...(opts.fetch ? { fetch: opts.fetch } : {}),
