@@ -126,6 +126,39 @@ describe("the Activity feed", () => {
 		expect(inFeed(message("handoff"))).toBe(false);
 	});
 
+	it("shows the attempt a member takes and which attempt goes on, with the judge's reason (ADR-162)", () => {
+		const second = crypto.randomUUID();
+		const seated = applyAll(RUN, view, [
+			event(
+				"agent.created",
+				{
+					roleId: "dev",
+					providerId: "groq",
+					modelId: "m",
+					attempt: { k: 2, n: 3 },
+				},
+				{ taskId: TASK, agentId: second },
+			),
+		]);
+		const chosen = (by: string, reason?: string) =>
+			event(
+				"task.attempt.chosen",
+				{ attempt: 2, of: 3, by, ...(reason ? { reason } : {}) },
+				ofTask,
+			);
+		const attempts = [
+			event("task.assigned", { agentId: second }, ofTask),
+			chosen("checks"),
+			chosen("judge", "It cites every claim."),
+		];
+		const goesOn = "goes on with attempt 2 of 3 of “Build”, chosen by";
+		expect(lines(feedRows(seated, attempts, "asks").rows)).toEqual([
+			["dev", undefined, `${goesOn} the judge`, "It cites every claim."],
+			["dev", undefined, `${goesOn} its checks`, undefined],
+			["dev", undefined, "takes “Build”, attempt 2 of 3", undefined],
+		]);
+	});
+
 	it("carries the run's answer and a failure's message as the row's detail", () => {
 		const failed = event("run.failed", {
 			code: "unauthorized",

@@ -39,6 +39,7 @@ export type Feed = Extract<
 			| "review.completed"
 			| "task.clarification.requested"
 			| "agent.message.sent"
+			| "task.attempt.chosen"
 			| "artifact.created"
 			| "artifact.updated"
 			| "agent.tool.completed"
@@ -81,17 +82,50 @@ const asks: Pick<
 	| "review.completed"
 	| "task.clarification.requested"
 	| "agent.message.sent"
+	| "task.attempt.chosen"
 > = {
-	"task.assigned": (v, e) => ({
-		segment: "asks",
-		icon: "arrow-right",
-		...opt(
-			"who",
-			v.agents.find((a) => a.id === e.payload.agentId)?.roleId ??
-				taskRole(v, e),
-		),
-		text: nls.localize("mete/feed/takes", "takes “{0}”", title(v, e)),
-	}),
+	"task.assigned": (v, e) => {
+		const agent = v.agents.find((a) => a.id === e.payload.agentId);
+		// The attempt of a best-of-N task the agent works (ADR-162).
+		const a = agent?.attempt;
+		return {
+			segment: "asks",
+			icon: "arrow-right",
+			...opt("who", agent?.roleId ?? taskRole(v, e)),
+			text: a
+				? nls.localize(
+						"mete/feed/takesAttempt",
+						"takes “{0}”, attempt {1} of {2}",
+						title(v, e),
+						a.k,
+						a.n,
+					)
+				: nls.localize("mete/feed/takes", "takes “{0}”", title(v, e)),
+		};
+	},
+	// Which attempt of a best-of-N task goes on, and who chose it (ADR-162).
+	"task.attempt.chosen": (v, e) => {
+		const { attempt, of, by, reason } = e.payload;
+		const args = [attempt, of, title(v, e)] as const;
+		return {
+			segment: "asks",
+			icon: "check",
+			...opt("who", taskRole(v, e)),
+			text:
+				by === "judge"
+					? nls.localize(
+							"mete/feed/chosenByJudge",
+							"goes on with attempt {0} of {1} of “{2}”, chosen by the judge",
+							...args,
+						)
+					: nls.localize(
+							"mete/feed/chosenByChecks",
+							"goes on with attempt {0} of {1} of “{2}”, chosen by its checks",
+							...args,
+						),
+			...opt("quote", reason),
+		};
+	},
 	"task.status.changed": (v, e) => ({
 		segment: "asks",
 		icon: "error",
