@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { ChatChunk, ChatRequest } from "@mete/contracts";
 import { afterEach, describe, expect, it } from "vitest";
@@ -87,6 +87,53 @@ describe("lessons", () => {
 					: [],
 		);
 		expect(saved).toEqual([{ path, noteType: "lesson" }]);
+	});
+
+	it("keep the first run's lesson in the vault's history when a later run writes the same title (ADR-173)", async () => {
+		const repo = await tempRepo({ "a.txt": "a\n" });
+		const teams = join(repo.workspaceDir, ".mete", "teams");
+		await mkdir(teams, { recursive: true });
+		await writeFile(join(teams, "learner.yaml"), TEAM);
+		const later = { ...LESSON, lesson: "Read the file, then edit it." };
+		const app = await createApp({
+			workspaceDir: repo.workspaceDir,
+			globalDir: repo.globalDir,
+			logger: silent,
+			secrets: memorySecrets(),
+			providers: [
+				scriptedProvider({
+					script: [
+						...SCRIPT,
+						[{ type: "text", text: "Built it again." }, finish("stop")],
+						[{ type: "text", text: JSON.stringify(later) }, finish("stop")],
+					],
+				}),
+			],
+		});
+		if (!app.ok) throw new Error(JSON.stringify(app.error));
+		close = async () => {
+			await app.value.stop();
+			await repo.close();
+		};
+		const path = ".mete/knowledge/lessons/read-before-you-edit.md";
+		const run = () =>
+			runCommand(app.value, recordingIo().io, {
+				goal: "Build",
+				templateId: "learner",
+			});
+		expect(await run()).toBe(0);
+		const first = await readFile(join(repo.workspaceDir, path), "utf8");
+		expect(await run()).toBe(0);
+		const history = join(
+			repo.workspaceDir,
+			".mete/knowledge/.history/lessons/read-before-you-edit.md",
+		);
+		const kept = await readdir(history);
+		expect(kept).toHaveLength(1);
+		expect(await readFile(join(history, kept[0] ?? ""), "utf8")).toBe(first);
+		expect(await readFile(join(repo.workspaceDir, path), "utf8")).toContain(
+			"Read the file, then edit it.",
+		);
 	});
 
 	it("open a team task with the lessons its title finds, never a run report (ADR-151)", async () => {
