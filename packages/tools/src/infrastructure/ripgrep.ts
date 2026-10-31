@@ -80,13 +80,16 @@ const parseJson = (line: string): unknown => {
 	}
 };
 
+// rg gives a path or line that is not UTF-8 as base64 `bytes`; it is decoded with replacement characters.
+const Data = z
+	.union([z.object({ text: z.string() }), z.object({ bytes: z.string() })])
+	.transform((d) =>
+		"text" in d ? d.text : Buffer.from(d.bytes, "base64").toString("utf8"),
+	);
+
 const MatchLine = z.object({
 	type: z.literal("match"),
-	data: z.object({
-		path: z.object({ text: z.string() }),
-		line_number: z.number(),
-		lines: z.object({ text: z.string() }),
-	}),
+	data: z.object({ path: Data, line_number: z.number(), lines: Data }),
 });
 
 export type GrepMatch = { path: string; line: number; text: string };
@@ -114,13 +117,13 @@ export const grepLines = async (
 		const m = MatchLine.safeParse(parseJson(line));
 		if (!m.success) return true;
 		const { path, line_number, lines } = m.data.data;
-		if (!keep(posix(path.text))) return true;
+		if (!keep(posix(path))) return true;
 		if (matches.length === query.max) {
 			truncated = true;
 			return false;
 		}
-		const text = lines.text.replace(/\r?\n$/, "");
-		matches.push({ path: posix(path.text), line: line_number, text });
+		const text = lines.replace(/\r?\n$/, "");
+		matches.push({ path: posix(path), line: line_number, text });
 		return true;
 	});
 	return r.ok ? ok({ matches, truncated }) : r;

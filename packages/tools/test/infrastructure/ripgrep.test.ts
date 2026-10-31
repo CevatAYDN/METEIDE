@@ -1,3 +1,5 @@
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { grepLines, listFiles } from "../../src/infrastructure/ripgrep.js";
 import { tempWorkspace } from "./workspace.js";
@@ -77,6 +79,23 @@ describe("grepLines", () => {
 			value: {
 				matches: [{ path: "src/a.ts", line: 1, text: "Needle one" }],
 				truncated: true,
+			},
+		});
+	});
+
+	it("keeps a match on a line that is not UTF-8, decoded with replacement characters", async () => {
+		ws = await tempWorkspace();
+		// "café needle" in Latin-1: rg reports such a line as base64 bytes, not text.
+		await writeFile(
+			join(ws.workspaceDir, "latin.txt"),
+			Buffer.from([0x63, 0x61, 0x66, 0xe9, 0x20, ...Buffer.from("needle\n")]),
+		);
+		const r = await grep();
+		expect(r).toEqual({
+			ok: true,
+			value: {
+				matches: [{ path: "latin.txt", line: 1, text: "caf� needle" }],
+				truncated: false,
 			},
 		});
 	});
