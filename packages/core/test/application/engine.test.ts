@@ -259,17 +259,28 @@ describe("single-agent engine", () => {
 		).toMatchObject({ ok: false, error: { code: "bad_input" } });
 	});
 
+	// A failed write and one still waiting for approval changed nothing, so neither is a file changed.
 	it("leaves a handoff at an approval pause that names failures and files, never tool output", async () => {
 		const read = vi.fn<Tool>(async () => ok({ content: "MARKER-OUTPUT" }));
 		const edit = vi.fn<Tool>(async () =>
 			err({ code: "match_count", message: "MARKER-ERROR" }),
 		);
-		const write = vi.fn<Tool>(async () =>
-			err({ code: "approval_required", rule: "autonomy:1", message: "ask" }),
+		const write = vi.fn<Tool>(async (input) =>
+			JSON.stringify(input).includes("d.md")
+				? ok({ path: "d.md", bytes: 1 })
+				: err({
+						code: "approval_required",
+						rule: "autonomy:1",
+						message: "ask",
+					}),
 		);
 		const h = engineHarness({
 			scripts: [
-				reply("", [{ name: "fs_read", args: { path: "a.md" } }]),
+				// Two calls in one reply: the helper's ids repeat per reply, as a real provider's never did.
+				reply("", [
+					{ name: "fs_read", args: { path: "a.md" } },
+					{ name: "fs_write", args: { path: "d.md", content: "d" } },
+				]),
 				reply("", [
 					{ name: "fs_edit", args: { path: "b.md", oldStr: "x", newStr: "y" } },
 				]),
@@ -308,15 +319,12 @@ describe("single-agent engine", () => {
 				"Failed tool calls:",
 				"- fs_edit: match_count",
 				"Files changed:",
-				"- b.md",
-				"- c.md",
+				"- d.md",
 			].join("\n"),
 		);
 		expect(rows[0]?.body).not.toMatch(/MARKER/);
 		// The event names the same files, so the UI can lead to them (ADR-133).
-		expect(handoffs.map((e) => e.payload)).toMatchObject([
-			{ files: ["b.md", "c.md"] },
-		]);
+		expect(handoffs.map((e) => e.payload)).toMatchObject([{ files: ["d.md"] }]);
 	});
 
 	it("leaves the files out of a handoff event when the run changed none (ADR-133)", async () => {

@@ -52,15 +52,24 @@ const PathSchema = z.object({ path: z.string() });
 
 const WRITES = new Set([toolName("fs.write@1"), toolName("fs.edit@1")]);
 
-const changedFiles = (messages: readonly ChatMessage[]) =>
-	messages
+// Only a call whose result says it worked changed a file: one that failed or still waits for approval did not.
+const changedFiles = (messages: readonly ChatMessage[]) => {
+	const succeeded = new Set(
+		messages.flatMap((m) =>
+			m.role === "tool" && failedCode(m.content) === undefined
+				? [m.toolCallId]
+				: [],
+		),
+	);
+	return messages
 		.filter((m): m is Assistant => m.role === "assistant")
 		.flatMap((m) => m.toolCalls ?? [])
-		.filter((call) => WRITES.has(call.name))
+		.filter((call) => WRITES.has(call.name) && succeeded.has(call.id))
 		.flatMap((call) => {
 			const r = PathSchema.safeParse(call.args);
 			return r.success ? [r.data.path] : [];
 		});
+};
 
 const stoppedAt = (c: RunContext, status: string) => {
 	const reason = c.pause ? ` (${c.pause.reason})` : "";
@@ -87,10 +96,10 @@ const openQuestion = (c: RunContext) => {
 const list = (title: string, items: readonly string[]) =>
 	items.length > 0 ? [`${title}:`, ...items.map((i) => `- ${i}`)] : [];
 
-// shortcut: only fs.write and fs.edit arguments still in the conversation; a file a shell command or a
-// commit wrote, or one of turns the summary step replaced, is missing until a request gives a run's
-// changes (ADR-133).
-/** The paths the run's agents wrote or edited, each once; the handoff and its event share them. */
+// shortcut: only fs.write and fs.edit calls whose result is still in the conversation; a file a shell
+// command or a commit wrote, or one of turns the summary step replaced, is missing until a request gives
+// a run's changes (ADR-133).
+/** The paths the run's agents wrote or edited with success, each once; the handoff and its event share them. */
 export const filesChanged = (c: RunContext): string[] => [
 	...new Set(conversations(c).flatMap(changedFiles)),
 ];
