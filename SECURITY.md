@@ -83,7 +83,7 @@ Protected paths: agents MUST NOT write, delete or restore every `.mete/*.yaml` f
 | Allow-listed command run with a planted program | `shell.exec@1` refuses `env` keys that change which program runs or what it loads (tab 10) \[D\] |
 | Allow-listed script runner with a planted script (`npm test`, `npm run *` or `pnpm *` after an agent edits `package.json`) | At level 2 a write to a script manifest asks, and checkpoints undo it; worktrees come with Phase 4. Residual: `pnpm *` can itself edit the manifest (`pnpm pkg set`, `pnpm exec`, `pnpm dlx`), the tests an agent writes run as its own code, and nothing runs in a sandbox. Narrowing `shell.allow` waits for the Phase 4 web-dev template, which shows which commands a coding run needs \[D\] |
 | Destructive commands | Allow list, `never_allow`, checkpoints, worktrees \[C\] |
-| Runaway loops and quota drain | Budgets, revision limit, 25-turn limit per attempt, kill switch \[C\] |
+| Runaway loops and quota drain | Budgets, revision limit, 25-turn limit per attempt, a line on a tool call that keeps returning the same result (ADR-166), kill switch \[C\] |
 | Agent raising its own rights | Protected paths above; the policy engine runs outside the agent's reach \[D\] |
 | Vulnerable METE dependencies | Exact pins, 14-day rule, osv-scanner, license check \[C\] |
 | Electron misconfiguration | `contextIsolation: true`, `nodeIntegration: false`, sandboxed renderers, strict CSP, Electronegativity in local CI \[C\] |
