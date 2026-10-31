@@ -120,6 +120,30 @@ const quotaText = (e: MeteEvent): string | undefined => {
 	return undefined;
 };
 
+// A message names its agents by id; a role id stands in for an agent not made yet.
+const nameById = (view: TeamView, id: string) => {
+	const a = view.agents.find((x) => x.id === id);
+	return a ? nameOf(a, { attempt: attemptName }) : id;
+};
+
+const noteText = (e: MeteEvent, view: TeamView): string | undefined => {
+	if (e.type === "agent.message.sent")
+		return nls.localize(
+			"mete/studio/message",
+			"{0} sends {1} a message: “{2}”",
+			nameById(view, e.payload.from),
+			nameById(view, e.payload.to),
+			e.payload.summary,
+		);
+	if (e.type === "vault.note.saved")
+		return nls.localize(
+			"mete/studio/noteSaved",
+			"{0} is saved in the vault; a book flies to the shelf.",
+			e.payload.path,
+		);
+	return undefined;
+};
+
 /** The sentence the Studio's list shows for an event of the studio table. */
 export const studioText = (view: TeamView, e: MeteEvent): string => {
 	switch (e.type) {
@@ -151,6 +175,6 @@ export const studioText = (view: TeamView, e: MeteEvent): string => {
 				e.payload.capability,
 			);
 		default:
-			return runText(e, view) ?? quotaText(e) ?? e.type;
+			return runText(e, view) ?? quotaText(e) ?? noteText(e, view) ?? e.type;
 	}
 };

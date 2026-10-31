@@ -79,6 +79,19 @@ describe("the Studio's sentences", () => {
 		).toBe(
 			"groq's free quota is used up; its agents wait at the coffee corner.",
 		);
+		// Every event of the studio table has its sentence, never its raw type.
+		expect(
+			said("agent.message.sent", {
+				messageId: crypto.randomUUID(),
+				from: "editor",
+				to: DEV,
+				kind: "answer",
+				summary: "Use the blue one.",
+			}),
+		).toBe("editor sends dev a message: “Use the blue one.”");
+		expect(
+			said("vault.note.saved", { path: "runs/r.md", noteType: "run" }),
+		).toBe("runs/r.md is saved in the vault; a book flies to the shelf.");
 		// An older run's first thinking.started carries no agent id: its task's agent stands in.
 		expect(
 			studioText(view, event("agent.thinking.started", {}, { taskId: TASK })),

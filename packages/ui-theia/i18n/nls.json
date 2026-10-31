@@ -518,6 +518,8 @@
 			"asksYou": "{0} waits for your approval.",
 			"assigned": "{0} goes to an agent.",
 			"attempt": "{0} · attempt {1}/{2}",
+			"message": "{0} sends {1} a message: “{2}”",
+			"noteSaved": "{0} is saved in the vault; a book flies to the shelf.",
 			"blocked": "{0} is blocked.",
 			"cardClose": "Close",
 			"cardHint": "Click a character or its name to see what it is doing",

@@ -518,6 +518,8 @@
 			"asksYou": "{0} senin onayını bekliyor.",
 			"assigned": "{0} bir ajana veriliyor.",
 			"attempt": "{0} · deneme {1}/{2}",
+			"message": "{0}, {1} için bir mesaj gönderiyor: “{2}”",
+			"noteSaved": "{0} Vault'a kaydedildi; bir kitap rafa uçuyor.",
 			"blocked": "{0} engellendi.",
 			"cardClose": "Kapat",
 			"cardHint": "Ne yaptığını görmek için bir karaktere ya da adına tıkla",
