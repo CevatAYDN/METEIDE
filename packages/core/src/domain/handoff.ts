@@ -2,7 +2,7 @@ import { type ChatMessage, toolName } from "@mete/contracts";
 import { z } from "zod";
 import type { RunContext } from "./run-machine.js";
 import { waitingForHuman } from "./team.js";
-import { EXTERNAL_LABEL } from "./tools.js";
+import { resultJson } from "./tools.js";
 
 // A run's handoff (docs/08, Run memory; ADR-041), built from its snapshot without a model call.
 // It names what failed and what changed; prompts and tool output are never copied into it.
@@ -17,14 +17,11 @@ const conversations = (c: RunContext): readonly (readonly ChatMessage[])[] => [
 	...Object.values(c.team?.tasks ?? {}).map((t) => t.messages),
 ];
 
-// The error code of a tool result that failed, read past the external-content label.
+// The error code of a tool result that failed, read past its label lines.
 const failedCode = (content: string) => {
-	const json = content.startsWith(EXTERNAL_LABEL)
-		? content.slice(EXTERNAL_LABEL.length + 1)
-		: content;
 	let value: unknown;
 	try {
-		value = JSON.parse(json);
+		value = JSON.parse(resultJson(content));
 	} catch {
 		return "unreadable"; // a result that is no JSON is reported, not hidden
 	}

@@ -2,7 +2,7 @@ import type { ChatMessage, Transcript, TranscriptStep } from "@mete/contracts";
 import { z } from "zod";
 import { SUMMARY_OPEN } from "./compact.js";
 import type { RunContext } from "./run-machine.js";
-import { EXTERNAL_LABEL } from "./tools.js";
+import { resultJson } from "./tools.js";
 
 // A run's steps from the conversation its snapshot keeps (ADR-125), without the opening (the system
 // message and the first user message, as compaction's head, docs/08). Masking is the caller's. Pure.
@@ -31,12 +31,9 @@ const parsed = (json: string): unknown => {
 	}
 };
 
-// External content has its label line first (steps.ts); content that is no stored Result stays as text.
+// Read past the label lines (steps.ts, ADR-166); content that is no stored Result stays as text.
 const resultOf = (content: string): NonNullable<ToolStep["result"]> => {
-	const json = content.startsWith(EXTERNAL_LABEL)
-		? content.slice(EXTERNAL_LABEL.length + 1)
-		: content;
-	const r = StoredSchema.safeParse(parsed(json));
+	const r = StoredSchema.safeParse(parsed(resultJson(content)));
 	if (!r.success) return { text: content };
 	if (!r.data.ok) return { ok: false, text: r.data.error.message };
 	return { ok: true, text: JSON.stringify(r.data.value) ?? "" };

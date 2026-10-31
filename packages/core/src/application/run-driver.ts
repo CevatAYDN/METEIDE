@@ -2,6 +2,7 @@ import type { LlmChunk } from "@mete/contracts";
 import { attemptOf } from "../domain/attempts.js";
 import { foldable, toSummarize } from "../domain/compact.js";
 import { type NextStep, nextStep } from "../domain/next-step.js";
+import { guarded } from "../domain/repeat.js";
 import { afterModelError } from "../domain/run-events.js";
 import { activeRole, activeSeat, isAsking } from "../domain/team-run.js";
 import { answered, asked } from "./clarify.js";
@@ -210,7 +211,7 @@ const toolTurn = async (
 	if (out.kind === "result")
 		apply(s, l, {
 			type: "TOOL_DONE",
-			message: out.message,
+			message: guarded(l.snapshot.context.messages, t.call, out.message),
 			...(out.external ? { external: true } : {}),
 		});
 	else if (owns(l, token))

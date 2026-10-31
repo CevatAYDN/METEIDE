@@ -27,6 +27,9 @@ export const JUDGE_REPAIRS = 1;
 /** Model turns an attempt takes before its run pauses for the budget (docs/08, Task execution sequence and Single agent; ADR-126). */
 export const MAX_TURNS = 25;
 
+/** Calls of the same tool with the same arguments and the same result before the result gets the repeat line (08 Orchestration and teams, Task execution sequence; ADR-166). */
+export const REPEAT_LIMIT = 3;
+
 /** Repairs asked of a reviewer whose verdict is not valid (08 Orchestration and teams, Task execution sequence). */
 export const REVIEW_REPAIRS = 2;
 

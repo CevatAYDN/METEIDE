@@ -2,6 +2,7 @@ import type { LlmChunk, MeteEvent, RunView } from "@mete/contracts";
 import { err, ok } from "@mete/contracts";
 import { describe, expect, it, vi } from "vitest";
 import { MAX_TURNS } from "../../src/defaults.js";
+import { REPEAT_LABEL } from "../../src/domain/tools.js";
 import {
 	engineHarness,
 	reply,
@@ -636,6 +637,24 @@ describe("single-agent engine", () => {
 		expect((await h.engine.resume(runId)).ok).toBe(true);
 		await vi.waitFor(() => expect(h.requests).toHaveLength(2 * MAX_TURNS));
 		await settled(h, runId, "paused");
+	});
+
+	it("puts the repeat line before the third same result of a call, and the run goes on (ADR-166)", async () => {
+		const read = reply("", [{ name: "fs_read", args: { path: "a" } }]);
+		const h = engineHarness({
+			scripts: [read, read, read, reply("It does not change.")],
+			tools: [
+				[
+					"fs.read@1",
+					async () => ok({ content: "", totalLines: 0, lineEnding: "none" }),
+				],
+			],
+		});
+		await settled(h, await begin(h), "completed");
+		const results = h.requests[3]?.messages
+			.filter((m) => m.role === "tool")
+			.map((m) => String(m.content).startsWith(`${REPEAT_LABEL}\n`));
+		expect(results).toEqual([false, false, true]);
 	});
 
 	it("fails a writing step whose checkpoint cannot be made", async () => {
