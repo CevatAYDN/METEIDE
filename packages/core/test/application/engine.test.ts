@@ -912,6 +912,40 @@ describe("single-agent engine", () => {
 		await h.stop();
 	});
 
+	it("leaves a run it cannot load for a database error as it was on recovery, and answers failed, not not_found", async () => {
+		const crashed = engineHarness({ scripts: [slow] });
+		const lost = await begin(crashed);
+		await vi.waitFor(() => expect(crashed.requests).toHaveLength(1));
+		const busy = Object.assign(new Error("database is locked"), {
+			code: "SQLITE_BUSY",
+		});
+		const locked = engineHarness({
+			scripts: [slow],
+			db: crashed.db,
+			wrapStore: (store) => ({
+				...store,
+				load: () => {
+					throw busy;
+				},
+			}),
+		});
+		const r = await locked.engine.resume(lost);
+		expect(r.ok ? "ok" : r.error.code).toBe("failed");
+		locked.recover();
+		expect(view(locked, lost)?.status).toBe("running");
+		expect(locked.logged).toContainEqual({
+			level: "warn",
+			msg: "run not recovered",
+		});
+		const later = engineHarness({ scripts: [slow], db: crashed.db });
+		later.recover();
+		expect(view(later, lost)).toMatchObject({
+			status: "paused",
+			pauseReason: "user",
+		});
+		await crashed.stop();
+	});
+
 	it("pauses a run an earlier process left queued", async () => {
 		let saves = 0;
 		const crashed = engineHarness({

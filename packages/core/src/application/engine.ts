@@ -307,6 +307,11 @@ const recover = (s: EngineState) => {
 		try {
 			const l = find(s, id);
 			if (l.ok) pauseLeftOver(s, l.value);
+			else if (l.error.code !== "not_found")
+				s.deps.logger.warn(
+					{ runId: id, reason: l.error.message },
+					"run not recovered",
+				);
 			else {
 				s.deps.store.markFailed(id, iso(s.deps.now()));
 				s.deps.logger.warn(

@@ -15,6 +15,7 @@ import type {
 	Logger,
 } from "@mete/kernel";
 import { transition } from "xstate";
+import { z } from "zod";
 import { filesChanged, handoffBody } from "../domain/handoff.js";
 import type { Platform } from "../domain/prompt.js";
 import { type EventBody, runEventOf } from "../domain/run-events.js";
@@ -91,14 +92,16 @@ const MAX_DELAY_MS = 2_147_483_647;
 
 export const iso = (ms: number) => new Date(ms).toISOString();
 
-// A row whose snapshot cannot be read is not_found, so callers answer instead of throwing.
+// A row whose snapshot does not parse is damaged and not_found, so callers answer instead of throwing;
+// any other error (a locked database) is failed, so recovery leaves the run as it was (docs/07).
 export const loaded = (s: EngineState, runId: string) => {
 	try {
 		return ok(s.deps.store.load(runId));
 	} catch (e) {
 		const why = e instanceof Error ? e.name : "error";
+		const damaged = e instanceof SyntaxError || e instanceof z.ZodError;
 		return err<EngineError>({
-			code: "not_found",
+			code: damaged ? "not_found" : "failed",
 			message: `run ${runId} cannot be read (${why})`,
 		});
 	}
