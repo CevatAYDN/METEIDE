@@ -1,5 +1,5 @@
 import { type CommandCheckDirs, checkCommand } from "@mete/security";
-import { USAGE } from "../usage.js";
+import { usage } from "../usage.js";
 import type { Io } from "./commands.js";
 
 // `mete policy check "<command>"` (ADR-167): what the folder's policy decides for a command as a run
@@ -21,10 +21,7 @@ export const policyCommand = (
 	json: boolean,
 ) => {
 	const command = words.join(" ").trim();
-	if (sub !== "check" || !command) {
-		io.err(USAGE);
-		return 1;
-	}
+	if (sub !== "check" || !command) return usage(io);
 	const r = checkCommand(dirs, command);
 	if (!r.ok) {
 		io.err(r.error.message);

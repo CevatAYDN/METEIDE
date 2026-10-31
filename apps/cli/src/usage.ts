@@ -1,3 +1,5 @@
+import type { Io } from "./application/commands.js";
+
 // What `mete --help` prints (ARCHITECTURE.md, CLI).
 
 export const USAGE = [
@@ -24,3 +26,9 @@ export const USAGE = [
 	"  mete registry add <name>     add a registry server's newest version to .mete/mcp.yaml",
 	"  mete key set|delete <provider id>, mete key list",
 ].join("\n");
+
+/** Prints the usage: on standard output when asked for (exit 0), else as an error (exit 1). */
+export const usage = (io: Io, asked = false) => {
+	(asked ? io.out : io.err)(USAGE);
+	return asked ? 0 : 1;
+};

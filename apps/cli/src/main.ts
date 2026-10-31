@@ -42,7 +42,7 @@ import {
 } from "./infrastructure/run-lock.js";
 import { browserOf } from "./infrastructure/scripted-browser.js";
 import { scriptedSecrets, scriptedWeb } from "./infrastructure/scripted-web.js";
-import { USAGE } from "./usage.js";
+import { usage } from "./usage.js";
 
 // Entry of the mete binary (ARCHITECTURE.md, CLI): parses arguments and runs one command.
 
@@ -288,11 +288,6 @@ const dispatch = (
 		default:
 			return usage(io, p.values.help === true);
 	}
-};
-
-const usage = (io: Io, asked = false) => {
-	(asked ? io.out : io.err)(USAGE);
-	return asked ? 0 : 1;
 };
 
 type Served = { transport: Transport; closed: Promise<void> };
