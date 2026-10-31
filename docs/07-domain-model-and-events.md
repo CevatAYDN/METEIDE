@@ -111,7 +111,7 @@ From Phase 2, handoffs go into the workspace `handoffs` table: `id`, `workspace_
 | `run.started` | none | core-engine |
 | `run.paused` | reason, resumesAt? | core-engine |
 | `run.resumed` | none | core-engine |
-| `run.completed` | summary | core-engine |
+| `run.completed` | summary (a team run's last report, or its artifact's one line, ADR-172) | core-engine |
 | `run.failed` | error code, message | core-engine |
 | `run.cancelled` | none | core-engine |
 | `run.removed` | none; the user removed the ended run, and storage and the gateway delete its rows (ADR-143) | core-engine |
