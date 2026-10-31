@@ -1,7 +1,7 @@
 import { ROOM_W } from "../defaults.js";
 import type { Layout, Point } from "./layout.js";
 import { BOARD, COFFEE, DESK, ROOM } from "./palette.js";
-import { type Primitive, rect } from "./primitive.js";
+import { bottomRounded, type Primitive, rect } from "./primitive.js";
 import type { Note, Scene } from "./scene.js";
 import { seedOf } from "./seed.js";
 
@@ -72,6 +72,11 @@ const rug = (): Primitive[] => {
 
 /** How high the floor's front edge is, under the room (ADR-165). */
 export const SLAB_EDGE = 14;
+/**
+ * The slab's corner radius in the room's space: the front edge's bottom corners are drawn round, and
+ * the stage clips the wall's top ones by the same radius at the canvas's scale (studio-view.tsx).
+ */
+export const SLAB_RADIUS = SLAB_EDGE;
 // The clear space under the edge that its shadow fills.
 const SHADOW_ROOM = 26;
 
@@ -112,7 +117,7 @@ export const roomShell = (l: Layout): Primitive[] => [
 		points: [566, l.wall, 774, l.wall, 940, 480, 592, 480],
 		fill: ROOM.beam,
 	},
-	rect([0, l.height, ROOM_W, SLAB_EDGE], 0, ROOM.edge),
+	bottomRounded([0, l.height, ROOM_W, SLAB_EDGE], SLAB_RADIUS, ROOM.edge),
 	rect([0, l.height, ROOM_W, 2], 0, ROOM.edgeLine),
 ];
 

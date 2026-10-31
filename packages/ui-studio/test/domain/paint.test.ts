@@ -59,6 +59,33 @@ const scene = (
 };
 const words = (p: Primitive[]) =>
 	p.flatMap((x) => (x.kind === "text" || x.kind === "label" ? [x.text] : []));
+// A full-width slab shape from `top` to `bottom`: square top corners, both bottom corners rounded
+// by the slab's radius, 14, which the stage's clip also gives the wall's top corners.
+const expectSlabCorners = (
+	p: Primitive | undefined,
+	top: number,
+	bottom: number,
+) => {
+	if (p?.kind !== "poly") throw new Error(`not a polygon: ${p?.kind}`);
+	const at = (x: number, y: number) =>
+		p.points.some(
+			(v, i) =>
+				i % 2 === 0 &&
+				Math.abs(v - x) < 0.01 &&
+				Math.abs((p.points[i + 1] ?? NaN) - y) < 0.01,
+		);
+	expect(at(0, top) && at(1280, top)).toBe(true);
+	expect(at(0, bottom) || at(1280, bottom)).toBe(false);
+	expect(
+		at(14, bottom) &&
+			at(1266, bottom) &&
+			at(0, bottom - 14) &&
+			at(1280, bottom - 14),
+	).toBe(true);
+	expect(Math.max(...p.points.filter((_, i) => i % 2 === 1))).toBeCloseTo(
+		bottom,
+	);
+};
 // A character's head is the only circle of radius 16.
 const heads = (p: Primitive[]) =>
 	p.flatMap((x) => (x.kind === "circle" && x.r === 16 ? [x] : []));
@@ -86,7 +113,7 @@ describe("the room's primitives", () => {
 		const at = (fill: string) =>
 			p.findIndex((x) => "fill" in x && x.fill === fill);
 		expect(p[at(ROOM.floor)]).toMatchObject({ x: 0, y: 0, w: 1280, h: 490 });
-		expect(p[at(ROOM.edge)]).toMatchObject({ x: 0, y: 490, w: 1280, h: 14 });
+		expectSlabCorners(p[at(ROOM.edge)], 490, 490 + 14);
 		const shadows = p.filter(
 			(x) => x.kind === "ellipse" && x.fill === ROOM.shadow,
 		);
@@ -212,14 +239,8 @@ describe("the room's primitives", () => {
 		).toBe(false);
 		// The shade dims the slab, wall, floor and front edge, not the clear frame around it.
 		const top = room.moving(AT).at(-1);
-		expect(top).toMatchObject({
-			kind: "rect",
-			fill: ROOM.offlineShade,
-			x: 0,
-			y: 0,
-			w: 1280,
-			h: 490 + 14,
-		});
+		expect(top).toMatchObject({ fill: ROOM.offlineShade });
+		expectSlabCorners(top, 0, 490 + 14);
 		// No screensaver dot over the offline icon.
 		expect(
 			room
@@ -230,7 +251,7 @@ describe("the room's primitives", () => {
 		expect(
 			online
 				.moving(AT)
-				.some((x) => x.kind === "rect" && x.fill === ROOM.offlineShade),
+				.some((x) => "fill" in x && x.fill === ROOM.offlineShade),
 		).toBe(false);
 	});
 

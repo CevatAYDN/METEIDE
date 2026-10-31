@@ -96,3 +96,25 @@ export const rect = (
 	r: number,
 	fill: string,
 ): Shape => ({ kind: "rect", x, y, w, h, r, fill });
+
+// Segments per rounded corner of a polygon: smooth at the few pixels a corner takes on screen.
+const ARC_STEPS = 6;
+
+/** A rectangle whose bottom corners are rounded at `r` and whose top corners stay square, as a polygon. */
+export const bottomRounded = (
+	[x, y, w, h]: readonly [number, number, number, number],
+	r: number,
+	fill: string,
+): Shape => {
+	// A quarter circle around (cx, y + h - r), clockwise on screen from the angle `from`.
+	const arc = (cx: number, from: number) =>
+		Array.from({ length: ARC_STEPS + 1 }, (_, i) => {
+			const a = from + (i / ARC_STEPS) * (Math.PI / 2);
+			return [cx + r * Math.cos(a), y + h - r + r * Math.sin(a)];
+		}).flat();
+	return {
+		kind: "poly",
+		points: [x, y, x + w, y, ...arc(x + w - r, 0), ...arc(x + r, Math.PI / 2)],
+		fill,
+	};
+};

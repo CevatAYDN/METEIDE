@@ -27,6 +27,7 @@ export {
 	type StageLabels,
 } from "./domain/paint.js";
 export type { Moment, Painted, Primitive, Shape } from "./domain/primitive.js";
+export { SLAB_RADIUS } from "./domain/room.js";
 export {
 	type Character,
 	type CharacterState,

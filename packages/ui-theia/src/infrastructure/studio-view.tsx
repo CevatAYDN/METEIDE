@@ -11,6 +11,7 @@ import {
 	paintScene,
 	ROOM_W,
 	type Scene,
+	SLAB_RADIUS,
 	type Stage,
 	type StageLabels,
 	sceneOf,
@@ -248,6 +249,12 @@ const OpenCard = (props: {
 	) : null;
 };
 
+// The wall's top corners take the radius the room draws its front edge's bottom ones with (ADR-165).
+const stageStyle = (width: number) => ({
+	display: "block",
+	borderRadius: (SLAB_RADIUS * width) / ROOM_W,
+});
+
 /** The run's studio room, with its live effects and its characters' cards. */
 export const StudioView = (props: Props) => {
 	const { view } = props;
@@ -267,7 +274,7 @@ export const StudioView = (props: Props) => {
 				<canvas
 					ref={canvas}
 					className="mete-stage"
-					style={{ display: "block" }}
+					style={stageStyle(width)}
 					onClick={(e) => {
 						const h = hit(e);
 						card.show(h.id);

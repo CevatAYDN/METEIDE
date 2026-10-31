@@ -5,10 +5,10 @@ import { type Layout, layoutOf } from "./layout.js";
 import { marksMotion, marksOf } from "./marks.js";
 import { EFFECT, ROOM } from "./palette.js";
 import {
+	bottomRounded,
 	type Moment,
 	type Painted,
 	type Primitive,
-	rect,
 	type Shape,
 } from "./primitive.js";
 import { wallMoving, wallStill } from "./props.js";
@@ -20,6 +20,7 @@ import {
 	type RoomLabels,
 	roomShell,
 	SLAB_EDGE,
+	SLAB_RADIUS,
 } from "./room.js";
 import type { Character, Scene } from "./scene.js";
 import { offlineScreen, screenOf, sleepDot } from "./screen.js";
@@ -102,7 +103,13 @@ const moving = (scene: Scene, l: Layout, at: Moment): Shape[] => [
 		];
 	}),
 	...(scene.offline
-		? [rect([0, 0, ROOM_W, l.height + SLAB_EDGE], 0, ROOM.offlineShade)]
+		? [
+				bottomRounded(
+					[0, 0, ROOM_W, l.height + SLAB_EDGE],
+					SLAB_RADIUS,
+					ROOM.offlineShade,
+				),
+			]
 		: []),
 ];
 

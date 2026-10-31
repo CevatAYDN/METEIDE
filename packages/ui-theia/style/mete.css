@@ -260,12 +260,6 @@ button.mete-chip {
 	background: var(--good, var(--theia-testing-iconPassed));
 }
 
-/* The studio stage keeps its own radius. */
-.mete-stage {
-	border-radius: 20px;
-	overflow: hidden;
-}
-
 /* An option of a list the user picks one of: a card that shows which one is chosen. */
 .mete-option {
 	display: flex;
