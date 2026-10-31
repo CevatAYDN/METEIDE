@@ -79,7 +79,7 @@ describe("the Studio's sentences", () => {
 		).toBe(
 			"groq's free quota is used up; its agents wait at the coffee corner.",
 		);
-		// The first thinking.started of an agent carries no agent id: its task's agent stands in.
+		// An older run's first thinking.started carries no agent id: its task's agent stands in.
 		expect(
 			studioText(view, event("agent.thinking.started", {}, { taskId: TASK })),
 		).toBe("dev is thinking.");
@@ -91,7 +91,7 @@ describe("the Studio's sentences", () => {
 		).toBe("checkpoint.created");
 	});
 
-	it("names the attempt of a best-of-N task when the event names its agent, and only the role when it does not (ADR-162)", () => {
+	it("names the attempt of a best-of-N task by the event's agent, its first thought too, and only the role without one (ADR-162)", () => {
 		const SECOND = crypto.randomUUID();
 		const created = (agentId: string, k: number) =>
 			event(
@@ -114,9 +114,14 @@ describe("the Studio's sentences", () => {
 			created(FIRST, 1),
 			created(SECOND, 2),
 		]);
-		expect(
-			studioText(tried, event("agent.thinking.started", {}, { taskId: TASK })),
-		).toBe("dev is thinking.");
+		const thought = (more: Partial<MeteEvent>) =>
+			studioText(
+				tried,
+				event("agent.thinking.started", {}, { taskId: TASK, ...more }),
+			);
+		expect(thought({ agentId: SECOND })).toBe("dev · attempt 2/2 is thinking.");
+		expect(thought({})).toBe("dev is thinking.");
+		expect(thought({ agentId: crypto.randomUUID() })).toBe("dev is thinking.");
 		const used = (agentId: string) =>
 			studioText(
 				tried,

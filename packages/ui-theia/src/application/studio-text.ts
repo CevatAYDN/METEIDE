@@ -13,15 +13,13 @@ const taskOf = (view: TeamView, e: MeteEvent) =>
 export const attemptName = (roleId: string, k: number, n: number) =>
 	nls.localize("mete/studio/attempt", "{0} · attempt {1}/{2}", roleId, k, n);
 
-// An agent's first thinking.started carries no agent id (the core creates the agent inside that
-// turn), so the role of the event's task's agent stands in; a single agent has no task on either side.
-// shortcut: with several agents on one task (best-of-N attempts, the judge) that first thought names
-// the first agent's role and no attempt; exact once core names the agent on that event.
+// The event's agent by its id, the first thought's too (docs/07). An older run's first thought has no
+// id, and a call whose agent was never made has an id no agent has: then the role of the task's agent
+// stands in, with no attempt. A single agent has no task on either side.
 const roleOf = (view: TeamView, e: MeteEvent) => {
-	if (!e.agentId)
-		return view.agents.find((a) => a.taskId === e.taskId)?.roleId ?? "";
 	const a = view.agents.find((x) => x.id === e.agentId);
-	return a ? nameOf(a, { attempt: attemptName }) : "";
+	if (a) return nameOf(a, { attempt: attemptName });
+	return view.agents.find((x) => x.taskId === e.taskId)?.roleId ?? "";
 };
 
 type Status = Extract<
