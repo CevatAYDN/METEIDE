@@ -1,5 +1,5 @@
 import type { MeteEvent } from "@mete/contracts";
-import type { TeamView } from "@mete/ui-studio";
+import { nameOf, type TeamView } from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
 
 // The Studio's accessible list (docs/13: every visual event is also written to a list): one sentence
@@ -14,12 +14,15 @@ export const attemptName = (roleId: string, k: number, n: number) =>
 	nls.localize("mete/studio/attempt", "{0} · attempt {1}/{2}", roleId, k, n);
 
 // An agent's first thinking.started carries no agent id (the core creates the agent inside that
-// turn), so the agent of the event's task stands in; a single agent has no task on either side.
-const roleOf = (view: TeamView, e: MeteEvent) =>
-	(e.agentId
-		? view.agents.find((a) => a.id === e.agentId)
-		: view.agents.find((a) => a.taskId === e.taskId)
-	)?.roleId ?? "";
+// turn), so the role of the event's task's agent stands in; a single agent has no task on either side.
+// shortcut: with several agents on one task (best-of-N attempts, the judge) that first thought names
+// the first agent's role and no attempt; exact once core names the agent on that event.
+const roleOf = (view: TeamView, e: MeteEvent) => {
+	if (!e.agentId)
+		return view.agents.find((a) => a.taskId === e.taskId)?.roleId ?? "";
+	const a = view.agents.find((x) => x.id === e.agentId);
+	return a ? nameOf(a, { attempt: attemptName }) : "";
+};
 
 type Status = Extract<
 	MeteEvent,

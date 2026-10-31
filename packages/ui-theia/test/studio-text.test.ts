@@ -90,4 +90,43 @@ describe("the Studio's sentences", () => {
 			}),
 		).toBe("checkpoint.created");
 	});
+
+	it("names the attempt of a best-of-N task when the event names its agent, and only the role when it does not (ADR-162)", () => {
+		const SECOND = crypto.randomUUID();
+		const created = (agentId: string, k: number) =>
+			event(
+				"agent.created",
+				{
+					roleId: "dev",
+					providerId: "groq",
+					modelId: "m",
+					attempt: { k, n: 2 },
+				},
+				{ agentId, taskId: TASK },
+			);
+		const FIRST = crypto.randomUUID();
+		const tried = applyAll(RUN, EMPTY_TEAM_VIEW, [
+			event(
+				"task.created",
+				{ title: "Build", roleId: "dev", dependsOn: [] },
+				{ taskId: TASK },
+			),
+			created(FIRST, 1),
+			created(SECOND, 2),
+		]);
+		expect(
+			studioText(tried, event("agent.thinking.started", {}, { taskId: TASK })),
+		).toBe("dev is thinking.");
+		const used = (agentId: string) =>
+			studioText(
+				tried,
+				event(
+					"agent.tool.called",
+					{ capability: "fs.read@1", adapterId: "tools-fs" },
+					{ taskId: TASK, agentId },
+				),
+			);
+		expect(used(FIRST)).toBe("dev · attempt 1/2 uses fs.read@1.");
+		expect(used(SECOND)).toBe("dev · attempt 2/2 uses fs.read@1.");
+	});
 });

@@ -44,7 +44,7 @@ The Studio view is the Team panel's third view, on the same fold (ADR-052). Its 
 
 Scene layout \[D\]: a top-down room generated from the team. Roles that plan or approve sit in the top row; other roles in the bottom row; at most 6 desks per row. Fixed props: the task board on the wall (columns To do, In progress, Done), a coffee corner (quota waits), a bookshelf (the vault), a window showing the user's local time of day (can be turned off), plants and a clock. More than 12 agents are grouped into one character per role with a count badge \[C\].
 
-Characters: one per agent, colored by role. Accessories by role kind: pencil for designer, glasses for lead, hood for developer, beret for artist, headset for tester, clipboard for PM; other roles get one from a seeded set \[D\]. Events carry no role kind yet, so every role takes its colour and accessory from the seeded set (ADR-070) \[D\]. Labels show the role name; a setting switches to friendly first names \[D\].
+Characters: one per agent, colored by role. An agent that works an attempt of a best-of-N task carries it in its name, such as `writer · attempt 2/2`, over its head, on its button and card and in the list of what the room shows (ADR-162). Accessories by role kind: pencil for designer, glasses for lead, hood for developer, beret for artist, headset for tester, clipboard for PM; other roles get one from a seeded set \[D\]. Events carry no role kind yet, so every role takes its colour and accessory from the seeded set (ADR-070) \[D\]. Labels show the role name; a setting switches to friendly first names \[D\].
 
 | Event | What the studio shows |
 | --- | --- |

@@ -7,6 +7,7 @@ import {
 	effectsOf,
 	inside,
 	layoutOf,
+	nameOf,
 	paintScene,
 	ROOM_W,
 	type Scene,
@@ -176,7 +177,9 @@ const TeamStrip = (props: {
 				aria-pressed={props.selected === c.id}
 				onClick={() => props.onToggle(c.id)}
 			>
-				{c.count > 1 ? `${c.roleId} ×${c.count}` : c.roleId}
+				{c.count > 1
+					? `${c.roleId} ×${c.count}`
+					: nameOf(c, { attempt: attemptName })}
 			</button>
 		))}
 		{props.hint && props.characters.length > 0 ? (

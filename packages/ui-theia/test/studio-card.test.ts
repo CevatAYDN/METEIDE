@@ -50,6 +50,12 @@ describe("StudioCard", () => {
 			expect(out).toContain(text);
 	});
 
+	it("names the attempt of a best-of-N task its agent works (ADR-162)", () => {
+		const out = html(ch({ attempt: { k: 2, n: 2 } }), [agent("a1", "build")]);
+		expect(out).toContain('aria-label="developer · attempt 2/2"');
+		expect(out).toContain(">developer · attempt 2/2<");
+	});
+
 	it("shows an agent's tier when agent.created carried it, and no row without it (ADR-077)", () => {
 		expect(html(ch(), [{ ...agent("a1"), tier: "coder" }])).toContain(">Tier<");
 		expect(html(ch(), [agent("a1")])).not.toContain(">Tier<");

@@ -1,6 +1,12 @@
-import type { AgentCard, Character, TaskCard } from "@mete/ui-studio";
+import {
+	type AgentCard,
+	type Character,
+	nameOf,
+	type TaskCard,
+} from "@mete/ui-studio";
 import { nls } from "@theia/core/lib/common/nls";
 import { MUTED } from "./look.js";
+import { attemptName } from "./studio-text.js";
 
 // The card a click on a Studio character opens (docs/13, Interaction): its role, its state, and for
 // each agent it stands for the provider, the model and the task. The demo's card is the model
@@ -98,7 +104,7 @@ export const StudioCard = ({
 }: Props) => (
 	<div
 		role="dialog"
-		aria-label={character.roleId}
+		aria-label={nameOf(character, { attempt: attemptName })}
 		className="mete-card"
 		style={{
 			position: "absolute",
@@ -116,7 +122,7 @@ export const StudioCard = ({
 	>
 		<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
 			<b style={{ fontSize: "1.1em", flex: 1 }}>
-				{character.roleId}
+				{nameOf(character, { attempt: attemptName })}
 				{character.count > 1 ? ` ×${character.count}` : ""}
 			</b>
 			<button
