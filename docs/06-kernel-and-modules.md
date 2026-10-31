@@ -126,7 +126,7 @@ export type LlmError = ProviderError | { code: "no_model"; message: string }
   | { code: "too_large"; message: string };   // @2: folded once, then the run pauses with reason no_model (tab 08); the message names the estimate
 export type LlmChunk =
   | Exclude<ChatChunk, { type: "error" }>
-  | { type: "model"; providerId: string; modelId: string; reason: "first" | "quota" | "failed" }
+  | { type: "model"; providerId: string; modelId: string; family?: string; reason: "first" | "quota" | "failed" }   // family: ADR-162
   | { type: "error"; error: LlmError };                    // the last chunk; chat never throws for a model failure
 export interface LlmChatAdapter {
   chat(req: LlmChatRequest, signal: AbortSignal): AsyncIterable<LlmChunk>;

@@ -74,6 +74,8 @@ export type LlmChunk =
 			readonly type: "model";
 			readonly providerId: string;
 			readonly modelId: string;
+			/** The model's family, which a later attempt of another family avoids (ADR-162). */
+			readonly family?: string;
 			readonly reason: "first" | "quota" | "failed";
 	  }
 	| { readonly type: "error"; readonly error: LlmError };
