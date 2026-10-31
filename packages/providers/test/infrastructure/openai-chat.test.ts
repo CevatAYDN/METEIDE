@@ -75,6 +75,8 @@ describe("openai chat: streaming", () => {
 			{ type: "text", text: "lo" },
 			{ type: "finish", reason: "stop", usage: { prompt: 12, completion: 5 } },
 		]);
+		// Usage arrives in a stream only when asked for (docs/07, model_calls tokens).
+		expect(fake.sent[0]?.stream_options).toEqual({ include_usage: true });
 	});
 
 	it("turns a streamed tool call into one chunk with parsed arguments", async () => {
