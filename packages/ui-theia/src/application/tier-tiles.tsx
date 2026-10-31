@@ -7,13 +7,17 @@ import { Icon } from "./roster-look.js";
 // since the team file keeps the id; the lenient draft may hold a tier the schema refuses, then none
 // is pressed and the issues say why. Laid out by style/mete-team-form.css.
 
-/** The tier tiles; the chosen one is pressed and carries a check. */
+/** The tier tiles; the chosen one is pressed and carries a check. A member's by default; null hides the hint. */
 export const TierTiles = (props: {
 	readonly value: string;
 	readonly onEdit: (v: string) => void;
+	readonly legend?: string;
+	readonly hint?: string | null;
 }) => (
 	<fieldset className="mete-tiers">
-		<legend>{nls.localize("mete/team/tier", "Model tier")}</legend>
+		<legend>
+			{props.legend ?? nls.localize("mete/team/tier", "Model tier")}
+		</legend>
 		<div>
 			{TierSchema.options.map((t) => (
 				<button
@@ -38,11 +42,14 @@ export const TierTiles = (props: {
 				</button>
 			))}
 		</div>
-		<p>
-			{nls.localize(
-				"mete/team/tierHint",
-				"A team names a tier, never a provider or model: the providers that serve each tier come from the gateway settings.",
-			)}
-		</p>
+		{props.hint === null ? null : (
+			<p>
+				{props.hint ??
+					nls.localize(
+						"mete/team/tierHint",
+						"A team names a tier, never a provider or model: the providers that serve each tier come from the gateway settings.",
+					)}
+			</p>
+		)}
 	</fieldset>
 );

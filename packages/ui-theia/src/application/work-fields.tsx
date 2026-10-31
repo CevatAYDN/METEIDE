@@ -8,10 +8,11 @@ import {
 	type WorkView,
 	withRuns,
 } from "./team-draft.js";
+import { TierTiles } from "./tier-tiles.js";
 
 // What the team editor asks of the work (docs/08, Task fields; ADR-075): a task's or a member's
 // spawn defaults' output, approver, whom it asks before starting (ADR-142), pair reviewer (ADR-136),
-// verify commands, guardrail and lesson (ADR-145), and the team's revision limit and budget. Only what core honors is
+// verify commands, guardrail, lesson (ADR-145) and attempts (ADR-162), and the team's revision limit and budget. Only what core honors is
 // shown: capability gates are not yet; a pair's max_turns stays in the YAML.
 // The fields sit in the grid of `.mete-task-grid` (style/mete-team-form.css).
 
@@ -71,7 +72,75 @@ export const Work = (props: {
 			/>
 			<Guardrail {...props} />
 			<Lesson {...props} />
+			<Attempts {...props} />
 		</>
+	);
+};
+
+/**
+ * The edit a new attempts count makes (ADR-162): below 2 the key goes, since n of 1 is the path of
+ * today; the first count of 2 or more writes the whole object the schema needs, after that the count.
+ */
+export const attemptsEdit = (
+	current: WorkView["attempts"],
+	n: number | undefined,
+): { readonly key: readonly string[]; readonly value: unknown } => {
+	if (n === undefined || n < 2) return { key: [], value: undefined };
+	if (current) return { key: ["n"], value: n };
+	// reasoning is the editor's starting value, not a template default: docs/08 names none.
+	const value = { n, distinct_families: false, judge_tier: "reasoning" };
+	return { key: [], value };
+};
+
+// Best-of-N (ADR-162): how many times the work is tried; the family tick and the judge's tier show
+// only once there are 2 or more attempts, since below that they do nothing.
+const Attempts = ({
+	work,
+	base,
+	onEdit,
+}: {
+	readonly work: WorkView;
+	readonly base: Path;
+	readonly onEdit: OnEdit;
+}) => {
+	const a = work.attempts;
+	const at = [...base, "attempts"];
+	return (
+		<div className="mete-attempts">
+			<Count
+				label={nls.localize("mete/team/attempts", "Attempts")}
+				value={a?.n}
+				fallback={1}
+				onChange={(n) => {
+					const { key, value } = attemptsEdit(a, n);
+					onEdit([...at, ...key], value);
+				}}
+			/>
+			<p>
+				{nls.localize(
+					"mete/team/attemptsHint",
+					"Tries the task up to this many times; its checks, then a judge, keep one. Each attempt is one more task's worth of requests, plus one for the judge.",
+				)}
+			</p>
+			{a ? (
+				<>
+					<Tick
+						label={nls.localize(
+							"mete/team/attemptsFamilies",
+							"Each attempt after the first uses another model family",
+						)}
+						checked={a.distinct_families}
+						onChange={(c) => onEdit([...at, "distinct_families"], c)}
+					/>
+					<TierTiles
+						legend={nls.localize("mete/team/judgeTier", "Judge's model tier")}
+						hint={null}
+						value={a.judge_tier}
+						onEdit={(v) => onEdit([...at, "judge_tier"], v)}
+					/>
+				</>
+			) : null}
+		</div>
 	);
 };
 

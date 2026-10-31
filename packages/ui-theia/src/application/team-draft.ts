@@ -48,6 +48,10 @@ const WorkSchema = z.object({
 		.optional()
 		.catch(undefined),
 	memory: z.object({ write_lessons: z.boolean() }).optional().catch(undefined),
+	attempts: z
+		.object({ n: z.number(), distinct_families: z.boolean(), judge_tier: text })
+		.optional()
+		.catch(undefined),
 });
 const TaskSchema = WorkSchema.extend({
 	id: text,
