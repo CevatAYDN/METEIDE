@@ -219,7 +219,11 @@ const start = async (s: EngineState, l: Live, team: TeamState, id: string) => {
 	const agentId = team.tasks[id]?.context.agentId ?? s.deps.newId();
 	const worktree = await worktreeOf(s, l, team, { id, agentId });
 	const ctx = { runId: l.meta.id, signal: l.all.signal };
-	const notes = await readNotes(s.deps, ctx, titleOf(team, id));
+	// A kept conversation (a revision, a next attempt that opens as the work did) already holds the lessons.
+	const fresh = (team.tasks[id]?.messages.length ?? 0) === 0;
+	const notes = fresh
+		? await readNotes(s.deps, ctx, titleOf(team, id))
+		: undefined;
 	// Paused or cancelled while git worked: the next start finds the worktree it made.
 	if (l.snapshot.value !== "running") return;
 	// A best-of-N task's next attempt stays in progress (ADR-162).

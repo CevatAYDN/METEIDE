@@ -226,6 +226,32 @@ describe("team runs", () => {
 		expect(last?.payload).toEqual({ from: "submitted", to: "blocked" });
 	});
 
+	// ADR-151: the lessons stay in the task's kept conversation, so a revision does not search again.
+	it("searches the lessons once when a task starts, not again when the work is sent back", async () => {
+		await useLead();
+		const hit = { path: "lessons/cite.md", title: "Cite", snippet: "cite" };
+		const search = vi.fn<Tool>(async () => ok({ results: [hit] }));
+		const h = engineHarness({
+			scripts: [
+				reply("facts"),
+				reply("draft"),
+				reply('{"decision":"revise","feedback":"cite sources"}'),
+				reply("draft 2"),
+				reply('{"decision":"approve"}'),
+			],
+			templates,
+			tools: [["knowledge.search@1", search]],
+		});
+		await settled(h, await start(h), "completed");
+		expect(search.mock.calls.map(([input]) => input)).toEqual([
+			{ query: "Find facts", type: "lesson" },
+			{ query: "Write", type: "lesson" },
+		]);
+		expect(String(h.requests[3]?.messages[1]?.content)).toContain(
+			"lessons/cite.md",
+		);
+	});
+
 	it("accepts the last submission of a task blocked by its revision limit when the human approves (ADR-157)", async () => {
 		await useLead("policies: { revision_limit: 0 }\n");
 		const h = engineHarness({

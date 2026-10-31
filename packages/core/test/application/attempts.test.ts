@@ -230,6 +230,32 @@ describe("best-of-N attempts (ADR-162)", () => {
 		expect(second.some((m) => m.content === "notes")).toBe(false);
 	});
 
+	// ADR-151: the opening the next attempt takes holds the lessons, so it does not search again.
+	it("searches the lessons once: the next attempt opens with the ones the first found", async () => {
+		await writeFile(
+			join(templates.builtIn, "best.yaml"),
+			BEST(", before_start: { clarify_with: helper }"),
+		);
+		const hit = { path: "lessons/city.md", title: "City", snippet: "ask" };
+		const search = vi.fn<Tool>(async () => ok({ results: [hit] }));
+		const h = engineHarness({
+			scripts: [reply("Which city?"), reply("Ankara."), reply("notes"), PASSES],
+			templates,
+			tools: [
+				["fs.write@1", async () => ok({ bytes: 1 })],
+				["vcs.git@2", fakeVcs().run],
+				["knowledge.search@1", search],
+			],
+		});
+		const r = await h.engine.start({ goal: "a page", templateId: "best" });
+		if (!r.ok) throw new Error(r.error.message);
+		await vi.waitFor(() => expect(h.requests).toHaveLength(4));
+		expect(search).toHaveBeenCalledTimes(1);
+		expect(String(h.requests[3]?.messages[1]?.content)).toContain(
+			"lessons/city.md",
+		);
+	});
+
 	it("asks the human once too: the answer sent as a decision opens the next attempt", async () => {
 		const { h, runId, settled } = await run(
 			", before_start: { clarify_with: human }",
