@@ -655,6 +655,8 @@ describe("single-agent engine", () => {
 			.filter((m) => m.role === "tool")
 			.map((m) => String(m.content).startsWith(`${REPEAT_LABEL}\n`));
 		expect(results).toEqual([false, false, true]);
+		const told = h.logged.filter((l) => l.msg.includes("same result again"));
+		expect(told).toHaveLength(1);
 	});
 
 	it("fails a writing step whose checkpoint cannot be made", async () => {

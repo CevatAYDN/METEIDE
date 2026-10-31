@@ -61,6 +61,11 @@ describe("repeat guard (ADR-166)", () => {
 	it("takes the arguments in any key order", () => {
 		const b = call({ limit: 5, path: "a" });
 		expect(labeled(before(turn(a, "x"), turn(b, "x")), a, "x")).toBe(true);
+		const deep = call({ o: { y: 1, x: [{ q: 1, p: 2 }] } });
+		const same = call({ o: { x: [{ p: 2, q: 1 }], y: 1 } });
+		expect(labeled(before(turn(deep, "x"), turn(same, "x")), deep, "x")).toBe(
+			true,
+		);
 	});
 
 	it("starts again after a different result, as a read after a write", () => {

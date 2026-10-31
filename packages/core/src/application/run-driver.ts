@@ -1,4 +1,4 @@
-import type { LlmChunk } from "@mete/contracts";
+import type { ChatMessage, LlmChunk } from "@mete/contracts";
 import { attemptOf } from "../domain/attempts.js";
 import { foldable, toSummarize } from "../domain/compact.js";
 import { type NextStep, nextStep } from "../domain/next-step.js";
@@ -190,6 +190,22 @@ const keeping = (s: EngineState, l: Live) => {
 	return ref && store ? (path: string) => store.keep(ref, path) : undefined;
 };
 
+// The result with the repeat line when it repeats (ADR-166); the transcript reads past the line, so the log names it.
+const repeatChecked = (
+	s: EngineState,
+	l: Live,
+	t: ToolStep,
+	message: Extract<ChatMessage, { role: "tool" }>,
+) => {
+	const checked = guarded(l.snapshot.context.messages, t.call, message);
+	if (checked !== message)
+		s.deps.logger.info(
+			{ runId: l.meta.id, tool: t.call.name },
+			"a tool call gave the same result again; the model is told so",
+		);
+	return checked;
+};
+
 // A finished tool call is kept even when the run was paused meanwhile (docs/08).
 const toolTurn = async (
 	s: EngineState,
@@ -211,7 +227,7 @@ const toolTurn = async (
 	if (out.kind === "result")
 		apply(s, l, {
 			type: "TOOL_DONE",
-			message: guarded(l.snapshot.context.messages, t.call, out.message),
+			message: repeatChecked(s, l, t, out.message),
 			...(out.external ? { external: true } : {}),
 		});
 	else if (owns(l, token))
