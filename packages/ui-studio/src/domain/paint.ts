@@ -19,6 +19,7 @@ import {
 	desk,
 	type RoomLabels,
 	roomShell,
+	SLAB_EDGE,
 } from "./room.js";
 import type { Character, Scene } from "./scene.js";
 import { offlineScreen, screenOf, sleepDot } from "./screen.js";
@@ -101,13 +102,13 @@ const moving = (scene: Scene, l: Layout, at: Moment): Shape[] => [
 		];
 	}),
 	...(scene.offline
-		? [rect([0, 0, ROOM_W, l.height], 0, ROOM.offlineShade)]
+		? [rect([0, 0, ROOM_W, l.height + SLAB_EDGE], 0, ROOM.offlineShade)]
 		: []),
 ];
 
 /**
- * The room as two layers (ADR-070): `still` in drawing order, whose first primitive is the floor, as wide
- * and tall as the room, and `moving`, the shapes of a moment, which the stage draws again every frame
+ * The room as two layers (ADR-070): `still` in drawing order, whose first primitive is a clear frame as
+ * large as the canvas (ADR-165), and `moving`, the shapes of a moment, which the stage draws again every frame
  * above the still ones. The window and the clock show the moment's local time.
  */
 export const paintScene = (scene: Scene, labels: StageLabels): Painted => {

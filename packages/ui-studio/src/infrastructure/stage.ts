@@ -251,6 +251,8 @@ const appOn = async (
 		height,
 		autoStart: false,
 		antialias: true,
+		// The room stands on the panel's own surface as a slab (ADR-165).
+		backgroundAlpha: 0,
 		// Crisp text and shapes on a high-density screen; the canvas keeps its CSS size.
 		resolution: devicePixelRatio,
 		autoDensity: true,

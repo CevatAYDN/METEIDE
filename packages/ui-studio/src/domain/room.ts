@@ -70,9 +70,34 @@ const rug = (): Primitive[] => {
 	];
 };
 
-/** The wall with its stripes and trim, the planked floor, the rug and the window's light. */
+/** How high the floor's front edge is, under the room (ADR-165). */
+export const SLAB_EDGE = 14;
+// The clear space under the edge that its shadow fills.
+const SHADOW_ROOM = 26;
+
+// A soft shadow under the slab: translucent ellipses, wider and fainter outward.
+const shadow = (y: number): Primitive[] =>
+	[
+		[660, 22],
+		[620, 15],
+		[580, 9],
+	].map(([rx = 0, ry = 0]) => ({
+		kind: "ellipse",
+		x: ROOM_W / 2,
+		y: y + 2,
+		rx,
+		ry,
+		fill: ROOM.shadow,
+	}));
+
+/**
+ * The room as a slab on the panel (ADR-165): its shadow, then the wall with its stripes and trim, the
+ * planked floor, the rug and the window's light, then the floor's front edge.
+ */
 export const roomShell = (l: Layout): Primitive[] => [
-	// The floor first, as wide and tall as the room: the stage sizes the canvas from it.
+	// A clear frame first, as large as the canvas: the stage sizes the canvas from it.
+	rect([0, 0, ROOM_W, l.height + SLAB_EDGE + SHADOW_ROOM], 0, ROOM.frame),
+	...shadow(l.height + SLAB_EDGE),
 	rect([0, 0, ROOM_W, l.height], 0, ROOM.floor),
 	rect([0, 0, ROOM_W, l.wall], 0, ROOM.wall),
 	...Array.from({ length: Math.ceil(ROOM_W / 44) }, (_, i) =>
@@ -87,6 +112,8 @@ export const roomShell = (l: Layout): Primitive[] => [
 		points: [566, l.wall, 774, l.wall, 940, 480, 592, 480],
 		fill: ROOM.beam,
 	},
+	rect([0, l.height, ROOM_W, SLAB_EDGE], 0, ROOM.edge),
+	rect([0, l.height, ROOM_W, 2], 0, ROOM.edgeLine),
 ];
 
 // A note's colour from its task id, so a note keeps it as it moves between columns.

@@ -64,14 +64,38 @@ const heads = (p: Primitive[]) =>
 	p.flatMap((x) => (x.kind === "circle" && x.r === 16 ? [x] : []));
 
 describe("the room's primitives", () => {
-	it("starts with the floor, as wide and tall as the room, and writes the board's columns, a badge for hidden notes and the coffee sign", () => {
+	it("starts with a clear frame as large as the canvas, and writes the board's columns, a badge for hidden notes and the coffee sign", () => {
 		const s = scene([], { todo: ["a", "b", "c", "d"], done: ["e"] });
 		const p = paint(s);
-		expect(p[0]).toMatchObject({ kind: "rect", x: 0, y: 0, w: 1280, h: 490 });
+		expect(p[0]).toMatchObject({
+			kind: "rect",
+			x: 0,
+			y: 0,
+			w: 1280,
+			h: 530,
+			fill: ROOM.frame,
+		});
 		expect(words(p)).toEqual(
 			expect.arrayContaining(["To do", "In progress", "Done", "Coffee", "+1"]),
 		);
 		expect(words(p)).not.toContain("d");
+	});
+
+	it("stands the room on the panel as a slab: a shadow, then the floor, then its front edge (ADR-165)", () => {
+		const p = paint(scene([]));
+		const at = (fill: string) =>
+			p.findIndex((x) => "fill" in x && x.fill === fill);
+		expect(p[at(ROOM.floor)]).toMatchObject({ x: 0, y: 0, w: 1280, h: 490 });
+		expect(p[at(ROOM.edge)]).toMatchObject({ x: 0, y: 490, w: 1280, h: 14 });
+		const shadows = p.filter(
+			(x) => x.kind === "ellipse" && x.fill === ROOM.shadow,
+		);
+		expect(shadows.length).toBeGreaterThan(1);
+		for (const s of shadows)
+			if (s.kind === "ellipse") expect(s.y + s.ry).toBeLessThanOrEqual(530);
+		expect(at(ROOM.shadow)).toBeLessThan(at(ROOM.floor));
+		expect(at(ROOM.floor)).toBeLessThan(at(ROOM.edge));
+		expect(ROOM.frame).toMatch(/rgba\(.*,\s*0\)$/);
 	});
 
 	it('pins a blocked task\'s note with a large red pin and a "!", and every other note with the small pin', () => {
@@ -186,16 +210,16 @@ describe("the room's primitives", () => {
 		expect(
 			room.still.some((x) => x.kind === "rect" && x.fill === SCREEN.codeBg),
 		).toBe(false);
-		const floor = room.still[0];
+		// The shade dims the slab, wall, floor and front edge, not the clear frame around it.
 		const top = room.moving(AT).at(-1);
 		expect(top).toMatchObject({
 			kind: "rect",
 			fill: ROOM.offlineShade,
 			x: 0,
 			y: 0,
+			w: 1280,
+			h: 490 + 14,
 		});
-		if (floor?.kind === "rect" && top?.kind === "rect")
-			expect([top.w, top.h]).toEqual([floor.w, floor.h]);
 		// No screensaver dot over the offline icon.
 		expect(
 			room

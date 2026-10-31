@@ -17,6 +17,11 @@ export const ROOM = {
 	rugInner: "#b07fa2",
 	rugStitch: "rgba(255,240,220,.35)",
 	beam: "rgba(255,246,214,.17)",
+	// The slab on the panel (ADR-165): a clear frame, the floor's front edge and its soft shadow.
+	frame: "rgba(0,0,0,0)",
+	edge: "#b48a5e",
+	edgeLine: "rgba(90,60,30,.28)",
+	shadow: "rgba(60,40,20,.08)",
 } as const;
 
 /** The wall board and its notes. */
