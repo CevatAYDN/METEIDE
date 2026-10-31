@@ -59,6 +59,9 @@ describe("TeamPins", () => {
 	it("says so and writes nothing while the pins file does not parse", async () => {
 		const { pins, disk, said } = fake({ [PINS]: "a: [unclosed" });
 		await pins.read(ROOT);
+		expect(said).toEqual([
+			expect.stringContaining("METE cannot read .mete/pins.yaml"),
+		]);
 		expect(await pins.set(ROOT, "web-dev", "qa", "groq/x")).toBeUndefined();
 		expect(said.join()).toContain("METE cannot read .mete/pins.yaml");
 		expect(disk.get(PINS)).toBe("a: [unclosed");

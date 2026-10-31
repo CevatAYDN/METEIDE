@@ -58,6 +58,16 @@ export class TeamPins {
 			this.pins = undefined;
 			this.error = String(e);
 		}
+		// Said when the team opens, since every member then shows no pin whatever the file holds.
+		if (!this.pins) void this.deps.messages.warn(this.unreadable());
+	}
+
+	protected unreadable(): string {
+		return nls.localize(
+			"mete/team/pinsUnreadable",
+			"METE cannot read .mete/pins.yaml, so it does not change it: {0}",
+			this.error ?? "",
+		);
 	}
 
 	/** This team's pins, by member id. */
@@ -105,14 +115,7 @@ export class TeamPins {
 		value: string | undefined,
 	): Promise<Readonly<Record<string, string>> | undefined> {
 		const { files, messages } = this.deps;
-		if (!this.pins)
-			return void messages.warn(
-				nls.localize(
-					"mete/team/pinsUnreadable",
-					"METE cannot read .mete/pins.yaml, so it does not change it: {0}",
-					this.error ?? "",
-				),
-			);
+		if (!this.pins) return void messages.warn(this.unreadable());
 		const next = withPin(this.pins, teamId, roleId, value);
 		const issue = pinsIssue(next);
 		if (issue)

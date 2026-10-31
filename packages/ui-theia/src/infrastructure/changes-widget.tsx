@@ -1,3 +1,4 @@
+import { MessageService } from "@theia/core";
 import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import { ThemeService } from "@theia/core/lib/browser/theming";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
@@ -32,6 +33,7 @@ export class MeteChangesWidget extends MetePanelWidget {
 	@inject(MeteDaemonEvents) protected readonly events!: MeteDaemonEvents;
 	@inject(ThemeService) protected readonly themes!: ThemeService;
 	@inject(OpenerService) protected readonly openers!: OpenerService;
+	@inject(MessageService) protected readonly messages!: MessageService;
 
 	protected model: ChangesModel = { kind: "loading" };
 	protected dir: string | undefined;
@@ -90,10 +92,11 @@ export class MeteChangesWidget extends MetePanelWidget {
 	protected async openFile(path: string): Promise<void> {
 		const [root] = await this.workspace.roots;
 		if (!root) return;
-		// shortcut: a file the handler cannot open leaves the panel as it was.
-		await open(this.openers, root.resource.resolve(path)).catch(
-			() => undefined,
-		);
+		try {
+			await open(this.openers, root.resource.resolve(path));
+		} catch (e) {
+			void this.messages.warn(String(e));
+		}
 	}
 
 	// A picked file that the list no longer holds drops its diff, so no stale one is shown.
