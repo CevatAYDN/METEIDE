@@ -28,7 +28,6 @@ import { rollbackCommand } from "./application/rollback.js";
 import { templateValidate } from "./application/templates.js";
 import {
 	ADAPTERS_DIR_ENV,
-	SCRIPTED_CHAT_ENV,
 	SCRIPTED_WEB_ENV,
 	TEMPLATES_DIR_ENV,
 } from "./defaults.js";
@@ -41,6 +40,7 @@ import {
 	takeRunLock,
 } from "./infrastructure/run-lock.js";
 import { browserOf } from "./infrastructure/scripted-browser.js";
+import { scriptedChat } from "./infrastructure/scripted-env.js";
 import { scriptedSecrets, scriptedWeb } from "./infrastructure/scripted-web.js";
 import { usage } from "./usage.js";
 
@@ -356,7 +356,7 @@ const appOptions = (
 	globalDir: string,
 	logger: Logger,
 ): AppOptions => {
-	const scripted = env.scriptedChat ?? process.env[SCRIPTED_CHAT_ENV];
+	const scripted = scriptedChat(env, logger);
 	const folders = foldersOf(env);
 	const web = webOf(env);
 	const secrets = env.secrets ?? web.secrets;
