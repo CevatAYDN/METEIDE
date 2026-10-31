@@ -59,6 +59,7 @@ import {
 import { BUILT_IN_BINDINGS } from "../defaults.js";
 import { runHistory } from "./history.js";
 import { moduleLogger } from "./log.js";
+import { offlineLookup } from "./scripted-web.js";
 
 // The CLI's composition root (ARCHITECTURE.md, CLI): one workspace, every Phase 1 module in
 // this process, the lifecycle stopped before exit.
@@ -182,7 +183,9 @@ const modulesFor = (
 		createToolsFsModule(dirs),
 		createToolsShellModule(dirs),
 		createVcsGitModule(dirs),
-		createToolsWebModule(opts.fetch ? { fetch: opts.fetch } : {}),
+		createToolsWebModule(
+			opts.fetch ? { fetch: opts.fetch, lookup: offlineLookup } : {},
+		),
 		createBrowserModule({ ...dirs, ...opts.browser }),
 		createRegistryModule({
 			globalDir: opts.globalDir,

@@ -6,7 +6,7 @@ import {
 	type ToolError,
 } from "@mete/contracts";
 import { describe, expect, it } from "vitest";
-import { fetchTool, type WebDeps } from "../src/application/web-fetch.js";
+import { type FetchDeps, fetchTool } from "../src/application/web-fetch.js";
 import { WEB_FETCH_MAX_BYTES, WEB_FETCH_MAX_CHARS } from "../src/defaults.js";
 
 // Hand-written fetch fakes; no test reaches the network (AGENTS.md rule 7).
@@ -26,12 +26,23 @@ type Route = {
 	body?: string;
 };
 
+// A hand-written resolver: every name is public unless listed (ADR-171).
+const PUBLIC = "93.184.216.34";
+
 const setup = (
 	routes: Record<string, Route>,
 	verdict: "allow" | "deny" = "allow",
+	names: Record<string, readonly string[] | Error> = {},
 ) => {
 	const asked: PolicyCheckInput[] = [];
 	const fetched: string[] = [];
+	const looked: string[] = [];
+	const lookup = async (host: string) => {
+		looked.push(host);
+		const a = names[host] ?? [PUBLIC];
+		if (a instanceof Error) throw a;
+		return a;
+	};
 	const policy: PolicyCheckAdapter = {
 		check: (i) => {
 			asked.push(i);
@@ -47,12 +58,13 @@ const setup = (
 			headers: { "content-type": "text/html; charset=utf-8", ...r.headers },
 		});
 	};
-	const deps: WebDeps = {
+	const deps: FetchDeps = {
 		adapterId: "tools-web",
 		policy: () => policy,
 		fetch: fake,
+		lookup,
 	};
-	return { deps, asked, fetched };
+	return { deps, asked, fetched, looked };
 };
 
 describe("web.fetch@1", () => {
@@ -94,6 +106,52 @@ describe("web.fetch@1", () => {
 		const r = await fetchTool(deps, { url: "http://localhost:4111/v1" }, ctx);
 		expect(code(r)).toBe("bad_input");
 		expect(fetched).toEqual([]);
+	});
+
+	it("refuses a name that resolves to a local address, before any request (ADR-171)", async () => {
+		const { deps, fetched } = setup({}, "allow", {
+			"inside.example": ["127.0.0.1"],
+			"mixed.example": [PUBLIC, "10.0.0.5"],
+			"mapped.example": ["::ffff:7f00:1"],
+		});
+		for (const host of ["inside", "mixed", "mapped"]) {
+			const r = await fetchTool(deps, { url: `https://${host}.example/` }, ctx);
+			expect(code(r)).toBe("bad_input");
+		}
+		expect(fetched).toEqual([]);
+	});
+
+	it("checks the name of every redirect hop, and answers io for a name that does not resolve", async () => {
+		const { deps, fetched } = setup(
+			{
+				"https://a.org/": {
+					status: 302,
+					headers: { location: "https://metadata.example/" },
+				},
+			},
+			"allow",
+			{
+				"metadata.example": ["169.254.169.254"],
+				"gone.example": new Error("getaddrinfo ENOTFOUND gone.example"),
+			},
+		);
+		expect(code(await fetchTool(deps, { url: "https://a.org/" }, ctx))).toBe(
+			"bad_input",
+		);
+		expect(fetched).toEqual(["https://a.org/"]);
+		const gone = await fetchTool(deps, { url: "https://gone.example/" }, ctx);
+		expect(code(gone)).toBe("io");
+		expect(fetched).toEqual(["https://a.org/"]);
+	});
+
+	it("resolves no address that is written as one", async () => {
+		const { deps, looked } = setup({
+			[`https://${PUBLIC}/`]: { body: ARTICLE },
+		});
+		expect((await fetchTool(deps, { url: `https://${PUBLIC}/` }, ctx)).ok).toBe(
+			true,
+		);
+		expect(looked).toEqual([]);
 	});
 
 	it("returns a denied verdict without fetching", async () => {

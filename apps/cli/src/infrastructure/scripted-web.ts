@@ -49,6 +49,11 @@ const urlOf = (input: Parameters<typeof fetch>[0]): string => {
 const answer = (body: string, type: string) =>
 	new Response(body, { status: 200, headers: { "content-type": type } });
 
+/** A fetch given in place of the network comes without DNS: every name resolves to a documentation address (RFC 5737; ADR-171). */
+export const offlineLookup = async (): Promise<readonly string[]> => [
+	"192.0.2.1",
+];
+
 /**
  * The fetch a scripted app gives its web tools and the MCP client: Tavily's search answers from the
  * script, a listed page with its HTML, and anything else 404 — which leaves the built-in Exa server

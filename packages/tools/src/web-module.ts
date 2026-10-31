@@ -6,12 +6,17 @@ import {
 	type ToolAdapter,
 } from "@mete/contracts";
 import type { MeteModule, ModuleContext } from "@mete/kernel";
-import { fetchTool, type WebDeps } from "./application/web-fetch.js";
+import type { Lookup } from "./application/host-check.js";
+import { type FetchDeps, fetchTool } from "./application/web-fetch.js";
 import { tavilySearch } from "./application/web-search.js";
+import { lookupAll } from "./infrastructure/lookup.js";
 import { policyOf } from "./module.js";
 
 /** What tools-web may be given; tests pass a fake fetch, nothing else reaches the network. */
-export type ToolsWebOptions = { readonly fetch?: typeof fetch };
+export type ToolsWebOptions = {
+	readonly fetch?: typeof fetch;
+	readonly lookup?: Lookup;
+};
 
 const WEB_MANIFEST: ModuleManifest = {
 	id: "tools-web",
@@ -67,10 +72,11 @@ export const createToolsWebModule = (
 ): MeteModule => ({
 	manifest: WEB_MANIFEST,
 	async activate(ctx) {
-		const deps: WebDeps = {
+		const deps: FetchDeps = {
 			adapterId: WEB_MANIFEST.id,
 			policy: policyOf(ctx.capabilities),
 			fetch: opts.fetch ?? fetch,
+			lookup: opts.lookup ?? lookupAll,
 		};
 		provide(ctx, "web.fetch@1", {
 			run: (input, c) => fetchTool(deps, input, c),

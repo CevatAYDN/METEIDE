@@ -14,9 +14,9 @@ import {
 	WEB_FETCH_MAX_REDIRECTS,
 	WEB_FETCH_TIMEOUT_MS,
 } from "../defaults.js";
-import { isPublicHost } from "../domain/addresses.js";
 import { pageMarkdown } from "../infrastructure/page.js";
 import { parse, permit } from "./fs-common.js";
+import { checkHost, type Lookup } from "./host-check.js";
 
 // web.fetch@1 (docs/10, Built-in tools): policy.check@1 with action net.fetch, then the page as
 // Markdown. Every redirect hop must be a public http or https address (SECURITY.md, threats).
@@ -28,19 +28,19 @@ export type WebDeps = {
 	readonly fetch: typeof fetch;
 };
 
+/** web.fetch@1 also resolves each hop's name (ADR-171). */
+export type FetchDeps = WebDeps & { readonly lookup: Lookup };
+
 type Out<T> = Promise<Result<T, ToolError>>;
 type Page = { url: URL; type: string; text: string };
 
 const bad = (message: string): ToolError => ({ code: "bad_input", message });
 const io = (message: string): ToolError => ({ code: "io", message });
 
-const checkHop = (url: URL) => {
-	if (url.protocol !== "http:" && url.protocol !== "https:")
-		return bad(`${url.href} is not an http or https address`);
-	if (!isPublicHost(url.hostname))
-		return bad(`${url.hostname} is not a public address`);
-	return undefined;
-};
+const checkHop = (lookup: Lookup, url: URL) =>
+	url.protocol === "http:" || url.protocol === "https:"
+		? checkHost(lookup, url.hostname)
+		: bad(`${url.href} is not an http or https address`);
 
 // Reads the body up to the byte cap, so a hostile page cannot fill memory.
 const readCapped = async (res: Response): Out<Uint8Array> => {
@@ -80,11 +80,11 @@ const hop = async (deps: WebDeps, url: URL, signal: AbortSignal) => {
 
 // One hop: the page, or where a redirect points next.
 const visit = async (
-	deps: WebDeps,
+	deps: FetchDeps,
 	url: URL,
 	signal: AbortSignal,
 ): Out<Page | URL> => {
-	const refused = checkHop(url);
+	const refused = await checkHop(deps.lookup, url);
 	if (refused) return err(refused);
 	const res = await hop(deps, url, signal);
 	if (!res.ok) return res;
@@ -99,7 +99,7 @@ const visit = async (
 };
 
 const download = async (
-	deps: WebDeps,
+	deps: FetchDeps,
 	start: URL,
 	signal: AbortSignal,
 ): Out<Page> => {
@@ -131,7 +131,7 @@ const toOutput = async (
 
 /** web.fetch@1: one public page as Markdown, cut to WEB_FETCH_MAX_CHARS characters. */
 export const fetchTool = async (
-	deps: WebDeps,
+	deps: FetchDeps,
 	input: unknown,
 	ctx: ToolContext,
 ): Out<WebFetchOutput> => {
