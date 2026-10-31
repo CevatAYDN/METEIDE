@@ -31,11 +31,23 @@ const replace = async (file: string, text: string) => {
 };
 
 /** Adds the command's entry of ADR-158, its pattern or the command collapsed; the file's path, or why it was not written. */
-export const allowCommandForGood = async (
+export const allowCommandForGood = (
 	workspaceDir: string,
 	command: string,
 ): Promise<Result<string, string>> => {
 	const file = join(workspaceDir, ".mete", "policy.yaml");
+	// No access or a file another program holds is an expected failure the user can fix.
+	return addEntry(file, command).catch((e: unknown) =>
+		err(
+			`${file} cannot be read or written: ${e instanceof Error ? e.message : String(e)}`,
+		),
+	);
+};
+
+const addEntry = async (
+	file: string,
+	command: string,
+): Promise<Result<string, string>> => {
 	if (collapse(command) === "")
 		return err("an empty command cannot be allowed");
 	if (command.includes("*"))

@@ -59,6 +59,14 @@ describe("allowCommandForGood", () => {
 		}
 	});
 
+	it("answers why when the file cannot be read, instead of throwing (AGENTS.md rule 4)", async () => {
+		const f = await folder();
+		await mkdir(f.file, { recursive: true }); // a folder where the file should be
+		const r = await allowCommandForGood(f.dir, "npm install");
+		expect(r.ok).toBe(false);
+		expect(r.ok ? "" : r.error).toContain("cannot be read or written");
+	});
+
 	it("refuses an empty command and one holding *, which the list reads as a pattern", async () => {
 		const f = await folder();
 		expect((await allowCommandForGood(f.dir, "  ")).ok).toBe(false);
