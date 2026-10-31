@@ -88,6 +88,23 @@ describe("run report", () => {
 		);
 	});
 
+	it("counts a call that waited for approval on its own line, not as a call or a failure", () => {
+		const asked = ev("agent.tool.completed", {
+			capability: "shell.exec@1",
+			ok: false,
+			durationMs: 1,
+			error: { code: "approval_required" },
+		});
+		const out = reportOf(
+			RUN,
+			"2026-10-28 13:00",
+			factsOf([...done.slice(0, -1), asked, asked, done.at(-1) ?? asked]),
+		);
+		expect(out).toContain(
+			"- Tool calls: fs.write@1 × 2, shell.exec@1\n- Asked for approval: shell.exec@1 × 2\n- Failed calls: shell.exec@1 (timeout)\n",
+		);
+	});
+
 	it("gives a failed single-agent run its code and no summary", () => {
 		const failed = [
 			ev("run.created", { templateId: null, goal: "x".repeat(100) }),

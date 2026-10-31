@@ -15,6 +15,7 @@ export type RunFacts = {
 	summary?: string;
 	readonly models: Set<string>;
 	readonly calls: Map<string, number>;
+	readonly asked: Map<string, number>;
 	readonly failed: Map<string, number>;
 	checkpoints: number;
 	files: readonly string[];
@@ -51,6 +52,9 @@ const TAKE: Take = {
 	"agent.model.changed": (f, e) =>
 		f.models.add(`${e.payload.to.providerId}/${e.payload.to.modelId}`),
 	"agent.tool.completed": (f, e) => {
+		// A call the policy asked about ran nothing: it waited for the user (docs/11, Run reports).
+		if (e.payload.error?.code === "approval_required")
+			return void bump(f.asked, e.payload.capability);
 		bump(f.calls, e.payload.capability);
 		if (!e.payload.ok)
 			bump(
@@ -72,6 +76,7 @@ export const factsOf = (events: readonly MeteEvent[]): RunFacts => {
 	const f: RunFacts = {
 		models: new Set(),
 		calls: new Map(),
+		asked: new Map(),
 		failed: new Map(),
 		checkpoints: 0,
 		files: [],
@@ -103,6 +108,7 @@ export const reportOf = (runId: string, endedAt: string, f: RunFacts) => {
 		`- Models: ${[...f.models].join(", ") || "none"}`,
 		`- Tool calls: ${counted(f.calls)}`,
 	];
+	if (f.asked.size > 0) lines.push(`- Asked for approval: ${counted(f.asked)}`);
 	if (f.failed.size > 0) lines.push(`- Failed calls: ${counted(f.failed)}`);
 	lines.push(
 		`- Checkpoints: ${f.checkpoints}`,
