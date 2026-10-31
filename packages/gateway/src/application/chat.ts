@@ -255,7 +255,12 @@ const nameModel = (st: WalkState, o: Offered, first: Offered | undefined) => {
 	const reason = st.moved ? "failed" : o === first ? "first" : "quota";
 	st.shown = o;
 	st.moved = false;
-	return { type: "model", ...refOf(o), reason } as const;
+	return {
+		type: "model",
+		...refOf(o),
+		family: o.model.family,
+		reason,
+	} as const;
 };
 
 export const keyOf = (o: Offered) => `${o.model.providerId}/${o.model.id}`;

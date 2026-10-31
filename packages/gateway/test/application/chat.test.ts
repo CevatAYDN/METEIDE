@@ -24,7 +24,7 @@ const req: LlmChatRequest = {
 const signal = () => new AbortController().signal;
 
 describe("llm.chat@2 pipeline", () => {
-	it("masks, reserves the chain, streams the first model and settles its usage", async () => {
+	it("masks, reserves the chain, streams the first model with its family and settles its usage", async () => {
 		const a = fakeProvider("a", [[text("hi"), done]]);
 		const q = fakeQuota();
 		const { deps: d } = deps({
@@ -42,7 +42,13 @@ describe("llm.chat@2 pipeline", () => {
 		});
 		const out = await collect(createLlmChat(d).chat(req, signal()));
 		expect(out).toEqual([
-			{ type: "model", providerId: "a", modelId: "big", reason: "first" },
+			{
+				type: "model",
+				providerId: "a",
+				modelId: "big",
+				family: "big",
+				reason: "first",
+			},
 			text("hi"),
 			done,
 		]);
@@ -146,8 +152,20 @@ describe("llm.chat@2 pipeline", () => {
 		});
 		const out = await collect(createLlmChat(d).chat(req, signal()));
 		expect(out.filter((c) => c.type === "model")).toEqual([
-			{ type: "model", providerId: "a", modelId: "m", reason: "first" },
-			{ type: "model", providerId: "b", modelId: "n", reason: "failed" },
+			{
+				type: "model",
+				providerId: "a",
+				modelId: "m",
+				family: "m",
+				reason: "first",
+			},
+			{
+				type: "model",
+				providerId: "b",
+				modelId: "n",
+				family: "n",
+				reason: "failed",
+			},
 		]);
 		expect(a.seen).toHaveLength(3);
 		expect(waits).toEqual([2_000, 8_000]);
@@ -173,6 +191,7 @@ describe("llm.chat@2 pipeline", () => {
 			type: "model",
 			providerId: "b",
 			modelId: "n",
+			family: "n",
 			reason: "quota",
 		});
 	});
@@ -195,8 +214,20 @@ describe("llm.chat@2 pipeline", () => {
 		});
 		const out = await collect(createLlmChat(d).chat(req, signal()));
 		expect(out.filter((c) => c.type === "model")).toEqual([
-			{ type: "model", providerId: "b", modelId: "n", reason: "quota" },
-			{ type: "model", providerId: "a", modelId: "m", reason: "failed" },
+			{
+				type: "model",
+				providerId: "b",
+				modelId: "n",
+				family: "n",
+				reason: "quota",
+			},
+			{
+				type: "model",
+				providerId: "a",
+				modelId: "m",
+				family: "m",
+				reason: "failed",
+			},
 		]);
 	});
 
