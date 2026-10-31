@@ -118,6 +118,35 @@ describe("remove a run (ADR-143)", () => {
 		]);
 	});
 
+	it("removes the worktree of each attempt of a best-of-N task (ADR-162)", async () => {
+		await writeFile(
+			join(templates.builtIn, "duo.yaml"),
+			DUO.replace(
+				"title: Build }",
+				"title: Build, attempts: { n: 2, distinct_families: false, judge_tier: reasoning } }",
+			),
+		);
+		const vcs = recordingVcs();
+		const h = engineHarness({
+			scripts: [reply("built"), reply("built again")],
+			tools: [["vcs.git@2", vcs.run]],
+			templates,
+		});
+		const runId = await ended(h, "duo");
+		const made = vcs.calls
+			.filter((c) => c.op === "worktree.create")
+			.map((c) => c.taskId);
+		vcs.calls.length = 0;
+
+		expect(await h.engine.remove?.(runId)).toEqual(ok(undefined));
+
+		const removed = vcs.calls
+			.filter((c) => c.op === "worktree.remove")
+			.map((c) => c.taskId);
+		expect(made).toHaveLength(2);
+		expect(removed).toEqual(made);
+	});
+
 	it("keeps the run when git refuses, so it can be removed again", async () => {
 		const vcs = recordingVcs("checkpoint.prune");
 		const h = engineHarness({

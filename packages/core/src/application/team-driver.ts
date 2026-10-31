@@ -1,4 +1,6 @@
+import type { ChatMessage } from "@mete/contracts";
 import { REVIEW_REPAIRS } from "../defaults.js";
+import { attempting, withOpening } from "../domain/attempts.js";
 import { openTask } from "../domain/clarify.js";
 import { checkReport, repairMessage } from "../domain/guardrail.js";
 import {
@@ -19,15 +21,10 @@ import {
 	type TaskChange,
 	type TeamState,
 	withArtifact,
-	withoutWorktree,
 } from "../domain/team.js";
-import {
-	guardrailOf,
-	isWriter,
-	titleOf,
-	verifyOf,
-} from "../domain/team-run.js";
+import { guardrailOf, titleOf, verifyOf } from "../domain/team-run.js";
 import { announce, saveArtifact } from "./artifacts.js";
+import { afterAttempt, dropLeftBehind } from "./attempts.js";
 import { lessonTurn } from "./lesson.js";
 import { readNotes } from "./notes.js";
 import {
@@ -40,15 +37,9 @@ import {
 	toolContext,
 } from "./run-state.js";
 import { afterApproval } from "./spawned.js";
-import {
-	createCheckpoint,
-	dropWorktree,
-	humanRequest,
-	landWorktree,
-	runWorktreeSetup,
-	startWorktree,
-} from "./vcs-steps.js";
+import { humanRequest } from "./vcs-steps.js";
 import { verifyGates } from "./verify.js";
+import { merge, worktreeOf } from "./worktrees.js";
 
 // A team run between attempts (docs/08, Task execution sequence): start the next ready task,
 // accept a submission, let an approver role review it, wait for the human, or complete once
@@ -65,16 +56,21 @@ const changed = (
 		emit(s, l, { type: "task.status.changed", payload: change }, taskId);
 };
 
-// Ends the attempt: its conversation (and Artifact) is kept and the task moves on.
+// Ends the attempt: its conversation (and Artifact) is kept and the task moves on. A best-of-N task
+// keeps the conversation of the attempt that goes on, which may be an earlier one (ADR-162).
 const endAttempt = (
 	s: EngineState,
 	l: Live,
 	event: TaskEvent,
-	artifact?: ArtifactMeta,
+	end: {
+		readonly artifact?: ArtifactMeta | undefined;
+		readonly messages?: readonly ChatMessage[];
+	} = {},
 ) => {
 	const { team, task, messages } = l.snapshot.context;
 	if (!team || !task) return stuck(s, l);
-	const kept = keepMessages(team, task, messages);
+	const { artifact } = end;
+	const kept = keepMessages(team, task, end.messages ?? messages);
 	const r = applyTask(
 		artifact ? withArtifact(kept, task, artifact) : kept,
 		task,
@@ -129,15 +125,7 @@ export const submit = async (s: EngineState, l: Live, reply: string) => {
 	if (!(await verified(s, l, team, task))) return;
 	const guard = guardrailOf(team, task);
 	const checked = checkSpawns(team, task, checkReport(guard?.schema, reply));
-	if (checked.ok) {
-		const report = checked.report;
-		const artifact = await saveArtifact(s, l, {
-			report,
-			json: guard !== undefined,
-		});
-		if (artifact === false) return; // the write failed the run
-		return endAttempt(s, l, { type: "SUBMIT", report }, artifact);
-	}
+	if (checked.ok) return passed(s, l, checked.report);
 	if (guard && (team.tasks[task]?.repairs ?? 0) < guard.max_retries) {
 		const content = repairMessage(guard.schema, checked.issues);
 		return apply(s, l, {
@@ -146,11 +134,53 @@ export const submit = async (s: EngineState, l: Live, reply: string) => {
 			content,
 		});
 	}
-	return endAttempt(s, l, { type: "BLOCK", reason: "guardrail" });
+	return spent(s, l);
+};
+
+const bestOfN = (l: Live) => {
+	const { team, task } = l.snapshot.context;
+	return team !== undefined && task !== undefined && attempting(team, task);
+};
+
+// The report passed its checks: a best-of-N task's attempt is over (ADR-162), any other task submits.
+const passed = (s: EngineState, l: Live, report: string) =>
+	bestOfN(l) ? attempted(s, l, report) : land(s, l, { report });
+
+// The repairs ran out: a best-of-N task's attempt is spent (ADR-162), any other task is blocked.
+const spent = (s: EngineState, l: Live) =>
+	bestOfN(l)
+		? attempted(s, l)
+		: endAttempt(s, l, { type: "BLOCK", reason: "guardrail" });
+
+// Submits a report that passed its checks, kept as the task's artifact.
+const land = async (
+	s: EngineState,
+	l: Live,
+	sent: { readonly report: string; readonly messages?: readonly ChatMessage[] },
+) => {
+	const { team, task } = l.snapshot.context;
+	const json = team && task ? guardrailOf(team, task) !== undefined : false;
+	const artifact = await saveArtifact(s, l, { report: sent.report, json });
+	if (artifact === false) return; // the write failed the run
+	const end = {
+		artifact,
+		...(sent.messages ? { messages: sent.messages } : {}),
+	};
+	endAttempt(s, l, { type: "SUBMIT", report: sent.report }, end);
+};
+
+// A best-of-N task's attempt is checked (ADR-162): the next one starts, or the one that goes on is
+// submitted, or the last is blocked with its problems; the others' worktrees go after the record.
+const attempted = async (s: EngineState, l: Live, report?: string) => {
+	const then = afterAttempt(s, l, report);
+	if (then.kind === "next") return;
+	if (then.kind === "submit") await land(s, l, then);
+	else endAttempt(s, l, { type: "BLOCK", reason: "guardrail" }, then);
+	await dropLeftBehind(s, l);
 };
 
 // A task already in progress (after a block was resolved) keeps its agent and goes on; a starting
-// one opens with the lessons its title finds (ADR-151).
+// one, or a best-of-N task's next attempt, opens with the lessons its title finds (ADR-151).
 const open = (
 	s: EngineState,
 	l: Live,
@@ -161,7 +191,15 @@ const open = (
 	if (!where) return false;
 	const run = { ...l.snapshot.context, notes: task.notes };
 	const opened = openTask(team, task.id, run, where);
-	return apply(s, l, { type: "SWITCH", task: task.id, ...opened });
+	// The human's answers end the questions; every later attempt opens with them (ADR-162).
+	const ended =
+		team.tasks[task.id]?.context.clarify === "asked" &&
+		!opened.team.tasks[task.id]?.context.clarify;
+	const next = ended
+		? withOpening(opened.team, task.id, opened.messages)
+		: opened.team;
+	const { messages } = opened;
+	return apply(s, l, { type: "SWITCH", task: task.id, team: next, messages });
 };
 
 // A pair reviewer or an approver role reviews in a conversation of its own, with its own agent
@@ -244,37 +282,6 @@ export const verdict = (s: EngineState, l: Live, reply: string) => {
 	after.announce();
 };
 
-// A writing task works in a worktree of its own (docs/08, Parallel work and merging), started the
-// first time and kept through revisions and blocks.
-const worktreeOf = async (
-	s: EngineState,
-	l: Live,
-	team: TeamState,
-	target: { readonly id: string; readonly agentId: string },
-) => {
-	const entry = team.tasks[target.id];
-	if (!entry || !isWriter(team, target.id)) return undefined;
-	if (entry.context.worktree) return entry.context.worktree;
-	const ids = { runId: l.meta.id, taskId: entry.id };
-	const tree = await startWorktree(s.deps, ids, l.all.signal);
-	if (!tree || l.snapshot.value !== "running") return tree;
-	const res = await runWorktreeSetup(
-		s.deps,
-		{
-			worktree: tree,
-			runId: l.meta.id,
-			taskId: entry.id,
-			agentId: target.agentId,
-		},
-		l.all.signal,
-		(body) => emit(s, l, body, entry.id),
-	);
-	if (l.snapshot.value !== "running") return tree;
-	if (res === "approval")
-		apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
-	return tree;
-};
-
 const start = async (s: EngineState, l: Live, team: TeamState, id: string) => {
 	const agentId = team.tasks[id]?.context.agentId ?? s.deps.newId();
 	const worktree = await worktreeOf(s, l, team, { id, agentId });
@@ -282,55 +289,19 @@ const start = async (s: EngineState, l: Live, team: TeamState, id: string) => {
 	const notes = await readNotes(s.deps, ctx, titleOf(team, id));
 	// Paused or cancelled while git worked: the next start finds the worktree it made.
 	if (l.snapshot.value !== "running") return;
+	// A best-of-N task's next attempt stays in progress (ADR-162).
+	const next = team.tasks[id]?.status === "in_progress";
 	const event = {
-		type: "START",
+		type: next ? "ATTEMPT" : "START",
 		agentId,
 		...(worktree ? { worktree } : {}),
 	} as const;
 	const r = applyTask(team, id, event);
-	if (!r.change) return stuck(s, l);
+	if (r.team === team) return stuck(s, l);
 	if (!open(s, l, r.team, { id, notes })) return;
 	const taskId = team.tasks[id]?.id;
 	emit(s, l, { type: "task.assigned", payload: { agentId } }, taskId);
 	changed(s, l, taskId, r.change);
-};
-
-// An approved task's worktree lands in the workspace before the next task starts (so that one begins
-// from the merged result) and before the run completes. A merge that did not happen (a conflict, or
-// the user's own edits in the way) pauses the run for the human with the branch named; the worktree
-// and branch stay, and approving the task tries the merge again. The core's checkpoint before it
-// records the workspace, not the worktree.
-const merge = async (s: EngineState, l: Live, team: TeamState, id: string) => {
-	const entry = team.tasks[id];
-	if (!entry) return stuck(s, l);
-	const runId = l.meta.id;
-	const cp = await createCheckpoint(s.deps, { runId, signal: l.all.signal });
-	if (l.snapshot.value !== "running") return;
-	if (!cp.ok)
-		return apply(s, l, {
-			type: "FAIL",
-			at: s.deps.now(),
-			code: "checkpoint_failed",
-			message: cp.error,
-		});
-	if (cp.value)
-		emit(s, l, {
-			type: "checkpoint.created",
-			payload: { kind: "git", ref: cp.value },
-		});
-	const ids = { runId, taskId: entry.id, message: titleOf(team, id) };
-	const landed = await landWorktree(s.deps, ids, l.all.signal);
-	if (l.snapshot.value !== "running") return;
-	if (landed.kind === "landed") {
-		// The record first, the cleanup after.
-		apply(s, l, { type: "TEAM", team: withoutWorktree(team, id) });
-		return dropWorktree(s.deps, { runId, taskId: entry.id }, l.all.signal);
-	}
-	const { code, message, paths } = landed;
-	const branch = `mete/${runId}/${entry.id}`;
-	const payload = { code, message, branch, ...(paths ? { paths } : {}) };
-	emit(s, l, { type: "task.merge.failed", payload }, entry.id);
-	apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
 };
 
 const accept = (s: EngineState, l: Live, team: TeamState, id: string) => {

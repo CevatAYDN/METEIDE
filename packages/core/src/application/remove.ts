@@ -6,6 +6,7 @@ import {
 	type VcsGitAdapter,
 	type VcsGitInput,
 } from "@mete/contracts";
+import { attemptIds } from "../domain/attempts.js";
 import { type EngineState, iso, peek } from "./run-state.js";
 
 // team.engine@2 `remove` (ADR-143): an ended run goes with what it left. Git goes first and the
@@ -24,14 +25,17 @@ const GIT_TIMEOUT_MS = 120_000;
 const removals = (s: EngineState, runId: string): VcsGitInput[] => {
 	const snapshot = peek(s, runId);
 	const tasks = snapshot.ok ? snapshot.value.context.team?.tasks : undefined;
-	// A worktree is named by the task's id, not by its key, the template's task id.
+	// A worktree is named by the task's id, not by its key, the template's task id, or by the id of
+	// a best-of-N task's attempt (ADR-162).
 	return [
-		...Object.values(tasks ?? {}).map((t) => ({
-			op: "worktree.remove" as const,
-			runId,
-			taskId: t.id,
-			force: true,
-		})),
+		...Object.values(tasks ?? {}).flatMap((t) =>
+			attemptIds(t).map((taskId) => ({
+				op: "worktree.remove" as const,
+				runId,
+				taskId,
+				force: true,
+			})),
+		),
 		{ op: "checkpoint.prune", runId },
 	];
 };

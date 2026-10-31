@@ -1,3 +1,4 @@
+import { withOpening } from "../domain/attempts.js";
 import {
 	answerConversation,
 	answerLine,
@@ -59,12 +60,17 @@ export const asked = (s: EngineState, l: Live, reply: string) => {
 	if (!at) return stuck(s, l);
 	const { team, task, entry, by } = at;
 	const question = reply.trim();
-	if (noQuestions(question))
+	if (noQuestions(question)) {
+		// Every later attempt of a best-of-N task opens as the work did (ADR-162).
+		const go = { role: "user" as const, content: GO_ON };
+		const opening = [...l.snapshot.context.messages, go];
+		const done = withClarify(team, task, undefined);
 		return apply(s, l, {
 			type: "REPAIR",
-			team: withClarify(team, task, undefined),
+			team: withOpening(done, task, opening),
 			content: GO_ON,
 		});
+	}
 	const body = { toRoleId: by, question };
 	emit(s, l, { type: "task.clarification.requested", payload: body }, entry.id);
 	const { messages, goal } = l.snapshot.context;
@@ -100,10 +106,12 @@ export const answered = (s: EngineState, l: Live, reply: string) => {
 		role: "user" as const,
 		content: answerLine(team, by, answer),
 	};
+	const messages = [...entry.messages, heard];
+	const done = withClarify(team, task, undefined);
 	apply(s, l, {
 		type: "SWITCH",
 		task,
-		team: withClarify(team, task, undefined),
-		messages: [...entry.messages, heard],
+		team: withOpening(done, task, messages),
+		messages,
 	});
 };

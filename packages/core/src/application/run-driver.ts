@@ -1,4 +1,5 @@
 import type { LlmChunk } from "@mete/contracts";
+import { attemptOf } from "../domain/attempts.js";
 import { foldable, toSummarize } from "../domain/compact.js";
 import { type NextStep, nextStep } from "../domain/next-step.js";
 import { afterModelError } from "../domain/run-events.js";
@@ -35,16 +36,13 @@ const onModel = (s: EngineState, l: Live, c: ModelChunk) => {
 	const id = agent?.id ?? agentId ?? s.deps.newId();
 	const next = { id, ...(taskId ? { roleId } : {}), ...to };
 	if (!apply(s, l, { type: "MODEL", agent: next })) return; // a done run
-	if (!agent)
-		return emit(
-			s,
-			l,
-			{
-				type: "agent.created",
-				payload: { roleId, ...to, tier: activeSeat(l.snapshot.context).tier },
-			},
-			taskId,
-		);
+	if (!agent) {
+		const { tier } = activeSeat(l.snapshot.context);
+		// The attempt of a best-of-N task this agent works (ADR-162).
+		const attempt = attemptOf(l.snapshot.context);
+		const payload = { roleId, ...to, tier, ...(attempt ? { attempt } : {}) };
+		return emit(s, l, { type: "agent.created", payload }, taskId);
+	}
 	const from = { providerId: agent.providerId, modelId: agent.modelId };
 	// A user's preference is the reason only when this call used it (ADR-122); a chain that fell
 	// past it keeps the gateway's own reason, and a workspace pin (ADR-077) is no user choice here.
@@ -214,7 +212,9 @@ const finish = async (s: EngineState, l: Live, reply: string) => {
 // A team run whose active task is not in progress or in review moves between tasks first.
 const step = async (s: EngineState, l: Live, token: object) => {
 	const c = l.snapshot.context;
-	const working = c.task && c.team?.tasks[c.task]?.status === "in_progress";
+	// A best-of-N task between attempts is in progress with no agent yet (ADR-162).
+	const entry = c.task ? c.team?.tasks[c.task] : undefined;
+	const working = entry?.status === "in_progress" && entry.context.agentId;
 	if (c.team && !c.review && !working) return teamTurn(s, l, c.team);
 	const at = s.deps.now();
 	const next = nextStep(c, l.meta.budget, at);

@@ -8,6 +8,7 @@ import {
 } from "@mete/contracts";
 import { transition } from "xstate";
 import { z } from "zod";
+import { AttemptsSchema } from "./attempts-schema.js";
 import { type TaskEvent, taskMachine } from "./task-machine.js";
 
 // A team run's tasks (docs/08, Task execution sequence) as plain data inside the run snapshot,
@@ -60,6 +61,8 @@ const TaskEntrySchema = z.strictObject({
 			createdAt: z.string().min(1),
 		})
 		.optional(),
+	/** A best-of-N task's finished attempts and the live one's id (ADR-162). */
+	attempts: AttemptsSchema.optional(),
 });
 
 /** A team run's state as the run snapshot keeps it; checked on load like the rest. */
@@ -192,7 +195,7 @@ export const applyTask = (
 		status: next.value,
 		context: next.context,
 		approvals: fresh ? [] : entry.approvals,
-		repairs: ["START", "SUBMIT", "UNBLOCK"].includes(event.type)
+		repairs: ["START", "ATTEMPT", "SUBMIT", "UNBLOCK"].includes(event.type)
 			? 0
 			: entry.repairs,
 	};
@@ -339,7 +342,9 @@ export const nextTeamStep = (team: TeamState): TeamStep => {
 	const learning = ids.find((id) => owesLesson(team, id));
 	if (learning) return { kind: "lesson", taskId: learning };
 	const working = ids.find((id) => statusOf(team, id) === "in_progress");
-	if (working) return { kind: "work", taskId: working };
+	// A best-of-N task's next attempt has no agent yet (ADR-162): it starts like a task.
+	const fresh = !team.tasks[working ?? ""]?.context.agentId;
+	if (working) return { kind: fresh ? "start" : "work", taskId: working };
 	const reviewed = review(team, ids);
 	if (reviewed) return reviewed;
 	const start = ids.find((id) => ready(team, id));

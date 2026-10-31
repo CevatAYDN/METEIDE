@@ -32,6 +32,8 @@ export type TaskContext = {
 /** What happens to a task. */
 export type TaskEvent =
 	| { type: "START"; agentId: string; worktree?: string }
+	/** The next attempt of a best-of-N task, which stays in progress (ADR-162). */
+	| { type: "ATTEMPT"; agentId: string; worktree?: string }
 	| { type: "SUBMIT"; report: string }
 	| { type: "BLOCK"; reason: Exclude<BlockReason, "revision_limit"> }
 	| { type: "APPROVE" }
@@ -72,6 +74,12 @@ export const taskMachine = setup({
 		},
 		in_progress: {
 			on: {
+				ATTEMPT: {
+					actions: assign(({ event }) => ({
+						agentId: event.agentId,
+						worktree: event.worktree,
+					})),
+				},
 				SUBMIT: {
 					target: "submitted",
 					actions: assign({ report: ({ event }) => event.report }),
