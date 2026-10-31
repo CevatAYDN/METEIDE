@@ -156,6 +156,58 @@ test.describe("a run blocked by its guardrail", () => {
 	});
 });
 
+// Two attempts that both pass the guardrail, so a judge chooses between them (ADR-162).
+const BEST = `apiVersion: mete/v1
+kind: TeamTemplate
+metadata: { id: best, name: Best, version: 1.0.0, description: "One report, tried twice" }
+pattern: single
+roles:
+  - { id: writer, name: Writer, goal: Write a short report, tier: fast, capabilities: [] }
+tasks:
+  - id: report
+    role: writer
+    title: Write the report
+    guardrail: { schema: research-report@1, max_retries: 0 }
+    attempts: { n: 2, distinct_families: false, judge_tier: fast }
+`;
+
+test.describe("a best-of-N task", () => {
+	test.use({
+		files: { ".mete/teams/best.yaml": BEST },
+		script: {
+			turns: [
+				say(REPORT),
+				say(REPORT),
+				say(
+					'Both cite one source.\n```json\n{"attempt": 2, "reason": "It names its source."}\n```',
+				),
+			],
+		},
+	});
+
+	test("tries the work twice and goes on with the judge's choice", async ({
+		mete,
+	}) => {
+		const { page } = mete;
+		await startRun(page, { goal: GOAL, team: /best/i });
+		await expect(
+			page.getByText("takes “Write the report”, attempt 2 of 2"),
+		).toBeVisible({ timeout: 90_000 });
+		await expect(
+			page.getByText(
+				"goes on with attempt 2 of 2 of “Write the report”, chosen by the judge",
+			),
+		).toBeVisible({ timeout: 60_000 });
+		// The judge's reason is the row's quote.
+		await expect(
+			page.getByText("It names its source.", { exact: true }),
+		).toBeVisible();
+		await expect(
+			page.locator('section[aria-label="Runs"]').getByText("Done"),
+		).toBeVisible({ timeout: 60_000 });
+	});
+});
+
 // The workspace-reading flow: a single agent reads a file and greps the folder, so a packaged run
 // proves the daemon, its SQLite database and the ripgrep the tools carry all work from the package
 // (ADR-124).
