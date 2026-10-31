@@ -28,8 +28,11 @@ const runLine = (e: MeteEvent): string | undefined => {
 
 const agentLine = (e: MeteEvent): string | undefined => {
 	switch (e.type) {
-		case "agent.created":
-			return `model ${model(e.payload)}`;
+		case "agent.created": {
+			// The attempt of a best-of-N task this agent works (ADR-162).
+			const a = e.payload.attempt;
+			return `model ${model(e.payload)}${a ? ` (attempt ${a.k} of ${a.n})` : ""}`;
+		}
 		case "agent.model.changed":
 			return `model ${model(e.payload.from)} -> ${model(e.payload.to)} (${e.payload.reason})`;
 		case "agent.tool.called":
@@ -86,6 +89,13 @@ const teamLine = (e: MeteEvent, title: string): string | undefined => {
 			return `task  ${e.payload.title} (${e.payload.roleId})`;
 		case "task.status.changed":
 			return `task  ${title}: ${e.payload.to}`;
+		// Which attempt of a best-of-N task goes on, and who chose it (ADR-162).
+		case "task.attempt.chosen": {
+			const { attempt, of, by, reason } = e.payload;
+			const who = by === "judge" ? "the judge" : "its checks";
+			const why = reason ? ` (${reason})` : "";
+			return `task  ${title}: attempt ${attempt} of ${of} goes on, chosen by ${who}${why}`;
+		}
 		case "task.merge.failed":
 			return `task  ${title}: merge failed (${e.payload.message}); the branch ${e.payload.branch} and its worktree are kept, so fix the cause and approve the task to merge again`;
 		case "approval.requested":

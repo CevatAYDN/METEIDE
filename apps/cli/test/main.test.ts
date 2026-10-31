@@ -275,6 +275,31 @@ describe("output lines", () => {
 		).toBe("editor reviewed, no changes: Write");
 	});
 
+	it("shows a best-of-N task's attempt beside its model and which attempt goes on, and who chose it (ADR-162)", () => {
+		const title = () => "Write";
+		const ref = { roleId: "dev", providerId: "p", modelId: "m", tier: "coder" };
+		expect(eventLine(event("agent.created", ref))).toBe("model p/m");
+		expect(
+			eventLine(event("agent.created", { ...ref, attempt: { k: 2, n: 3 } })),
+		).toBe("model p/m (attempt 2 of 3)");
+		const chosen = (by: string, reason?: string) =>
+			eventLine(
+				event("task.attempt.chosen", {
+					attempt: 2,
+					of: 3,
+					by,
+					...(reason ? { reason } : {}),
+				}),
+				title,
+			);
+		expect(chosen("checks")).toBe(
+			"task  Write: attempt 2 of 3 goes on, chosen by its checks",
+		);
+		expect(chosen("judge", "cites every claim")).toBe(
+			"task  Write: attempt 2 of 3 goes on, chosen by the judge (cites every claim)",
+		);
+	});
+
 	it("shows the questions a task asks before its work, one per line, and a role's answer (ADR-142)", () => {
 		const title = () => "Write";
 		expect(
