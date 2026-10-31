@@ -517,6 +517,7 @@
 			"asksReview": "{0}, {1} rolünden inceleme istiyor.",
 			"asksYou": "{0} senin onayını bekliyor.",
 			"assigned": "{0} bir ajana veriliyor.",
+			"attempt": "{0} · deneme {1}/{2}",
 			"blocked": "{0} engellendi.",
 			"cardClose": "Kapat",
 			"cardHint": "Ne yaptığını görmek için bir karaktere ya da adına tıkla",

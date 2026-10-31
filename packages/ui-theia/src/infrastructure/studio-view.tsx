@@ -23,6 +23,7 @@ import {
 	type CardPlace,
 	StudioCard,
 } from "../application/studio-card.js";
+import { attemptName } from "../application/studio-text.js";
 
 // The Studio view of the Team panel (docs/13; ADR-052, ADR-070): the room of @mete/ui-studio on a
 // canvas, in the demo's own colours. The canvas follows its box's width (Theia's panels resize
@@ -44,6 +45,7 @@ const labels = (): StageLabels => ({
 				minute: "2-digit",
 			}),
 		),
+	attempt: attemptName,
 });
 
 // The box's width, kept up to date while the panel resizes.

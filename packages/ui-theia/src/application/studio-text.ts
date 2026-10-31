@@ -9,6 +9,10 @@ import { nls } from "@theia/core/lib/common/nls";
 const taskOf = (view: TeamView, e: MeteEvent) =>
 	view.tasks.find((t) => t.id === e.taskId)?.title ?? "";
 
+/** The words for the agent of an attempt of a best-of-N task, on the canvas and beside it (ADR-162). */
+export const attemptName = (roleId: string, k: number, n: number) =>
+	nls.localize("mete/studio/attempt", "{0} · attempt {1}/{2}", roleId, k, n);
+
 // An agent's first thinking.started carries no agent id (the core creates the agent inside that
 // turn), so the agent of the event's task stands in; a single agent has no task on either side.
 const roleOf = (view: TeamView, e: MeteEvent) =>

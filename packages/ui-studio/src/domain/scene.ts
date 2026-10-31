@@ -21,6 +21,8 @@ export type Character = {
 	readonly tool?: string;
 	/** When the quota it waits for opens again, while waiting. */
 	readonly resetsAt?: string;
+	/** The attempt of a best-of-N task its agent works, so two desks of one role differ (ADR-162). */
+	readonly attempt?: { readonly k: number; readonly n: number };
 };
 
 /** A task note on the wall board. */
@@ -40,7 +42,12 @@ export type Scene = {
 };
 
 const characterOf = (view: TeamView, a: AgentCard, count = 1): Character => {
-	const base = { id: count > 1 ? a.roleId : a.id, roleId: a.roleId, count };
+	const base = {
+		id: count > 1 ? a.roleId : a.id,
+		roleId: a.roleId,
+		count,
+		...(count === 1 && a.attempt ? { attempt: a.attempt } : {}),
+	};
 	const resetsAt = view.signals.exhausted[a.providerId];
 	if (view.signals.pausedFor === "quota" && resetsAt)
 		return { ...base, state: "waiting", resetsAt };

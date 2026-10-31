@@ -92,6 +92,21 @@ describe("the studio room", () => {
 		]);
 	});
 
+	it("gives an agent its attempt of a best-of-N task, but not a role's group (ADR-162)", () => {
+		const attempt = { k: 2, n: 2 };
+		const two = sceneOf(
+			view([agent("a", "dev"), agent("b", "dev", { attempt })]),
+		);
+		expect(two.rows[0]).toEqual([
+			{ id: "a", roleId: "dev", count: 1, state: "idle" },
+			{ id: "b", roleId: "dev", count: 1, state: "idle", attempt },
+		]);
+		const many = Array.from({ length: 13 }, (_, i) =>
+			agent(`d${i}`, "dev", { attempt }),
+		);
+		expect(sceneOf(view(many)).rows[0]?.[0]).not.toHaveProperty("attempt");
+	});
+
 	it("puts the task notes on the board by column", () => {
 		const s = sceneOf(
 			view([], {}, [

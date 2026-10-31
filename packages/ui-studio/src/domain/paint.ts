@@ -20,7 +20,7 @@ import {
 	type RoomLabels,
 	roomShell,
 } from "./room.js";
-import type { Scene } from "./scene.js";
+import type { Character, Scene } from "./scene.js";
 import { offlineScreen, screenOf, sleepDot } from "./screen.js";
 import { seedOf } from "./seed.js";
 
@@ -33,7 +33,18 @@ import { seedOf } from "./seed.js";
 export type StageLabels = RoomLabels & {
 	/** The countdown under a waiting character, from its quota's reset time. */
 	readonly until: (resetsAt: string) => string;
+	/** The name of a character that works an attempt of a best-of-N task (ADR-162). */
+	readonly attempt: (roleId: string, k: number, n: number) => string;
 };
+
+/** A character's name over its head and in the lists beside the room: its role, and its attempt if any. */
+export const nameOf = (
+	ch: Pick<Character, "roleId" | "attempt">,
+	labels: Pick<StageLabels, "attempt">,
+): string =>
+	ch.attempt
+		? labels.attempt(ch.roleId, ch.attempt.k, ch.attempt.n)
+		: ch.roleId;
 
 const seated = (scene: Scene, l: Layout): Primitive[] =>
 	l.desks.flatMap((d) => {
@@ -61,6 +72,7 @@ const overlay = (scene: Scene, l: Layout, labels: StageLabels): Primitive[] =>
 			ch,
 			head,
 			ch.resetsAt ? labels.until(ch.resetsAt) : undefined,
+			nameOf(ch, labels),
 		);
 	});
 

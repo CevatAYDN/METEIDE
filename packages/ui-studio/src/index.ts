@@ -22,6 +22,7 @@ export {
 } from "./domain/layout.js";
 export {
 	EFFECT_COLOURS,
+	nameOf,
 	paintScene,
 	type StageLabels,
 } from "./domain/paint.js";

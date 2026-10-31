@@ -23,6 +23,8 @@ const labels = {
 	coffee: "Coffee",
 	vault: "Vault",
 	until: (at: string) => `until ${at.slice(11, 16)}`,
+	attempt: (role: string, k: number, n: number) =>
+		`${role} · attempt ${k}/${n}`,
 };
 // Everything the room draws at a moment: the still layer, then the moving one above it.
 const AT = { now: NOON, t: 0 };
@@ -137,6 +139,25 @@ describe("the room's primitives", () => {
 		expect(words(p)).toEqual(
 			expect.arrayContaining(["idle", "fs.read@1", "4", "crowd"]),
 		);
+	});
+
+	it("names each attempt of a best-of-N task in the user's words, so its two desks differ (ADR-162)", () => {
+		const s = scene([
+			[
+				ch("a1", "idle", { roleId: "writer", attempt: { k: 1, n: 2 } }),
+				ch("a2", "thinking", { roleId: "writer", attempt: { k: 2, n: 2 } }),
+				ch("judge", "idle"),
+			],
+		]);
+		const named = words(paint(s));
+		expect(named).toEqual(
+			expect.arrayContaining([
+				"writer · attempt 1/2",
+				"writer · attempt 2/2",
+				"judge",
+			]),
+		);
+		expect(named).not.toContain("writer");
 	});
 
 	it("wakes a monitor only while its character works, with the picture of its tool", () => {

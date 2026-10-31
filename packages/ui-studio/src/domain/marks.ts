@@ -88,13 +88,14 @@ export const marksMotion = (ch: Character, head: Point, t: number): Shape[] => {
 	return [];
 };
 
-/** The marks over a character at `head`; `until` is the countdown text of a character that waits. */
+/** The marks over a character at `head`; `until` is the countdown text of a character that waits, `name` its words. */
 export const marksOf = (
 	ch: Character,
 	head: Point,
 	until?: string,
+	name = ch.roleId,
 ): Primitive[] => [
-	pill(head, -41, ch.roleId),
+	pill(head, -41, name),
 	...(ch.count > 1
 		? [
 				{

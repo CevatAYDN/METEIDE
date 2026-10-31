@@ -517,6 +517,7 @@
 			"asksReview": "{0} asks {1} for a review.",
 			"asksYou": "{0} waits for your approval.",
 			"assigned": "{0} goes to an agent.",
+			"attempt": "{0} · attempt {1}/{2}",
 			"blocked": "{0} is blocked.",
 			"cardClose": "Close",
 			"cardHint": "Click a character or its name to see what it is doing",
