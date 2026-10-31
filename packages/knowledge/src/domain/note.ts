@@ -30,6 +30,13 @@ export const slugOf = (title: string) => {
 	return DEVICE.test(slug) ? `${slug}-note` : slug;
 };
 
+/** A version's name in .history/: its ISO time without ':' or '.', which Windows file names refuse (ADR-173). */
+export const stampOf = (iso: string) => iso.replace(/[:.]/g, "-");
+
+/** Where .history/ keeps a version of a note, by the note's path in the vault (ADR-173). */
+export const versionPath = (path: string, stamp: string) =>
+	`${VAULT}/.history/${path}/${stamp}.md`;
+
 /** A .md path inside the vault, as the model gave it; undefined when it leaves the vault or enters .history/. */
 export const notePath = (path: string) => {
 	const p = posix.normalize(path.replaceAll("\\", "/"));

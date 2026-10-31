@@ -17,7 +17,14 @@ import type { CapabilityRegistry } from "@mete/kernel";
 import type { z } from "zod";
 import { NEW_NOTES_PER_RUN } from "../defaults.js";
 import { dayOf, journalText } from "../domain/journal-text.js";
-import { FOLDERS, notePath, slugOf, VAULT } from "../domain/note.js";
+import {
+	FOLDERS,
+	notePath,
+	slugOf,
+	stampOf,
+	VAULT,
+	versionPath,
+} from "../domain/note.js";
 import { noteText, splitNote } from "../infrastructure/frontmatter.js";
 
 // vault.read@1 and vault.write@1 (docs/11, Vaults; ADR-145). Notes go through fs.read@1 and
@@ -180,16 +187,15 @@ const updated = (
 };
 
 // docs/11 (ADR-173): an agent's update is an automated rewrite, so the note's text goes to
-// .history/ first; the stamp has no ':' or '.', which Windows file names refuse.
+// .history/ first.
 const keepVersion = (
 	deps: VaultDeps,
 	ctx: ToolContext,
 	path: string,
 	was: string,
 ) => {
-	const stamp = deps.now().replace(/[:.]/g, "-");
-	const inVault = path.slice(VAULT.length + 1);
-	return writeText(deps, ctx, `${VAULT}/.history/${inVault}/${stamp}.md`, was);
+	const at = versionPath(path.slice(VAULT.length + 1), stampOf(deps.now()));
+	return writeText(deps, ctx, at, was);
 };
 
 const saveNote = async (
