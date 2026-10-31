@@ -912,6 +912,21 @@ describe("single-agent engine", () => {
 		await h.stop();
 	});
 
+	it("marks a row whose snapshot names a state the machine does not have failed on recovery", async () => {
+		const h = engineHarness({ scripts: [slow] });
+		const runId = await begin(h);
+		await vi.waitFor(() => expect(h.requests).toHaveLength(1));
+		h.db
+			.prepare(
+				"UPDATE runs SET snapshot = json_set(snapshot, '$.value', 'nope')",
+			)
+			.run();
+		const later = engineHarness({ scripts: [slow], db: h.db });
+		later.recover();
+		expect(view(later, runId)?.status).toBe("failed");
+		await h.stop();
+	});
+
 	it("leaves a run it cannot load for a database error as it was on recovery, and answers failed, not not_found", async () => {
 		const crashed = engineHarness({ scripts: [slow] });
 		const lost = await begin(crashed);
