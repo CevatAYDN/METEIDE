@@ -1,15 +1,9 @@
-import {
-	CHARS_PER_TOKEN,
-	type ChatMessage,
-	TIER_MIN_CONTEXT,
-	type Tier,
-} from "@mete/contracts";
+import { CHARS_PER_TOKEN, type ChatMessage } from "@mete/contracts";
 import { SUMMARY_AT, SUMMARY_KEEP_TURNS } from "../defaults.js";
 
 // Context compaction of docs/08 (Agent context assembly): at 70% of the window, older turns
-// become one summary. The window is the tier's minimum (docs/09, Model tiers), because the
-// gateway may pick another model of the tier at any call and never one with a smaller window.
-// Pure.
+// become one summary. The window is that of the model the agent's last call ran on, else the
+// tier's minimum; the gateway sends a call only to a model whose window holds it (ADR-169). Pure.
 
 // A reply's tool calls go to the model again on every turn, so their arguments weigh as much as text
 // (a large fs_write body is mostly arguments). shortcut: image parts count nothing, the docs name no weight for them.
@@ -57,10 +51,13 @@ export const foldable = (messages: readonly ChatMessage[]) => {
 	return s.middle.length > 1 ? s : undefined;
 };
 
-/** The turns to summarize when the conversation reached SUMMARY_AT of the tier's window. */
-export const toSummarize = (messages: readonly ChatMessage[], tier: Tier) => {
+/** The turns to summarize when the conversation reached SUMMARY_AT of the window, in tokens. */
+export const toSummarize = (
+	messages: readonly ChatMessage[],
+	window: number,
+) => {
 	const tokens = messages.reduce((n, m) => n + sizeOf(m), 0) / CHARS_PER_TOKEN;
-	if (tokens < SUMMARY_AT * TIER_MIN_CONTEXT[tier]) return undefined;
+	if (tokens < SUMMARY_AT * window) return undefined;
 	return foldable(messages);
 };
 

@@ -26,6 +26,8 @@ export type AgentRef = {
 	readonly modelId: string;
 	/** The model's family, when the gateway named it (ADR-162). */
 	readonly family?: string | undefined;
+	/** The model's context window in tokens, when the gateway named it (ADR-169). */
+	readonly contextWindow?: number | undefined;
 };
 
 /** Everything a run needs to continue after a restart; times are epoch milliseconds. */

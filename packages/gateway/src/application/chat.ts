@@ -20,9 +20,10 @@ import {
 	chainEnd,
 	passes,
 	reserveError,
+	tooLarge,
 	unavailable,
 } from "../domain/llm-errors.js";
-import { type PrivacyRules, resolveChain } from "../domain/resolve.js";
+import { holding, type PrivacyRules, resolveChain } from "../domain/resolve.js";
 import { afterFailure, estimateTokens, usageOf } from "../domain/retry.js";
 import { costOf } from "../domain/spend.js";
 import type { ModelCall } from "../infrastructure/model-calls.js";
@@ -267,6 +268,9 @@ const nameModel = (st: WalkState, o: Offered, first: Offered | undefined) => {
 		type: "model",
 		...refOf(o),
 		family: o.model.family,
+		...(o.model.contextWindow > 0
+			? { contextWindow: o.model.contextWindow }
+			: {}),
 		reason,
 	} as const;
 };
@@ -376,12 +380,16 @@ async function* chat(
 		req;
 	const call = { ...rest, messages };
 	const estimate = { tokens_per_minute: estimateTokens(call) };
+	const fits = holding(chain, estimate.tokens_per_minute);
+	if (fits.length === 0)
+		return yield fail(tooLarge(estimate.tokens_per_minute));
 	const prompt = estimateTokens({
 		messages: call.messages,
 		...(call.tools ? { tools: call.tools } : {}),
 	});
 	const tokens = { prompt, completion: call.maxTokens ?? 0 };
-	yield* walk(deps, { req, call, chain, estimate, tokens }, memory, signal);
+	const w = { req, call, chain: fits, estimate, tokens };
+	yield* walk(deps, w, memory, signal);
 }
 
 /** The gateway's routed chat; it remembers the models that refused their key. */

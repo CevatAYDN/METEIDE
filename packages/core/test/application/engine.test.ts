@@ -419,6 +419,28 @@ describe("single-agent engine", () => {
 		expect(done?.payload).toEqual({ messages: 2, chars: 52 });
 	});
 
+	it("folds against the window of the model that answered, not the tier's minimum (ADR-169)", async () => {
+		const read = vi
+			.fn<Tool>()
+			.mockResolvedValueOnce(ok({ content: "z".repeat(100_000) }))
+			.mockResolvedValue(ok({ content: "small" }));
+		const wide = (chunks: LlmChunk[]) =>
+			chunks.map((c) =>
+				c.type === "model" ? { ...c, contextWindow: 1_000_000 } : c,
+			);
+		const call = wide(
+			reply("", [{ name: "fs_read", args: { path: "big.log" } }]),
+		);
+		const h = engineHarness({
+			scripts: [call, call, call, call, call, wide(reply("done"))],
+			tools: [["fs.read@1", read]],
+		});
+		const runId = await begin(h);
+		await settled(h, runId, "completed");
+		expect(h.events.some((e) => e.type === "run.summarized")).toBe(false);
+		expect(JSON.stringify(h.requests.at(-1)?.messages)).toContain("zzzz");
+	});
+
 	it("summarizes the older turns once and asks again when a request is too large for every model", async () => {
 		const read = vi.fn<Tool>(async () => ok({ content: "small" }));
 		const call = reply("", [{ name: "fs_read", args: { path: "a.txt" } }]);

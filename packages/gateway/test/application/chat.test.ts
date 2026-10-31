@@ -24,7 +24,7 @@ const req: LlmChatRequest = {
 const signal = () => new AbortController().signal;
 
 describe("llm.chat@2 pipeline", () => {
-	it("masks, reserves the chain, streams the first model with its family and settles its usage", async () => {
+	it("masks, reserves the chain, streams the first model with its family and window and settles its usage", async () => {
 		const a = fakeProvider("a", [[text("hi"), done]]);
 		const q = fakeQuota();
 		const { deps: d } = deps({
@@ -47,6 +47,7 @@ describe("llm.chat@2 pipeline", () => {
 				providerId: "a",
 				modelId: "big",
 				family: "big",
+				contextWindow: 100_000,
 				reason: "first",
 			},
 			text("hi"),
@@ -68,6 +69,42 @@ describe("llm.chat@2 pipeline", () => {
 		});
 		expect(q.settled).toEqual([
 			{ id: "r1", actual: { tokens_per_minute: 5 }, observations: [] },
+		]);
+	});
+
+	it("leaves out a model whose window cannot hold the request, and ends too_large when none can (ADR-169)", async () => {
+		// 160,000 characters are 40,000 tokens, plus the 10 the reply may take.
+		const large = {
+			...req,
+			messages: [{ role: "user" as const, content: "x".repeat(160_000) }],
+		};
+		const a = fakeProvider("a", [[text("hi"), done]]);
+		const q = fakeQuota();
+		const both = deps({
+			discover: async () => [
+				offer(a.adapter, "small", 40_000),
+				offer(a.adapter, "big", 100_000),
+			],
+			quota: q.quota,
+		});
+		await collect(createLlmChat(both.deps).chat(large, signal()));
+		expect(q.reserved[0]?.chain).toEqual([{ providerId: "a", modelId: "big" }]);
+		const onlySmall = deps({
+			discover: async () => [offer(a.adapter, "small", 40_000)],
+			quota: fakeQuota().quota,
+		});
+		const out = await collect(
+			createLlmChat(onlySmall.deps).chat(large, signal()),
+		);
+		expect(out).toEqual([
+			{
+				type: "error",
+				error: {
+					code: "too_large",
+					message:
+						"no model of the chain takes a request this large (about 40010 tokens)",
+				},
+			},
 		]);
 	});
 
@@ -157,6 +194,7 @@ describe("llm.chat@2 pipeline", () => {
 				providerId: "a",
 				modelId: "m",
 				family: "m",
+				contextWindow: 100_000,
 				reason: "first",
 			},
 			{
@@ -164,6 +202,7 @@ describe("llm.chat@2 pipeline", () => {
 				providerId: "b",
 				modelId: "n",
 				family: "n",
+				contextWindow: 64_000,
 				reason: "failed",
 			},
 		]);
@@ -192,6 +231,7 @@ describe("llm.chat@2 pipeline", () => {
 			providerId: "b",
 			modelId: "n",
 			family: "n",
+			contextWindow: 64_000,
 			reason: "quota",
 		});
 	});
@@ -219,6 +259,7 @@ describe("llm.chat@2 pipeline", () => {
 				providerId: "b",
 				modelId: "n",
 				family: "n",
+				contextWindow: 64_000,
 				reason: "quota",
 			},
 			{
@@ -226,6 +267,7 @@ describe("llm.chat@2 pipeline", () => {
 				providerId: "a",
 				modelId: "m",
 				family: "m",
+				contextWindow: 100_000,
 				reason: "failed",
 			},
 		]);

@@ -112,6 +112,7 @@ const PersistedSchema = z.object({
 				providerId: text1,
 				modelId: text1,
 				family: text1.optional(),
+				contextWindow: z.number().int().positive().optional(),
 			})
 			.optional(),
 		pause: z

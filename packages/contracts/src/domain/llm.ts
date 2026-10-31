@@ -76,6 +76,8 @@ export type LlmChunk =
 			readonly modelId: string;
 			/** The model's family, which a later attempt of another family avoids (ADR-162). */
 			readonly family?: string;
+			/** The model's context window in tokens, when known; the core folds against it (ADR-169). */
+			readonly contextWindow?: number;
 			readonly reason: "first" | "quota" | "failed";
 	  }
 	| { readonly type: "error"; readonly error: LlmError };

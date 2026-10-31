@@ -37,6 +37,18 @@ const meetsNeed = (m: ModelInfo, need: Need) => {
 	return m.contextWindow >= LONG_CONTEXT_MIN;
 };
 
+/**
+ * The entries whose model can hold a request of `tokens`: a known window below it would only refuse
+ * the call, and a model without facts (window 0) may try (ADR-169).
+ */
+export const holding = <T extends { readonly model: ModelInfo }>(
+	chain: readonly T[],
+	tokens: number,
+) =>
+	chain.filter(
+		(o) => o.model.contextWindow === 0 || o.model.contextWindow >= tokens,
+	);
+
 // Avoided families go only while another candidate is left.
 const avoid = (list: ModelInfo[], families: readonly string[]) => {
 	const kept = list.filter((m) => !families.includes(m.family));

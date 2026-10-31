@@ -1,6 +1,10 @@
 import type { ChatMessage } from "@mete/contracts";
+import { TIER_MIN_CONTEXT } from "@mete/contracts";
 import { describe, expect, it } from "vitest";
 import { compacted, toSummarize } from "../../src/domain/compact.js";
+
+const FAST = TIER_MIN_CONTEXT.fast;
+const VISION = TIER_MIN_CONTEXT.vision;
 
 const turn = (n: number, size: number): ChatMessage[] => [
 	{
@@ -20,18 +24,18 @@ describe("context compaction", () => {
 	it("waits until the conversation reaches 70% of the tier's window", () => {
 		// fast: 8,000 tokens; 70% is 5,600 tokens or 22,400 characters.
 		const small = [...opening, ...turn(1, 1000), ...turn(2, 1000)];
-		expect(toSummarize(small, "fast")).toBeUndefined();
+		expect(toSummarize(small, FAST)).toBeUndefined();
 	});
 
 	it("gives the vision tier a window too, so its turns are not summarized every time (ADR-060)", () => {
 		// vision: 32,000 tokens; 70% is 22,400 tokens or 89,600 characters.
 		const work = [...opening, ...[1, 2, 3, 4, 5].flatMap((n) => turn(n, 4000))];
-		expect(toSummarize(work, "vision")).toBeUndefined();
+		expect(toSummarize(work, VISION)).toBeUndefined();
 		const long = [
 			...opening,
 			...[1, 2, 3, 4, 5].flatMap((n) => turn(n, 20_000)),
 		];
-		expect(toSummarize(long, "vision")).toBeDefined();
+		expect(toSummarize(long, VISION)).toBeDefined();
 	});
 
 	it("counts the arguments of tool calls, so large writes trigger a summary too", () => {
@@ -46,10 +50,10 @@ describe("context compaction", () => {
 			{ role: "tool", toolCallId: `c${n}`, content: "{}" },
 		];
 		const writes = [...opening, ...[1, 2, 3, 4, 5, 6].flatMap(write)];
-		expect(toSummarize(writes, "fast")?.middle).toHaveLength(4);
+		expect(toSummarize(writes, FAST)?.middle).toHaveLength(4);
 		// The same turns with small arguments stay under the window.
 		const small = [...opening, ...[1, 2].flatMap(write)];
-		expect(toSummarize(small, "fast")).toBeUndefined();
+		expect(toSummarize(small, FAST)).toBeUndefined();
 	});
 
 	it("keeps the opening and the newest turns, each tool result with its call", () => {
@@ -57,7 +61,7 @@ describe("context compaction", () => {
 			...opening,
 			...[1, 2, 3, 4, 5, 6].flatMap((n) => turn(n, 5000)),
 		];
-		const s = toSummarize(big, "fast");
+		const s = toSummarize(big, FAST);
 		if (!s) throw new Error("expected a split");
 		expect(s.head).toEqual(opening);
 		expect(s.middle).toHaveLength(4);
@@ -72,8 +76,8 @@ describe("context compaction", () => {
 	it("keeps up to the 4 newest turns whole, so fresh tool results are read before any summary", () => {
 		// Two web searches past the fast window: the agent has not read them yet (run 9b5d517e).
 		const fresh = [...opening, ...turn(1, 20_000), ...turn(2, 20_000)];
-		expect(toSummarize(fresh, "fast")).toBeUndefined();
+		expect(toSummarize(fresh, FAST)).toBeUndefined();
 		const four = [...opening, ...[1, 2, 3, 4].flatMap((n) => turn(n, 6000))];
-		expect(toSummarize(four, "fast")).toBeUndefined();
+		expect(toSummarize(four, FAST)).toBeUndefined();
 	});
 });

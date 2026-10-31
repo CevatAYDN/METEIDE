@@ -1,4 +1,8 @@
-import type { ChatMessage, LlmChunk } from "@mete/contracts";
+import {
+	type ChatMessage,
+	type LlmChunk,
+	TIER_MIN_CONTEXT,
+} from "@mete/contracts";
 import { attemptOf } from "../domain/attempts.js";
 import { foldable, toSummarize } from "../domain/compact.js";
 import { type NextStep, nextStep } from "../domain/next-step.js";
@@ -38,6 +42,7 @@ const agentOf = (s: EngineState, l: Live, c: ModelChunk) => {
 		providerId: c.providerId,
 		modelId: c.modelId,
 		...(c.family ? { family: c.family } : {}),
+		...(c.contextWindow ? { contextWindow: c.contextWindow } : {}),
 	};
 };
 
@@ -260,7 +265,9 @@ const step = async (s: EngineState, l: Live, token: object) => {
 	const at = s.deps.now();
 	const next = nextStep(c, l.meta.budget, at);
 	if (next.kind === "model") {
-		const older = toSummarize(c.messages, activeSeat(c).tier);
+		const window =
+			c.agent?.contextWindow ?? TIER_MIN_CONTEXT[activeSeat(c).tier];
+		const older = toSummarize(c.messages, window);
 		if (older) return summarizeTurn(s, l, older, () => owns(l, token));
 		return modelTurn(s, l, token);
 	}
