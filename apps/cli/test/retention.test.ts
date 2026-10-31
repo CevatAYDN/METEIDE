@@ -100,7 +100,10 @@ const runEndedDaysAgo = async (days: number) => {
 describe("checkpoint retention", () => {
 	it("removes the checkpoints of a run that ended 20 days ago when the app starts again", async () => {
 		const repo = await runEndedDaysAgo(20);
-		await vi.waitFor(() => expect(refs(repo.workspaceDir)).toEqual([]));
+		// The sweep runs git once per ref; under coverage on a busy machine that passed 1 s (2026-10-31).
+		await vi.waitFor(() => expect(refs(repo.workspaceDir)).toEqual([]), {
+			timeout: 10_000,
+		});
 	});
 
 	it("keeps the checkpoints of a run that ended yesterday", async () => {
