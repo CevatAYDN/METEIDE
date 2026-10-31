@@ -94,6 +94,10 @@ const AgentRows = ({
 	</>
 );
 
+// The card's title, which also names the dialog, so a screen reader hears the group's size too.
+const titleOf = (c: Character) =>
+	`${nameOf(c, { attempt: attemptName })}${c.count > 1 ? ` ×${c.count}` : ""}`;
+
 /** The card of one character, placed over the room; Escape and a click elsewhere close it. */
 export const StudioCard = ({
 	character,
@@ -104,7 +108,7 @@ export const StudioCard = ({
 }: Props) => (
 	<div
 		role="dialog"
-		aria-label={nameOf(character, { attempt: attemptName })}
+		aria-label={titleOf(character)}
 		className="mete-card"
 		style={{
 			position: "absolute",
@@ -121,10 +125,7 @@ export const StudioCard = ({
 		}}
 	>
 		<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-			<b style={{ fontSize: "1.1em", flex: 1 }}>
-				{nameOf(character, { attempt: attemptName })}
-				{character.count > 1 ? ` ×${character.count}` : ""}
-			</b>
+			<b style={{ fontSize: "1.1em", flex: 1 }}>{titleOf(character)}</b>
 			<button
 				type="button"
 				className="mete-button quiet"

@@ -66,7 +66,8 @@ describe("StudioCard", () => {
 			agent("a1", "build"),
 			agent("a2"),
 		]);
-		expect(out).toContain("developer ×2");
+		expect(out).toContain(">developer ×2<");
+		expect(out).toContain('aria-label="developer ×2"');
 		expect(out.match(/>Provider</g)).toHaveLength(2);
 		expect(out).toContain("model-a2");
 		expect(out).toContain("None");
