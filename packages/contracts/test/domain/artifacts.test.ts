@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { artifactSchema } from "../../src/domain/artifacts.js";
+import { artifactLine, artifactSchema } from "../../src/domain/artifacts.js";
 
 const report = () => ({
 	title: "Free model providers",
@@ -46,5 +46,61 @@ describe("research-report@1", () => {
 describe("artifactSchema", () => {
 	it("knows no schema for a type that is not defined yet", () => {
 		expect(artifactSchema("asset@1")).toBeUndefined();
+	});
+});
+
+// A team run's summary is its last artifact's one line, not its JSON (ADR-172).
+describe("artifactLine", () => {
+	const check = (name: string, passed: boolean) => ({
+		name,
+		passed,
+		details: "ran it",
+	});
+
+	it("gives a report's summary, a design's title and a test report's counts", () => {
+		expect(artifactLine("research-report@1", report())).toBe(
+			"Three providers offer free chat models.",
+		);
+		expect(
+			artifactLine("code-change@1", {
+				summary: "Adds a page.",
+				files: ["a.html"],
+			}),
+		).toBe("Adds a page.");
+		expect(
+			artifactLine("gdd@1", {
+				title: "Space Dash",
+				pitch: "Dodge rocks.",
+				mechanics: ["Move."],
+				scope: "One level.",
+				acceptance: ["It runs."],
+			}),
+		).toBe("Space Dash");
+		const tests = {
+			passed: false,
+			checks: [
+				check("build", true),
+				check("click", false),
+				check("load", true),
+			],
+			gaps: [],
+		};
+		expect(artifactLine("test-report@1", tests)).toBe("2 of 3 checks passed");
+		expect(
+			artifactLine("test-report@1", {
+				...tests,
+				gaps: ["no phone", "no audio"],
+			}),
+		).toBe("2 of 3 checks passed; 2 gaps");
+	});
+
+	it("gives nothing for a value that misses its schema, or a type without a line", () => {
+		expect(artifactLine("research-report@1", { title: "x" })).toBeUndefined();
+		expect(
+			artifactLine("asset-spec@1", {
+				assets: [{ name: "a", description: "b", path: "c.png" }],
+			}),
+		).toBeUndefined();
+		expect(artifactLine("asset@1", {})).toBeUndefined();
 	});
 });

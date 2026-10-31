@@ -95,3 +95,30 @@ const SCHEMAS: Readonly<Record<string, z.ZodType>> = {
 /** The schema of an artifact type such as `research-report@1`, when one is defined. */
 export const artifactSchema = (type: string): z.ZodType | undefined =>
 	SCHEMAS[type];
+
+const testLine = (r: z.output<typeof TestReportSchema>) => {
+	const passed = r.checks.filter((c) => c.passed).length;
+	const g = r.gaps.length;
+	const gaps = g === 0 ? "" : `; ${g} ${g === 1 ? "gap" : "gaps"}`;
+	return `${passed} of ${r.checks.length} checks passed${gaps}`;
+};
+
+// task-list@1 and asset-spec@1 have no text field and end no shipped template.
+const LINES: Readonly<Record<string, (value: unknown) => string | undefined>> =
+	{
+		"research-report@1": (v) => ResearchReportSchema.safeParse(v).data?.summary,
+		"seo-audit@1": (v) => SeoAuditReportSchema.safeParse(v).data?.summary,
+		"code-change@1": (v) => CodeChangeSchema.safeParse(v).data?.summary,
+		"gdd@1": (v) => GddSchema.safeParse(v).data?.title,
+		"lesson@1": (v) => LessonSchema.safeParse(v).data?.title,
+		"test-report@1": (v) => {
+			const r = TestReportSchema.safeParse(v);
+			return r.success ? testLine(r.data) : undefined;
+		},
+	};
+
+/** An artifact's one line, for a team run's summary, when the value meets its type's schema (ADR-172). */
+export const artifactLine = (
+	type: string,
+	value: unknown,
+): string | undefined => LINES[type]?.(value);

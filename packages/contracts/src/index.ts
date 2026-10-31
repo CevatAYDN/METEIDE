@@ -5,6 +5,7 @@ export {
 	TIER_MIN_CONTEXT,
 } from "./defaults.js";
 export {
+	artifactLine,
 	artifactSchema,
 	type ResearchReport,
 	ResearchReportSchema,
