@@ -14,6 +14,8 @@ export type AgentCard = {
 	readonly modelId: string;
 	/** Its role's tier, when agent.created carries it (ADR-077). */
 	readonly tier?: Tier;
+	/** The attempt of a best-of-N task it works (ADR-162). */
+	readonly attempt?: { readonly k: number; readonly n: number };
 	/** The task the agent was created for; none for a single-agent run. */
 	readonly taskId?: string;
 	readonly thinking: boolean;
@@ -56,6 +58,7 @@ const created = (
 			providerId: e.payload.providerId,
 			modelId: e.payload.modelId,
 			...(e.payload.tier ? { tier: e.payload.tier } : {}),
+			...(e.payload.attempt ? { attempt: e.payload.attempt } : {}),
 			...(e.taskId ? { taskId: e.taskId } : {}),
 			// The core creates the agent at its first model reply, inside the turn whose
 			// agent.thinking.started carried no agent id yet: the agent is thinking.

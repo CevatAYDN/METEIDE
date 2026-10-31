@@ -49,6 +49,22 @@ describe("the agents of the team view", () => {
 		).toBe(false);
 	});
 
+	it("keeps the attempt of a best-of-N task agent.created carries, and none without it (ADR-162)", () => {
+		const attempt = { k: 2, n: 3 };
+		const second = event("agent.created", {
+			roleId: "writer",
+			providerId: "groq",
+			modelId: "m",
+			attempt,
+		});
+		expect(applyAll(RUN, EMPTY_TEAM_VIEW, [second]).agents[0]?.attempt).toEqual(
+			attempt,
+		);
+		expect(
+			"attempt" in (applyAll(RUN, EMPTY_TEAM_VIEW, [created]).agents[0] ?? {}),
+		).toBe(false);
+	});
+
 	it("creates an agent with its role, model and task, and follows its thinking and tools", () => {
 		const view = applyAll(RUN, EMPTY_TEAM_VIEW, [
 			created,
