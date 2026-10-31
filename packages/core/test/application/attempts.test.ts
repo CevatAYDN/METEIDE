@@ -229,6 +229,27 @@ describe("best-of-N attempts (ADR-162)", () => {
 		});
 		expect(second.some((m) => m.content === "notes")).toBe(false);
 	});
+
+	it("asks the human once too: the answer sent as a decision opens the next attempt", async () => {
+		const { h, runId, settled } = await run(
+			", before_start: { clarify_with: human }",
+			[reply("Which city?"), reply("notes"), PASSES],
+		);
+		await settled("paused");
+		const r = await h.engine.approve(runId, {
+			decision: "revise",
+			feedback: "Ankara.",
+		});
+		expect(r.ok).toBe(true);
+		await settled("completed");
+		expect(h.requests).toHaveLength(3);
+		const second = h.requests[2]?.messages ?? [];
+		expect(second.at(-1)).toEqual({
+			role: "user",
+			content: "The human answers your questions: Ankara.",
+		});
+		expect(second.some((m) => m.content === "notes")).toBe(false);
+	});
 });
 
 const verdict = (attempt: number, reason: string) =>

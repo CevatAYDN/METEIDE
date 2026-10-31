@@ -1,5 +1,5 @@
 import { REVIEW_REPAIRS } from "../defaults.js";
-import { attempting, withOpening } from "../domain/attempts.js";
+import { attempting } from "../domain/attempts.js";
 import { openTask } from "../domain/clarify.js";
 import { checkReport, repairMessage } from "../domain/guardrail.js";
 import {
@@ -131,15 +131,7 @@ const open = (
 	if (!where) return false;
 	const run = { ...l.snapshot.context, notes: task.notes };
 	const opened = openTask(team, task.id, run, where);
-	// The human's answers end the questions; every later attempt opens with them (ADR-162).
-	const ended =
-		team.tasks[task.id]?.context.clarify === "asked" &&
-		!opened.team.tasks[task.id]?.context.clarify;
-	const next = ended
-		? withOpening(opened.team, task.id, opened.messages)
-		: opened.team;
-	const { messages } = opened;
-	return apply(s, l, { type: "SWITCH", task: task.id, team: next, messages });
+	return apply(s, l, { type: "SWITCH", task: task.id, ...opened });
 };
 
 // A pair reviewer or an approver role reviews in a conversation of its own, with its own agent

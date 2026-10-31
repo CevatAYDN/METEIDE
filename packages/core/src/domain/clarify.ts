@@ -1,4 +1,5 @@
 import type { ChatMessage } from "@mete/contracts";
+import { withOpening } from "./attempts.js";
 import type { Platform } from "./prompt.js";
 import { GO_ON, type TeamState, withClarify } from "./team.js";
 import { firstSentence, nameOf, taskConversation } from "./team-run.js";
@@ -67,7 +68,9 @@ export const openTask = (
 			...entry.messages,
 			{ role: "user" as const, content: said },
 		];
-		return { team: withClarify(team, id, undefined), messages };
+		// Every later attempt opens with the answers, whichever path took them (ADR-162).
+		const done = withOpening(withClarify(team, id, undefined), id, messages);
+		return { team: done, messages };
 	}
 	return { team, messages: taskConversation(team, id, run, where) };
 };
