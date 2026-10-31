@@ -235,6 +235,13 @@ const checkRefs = (t: Base, ctx: z.RefinementCtx) => {
 	twice(r, "task", taskIds);
 	if (r.roles.has("human"))
 		issue(r, ["roles"], "human is reserved for the user");
+	// The judge's agent.created names role id judge (ADR-162): a role so named would read as it.
+	if (r.roles.has("judge"))
+		issue(
+			r,
+			["roles"],
+			"judge is reserved for the judge that picks among a task's attempts",
+		);
 	t.roles.forEach((x, i) => {
 		const path = ["roles", i, "prefer_different_family_than"];
 		known(r, path, x.prefer_different_family_than, "role");

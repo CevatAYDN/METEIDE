@@ -252,4 +252,12 @@ describe("parseTemplate", () => {
 			"roles: human is reserved for the user",
 		]);
 	});
+
+	it("rejects a role named judge: the judge of a task's attempts has that role id (ADR-162)", () => {
+		const t = minimal();
+		const judge = { ...t.roles[0], id: "judge" };
+		expect(issues({ ...t, roles: [...t.roles, judge] })).toEqual([
+			"roles: judge is reserved for the judge that picks among a task's attempts",
+		]);
+	});
 });
