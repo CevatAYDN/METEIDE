@@ -16,6 +16,7 @@ export const USAGE = [
 	"  mete events <run id> [--json]   show a run's history: time, event, module, task, agent",
 	"  mete audit [<run id>] [--json]   show the audit log, newest first: action, verdict, policy rule",
 	'  mete policy check "<command>" [--json]   what the policy decides for a command, without running it',
+	"  mete vault restore <note path> [<timestamp>]   list a vault note's earlier versions, or bring one back",
 	"  mete template validate [<id>]   check the team templates a run may use, and name each issue",
 	"  mete stop <run id> | --all   cancel paused runs",
 	"  mete rollback <run id> <n>   restore a paused or ended run's checkpoint n; prints how to undo it",

@@ -20,8 +20,8 @@ import {
 import { terminalConfirm } from "./application/confirm.js";
 import { type DaemonStreams, daemonCommand } from "./application/daemon.js";
 import { terminalElicit } from "./application/elicit.js";
+import { folderCommand } from "./application/folder-commands.js";
 import { keyCommand } from "./application/keys.js";
-import { policyCommand } from "./application/policy.js";
 import { registryAddCommand, registryCommand } from "./application/registry.js";
 import { removeCommand } from "./application/remove.js";
 import { rollbackCommand } from "./application/rollback.js";
@@ -277,7 +277,8 @@ const dispatch = (
 		case "registry":
 			return registry(reader, io, rest);
 		case "policy":
-			return policyCommand(reader, io, rest, p.values.json === true);
+		case "vault":
+			return folderCommand(reader, io, p.positionals, p.values.json === true);
 		case "key":
 			return keyCommand(
 				opts.secrets ?? createKeychainStore(),
