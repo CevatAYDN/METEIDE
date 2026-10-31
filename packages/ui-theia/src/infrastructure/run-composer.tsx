@@ -22,7 +22,10 @@ import {
 	ComposerView,
 } from "../application/composer-view.js";
 import { failureText, startedText } from "../application/status-text.js";
-import { MeteDaemonService } from "../domain/status-service.js";
+import {
+	type DaemonFailure,
+	MeteDaemonService,
+} from "../domain/status-service.js";
 import {
 	EDIT_TEAM_COMMAND,
 	NEW_TEAM_COMMAND,
@@ -63,8 +66,8 @@ export class MeteRunComposer {
 	protected goal = "";
 	protected selected = "choose";
 	protected singleModel: string | undefined;
-	/** The folder's uncommitted changes, which a team's worktree does not hold (ADR-156). */
-	protected uncommitted = 0;
+	/** The folder's uncommitted changes, which a team's worktree does not hold (ADR-156); unknown when the ask failed. */
+	protected uncommitted: number | undefined = 0;
 	/** Counts the estimates asked again, so an answer that came after a newer ask is dropped. */
 	protected estimateAsked = 0;
 	protected roleModels: Record<string, Record<string, string>> = {};
@@ -73,6 +76,8 @@ export class MeteRunComposer {
 	protected picker: PickerFacts | undefined;
 	protected busy = false;
 	protected error: string | undefined;
+	/** Why a list the composer asked for did not come, so a missing team or model says why. */
+	protected loadError: string | undefined;
 	protected pending: Promise<void> | undefined;
 
 	// Coming back to the composer asks for the teams again (ADR-071), so a team saved meanwhile
@@ -97,13 +102,16 @@ export class MeteRunComposer {
 		this.dir = root.resource.path.fsPath();
 		this.chainCache.clear();
 		if (this.model.kind !== "ready") this.setModel({ kind: "loading" });
+		const failures: DaemonFailure[] = [];
 		const listed = await this.daemon.templates(this.dir);
+		if (!listed.ok) failures.push(listed.error);
 		const raw = listed.ok ? listed.value.templates : [];
 		const dir = this.dir;
 		const ctx: ChainContext = {
 			daemon: this.daemon,
 			dir,
 			cache: this.chainCache,
+			failed: (why) => failures.push(why),
 		};
 		const [templates, singleModels, changes, ...estimates] = await Promise.all([
 			loadRoles(ctx, raw),
@@ -114,7 +122,10 @@ export class MeteRunComposer {
 			),
 		]);
 		this.all = optionsOf(templates, estimates, singleModels);
-		this.uncommitted = changes.ok ? changes.value.files.length : 0;
+		if (!changes.ok) failures.push(changes.error);
+		this.uncommitted = changes.ok ? changes.value.files.length : undefined;
+		const [first] = failures;
+		this.loadError = first ? failureText(first) : undefined;
 		this.selected = this.all.some((o) => o.key === this.selected)
 			? this.selected
 			: "choose";
@@ -217,7 +228,7 @@ export class MeteRunComposer {
 				goal={this.goal}
 				selected={this.selected}
 				busy={this.busy}
-				error={this.error}
+				error={this.error ?? this.loadError}
 				singleModel={this.singleModel}
 				uncommitted={this.uncommitted}
 				picker={this.picker}

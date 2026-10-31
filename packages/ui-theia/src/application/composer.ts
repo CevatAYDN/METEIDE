@@ -60,7 +60,14 @@ export type ChainContext = {
 	readonly daemon: MeteDaemonService;
 	readonly dir: string;
 	readonly cache: Map<string, readonly string[]>;
+	/** Told why a call failed, so the screen says it instead of showing nothing. */
+	readonly failed?: (why: DaemonFailure) => void;
 };
+
+const thrown = (e: unknown): DaemonFailure => ({
+	code: "protocol",
+	detail: String(e),
+});
 
 /** Fetches models for a tier and needs, returning strings formatted as providerId/modelId. */
 export const fetchChain = async (
@@ -77,14 +84,18 @@ export const fetchChain = async (
 	const key = chainKey(tier.data, needs);
 	const hit = ctx.cache.get(key);
 	if (hit) return hit;
+	// A failure is not cached: the next ask tries again.
 	try {
 		const res = await ctx.daemon.chain(ctx.dir, tier.data, needs);
-		const models = res.ok
-			? res.value.models.map((m) => `${m.providerId}/${m.modelId}`)
-			: [];
+		if (!res.ok) {
+			ctx.failed?.(res.error);
+			return [];
+		}
+		const models = res.value.models.map((m) => `${m.providerId}/${m.modelId}`);
 		ctx.cache.set(key, models);
 		return models;
-	} catch {
+	} catch (e) {
+		ctx.failed?.(thrown(e));
 		return [];
 	}
 };
@@ -125,7 +136,10 @@ export const loadRoles = async (
 		templates.map(async (t) => {
 			try {
 				const read = await ctx.daemon.readTemplate(ctx.dir, t.id);
-				if (!read.ok) return t;
+				if (!read.ok) {
+					ctx.failed?.(read.error);
+					return t;
+				}
 				const draft = draftOf(read.value.yaml);
 				if (!draft.ok) return t;
 				const roles = await Promise.all(
@@ -138,7 +152,8 @@ export const loadRoles = async (
 						})),
 				);
 				return { ...t, roles };
-			} catch {
+			} catch (e) {
+				ctx.failed?.(thrown(e));
 				return t;
 			}
 		}),

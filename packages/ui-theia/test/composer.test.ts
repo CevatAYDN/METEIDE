@@ -369,18 +369,40 @@ describe("fetchChain", () => {
 		expect(daemon.chain).not.toHaveBeenCalled();
 	});
 
-	it("handles daemon failure gracefully", async () => {
+	it("says why a chain failed, and asks again next time instead of keeping the failure as no models", async () => {
 		const daemon = fakeDaemon({
 			chain: vi.fn(async () =>
 				err({ code: "refused" as const, detail: "no chain" }),
 			),
 		});
+		const failed = vi.fn();
 		const ctx: ChainContext = {
 			daemon,
 			dir: "/workspace",
 			cache: new Map(),
+			failed,
 		};
 		expect(await fetchChain(ctx, "coder", [])).toEqual([]);
+		expect(failed).toHaveBeenCalledWith({
+			code: "refused",
+			detail: "no chain",
+		});
+		await fetchChain(ctx, "coder", []);
+		expect(daemon.chain).toHaveBeenCalledTimes(2);
+	});
+
+	it("says why a chain call threw", async () => {
+		const failed = vi.fn();
+		const daemon = fakeDaemon({
+			chain: vi.fn(async () => {
+				throw new Error("connection lost");
+			}),
+		});
+		await fetchChain({ daemon, dir: "/w", cache: new Map(), failed }, "coder");
+		expect(failed).toHaveBeenCalledWith({
+			code: "protocol",
+			detail: "Error: connection lost",
+		});
 	});
 
 	it("handles undefined needsList safely", async () => {
@@ -424,19 +446,38 @@ describe("loadRoles", () => {
 		]);
 	});
 
-	it("returns template unchanged when readTemplate fails", async () => {
+	it("returns template unchanged when readTemplate fails, and says why", async () => {
 		const daemon = fakeDaemon({
 			readTemplate: vi.fn(async () =>
 				err({ code: "refused" as const, detail: "missing" }),
 			),
 		});
+		const failed = vi.fn();
 		const ctx: ChainContext = {
 			daemon,
 			dir: "/workspace",
 			cache: new Map(),
+			failed,
 		};
 		const enriched = await loadRoles(ctx, [{ id: "missing", name: "Missing" }]);
 		expect(enriched[0]?.roles).toBeUndefined();
+		expect(failed).toHaveBeenCalledWith({ code: "refused", detail: "missing" });
+	});
+
+	it("returns template unchanged when reading it throws, and says why", async () => {
+		const failed = vi.fn();
+		const daemon = fakeDaemon({
+			readTemplate: vi.fn(async () => {
+				throw new Error("connection lost");
+			}),
+		});
+		const ctx = { daemon, dir: "/w", cache: new Map(), failed };
+		const enriched = await loadRoles(ctx, [{ id: "t", name: "T" }]);
+		expect(enriched[0]?.roles).toBeUndefined();
+		expect(failed).toHaveBeenCalledWith({
+			code: "protocol",
+			detail: "Error: connection lost",
+		});
 	});
 });
 
