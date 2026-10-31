@@ -57,7 +57,15 @@ export const createKnowledgeSearchModule = (
 				ctx.logger.warn({}, `embedding the vault: ${m}`);
 			job = embedJob({ registry, index, vectors, now, warn });
 			const access = accessLog(ctx.storage.workspace);
-			const run = searchNotes({ registry, index, vectors, job, access, now });
+			const run = searchNotes({
+				registry,
+				index,
+				vectors,
+				job,
+				access,
+				now,
+				warn: (m) => ctx.logger.warn({}, m),
+			});
 			ctx.disposables.add(
 				ctx.capabilities.provide("knowledge.search@1", {
 					id: MANIFEST.id,

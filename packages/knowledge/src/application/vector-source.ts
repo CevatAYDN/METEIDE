@@ -12,7 +12,8 @@ import { type EmbedJob, embedderOf, modelKey, NIL_RUN } from "./embed-job.js";
 // The vector source of a search (docs/11, Hybrid search; ADR-152): the query is embedded once, under
 // the caller's run id at priority 1, or the nil run id at priority 0 for a caller without a run, and
 // only the stored vectors of the model that answered are searched. Any failure finds nothing, so the
-// keyword source answers alone; quota_exhausted pauses the background job, never the caller's run.
+// keyword source answers alone, and a vector table that cannot be searched is said in the log;
+// quota_exhausted pauses the background job, never the caller's run.
 
 /** What the vector source needs from its module. */
 export type VectorDeps = {
@@ -20,6 +21,7 @@ export type VectorDeps = {
 	readonly index: KeywordIndex;
 	readonly vectors: VectorIndex;
 	readonly job: EmbedJob;
+	readonly warn: (message: string) => void;
 };
 
 const embedQuery = async (deps: VectorDeps, text: string, ctx: ToolContext) => {
@@ -46,7 +48,12 @@ export const nearSections = async (
 	if (!answer || !vector) return [];
 	const model = modelKey(answer.model);
 	// shortcut: the filters apply after the k nearest and every section is hashed again per search, fine for hundreds of notes; a filtered KNN and stored keys when code joins the index.
-	const keys = deps.vectors.nearest(model, vector, q.k);
+	const near = deps.vectors.nearest(model, vector, q.k);
+	if (!near.ok) {
+		deps.warn(`searching the vault by meaning: ${near.error}`);
+		return [];
+	}
+	const keys = near.value;
 	const byKey = new Map<string, Chunk[]>();
 	for (const c of deps.index.chunks(q)) {
 		const key = cacheKey(c.body, model);

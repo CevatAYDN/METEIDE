@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ok, type StorageSqlAdapter } from "@mete/contracts";
+import { err, ok, type StorageSqlAdapter } from "@mete/contracts";
 import {
 	createCapabilityRegistry,
 	createEventBus,
@@ -64,7 +64,7 @@ describe("the vector index", () => {
 		const v = vectorIndex(s.db);
 		expect(v.available).toBe(true);
 		expect(v.latest()).toBeUndefined();
-		expect(v.nearest(A, [1, 0, 0], 2)).toEqual([]);
+		expect(v.nearest(A, [1, 0, 0], 2)).toEqual(ok([]));
 		expect(
 			v.put(A, [
 				{ key: "k1", vector: [1, 0, 0] },
@@ -73,12 +73,14 @@ describe("the vector index", () => {
 			]).ok,
 		).toBe(true);
 		expect(v.latest()).toBe(A);
-		expect(v.nearest(A, [1, 0, 0], 2)).toEqual(["k1", "k3"]);
-		expect(v.nearest(A, [0, 0, 1], 3)).toEqual([]);
+		expect(v.nearest(A, [1, 0, 0], 2)).toEqual(ok(["k1", "k3"]));
+		expect(v.nearest(A, [0, 0, 1], 3)).toEqual(ok([]));
 		expect([...v.stored(A, ["k1", "k9", "k2"])].sort()).toEqual(["k1", "k2"]);
 		const wrong = v.put(A, [{ key: "k4", vector: [1, 0] }]);
 		expect(wrong.ok).toBe(false);
-		expect(v.nearest(A, [1, 0], 2)).toEqual([]);
+		expect(v.nearest(A, [1, 0], 2)).toEqual(
+			err("a query vector of 2 numbers for a table of 3"),
+		);
 		await s.close();
 	});
 
@@ -88,8 +90,8 @@ describe("the vector index", () => {
 		v.put(A, [{ key: "k1", vector: [1, 0, 0] }]);
 		expect(v.put(B, [{ key: "k1", vector: [0, 0, 1, 0] }]).ok).toBe(true);
 		expect(v.latest()).toBe(B);
-		expect(v.nearest(B, [0, 0, 1, 0], 5)).toEqual(["k1"]);
-		expect(v.nearest(A, [1, 0, 0], 5)).toEqual(["k1"]);
+		expect(v.nearest(B, [0, 0, 1, 0], 5)).toEqual(ok(["k1"]));
+		expect(v.nearest(A, [1, 0, 0], 5)).toEqual(ok(["k1"]));
 		expect(v.stored(B, ["k1"]).size).toBe(1);
 		await s.close();
 	});
@@ -104,7 +106,7 @@ describe("the vector index", () => {
 		const v = vectorIndex(fake as unknown as typeof s.db);
 		expect(v.available).toBe(false);
 		expect(v.put(A, [{ key: "k1", vector: [1] }]).ok).toBe(false);
-		expect(v.nearest(A, [1], 1)).toEqual([]);
+		expect(v.nearest(A, [1], 1)).toEqual(ok([]));
 		expect(v.stored(A, ["k1"]).size).toBe(0);
 		await s.close();
 	});

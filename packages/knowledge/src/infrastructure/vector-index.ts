@@ -51,8 +51,11 @@ const loaded = (db: BetterSqlite3.Database) => {
 	}
 };
 
+const rowOf = (orm: Pick<Orm, "select">, model: string) =>
+	orm.select().from(models).where(eq(models.model, model)).get();
+
 const tableOf = (orm: Pick<Orm, "select">, model: string) =>
-	orm.select().from(models).where(eq(models.model, model)).get()?.tbl;
+	rowOf(orm, model)?.tbl;
 
 // A model's table, made at its first answer with that answer's size; `used` orders the answers.
 const ensure = (tx: Tx, model: string, dim: number) => {
@@ -112,24 +115,31 @@ const insert = (
 	}
 };
 
-// A query vector comes from a provider; one of another size than the table's finds nothing, and
-// so does a vector farther than VECTOR_MAX_DISTANCE from every stored one (docs/11).
+// A query vector comes from a provider: one of another size than the table's, or a table that cannot be
+// searched, is an error the caller says; a vector farther than VECTOR_MAX_DISTANCE from every stored one
+// finds nothing (docs/11).
 const knn = (
 	orm: Orm,
-	tbl: string | undefined,
+	at: { readonly tbl: string; readonly dim: number } | undefined,
 	vector: readonly number[],
 	k: number,
-) => {
-	if (!tbl) return [];
+): Result<string[], string> => {
+	if (!at) return ok([]);
+	if (vector.length !== at.dim)
+		return err(
+			`a query vector of ${vector.length} numbers for a table of ${at.dim}`,
+		);
+	const tbl = at.tbl;
 	try {
-		return orm
+		const keys = orm
 			.all<{ key: string; distance: number }>(
 				sql`SELECT key, distance FROM ${sql.identifier(tbl)} WHERE embedding MATCH ${new Float32Array(vector)} AND k = ${k} ORDER BY distance`,
 			)
 			.filter((r) => r.distance <= VECTOR_MAX_DISTANCE)
 			.map((r) => r.key);
-	} catch {
-		return [];
+		return ok(keys);
+	} catch (e) {
+		return err(e instanceof Error ? e.message : String(e));
 	}
 };
 
@@ -154,8 +164,12 @@ export const vectorIndex = (db: BetterSqlite3.Database) => {
 		/** Stores one model's vectors, each key once; a vector of another size refuses the whole batch. */
 		put: (model: string, rows: readonly Keyed[]): Result<void, string> =>
 			available ? insert(orm, model, rows) : err("sqlite-vec is not loaded"),
-		/** The keys of the model's vectors nearest to `vector`, nearest first; none without its table, of another size or far from them. */
-		nearest: (model: string, vector: readonly number[], k: number): string[] =>
-			knn(orm, tbl(model), vector, k),
+		/** The keys of the model's vectors nearest to `vector`, nearest first; none without its table or far from them; an error for a vector of another size or a table that cannot be searched. */
+		nearest: (
+			model: string,
+			vector: readonly number[],
+			k: number,
+		): Result<string[], string> =>
+			knn(orm, available ? rowOf(orm, model) : undefined, vector, k),
 	};
 };
