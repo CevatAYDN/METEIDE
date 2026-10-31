@@ -265,6 +265,19 @@ describe("the judge of best-of-N attempts (ADR-162)", () => {
 			modelId: "m1",
 			tier: "reasoning",
 		});
+		// Each agent's first thought already names it: two attempts and the judge, three agents.
+		const firsts = h.events.flatMap((e, i) =>
+			e.type === "agent.created"
+				? [
+						h.events
+							.slice(0, i)
+							.findLast((x) => x.type === "agent.thinking.started")?.agentId,
+					]
+				: [],
+		);
+		const created = h.events.filter((e) => e.type === "agent.created");
+		expect(firsts).toEqual(created.map((e) => e.agentId));
+		expect(new Set(firsts).size).toBe(3);
 		expect(payloads("task.attempt.chosen")).toEqual([
 			{ attempt: 2, of: 2, by: "judge", reason: "clearer" },
 		]);

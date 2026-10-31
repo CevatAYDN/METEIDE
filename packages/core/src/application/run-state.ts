@@ -64,6 +64,8 @@ export type Live = {
 	loop: Promise<void>;
 	all: AbortController;
 	model?: AbortController | undefined;
+	/** The id of the agent a model call makes, from its start until agent.created makes it (docs/07). */
+	nextAgent?: string | undefined;
 	cancelTimer?: (() => void) | undefined;
 	/** The preferred model or pin read for the agent seated now (ADR-122). */
 	pin?:
@@ -138,7 +140,7 @@ export const emit = (
 	body: EventBody,
 	taskId?: string,
 ) => {
-	const agent = l.snapshot.context.agent;
+	const agentId = l.snapshot.context.agent?.id ?? l.nextAgent;
 	s.deps.events.publish({
 		id: s.deps.newId(),
 		ts: iso(s.deps.now()),
@@ -146,7 +148,7 @@ export const emit = (
 		workspaceId: s.deps.workspaceId,
 		runId: l.meta.id,
 		...(taskId ? { taskId } : {}),
-		...(agent ? { agentId: agent.id } : {}),
+		...(agentId ? { agentId } : {}),
 		source: "core-engine",
 		...body,
 	});

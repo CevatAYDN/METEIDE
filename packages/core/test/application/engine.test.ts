@@ -83,6 +83,9 @@ describe("single-agent engine", () => {
 		const agentId = h.events.find((e) => e.type === "agent.created")?.agentId;
 		expect(agentId).toBeDefined();
 		expect(ended.map((e) => e.agentId)).toEqual([agentId, agentId]);
+		// The first call's start names the agent too, which agent.created then makes (docs/07).
+		const started = h.events.filter((e) => e.type === "agent.thinking.started");
+		expect(started.map((e) => e.agentId)).toEqual([agentId, agentId]);
 		expect(ended.map((e) => e.payload)).toEqual([
 			{ usage: { prompt: 1, completion: 1 } },
 			{ usage: { prompt: 1, completion: 1 } },

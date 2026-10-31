@@ -31,7 +31,8 @@ type ModelChunk = Extract<LlmChunk, { type: "model" }>;
 const agentOf = (s: EngineState, l: Live, c: ModelChunk) => {
 	const { roleId, agentId, taskId } = activeRole(l.snapshot.context);
 	return {
-		id: l.snapshot.context.agent?.id ?? agentId ?? s.deps.newId(),
+		id:
+			l.snapshot.context.agent?.id ?? l.nextAgent ?? agentId ?? s.deps.newId(),
 		...(taskId ? { roleId } : {}),
 		providerId: c.providerId,
 		modelId: c.modelId,
@@ -80,6 +81,10 @@ const think = async (
 		readonly signal: AbortSignal;
 	},
 ) => {
+	// A call before the agent exists names the agent it makes: the task's worker keeps its id, a
+	// reviewer, an answerer or a judge gets a new one.
+	if (!l.snapshot.context.agent)
+		l.nextAgent = activeRole(l.snapshot.context).agentId ?? s.deps.newId();
 	emit(s, l, { type: "agent.thinking.started", payload: {} }, call.task);
 	let usage: Extract<ModelOutcome, { kind: "replied" }>["usage"] | undefined;
 	try {
@@ -95,6 +100,7 @@ const think = async (
 		l.model = undefined;
 		const payload = usage ? { usage } : {};
 		emit(s, l, { type: "agent.thinking.ended", payload }, call.task);
+		l.nextAgent = undefined;
 	}
 };
 
