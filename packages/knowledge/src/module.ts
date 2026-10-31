@@ -15,6 +15,11 @@ import {
 } from "./application/vault-tools.js";
 import { dayOf } from "./domain/journal-text.js";
 import { factsOf, reportOf } from "./domain/run-report.js";
+import {
+	ACCESS_MIGRATION,
+	type AccessLog,
+	accessLog,
+} from "./infrastructure/access-log.js";
 import { appendJournal } from "./infrastructure/journal.js";
 
 /** The workspace the vault lives in; ids and clock are injectable for tests. */
@@ -32,12 +37,18 @@ const MANIFEST: ModuleManifest = {
 	class: "optional",
 	trust: "core",
 	provides: ["vault.read@1", "vault.write@1"],
-	requires: ["fs.read@1", "fs.write@1", "events.read@1"],
+	requires: ["fs.read@1", "fs.write@1", "events.read@1", "storage.sql@1"],
 	optional: [],
 	activation: ["onStartup"],
 	isolation: "in-process",
 	permissions: ["fs.read", "fs.write"],
 };
+
+const failed = (message: string) => ({
+	code: "activation_failed" as const,
+	moduleId: MANIFEST.id,
+	message,
+});
 
 const ENDED = new Set<string>(["run.completed", "run.failed", "run.cancelled"]);
 
@@ -117,6 +128,7 @@ const provideTools = (
 	ctx: ModuleContext,
 	opts: VaultOptions,
 	serial: VaultDeps["serial"],
+	access: AccessLog,
 ) => {
 	const deps: VaultDeps = {
 		registry: ctx.capabilities,
@@ -127,6 +139,7 @@ const provideTools = (
 				path,
 				noteType,
 			}),
+		touch: (path) => access.touch([path], (opts.now ?? Date.now)()),
 		now: () => nowOf(opts),
 	};
 	for (const [ref, run] of [
@@ -150,7 +163,11 @@ export const createVaultModule = (opts: VaultOptions): MeteModule => {
 	return {
 		manifest: MANIFEST,
 		async activate(ctx) {
-			provideTools(ctx, opts, serial);
+			// Storage holds the access counts of aging, in the table the search module reads (ADR-173).
+			if (!ctx.storage) return err(failed("storage.sql@1 was not provided"));
+			const migrated = ctx.storage.migrate("workspace", [ACCESS_MIGRATION]);
+			if (!migrated.ok) return err(failed(migrated.error.message));
+			provideTools(ctx, opts, serial, accessLog(ctx.storage.workspace));
 			const start = (e: MeteEvent) => {
 				queued.delete(e.runId ?? "");
 				serial(() => report(ctx, opts, e)).catch((err) =>

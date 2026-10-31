@@ -7,6 +7,7 @@ import {
 	err,
 	type MeteEvent,
 	ok,
+	type StorageSqlAdapter,
 	type ToolContext,
 } from "@mete/contracts";
 import {
@@ -14,18 +15,36 @@ import {
 	createEventBus,
 	type ModuleContext,
 } from "@mete/kernel";
+import { createStorageModule } from "@mete/storage";
 import { afterAll } from "vitest";
 import { createVaultModule } from "../src/module.js";
 
 // The vault module over fakes: events.read@1 answers every event published, the module's own
 // included, as storage persists each event when it is published; fs.read@1 and fs.write@1 read and
 // write under the context's cwd or else the workspace, as tools-fs does, and the write can be made
-// to ask, as a policy at autonomy level 1 does.
+// to ask, as a policy at autonomy level 1 does. Real storage holds the access counts (ADR-173).
 
 const roots: string[] = [];
+const stores: { deactivate: () => Promise<void> }[] = [];
 afterAll(async () => {
+	await Promise.all(stores.map((s) => s.deactivate()));
 	await Promise.all(roots.map((r) => rm(r, { recursive: true, force: true })));
 });
+
+// The vault's scoped storage, from a storage module on its own registry, so its events.read@1
+// does not stand in for the fake one.
+const storageFor = async (root: string, ctx: ModuleContext) => {
+	const storage = createStorageModule({
+		workspaceDir: join(root, "db"),
+		globalDir: join(root, "global"),
+	});
+	stores.push(storage);
+	const own = createCapabilityRegistry(() => []);
+	await storage.activate({ ...ctx, capabilities: own });
+	const sql = own.resolve<StorageSqlAdapter>("storage.sql@1");
+	if (!sql.ok) throw new Error("storage.sql@1 missing");
+	return sql.value[0].impl.scopeFor("vault");
+};
 
 export const WS = "11111111-1111-4111-8111-111111111111";
 export const NOW = Date.parse("2026-10-28T12:00:00.000Z");
@@ -115,10 +134,23 @@ export const setup = async (read?: EventsReadAdapter["read"]) => {
 		workspaceId: WS,
 		now: () => NOW,
 	});
-	await mod.activate(ctx);
+	const storage = await storageFor(root, ctx);
+	await mod.activate({ ...ctx, storage });
 	const file = (path: string) => readFile(join(root, path), "utf8");
 	const note = (day: string) => file(`.mete/knowledge/journal/${day}.md`);
-	return { root, mod, registry, publish, saved, errors, note, file, policy };
+	const db = storage.workspace;
+	return {
+		root,
+		mod,
+		registry,
+		publish,
+		saved,
+		errors,
+		note,
+		file,
+		policy,
+		db,
+	};
 };
 
 /** The local date of a moment, as a journal note's name. */

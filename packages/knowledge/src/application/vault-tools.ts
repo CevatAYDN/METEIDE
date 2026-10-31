@@ -33,6 +33,8 @@ export type VaultDeps = {
 	readonly serial: <T>(job: () => Promise<T>) => Promise<T>;
 	/** Publishes vault.note.saved. */
 	readonly saved: (ctx: ToolContext, path: string, noteType: string) => void;
+	/** Counts a note read as one access of aging (ADR-173), by its path in the vault. */
+	readonly touch: (path: string) => void;
 	readonly now: () => string;
 };
 
@@ -101,6 +103,7 @@ export const readNote =
 		if (!parts) return bad(`${path} has a frontmatter that is not YAML`);
 		if (parts.data.private === true)
 			return err({ code: "ignored", message: `${path} is private` });
+		deps.touch(path);
 		return ok({ path, content: text.value });
 	};
 
@@ -176,6 +179,19 @@ const updated = (
 	return ok(noteText(data, note.body));
 };
 
+// docs/11 (ADR-173): an agent's update is an automated rewrite, so the note's text goes to
+// .history/ first; the stamp has no ':' or '.', which Windows file names refuse.
+const keepVersion = (
+	deps: VaultDeps,
+	ctx: ToolContext,
+	path: string,
+	was: string,
+) => {
+	const stamp = deps.now().replace(/[:.]/g, "-");
+	const inVault = path.slice(VAULT.length + 1);
+	return writeText(deps, ctx, `${VAULT}/.history/${inVault}/${stamp}.md`, was);
+};
+
 const saveNote = async (
 	deps: VaultDeps,
 	ctx: ToolContext,
@@ -188,6 +204,10 @@ const saveNote = async (
 			? await created(deps, ctx, note)
 			: updated(was.value, note, deps.now());
 	if (!text.ok) return text;
+	if (was.value !== undefined) {
+		const kept = await keepVersion(deps, ctx, note.path, was.value);
+		if (!kept.ok) return kept;
+	}
 	const written = await writeText(deps, ctx, note.path, text.value);
 	if (!written.ok) return written;
 	deps.saved(ctx, note.path, note.type);

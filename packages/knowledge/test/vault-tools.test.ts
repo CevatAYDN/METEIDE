@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type {
 	Result,
@@ -95,6 +95,19 @@ describe("vault.write@1", () => {
 		expect(text.endsWith("---\n\nSmaller.\n")).toBe(true);
 	});
 
+	it("keeps the text an update replaces in the history, named by the time (ADR-173)", async () => {
+		const t = await tools();
+		await t.write.run(lesson("Ship small"), ctx());
+		const first = await t.file(".mete/knowledge/lessons/ship-small.md");
+		await t.write.run(lesson("Ship small", { body: "Smaller." }), ctx());
+		const kept = await readdir(
+			join(t.root, ".mete/knowledge/.history/lessons/ship-small.md"),
+		);
+		expect(kept).toEqual(["2026-10-28T12-00-00-000Z.md"]);
+		const stamp = `.mete/knowledge/.history/lessons/ship-small.md/${kept[0]}`;
+		expect(await t.file(stamp)).toBe(first);
+	});
+
 	it("refuses a 4th new note in a run, and still updates one", async () => {
 		const t = await tools();
 		for (const title of ["One", "Two", "Three"])
@@ -170,6 +183,16 @@ describe("vault.write@1", () => {
 	});
 });
 
+const accessesOf = (
+	db: { prepare: (s: string) => { get: (p: string) => unknown } },
+	path: string,
+) =>
+	(
+		db
+			.prepare("SELECT accesses FROM knowledge_access WHERE path = ?")
+			.get(path) as { accesses: number } | undefined
+	)?.accesses;
+
 describe("vault.read@1", () => {
 	const put = async (root: string, path: string, text: string) => {
 		const file = join(root, ".mete", "knowledge", path);
@@ -187,6 +210,14 @@ describe("vault.read@1", () => {
 		expect(code(await t.read.run({ path: "entities/me.md" }, ctx()))).toBe(
 			"ignored",
 		);
+		expect(accessesOf(t.db, "entities/me.md")).toBeUndefined();
+	});
+
+	it("counts a note it answers as one access of aging (ADR-173)", async () => {
+		const t = await tools();
+		await put(t.root, "lessons/a.md", "---\ntype: lesson\n---\n\nA.\n");
+		expect(code(await t.read.run({ path: "lessons/a.md" }, ctx()))).toBe("ok");
+		expect(accessesOf(t.db, "lessons/a.md")).toBe(1);
 	});
 
 	it("refuses paths that leave the vault or enter its history", async () => {
