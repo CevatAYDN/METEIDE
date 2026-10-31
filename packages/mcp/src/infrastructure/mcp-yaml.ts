@@ -39,11 +39,24 @@ const replace = async (file: string, text: string) => {
 };
 
 /** Appends `server` to <workspace>/.mete/mcp.yaml; the file's path, or why it was not written. */
-export const addMcpServer = async (
+export const addMcpServer = (
 	workspaceDir: string,
 	server: McpServer,
 ): Promise<Result<string, ToolError>> => {
 	const file = join(workspaceDir, ".mete", "mcp.yaml");
+	// No access or a file another program holds is an expected failure the user can fix.
+	return addEntry(file, server).catch((e: unknown) =>
+		err<ToolError>({
+			code: "io",
+			message: `${file} cannot be read or written: ${e instanceof Error ? e.message : String(e)}`,
+		}),
+	);
+};
+
+const addEntry = async (
+	file: string,
+	server: McpServer,
+): Promise<Result<string, ToolError>> => {
 	if (BUILT_IN_SERVERS.some((b) => b.id === server.id))
 		return bad(
 			`${server.id} is a built-in server id; add it by hand under another id`,

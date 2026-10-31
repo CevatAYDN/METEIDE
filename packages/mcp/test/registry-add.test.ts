@@ -136,16 +136,26 @@ describe("adding a server to .mete/mcp.yaml", () => {
 
 	// A read-only target is how Windows refuses the rename, the way an editor holding the file does.
 	it.skipIf(process.platform !== "win32")(
-		"leaves no temporary copy behind when the rename fails",
+		"leaves no temporary copy behind when the rename fails, and says why",
 		async () => {
 			await mkdir(join(dir, ".mete"));
 			await writeFile(file(), "servers: []\n");
 			await chmod(file(), 0o444);
-			await expect(addMcpServer(dir, entry)).rejects.toThrow();
+			const r = await addMcpServer(dir, entry);
+			expect(r.ok === false && r.error.code).toBe("io");
 			expect(await readdir(join(dir, ".mete"))).toEqual(["mcp.yaml"]);
 			await chmod(file(), 0o666);
 		},
 	);
+
+	it("answers why when the file cannot be read, instead of throwing (AGENTS.md rule 4)", async () => {
+		await mkdir(file(), { recursive: true }); // a folder where the file should be
+		const r = await addMcpServer(dir, entry);
+		expect(r.ok === false && r.error.code).toBe("io");
+		expect(r.ok === false && r.error.message).toContain(
+			"cannot be read or written",
+		);
+	});
 
 	it("refuses a file that is not valid YAML without touching it", async () => {
 		await mkdir(join(dir, ".mete"));
