@@ -1,5 +1,14 @@
-import { CHARS_PER_TOKEN, type ChatMessage } from "@mete/contracts";
-import { SUMMARY_AT, SUMMARY_KEEP_TURNS } from "../defaults.js";
+import {
+	CHARS_PER_TOKEN,
+	type ChatMessage,
+	type ToolCall,
+} from "@mete/contracts";
+import {
+	CUT_ARGS_CHARS,
+	SUMMARY_AT,
+	SUMMARY_KEEP_TURNS,
+	TOOL_RESULT_KEEP_CHARS,
+} from "../defaults.js";
 
 // Context compaction of docs/08 (Agent context assembly): at 70% of the window, older turns
 // become one summary. The window is that of the model the agent's last call ran on, else the
@@ -59,6 +68,45 @@ export const toSummarize = (
 	const tokens = messages.reduce((n, m) => n + sizeOf(m), 0) / CHARS_PER_TOKEN;
 	if (tokens < SUMMARY_AT * window) return undefined;
 	return foldable(messages);
+};
+
+// The call a tool result answers, from the assistant message of its own turn.
+const callOf = (messages: readonly ChatMessage[], i: number, id: string) => {
+	for (let j = i - 1; j >= 0; j--) {
+		const m = messages[j];
+		if (m?.role === "assistant") return m.toolCalls?.find((c) => c.id === id);
+	}
+	return undefined;
+};
+
+const cutLine = (call: ToolCall | undefined, chars: number) => {
+	const what = call
+		? `${call.name} ${JSON.stringify(call.args).slice(0, CUT_ARGS_CHARS)}`
+		: "a tool";
+	return `[result cut after it aged: ${what}, ${chars} characters; call the tool again if you need it]`;
+};
+
+/**
+ * The conversation with every tool result longer than TOOL_RESULT_KEEP_CHARS in the turns older than
+ * the newest SUMMARY_KEEP_TURNS cut to a line naming its call, or undefined when none is (ADR-170).
+ */
+export const cutOld = (messages: readonly ChatMessage[]) => {
+	const { head, middle } = split(messages);
+	const end = head.length + middle.length;
+	let count = 0;
+	let chars = 0;
+	const cut = messages.map((m, i): ChatMessage => {
+		if (i < head.length || i >= end || m.role !== "tool") return m;
+		if (m.content.length <= TOOL_RESULT_KEEP_CHARS) return m;
+		count++;
+		chars += m.content.length;
+		const content = cutLine(
+			callOf(messages, i, m.toolCallId),
+			m.content.length,
+		);
+		return { ...m, content };
+	});
+	return count > 0 ? { messages: cut, count, chars } : undefined;
 };
 
 const line = (m: ChatMessage) => {

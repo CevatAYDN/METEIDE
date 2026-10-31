@@ -20,7 +20,7 @@ import {
 	toolContext,
 } from "./run-state.js";
 import { callModel, callTool, type ModelOutcome } from "./steps.js";
-import { summarizeTurn } from "./summarize.js";
+import { cutTurn, summarizeTurn } from "./summarize.js";
 import { submit, teamTurn, verdict } from "./team-driver.js";
 import { createCheckpoint } from "./vcs-steps.js";
 
@@ -265,9 +265,11 @@ const step = async (s: EngineState, l: Live, token: object) => {
 	const at = s.deps.now();
 	const next = nextStep(c, l.meta.budget, at);
 	if (next.kind === "model") {
+		cutTurn(s, l);
+		const ctx = l.snapshot.context;
 		const window =
-			c.agent?.contextWindow ?? TIER_MIN_CONTEXT[activeSeat(c).tier];
-		const older = toSummarize(c.messages, window);
+			ctx.agent?.contextWindow ?? TIER_MIN_CONTEXT[activeSeat(ctx).tier];
+		const older = toSummarize(ctx.messages, window);
 		if (older) return summarizeTurn(s, l, older, () => owns(l, token));
 		return modelTurn(s, l, token);
 	}

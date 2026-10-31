@@ -49,6 +49,12 @@ export const SUMMARY_AT = 0.7;
 /** Newest turns a summary keeps word for word (08 Orchestration and teams, Agent context assembly). */
 export const SUMMARY_KEEP_TURNS = 4;
 
+/** Characters a tool result older than the newest turns keeps before it is cut to a line (08 Orchestration and teams, Agent context assembly; ADR-170). */
+export const TOOL_RESULT_KEEP_CHARS = 2000;
+
+/** Characters of a cut result's call arguments its line repeats (08 Orchestration and teams, Agent context assembly; ADR-170). */
+export const CUT_ARGS_CHARS = 200;
+
 /** Below this confidence the router lets the user choose (08 Orchestration and teams, Router). */
 export const ROUTER_MIN_CONFIDENCE = 0.7;
 

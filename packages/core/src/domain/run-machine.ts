@@ -88,6 +88,7 @@ export type RunEvent =
 	| { type: "TEAM"; team: TeamState }
 	| { type: "PREFER"; prefer: RunPrefer | undefined }
 	| { type: "SUMMARIZED"; messages: readonly ChatMessage[] }
+	| { type: "CUT"; messages: readonly ChatMessage[] }
 	| { type: "LEARNED"; team: TeamState; replied: boolean }
 	| { type: "REPAIR"; team: TeamState; content: string }
 	| {
@@ -180,6 +181,10 @@ export const runMachine = setup({
 				checkpointed: -1,
 				snapshot: undefined,
 			})),
+		},
+		// Cut results keep every message where it was, so checkpoint indexes hold (ADR-170).
+		CUT: {
+			actions: assign(({ event }) => ({ messages: event.messages })),
 		},
 		// The lesson turn after an approval (docs/08, step 8): a cloud request when a reply came, no turn.
 		LEARNED: {

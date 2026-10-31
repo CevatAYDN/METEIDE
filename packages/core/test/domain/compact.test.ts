@@ -1,7 +1,8 @@
 import type { ChatMessage } from "@mete/contracts";
 import { TIER_MIN_CONTEXT } from "@mete/contracts";
 import { describe, expect, it } from "vitest";
-import { compacted, toSummarize } from "../../src/domain/compact.js";
+import { TOOL_RESULT_KEEP_CHARS } from "../../src/defaults.js";
+import { compacted, cutOld, toSummarize } from "../../src/domain/compact.js";
 
 const FAST = TIER_MIN_CONTEXT.fast;
 const VISION = TIER_MIN_CONTEXT.vision;
@@ -79,5 +80,48 @@ describe("context compaction", () => {
 		expect(toSummarize(fresh, FAST)).toBeUndefined();
 		const four = [...opening, ...[1, 2, 3, 4].flatMap((n) => turn(n, 6000))];
 		expect(toSummarize(four, FAST)).toBeUndefined();
+	});
+});
+
+describe("cutting the results of older turns (ADR-170)", () => {
+	const read = (n: number, size: number): ChatMessage[] => [
+		{
+			role: "assistant",
+			content: "",
+			toolCalls: [{ id: `c${n}`, name: "fs_read", args: { path: `f${n}.ts` } }],
+		},
+		{ role: "tool", toolCallId: `c${n}`, content: "x".repeat(size) },
+	];
+
+	it("cuts a long result older than the 4 newest turns to a line naming its call", () => {
+		const six = [
+			...opening,
+			...[1, 2, 3, 4, 5, 6].flatMap((n) => read(n, 5000)),
+		];
+		const cut = cutOld(six);
+		if (!cut) throw new Error("expected a cut");
+		expect(cut.count).toBe(2);
+		expect(cut.chars).toBe(10_000);
+		expect(cut.messages[3]?.content).toBe(
+			'[result cut after it aged: fs_read {"path":"f1.ts"}, 5000 characters; call the tool again if you need it]',
+		);
+		expect(cut.messages[5]?.content).toContain('fs_read {"path":"f2.ts"}');
+		// The 4 newest turns stay whole, and the cut keeps every message where it was.
+		expect(cut.messages.slice(6)).toEqual(six.slice(6));
+		expect(cut.messages).toHaveLength(six.length);
+	});
+
+	it("leaves a short result, and cuts nothing twice", () => {
+		const short = [
+			...opening,
+			...[1, 2, 3, 4, 5, 6].flatMap((n) => read(n, TOOL_RESULT_KEEP_CHARS)),
+		];
+		expect(cutOld(short)).toBeUndefined();
+		const six = [
+			...opening,
+			...[1, 2, 3, 4, 5, 6].flatMap((n) => read(n, 5000)),
+		];
+		const once = cutOld(six);
+		expect(once && cutOld(once.messages)).toBeUndefined();
 	});
 });

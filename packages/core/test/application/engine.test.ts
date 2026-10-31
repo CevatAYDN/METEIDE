@@ -387,10 +387,11 @@ describe("single-agent engine", () => {
 	});
 
 	it("summarizes older turns on the fast tier once the conversation passes 70% of the window", async () => {
+		// Four newest turns of 25,000 characters each pass 70% of the tier's 32k on their own.
 		const read = vi
 			.fn<Tool>()
-			.mockResolvedValueOnce(ok({ content: "z".repeat(100_000) }))
-			.mockResolvedValue(ok({ content: "small" }));
+			.mockResolvedValueOnce(ok({ content: "z".repeat(25_000) }))
+			.mockResolvedValue(ok({ content: "y".repeat(25_000) }));
 		const call = reply("", [{ name: "fs_read", args: { path: "big.log" } }]);
 		const h = engineHarness({
 			scripts: [
@@ -414,20 +415,20 @@ describe("single-agent engine", () => {
 		expect(sent).toContain("<summary> Earlier turns");
 		expect(sent).not.toContain("zzzz");
 		// The four newest turns stay whole (docs/08).
-		expect(sent).toContain("small");
+		expect(sent).toContain("yyyy");
 		const done = h.events.find((e) => e.type === "run.summarized");
 		expect(done?.payload).toEqual({ messages: 2, chars: 52 });
 	});
 
+	const wide = (chunks: LlmChunk[]) =>
+		chunks.map((c) =>
+			c.type === "model" ? { ...c, contextWindow: 1_000_000 } : c,
+		);
+
 	it("folds against the window of the model that answered, not the tier's minimum (ADR-169)", async () => {
 		const read = vi
 			.fn<Tool>()
-			.mockResolvedValueOnce(ok({ content: "z".repeat(100_000) }))
-			.mockResolvedValue(ok({ content: "small" }));
-		const wide = (chunks: LlmChunk[]) =>
-			chunks.map((c) =>
-				c.type === "model" ? { ...c, contextWindow: 1_000_000 } : c,
-			);
+			.mockResolvedValue(ok({ content: "y".repeat(25_000) }));
 		const call = wide(
 			reply("", [{ name: "fs_read", args: { path: "big.log" } }]),
 		);
@@ -438,7 +439,53 @@ describe("single-agent engine", () => {
 		const runId = await begin(h);
 		await settled(h, runId, "completed");
 		expect(h.events.some((e) => e.type === "run.summarized")).toBe(false);
-		expect(JSON.stringify(h.requests.at(-1)?.messages)).toContain("zzzz");
+		expect(JSON.stringify(h.requests.at(-1)?.messages)).toContain("yyyy");
+	});
+
+	it("cuts a long result once its turn is older than the 4 newest, instead of summarizing (ADR-170)", async () => {
+		const read = vi
+			.fn<Tool>()
+			.mockResolvedValueOnce(ok({ content: "z".repeat(100_000) }))
+			.mockResolvedValue(ok({ content: "small" }));
+		const call = reply("", [{ name: "fs_read", args: { path: "big.log" } }]);
+		const h = engineHarness({
+			scripts: [call, call, call, call, call, reply("done")],
+			tools: [["fs.read@1", read]],
+		});
+		const runId = await begin(h);
+		await settled(h, runId, "completed");
+		expect(h.events.some((e) => e.type === "run.summarized")).toBe(false);
+		const sent = JSON.stringify(h.requests.at(-1)?.messages);
+		expect(sent).toContain("[result cut after it aged: fs_read");
+		expect(sent).toContain('\\"path\\":\\"big.log\\"');
+		expect(sent).not.toContain("zzzz");
+		expect(sent).toContain("small");
+	});
+
+	it("gives a cut result again in full when the agent reads it again, with no repeat line (ADR-170)", async () => {
+		const read = vi.fn<Tool>(async (input) =>
+			ok({
+				content:
+					(input as { path: string }).path === "big.log"
+						? "z".repeat(10_000)
+						: "small",
+			}),
+		);
+		const of = (path: string) =>
+			wide(reply("", [{ name: "fs_read", args: { path } }]));
+		const others = [1, 2, 3, 4].map((n) => of(`other${n}.txt`));
+		const big = of("big.log");
+		const h = engineHarness({
+			scripts: [big, ...others, big, big, wide(reply("done"))],
+			tools: [["fs.read@1", read]],
+		});
+		const runId = await begin(h);
+		await settled(h, runId, "completed");
+		const sent = h.requests.at(-1)?.messages ?? [];
+		const results = sent.flatMap((m) => (m.role === "tool" ? [m.content] : []));
+		expect(results[0]).toMatch(/^\[result cut after it aged/);
+		expect(results.at(-1)).toContain("z".repeat(10_000));
+		expect(results.some((r) => r.includes(REPEAT_LABEL))).toBe(false);
 	});
 
 	it("summarizes the older turns once and asks again when a request is too large for every model", async () => {

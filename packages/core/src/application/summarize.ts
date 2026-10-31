@@ -1,4 +1,9 @@
-import { compacted, type Split, summaryRequest } from "../domain/compact.js";
+import {
+	compacted,
+	cutOld,
+	type Split,
+	summaryRequest,
+} from "../domain/compact.js";
 import { afterModelError } from "../domain/run-events.js";
 import type { Seat } from "../domain/tools.js";
 import { apply, type EngineState, emit, type Live } from "./run-state.js";
@@ -11,6 +16,14 @@ import { callModel } from "./steps.js";
 const SUMMARIZER: Seat = { tier: "fast", needs: [], capabilities: [] };
 
 const EMPTY = "(No summary could be made of the earlier turns.)";
+
+/** Cuts the long tool results of the older turns to a line each, before the fold is weighed (ADR-170). */
+export const cutTurn = (s: EngineState, l: Live) => {
+	const cut = cutOld(l.snapshot.context.messages);
+	if (!cut || !apply(s, l, { type: "CUT", messages: cut.messages })) return;
+	const fields = { runId: l.meta.id, results: cut.count, chars: cut.chars };
+	s.deps.logger.info(fields, "older tool results cut");
+};
 
 /** Replaces the middle turns of the conversation by their summary; `owned` says the loop still runs. */
 export const summarizeTurn = async (
