@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import { expect, runCommand, test } from "./launch.js";
 
 // The panels every METE surface hangs from (docs/13): the Welcome screen opens, and the Changes
@@ -21,28 +22,72 @@ test("the Changes panel reads an empty working tree", async ({ mete }) => {
 
 // The screens row (docs/13): every main panel is one click away in the status bar, not only from the
 // command palette, and each button runs the same command its METE menu entry does.
-test("the status bar opens the main screens", async ({ mete }) => {
-	const { page } = mete;
-	for (const screen of ["run", "team", "changes", "quota", "audit", "settings"])
+const expectScreenButtons = async (page: Page) => {
+	for (const screen of [
+		"run",
+		"team",
+		"changes",
+		"memory",
+		"quota",
+		"audit",
+		"settings",
+	])
 		await expect(
 			page.locator(`[id="status-bar-mete-screens-${screen}"]`),
 		).toBeVisible();
+};
 
-	// New run opens the composer, the screen a run starts from (docs/13, Run composer).
+const openRunAndTeam = async (page: Page) => {
 	await page.locator('[id="status-bar-mete-screens-run"]').click();
 	await expect(page.locator("textarea.mete-field")).toBeVisible({
 		timeout: 60_000,
 	});
 
+	await page.locator('[id="status-bar-mete-screens-team"]').click();
+	await expect(page.locator(".mete-panel textarea.mete-field")).toBeVisible({
+		timeout: 60_000,
+	});
+};
+
+const openChangesMemoryAndAudit = async (page: Page) => {
 	await page.locator('[id="status-bar-mete-screens-changes"]').click();
 	await expect(page.getByText("No changes.")).toBeVisible({
 		timeout: 60_000,
 	});
 
-	await page.locator('[id="status-bar-mete-screens-settings"]').click();
+	await page.locator('[id="status-bar-mete-screens-memory"]').click();
+	await expect(page.getByText("No notes yet.", { exact: false })).toBeVisible({
+		timeout: 60_000,
+	});
+
+	await page.locator('[id="status-bar-mete-screens-audit"]').click();
 	await expect(
-		page.locator(".mete-panel").filter({ hasText: "As METE loaded them at" }),
+		page.getByText("No audit rows match these filters.", { exact: true }),
 	).toBeVisible({ timeout: 60_000 });
+};
+
+const openSettingsAndCheckFirstFrame = async (page: Page) => {
+	await page.locator('[id="status-bar-mete-screens-settings"]').click();
+	const settings = page
+		.locator(".mete-panel")
+		.filter({ hasText: "As METE loaded them at" });
+	await expect(settings).toBeVisible({ timeout: 60_000 });
+	const firstCard = settings.locator(".mete-settings-card").first();
+	await expect(firstCard).toBeVisible();
+	const initialOpacity = await firstCard.evaluate((el) => {
+		const animation = el.getAnimations()[0];
+		if (animation) animation.currentTime = 0;
+		return getComputedStyle(el).opacity;
+	});
+	expect(initialOpacity).toBe("1");
+};
+
+test("the status bar opens the main screens", async ({ mete }) => {
+	const { page } = mete;
+	await expectScreenButtons(page);
+	await openRunAndTeam(page);
+	await openChangesMemoryAndAudit(page);
+	await openSettingsAndCheckFirstFrame(page);
 });
 
 // A window snapped to half of a 2560 px screen leaves the Quota card about 860 px: every column,

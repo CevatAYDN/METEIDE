@@ -301,7 +301,7 @@
 			"estimating": "METE is estimating the requests…",
 			"feedback": "What should change?",
 			"goal": "What should METE do in this folder?",
-			"goalHint": "Add a dark mode toggle to the settings page. Keep the choice in the user's settings file and follow the system theme until the user picks one.",
+			"goalHint": "Describe the task you want METE to complete.",
 			"noArtifact": "This run has no report to open yet.",
 			"noneEnded": "No run has ended.",
 			"noneWaiting": "No run waits for you.",

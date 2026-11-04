@@ -71,7 +71,7 @@ const GoalField = ({
 			rows={4}
 			placeholder={nls.localize(
 				"mete/run/goalHint",
-				"Add a dark mode toggle to the settings page. Keep the choice in the user's settings file and follow the system theme until the user picks one.",
+				"Describe the task you want METE to complete.",
 			)}
 			value={goal}
 			onChange={(e) => onGoal(e.target.value)}
