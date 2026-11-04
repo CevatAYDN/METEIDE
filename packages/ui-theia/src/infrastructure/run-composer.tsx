@@ -76,9 +76,15 @@ export class MeteRunComposer {
 	protected picker: PickerFacts | undefined;
 	protected busy = false;
 	protected error: string | undefined;
+	protected ready = false;
 	/** Why a list the composer asked for did not come, so a missing team or model says why. */
 	protected loadError: string | undefined;
 	protected pending: Promise<void> | undefined;
+
+	/** Whether the goal field exists and can receive focus. */
+	canFocusGoal(): boolean {
+		return this.ready;
+	}
 
 	// Coming back to the composer asks for the teams again (ADR-071), so a team saved meanwhile
 	// shows; a refresh still loading or a start in flight is not asked twice.
@@ -102,6 +108,7 @@ export class MeteRunComposer {
 		this.dir = root.resource.path.fsPath();
 		this.chainCache.clear();
 		if (this.model.kind !== "ready") this.setModel({ kind: "loading" });
+		this.ready = false;
 		const failures: DaemonFailure[] = [];
 		const listed = await this.daemon.templates(this.dir);
 		if (!listed.ok) failures.push(listed.error);
@@ -130,6 +137,7 @@ export class MeteRunComposer {
 			? this.selected
 			: "choose";
 		this.setModel({ kind: "ready", options: this.all, unsure: false });
+		this.ready = true;
 		// The list shows before the facts, which only add words to its rows.
 		const chains = [...this.chainCache.values()].flat();
 		this.picker = await pickerFacts(this.daemon, dir, chains);

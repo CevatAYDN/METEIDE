@@ -1,6 +1,16 @@
 import type { Page } from "@playwright/test";
 import { expect, runCommand, test } from "./launch.js";
 
+test("the Help update check explains a source build", async ({ mete }) => {
+	const { page } = mete;
+	await runCommand(page, "METE: Check for Updates");
+	const answers = page.getByText(
+		/runs from source, not from an installed copy/,
+	);
+	await expect(answers.first()).toBeVisible({ timeout: 60_000 });
+	expect(await answers.count()).toBe(2);
+});
+
 // The panels every METE surface hangs from (docs/13): the Welcome screen opens, and the Changes
 // panel answers through the real daemon of the fresh git workspace.
 
@@ -39,9 +49,11 @@ const expectScreenButtons = async (page: Page) => {
 
 const openRunAndTeam = async (page: Page) => {
 	await page.locator('[id="status-bar-mete-screens-run"]').click();
-	await expect(page.locator("textarea.mete-field")).toBeVisible({
+	const goal = page.locator("textarea.mete-field");
+	await expect(goal).toBeVisible({
 		timeout: 60_000,
 	});
+	await expect(goal).toBeFocused();
 
 	await page.locator('[id="status-bar-mete-screens-team"]').click();
 	await expect(page.locator(".mete-panel textarea.mete-field")).toBeVisible({

@@ -88,6 +88,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 	protected run: RunFacts = {};
 	protected asked = new Set<string>();
 	protected composing = true;
+	protected focusWhenReady = false;
 	// The shown run's model choice (ADR-122); made once the daemon is injected.
 	protected models!: ModelSession;
 	// The shown run's steps (ADR-125); the daemon is injected before the first call.
@@ -120,7 +121,10 @@ export class MeteBoardWidget extends MetePanelWidget {
 				if (shown && event.runId === shown.runId)
 					this.onShownEvent(shown.dir, shown.runId, event);
 			}),
-			this.composer.onDidChange(() => this.update()),
+			this.composer.onDidChange(() => {
+				this.update();
+				this.focusComposer();
+			}),
 			this.composer.onDidStart(
 				(s) => void this.showRun(s.dir, s.runId, s.goal),
 			),
@@ -216,8 +220,27 @@ export class MeteBoardWidget extends MetePanelWidget {
 	protected override onActivateRequest(msg: Message): void {
 		super.onActivateRequest(msg);
 		if (!this.showsComposer()) return;
-		this.node.querySelector("textarea")?.focus();
+		this.focusWhenReady = true;
 		void this.composer.reopen();
+	}
+
+	protected focusComposer(): void {
+		if (!this.focusWhenReady || !this.composer.canFocusGoal()) return;
+		const focus = () => {
+			const active = this.node.ownerDocument.activeElement;
+			if (
+				this.showsComposer() &&
+				this.composer.canFocusGoal() &&
+				this.isVisible &&
+				(active === this.node || this.node.contains(active))
+			) {
+				this.node.querySelector("textarea")?.focus();
+				this.focusWhenReady = false;
+			}
+		};
+		const window = this.node.ownerDocument.defaultView;
+		if (window) window.requestAnimationFrame(focus);
+		else focus();
 	}
 
 	protected showsComposer() {
