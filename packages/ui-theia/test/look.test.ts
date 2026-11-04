@@ -43,6 +43,14 @@ describe("the panels' look", () => {
 			expect(CSS).toContain(`.mete-chip.${tone}`);
 	});
 
+	it("keeps settings text visible while cards rise into place", () => {
+		const animation =
+			CSS.match(/@keyframes mete-rise\s*\{([^}]+)\}/)?.[1] ?? "";
+		expect(CSS).toContain("animation: mete-rise 0.4s ease-out both");
+		expect(animation).toContain("transform: translateY(6px)");
+		expect(animation).not.toContain("opacity");
+	});
+
 	it("leaves no Theia colour in a view except as a METE token's fallback", () => {
 		const dirs = [
 			join(__dirname, "..", "src", "application"),

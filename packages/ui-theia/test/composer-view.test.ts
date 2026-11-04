@@ -116,12 +116,12 @@ describe("ComposerView", () => {
 		);
 	});
 
-	// The design's goal box (docs/design/Composer.dc.html) shows an example goal; an empty box left
-	// users asking where to type.
-	it("shows an example goal in the empty goal field", () => {
-		expect(html(READY)).toContain(
-			'placeholder="Add a dark mode toggle to the settings page.',
+	it("keeps the empty goal field neutral and prompts the user", () => {
+		const out = html(READY);
+		expect(out).toContain(
+			'placeholder="Describe the task you want METE to complete."',
 		);
+		expect(out).not.toContain("dark mode toggle");
 	});
 
 	it("checks the picked option only", () => {

@@ -301,7 +301,7 @@
 			"estimating": "METE istekleri tahmin ediyor…",
 			"feedback": "Neyin değişmesi gerekiyor?",
 			"goal": "METE bu klasörde ne yapsın?",
-			"goalHint": "Ayarlar sayfasına bir koyu mod anahtarı ekle. Seçimi kullanıcının ayar dosyasında tut ve kullanıcı bir tema seçene kadar sistem temasını izle.",
+			"goalHint": "METE'nin tamamlamasını istediğiniz görevi açıklayın.",
 			"noArtifact": "Bu çalıştırmanın henüz açılacak bir raporu yok.",
 			"noneEnded": "Biten çalıştırma yok.",
 			"noneWaiting": "Seni bekleyen çalıştırma yok.",
