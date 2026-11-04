@@ -54,6 +54,26 @@ const team = (n: number): TeamState => {
 
 const said = (content: string) => [{ role: "assistant" as const, content }];
 const NEXT = "00000000-0000-4000-8000-000000000009";
+const SESSION = {
+	agent: {
+		id: "00000000-0000-4000-8000-000000000001",
+		providerId: "provider-a",
+		modelId: "model-a",
+	},
+	turns: 2,
+	checkpointed: 1,
+	snapshot: "snapshots/run-a/1",
+	tainted: true,
+};
+
+const withSession = (state: TeamState): TeamState => {
+	const entry = state.tasks.build;
+	if (!entry) throw new Error("task missing");
+	return {
+		...state,
+		tasks: { ...state.tasks, build: { ...entry, session: SESSION } },
+	};
+};
 
 describe("attempts in the run snapshot", () => {
 	it("parses a snapshot from before attempts and one with them", () => {
@@ -74,6 +94,17 @@ describe("attempts in the run snapshot", () => {
 		expect(entry?.messages).toEqual(opening);
 		expect(entry?.attempts?.id).toBe(NEXT);
 		expect(nextTeamStep(next)).toEqual({ kind: "start", taskId: "build" });
+		const restarted = finishAttempt(
+			withSession(next),
+			"build",
+			{ messages: said("x") },
+			NEXT,
+		);
+		expect(restarted.tasks.build?.session).toEqual({
+			turns: 0,
+			checkpointed: -1,
+			tainted: false,
+		});
 	});
 
 	it("records no opening for a task without attempts", () => {
@@ -107,5 +138,26 @@ describe("attempts in the run snapshot", () => {
 		expect(entry?.attempts?.id).toBeUndefined();
 		expect(leftBehind(went, "build")).toEqual([NEXT]);
 		expect(entry && attemptIds(entry)).toEqual([entry?.id, NEXT]);
+	});
+
+	it("keeps the chosen attempt's session when it goes on", () => {
+		const first = finishAttempt(
+			withSession(team(2)),
+			"build",
+			{ messages: said("report 1"), report: "report 1" },
+			NEXT,
+		);
+		const second = applyTask(first, "build", {
+			type: "ATTEMPT",
+			agentId: "a2",
+			worktree: "/wt/2",
+		}).team;
+		const both = finishAttempt(withSession(second), "build", {
+			messages: said("report 2"),
+			report: "report 2",
+		});
+		const chosen = goOn(both, "build", 1);
+		expect(chosen.tasks.build?.session).toEqual(SESSION);
+		expect(TeamStateSchema.parse(chosen)).toEqual(chosen);
 	});
 });

@@ -69,7 +69,120 @@ const run = (
 const done = (t: TeamState, id: string) =>
 	run(t, id, { type: "START", agentId: id }, { type: "SUBMIT", report: id });
 
+const withSession = (team: TeamState, id: string): TeamState => {
+	const entry = team.tasks[id];
+	if (!entry) throw new Error(`task ${id} missing`);
+	return {
+		...team,
+		tasks: {
+			...team.tasks,
+			[id]: {
+				...entry,
+				session: {
+					agent: {
+						id: "00000000-0000-4000-8000-000000000001",
+						providerId: "provider-a",
+						modelId: "model-a",
+					},
+					turns: 2,
+					checkpointed: 1,
+					snapshot: "snapshots/run-a/1",
+					tainted: true,
+				},
+			},
+		},
+	};
+};
+
+const FRESH_SESSION = { turns: 0, checkpointed: -1, tainted: false };
+
 describe("team state", () => {
+	it("round-trips an optional task execution session and accepts legacy tasks", () => {
+		const team = teamOf(research());
+		const task = team.tasks.a;
+		if (!task) throw new Error("task a missing");
+		const session = {
+			agent: {
+				id: "00000000-0000-4000-8000-000000000001",
+				providerId: "provider-a",
+				modelId: "model-a",
+			},
+			turns: 2,
+			checkpointed: 1,
+			snapshot: "snapshots/run-a/1",
+			tainted: true,
+		};
+		const current = {
+			...team,
+			tasks: { ...team.tasks, a: { ...task, session } },
+		};
+		expect(TeamStateSchema.parse(JSON.parse(JSON.stringify(current)))).toEqual(
+			current,
+		);
+		expect(TeamStateSchema.parse(JSON.parse(JSON.stringify(team)))).toEqual(
+			team,
+		);
+	});
+
+	it("keeps task sessions through submission and blocks, resetting a reopened attempt", () => {
+		const active = withSession(
+			run(teamOf(research()), "a", { type: "START", agentId: "a" }),
+			"a",
+		);
+		const saved = active.tasks.a?.session;
+		const submitted = applyTask(active, "a", {
+			type: "SUBMIT",
+			report: "report",
+		}).team;
+		const blocked = applyTask(active, "a", {
+			type: "BLOCK",
+			reason: "guardrail",
+		}).team;
+		expect(submitted.tasks.a?.session).toEqual(saved);
+		expect(
+			applyTask(submitted, "a", { type: "APPROVE" }).team.tasks.a?.session,
+		).toEqual(saved);
+		expect(blocked.tasks.a?.session).toEqual(saved);
+		expect(
+			applyTask(blocked, "a", {
+				type: "UNBLOCK",
+				instruction: "continue",
+			}).team.tasks.a?.session,
+		).toEqual(FRESH_SESSION);
+		const revised = applyTask(submitted, "a", {
+			type: "REVISE",
+			feedback: "fix",
+		}).team;
+		expect(revised.tasks.a?.session).toEqual(FRESH_SESSION);
+		expect(
+			applyTask(withSession(revised, "a"), "a", {
+				type: "START",
+				agentId: "revised",
+			}).team.tasks.a?.session,
+		).toEqual(FRESH_SESSION);
+		expect(
+			applyTask(active, "a", { type: "ATTEMPT", agentId: "next" }).team.tasks.a
+				?.session,
+		).toEqual(FRESH_SESSION);
+	});
+
+	it("resets a task session for pair-review revisions", () => {
+		const active = withSession(
+			run(teamOf(paired(2)), "report", { type: "START", agentId: "report" }),
+			"report",
+		);
+		const submitted = applyTask(active, "report", {
+			type: "SUBMIT",
+			report: "report",
+		}).team;
+		expect(
+			applyTask(submitted, "report", {
+				type: "PAIR_REVISE",
+				feedback: "fix",
+			}).team.tasks.report?.session,
+		).toEqual(FRESH_SESSION);
+	});
+
 	it("starts the first ready task in template order", () => {
 		expect(nextTeamStep(teamOf(research()))).toEqual({
 			kind: "start",

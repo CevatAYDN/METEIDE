@@ -134,7 +134,7 @@ describe("run store", () => {
 		expect(store.list("r2")).toEqual([]);
 	});
 
-	it("keeps a team run's template id and state, and reads a row from before the request counter", () => {
+	it("persists task sessions and reads team snapshots from before the request counter", () => {
 		const { store } = open();
 		const template = parseTemplate({
 			apiVersion: "mete/v1",
@@ -147,11 +147,41 @@ describe("run store", () => {
 			tasks: [{ id: "t", role: "w", title: "T" }],
 		});
 		if (!template.ok) throw new Error("template");
-		const team = teamOf(template.value);
+		const original = teamOf(template.value);
+		const task = original.tasks.t;
+		if (!task) throw new Error("task missing");
+		const team = {
+			...original,
+			tasks: {
+				...original.tasks,
+				t: {
+					...task,
+					session: {
+						agent: {
+							id: "00000000-0000-4000-8000-000000000001",
+							providerId: "provider-a",
+							modelId: "model-a",
+						},
+						turns: 2,
+						checkpointed: 1,
+						snapshot: "snapshots/r1/1",
+						tainted: true,
+					},
+				},
+			},
+		};
 		const s = snapshot({ type: "START", at: T0 }, { type: "TEAM", team });
 		store.save(meta("r1"), s);
 		expect(store.list("r1")[0]?.templateId).toBe("solo");
 		expect(store.load("r1")?.snapshot.context.team).toEqual(team);
+		const legacy = snapshot(
+			{ type: "START", at: T0 },
+			{ type: "TEAM", team: original },
+		);
+		expect(
+			loadSnapshot(JSON.stringify(runMachine.getPersistedSnapshot(legacy)))
+				.context.team?.tasks.t?.session,
+		).toBeUndefined();
 		const old = runMachine.getPersistedSnapshot(snapshot());
 		const json = JSON.stringify(old).replace('"requests":0,', "");
 		expect(

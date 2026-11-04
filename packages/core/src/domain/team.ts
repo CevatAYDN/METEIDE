@@ -10,6 +10,7 @@ import { transition } from "xstate";
 import { z } from "zod";
 import { AttemptsSchema } from "./attempts-schema.js";
 import { type TaskEvent, taskMachine } from "./task-machine.js";
+import { freshTaskSession, TaskSessionSchema } from "./task-session-schema.js";
 
 // A team run's tasks (docs/08, Task execution sequence) as plain data inside the run snapshot,
 // with the template it started from, so a resumed run does not depend on the file any more.
@@ -44,6 +45,8 @@ const TaskEntrySchema = z.strictObject({
 	context: TaskContextSchema,
 	/** The task's conversation, kept while another task works. */
 	messages: z.array(ChatRequestSchema.shape.messages.element),
+	/** The worker's execution state, separate from the run-level coordinator conversation. */
+	session: TaskSessionSchema.optional(),
 	/** Who approved the current submission: approver roles, "human" or "system". */
 	approvals: z.array(z.string()),
 	/** Guardrail repairs asked in the current attempt (docs/08, step 4). */
@@ -190,10 +193,18 @@ export const applyTask = (
 	if (!prev.can(event)) return { team };
 	const [next] = transition(taskMachine, prev, event);
 	const fresh = ["START", "REVISE", "PAIR_REVISE"].includes(event.type);
+	const reopened = [
+		"START",
+		"ATTEMPT",
+		"REVISE",
+		"PAIR_REVISE",
+		"UNBLOCK",
+	].includes(event.type);
 	const updated: TaskEntry = {
 		...entry,
 		status: next.value,
 		context: next.context,
+		session: reopened ? freshTaskSession() : entry.session,
 		approvals: fresh ? [] : entry.approvals,
 		repairs: ["START", "ATTEMPT", "SUBMIT", "UNBLOCK"].includes(event.type)
 			? 0

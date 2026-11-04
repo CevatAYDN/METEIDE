@@ -2,6 +2,7 @@ import type { ChatMessage } from "@mete/contracts";
 import type { z } from "zod";
 import type { AttemptsSchema } from "./attempts-schema.js";
 import type { RunContext } from "./run-machine.js";
+import { freshTaskSession } from "./task-session-schema.js";
 import type { TeamState } from "./team.js";
 
 // Best-of-N attempts (docs/08, Task fields; ADR-162): a task whose `attempts.n` is 2 or more works,
@@ -98,6 +99,7 @@ const recordOf = (entry: Entry, attempts: Attempts, done: Done) => ({
 	id: attempts.id ?? entry.id,
 	agentId: entry.context.agentId ?? "",
 	messages: [...done.messages],
+	...(entry.session ? { session: entry.session } : {}),
 	...(done.report !== undefined ? { report: done.report } : {}),
 	...(entry.context.worktree ? { worktree: entry.context.worktree } : {}),
 	...(done.family ? { family: done.family } : {}),
@@ -120,6 +122,7 @@ export const finishAttempt = (
 		if (next === undefined) return { ...entry, attempts: kept };
 		return {
 			...entry,
+			session: freshTaskSession(),
 			context: {
 				...entry.context,
 				agentId: undefined,
@@ -150,6 +153,7 @@ export const goOn = (team: TeamState, key: string, k: number): TeamState =>
 		if (!chosen) return entry;
 		return {
 			...entry,
+			session: chosen.session ?? freshTaskSession(),
 			context: {
 				...entry.context,
 				agentId: chosen.agentId,

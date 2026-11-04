@@ -1,5 +1,6 @@
 import { ChatRequestSchema, IdSchema } from "@mete/contracts";
 import { z } from "zod";
+import { TaskSessionSchema } from "./task-session-schema.js";
 
 // How the run snapshot keeps a best-of-N task's attempts (ADR-162); domain/attempts.ts moves them.
 
@@ -15,6 +16,7 @@ const FinishedSchema = z.strictObject({
 	worktree: z.string().optional(),
 	/** The family of the model it last ran on, which made its report (ADR-162). */
 	family: z.string().optional(),
+	session: TaskSessionSchema.optional(),
 });
 
 /** A best-of-N task's attempts, as the run snapshot keeps them. */
