@@ -259,6 +259,12 @@ const ready = (team: TeamState, id: string) => {
 	);
 };
 
+/** Eligible tasks, in template order; dependencies must be approved first. */
+export const readyTasks = (team: TeamState) =>
+	team.template.tasks.flatMap((task) =>
+		ready(team, task.id) ? [task.id] : [],
+	);
+
 const review = (team: TeamState, ids: readonly string[]) => {
 	for (const id of ids.filter((x) => statusOf(team, x) === "submitted")) {
 		const next = missing(team, id)[0];
@@ -358,7 +364,7 @@ export const nextTeamStep = (team: TeamState): TeamStep => {
 	if (working) return { kind: fresh ? "start" : "work", taskId: working };
 	const reviewed = review(team, ids);
 	if (reviewed) return reviewed;
-	const start = ids.find((id) => ready(team, id));
+	const start = readyTasks(team)[0];
 	if (start) return { kind: "start", taskId: start };
 	if (ids.every((id) => statusOf(team, id) === "approved"))
 		return { kind: "complete" };

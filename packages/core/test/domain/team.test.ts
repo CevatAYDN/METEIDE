@@ -4,6 +4,7 @@ import {
 	applyTask,
 	approve,
 	nextTeamStep,
+	readyTasks,
 	setRepairs,
 	type TeamState,
 	TeamStateSchema,
@@ -206,6 +207,15 @@ describe("team state", () => {
 		expect(nextTeamStep(t)).toEqual({ kind: "start", taskId: "b" });
 		t = approve(done(t, "b"), "b", "system").team;
 		expect(nextTeamStep(t)).toEqual({ kind: "start", taskId: "report" });
+	});
+
+	it("lists all ready independent tasks in template order", () => {
+		const t = teamOf(research());
+		expect(readyTasks(t)).toEqual(["a", "b"]);
+		const one = approve(done(t, "a"), "a", "system").team;
+		expect(readyTasks(one)).toEqual(["b"]);
+		const both = approve(done(one, "b"), "b", "system").team;
+		expect(readyTasks(both)).toEqual(["report"]);
 	});
 
 	it("asks the approver role, then the human of a checkpoint, then completes", () => {
