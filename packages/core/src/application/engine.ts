@@ -25,6 +25,7 @@ import {
 import { recordDecision } from "./approvals.js";
 import { type Opening, offerBrief, takeHandoff } from "./continue.js";
 import { nextPrefer, validateStartPrefer } from "./pinned.js";
+import { recover } from "./recovery.js";
 import { removeRun } from "./remove.js";
 import { createCheckpointRestore } from "./restore.js";
 import { pruneOldCheckpoints } from "./retention.js";
@@ -293,38 +294,6 @@ const status: (
 	return ok(prefer ? runs.map((r) => ({ ...r, prefer })) : runs);
 };
 
-// A queued run never started, so it starts and pauses at once; START is a no-op for a running one.
-const pauseLeftOver = (s: EngineState, l: Live) => {
-	const at = s.deps.now();
-	apply(s, l, { type: "START", at });
-	apply(s, l, { type: "PAUSE", at, reason: "user" });
-};
-
-/** Pauses, reason user, the runs an earlier process left queued or running (docs/07). */
-// A damaged row is marked failed with a warning, so one bad run never keeps the module from activating.
-const recover = (s: EngineState) => {
-	for (const id of s.deps.store.unfinished()) {
-		try {
-			const l = find(s, id);
-			if (l.ok) pauseLeftOver(s, l.value);
-			else if (l.error.code !== "not_found")
-				s.deps.logger.warn(
-					{ runId: id, reason: l.error.message },
-					"run not recovered",
-				);
-			else {
-				s.deps.store.markFailed(id, iso(s.deps.now()));
-				s.deps.logger.warn(
-					{ runId: id, reason: l.error.message },
-					"run failed",
-				);
-			}
-		} catch (e) {
-			s.deps.logger.warn({ err: e, runId: id }, "run not recovered");
-		}
-	}
-};
-
 // Nothing awaits the timer, so a failed or throwing resume is logged rather than lost.
 const pauseEnded = (s: EngineState, runId: string) => {
 	const log = (fields: Record<string, unknown>) =>
@@ -376,11 +345,13 @@ export const createEngine = (deps: EngineDeps) => {
 		// Only the process that drives runs recovers them and prunes old checkpoints, so a command
 		// that only reads (mete status, mete events) never removes refs a live run may still use.
 		recover: () => {
-			recover(s);
+			recover(s, find);
 			void pruneOldCheckpoints(s.deps);
 		},
 		stop: () => stop(s),
-		restore: createCheckpointRestore(deps),
+		restore: createCheckpointRestore(deps, async (runId) => {
+			await s.live.get(runId)?.loop;
+		}),
 	};
 };
 

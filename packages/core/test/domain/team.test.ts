@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
 	applyTask,
 	approve,
+	attemptState,
+	keepMessages,
 	nextTeamStep,
 	readyTasks,
 	setRepairs,
@@ -144,12 +146,13 @@ describe("team state", () => {
 			applyTask(submitted, "a", { type: "APPROVE" }).team.tasks.a?.session,
 		).toEqual(saved);
 		expect(blocked.tasks.a?.session).toEqual(saved);
+		// A lifted block goes on in the same attempt: fresh turns, the taint stays (SECURITY.md).
 		expect(
 			applyTask(blocked, "a", {
 				type: "UNBLOCK",
 				instruction: "continue",
 			}).team.tasks.a?.session,
-		).toEqual(FRESH_SESSION);
+		).toEqual({ ...FRESH_SESSION, tainted: true });
 		const revised = applyTask(submitted, "a", {
 			type: "REVISE",
 			feedback: "fix",
@@ -165,6 +168,40 @@ describe("team state", () => {
 			applyTask(active, "a", { type: "ATTEMPT", agentId: "next" }).team.tasks.a
 				?.session,
 		).toEqual(FRESH_SESSION);
+	});
+
+	it("keeps an attempt's taint through a lifted block and its kept conversation (SECURITY.md)", () => {
+		const active = withSession(
+			run(teamOf(research()), "a", { type: "START", agentId: "a" }),
+			"a",
+		);
+		const blocked = applyTask(active, "a", {
+			type: "BLOCK",
+			reason: "clarification",
+		}).team;
+		const lifted = applyTask(blocked, "a", {
+			type: "UNBLOCK",
+			instruction: "continue",
+		}).team;
+		expect(lifted.tasks.a?.session).toEqual({
+			...FRESH_SESSION,
+			tainted: true,
+		});
+		expect(attemptState(lifted, "a")).toEqual({ turns: 0, tainted: true });
+		const kept = keepMessages(teamOf(research()), "a", [], {
+			turns: 3,
+			tainted: true,
+		});
+		expect(kept.tasks.a?.session).toEqual({
+			...FRESH_SESSION,
+			turns: 3,
+			tainted: true,
+		});
+		expect(attemptState(kept, "a")).toEqual({ turns: 3, tainted: true });
+		expect(attemptState(teamOf(research()), "a")).toEqual({
+			turns: 0,
+			tainted: false,
+		});
 	});
 
 	it("resets a task session for pair-review revisions", () => {

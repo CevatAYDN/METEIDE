@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 import { openTask } from "../domain/clarify.js";
 import {
+	attemptState,
 	decide,
 	type TeamState,
 	waitingForHuman,
@@ -75,7 +76,12 @@ const goOn = (
 			message: `${where.error.file}: ${where.error.reason}`,
 		});
 	const opened = openTask(team, id, l.snapshot.context, where.value);
-	apply(s, l, { type: "SWITCH", task: id, ...opened });
+	apply(s, l, {
+		type: "SWITCH",
+		task: id,
+		...opened,
+		state: attemptState(team, id),
+	});
 	return ok(undefined);
 };
 

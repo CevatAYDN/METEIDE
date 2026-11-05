@@ -12,6 +12,7 @@ import { checkSpawns } from "../domain/spawn.js";
 import {
 	applyTask,
 	approve,
+	attemptState,
 	isPair,
 	nextTeamStep,
 	setRepairs,
@@ -132,7 +133,12 @@ const open = (
 	if (!where) return false;
 	const run = { ...l.snapshot.context, notes: task.notes };
 	const opened = openTask(team, task.id, run, where);
-	return apply(s, l, { type: "SWITCH", task: task.id, ...opened });
+	return apply(s, l, {
+		type: "SWITCH",
+		task: task.id,
+		...opened,
+		state: attemptState(team, task.id),
+	});
 };
 
 // A pair reviewer or an approver role reviews in a conversation of its own, with its own agent

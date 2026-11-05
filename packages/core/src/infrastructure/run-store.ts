@@ -131,6 +131,7 @@ const PersistedSchema = z.object({
 		clarify: text1.optional(),
 		judge: z.boolean().optional(),
 		tainted: z.boolean().optional(),
+		inFlight: text1.optional(),
 		brief: z.string().optional(),
 		workspace: z.string().optional(),
 		prefer: RunPreferSchema.optional(),
@@ -274,6 +275,20 @@ const unfinished = (orm: Orm) =>
 		.all()
 		.map((r) => r.id);
 
+// A quota or network pause ends by itself (docs/08), so the process that recovers the run arms its timer again.
+const selfPaused = (orm: Orm) =>
+	orm
+		.select({ id: runs.id })
+		.from(runs)
+		.where(
+			and(
+				eq(runs.status, "paused"),
+				inArray(runs.pauseReason, ["quota", "network"]),
+			),
+		)
+		.all()
+		.map((r) => r.id);
+
 // The run's own handoffs go with it; one another run accepted names that run, which keeps it (ADR-143).
 const remove = (orm: Orm, id: string) =>
 	orm.transaction((tx) => {
@@ -291,6 +306,7 @@ export const createRunStore = (db: BetterSqlite3.Database) => {
 		markFailed: (id: string, endedAt: string) => markFailed(orm, id, endedAt),
 		list: (id?: string) => list(orm, id),
 		unfinished: () => unfinished(orm),
+		selfPaused: () => selfPaused(orm),
 		endedBefore: (iso: string) => endedBefore(orm, iso),
 		/** Deletes the run's row, its agents and its own handoffs (ADR-143). */
 		remove: (id: string) => remove(orm, id),

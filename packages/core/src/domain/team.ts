@@ -117,16 +117,35 @@ const withEntry = (team: TeamState, id: string, entry: TaskEntry) => ({
 	tasks: { ...team.tasks, [id]: entry },
 });
 
-/** Keeps a task's conversation while another task works. */
+/** What a task's attempt carries between the conversations the run holds (SECURITY.md, taint). */
+export type AttemptState = {
+	readonly turns: number;
+	readonly tainted: boolean;
+};
+
+/** Keeps a task's conversation while another task works; `state` keeps the attempt's taint and turns with it. */
 export const keepMessages = (
 	team: TeamState,
 	id: string,
 	messages: readonly ChatMessage[],
+	state?: AttemptState,
 ): TeamState => {
 	const entry = team.tasks[id];
-	return entry
-		? withEntry(team, id, { ...entry, messages: [...messages] })
-		: team;
+	if (!entry) return team;
+	const session = state
+		? { ...(entry.session ?? freshTaskSession()), ...state }
+		: entry.session;
+	return withEntry(team, id, {
+		...entry,
+		messages: [...messages],
+		...(session ? { session } : {}),
+	});
+};
+
+/** The taint and turns a task's kept conversation goes on with; fresh when none were kept. */
+export const attemptState = (team: TeamState, id: string): AttemptState => {
+	const session = team.tasks[id]?.session;
+	return { turns: session?.turns ?? 0, tainted: session?.tainted ?? false };
 };
 
 /** A task's Artifact. */
@@ -200,11 +219,18 @@ export const applyTask = (
 		"PAIR_REVISE",
 		"UNBLOCK",
 	].includes(event.type);
+	// A block lifted goes on in the same attempt: its taint stays (SECURITY.md), its turns start over.
+	const session =
+		event.type === "UNBLOCK"
+			? { ...freshTaskSession(), tainted: entry.session?.tainted === true }
+			: reopened
+				? freshTaskSession()
+				: entry.session;
 	const updated: TaskEntry = {
 		...entry,
 		status: next.value,
 		context: next.context,
-		session: reopened ? freshTaskSession() : entry.session,
+		session,
 		approvals: fresh ? [] : entry.approvals,
 		repairs: ["START", "ATTEMPT", "SUBMIT", "UNBLOCK"].includes(event.type)
 			? 0

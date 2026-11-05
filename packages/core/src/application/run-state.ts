@@ -182,7 +182,8 @@ export const clearTimer = (l: Live) => {
 const selfResuming = (reason: string | undefined) =>
 	reason === "quota" || reason === "network";
 
-const armTimer = (s: EngineState, l: Live, resumesAt: string) => {
+/** Arms the timer that ends a quota or network pause at `resumesAt`; a past time fires at once. */
+export const armTimer = (s: EngineState, l: Live, resumesAt: string) => {
 	const wait = Math.max(0, Date.parse(resumesAt) - s.deps.now());
 	l.cancelTimer = s.deps.setTimer(
 		() => {

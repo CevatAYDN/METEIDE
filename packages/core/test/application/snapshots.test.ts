@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ok } from "@mete/contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createCheckpointRestore } from "../../src/application/restore.js";
 import { createSnapshotStore } from "../../src/infrastructure/snapshot-store.js";
 import { engineHarness, reply, type Tool } from "../helpers/engine.js";
 
@@ -128,6 +129,49 @@ describe("file snapshots without git", () => {
 			"bar\n",
 			"hi",
 		]);
+	});
+
+	it("waits for the run's drive loop before it restores (a tool call in flight finishes first)", async () => {
+		const { h, runId, workspace, snapshots } = await run([
+			{ name: "fs_write", args: { path: "new.txt", content: "hi" } },
+		]);
+		const checkpoint = h.events.find((e) => e.type === "checkpoint.created");
+		if (!checkpoint) throw new Error("no checkpoint");
+		const order: string[] = [];
+		let release: () => void = () => undefined;
+		const loop = new Promise<void>((r) => {
+			release = () => {
+				order.push("loop ended");
+				r();
+			};
+		});
+		const restore = createCheckpointRestore(
+			{
+				registry: h.registry,
+				store: h.store,
+				events: h.bus,
+				now: () => h.clock.now,
+				newId: () => crypto.randomUUID(),
+				workspaceId: crypto.randomUUID(),
+				snapshots: createSnapshotStore(snapshots, workspace),
+			},
+			() => loop,
+		);
+		const restoring = restore
+			.restore({
+				runId,
+				checkpointId: checkpoint.id,
+				ref: `snapshots/${runId}/1`,
+			})
+			.then((r) => order.push(r.ok ? "restored" : r.error.code));
+		await new Promise((r) => setTimeout(r, 20));
+		expect(order).toEqual([]);
+		release();
+		await restoring;
+		expect(order).toEqual(["loop ended", "restored"]);
+		expect(
+			await readFile(join(workspace, "new.txt"), "utf8").catch(() => "(none)"),
+		).toBe("(none)");
 	});
 
 	it("does not copy a path outside the workspace", async () => {

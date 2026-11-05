@@ -8,6 +8,7 @@ import {
 } from "../domain/clarify.js";
 import {
 	applyTask,
+	attemptState,
 	GO_ON,
 	keepMessages,
 	type TeamState,
@@ -73,8 +74,13 @@ export const asked = (s: EngineState, l: Live, reply: string) => {
 	}
 	const body = { toRoleId: by, question };
 	emit(s, l, { type: "task.clarification.requested", payload: body }, entry.id);
-	const { messages, goal } = l.snapshot.context;
-	const kept = withClarify(keepMessages(team, task, messages), task, "asked");
+	const { messages, goal, turns, tainted } = l.snapshot.context;
+	const state = { turns, tainted: tainted === true };
+	const kept = withClarify(
+		keepMessages(team, task, messages, state),
+		task,
+		"asked",
+	);
 	if (by === "human") return blockForHuman(s, l, kept, task);
 	const where = platform(s, l);
 	if (!where) return;
@@ -113,5 +119,6 @@ export const answered = (s: EngineState, l: Live, reply: string) => {
 		task,
 		team: withOpening(done, task, messages),
 		messages,
+		state: attemptState(team, task),
 	});
 };

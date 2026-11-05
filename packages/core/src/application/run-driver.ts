@@ -1,5 +1,6 @@
 import {
 	type ChatMessage,
+	isWrite,
 	type LlmChunk,
 	TIER_MIN_CONTEXT,
 } from "@mete/contracts";
@@ -19,7 +20,7 @@ import {
 	type Live,
 	toolContext,
 } from "./run-state.js";
-import { callModel, callTool, type ModelOutcome } from "./steps.js";
+import { callModel, callTool, type ModelOutcome, masked } from "./steps.js";
 import { cutTurn, summarizeTurn } from "./summarize.js";
 import { submit, teamTurn, verdict } from "./team-driver.js";
 import { createCheckpoint } from "./vcs-steps.js";
@@ -156,7 +157,8 @@ const checkpoint = async (
 	});
 	if (!cp.ok) {
 		const at = s.deps.now();
-		const fail = { code: "checkpoint_failed", message: cp.error };
+		const message = await masked(s.deps, cp.error);
+		const fail = { code: "checkpoint_failed", message };
 		if (owns(l, token)) apply(s, l, { type: "FAIL", at, ...fail });
 		return false;
 	}
@@ -223,6 +225,8 @@ const toolTurn = async (
 	t: ToolStep,
 ) => {
 	if (t.checkpoint && !(await checkpoint(s, l, token, t))) return;
+	// A writing call is on record before it runs, so a crash in it is not run again (ADR-177).
+	if (isWrite(t.call)) apply(s, l, { type: "TOOL_STARTED", callId: t.call.id });
 	const out = await callTool(
 		s.deps,
 		{
@@ -299,6 +303,12 @@ const loop = async (s: EngineState, l: Live, token: object) => {
 export const drive = (s: EngineState, l: Live) => {
 	const token = {};
 	l.token = token;
+	// A tool call the previous loop still awaits listens to the previous controller: cancel or stop
+	// aborting the new one must reach it too (ADR-065).
+	const previous = l.all;
 	l.all = new AbortController();
+	l.all.signal.addEventListener("abort", () => previous.abort(), {
+		once: true,
+	});
 	l.loop = l.loop.catch(() => undefined).then(() => loop(s, l, token));
 };

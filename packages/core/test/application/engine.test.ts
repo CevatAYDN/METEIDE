@@ -1,6 +1,7 @@
 import type { LlmChunk, MeteEvent, RunView } from "@mete/contracts";
 import { err, ok } from "@mete/contracts";
 import { describe, expect, it, vi } from "vitest";
+import { INTERRUPTED } from "../../src/application/recovery.js";
 import { MAX_TURNS } from "../../src/defaults.js";
 import { REPEAT_LABEL } from "../../src/domain/tools.js";
 import {
@@ -232,6 +233,37 @@ describe("single-agent engine", () => {
 		expect(view(h, runId)?.status).toBe("cancelled");
 		expect(typesOf(h.events)).toContain("run.cancelled");
 		expect(h.requests).toHaveLength(1);
+	});
+
+	it("cancel reaches a tool call that an earlier drive loop started (pause, resume, cancel; ADR-065)", async () => {
+		let aborted = false;
+		let release: () => void = () => undefined;
+		const hanging: Tool = (_input, ctx) =>
+			new Promise((resolve) => {
+				ctx.signal.addEventListener("abort", () => {
+					aborted = true;
+					resolve(ok({}));
+				});
+				release = () => resolve(ok({}));
+			});
+		const h = engineHarness({
+			scripts: [
+				reply("", [{ name: "fs_read", args: { path: "a.md" } }]),
+				reply("done"),
+			],
+			tools: [["fs.read@1", hanging]],
+		});
+		const runId = await begin(h);
+		await vi.waitFor(() => expect(h.requests).toHaveLength(1));
+		await new Promise((r) => setTimeout(r, 20));
+		// The tool call keeps running through the pause (docs/08); resume starts a new drive loop.
+		expect((await h.engine.pause(runId)).ok).toBe(true);
+		expect((await h.engine.resume(runId)).ok).toBe(true);
+		expect((await h.engine.cancel(runId)).ok).toBe(true);
+		await vi.waitFor(() => expect(aborted).toBe(true));
+		release();
+		await h.stop();
+		expect(view(h, runId)?.status).toBe("cancelled");
 	});
 
 	it("never lets the model reach checkpoint operations through vcs_git", async () => {
@@ -880,6 +912,76 @@ describe("single-agent engine", () => {
 		expect(typesOf(later.events)).toEqual(["run.paused"]);
 		expect((await later.engine.resume(lost)).ok).toBe(true);
 		await vi.waitFor(() => expect(later.requests).toHaveLength(1));
+		await crashed.stop();
+		await later.stop();
+	});
+
+	it("arms the timer of a quota pause again in the process that recovers the run (ADR-176)", async () => {
+		const resumesAt = new Date(T0 + 60_000).toISOString();
+		const crashed = engineHarness({
+			scripts: [
+				[
+					{
+						type: "error",
+						error: { code: "quota_exhausted", message: "q", resumesAt },
+					},
+				],
+			],
+		});
+		const runId = await begin(crashed);
+		await settled(crashed, runId, "paused");
+		expect(view(crashed, runId)?.pauseReason).toBe("quota");
+		await crashed.stop();
+		// The reset has passed while no process was running: the timer fires at once.
+		const later = engineHarness({ scripts: [reply("done")], db: crashed.db });
+		later.clock.now = T0 + 120_000;
+		later.recover();
+		expect(view(later, runId)?.pauseReason).toBe("quota");
+		expect(later.timers.map((t) => t.ms)).toEqual([0]);
+		later.timers[0]?.fn();
+		await settled(later, runId, "completed");
+		await later.stop();
+	});
+
+	it("does not run a writing tool call again after a crash in it; the model hears it was interrupted (ADR-177)", async () => {
+		let writes = 0;
+		const hanging: Tool = (_input, ctx) =>
+			new Promise((resolve) => {
+				writes += 1;
+				ctx.signal.addEventListener("abort", () => resolve(ok({ bytes: 1 })));
+			});
+		const crashed = engineHarness({
+			scripts: [
+				reply("", [
+					{ name: "fs_write", args: { path: "a.txt", content: "x" } },
+				]),
+			],
+			tools: [["fs.write@1", hanging]],
+		});
+		const runId = await begin(crashed);
+		await vi.waitFor(() => expect(writes).toBe(1));
+		// The row says a writing call is in flight; the process ends here.
+		const row = crashed.db
+			.prepare("SELECT snapshot FROM runs WHERE id = ?")
+			.get(runId) as { snapshot: string };
+		expect(JSON.parse(row.snapshot).context.inFlight).toMatch(/fs_write/);
+		const later = engineHarness({
+			scripts: [reply("done")],
+			tools: [["fs.write@1", hanging]],
+			db: crashed.db,
+		});
+		later.recover();
+		expect(view(later, runId)).toMatchObject({
+			status: "paused",
+			pauseReason: "user",
+		});
+		expect((await later.engine.resume(runId)).ok).toBe(true);
+		await settled(later, runId, "completed");
+		expect(writes).toBe(1);
+		expect(later.requests[0]?.messages.at(-1)).toMatchObject({
+			role: "tool",
+			content: INTERRUPTED,
+		});
 		await crashed.stop();
 		await later.stop();
 	});

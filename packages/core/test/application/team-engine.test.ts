@@ -420,6 +420,44 @@ describe("team runs", () => {
 		expect(later.events.at(-1)?.payload).toEqual({ summary: "draft" });
 	});
 
+	it("keeps the attempt's taint when the human lifts a block (SECURITY.md)", async () => {
+		await writeFile(
+			join(templates.builtIn, "duo.yaml"),
+			GUARDED.replace("capabilities: []", "capabilities: [web.search@1]"),
+		);
+		const seen: boolean[] = [];
+		const h = engineHarness({
+			scripts: [
+				reply("", [{ name: "web_search", args: { query: "q" } }]),
+				reply("notes"),
+				reply("still notes"),
+				reply("", [{ name: "web_search", args: { query: "again" } }]),
+				reply(REPORT),
+			],
+			tools: [
+				[
+					"web.search@1",
+					async (_input, ctx) => {
+						seen.push(ctx.tainted === true);
+						return ok({});
+					},
+				],
+			],
+			templates,
+		});
+		const runId = await start(h);
+		await settled(h, runId, "paused");
+		const r = await h.engine.approve(runId, {
+			taskId: "report",
+			decision: "revise",
+			feedback: "Answer with the JSON only",
+		});
+		expect(r.ok).toBe(true);
+		await settled(h, runId, "completed");
+		// The first search is untainted, the one after the lifted block still is tainted.
+		expect(seen).toEqual([false, true]);
+	});
+
 	it("sends a blocked task back to work with the human's instruction", async () => {
 		await writeFile(join(templates.builtIn, "duo.yaml"), GUARDED);
 		const h = engineHarness({
@@ -925,7 +963,8 @@ describe("merging an approved task's worktree", () => {
 						ok: false,
 						error: {
 							code: "merge_conflict",
-							message: "merging a.txt conflicts with the workspace",
+							message:
+								"merging a.txt conflicts with the workspace (remote https://x:sk-SECRET@git.example)",
 							paths: ["a.txt"],
 						},
 					}
@@ -939,13 +978,26 @@ describe("merging an approved task's worktree", () => {
 			],
 			templates,
 		});
+		// Git's words go through secrets.mask@1 before they reach an event (docs/07).
+		h.registry.provide("secrets.mask@1", {
+			id: "security",
+			trust: "core",
+			features: [],
+			impl: {
+				mask: async (text: string) => ({
+					text: text.replaceAll("sk-SECRET", "[SECRET:1]"),
+					masked: 1,
+				}),
+			},
+		});
 		const runId = await start(h);
 		await settled(h, runId, "paused");
 		expect(view(h, runId)?.pauseReason).toBe("approval");
 		const failed = h.events.find((e) => e.type === "task.merge.failed");
 		expect(failed?.payload).toEqual({
 			code: "merge_conflict",
-			message: "merging a.txt conflicts with the workspace",
+			message:
+				"merging a.txt conflicts with the workspace (remote https://x:[SECRET:1]@git.example)",
 			branch: `mete/${runId}/${failed?.taskId}`,
 			paths: ["a.txt"],
 		});

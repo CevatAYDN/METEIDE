@@ -126,13 +126,16 @@ const rollBack = async (
 	return ok({ ref, undo });
 };
 
-/** Creates the checkpoint.restore@1 adapter on the engine's dependencies. */
+/** Creates the checkpoint.restore@1 adapter on the engine's dependencies; `settled` waits for the run's drive loop. */
 export const createCheckpointRestore = (
 	deps: Deps,
+	settled: (runId: string) => Promise<void> = async () => undefined,
 ): CheckpointRestoreAdapter => ({
 	restore: async (input) => {
 		const no = refused(deps, input);
 		if (no) return no;
+		// A paused run's tool call in flight finishes (docs/08); it must not write under the restore.
+		await settled(input.runId);
 		const n = snapshotNumber(input.runId, input.ref);
 		if (n !== undefined)
 			return deps.snapshots

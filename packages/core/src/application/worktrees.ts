@@ -8,6 +8,7 @@ import {
 	type Live,
 	stuck,
 } from "./run-state.js";
+import { masked } from "./steps.js";
 import {
 	createCheckpoint,
 	dropWorktree,
@@ -69,7 +70,7 @@ export const merge = async (
 			type: "FAIL",
 			at: s.deps.now(),
 			code: "checkpoint_failed",
-			message: cp.error,
+			message: await masked(s.deps, cp.error),
 		});
 	if (cp.value)
 		emit(s, l, {
@@ -86,7 +87,9 @@ export const merge = async (
 		apply(s, l, { type: "TEAM", team: withoutWorktree(team, id) });
 		return dropWorktree(s.deps, { runId, taskId }, l.all.signal);
 	}
-	const { code, message, paths } = landed;
+	// Git's text may carry a remote address with a token in it: masked like a tool result (docs/07).
+	const { code, paths } = landed;
+	const message = await masked(s.deps, landed.message);
 	const branch = `mete/${runId}/${taskId}`;
 	const payload = { code, message, branch, ...(paths ? { paths } : {}) };
 	emit(s, l, { type: "task.merge.failed", payload }, entry.id);

@@ -42,10 +42,11 @@ export const endAttempt = (
 		readonly messages?: readonly ChatMessage[];
 	} = {},
 ) => {
-	const { team, task, messages } = l.snapshot.context;
+	const { team, task, messages, turns, tainted } = l.snapshot.context;
 	if (!team || !task) return stuck(s, l);
 	const { artifact } = end;
-	const kept = keepMessages(team, task, end.messages ?? messages);
+	const state = { turns, tainted: tainted === true };
+	const kept = keepMessages(team, task, end.messages ?? messages, state);
 	const r = applyTask(
 		artifact ? withArtifact(kept, task, artifact) : kept,
 		task,

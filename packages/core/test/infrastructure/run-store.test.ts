@@ -102,6 +102,26 @@ describe("run store", () => {
 		);
 		expect(store.list().map((r) => r.id)).toEqual(["b", "a", "old"]);
 		expect(store.unfinished().sort()).toEqual(["a", "old"]);
+		store.save(
+			meta("q", at),
+			snapshot(
+				{ type: "START", at: T0 },
+				{
+					type: "PAUSE",
+					at: T0,
+					reason: "quota",
+					resumesAt: "2030-01-01T00:00:00.000Z",
+				},
+			),
+		);
+		store.save(
+			meta("u", at),
+			snapshot(
+				{ type: "START", at: T0 },
+				{ type: "PAUSE", at: T0, reason: "user" },
+			),
+		);
+		expect(store.selfPaused()).toEqual(["q"]);
 	});
 
 	it("writes the agent row with its model and requests together with the run", () => {

@@ -73,6 +73,8 @@ export type RunContext = {
 	readonly workspace?: string | undefined;
 	/** External content joined this attempt, so its tool calls are tainted (SECURITY.md). */
 	readonly tainted?: boolean | undefined;
+	/** The writing tool call that started and has no result yet; a crash leaves it here (ADR-177). */
+	readonly inFlight?: string | undefined;
 	/** The chosen model for the single agent or per role (ADR-122). */
 	readonly prefer?: RunPrefer | undefined;
 	/** Incremented on each preference change to invalidate seat caches (ADR-122). */
@@ -83,6 +85,7 @@ export type RunContext = {
 export type RunEvent =
 	| { type: "START"; at: number }
 	| { type: "REPLIED"; message: Assistant; finish: Finish }
+	| { type: "TOOL_STARTED"; callId: string }
 	| { type: "TOOL_DONE"; message: ToolMessage; external?: boolean }
 	| { type: "MODEL"; agent: AgentRef }
 	| { type: "TEAM"; team: TeamState }
@@ -99,6 +102,8 @@ export type RunEvent =
 			review?: string;
 			clarify?: string;
 			judge?: boolean;
+			/** The attempt goes on where it left off: its turns and taint (SECURITY.md). */
+			state?: { readonly turns: number; readonly tainted: boolean };
 	  }
 	| { type: "REVIEWED"; team: TeamState }
 	| { type: "CHECKPOINTED"; step: number; snapshot?: string }
@@ -203,20 +208,22 @@ export const runMachine = setup({
 				],
 			})),
 		},
-		// A new attempt: its own turns, checkpoints and agent (docs/08, Task execution sequence).
+		// A new attempt: its own turns, checkpoints and agent (docs/08, Task execution sequence); an
+		// attempt that goes on after its questions or a lifted block keeps its turns and taint.
 		SWITCH: {
 			actions: assign(({ event }) => ({
 				task: event.task,
 				team: event.team,
 				messages: event.messages,
-				turns: 0,
+				turns: event.state?.turns ?? 0,
 				checkpointed: -1,
 				snapshot: undefined,
 				agent: undefined,
 				review: event.review,
 				clarify: event.clarify,
 				judge: event.judge,
-				tainted: false,
+				tainted: event.state?.tainted ?? false,
+				inFlight: undefined,
 			})),
 		},
 		// A review's or a judge's verdict is recorded with the conversation it ends (ADR-162).
@@ -227,11 +234,16 @@ export const runMachine = setup({
 				judge: undefined,
 			})),
 		},
+		// A writing call is recorded before it runs, so a crash in it is seen on recovery (ADR-177).
+		TOOL_STARTED: {
+			actions: assign({ inFlight: ({ event }) => event.callId }),
+		},
 		TOOL_DONE: {
 			actions: assign({
 				messages: ({ context, event }) => [...context.messages, event.message],
 				tainted: ({ context, event }) =>
 					context.tainted || event.external === true,
+				inFlight: undefined,
 			}),
 		},
 		CHECKPOINTED: {
