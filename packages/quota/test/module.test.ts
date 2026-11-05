@@ -92,7 +92,7 @@ describe("quota module: reserve and settle", () => {
 		await s.close();
 	});
 
-	it("throws on a bad observation and keeps the reservation", async () => {
+	it("drops a bad observation, releases the reservation and warns", async () => {
 		const s = await active();
 		const a = s.adapter();
 		a.define([spec()]);
@@ -100,8 +100,12 @@ describe("quota module: reserve and settle", () => {
 		if (!r.ok) throw new Error("reserve failed");
 		const bad = [{ unit: "requests_per_minute", exhausted: "yes" }];
 		// @ts-expect-error a provider adapter that breaks the contract
-		expect(() => a.settle(r.value.id, {}, bad)).toThrow();
-		expect(a.settle(r.value.id, {}, []).ok).toBe(true);
+		expect(a.settle(r.value.id, {}, bad).ok).toBe(true);
+		expect(a.settle(r.value.id, {}, []).ok).toBe(false);
+		expect(s.events.map((e) => e.type)).toContain("quota.consumed");
+		expect(s.logged.map((l) => l.msg)).toContain(
+			"quota observation ignored: not of the contract",
+		);
 		await s.close();
 	});
 

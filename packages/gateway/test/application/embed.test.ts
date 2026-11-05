@@ -117,6 +117,22 @@ describe("llm.embed@1", () => {
 		expect(q.reserved[2]?.chain.map((c) => c.providerId)).toEqual(["b"]);
 	});
 
+	it("settles the reservation when the adapter throws", async () => {
+		const e = fakeEmbedder("a", [ok(vectors(2))]);
+		e.adapter.embed = async () => {
+			throw new Error("adapter bug");
+		};
+		const q = fakeQuota();
+		const { deps: d } = deps({
+			discover: async () => [offer(e.adapter, "emb")],
+			quota: q.quota,
+		});
+		await expect(createLlmEmbed(d).embed(req, signal())).rejects.toThrow(
+			"adapter bug",
+		);
+		expect(q.settled).toEqual([{ id: "r1", actual: {}, observations: [] }]);
+	});
+
 	it("waits after a rate limit and tries the same model again", async () => {
 		const a = fakeEmbedder("a", [err(failure(429)), ok(vectors(2))]);
 		const { deps: d, waits } = deps({

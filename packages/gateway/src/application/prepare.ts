@@ -8,7 +8,9 @@ import type {
 	Result,
 	SecretsMaskAdapter,
 	ToolCall,
+	ToolSpec,
 } from "@mete/contracts";
+import { LISTING_RETRY_MS } from "../defaults.js";
 import type { Discovered } from "../domain/resolve.js";
 
 // The steps before a call: model discovery and secret masking (docs/09, Gateway).
@@ -26,23 +28,32 @@ export type DiscoveryDeps = {
 	) => Promise<Result<ModelInfo[], ProviderError>>;
 	readonly define: (specs: readonly QuotaUnitSpec[]) => void;
 	readonly warn: (msg: string) => void;
+	/** The clock the retry of a failed listing reads; `Date.now` when left out. */
+	readonly now?: () => number;
 };
 
 /**
- * Lists each provider's models once and defines its quota units first.
+ * Lists each provider's models once and defines its quota units first; a failed
+ * listing is asked again after LISTING_RETRY_MS.
  * shortcut: a listing is kept for the module's lifetime; add a refresh interval
  * once docs set one.
  */
 export const createDiscovery = (deps: DiscoveryDeps) => {
 	const listed = new Map<string, readonly ModelInfo[]>();
+	const failedAt = new Map<string, number>();
+	const now = deps.now ?? Date.now;
 	const list = async (a: ProviderAdapter, signal: AbortSignal) => {
 		const known = listed.get(a.id);
 		if (known) return known;
+		const failed = failedAt.get(a.id);
+		if (failed !== undefined && now() - failed < LISTING_RETRY_MS) return [];
 		const r = await (deps.list?.(a, signal) ?? a.listModels(signal));
 		if (!r.ok) {
+			failedAt.set(a.id, now());
 			deps.warn(`${a.id}: listing models failed: ${r.error.message}`);
 			return [];
 		}
+		failedAt.delete(a.id);
 		deps.define(a.quotaUnits());
 		listed.set(a.id, r.value);
 		return r.value;
@@ -107,4 +118,30 @@ export const maskMessages = (
 ): Promise<ChatMessage[]> => {
 	const mask: Mask = async (t) => (await adapter.mask(t)).text;
 	return Promise.all(messages.map((m) => maskMessage(m, mask)));
+};
+
+/** Tool descriptions with secrets replaced; the JSON schemas are sent as they are. */
+export const maskTools = (
+	adapter: SecretsMaskAdapter,
+	tools: readonly ToolSpec[],
+): Promise<ToolSpec[]> =>
+	Promise.all(
+		tools.map(async (t) => ({
+			...t,
+			description: (await adapter.mask(t.description)).text,
+		})),
+	);
+
+/** The messages and tools of a request with secrets replaced. */
+export const maskCall = async (
+	adapter: SecretsMaskAdapter,
+	req: {
+		messages: readonly ChatMessage[];
+		tools?: readonly ToolSpec[] | undefined;
+	},
+) => {
+	const messages = await maskMessages(adapter, req.messages);
+	return req.tools
+		? { messages, tools: await maskTools(adapter, req.tools) }
+		: { messages };
 };

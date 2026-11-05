@@ -24,7 +24,12 @@ import {
 	unavailable,
 } from "../domain/llm-errors.js";
 import { holding, type PrivacyRules, resolveChain } from "../domain/resolve.js";
-import { afterFailure, estimateTokens, usageOf } from "../domain/retry.js";
+import {
+	afterFailure,
+	estimateTokens,
+	tokensToPrice,
+	usageOf,
+} from "../domain/retry.js";
 import { costOf } from "../domain/spend.js";
 import type { ModelCall } from "../infrastructure/model-calls.js";
 import type {
@@ -45,7 +50,7 @@ import {
 	refuse,
 	report,
 } from "./model-memory.js";
-import { maskMessages, type Offered } from "./prepare.js";
+import { maskCall, type Offered } from "./prepare.js";
 import { type StallLimits, watched } from "./stall.js";
 
 // The llm.chat@2 request pipeline (docs/09, Gateway): privacy filter → secret masking →
@@ -375,19 +380,15 @@ async function* chat(
 			code: "no_model",
 			message: "no discovered model fits this call",
 		});
-	const messages = await maskMessages(deps.mask, req.messages);
+	const masked = await maskCall(deps.mask, req);
 	const { target, runId, priority, needs, avoidFamilies, prefer, ...rest } =
 		req;
-	const call = { ...rest, messages };
+	const call = { ...rest, ...masked };
 	const estimate = { tokens_per_minute: estimateTokens(call) };
 	const fits = holding(chain, estimate.tokens_per_minute);
 	if (fits.length === 0)
 		return yield fail(tooLarge(estimate.tokens_per_minute));
-	const prompt = estimateTokens({
-		messages: call.messages,
-		...(call.tools ? { tools: call.tools } : {}),
-	});
-	const tokens = { prompt, completion: call.maxTokens ?? 0 };
+	const tokens = tokensToPrice(call);
 	const w = { req, call, chain: fits, estimate, tokens };
 	yield* walk(deps, w, memory, signal);
 }

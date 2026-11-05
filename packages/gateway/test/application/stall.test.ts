@@ -1,5 +1,5 @@
 import type { ChatChunk, LlmChatRequest } from "@mete/contracts";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createLlmChat } from "../../src/application/chat.js";
 import { watched } from "../../src/application/stall.js";
 import {
@@ -90,6 +90,23 @@ describe("a quiet provider stream (ADR-062)", () => {
 				},
 			},
 		]);
+	});
+
+	describe("with fake timers", () => {
+		afterEach(() => vi.useRealTimers());
+
+		it("clears the stall timer when the stream rejects", async () => {
+			vi.useFakeTimers();
+			const open = (): AsyncIterable<ChatChunk> => ({
+				[Symbol.asyncIterator]: () => ({
+					next: () => Promise.reject(new Error("socket closed")),
+				}),
+			});
+			await expect(
+				all(watched(open, new AbortController().signal, LIMITS)),
+			).rejects.toThrow("socket closed");
+			expect(vi.getTimerCount()).toBe(0);
+		});
 	});
 });
 

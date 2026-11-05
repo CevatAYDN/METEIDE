@@ -37,8 +37,12 @@ export async function* watched(
 			const late = new Promise<"late">((r) => {
 				timer = setTimeout(() => r("late"), wait);
 			});
-			const next = await Promise.race([it.next(), late]);
-			clearTimeout(timer);
+			let next: Awaited<ReturnType<typeof it.next>> | "late";
+			try {
+				next = await Promise.race([it.next(), late]);
+			} finally {
+				clearTimeout(timer);
+			}
 			if (next === "late") {
 				stop.abort();
 				yield quiet(wait);

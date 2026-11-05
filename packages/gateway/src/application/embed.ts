@@ -109,15 +109,21 @@ const attempt = async (
 	const start = deps.now();
 	const { purpose } = c.req;
 	const call = { model: o.model.id, input: c.input, purpose };
-	const r = await o.adapter.embed(call, signal);
-	const observations =
-		!r.ok && r.error.status !== undefined
-			? o.adapter.observe(r.error.status, r.error.headers ?? new Headers())
-			: [];
-	const actual = r.ok ? { ...c.estimate, ...costOf(o.model, c.tokens) } : {};
-	deps.quota.settle(id, actual, observations);
-	deps.record(row(c, o, r, { start, end: deps.now() }));
-	return { r, observations };
+	let r: Answer["r"] | undefined;
+	let observations: readonly QuotaObservation[] = [];
+	// Settled once whatever the adapter does, as `settled` in chat.ts.
+	try {
+		r = await o.adapter.embed(call, signal);
+		observations =
+			!r.ok && r.error.status !== undefined
+				? o.adapter.observe(r.error.status, r.error.headers ?? new Headers())
+				: [];
+		return { r, observations };
+	} finally {
+		const actual = r?.ok ? { ...c.estimate, ...costOf(o.model, c.tokens) } : {};
+		deps.quota.settle(id, actual, observations);
+		if (r) deps.record(row(c, o, r, { start, end: deps.now() }));
+	}
 };
 
 const walk = async (

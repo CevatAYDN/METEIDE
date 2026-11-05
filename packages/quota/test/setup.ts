@@ -70,7 +70,10 @@ export const setup = async (
 	bus.subscribe("quota.*", (e) => {
 		events.push(e);
 	});
-	const log = () => {};
+	const logged: { msg: string }[] = [];
+	const log = (_fields: Readonly<Record<string, unknown>>, msg: string) => {
+		logged.push({ msg });
+	};
 	const base = {
 		capabilities: registry,
 		events: bus,
@@ -108,5 +111,5 @@ export const setup = async (
 		await quotaModule.deactivate();
 		await storage.deactivate();
 	};
-	return { base, ctx, quotaModule, adapter, events, time, close };
+	return { base, ctx, quotaModule, adapter, events, logged, time, close };
 };

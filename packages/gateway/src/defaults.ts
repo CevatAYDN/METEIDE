@@ -23,6 +23,12 @@ export const STALL_LIMITS = { firstMs: 120_000, gapMs: 60_000 } as const;
 /** Tab 09, Gateway: failures on one model before moving down the chain. */
 export const FAILURES_PER_MODEL = 3;
 
+/** Tab 09, Model mode and spending: the completion tokens a paid call without `maxTokens` reserves. */
+export const ESTIMATED_COMPLETION_TOKENS = 1024;
+
+/** Tab 09, Gateway: a provider whose listing failed is asked again after this long. */
+export const LISTING_RETRY_MS = 60_000;
+
 /** Tab 09, Tier resolution: the `long_context` need asks for the long-context tier's window. */
 export const LONG_CONTEXT_MIN = TIER_MIN_CONTEXT["long-context"];
 

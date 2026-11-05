@@ -12,6 +12,7 @@ import {
 	createDiscovery,
 	maskMessages,
 } from "../../src/application/prepare.js";
+import { LISTING_RETRY_MS } from "../../src/defaults.js";
 
 const mask: SecretsMaskAdapter = {
 	mask: async (text) => {
@@ -135,8 +136,9 @@ describe("createDiscovery", () => {
 		);
 	});
 
-	it("retries a failed listing on the next call and warns, keeping other providers", async () => {
+	it("retries a failed listing after LISTING_RETRY_MS and warns, keeping other providers", async () => {
 		let fail = true;
+		let now = 1_000;
 		const a = fakeAdapter("a", async () =>
 			fail ? err({ code: "network", message: "down" }) : ok([info("a", "m")]),
 		);
@@ -146,10 +148,16 @@ describe("createDiscovery", () => {
 			providers: () => [a.adapter, b.adapter],
 			define: () => {},
 			warn: (msg) => warnings.push(msg),
+			now: () => now,
 		});
 		expect((await discover(signal)).map((d) => d.model.id)).toEqual(["n"]);
 		expect(warnings).toEqual(["a: listing models failed: down"]);
 		fail = false;
+		// Within the retry time the failure is kept and the provider is not asked again.
+		now += LISTING_RETRY_MS - 1;
+		expect((await discover(signal)).map((d) => d.model.id)).toEqual(["n"]);
+		expect(a.calls.list).toBe(1);
+		now += 1;
 		expect((await discover(signal)).map((d) => d.model.id)).toEqual(["m", "n"]);
 		expect(a.calls.list).toBe(2);
 	});

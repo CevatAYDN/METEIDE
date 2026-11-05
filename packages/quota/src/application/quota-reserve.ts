@@ -86,6 +86,22 @@ const afterChange = (st: ReserveState) => {
 			: setTimer(() => afterChange(st), Math.max(0, swept.next - at));
 };
 
+// Observations a provider adapter made against the contract are dropped, not fatal: the
+// reservation must be released whatever they look like.
+const validObservations = (
+	logger: Logger,
+	observations: readonly QuotaObservation[],
+) =>
+	observations.flatMap((o) => {
+		const p = QuotaObservationSchema.safeParse(o);
+		if (p.success) return [p.data];
+		logger.warn(
+			{ observation: o, issues: p.error.issues },
+			"quota observation ignored: not of the contract",
+		);
+		return [];
+	});
+
 const settle = (
 	st: ReserveState,
 	id: string,
@@ -93,10 +109,10 @@ const settle = (
 	observations: readonly QuotaObservation[],
 ) => {
 	const amounts = actual === null ? null : QuotaAmountsSchema.parse(actual);
-	const observed = observations.map((o) => QuotaObservationSchema.parse(o));
 	const entry = st.reservations.get(id);
 	if (!entry) return err({ code: "unknown_reservation" as const, id });
 	st.reservations.delete(id);
+	const observed = validObservations(st.deps.logger, observations);
 	const { held, providerId, modelId } = entry.granted;
 	const at = st.deps.now();
 	const consumed = st.deps.pool.record(held, amounts, at);

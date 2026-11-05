@@ -9,6 +9,7 @@ import type {
 import {
 	BACKOFF_MS,
 	CHARS_PER_TOKEN,
+	ESTIMATED_COMPLETION_TOKENS,
 	FAILURES_PER_MODEL,
 	RESET_WAIT_MAX_MS,
 } from "../defaults.js";
@@ -70,6 +71,20 @@ export const estimateTokens = (
 		(req.tools ? JSON.stringify(req.tools).length : 0);
 	return Math.ceil(chars / CHARS_PER_TOKEN) + (req.maxTokens ?? 0);
 };
+
+/**
+ * The prompt and completion tokens a paid call is priced at before it runs: the completion is
+ * `maxTokens`, or the documented estimate without it, so the spending cap holds (docs/09, ADR-042).
+ */
+export const tokensToPrice = (
+	req: Pick<ChatRequest, "messages" | "tools" | "maxTokens">,
+) => ({
+	prompt: estimateTokens({
+		messages: req.messages,
+		...(req.tools ? { tools: req.tools } : {}),
+	}),
+	completion: req.maxTokens ?? ESTIMATED_COMPLETION_TOKENS,
+});
 
 type Usage = Extract<ChatChunk, { type: "finish" }>["usage"];
 
