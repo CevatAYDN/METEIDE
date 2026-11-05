@@ -5,7 +5,7 @@ import { writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import lighthouse from "lighthouse";
 import { chromium } from "playwright-core";
-import { requestGate } from "../application/host-check.js";
+import { egressProxy } from "./egress-proxy.js";
 import { lookupAll } from "./lookup.js";
 import type { RunnerReply, RunnerRequest, Target } from "./runner.js";
 import { serveFolder } from "./static-server.js";
@@ -37,52 +37,55 @@ const opened = async <T>(target: Target, work: (url: string) => Promise<T>) => {
 const screenshot = async (
 	req: Extract<RunnerRequest, { kind: "screenshot" }>,
 ) => {
-	const browser = await chromium.launch();
-	try {
-		await opened(req.target, async (url) => {
+	await opened(req.target, async (url) => {
+		const proxy = await egressProxy(
+			lookupAll,
+			"folder" in req.target ? new URL(url).origin : undefined,
+		);
+		const browser = await chromium.launch({
+			proxy: { server: proxy.url, bypass: "<-loopback>" },
+		});
+		try {
 			const page = await browser.newPage();
-			// Every request the page makes must go to a public address, like web.fetch@1's hops (ADR-171),
-			// or to the file server of the folder being shown, which serves that folder and nothing else.
-			const own = "folder" in req.target ? new URL(url).origin : undefined;
-			const pass = requestGate(lookupAll, own);
-			await page.route("**/*", async (route) =>
-				(await pass(route.request().url()))
-					? route.continue()
-					: route.abort("blockedbyclient"),
-			);
 			await page.goto(url, { waitUntil: "load" });
 			await page.screenshot({ path: req.out, fullPage: req.fullPage });
-		});
-	} finally {
-		await browser.close();
-	}
+		} finally {
+			await browser.close();
+			await proxy.close();
+		}
+	});
 };
 
 const audit = async (req: Extract<RunnerRequest, { kind: "audit" }>) => {
 	const port = await freePort();
-	const browser = await chromium.launch({
-		args: [`--remote-debugging-port=${port}`],
-	});
-	try {
-		// shortcut: only the page's own address is checked; Lighthouse loads its subresources itself.
-		// No telemetry: Lighthouse starts its error reporting only from its own CLI, never through this API.
-		const result = await opened(req.target, (url) =>
-			lighthouse(url, {
+	await opened(req.target, async (url) => {
+		const proxy = await egressProxy(
+			lookupAll,
+			"folder" in req.target ? new URL(url).origin : undefined,
+		);
+		const browser = await chromium.launch({
+			args: [`--remote-debugging-port=${port}`],
+			proxy: { server: proxy.url, bypass: "<-loopback>" },
+		});
+		try {
+			// No telemetry: Lighthouse starts its error reporting only from its CLI, never through this API.
+			const result = await lighthouse(url, {
 				port,
 				output: "json",
 				logLevel: "error",
 				onlyCategories: CATEGORIES,
-			}),
-		);
-		if (!result) throw new Error("Lighthouse returned no result");
-		const report = result.report;
-		await writeFile(
-			req.out,
-			Array.isArray(report) ? (report[0] ?? "") : report,
-		);
-	} finally {
-		await browser.close();
-	}
+			});
+			if (!result) throw new Error("Lighthouse returned no result");
+			const report = result.report;
+			await writeFile(
+				req.out,
+				Array.isArray(report) ? (report[0] ?? "") : report,
+			);
+		} finally {
+			await browser.close();
+			await proxy.close();
+		}
+	});
 };
 
 const handle = async (req: RunnerRequest): Promise<RunnerReply> => {

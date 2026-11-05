@@ -1,33 +1,66 @@
 import { describe, expect, it } from "vitest";
-import { requestGate } from "../../src/application/host-check.js";
+import {
+	checkHost,
+	resolvePublicAddress,
+} from "../../src/application/host-check.js";
 
-// A screenshot's page lets a request through only to a public host, or to the folder's own server (ADR-171).
+// The address a connection is pinned to (ADR-171): one of the name's public addresses, or why none.
 
-const resolver = (names: Record<string, readonly string[]>) => {
+const resolver = (names: Record<string, readonly string[] | Error>) => {
 	const looked: string[] = [];
 	const lookup = async (host: string) => {
 		looked.push(host);
-		return names[host] ?? ["93.184.216.34"];
+		const a = names[host] ?? ["93.184.216.34"];
+		if (a instanceof Error) throw a;
+		return a;
 	};
 	return { lookup, looked };
 };
 
-describe("requestGate", () => {
-	it("refuses a host that resolves to a local address and looks each host up once", async () => {
-		const { lookup, looked } = resolver({ "inside.example": ["127.0.0.1"] });
-		const pass = requestGate(lookup, undefined);
-		expect(await pass("https://cdn.example/a.css")).toBe(true);
-		expect(await pass("https://cdn.example/b.js")).toBe(true);
-		expect(await pass("https://inside.example/x")).toBe(false);
-		expect(await pass("http://127.0.0.1:9000/")).toBe(false);
-		expect(looked).toEqual(["cdn.example", "inside.example"]);
+describe("resolvePublicAddress", () => {
+	it("returns the first address of a name whose every address is public", async () => {
+		const { lookup, looked } = resolver({
+			"cdn.example": ["203.0.113.7", "203.0.113.8"],
+		});
+		const r = await resolvePublicAddress(lookup, "cdn.example");
+		expect(r).toEqual({ ok: true, value: "203.0.113.7" });
+		expect(looked).toEqual(["cdn.example"]);
 	});
 
-	it("lets the folder's own server through without a lookup", async () => {
+	it("refuses a name one of whose addresses is local, and one that answers no address", async () => {
+		const { lookup } = resolver({
+			"inside.example": ["203.0.113.7", "127.0.0.1"],
+			"odd.example": ["not-an-address"],
+		});
+		const inside = await resolvePublicAddress(lookup, "inside.example");
+		expect(inside.ok ? "ok" : inside.error).toMatchObject({
+			code: "bad_input",
+			message:
+				"inside.example resolves to 127.0.0.1, which is not a public address",
+		});
+		const odd = await resolvePublicAddress(lookup, "odd.example");
+		expect(odd.ok ? "ok" : odd.error.code).toBe("bad_input");
+	});
+
+	it("returns a literal address as it is without a lookup, and refuses a local one", async () => {
 		const { lookup, looked } = resolver({});
-		const pass = requestGate(lookup, "http://127.0.0.1:5123");
-		expect(await pass("http://127.0.0.1:5123/index.html")).toBe(true);
-		expect(await pass("http://127.0.0.1:5124/")).toBe(false);
+		expect(await resolvePublicAddress(lookup, "[2001:db8::1]")).toEqual({
+			ok: true,
+			value: "2001:db8::1",
+		});
+		const local = await resolvePublicAddress(lookup, "127.0.0.1");
+		expect(local.ok ? "ok" : local.error.code).toBe("bad_input");
 		expect(looked).toEqual([]);
+	});
+
+	it("answers io for a name that does not resolve, as checkHost does", async () => {
+		const { lookup } = resolver({
+			"gone.example": new Error("getaddrinfo ENOTFOUND gone.example"),
+			"empty.example": [],
+		});
+		const gone = await resolvePublicAddress(lookup, "gone.example");
+		expect(gone.ok ? "ok" : gone.error.code).toBe("io");
+		expect((await checkHost(lookup, "empty.example"))?.code).toBe("io");
+		expect(await checkHost(lookup, "fine.example")).toBeUndefined();
 	});
 });

@@ -10,6 +10,7 @@ import type { Lookup } from "./application/host-check.js";
 import { type FetchDeps, fetchTool } from "./application/web-fetch.js";
 import { tavilySearch } from "./application/web-search.js";
 import { lookupAll } from "./infrastructure/lookup.js";
+import { nodePinnedFetch } from "./infrastructure/pinned-fetch.js";
 import { policyOf } from "./module.js";
 
 /** What tools-web may be given; tests pass a fake fetch, nothing else reaches the network. */
@@ -77,6 +78,9 @@ export const createToolsWebModule = (
 			policy: policyOf(ctx.capabilities),
 			fetch: opts.fetch ?? fetch,
 			lookup: opts.lookup ?? lookupAll,
+			pinnedFetch: opts.fetch
+				? async (url, init) => opts.fetch?.(url, init) ?? fetch(url, init)
+				: nodePinnedFetch,
 		};
 		provide(ctx, "web.fetch@1", {
 			run: (input, c) => fetchTool(deps, input, c),

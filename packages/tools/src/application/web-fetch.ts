@@ -15,8 +15,9 @@ import {
 	WEB_FETCH_TIMEOUT_MS,
 } from "../defaults.js";
 import { pageMarkdown } from "../infrastructure/page.js";
+import type { PinnedFetch } from "../infrastructure/pinned-fetch.js";
 import { parse, permit } from "./fs-common.js";
-import { checkHost, type Lookup } from "./host-check.js";
+import { type Lookup, resolvePublicAddress } from "./host-check.js";
 
 // web.fetch@1 (docs/10, Built-in tools): policy.check@1 with action net.fetch, then the page as
 // Markdown. Every redirect hop must be a public http or https address (SECURITY.md, threats).
@@ -29,18 +30,16 @@ export type WebDeps = {
 };
 
 /** web.fetch@1 also resolves each hop's name (ADR-171). */
-export type FetchDeps = WebDeps & { readonly lookup: Lookup };
+export type FetchDeps = WebDeps & {
+	readonly lookup: Lookup;
+	readonly pinnedFetch: PinnedFetch;
+};
 
 type Out<T> = Promise<Result<T, ToolError>>;
 type Page = { url: URL; type: string; text: string };
 
 const bad = (message: string): ToolError => ({ code: "bad_input", message });
 const io = (message: string): ToolError => ({ code: "io", message });
-
-const checkHop = (lookup: Lookup, url: URL) =>
-	url.protocol === "http:" || url.protocol === "https:"
-		? checkHost(lookup, url.hostname)
-		: bad(`${url.href} is not an http or https address`);
 
 // Reads the body up to the byte cap, so a hostile page cannot fill memory.
 const readCapped = async (res: Response): Out<Uint8Array> => {
@@ -69,9 +68,16 @@ const decode = (bytes: Uint8Array, type: string) => {
 	}
 };
 
-const hop = async (deps: WebDeps, url: URL, signal: AbortSignal) => {
+const hop = async (
+	deps: FetchDeps,
+	url: URL,
+	signal: AbortSignal,
+	address: string,
+) => {
 	try {
-		return ok(await deps.fetch(url, { redirect: "manual", signal }));
+		return ok(
+			await deps.pinnedFetch(url, { redirect: "manual", signal }, address),
+		);
 	} catch (e) {
 		const why = e instanceof Error ? e.message : String(e);
 		return err(io(`${url.href}: ${why}`));
@@ -84,9 +90,11 @@ const visit = async (
 	url: URL,
 	signal: AbortSignal,
 ): Out<Page | URL> => {
-	const refused = await checkHop(deps.lookup, url);
-	if (refused) return err(refused);
-	const res = await hop(deps, url, signal);
+	if (url.protocol !== "http:" && url.protocol !== "https:")
+		return err(bad(`${url.href} is not an http or https address`));
+	const address = await resolvePublicAddress(deps.lookup, url.hostname);
+	if (!address.ok) return address;
+	const res = await hop(deps, url, signal, address.value);
 	if (!res.ok) return res;
 	const location = res.value.headers.get("location");
 	if (res.value.status >= 300 && res.value.status < 400 && location)

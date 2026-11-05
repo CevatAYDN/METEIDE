@@ -36,6 +36,7 @@ const setup = (
 ) => {
 	const asked: PolicyCheckInput[] = [];
 	const fetched: string[] = [];
+	const pinned: string[] = [];
 	const looked: string[] = [];
 	const lookup = async (host: string) => {
 		looked.push(host);
@@ -63,8 +64,12 @@ const setup = (
 		policy: () => policy,
 		fetch: fake,
 		lookup,
+		pinnedFetch: async (url, _init, address) => {
+			pinned.push(address);
+			return fake(url);
+		},
 	};
-	return { deps, asked, fetched, looked };
+	return { deps, asked, fetched, looked, pinned };
 };
 
 describe("web.fetch@1", () => {
@@ -142,6 +147,24 @@ describe("web.fetch@1", () => {
 		const gone = await fetchTool(deps, { url: "https://gone.example/" }, ctx);
 		expect(code(gone)).toBe("io");
 		expect(fetched).toEqual(["https://a.org/"]);
+	});
+
+	it("connects each hop to the address its name was checked with, never resolving again (ADR-171)", async () => {
+		const { deps, pinned, looked } = setup(
+			{
+				"https://a.org/": {
+					status: 302,
+					headers: { location: "https://b.org/" },
+				},
+				"https://b.org/": { body: ARTICLE },
+			},
+			"allow",
+			{ "a.org": ["203.0.113.7"], "b.org": ["198.51.100.9"] },
+		);
+		const r = await fetchTool(deps, { url: "https://a.org/" }, ctx);
+		expect(r.ok).toBe(true);
+		expect(looked).toEqual(["a.org", "b.org"]);
+		expect(pinned).toEqual(["203.0.113.7", "198.51.100.9"]);
 	});
 
 	it("resolves no address that is written as one", async () => {
