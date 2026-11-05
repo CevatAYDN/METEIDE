@@ -20,6 +20,7 @@
 			"any": "Any",
 			"capability": "Capability",
 			"caption": "METE: the policy's decisions",
+			"empty": "No policy decisions yet.",
 			"export": "Export as JSON…",
 			"exportTitle": "Export the audit log",
 			"exported": "Exported {0} audit row(s).",
@@ -159,7 +160,6 @@
 		},
 		"home": {
 			"approve": "Approve",
-			"asOf": "As of {0}",
 			"budgetPaused": "It used its budget: 25 model turns at a time, or the requests or hours of .mete/policy.yaml. Resume gives it 25 more turns; raise the requests or hours there first if they ran out.",
 			"currentWorkspace": "(open)",
 			"forget": "Forget",
@@ -256,7 +256,8 @@
 			"title": "Quota",
 			"unit": "Unit",
 			"units": "Quota units",
-			"unusable": "{0}: none of its models can be used here. Its model list did not load or its key was refused: for an endpoint, Test… in Settings, Models and keys, says which, else the log does. Or the privacy rules leave them out (allowTraining in privacy.yaml), or the model mode does (models in gateway.yaml)",
+			"unusableLead": "{0}: its key is set, but none of its models can be used in this folder.",
+			"unusableWhy": "Its model list did not load or its key was refused: for an endpoint, Test… in Settings, Models and keys, says which, else the log does. Or the privacy rules leave them out (allowTraining in privacy.yaml), or the model mode does (models in gateway.yaml).",
 			"used": "Used",
 			"noKeyCustom": "{0}: no key (Settings, its endpoint card, Set key)"
 		},
@@ -320,6 +321,7 @@
 			"revised": "Sent back with your feedback.",
 			"single": "Single agent",
 			"start": "Start run",
+			"startWaits": "Describe the task above to start.",
 			"started": "Run started: {0}",
 			"starting": "METE is starting the run…",
 			"unassigned": "{0} unassigned",
@@ -697,6 +699,7 @@
 		"welcome": {
 			"caption": "METE: keys, privacy and web search to start with",
 			"check": "Check again",
+			"openModels": "Open Models and keys",
 			"getKey": "Get a key",
 			"keys": "Model provider keys",
 			"keysLead": "Set at least one. A key stays in the operating system keychain and never in a file.",

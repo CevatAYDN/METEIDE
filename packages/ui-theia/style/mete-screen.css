@@ -149,6 +149,46 @@
 	background: var(--raised, var(--theia-list-hoverBackground));
 }
 
+/* A screen with nothing to list yet: the side view's dashed card (.mete-side-empty in
+   mete-home.css), with the screen's glyph in a tile, the sentence, and at most one quiet action. */
+.mete-screen-empty {
+	display: grid;
+	grid-template-columns: 28px minmax(0, 1fr);
+	gap: 10px;
+	align-items: start;
+	max-width: 560px;
+	box-sizing: border-box;
+	padding: 11px 12px;
+	border: 1.5px dashed var(--line, var(--theia-panel-border));
+	border-radius: 14px;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-screen-empty-tile {
+	display: grid;
+	place-items: center;
+	box-sizing: border-box;
+	width: 28px;
+	height: 28px;
+	border-radius: 10px;
+	background: var(--panel, var(--theia-editorWidget-background));
+	border: 1.5px solid var(--line, var(--theia-panel-border));
+}
+
+.mete-screen-empty-tile > .codicon {
+	font-size: 16px;
+}
+
+.mete-screen-empty > p {
+	margin: 4px 0 0;
+	font-weight: 600;
+	line-height: 1.45;
+}
+
+.mete-screen-empty-action {
+	grid-column: 2;
+}
+
 /* A button's glyph, after the tiles' own, which are not buttons. */
 .mete-screen .mete-button > .codicon {
 	font-size: 16px;

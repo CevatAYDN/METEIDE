@@ -94,7 +94,7 @@ export class MeteBoardContribution
 	override registerCommands(commands: CommandRegistry): void {
 		commands.registerCommand(OPEN_BOARD_COMMAND, {
 			execute: async (runId?: unknown) => {
-				const run = await this.pick(runId);
+				const run = await this.pick(runId, "composer");
 				if (run) await this.show(run);
 			},
 		});
@@ -162,8 +162,12 @@ export class MeteBoardContribution
 	}
 
 	// The run the command was given (a Home row), or one picked among the folder's runs, which come
-	// newest first from mete/status.
-	protected async pick(given: unknown): Promise<ChosenRun | undefined> {
+	// newest first from mete/status. With no run yet, Open team panel shows the composer, the one thing
+	// to do then, instead of a notice; a command that needs a run says there is none.
+	protected async pick(
+		given: unknown,
+		whenNone: "notice" | "composer" = "notice",
+	): Promise<ChosenRun | undefined> {
 		const root = this.workspace.tryGetRoots()[0];
 		if (!root) return void this.messages.info(noFolderText());
 		const dir = root.resource.path.fsPath();
@@ -177,12 +181,19 @@ export class MeteBoardContribution
 			runId: r.id,
 			goal: r.goal,
 		}));
-		if (picks.length === 0)
-			return void this.messages.info(
-				nls.localize("mete/status/none", "No runs in this folder yet."),
-			);
+		if (picks.length === 0) return this.whenNoRuns(whenNone);
 		const pick = runId ? picks[0] : await this.choose(picks);
 		return pick ? { dir, runId: pick.runId, goal: pick.goal } : undefined;
+	}
+
+	protected async whenNoRuns(whenNone: "notice" | "composer") {
+		if (whenNone === "composer")
+			(await this.openView({ activate: true, reveal: true })).showComposer();
+		else
+			void this.messages.info(
+				nls.localize("mete/status/none", "No runs in this folder yet."),
+			);
+		return undefined;
 	}
 
 	protected choose(picks: RunPick[]) {

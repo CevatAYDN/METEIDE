@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { DIFF_LINES } from "../defaults.js";
 import type { Changes } from "../domain/status-service.js";
 import { Icon } from "./roster-look.js";
+import { ScreenEmpty } from "./screen-empty.js";
 import { ScreenHero } from "./screen-hero.js";
 
 // The Changes panel (ADR-100, ADR-128): the open folder's working tree as vcs.git@2 reads it, one row
@@ -201,9 +202,10 @@ const Files = ({
 	const pickedFile = changes.files.find((f) => f.path === picked);
 	if (changes.files.length === 0)
 		return (
-			<p className="mete-changes-state">
-				{nls.localize("mete/changes/clean", "No changes.")}
-			</p>
+			<ScreenEmpty
+				icon="diff"
+				text={nls.localize("mete/changes/clean", "No changes.")}
+			/>
 		);
 	return (
 		<div className="mete-changes-columns">

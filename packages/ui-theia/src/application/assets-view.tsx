@@ -1,6 +1,7 @@
 import { nls } from "@theia/core/lib/common/nls";
 import { type AssetRow, sizeText } from "../domain/assets.js";
 import { Icon } from "./roster-look.js";
+import { ScreenEmpty } from "./screen-empty.js";
 import { ScreenHero } from "./screen-hero.js";
 import { noFolderText } from "./status-text.js";
 import { when } from "./time-text.js";
@@ -91,12 +92,13 @@ const Rows = ({
 	readonly onOpen: (url: string) => void;
 }) =>
 	rows.length === 0 ? (
-		<p className="mete-assets-state">
-			{nls.localize(
+		<ScreenEmpty
+			icon="file-media"
+			text={nls.localize(
 				"mete/assets/none",
 				"No assets yet: a tool that saves a file, and every screenshot, appears here.",
 			)}
-		</p>
+		/>
 	) : (
 		<section
 			className="mete-table-card mete-assets-card"

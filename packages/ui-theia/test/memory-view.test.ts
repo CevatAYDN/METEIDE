@@ -60,10 +60,14 @@ describe("the Memory screen", () => {
 		);
 	});
 
-	it("says where notes come from and offers New run when there are none", () => {
+	it("says where notes come from and offers a quiet New run when there are none", () => {
 		const out = html({ kind: "notes", notes: [] });
+		expect(out).toContain('class="mete-screen-empty"');
 		expect(out).toContain("No notes yet");
-		expect(out).toContain(">New run<");
+		// Quiet: the status bar and the Runs section carry the accent New run already.
+		expect(out).toMatch(
+			/<button type="button" class="mete-button quiet"><span[^>]*codicon-play"><\/span>New run<\/button>/,
+		);
 	});
 
 	it("shows reading, no folder and a failure", () => {

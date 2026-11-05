@@ -18,6 +18,7 @@ import {
 	type Page,
 } from "@playwright/test";
 import { appCommand, missingApp } from "./app.js";
+import { runCommand } from "./palette.js";
 
 // One launched app: the built Electron main, the downloaded plugins and a fresh git workspace,
 // so a test sees the daemon, the panels and the extension host as a user does (docs/15).
@@ -35,6 +36,8 @@ export type Launch = {
 	/** The fresh git workspace the app opened. */
 	readonly dir: string;
 	readonly close: () => Promise<void>;
+	/** The app's remote-debugging port on 127.0.0.1, for tools that attach over CDP. */
+	readonly port: number;
 };
 
 /** The web answers a test app sees instead of the network (ADR-116). */
@@ -340,7 +343,7 @@ export const test = base.extend<MeteOptions & { mete: Launch }>({
 		const { browser, page } = front;
 		await page.bringToFront();
 		await settle(page);
-		await use({ page, dir: workspace, close: () => stop(browser) });
+		await use({ page, dir: workspace, close: () => stop(browser), port });
 		await stop(browser);
 	},
 });
@@ -381,20 +384,4 @@ export const artifactPath = (dir: string, name: string): string | undefined => {
 	return undefined;
 };
 
-/** Runs a command from Theia's palette, the keyboard-first way docs/13 asks every METE action to be reachable. */
-export const runCommand = async (page: Page, label: string) => {
-	const input = page.locator(".quick-input-box input");
-	for (let i = 0; i < 3; i++) {
-		await page.keyboard.press("Control+Shift+P");
-		const opened = await input
-			.waitFor({ state: "visible", timeout: 5_000 })
-			.then(() => true)
-			.catch(() => false);
-		if (opened) break;
-		await page.click("body");
-	}
-	// The quick input does not take focus by itself, and it filters on real key events only.
-	await input.click();
-	await page.keyboard.type(label, { delay: 40 });
-	await page.keyboard.press("Enter");
-};
+export { runCommand };

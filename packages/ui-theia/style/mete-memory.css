@@ -90,21 +90,6 @@
 	flex: none;
 }
 
-.mete-memory-empty {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: 12px;
-	max-width: 640px;
-	margin: 0 4px;
-	color: var(--muted-2, var(--theia-descriptionForeground));
-}
-
-.mete-memory-empty > p {
-	margin: 0;
-	line-height: 1.5;
-}
-
 /* The search (ADR-159): a visible label over the box and Search; the hits reuse the note cards, with
    the matched passage under the title. */
 .mete-memory-search {

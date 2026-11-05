@@ -87,8 +87,10 @@ describe("the Changes panel", () => {
 		expect(out).toContain('class="mete-diff-line add"');
 	});
 
-	it("says a clean folder has no changes", () => {
-		expect(html(files([]))).toContain("No changes.");
+	it("says a clean folder has no changes, in the screens' shared empty card", () => {
+		const out = html(files([]));
+		expect(out).toContain('class="mete-screen-empty"');
+		expect(out).toContain("No changes.");
 	});
 
 	it("says a folder is not a repository, or that one must be opened", () => {

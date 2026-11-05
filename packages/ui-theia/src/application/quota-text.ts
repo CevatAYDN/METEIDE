@@ -40,13 +40,23 @@ const STATE: {
 			id,
 			new Date(s.resetsAt).toLocaleString(),
 		),
-	unusable: (id) =>
-		nls.localize(
-			"mete/quota/unusable",
-			"{0}: none of its models can be used here. Its model list did not load or its key was refused: for an endpoint, Test… in Settings, Models and keys, says which, else the log does. Or the privacy rules leave them out (allowTraining in privacy.yaml), or the model mode does (models in gateway.yaml)",
-			id,
-		),
+	unusable: (id) => `${unusableLead(id)} ${unusableWhy()}`,
 };
+
+/** The first sentence of an unusable provider's state, which the Welcome screen shows alone. */
+export const unusableLead = (id: string) =>
+	nls.localize(
+		"mete/quota/unusableLead",
+		"{0}: its key is set, but none of its models can be used in this folder.",
+		id,
+	);
+
+/** Why a provider is unusable, its four causes; the Welcome screen keeps them in a tooltip. */
+export const unusableWhy = () =>
+	nls.localize(
+		"mete/quota/unusableWhy",
+		"Its model list did not load or its key was refused: for an endpoint, Test… in Settings, Models and keys, says which, else the log does. Or the privacy rules leave them out (allowTraining in privacy.yaml), or the model mode does (models in gateway.yaml).",
+	);
 
 /** What one provider's state says; `prepare` readies the provider id, which came from outside. */
 export const stateText = (s: ProviderState, prepare = asIs) =>

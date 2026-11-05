@@ -4,7 +4,12 @@ import type { ReactNode } from "react";
 import type { ProviderKey } from "../domain/provider-keys.js";
 import type { DaemonFailure } from "../domain/status-service.js";
 import { type EndpointKeysView, KeyField } from "./endpoint-key.js";
-import { QUOTA_LOOK, stateText } from "./quota-text.js";
+import {
+	QUOTA_LOOK,
+	stateText,
+	unusableLead,
+	unusableWhy,
+} from "./quota-text.js";
 import { Icon } from "./roster-look.js";
 import {
 	type FormActions,
@@ -41,6 +46,8 @@ export type WelcomeActions = {
 	readonly onStart: () => void;
 	/** Reads the keys and the providers' states again. */
 	readonly onCheck: () => void;
+	/** Opens Settings, Models and keys, for a provider whose models cannot be used. */
+	readonly onSettings: () => void;
 };
 
 // shortcut: a custom:<slug> key does not count, since `mete key list` names only built-in providers.
@@ -87,10 +94,32 @@ const KeyState = ({ set }: { readonly set: boolean }) => (
 );
 
 // A refused key shows only when the provider's listing refused it; a call's refusal is not kept here.
-const Health = ({ state }: { readonly state: ProviderState }) => (
+// An unusable provider gets one plain sentence and the way to Settings; the four causes are the
+// button's tooltip, so the line stays readable.
+const Health = ({
+	state,
+	onSettings,
+}: {
+	readonly state: ProviderState;
+	readonly onSettings: () => void;
+}) => (
 	<p className={`mete-welcome-health ${QUOTA_LOOK[state.state].tone}`}>
 		<Icon name={QUOTA_LOOK[state.state].icon} />
-		{stateText(state)}
+		{state.state === "unusable" ? (
+			<>
+				{unusableLead(state.id)}
+				<button
+					type="button"
+					className="mete-button quiet"
+					title={unusableWhy()}
+					onClick={onSettings}
+				>
+					{nls.localize("mete/welcome/openModels", "Open Models and keys")}
+				</button>
+			</>
+		) : (
+			stateText(state)
+		)}
 	</p>
 );
 
@@ -99,11 +128,13 @@ const ProviderRow = ({
 	state,
 	keys,
 	onKeyPage,
+	onSettings,
 }: {
 	readonly provider: ProviderKey;
 	readonly state?: ProviderState | undefined;
 	readonly keys: EndpointKeysView;
 	readonly onKeyPage: (url: string) => void;
+	readonly onSettings: () => void;
 }) => (
 	<li className="mete-welcome-provider">
 		<div className="mete-welcome-who">
@@ -127,7 +158,9 @@ const ProviderRow = ({
 			keys={keys}
 			locked={false}
 		/>
-		{provider.set && state ? <Health state={state} /> : null}
+		{provider.set && state ? (
+			<Health state={state} onSettings={onSettings} />
+		) : null}
 	</li>
 );
 
@@ -179,6 +212,7 @@ const rowsOf = (
 					state={states?.find((s) => s.id === p.id)}
 					keys={keys}
 					onKeyPage={actions.onKeyPage}
+					onSettings={actions.onSettings}
 				/>
 			))}
 	</ul>

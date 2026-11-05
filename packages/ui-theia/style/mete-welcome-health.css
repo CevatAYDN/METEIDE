@@ -4,11 +4,22 @@
 .mete-welcome-health {
 	grid-column: 1 / -1;
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
-	gap: 6px;
+	gap: 6px 8px;
 	margin: 0;
 	font-size: 12.5px;
 	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+/* Success reads as clearly as failure: the good line takes the good chip's text colour and weight. */
+.mete-welcome-health.good {
+	font-weight: 600;
+	color: color-mix(
+		in srgb,
+		var(--good, var(--theia-testing-iconPassed)) 60%,
+		var(--ink, var(--theia-foreground))
+	);
 }
 
 .mete-welcome-health.good > .codicon {
@@ -21,11 +32,19 @@
 
 /* Mixed with the ink, as .mete-tile.bad is: the plain red fell under 4.5:1 on the light theme. */
 .mete-welcome-health.bad {
+	font-weight: 600;
 	color: color-mix(
 		in srgb,
 		var(--bad, var(--theia-errorForeground)) 65%,
 		var(--ink, var(--theia-foreground))
 	);
+}
+
+/* The way to Settings after an unusable provider's sentence: a small quiet button, its causes in the tooltip. */
+.mete-welcome-health > .mete-button.quiet {
+	height: 26px;
+	padding: 0 10px;
+	font-size: 12.5px;
 }
 
 .mete-welcome-check {

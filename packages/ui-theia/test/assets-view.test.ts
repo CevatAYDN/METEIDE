@@ -64,7 +64,9 @@ describe("the Assets view", () => {
 		);
 	});
 
-	it("says when there is nothing yet", () => {
-		expect(html({ kind: "rows", rows: [] })).toContain("No assets yet");
+	it("says when there is nothing yet, in the screens' shared empty card", () => {
+		const out = html({ kind: "rows", rows: [] });
+		expect(out).toContain('class="mete-screen-empty"');
+		expect(out).toContain("No assets yet");
 	});
 });

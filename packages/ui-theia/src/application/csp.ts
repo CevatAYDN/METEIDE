@@ -12,7 +12,9 @@
 // - worker-src 'self' blob:: Monaco's editor worker and Theia's plugin worker come from the bundle's
 //   folder, and the language workers from a Blob URL (bundle.js, `URL.createObjectURL`).
 // - connect-src: the frontend speaks to the Theia backend on localhost over WebSocket and HTTP
-//   (Endpoint, ws-connection-source.js), and plugin webviews answer at `{uuid}.webview.localhost`.
+//   (Endpoint, ws-connection-source.js), and plugin webviews answer at `{uuid}.webview.localhost`;
+//   data: because the bundle inlines vscode-oniguruma's onig.wasm as a data: URL and fetches it
+//   (seen in the app: without it every TextMate grammar fails with "Failed to fetch").
 // - frame-src: plugin webviews and the mini-browser load through the backend on localhost.
 // - img-src adds data: and blob: (icons, screenshots) and https: for Markdown previews.
 // - font-src adds data: (codicons inlined by the bundle).
@@ -27,7 +29,7 @@ export const cspFor = (): string =>
 		"script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'",
 		"style-src 'self' 'unsafe-inline'",
 		"worker-src 'self' blob:",
-		`connect-src 'self' ${LOCAL}`,
+		`connect-src 'self' data: ${LOCAL}`,
 		`frame-src 'self' ${LOCAL}`,
 		"img-src 'self' data: blob: https:",
 		"font-src 'self' data:",

@@ -7,6 +7,7 @@ import {
 	AuditView,
 	auditJson,
 } from "../src/application/audit-view.js";
+import type { AuditFilter } from "../src/domain/status-service.js";
 
 // The Audit log view rendered to HTML on Node, and the JSON its export writes.
 
@@ -24,12 +25,16 @@ const entry = (seq: number, verdict: AuditEntry["verdict"]): AuditEntry => ({
 	rule: "autonomy:2:inside",
 	tainted: false,
 });
-const html = (model: AuditModel, runs = [{ id: RUN, goal: "fix the typo" }]) =>
+const html = (
+	model: AuditModel,
+	runs = [{ id: RUN, goal: "fix the typo" }],
+	filter: AuditFilter = { verdict: "allow" },
+) =>
 	renderToStaticMarkup(
 		createElement(AuditView, {
 			model,
 			controls: {
-				filter: { verdict: "allow" },
+				filter,
 				runs,
 				onFilter: () => {},
 				onExport: () => {},
@@ -53,10 +58,14 @@ describe("the Audit log view", () => {
 		expect(out).not.toMatch(/disabled=""><span[^>]*><\/span>Export/);
 	});
 
-	it("says no row matches, and offers no export of nothing", () => {
+	it("says no row matches with a filter set, that there are no decisions yet without, and offers no export of nothing", () => {
 		const out = html({ kind: "rows", entries: [] });
+		expect(out).toContain('class="mete-screen-empty"');
 		expect(out).toContain("No audit rows match these filters.");
 		expect(out).toMatch(/disabled=""><span[^>]*><\/span>Export as JSON/);
+		const plain = html({ kind: "rows", entries: [] }, [], {});
+		expect(plain).toContain("No policy decisions yet.");
+		expect(plain).not.toContain("match these filters");
 	});
 
 	it("says why the daemon gave no rows, or that a folder is needed", () => {

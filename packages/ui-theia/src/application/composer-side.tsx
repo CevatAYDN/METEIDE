@@ -141,6 +141,15 @@ export const Side = (props: SideProps) => (
 				{nls.localize("mete/run/starting", "METE is starting the run…")}
 			</p>
 		) : null}
+		{/* A disabled Start reads as gated, not broken: the hint names what it waits for. */}
+		{props.ready || props.busy ? null : (
+			<p className="mete-composer-hint">
+				{nls.localize(
+					"mete/run/startWaits",
+					"Describe the task above to start.",
+				)}
+			</p>
+		)}
 		{props.error ? <p role="alert">{props.error}</p> : null}
 	</aside>
 );

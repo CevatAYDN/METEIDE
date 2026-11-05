@@ -180,19 +180,17 @@ const Body = ({
 };
 
 /**
- * The Runs section (ADR-078): New run opens the composer, `onRefresh` asks the daemon again,
- * `onAct` answers a run and `onSetKey` sets a provider key.
+ * The Runs section (ADR-078): New run opens the composer, `onAct` answers a run and `onSetKey`
+ * sets a provider key. The list follows the run events by itself; "METE: Refresh" asks again.
  */
 export const RunsSection = ({
 	model,
-	onRefresh,
 	onAct,
 	onSetKey,
 	onStart,
 	shown,
 }: {
 	readonly model: HomeModel;
-	readonly onRefresh: () => void;
 	readonly onAct: Act;
 	readonly onSetKey: () => void;
 	readonly onStart: () => void;
@@ -204,33 +202,15 @@ export const RunsSection = ({
 		aria-live="polite"
 		aria-label={nls.localize("mete/home/runs", "Runs")}
 	>
-		<div className="mete-side-actions">
-			{model.kind === "no_folder" ? null : (
+		{model.kind === "no_folder" ? null : (
+			<div className="mete-side-actions">
 				<Button
 					label={nls.localize("mete/home/newRun", "New run")}
 					onClick={onStart}
 					icon="add"
 				/>
-			)}
-			{/* The list follows the run events by itself; Refresh is for a daemon that came back. */}
-			<button
-				type="button"
-				className="mete-button quiet"
-				onClick={onRefresh}
-				{...("at" in model
-					? {
-							title: nls.localize(
-								"mete/home/asOf",
-								"As of {0}",
-								when(model.at),
-							),
-						}
-					: {})}
-			>
-				<Icon name="refresh" />
-				{nls.localize("mete/home/refresh", "Refresh")}
-			</button>
-		</div>
+			</div>
+		)}
 		<Body model={model} onSetKey={onSetKey} act={onAct} shown={shown} />
 	</section>
 );

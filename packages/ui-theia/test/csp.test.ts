@@ -30,6 +30,8 @@ describe("cspFor", () => {
 		expect(directive("worker-src")).toContain("blob:");
 		expect(directive("script-src")).toContain("'wasm-unsafe-eval'");
 		expect(directive("connect-src")).toContain("ws://localhost:*");
+		// vscode-oniguruma's wasm is fetched from a data: URL in the built bundle.
+		expect(directive("connect-src")).toContain("data:");
 		expect(directive("frame-src")).toContain("http://*.localhost:*");
 	});
 });

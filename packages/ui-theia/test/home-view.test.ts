@@ -38,7 +38,6 @@ const html = (model: HomeModel, workspaces: readonly Workspace[] = []) =>
 			createElement(WaitingSection, { model, onAct: none }),
 			createElement(RunsSection, {
 				model,
-				onRefresh: none,
 				onAct: none,
 				onSetKey: none,
 				onStart: none,
@@ -79,9 +78,8 @@ describe("the Home view", () => {
 			"Open a folder first: METE works on one folder at a time.",
 		);
 		expect(none).not.toContain("As of");
-		expect(none).toContain(
-			'<button type="button" class="mete-button quiet"><span aria-hidden="true" class="codicon codicon-refresh"></span>Refresh</button>',
-		);
+		// No Refresh in the section: the list follows the run events, and "METE: Refresh" asks again.
+		expect(none).not.toContain("codicon-refresh");
 	});
 
 	it("offers New run, which opens the composer, once there is a folder to run in (ADR-078)", () => {
@@ -91,7 +89,7 @@ describe("the Home view", () => {
 		expect(html({ kind: "no_folder" })).not.toContain(start);
 	});
 
-	it("lists the runs with a status chip, goal and template, with the time of the snapshot", () => {
+	it("lists the runs with a status chip, goal and template, New run above the list", () => {
 		const out = html(
 			homeModel(
 				{
@@ -108,11 +106,8 @@ describe("the Home view", () => {
 		expect(out).toContain("fix &lt;the&gt; bug");
 		expect(out).toContain(" · Web dev");
 		expect(out).toContain('<span class="mete-chip good">Done</span>');
-		// The snapshot's time is Refresh's tooltip, beside New run, above the list.
-		expect(out).toMatch(
-			/<button type="button" class="mete-button quiet" title="As of [^"]+"><span[^>]*><\/span>Refresh</,
-		);
-		expect(out.indexOf(">Refresh<")).toBeLessThan(out.indexOf("notes"));
+		expect(out).not.toContain("As of");
+		expect(out.indexOf(">New run<")).toBeLessThan(out.indexOf("notes"));
 	});
 
 	it("turns a running row's glyph, and no other row's (ADR-128)", () => {
@@ -467,7 +462,6 @@ describe("the Home view", () => {
 					{ ok: true, value: [shownRun, run("completed", "other goal", null)] },
 					AT,
 				),
-				onRefresh: none,
 				onAct: none,
 				onSetKey: none,
 				onStart: none,

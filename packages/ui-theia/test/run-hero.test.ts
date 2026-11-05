@@ -284,7 +284,9 @@ describe("RunHero under a pause someone must go on with (docs/13, Team panel; AD
 			{ id: "custom:x", state: "unusable" },
 		]);
 		expect(out).toContain("groq: no key");
-		expect(out).toContain("custom:x: none of its models can be used here");
+		expect(out).toContain(
+			"custom:x: its key is set, but none of its models can be used in this folder",
+		);
 		expect(out).toContain(">Resume now</button>");
 	});
 

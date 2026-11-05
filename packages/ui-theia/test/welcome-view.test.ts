@@ -34,6 +34,7 @@ const html = (model: WelcomeModel, privacy?: WelcomePrivacy) =>
 				onKeyPage: none,
 				onStart: none,
 				onCheck: none,
+				onSettings: none,
 			},
 		}),
 	);
@@ -130,12 +131,20 @@ describe("the Welcome screen", () => {
 					onKeyPage: none,
 					onStart: none,
 					onCheck: none,
+					onSettings: none,
 				},
 			}),
 		);
 		expect(out).toContain('class="mete-welcome-health good"');
 		expect(out).toContain("nvidia: ready");
-		expect(out).toContain("groq: none of its models can be used here");
+		// An unusable provider: one plain sentence, then the way to Settings with the causes as its tooltip.
+		expect(out).toContain(
+			"groq: its key is set, but none of its models can be used in this folder.",
+		);
+		expect(out).toMatch(
+			/<button type="button" class="mete-button quiet" title="Its model list did not load or its key was refused[^"]*">Open Models and keys<\/button>/,
+		);
+		expect(out).not.toContain("none of its models can be used here");
 		expect(out).toContain("Check again");
 		// No folder, so no states: the rows say only whether a key is set.
 		expect(html(keys)).not.toContain("mete-welcome-health");

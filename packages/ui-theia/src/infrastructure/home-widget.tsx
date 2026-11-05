@@ -119,7 +119,6 @@ export class MeteHomeSectionWidget extends MetePanelWidget {
 		return (
 			<RunsSection
 				model={model}
-				onRefresh={() => void this.store.refresh()}
 				onAct={act}
 				onSetKey={() => this.run(SET_KEY_COMMAND.id)}
 				onStart={() => this.run(START_RUN_COMMAND.id)}

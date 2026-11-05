@@ -23,6 +23,7 @@ import { MeteDaemonService } from "../domain/status-service.js";
 import { START_RUN_COMMAND } from "./board-contribution.js";
 import { EndpointKeys } from "./endpoint-keys.js";
 import { MetePanelWidget } from "./panel-widget.js";
+import { SHOW_SETTINGS_COMMAND } from "./settings-contribution.js";
 import { SettingsForms } from "./settings-forms.js";
 import "../../style/mete-welcome.css";
 import "../../style/mete-welcome-health.css";
@@ -155,6 +156,8 @@ export class MeteWelcomeWidget extends MetePanelWidget {
 								this.windows.openNewWindow(url, { external: true }),
 							onStart: () => this.start(),
 							onCheck: () => void this.refresh(),
+							onSettings: () =>
+								void this.commands.executeCommand(SHOW_SETTINGS_COMMAND.id),
 						}}
 					/>
 				) : null}

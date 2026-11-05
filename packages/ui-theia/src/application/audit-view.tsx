@@ -2,6 +2,7 @@ import { type AuditEntry, PolicyActionSchema } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import type { AuditFilter, DaemonFailure } from "../domain/status-service.js";
 import { Icon } from "./roster-look.js";
+import { ScreenEmpty } from "./screen-empty.js";
 import { ScreenHero } from "./screen-hero.js";
 import { failureText, noFolderText } from "./status-text.js";
 
@@ -126,11 +127,29 @@ const Verdict = ({ verdict }: { readonly verdict: AuditEntry["verdict"] }) => (
 	</span>
 );
 
-const Rows = ({ entries }: { readonly entries: readonly AuditEntry[] }) =>
+// A filter at its default is left out of AuditFilter, so any key means the user narrowed the list.
+const filtered = (f: AuditFilter) =>
+	Object.values(f).some((v) => v !== undefined);
+
+const Rows = ({
+	entries,
+	filter,
+}: {
+	readonly entries: readonly AuditEntry[];
+	readonly filter: AuditFilter;
+}) =>
 	entries.length === 0 ? (
-		<p className="mete-audit-state">
-			{nls.localize("mete/audit/none", "No audit rows match these filters.")}
-		</p>
+		<ScreenEmpty
+			icon="shield"
+			text={
+				filtered(filter)
+					? nls.localize(
+							"mete/audit/none",
+							"No audit rows match these filters.",
+						)
+					: nls.localize("mete/audit/empty", "No policy decisions yet.")
+			}
+		/>
 	) : (
 		<section
 			className="mete-table-card mete-audit-card"
@@ -178,7 +197,13 @@ const Rows = ({ entries }: { readonly entries: readonly AuditEntry[] }) =>
 		</section>
 	);
 
-const Body = ({ model }: { readonly model: AuditModel }) => {
+const Body = ({
+	model,
+	filter,
+}: {
+	readonly model: AuditModel;
+	readonly filter: AuditFilter;
+}) => {
 	if (model.kind === "loading")
 		return (
 			<p className="mete-audit-state">
@@ -193,7 +218,7 @@ const Body = ({ model }: { readonly model: AuditModel }) => {
 				{failureText(model.failure)}
 			</p>
 		);
-	return <Rows entries={model.entries} />;
+	return <Rows entries={model.entries} filter={filter} />;
 };
 
 /** The Audit log view for a model, with its filters and buttons. */
@@ -236,6 +261,6 @@ export const AuditView = ({
 			}
 		/>
 		<Filters c={controls} />
-		<Body model={model} />
+		<Body model={model} filter={controls.filter} />
 	</section>
 );

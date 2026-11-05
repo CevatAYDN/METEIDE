@@ -138,6 +138,12 @@ describe("ComposerView", () => {
 		expect(disabled(busy)).toBe(true);
 		expect(busy).toContain("METE is starting the run…");
 		expect(html(READY, { goal: "build it" })).not.toContain("starting the run");
+		// A blank goal names what Start waits for; a typed goal or a start in flight does not.
+		expect(html(READY)).toContain("Describe the task above to start.");
+		expect(busy).not.toContain("Describe the task above");
+		expect(html(READY, { goal: "build it" })).not.toContain(
+			"Describe the task above",
+		);
 	});
 
 	it("tells the user the router is unsure and lists only what it narrowed to", () => {

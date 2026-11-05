@@ -74,7 +74,7 @@ const openChangesMemoryAndAudit = async (page: Page) => {
 
 	await page.locator('[id="status-bar-mete-screens-audit"]').click();
 	await expect(
-		page.getByText("No audit rows match these filters.", { exact: true }),
+		page.getByText("No policy decisions yet.", { exact: true }),
 	).toBeVisible({ timeout: 60_000 });
 };
 

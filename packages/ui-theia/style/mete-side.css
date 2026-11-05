@@ -145,3 +145,9 @@
 		animation: none;
 	}
 }
+
+/* The section headers Theia draws over METE's own sections ("Runs (0)", "Quota") fall under 11 px at
+   Theia's default size; a part's id starts with METE's container id, so no other view is touched. */
+[id^="mete.view--"] > .theia-view-container-part-header .label {
+	font-size: max(11px, var(--theia-ui-font-size0));
+}

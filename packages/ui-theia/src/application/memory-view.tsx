@@ -8,6 +8,7 @@ import {
 	SearchResults,
 } from "./memory-search.js";
 import { Icon } from "./roster-look.js";
+import { ScreenEmpty } from "./screen-empty.js";
 import { ScreenHero } from "./screen-hero.js";
 import { noFolderText } from "./status-text.js";
 import { when } from "./time-text.js";
@@ -159,19 +160,21 @@ const Chips = ({
 	);
 };
 
+// New run is quiet here: the status bar and the Runs section already carry the accent one.
 const Empty = ({ onNewRun }: { readonly onNewRun: () => void }) => (
-	<div className="mete-memory-empty">
-		<p>
-			{nls.localize(
-				"mete/memory/none",
-				"No notes yet. When a run ends, its report is written to the journal; a team task that keeps lessons saves what it learned; agents can save decisions and notes. They all appear here.",
-			)}
-		</p>
-		<button type="button" className="mete-button" onClick={onNewRun}>
-			<Icon name="play" />
-			{nls.localize("mete/home/newRun", "New run")}
-		</button>
-	</div>
+	<ScreenEmpty
+		icon="book"
+		text={nls.localize(
+			"mete/memory/none",
+			"No notes yet. When a run ends, its report is written to the journal; a team task that keeps lessons saves what it learned; agents can save decisions and notes. They all appear here.",
+		)}
+		action={
+			<button type="button" className="mete-button quiet" onClick={onNewRun}>
+				<Icon name="play" />
+				{nls.localize("mete/home/newRun", "New run")}
+			</button>
+		}
+	/>
 );
 
 const Notes = (props: {

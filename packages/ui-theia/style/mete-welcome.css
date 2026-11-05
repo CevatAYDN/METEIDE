@@ -154,11 +154,13 @@
 	color: var(--muted-2, var(--theia-descriptionForeground));
 }
 
+/* The first step sits in the hero as a region of it, not a card in a card: no border or fill. */
 .mete-welcome-hero > .mete-welcome-step {
 	flex: 0 1 460px;
 	box-sizing: border-box;
 	padding: 18px 20px 20px;
-	border-color: var(--line-soft, var(--theia-panel-border));
+	background: transparent;
+	border: 0;
 	border-radius: 14px;
 }
 
