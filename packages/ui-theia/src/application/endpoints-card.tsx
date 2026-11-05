@@ -5,6 +5,7 @@ import { type EndpointTestsView, TestPanel } from "./endpoint-test.js";
 import type { EndpointDraft } from "./endpoints-draft.js";
 import { stateText } from "./quota-text.js";
 import { Icon } from "./roster-look.js";
+import { useRowKeys, withRowKeys } from "./row-keys.js";
 import type { Target } from "./section-draft.js";
 import { FormNote, type SaveNote } from "./settings-form.js";
 
@@ -281,44 +282,47 @@ export const EndpointsCard = ({
 	readonly tests?: EndpointTestsView | undefined;
 	/** The providers' states from mete/quota, the endpoints' among them (ADR-154). */
 	readonly states?: readonly ProviderState[] | undefined;
-}) => (
-	<div className="mete-endpoints">
-		{state.list.map((endpoint, i) => (
-			<EndpointFields
-				// biome-ignore lint/suspicious/noArrayIndexKey: an endpoint has no stable id while its slug is typed
-				key={i}
-				index={i}
-				endpoint={endpoint}
-				actions={actions}
-				checks={{
-					keys,
-					tests,
-					unsaved: state.dirty,
-					state: states?.find((s) => s.id === customId(endpoint.slug)),
-				}}
-			/>
-		))}
-		<div className="mete-endpoints-foot">
-			<SaveTarget state={state} actions={actions} />
-			<div className="mete-endpoints-acts">
-				<button
-					type="button"
-					className="mete-button quiet"
-					onClick={actions.onAdd}
-				>
-					<Icon name="add" />
-					{nls.localize("mete/settings/addEndpoint", "Add endpoint")}
-				</button>
-				<button
-					type="button"
-					className="mete-button"
-					disabled={state.busy || !state.dirty || state.file === undefined}
-					onClick={actions.onSave}
-				>
-					{nls.localize("mete/settings/save", "Save")}
-				</button>
+}) => {
+	const keyed = useRowKeys(state.list.length);
+	const acts = withRowKeys(actions, keyed);
+	return (
+		<div className="mete-endpoints">
+			{state.list.map((endpoint, i) => (
+				<EndpointFields
+					key={keyed.keys[i]}
+					index={i}
+					endpoint={endpoint}
+					actions={acts}
+					checks={{
+						keys,
+						tests,
+						unsaved: state.dirty,
+						state: states?.find((s) => s.id === customId(endpoint.slug)),
+					}}
+				/>
+			))}
+			<div className="mete-endpoints-foot">
+				<SaveTarget state={state} actions={actions} />
+				<div className="mete-endpoints-acts">
+					<button
+						type="button"
+						className="mete-button quiet"
+						onClick={actions.onAdd}
+					>
+						<Icon name="add" />
+						{nls.localize("mete/settings/addEndpoint", "Add endpoint")}
+					</button>
+					<button
+						type="button"
+						className="mete-button"
+						disabled={state.busy || !state.dirty || state.file === undefined}
+						onClick={actions.onSave}
+					>
+						{nls.localize("mete/settings/save", "Save")}
+					</button>
+				</div>
 			</div>
+			<FormNote state={state} />
 		</div>
-		<FormNote state={state} />
-	</div>
-);
+	);
+};

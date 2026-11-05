@@ -19,6 +19,9 @@
 		{
 			"frontendElectron": "dist/infrastructure/update-frontend-module",
 			"electronMain": "dist/infrastructure/update-main-module"
+		},
+		{
+			"electronMain": "dist/infrastructure/hardened-main-module"
 		}
 	],
 	"scripts": {

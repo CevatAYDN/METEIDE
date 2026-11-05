@@ -1,6 +1,7 @@
 import { nls } from "@theia/core/lib/common/nls";
 import { useId } from "react";
 import { Icon } from "./roster-look.js";
+import { uniqueKeys } from "./row-keys.js";
 import type { TeamView } from "./team-draft.js";
 import { orderOfWork, type Step } from "./work-order.js";
 
@@ -67,6 +68,7 @@ export const OrderOfWork = (props: {
 }) => {
 	const title = useId();
 	const steps = orderOfWork(props.team);
+	const keys = uniqueKeys(steps.map((s) => s.title));
 	if (steps.length === 0) return null;
 	return (
 		<section className="mete-order" aria-labelledby={title}>
@@ -83,8 +85,7 @@ export const OrderOfWork = (props: {
 			<ol>
 				{steps.map((s, i) => (
 					<StepRow
-						// biome-ignore lint/suspicious/noArrayIndexKey: two new tasks may share a title until the schema refuses it
-						key={i}
+						key={keys[i]}
 						step={s}
 						number={i + 1}
 						onSelect={props.onSelect}

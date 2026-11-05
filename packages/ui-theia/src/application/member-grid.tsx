@@ -2,6 +2,7 @@ import { TierSchema } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
 import { TIER_ICONS, tierLabel } from "./member-look.js";
 import { Icon } from "./roster-look.js";
+import { uniqueKeys } from "./row-keys.js";
 import type { MemberView, TeamView } from "./team-draft.js";
 
 // The members of the team editor as tiles (ADR-093): one per member, the chosen one pressed; its form
@@ -69,21 +70,23 @@ export const MemberGrid = (props: {
 	readonly selected: number;
 	readonly onSelect: (index: number) => void;
 	readonly onAdd: () => void;
-}) => (
-	<div className="mete-member-grid">
-		{props.team.roles.map((r, i) => (
-			<Tile
-				// biome-ignore lint/suspicious/noArrayIndexKey: two new members may share an id until the schema refuses it
-				key={i}
-				member={r}
-				tasks={props.team.tasks.filter((t) => t.role === r.id).length}
-				pressed={i === props.selected}
-				onSelect={() => props.onSelect(i)}
-			/>
-		))}
-		<button type="button" className="mete-member-add" onClick={props.onAdd}>
-			<Icon name="add" />
-			{nls.localize("mete/team/addMember", "Add member")}
-		</button>
-	</div>
-);
+}) => {
+	const keys = uniqueKeys(props.team.roles.map((r) => r.id));
+	return (
+		<div className="mete-member-grid">
+			{props.team.roles.map((r, i) => (
+				<Tile
+					key={keys[i]}
+					member={r}
+					tasks={props.team.tasks.filter((t) => t.role === r.id).length}
+					pressed={i === props.selected}
+					onSelect={() => props.onSelect(i)}
+				/>
+			))}
+			<button type="button" className="mete-member-add" onClick={props.onAdd}>
+				<Icon name="add" />
+				{nls.localize("mete/team/addMember", "Add member")}
+			</button>
+		</div>
+	);
+};

@@ -667,6 +667,7 @@
 			"allowHint": "Allow the action once, for the rest of this run, or always in .mete/policy.yaml.",
 			"allowOnce": "Allow once",
 			"allowRun": "Allow for this run",
+			"askVerb": "asks",
 			"asks": "{0} asks you to approve “{1}”",
 			"blocked": "{0} is blocked on “{1}”",
 			"blockedHint": "It goes on when you answer: send an instruction, or let it go on as it is.",

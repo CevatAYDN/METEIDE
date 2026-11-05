@@ -335,6 +335,34 @@ describe("the daemon host", () => {
 		expect(fake.state.starts).toEqual(["/work/a", "/work/b", "/work/a"]);
 	});
 
+	it("waits for the old daemon to close before it starts the next folder's", async () => {
+		const fake = await fakeDaemon();
+		const order: string[] = [];
+		const host = createDaemonHost({
+			spawn: (dir) => {
+				order.push(`start ${dir}`);
+				const child = fake.spawn(dir);
+				child.on("close", () => order.push(`close ${dir}`));
+				return child;
+			},
+			policy: createRestartPolicy(3, 1000),
+			now: () => 0,
+			onEvent: () => {},
+			onBadEvent: () => {},
+		});
+		cleanup.push(host.stop, fake.close);
+		await host.status("/work/a");
+		await host.status("/work/b");
+		await host.status("/work/a");
+		expect(order).toEqual([
+			"start /work/a",
+			"close /work/a",
+			"start /work/b",
+			"close /work/b",
+			"start /work/a",
+		]);
+	});
+
 	it("starts a daemon that served and crashed again at once, before the next call", async () => {
 		const { fake, host } = await setup();
 		expect((await host.status("/w")).ok).toBe(true);

@@ -201,23 +201,25 @@ const askToStop = (live: Live | undefined) => {
 type Slot = { live?: Live };
 
 // A start after a daemon that ended on its own, in the same folder, is a restart; a first start
-// and a start for another folder are free.
-const ensure = (
+// and a start for another folder are free. Another folder's daemon is asked to stop and waited
+// for first, so the two never hold the same folder's run lock at once.
+const ensure = async (
 	deps: HostDeps,
 	slot: Slot,
 	dir: string,
-): Result<Live, DaemonFailure> => {
+): Promise<Result<Live, DaemonFailure>> => {
 	const before = slot.live;
 	if (before && !before.ended && before.dir === dir) return ok(before);
 	if (before && !before.ended) {
-		before.stopping = true;
-		before.child.stdin.end();
+		await askToStop(before)?.closed;
+		// A call that waited alongside may have started the next daemon already.
+		if (slot.live !== before) return ensure(deps, slot, dir);
 	}
 	const crashed = before?.dir === dir && before.ended && !before.stopping;
 	if (before && crashed && !deps.policy.allow(deps.now()))
 		return err({ code: "blocked", detail: detailOf(before) });
 	slot.live = launch(deps, dir, (live) => {
-		if (slot.live === live) ensure(deps, slot, dir);
+		if (slot.live === live) void ensure(deps, slot, dir);
 	});
 	return ok(slot.live);
 };
@@ -356,7 +358,7 @@ export const createDaemonHost = (deps: HostDeps) => {
 	const slot: Slot = {};
 	// One request to the folder's daemon, started first when it is not running.
 	const send: Send = async (dir, method, params, parse) => {
-		const daemon = ensure(deps, slot, dir);
+		const daemon = await ensure(deps, slot, dir);
 		return daemon.ok ? call(daemon.value, method, params, parse) : daemon;
 	};
 	const done = (raw: unknown) => DaemonDoneResultSchema.safeParse(raw);

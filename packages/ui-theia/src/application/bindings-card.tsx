@@ -2,6 +2,7 @@ import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties } from "react";
 import type { BindingsDraft, BindingsRow } from "./bindings-draft.js";
 import { MUTED, ROW } from "./look.js";
+import { useRowKeys, withRowKeys } from "./row-keys.js";
 import type { Target } from "./section-draft.js";
 import { FormNote, type SaveNote } from "./settings-form.js";
 
@@ -102,28 +103,31 @@ export const BindingsCard = ({
 }: {
 	readonly state: BindingsState;
 	readonly actions: BindingsActions;
-}) => (
-	<div style={{ ...COLUMN, gap: "8px" }}>
-		<span style={MUTED}>
-			{nls.localize(
-				"mete/settings/bindingsHint",
-				"One row per capability: its id, then the adapters METE tries in this order, for example web.search@1 → exa-mcp, tavily.",
-			)}
-		</span>
-		{state.rows.length > 0 ? <Head /> : null}
-		{state.rows.map((row, i) => (
-			// biome-ignore lint/suspicious/noArrayIndexKey: a row has no stable id while its capability is typed
-			<Row key={i} index={i} row={row} actions={actions} />
-		))}
-		<div style={ROW}>
-			<button
-				type="button"
-				className="mete-button quiet"
-				onClick={actions.onAdd}
-			>
-				{nls.localize("mete/settings/addCapability", "Add capability")}
-			</button>
+}) => {
+	const keyed = useRowKeys(state.rows.length);
+	const acts = withRowKeys(actions, keyed);
+	return (
+		<div style={{ ...COLUMN, gap: "8px" }}>
+			<span style={MUTED}>
+				{nls.localize(
+					"mete/settings/bindingsHint",
+					"One row per capability: its id, then the adapters METE tries in this order, for example web.search@1 → exa-mcp, tavily.",
+				)}
+			</span>
+			{state.rows.length > 0 ? <Head /> : null}
+			{state.rows.map((row, i) => (
+				<Row key={keyed.keys[i]} index={i} row={row} actions={acts} />
+			))}
+			<div style={ROW}>
+				<button
+					type="button"
+					className="mete-button quiet"
+					onClick={actions.onAdd}
+				>
+					{nls.localize("mete/settings/addCapability", "Add capability")}
+				</button>
+			</div>
+			<FormNote state={state} />
 		</div>
-		<FormNote state={state} />
-	</div>
-);
+	);
+};

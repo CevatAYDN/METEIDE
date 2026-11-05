@@ -15,21 +15,24 @@ import { Card } from "./wait-card.js";
 const askTarget = (ask: PolicyAsk) => ask.command ?? ask.path ?? ask.capability;
 
 // What the policy asks about, in JetBrains Mono on a raised line, its whole text in the tooltip.
-const AskLine = ({ ask }: { readonly ask: PolicyAsk }) => (
-	<div
-		className="mete-wait-ask"
-		title={`asks ${ask.action}: ${askTarget(ask)}`}
-	>
-		<span className="mete-tile" aria-hidden="true">
-			<Icon name="terminal" />
-		</span>
-		<code>
-			<span className="mete-wait-ask-verb">asks</span>{" "}
-			<span className="mete-wait-ask-action">{ask.action}</span>:{" "}
-			{askTarget(ask)}
-		</code>
-	</div>
-);
+const AskLine = ({ ask }: { readonly ask: PolicyAsk }) => {
+	const verb = nls.localize("mete/waiting/askVerb", "asks");
+	return (
+		<div
+			className="mete-wait-ask"
+			title={`${verb} ${ask.action}: ${askTarget(ask)}`}
+		>
+			<span className="mete-tile" aria-hidden="true">
+				<Icon name="terminal" />
+			</span>
+			<code>
+				<span className="mete-wait-ask-verb">{verb}</span>{" "}
+				<span className="mete-wait-ask-action">{ask.action}</span>:{" "}
+				{askTarget(ask)}
+			</code>
+		</div>
+	);
+};
 
 // A pattern Always would write is named on the button, so the user sees what is granted (ADR-158).
 const AlwaysLabel = ({ command }: { readonly command: string }) => {

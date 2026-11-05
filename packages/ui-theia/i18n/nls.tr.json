@@ -667,6 +667,7 @@
 			"allowHint": "Bu eyleme bir kez, bu çalıştırma boyunca ya da .mete/policy.yaml dosyasında her zaman izin verin.",
 			"allowOnce": "Bir kez izin ver",
 			"allowRun": "Bu çalıştırma için izin ver",
+			"askVerb": "istiyor",
 			"asks": "{0}, “{1}” için onayını bekliyor",
 			"blocked": "{0}, “{1}” görevinde bloke oldu",
 			"blockedHint": "Yanıt verince devam eder: bir talimat gönder ya da olduğu gibi devam etmesine izin ver.",

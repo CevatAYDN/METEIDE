@@ -10,6 +10,7 @@ import {
 	TRANSPORTS,
 } from "./mcp-draft.js";
 import { McpTestPanel, type McpTestsView } from "./mcp-test.js";
+import { useRowKeys, withRowKeys } from "./row-keys.js";
 import type { Target } from "./section-draft.js";
 import { FormNote, type SaveNote } from "./settings-form.js";
 import { Select, TextArea, TextField } from "./text-field.js";
@@ -267,41 +268,44 @@ export const McpCard = ({
 	readonly state: McpState;
 	readonly actions: McpActions;
 	readonly tests?: McpTestsView | undefined;
-}) => (
-	<div style={{ ...COLUMN, gap: "8px" }}>
-		<span style={MUTED}>
-			{nls.localize(
-				"mete/settings/mcpHint",
-				"One card per server: a local one runs a command, a remote one answers at a URL. The built-in Exa server is not a card until a file names it.",
-			)}
-		</span>
-		{tests ? (
+}) => {
+	const keyed = useRowKeys(state.servers.length);
+	const acts = withRowKeys(actions, keyed);
+	return (
+		<div style={{ ...COLUMN, gap: "8px" }}>
 			<span style={MUTED}>
 				{nls.localize(
-					"mete/settings/mcpTestHint",
-					"Test connects to a server as METE loaded it: after an edit, save and press Apply now first.",
+					"mete/settings/mcpHint",
+					"One card per server: a local one runs a command, a remote one answers at a URL. The built-in Exa server is not a card until a file names it.",
 				)}
 			</span>
-		) : null}
-		{state.servers.map((server, i) => (
-			<ServerCard
-				// biome-ignore lint/suspicious/noArrayIndexKey: a server has no stable id while its id is typed
-				key={i}
-				index={i}
-				server={server}
-				actions={actions}
-				tests={tests}
-			/>
-		))}
-		<div style={ROW}>
-			<button
-				type="button"
-				className="mete-button quiet"
-				onClick={actions.onAdd}
-			>
-				{nls.localize("mete/settings/addServer", "Add server")}
-			</button>
+			{tests ? (
+				<span style={MUTED}>
+					{nls.localize(
+						"mete/settings/mcpTestHint",
+						"Test connects to a server as METE loaded it: after an edit, save and press Apply now first.",
+					)}
+				</span>
+			) : null}
+			{state.servers.map((server, i) => (
+				<ServerCard
+					key={keyed.keys[i]}
+					index={i}
+					server={server}
+					actions={acts}
+					tests={tests}
+				/>
+			))}
+			<div style={ROW}>
+				<button
+					type="button"
+					className="mete-button quiet"
+					onClick={actions.onAdd}
+				>
+					{nls.localize("mete/settings/addServer", "Add server")}
+				</button>
+			</div>
+			<FormNote state={state} />
 		</div>
-		<FormNote state={state} />
-	</div>
-);
+	);
+};

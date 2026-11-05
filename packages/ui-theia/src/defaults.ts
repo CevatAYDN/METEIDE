@@ -29,3 +29,10 @@ export const TRANSCRIPT_REFETCH_MS = 500;
 
 /** How often a thinking agent's seconds count up: each second (04 Decisions, ADR-125). */
 export const THINKING_TICK_MS = 1000;
+
+/**
+ * Whether the desktop's renderer runs in Chromium's sandbox (`webPreferences.sandbox`): on
+ * (04 Decisions, ADR-175). The Phase 5 desktop gate flips it off here if the terminal or Theia's
+ * preload cannot work with it.
+ */
+export const RENDERER_SANDBOX = true;
