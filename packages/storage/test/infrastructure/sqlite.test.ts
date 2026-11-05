@@ -32,6 +32,18 @@ describe("openDatabase", () => {
 		expect(db.pragma("busy_timeout", { simple: true })).toBe(BUSY_TIMEOUT_MS);
 		db.close();
 	});
+
+	it("enforces foreign keys", async () => {
+		const db = await freshDb();
+		expect(db.pragma("foreign_keys", { simple: true })).toBe(1);
+		db.exec(
+			"CREATE TABLE p (id INTEGER PRIMARY KEY); CREATE TABLE c (p INTEGER REFERENCES p(id))",
+		);
+		expect(() => db.prepare("INSERT INTO c VALUES (42)").run()).toThrow(
+			/FOREIGN KEY/,
+		);
+		db.close();
+	});
 });
 
 describe("runMigrations", () => {
@@ -69,6 +81,29 @@ describe("runMigrations", () => {
 			migrationId: "001",
 		});
 		expect(tables(db)).toEqual(["storage_migrations"]);
+		db.close();
+	});
+
+	it("reads the ledger under the same write lock it writes it, and a failure leaves no ledger row", async () => {
+		const db = await freshDb();
+		const ids = () =>
+			db
+				.prepare("SELECT id FROM storage_migrations WHERE module_id = 'quota'")
+				.pluck()
+				.all();
+		const r = runMigrations(db, "quota", [
+			{ id: "001", sql: "CREATE TABLE a (x)" },
+			{ id: "002", sql: "CREATE TABLE broken (" },
+		]);
+		expect(r.ok ? undefined : r.error.migrationId).toBe("002");
+		expect(ids()).toEqual([]);
+		expect(tables(db)).toEqual(["storage_migrations"]);
+		expect(db.inTransaction).toBe(false);
+		// A second run starts from the ledger as left: the first step is applied again, not skipped.
+		expect(
+			runMigrations(db, "quota", [{ id: "001", sql: "CREATE TABLE a (x)" }]),
+		).toEqual({ ok: true, value: undefined });
+		expect(ids()).toEqual(["001"]);
 		db.close();
 	});
 });

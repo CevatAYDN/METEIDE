@@ -90,6 +90,23 @@ describe("storage module", () => {
 		await mod.deactivate();
 	});
 
+	it("stores an event published twice once and does not throw", async () => {
+		const s = await setup();
+		const mod = createStorageModule(s.dirs);
+		await mod.activate(s.ctx);
+		const event = runStarted();
+		s.events.publish(event);
+		expect(() => s.events.publish(event)).not.toThrow();
+		const count = s
+			.adapter()
+			.scopeFor("core-engine")
+			.workspace.prepare("SELECT count(*) FROM events WHERE id = ?")
+			.pluck()
+			.get(event.id);
+		expect(count).toBe(1);
+		await mod.deactivate();
+	});
+
 	it("deletes a removed run's events, its run.removed too, and keeps other runs' (ADR-143)", async () => {
 		const s = await setup();
 		const mod = createStorageModule(s.dirs);

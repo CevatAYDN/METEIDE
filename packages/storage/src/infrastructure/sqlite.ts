@@ -17,13 +17,14 @@ import { BUSY_TIMEOUT_MS } from "../defaults.js";
 /** An open better-sqlite3 connection. */
 export type Db = Database.Database;
 
-/** Opens a database file in WAL mode with the busy timeout, creating its folder. */
+/** Opens a database file in WAL mode with the busy timeout and foreign keys enforced, creating its folder. */
 export const openDatabase = async (file: string): Promise<Db> => {
 	await withLockRetry(() => mkdir(dirname(file), { recursive: true }));
 	const db = new Database(file);
 	// First, so switching to WAL already waits for another process's lock.
 	db.pragma(`busy_timeout = ${BUSY_TIMEOUT_MS}`);
 	db.pragma("journal_mode = WAL");
+	db.pragma("foreign_keys = ON");
 	return db;
 };
 
@@ -47,7 +48,11 @@ const LEDGER = `CREATE TABLE IF NOT EXISTS storage_migrations (
 	PRIMARY KEY (module_id, id)
 )`;
 
-/** Applies a module's migrations that are not in its ledger yet, each in a transaction. */
+/**
+ * Applies a module's migrations that are not in its ledger yet. The ledger read and every
+ * migration run in one immediate transaction, so two processes migrating at once cannot both
+ * see a migration as missing; a failure rolls everything back and names the migration.
+ */
 export const runMigrations = (
 	db: Db,
 	moduleId: string,
@@ -56,22 +61,22 @@ export const runMigrations = (
 	let current = "";
 	try {
 		db.exec(LEDGER);
-		const done = new Set(
-			db
-				.prepare("SELECT id FROM storage_migrations WHERE module_id = ?")
-				.pluck()
-				.all(moduleId),
-		);
-		const record = db.prepare(
-			"INSERT INTO storage_migrations (module_id, id, applied_at) VALUES (?, ?, ?)",
-		);
-		for (const m of migrations.filter((m) => !done.has(m.id))) {
-			current = m.id;
-			db.transaction(() => {
+		db.transaction(() => {
+			const done = new Set(
+				db
+					.prepare("SELECT id FROM storage_migrations WHERE module_id = ?")
+					.pluck()
+					.all(moduleId),
+			);
+			const record = db.prepare(
+				"INSERT INTO storage_migrations (module_id, id, applied_at) VALUES (?, ?, ?)",
+			);
+			for (const m of migrations.filter((m) => !done.has(m.id))) {
+				current = m.id;
 				db.exec(m.sql);
 				record.run(moduleId, m.id, new Date().toISOString());
-			})();
-		}
+			}
+		}).immediate();
 		return ok(undefined);
 	} catch (e) {
 		const message = e instanceof Error ? e.message : String(e);

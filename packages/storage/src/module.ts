@@ -141,7 +141,7 @@ export const createStorageModule = (opts: StorageOptions): MeteModule => {
 					features: [],
 					impl: reader,
 				}),
-				...captureEvents(h.workspace, ctx.events),
+				...captureEvents(h.workspace, ctx.events, ctx.logger.warn),
 			];
 			for (const d of created) ctx.disposables.add(d);
 			return ok(undefined);

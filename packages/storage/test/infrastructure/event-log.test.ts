@@ -1,6 +1,10 @@
+import type { MeteEvent } from "@mete/contracts";
+import { createEventBus } from "@mete/kernel";
 import Database from "better-sqlite3";
 import { describe, expect, it } from "vitest";
+import { EVENT_PAYLOAD_MAX_BYTES } from "../../src/defaults.js";
 import {
+	captureEvents,
 	EVENT_MIGRATIONS,
 	readRunEvents,
 } from "../../src/infrastructure/event-log.js";
@@ -41,5 +45,63 @@ describe("readRunEvents", () => {
 		expect(events.map((e) => e.type)).toEqual(["run.started"]);
 		expect(broken.map((b) => b.seq)).toEqual([2, 3]);
 		expect(broken[0]?.issues).toContain("reason");
+	});
+
+	it("reports a cut payload as a row that cannot be replayed, not as an event", () => {
+		const db = new Database(":memory:");
+		for (const m of EVENT_MIGRATIONS) db.exec(m.sql);
+		insert(
+			db,
+			"a1b2c3d4-0000-4000-8000-000000000001",
+			"run.completed",
+			JSON.stringify({ cut: true, bytes: 70_000, head: '{"summary":"abc' }),
+		);
+		const { events, broken } = readRunEvents(db, RUN);
+		expect(events).toEqual([]);
+		expect(broken).toEqual([
+			{ seq: 1, issues: "payload cut: 70000 bytes exceed 65536" },
+		]);
+	});
+});
+
+describe("captureEvents", () => {
+	const event = (summary: string): MeteEvent => ({
+		id: "a1b2c3d4-0000-4000-8000-000000000009",
+		ts: "2026-10-22T10:00:00.000Z",
+		schema: 1,
+		workspaceId: WS,
+		runId: RUN,
+		source: "core-engine",
+		type: "run.completed",
+		payload: { summary },
+	});
+
+	it("stores a huge payload cut with a marker, warns once and keeps the live event whole", () => {
+		const db = new Database(":memory:");
+		for (const m of EVENT_MIGRATIONS) db.exec(m.sql);
+		const bus = createEventBus((e) => {
+			throw e;
+		});
+		const warned: string[] = [];
+		captureEvents(db, bus, (_f, msg) => void warned.push(msg));
+		const seen: MeteEvent[] = [];
+		bus.subscribe("run.*", (e) => void seen.push(e));
+		const big = event("x".repeat(EVENT_PAYLOAD_MAX_BYTES * 2));
+		expect(() => bus.publish(big)).not.toThrow();
+		bus.publish({ ...big, id: "a1b2c3d4-0000-4000-8000-000000000010" });
+		const stored = db
+			.prepare("SELECT payload FROM events WHERE id = ?")
+			.pluck()
+			.get(big.id) as string;
+		expect(Buffer.byteLength(stored)).toBeLessThanOrEqual(
+			EVENT_PAYLOAD_MAX_BYTES,
+		);
+		expect(JSON.parse(stored)).toMatchObject({
+			cut: true,
+			bytes: Buffer.byteLength(JSON.stringify(big.payload)),
+		});
+		expect(seen[0]?.payload).toEqual(big.payload);
+		expect(warned).toHaveLength(1);
+		expect(readRunEvents(db, RUN).broken).toHaveLength(2);
 	});
 });

@@ -1,13 +1,16 @@
 import {
 	type BrokenEvent,
 	EVENT_TYPES,
+	err,
 	type MeteEvent,
 	type Migration,
 	parseEvent,
+	type Result,
 	type RunEvents,
 } from "@mete/contracts";
-import type { Disposable, EventBus } from "@mete/kernel";
-import { EVENT_RETENTION_DAYS } from "../defaults.js";
+import type { Disposable, EventBus, Logger } from "@mete/kernel";
+import { EVENT_PAYLOAD_MAX_BYTES, EVENT_RETENTION_DAYS } from "../defaults.js";
+import { capPayload, isCutPayload } from "../domain/payload-cap.js";
 import type { Db } from "./sqlite.js";
 
 // The events table from docs/07-domain-model-and-events.md (Event envelope).
@@ -38,14 +41,32 @@ export const EVENT_MIGRATIONS: ReadonlyArray<Migration> = [
 const DOMAINS = [...new Set(EVENT_TYPES.map((t) => t.split(".")[0]))];
 
 /**
- * Inserts every published catalog event; a failed insert throws to the bus error sink. A run.removed
- * deletes its run's events instead and is not kept itself (ADR-143).
+ * Inserts every published catalog event; a failed insert throws to the bus error sink. An event
+ * already stored (same id) is not stored twice. A run.removed deletes its run's events instead
+ * and is not kept itself (ADR-143). A payload whose JSON exceeds EVENT_PAYLOAD_MAX_BYTES is
+ * stored cut with a marker, warned once per capture, and the live event is untouched.
  */
-export const captureEvents = (db: Db, events: EventBus): Disposable[] => {
-	const insert = db.prepare(`INSERT INTO events
+export const captureEvents = (
+	db: Db,
+	events: EventBus,
+	warn: Logger["warn"],
+): Disposable[] => {
+	const insert = db.prepare(`INSERT OR IGNORE INTO events
 		(id, type, ts, schema, workspace_id, run_id, task_id, agent_id, source, payload)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
 	const removeRun = db.prepare("DELETE FROM events WHERE run_id = ?");
+	let warned = false;
+	const storedPayload = (e: MeteEvent) => {
+		const capped = capPayload(e.payload, EVENT_PAYLOAD_MAX_BYTES);
+		if (capped.cut && !warned) {
+			warned = true;
+			warn(
+				{ eventId: e.id, type: e.type, maxBytes: EVENT_PAYLOAD_MAX_BYTES },
+				"event payload exceeds the stored size; stored cut, it cannot be replayed whole",
+			);
+		}
+		return capped.json;
+	};
 	const write = (e: MeteEvent) => {
 		if (e.type === "run.removed") {
 			if (e.runId) removeRun.run(e.runId);
@@ -61,7 +82,7 @@ export const captureEvents = (db: Db, events: EventBus): Disposable[] => {
 			e.taskId ?? null,
 			e.agentId ?? null,
 			e.source,
-			JSON.stringify(e.payload),
+			storedPayload(e),
 		);
 	};
 	return DOMAINS.map((d) => events.subscribe(`${d}.*`, write));
@@ -102,7 +123,27 @@ const envelopeOf = (r: Row) => ({
 	payload: JSON.parse(r.payload) as unknown,
 });
 
-/** One run's persisted events in replay order, each checked against its schema again. */
+// One row as an event, or why it cannot be replayed: a cut payload, JSON that no longer parses,
+// or a payload its schema refuses.
+const parseRow = (row: Row): Result<MeteEvent, string> => {
+	let envelope: ReturnType<typeof envelopeOf>;
+	try {
+		envelope = envelopeOf(row);
+	} catch (e) {
+		return err(e instanceof Error ? e.message : String(e));
+	}
+	if (isCutPayload(envelope.payload))
+		return err(
+			`payload cut: ${envelope.payload.bytes} bytes exceed ${EVENT_PAYLOAD_MAX_BYTES}`,
+		);
+	const parsed = parseEvent(envelope);
+	return parsed.ok ? parsed : err(parsed.error.issues.join("; "));
+};
+
+/**
+ * One run's persisted events in replay order, each checked against its schema again. A row whose
+ * payload was stored cut is reported as broken with its original size, never replayed.
+ */
 export const readRunEvents = (db: Db, runId: string): RunEvents => {
 	const rows = db
 		.prepare("SELECT * FROM events WHERE run_id = ? ORDER BY seq")
@@ -110,18 +151,9 @@ export const readRunEvents = (db: Db, runId: string): RunEvents => {
 	const events: MeteEvent[] = [];
 	const broken: BrokenEvent[] = [];
 	for (const row of rows) {
-		let parsed: ReturnType<typeof parseEvent>;
-		try {
-			parsed = parseEvent(envelopeOf(row));
-		} catch (e) {
-			broken.push({
-				seq: row.seq,
-				issues: e instanceof Error ? e.message : String(e),
-			});
-			continue;
-		}
+		const parsed = parseRow(row);
 		if (parsed.ok) events.push(parsed.value);
-		else broken.push({ seq: row.seq, issues: parsed.error.issues.join("; ") });
+		else broken.push({ seq: row.seq, issues: parsed.error });
 	}
 	return { events, broken };
 };
