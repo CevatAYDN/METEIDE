@@ -61,6 +61,8 @@ Phase 5 exit gate, as of 2026-11-04: not passed. `apps/cli/test/game-studio.test
 | pre-push | Unit, integration, contract and replay tests on affected packages; secretlint on the diff |
 | `pnpm release:check` | Every test type above, all security checks, all builds the machine can produce |
 
+Today's `lefthook.yml` is simpler than the table: pre-commit runs Biome on the staged files, `tsc -b` for every package (it emits `dist/`) plus `tsc -p tsconfig.test.json`, dependency-cruiser, and a lockfile check (`pnpm install --frozen-lockfile --offline` with the lockfile and every `package.json` staged together); pre-push runs the secret scan and then the tests of all packages through `pnpm exec turbo run test`. Affected-only type checks and tests (`turbo --affected`, `--noEmit`) are a later switch, noted as shortcuts in that file \[D\].
+
 ## Builds
 
 | Target | Format | Built on |

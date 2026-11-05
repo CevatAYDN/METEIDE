@@ -1,7 +1,21 @@
 {
 	"$schema": "https://turborepo.dev/schema.json",
+	"globalDependencies": [
+		"tsconfig.base.json",
+		"tsconfig.test.json",
+		"tsconfig.json",
+		"templates/**",
+		"adapters/**"
+	],
 	"tasks": {
 		"build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
-		"test": { "dependsOn": ["^build"], "outputs": [] }
+		"test": {
+			"dependsOn": ["^build"],
+			"outputs": [],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"$TURBO_ROOT$/packages/mcp/test/fixtures/**"
+			]
+		}
 	}
 }

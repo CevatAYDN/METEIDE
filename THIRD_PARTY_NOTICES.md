@@ -46,3 +46,17 @@ SOFTWARE.
 - License: SIL Open Font License 1.1. Copyright 2020 The JetBrains Mono Project Authors. The full license text is `packages/ui-theia/fonts/JetBrainsMono-OFL.txt`, shipped beside the font.
 - Files: `packages/ui-theia/fonts/JetBrainsMono-latin.woff2`
 - Changes: the latin subset file as served, unchanged; the variable weight axis is kept and METE uses weights 400 to 700 (ADR-107). The font is not renamed and keeps no Reserved Font Name.
+
+## @vscode/windows-ca-certs
+
+- Project: @vscode/windows-ca-certs by Microsoft (originally Stas Ukolov), https://github.com/microsoft/vscode-windows-ca-certs, version 0.3.4, installed as a dependency of the desktop's extension host (ADR-103).
+- License: BSD 3-Clause. Copyright (c) 2016, Stas Ukolov; Copyright (c) Microsoft Corporation. The full license text ships in the package (`LICENSE`).
+- Files: `patches/@vscode__windows-ca-certs@0.3.4.patch`, applied by pnpm at install time.
+- Changes: `binding.gyp` loses the `SpectreMitigation: Spectre` MSVC configuration attribute, so the native module builds with the plain Visual Studio C++ Build Tools that the Theia build needs (ADR-103); no source file changes.
+
+## node-pty
+
+- Project: node-pty by Microsoft (originally Christopher Jeffrey and Daniel Imms), https://github.com/microsoft/node-pty, version 1.2.0-beta.12, installed as a dependency of the Theia terminal.
+- License: MIT. Copyright (c) 2012-2015, Christopher Jeffrey; Copyright (c) 2016, Daniel Imms; Copyright (c) 2018 - present Microsoft Corporation. The full license text ships in the package (`LICENSE`).
+- Files: `patches/node-pty@1.2.0-beta.12.patch`, applied by pnpm at install time.
+- Changes: `binding.gyp` loses the `SpectreMitigation: Spectre` MSVC configuration attribute for the Windows build, for the same reason as above; no source file changes.

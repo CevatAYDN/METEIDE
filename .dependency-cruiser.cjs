@@ -83,6 +83,33 @@ module.exports = {
 			},
 		},
 		{
+			name: "ui-libraries-stay-libraries",
+			comment:
+				"ui-studio and ui-kit are layer 6 libraries: they MUST NOT import the desktop shell, its extension or any app (ARCHITECTURE.md dependency rules, ADR-051, ADR-069)",
+			severity: "error",
+			from: { path: "^packages/(ui-studio|ui-kit)/" },
+			to: { path: "^(packages/ui-theia|apps/)" },
+		},
+		{
+			name: "cli-no-ui",
+			comment:
+				"the CLI is a composition root for the core, not for the desktop: it MUST NOT import a ui-* package (ARCHITECTURE.md dependency rules)",
+			severity: "error",
+			from: { path: "^apps/cli/" },
+			to: { path: "^packages/ui-" },
+		},
+		{
+			name: "testing-only-contracts",
+			comment:
+				"the contract kits in @mete/testing depend only on contracts, so every layer can use them without a cycle (ARCHITECTURE.md dependency rules)",
+			severity: "error",
+			from: { path: "^packages/testing/" },
+			to: {
+				path: "^(packages|apps)/",
+				pathNot: "^packages/(testing|contracts)/",
+			},
+		},
+		{
 			name: "no-circular",
 			severity: "error",
 			from: {},
