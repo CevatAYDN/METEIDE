@@ -1,3 +1,5 @@
+import { spawn } from "node:child_process";
+import { join } from "node:path";
 import type { McpServer } from "@mete/contracts";
 import type {
 	OAuthClientProvider,
@@ -21,6 +23,25 @@ export type OpenOptions = {
 	readonly fetch?: typeof fetch;
 	readonly cwd?: string;
 	readonly auth?: OAuthClientProvider;
+	/** Ends a stdio server's whole process tree on Windows; tests swap it. */
+	readonly killTree?: (pid: number) => void;
+	readonly platform?: NodeJS.Platform;
+};
+
+/**
+ * Windows only: the SDK's close ends the direct child, so an `npx` or `uvx` wrapper leaves the
+ * real server orphaned; taskkill /T ends the tree.
+ */
+export const killTreeWin32 = (pid: number): void => {
+	const taskkill = join(
+		process.env.SystemRoot ?? "C:\\Windows",
+		"System32",
+		"taskkill.exe",
+	);
+	spawn(taskkill, ["/pid", String(pid), "/T", "/F"], {
+		stdio: "ignore",
+		windowsHide: true,
+	}).on("error", () => undefined);
 };
 
 /** Opens one configured server; tests swap it. */
@@ -31,7 +52,7 @@ export type OpenTransport = (
 
 const stdio = async (
 	server: Extract<McpServer, { transport: "stdio" }>,
-	cwd?: string,
+	opts: OpenOptions,
 ): Promise<Opened> => {
 	const { StdioClientTransport } = await import(
 		"@modelcontextprotocol/client/stdio"
@@ -40,9 +61,18 @@ const stdio = async (
 		command: server.command,
 		args: [...server.args],
 		...(server.env ? { env: server.env } : {}),
-		...(cwd ? { cwd } : {}),
+		...(opts.cwd ? { cwd: opts.cwd } : {}),
 		stderr: "pipe",
 	});
+	if ((opts.platform ?? process.platform) === "win32") {
+		const kill = opts.killTree ?? killTreeWin32;
+		const close = transport.close.bind(transport);
+		transport.close = async () => {
+			const { pid } = transport;
+			if (pid !== null) kill(pid);
+			await close();
+		};
+	}
 	let tail = "";
 	transport.stderr?.on("data", (chunk: Buffer) => {
 		tail = (tail + chunk.toString()).slice(-STDERR_TAIL_CHARS);
@@ -52,7 +82,7 @@ const stdio = async (
 
 /** The SDK transport for a server's `transport` setting. */
 export const openTransport: OpenTransport = async (server, opts = {}) => {
-	if (server.transport === "stdio") return stdio(server, opts.cwd);
+	if (server.transport === "stdio") return stdio(server, opts);
 	const { SSEClientTransport, StreamableHTTPClientTransport } = await import(
 		"@modelcontextprotocol/client"
 	);

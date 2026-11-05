@@ -11,6 +11,7 @@ import {
 	type ToolError,
 } from "@mete/contracts";
 import type { Logger } from "@mete/kernel";
+import { TOOL_DESCRIPTION_MAX } from "../defaults.js";
 import { toContent } from "./content.js";
 import { permit } from "./permit.js";
 import type { Session, Sessions } from "./sessions.js";
@@ -45,7 +46,7 @@ const list: (deps: McpToolsDeps) => McpToolsAdapter["list"] =
 				all.push({
 					server: id,
 					name: t.name,
-					description: t.description ?? "",
+					description: (t.description ?? "").slice(0, TOOL_DESCRIPTION_MAX),
 					inputSchema: t.inputSchema,
 				});
 		}

@@ -4,6 +4,9 @@ import type { McpServer } from "@mete/contracts";
 /** Tab 10, MCP client: characters of a server's stderr kept for its error messages. */
 export const STDERR_TAIL_CHARS = 2000;
 
+/** Tab 10, MCP client: characters of a server's tool description that mcp.tools@1 lists; it is external content. */
+export const TOOL_DESCRIPTION_MAX = 1000;
+
 /** Tab 10, MCP client: servers every workspace has; an mcp.yaml entry with the same id replaces one. */
 export const BUILT_IN_SERVERS: readonly McpServer[] = [
 	{

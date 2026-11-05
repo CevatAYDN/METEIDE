@@ -35,6 +35,12 @@ type Target = {
 
 const why = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
+/** A tool's arguments must render to an object; a template can also yield text, a list or nothing. */
+const asArgs = (v: unknown): Record<string, unknown> | undefined =>
+	typeof v === "object" && v !== null && !Array.isArray(v)
+		? (v as Record<string, unknown>)
+		: undefined;
+
 /** What names a mapped call in its errors. */
 type Named = {
 	readonly mapping: { readonly metadata: { readonly id: string } };
@@ -64,7 +70,7 @@ export const inputOf = (
 const callTool = async (
 	deps: MappedDeps,
 	t: Target,
-	args: unknown,
+	args: Record<string, unknown>,
 	ctx: ToolContext,
 ): Promise<Result<Scope, string>> => {
 	const { signal } = ctx;
@@ -78,10 +84,7 @@ const callTool = async (
 			t.ref,
 		);
 		const r = await deps.sessions.calls.during(t.mapping.server, ctx, () =>
-			s.value.client.callTool(
-				{ name: t.entry.tool, arguments: args as Record<string, unknown> },
-				options,
-			),
+			s.value.client.callTool({ name: t.entry.tool, arguments: args }, options),
 		);
 		const blocks = Array.isArray(r.content) ? r.content : [];
 		const texts = blocks.flatMap((b) => (b.type === "text" ? [b.text] : []));
@@ -120,19 +123,25 @@ const run = async (
 	const input = inputOf(t.ref, raw);
 	if (!input.ok) return input;
 	const base = { input: input.value, workspace: { path: deps.workspaceDir } };
-	const args = render(t.entry.args, base);
-	if (!args.ok) return err(failed(t)(`args ${args.error}`));
+	const rendered = render(t.entry.args, base);
+	if (!rendered.ok) return err(failed(t)(`args ${rendered.error}`));
+	const args = asArgs(rendered.value);
+	if (!args)
+		return err({
+			code: "bad_input",
+			message: `mapping ${t.mapping.metadata.id} for ${t.ref}: args must render to an object`,
+		});
 	const command = `${t.mapping.server}/${t.entry.tool}`;
 	const check = {
 		adapterId: t.mapping.metadata.id,
 		action: t.entry.action,
 		capability: t.ref,
 		command,
-		args: args.value,
+		args,
 	};
 	const allowed = permit(deps.policy(), check, ctx);
 	if (!allowed.ok) return allowed;
-	const result = await callTool(deps, t, args.value, ctx);
+	const result = await callTool(deps, t, args, ctx);
 	if (!result.ok) return err(failed(t)(result.error));
 	const out = outputOf(t.ref, t.entry.output, {
 		...base,
