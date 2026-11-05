@@ -92,4 +92,22 @@ describe("restoreVersion", () => {
 		}
 		expect(await v.read(".mete/knowledge/lessons/a.md")).toBe("now\n");
 	});
+
+	it("refuses a path outside the vault with the same error as versionsOf, and writes nothing", async () => {
+		const v = await vault();
+		const outside = join(v.root, "x.md");
+		for (const path of ["../x.md", outside, ".history/lessons/a.md"]) {
+			const listed = await versionsOf(v.root, path);
+			const r = await restoreVersion(v.root, path, OLD, NOW);
+			expect(listed.ok).toBe(false);
+			expect(r).toEqual(listed);
+			expect(r.ok ? "" : r.error).toContain("is not a .md note inside");
+		}
+		expect(await v.read(".mete/knowledge/lessons/a.md")).toBe("now\n");
+		await expect(readFile(outside, "utf8")).rejects.toThrow();
+		await expect(
+			readFile(join(v.root, "..", "x.md"), "utf8"),
+		).rejects.toThrow();
+		expect((await readdir(join(v.root, HISTORY))).length).toBe(3);
+	});
 });

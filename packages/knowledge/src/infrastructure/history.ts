@@ -76,9 +76,11 @@ export const restoreVersion = async (
 	stamp: string,
 	now: number,
 ): Promise<Result<{ readonly kept?: string }, string>> => {
-	const listed = await versionsOf(workspaceDir, path);
+	const at = inVault(path);
+	if (!at.ok) return at;
+	const p = at.value;
+	const listed = await versionsOf(workspaceDir, p);
 	if (!listed.ok) return listed;
-	const p = notePath(path) ?? path;
 	if (!listed.value.includes(stamp))
 		return err(
 			`${p} has no version ${stamp}; mete vault restore ${p} lists them`,
@@ -88,8 +90,8 @@ export const restoreVersion = async (
 			join(workspaceDir, versionPath(p, stamp)),
 			"utf8",
 		);
-		const at = stampOf(new Date(now).toISOString());
-		const kept = await swap(workspaceDir, p, version, at);
+		const when = stampOf(new Date(now).toISOString());
+		const kept = await swap(workspaceDir, p, version, when);
 		return ok(kept ? { kept } : {});
 	} catch (e) {
 		return err(`${p} cannot be restored: ${failed(e)}`);
