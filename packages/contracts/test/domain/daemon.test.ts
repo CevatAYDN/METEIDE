@@ -3,6 +3,7 @@ import type { CheckpointRestoreError } from "../../src/domain/checkpoint.js";
 import {
 	AuditEntrySchema,
 	DAEMON_METHODS,
+	DAEMON_PROTOCOL_VERSION,
 	DaemonAuditParamsSchema,
 	DaemonAuditResultSchema,
 	DaemonChainParamsSchema,
@@ -195,6 +196,11 @@ describe("daemon protocol version 24", () => {
 			mcpTest: "mete/mcp.test",
 			event: "mete/event",
 		});
+	});
+
+	it("counts 25 requests and one notification, and names version 27 (ARCHITECTURE.md)", () => {
+		expect(Object.keys(DAEMON_METHODS)).toHaveLength(26);
+		expect(DAEMON_PROTOCOL_VERSION).toBe(27);
 	});
 
 	it("takes the words and an optional note type for mete/knowledge.search, and reads its hits (ADR-159)", () => {

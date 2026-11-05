@@ -36,6 +36,7 @@ export {
 	ChangedFileSchema,
 	DAEMON_ERROR_CODE,
 	DAEMON_METHODS,
+	DAEMON_PROTOCOL_VERSION,
 	DaemonAuditParamsSchema,
 	DaemonAuditResultSchema,
 	DaemonChainParamsSchema,

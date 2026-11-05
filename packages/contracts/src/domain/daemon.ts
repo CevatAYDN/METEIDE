@@ -43,6 +43,9 @@ export const DAEMON_METHODS = {
 	event: "mete/event",
 } as const;
 
+/** The daemon protocol version these messages belong to (ARCHITECTURE.md). */
+export const DAEMON_PROTOCOL_VERSION = 27;
+
 /** JSON-RPC code of an error answer: the implementation-defined range; a client reads `data.code`. */
 export const DAEMON_ERROR_CODE = -32000;
 

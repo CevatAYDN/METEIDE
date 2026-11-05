@@ -83,7 +83,8 @@ const ensureWorkspaceFiles = async (metaDir: string) => {
 	try {
 		await withLockRetry(() => mkdir(metaDir, { recursive: true }));
 	} catch (e) {
-		return [unreadable(metaDir, e)];
+		// The first file the folder is for; a folder is not a config file.
+		return [unreadable(join(metaDir, "workspace.yaml"), e)];
 	}
 	const results = [
 		await createOnce(

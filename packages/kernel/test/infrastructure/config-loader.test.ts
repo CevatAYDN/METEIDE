@@ -141,6 +141,10 @@ describe("loadConfig", () => {
 			workspaceDir: join(d.workspaceDir, "..", "not-a-dir"),
 		});
 		expect(r.ok ? undefined : r.error).toHaveLength(1);
+		expect(r.ok ? undefined : r.error[0]).toMatchObject({
+			code: "config_invalid",
+			file: join(d.workspaceDir, "..", "not-a-dir", ".mete", "workspace.yaml"),
+		});
 	});
 
 	it("writes .mete/.gitignore once and keeps a user's own", async () => {
