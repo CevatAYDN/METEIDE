@@ -58,6 +58,11 @@ const setKey = async (secrets: SecretStore, io: Io, provider: string) => {
 		io.err("no key entered");
 		return 1;
 	}
+	// A piped file with more than one line is not a key; saving it would pair the provider with junk.
+	if (/[\r\n]/.test(key)) {
+		io.err("a key is one line; the input has more than one");
+		return 1;
+	}
 	const r = await secrets.set(accountOf(provider), key);
 	io.out(r.ok ? `${provider} key saved in the keychain` : r.error.message);
 	return r.ok ? 0 : 1;

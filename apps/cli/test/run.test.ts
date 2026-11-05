@@ -405,6 +405,20 @@ describe("mete stop and mete key", () => {
 		);
 	});
 
+	it("refuses a piped key that spans more than one line", async () => {
+		const secrets = memorySecrets();
+		for (const piped of ["sk-one\nsk-two", "sk-one\r\nsk-two", "sk-one\rx"]) {
+			const t = recordingIo(piped);
+			expect(await keyCommand(secrets, t.io, "set", "nvidia")).toBe(1);
+			expect(t.err.join("\n")).toContain("a key is one line");
+			expect(t.err.join("\n")).not.toContain("sk-one");
+		}
+		expect(await secrets.get("providers/nvidia/apiKey")).toEqual({
+			ok: true,
+			value: undefined,
+		});
+	});
+
 	it("keeps a search provider's key under its own account", async () => {
 		const secrets = memorySecrets();
 		expect(

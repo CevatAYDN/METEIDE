@@ -37,6 +37,7 @@ import { allowAndResume } from "./allow.js";
 import { changesOf } from "./changes.js";
 import type { Io } from "./commands.js";
 import { parsed, readyEngine, refused } from "./daemon-errors.js";
+import { guardedConnection, maskerOf } from "./daemon-guard.js";
 import { serveMcpTest } from "./daemon-mcp.js";
 import { serveAudit, serveKnowledgeSearch } from "./daemon-reads.js";
 import { estimateFor } from "./estimate.js";
@@ -364,9 +365,13 @@ export const daemonCommand = async (
 	const engine = engineOf(app);
 	if (!engine.ok)
 		for (const line of notReadyLines(app, engine.error)) io.err(line);
-	const conn = createMessageConnection(
-		new StreamMessageReader(streams.input),
-		new StreamMessageWriter(streams.output),
+	const conn = guardedConnection(
+		createMessageConnection(
+			new StreamMessageReader(streams.input),
+			new StreamMessageWriter(streams.output),
+		),
+		maskerOf(app),
+		io.err,
 	);
 	serveMethods(conn, app, io);
 	const spent = trackExhausted(app.events);
