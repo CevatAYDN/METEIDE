@@ -27,6 +27,8 @@ import {
 	parseEvent,
 	type Result,
 	type RunPrefer,
+	type RunReplyInput,
+	RunReplyOutputSchema,
 	type RunStart,
 	type Tier,
 	TranscriptSchema,
@@ -326,6 +328,10 @@ const steering = (
 	startRun: (dir: string, req: RunStart) =>
 		send(dir, DAEMON_METHODS.runStart, req, (raw) =>
 			DaemonRunStartResultSchema.safeParse(raw),
+		),
+	replyRun: (dir: string, req: RunReplyInput) =>
+		send(dir, DAEMON_METHODS.runReply, req, (raw) =>
+			RunReplyOutputSchema.safeParse(raw),
 		),
 	/** The human's decision on a paused run (ADR-048). */
 	approve: (dir: string, runId: string, input: ApprovalInput) =>

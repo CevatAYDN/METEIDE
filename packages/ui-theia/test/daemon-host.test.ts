@@ -30,6 +30,15 @@ const setup = async (max = 3) => {
 };
 
 describe("the daemon host", () => {
+	it("sends a follow-up to the exact run and validates its returned run id", async () => {
+		const { host } = await setup();
+		expect(
+			await host.replyRun("/w", { runId: "previous", message: "hello" }),
+		).toMatchObject({ ok: true, value: { runId: "hello" } });
+		expect(
+			await host.replyRun("/w", { runId: "garbage", message: "hello" }),
+		).toMatchObject({ ok: false, error: { code: "protocol" } });
+	});
 	it("starts a daemon on the first call and answers from the same one after", async () => {
 		const { fake, host } = await setup();
 		fake.state.mode = "one";

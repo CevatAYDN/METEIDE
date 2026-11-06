@@ -3,6 +3,7 @@ import type {
 	ApprovalInput,
 	ModelRef,
 	RunPrefer,
+	RunReplyInput,
 	RunStart,
 	Tier,
 } from "@mete/contracts";
@@ -74,6 +75,10 @@ export class MeteDaemonBackend
 
 	startRun(workspaceDir: string, req: RunStart) {
 		return this.host.startRun(workspaceDir, req);
+	}
+
+	replyRun(workspaceDir: string, input: RunReplyInput) {
+		return this.host.replyRun(workspaceDir, input);
 	}
 
 	approve(workspaceDir: string, runId: string, input: ApprovalInput) {

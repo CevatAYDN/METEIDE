@@ -130,6 +130,11 @@ export interface MeteDaemonService {
 		workspaceDir: string,
 		req: RunStart,
 	): Promise<Result<{ readonly runId: string }, DaemonFailure>>;
+	/** Continues a completed single-agent conversation in a new run (ADR-178). */
+	replyRun(
+		workspaceDir: string,
+		input: import("@mete/contracts").RunReplyInput,
+	): Promise<Result<{ readonly runId: string }, DaemonFailure>>;
 	/** The human's decision on a run paused for approval; the engine judges whether it applies. */
 	approve(
 		workspaceDir: string,
