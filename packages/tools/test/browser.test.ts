@@ -259,7 +259,16 @@ describe("a built folder", () => {
 		const audit = await open("seo.audit@2")({ folder: "dist" });
 		expect(audit?.ok).toBe(true);
 		expect(asked.map((r) => [r.kind, r.target])).toEqual([
-			["audit", { folder: real }],
+			[
+				"audit",
+				{
+					folder: real,
+					ignore: {
+						workspaceDir: dir,
+						worktreesDir: join(globalDir, "worktrees"),
+					},
+				},
+			],
 		]);
 	});
 
@@ -293,7 +302,15 @@ describe("a built folder", () => {
 		await site(dir, "out");
 		const audit = open("seo.audit@2");
 		expect((await audit({ folder: "out" }, tree))?.ok).toBe(true);
-		expect(asked.map((r) => r.target)).toEqual([{ folder: real }]);
+		expect(asked.map((r) => r.target)).toEqual([
+			{
+				folder: real,
+				ignore: {
+					workspaceDir: dir,
+					worktreesDir: join(globalDir, "worktrees"),
+				},
+			},
+		]);
 		const climb = await audit({ folder: join(dir, "out") }, tree);
 		expect(climb?.ok === false && climb.error.code).toBe("outside_workspace");
 	});

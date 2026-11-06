@@ -87,7 +87,13 @@ const folderTarget = async (
 			code: "bad_input",
 			message: `${folder} is not a folder with an index.html`,
 		});
-	return ok({ folder: at.value.real });
+	return ok({
+		folder: at.value.real,
+		ignore: {
+			workspaceDir: deps.workspaceDir,
+			worktreesDir: deps.worktreesDir,
+		},
+	});
 };
 
 // What to open: a public page the policy allows, or a built folder.

@@ -26,7 +26,7 @@ const freePort = () =>
 // Opens the target: a public page as it is, a built folder through a file server that lives while the job runs.
 const opened = async <T>(target: Target, work: (url: string) => Promise<T>) => {
 	if ("url" in target) return work(target.url);
-	const site = await serveFolder(target.folder);
+	const site = await serveFolder(target.folder, target.ignore);
 	try {
 		return await work(`${site.origin}/`);
 	} finally {

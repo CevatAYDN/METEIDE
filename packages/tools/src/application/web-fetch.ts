@@ -46,17 +46,23 @@ const readCapped = async (res: Response): Out<Uint8Array> => {
 	const reader = res.body?.getReader();
 	const parts: Uint8Array[] = [];
 	let size = 0;
-	for (;;) {
-		const chunk = await reader?.read();
-		if (!chunk || chunk.done) break;
-		size += chunk.value.byteLength;
-		if (size > WEB_FETCH_MAX_BYTES) {
-			await reader?.cancel();
-			return err(io(`the page is larger than ${WEB_FETCH_MAX_BYTES} bytes`));
+	try {
+		for (;;) {
+			const chunk = await reader?.read();
+			if (!chunk || chunk.done) break;
+			size += chunk.value.byteLength;
+			if (size > WEB_FETCH_MAX_BYTES)
+				return err(io(`the page is larger than ${WEB_FETCH_MAX_BYTES} bytes`));
+			parts.push(chunk.value);
 		}
-		parts.push(chunk.value);
+		return ok(Buffer.concat(parts));
+	} catch (e) {
+		return err(io(e instanceof Error ? e.message : String(e)));
+	} finally {
+		// An errored stream may reject cancellation too; retain the original read failure.
+		await reader?.cancel().catch(() => {});
+		reader?.releaseLock();
 	}
-	return ok(Buffer.concat(parts));
 };
 
 const decode = (bytes: Uint8Array, type: string) => {

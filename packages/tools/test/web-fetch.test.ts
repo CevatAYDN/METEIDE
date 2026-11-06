@@ -73,6 +73,69 @@ const setup = (
 };
 
 describe("web.fetch@1", () => {
+	it("returns io when the response stream fails after headers and releases its reader", async () => {
+		const { deps } = setup({});
+		let first = true;
+		const body = new ReadableStream<Uint8Array>({
+			pull(controller) {
+				if (first) {
+					first = false;
+					controller.enqueue(new TextEncoder().encode("partial"));
+				} else controller.error(new Error("connection reset during body"));
+			},
+		});
+		const response = new Response(body);
+		await expect(
+			fetchTool(
+				{ ...deps, pinnedFetch: async () => response },
+				{ url: "https://a.org/" },
+				ctx,
+			),
+		).resolves.toMatchObject({
+			ok: false,
+			error: {
+				code: "io",
+				message: expect.stringContaining("connection reset"),
+			},
+		});
+		expect(body.locked).toBe(false);
+	});
+
+	it("returns io for a mid-body abort and releases its reader", async () => {
+		const { deps } = setup({});
+		const stop = new AbortController();
+		let body: ReadableStream<Uint8Array> | undefined;
+		const pinnedFetch: FetchDeps["pinnedFetch"] = async (_url, init) => {
+			let first = true;
+			body = new ReadableStream<Uint8Array>({
+				start(controller) {
+					init.signal?.addEventListener(
+						"abort",
+						() => {
+							controller.error(new DOMException("body aborted", "AbortError"));
+						},
+						{ once: true },
+					);
+				},
+				pull(controller) {
+					if (first) {
+						first = false;
+						controller.enqueue(new TextEncoder().encode("partial"));
+					} else stop.abort();
+				},
+			});
+			return new Response(body);
+		};
+		await expect(
+			fetchTool(
+				{ ...deps, pinnedFetch },
+				{ url: "https://a.org/" },
+				{ signal: stop.signal },
+			),
+		).resolves.toMatchObject({ ok: false, error: { code: "io" } });
+		expect(body?.locked).toBe(false);
+	});
+
 	it("asks the policy for net.fetch and returns the article as Markdown", async () => {
 		const { deps, asked } = setup({ "https://a.org/": { body: ARTICLE } });
 		const r = await fetchTool(deps, { url: "https://a.org/" }, ctx);

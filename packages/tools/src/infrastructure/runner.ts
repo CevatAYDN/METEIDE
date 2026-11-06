@@ -8,7 +8,15 @@ import { BROWSER_TIMEOUT_MS, RUNNER_STDERR_CHARS } from "../defaults.js";
 // its stderr tail in the error so a failure says what went wrong (docs/10, Built-in tools).
 
 /** What to open: a public page, or a folder of a built site that the runner serves to the browser itself. */
-export type Target = { readonly url: string } | { readonly folder: string };
+export type Target =
+	| { readonly url: string }
+	| {
+			readonly folder: string;
+			readonly ignore: {
+				readonly workspaceDir: string;
+				readonly worktreesDir: string;
+			};
+	  };
 
 /** One job for the runner; `out` is the absolute path of the file it writes. */
 export type RunnerRequest =

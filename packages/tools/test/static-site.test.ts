@@ -50,6 +50,10 @@ afterEach(async () => {
 	cleanup = [];
 });
 
+// Junctions do not need Windows symlink privileges; unsupported fixtures fail, never pass silently.
+const directoryLink = (target: string, alias: string) =>
+	symlink(target, alias, process.platform === "win32" ? "junction" : "dir");
+
 // A raw GET, so the request path reaches the server as written (fetch would normalise "..").
 const get = (origin: string, path: string) =>
 	new Promise<{ status: number; type: string; body: string }>(
@@ -77,6 +81,64 @@ const get = (origin: string, path: string) =>
 	);
 
 describe("serveFolder", () => {
+	it.each(["workspace", "worktree"])(
+		"refuses ignored children and indexes but serves ordinary assets in a %s preview",
+		async (scope) => {
+			const base = await realpath(
+				await mkdtemp(join(tmpdir(), "mete-ignore-site-")),
+			);
+			const workspaceDir = join(base, "workspace");
+			const worktreesDir = join(base, "worktrees");
+			const root = join(
+				scope === "workspace"
+					? workspaceDir
+					: join(worktreesDir, "run", "task"),
+				"dist",
+			);
+			await mkdir(workspaceDir, { recursive: true });
+			await mkdir(join(root, "nested"), { recursive: true });
+			await mkdir(join(root, "assets"));
+			await writeFile(
+				join(workspaceDir, ".meteignore"),
+				"/dist/hidden.txt\n/dist/nested/index.html\n",
+			);
+			await writeFile(join(root, "index.html"), "<h1>home</h1>");
+			await writeFile(join(root, ".env"), "TOKEN=private");
+			await writeFile(join(root, "hidden.txt"), "private");
+			await writeFile(join(root, "nested", "index.html"), "private");
+			await writeFile(join(root, "assets", "app.css"), "h1{color:red}");
+			const served = await serveFolder(root, { workspaceDir, worktreesDir });
+			try {
+				for (const path of [
+					"/.env",
+					"/hidden.txt",
+					"/nested/",
+					"/nested/index.html",
+				])
+					expect((await get(served.origin, path)).status, path).toBe(404);
+				expect((await get(served.origin, "/assets/app.css")).status).toBe(200);
+				expect((await get(served.origin, "/")).status).toBe(200);
+				await directoryLink(join(root, "nested"), join(root, "alias"));
+				await directoryLink(join(root, "assets"), join(root, "hidden-link"));
+				await writeFile(
+					join(workspaceDir, ".meteignore"),
+					"/dist/hidden.txt\n/dist/hidden-link/\n/dist/nested/index.html\n",
+				);
+				expect((await get(served.origin, "/alias/")).status).toBe(404);
+				expect((await get(served.origin, "/alias/index.html")).status).toBe(
+					404,
+				);
+				expect((await get(served.origin, "/hidden-link/app.css")).status).toBe(
+					404,
+				);
+				expect((await get(served.origin, "/assets/app.css")).status).toBe(200);
+			} finally {
+				await served.close();
+				await rm(base, { recursive: true, force: true });
+			}
+		},
+	);
+
 	const site = async () => {
 		const base = await realpath(await mkdtemp(join(tmpdir(), "mete-site-")));
 		const root = join(base, "dist");
@@ -118,14 +180,13 @@ describe("serveFolder", () => {
 			expect((await get(s.origin, path)).status, path).toBe(404);
 	});
 
-	it("does not follow a link out of the folder", async () => {
+	it("does not follow a directory link out of the folder", async () => {
 		const s = await site();
-		try {
-			await symlink(join(s.base, "secret.txt"), join(s.root, "link.txt"));
-		} catch {
-			return; // Windows without the right to make links: nothing to check there.
-		}
-		expect((await get(s.origin, "/link.txt")).status).toBe(404);
+		const outside = join(s.base, "outside");
+		await mkdir(outside);
+		await writeFile(join(outside, "secret.txt"), "outside");
+		await directoryLink(outside, join(s.root, "link"));
+		expect((await get(s.origin, "/link/secret.txt")).status).toBe(404);
 	});
 
 	it("takes reads only", async () => {
