@@ -1,5 +1,6 @@
 import { type ChatMessage, isWrite, type ToolCall } from "@mete/contracts";
 import { MAX_TURNS } from "../defaults.js";
+import { occupiedRequests } from "./request-reservations.js";
 import { activeTime, type RunContext } from "./run-machine.js";
 
 // What a running single-agent run does next (docs/08, Single agent), read from its context alone,
@@ -44,7 +45,7 @@ const HOUR_MS = 3_600_000;
 const modelOrLimit = (c: RunContext, budget: Budget, at: number): NextStep => {
 	if (
 		c.turns >= MAX_TURNS ||
-		c.requests >= budget.cloudRequests ||
+		occupiedRequests(c) >= budget.cloudRequests ||
 		activeTime(c, at) >= budget.maxHours * HOUR_MS
 	)
 		return { kind: "pause", reason: "budget" };

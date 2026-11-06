@@ -133,11 +133,13 @@ const open = (
 	if (!where) return false;
 	const run = { ...l.snapshot.context, notes: task.notes };
 	const opened = openTask(team, task.id, run, where);
+	const session = team.tasks[task.id]?.session;
 	return apply(s, l, {
 		type: "SWITCH",
 		task: task.id,
 		...opened,
 		state: attemptState(team, task.id),
+		...(session ? { session } : {}),
 	});
 };
 
@@ -222,6 +224,7 @@ export const verdict = (s: EngineState, l: Live, reply: string) => {
 };
 
 const start = async (s: EngineState, l: Live, team: TeamState, id: string) => {
+	const token = l.token;
 	const agentId = team.tasks[id]?.context.agentId ?? s.deps.newId();
 	const worktree = await worktreeOf(s, l, team, { id, agentId });
 	const ctx = { runId: l.meta.id, signal: l.all.signal };
@@ -231,7 +234,7 @@ const start = async (s: EngineState, l: Live, team: TeamState, id: string) => {
 		? await readNotes(s.deps, ctx, titleOf(team, id))
 		: undefined;
 	// Paused or cancelled while git worked: the next start finds the worktree it made.
-	if (l.snapshot.value !== "running") return;
+	if (l.token !== token || l.snapshot.value !== "running") return;
 	// A best-of-N task's next attempt stays in progress (ADR-162).
 	const next = team.tasks[id]?.status === "in_progress";
 	const event = {
@@ -245,6 +248,12 @@ const start = async (s: EngineState, l: Live, team: TeamState, id: string) => {
 	const taskId = team.tasks[id]?.id;
 	emit(s, l, { type: "task.assigned", payload: { agentId } }, taskId);
 	changed(s, l, taskId, r.change);
+};
+
+/** Starts one selected ready task; the coordinator remains the only owner of team transitions. */
+export const startTask = (s: EngineState, l: Live, id: string) => {
+	const team = l.snapshot.context.team;
+	if (team) return start(s, l, team, id);
 };
 
 const accept = (s: EngineState, l: Live, team: TeamState, id: string) => {
@@ -296,8 +305,13 @@ const waitForHuman = async (
 };
 
 /** Moves a team run whose active task is not in progress. */
-export const teamTurn = (s: EngineState, l: Live, team: TeamState) => {
-	const next = nextTeamStep(team);
+export const teamTurn = (
+	s: EngineState,
+	l: Live,
+	team: TeamState,
+	busy: readonly string[] = [],
+) => {
+	const next = nextTeamStep(team, busy);
 	if (next.kind === "work") return open(s, l, team, { id: next.taskId });
 	if (next.kind === "start") return start(s, l, team, next.taskId);
 	if (next.kind === "accept") return accept(s, l, team, next.taskId);

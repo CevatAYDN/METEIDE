@@ -20,16 +20,24 @@ export type RestoreStep =
 	| { readonly path: string; readonly from: number }
 	| { readonly path: string; readonly delete: true };
 
+const inVault = (path: string, platform: NodeJS.Platform) =>
+	(platform === "win32" ? path.toLowerCase() : path).startsWith(
+		".mete/knowledge/",
+	);
+
 /** The files restoring snapshot `n` writes back or deletes, in path order. */
 export const restorePlan = (
 	snapshots: readonly Snapshot[],
 	n: number,
+	platform: NodeJS.Platform = process.platform,
 ): readonly RestoreStep[] => {
 	const first = new Map<string, RestoreStep>();
 	for (const s of [...snapshots]
 		.filter((s) => s.n >= n)
 		.sort((a, b) => a.n - b.n))
-		for (const e of s.entries)
+		for (const e of s.entries.filter(
+			(entry) => !inVault(entry.path, platform),
+		)) {
 			if (!first.has(e.path))
 				first.set(
 					e.path,
@@ -37,5 +45,6 @@ export const restorePlan = (
 						? { path: e.path, from: s.n }
 						: { path: e.path, delete: true },
 				);
+		}
 	return [...first.values()].sort((a, b) => a.path.localeCompare(b.path));
 };

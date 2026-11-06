@@ -1,82 +1,19 @@
-import {
-	type ChatMessage,
-	ChatRequestSchema,
-	IdSchema,
-	TaskStatusSchema,
-	type TeamTemplate,
-	TeamTemplateSchema,
-} from "@mete/contracts";
+import type { ChatMessage, TeamTemplate } from "@mete/contracts";
 import { transition } from "xstate";
-import { z } from "zod";
-import { AttemptsSchema } from "./attempts-schema.js";
 import { type TaskEvent, taskMachine } from "./task-machine.js";
-import { freshTaskSession, TaskSessionSchema } from "./task-session-schema.js";
+import { readyTasks } from "./task-readiness.js";
+import { freshTaskSession } from "./task-session-schema.js";
+import type { TeamState } from "./team-schema.js";
+
+export { readyTasks } from "./task-readiness.js";
+export { type TeamState, TeamStateSchema } from "./team-schema.js";
 
 // A team run's tasks (docs/08, Task execution sequence) as plain data inside the run snapshot,
 // with the template it started from, so a resumed run does not depend on the file any more.
 // Tasks a `spawns` task adds join the template copy (domain/spawn.ts, ADR-057).
-// shortcut: tasks run one at a time; parallel work comes with the slice that needs it.
 
-type TaskStatus = z.infer<typeof TaskStatusSchema>;
-
-const TaskContextSchema = z.strictObject({
-	revisionLimit: z.number().int().nonnegative(),
-	revisions: z.number().int().nonnegative(),
-	pairTurns: z.number().int().nonnegative().optional(),
-	agentId: z.string().optional(),
-	worktree: z.string().optional(),
-	report: z.string().optional(),
-	feedback: z.string().optional(),
-	blocked: z
-		.enum([
-			"clarification",
-			"capability_missing",
-			"guardrail",
-			"revision_limit",
-		])
-		.optional(),
-	clarify: z.enum(["asking", "asked"]).optional(),
-});
-
-const TaskEntrySchema = z.strictObject({
-	/** The Task entity's id (docs/07); events name the task by it. */
-	id: IdSchema,
-	status: TaskStatusSchema,
-	context: TaskContextSchema,
-	/** The task's conversation, kept while another task works. */
-	messages: z.array(ChatRequestSchema.shape.messages.element),
-	/** The worker's execution state, separate from the run-level coordinator conversation. */
-	session: TaskSessionSchema.optional(),
-	/** Who approved the current submission: approver roles, "human" or "system". */
-	approvals: z.array(z.string()),
-	/** Guardrail repairs asked in the current attempt (docs/08, step 4). */
-	repairs: z.number().int().nonnegative(),
-	/** The lesson asked after approval (docs/08, step 8): written, or skipped for good. */
-	lesson: z.enum(["written", "skipped"]).optional(),
-	/** The Artifact (docs/07) of the task's expected_output, once submitted. */
-	artifact: z
-		.strictObject({
-			id: IdSchema,
-			type: z.string().min(1),
-			path: z.string().min(1),
-			sha256: z.string().min(1),
-			createdBy: z.string().min(1),
-			createdAt: z.string().min(1),
-		})
-		.optional(),
-	/** A best-of-N task's finished attempts and the live one's id (ADR-162). */
-	attempts: AttemptsSchema.optional(),
-});
-
-/** A team run's state as the run snapshot keeps it; checked on load like the rest. */
-export const TeamStateSchema = z.strictObject({
-	template: TeamTemplateSchema,
-	tasks: z.record(z.string(), TaskEntrySchema),
-});
-
-/** A team run's state. */
-export type TeamState = z.output<typeof TeamStateSchema>;
 type TaskEntry = TeamState["tasks"][string];
+type TaskStatus = TaskEntry["status"];
 
 /** What the team does next. */
 export type TeamStep =
@@ -275,22 +212,6 @@ export const approve = (team: TeamState, id: string, by: string) => {
 
 const statusOf = (team: TeamState, id: string) => team.tasks[id]?.status;
 
-// Task.dependsOn is the template task's `context` (docs/07, docs/08).
-const ready = (team: TeamState, id: string) => {
-	const s = statusOf(team, id);
-	const deps = team.template.tasks.find((t) => t.id === id)?.context ?? [];
-	return (
-		(s === "todo" || s === "changes_requested") &&
-		deps.every((d) => statusOf(team, d) === "approved")
-	);
-};
-
-/** Eligible tasks, in template order; dependencies must be approved first. */
-export const readyTasks = (team: TeamState) =>
-	team.template.tasks.flatMap((task) =>
-		ready(team, task.id) ? [task.id] : [],
-	);
-
 const review = (team: TeamState, ids: readonly string[]) => {
 	for (const id of ids.filter((x) => statusOf(team, x) === "submitted")) {
 		const next = missing(team, id)[0];
@@ -378,13 +299,18 @@ export const withLesson = (
  * Decides the team's next step from its state alone, in template order; a pending merge comes first,
  * then an approved task's lesson, before the next task starts or the run completes.
  */
-export const nextTeamStep = (team: TeamState): TeamStep => {
+export const nextTeamStep = (
+	team: TeamState,
+	busy: readonly string[] = [],
+): TeamStep => {
 	const ids = team.template.tasks.map((t) => t.id);
 	const landing = ids.find((id) => unmerged(team, id));
 	if (landing) return { kind: "merge", taskId: landing };
 	const learning = ids.find((id) => owesLesson(team, id));
 	if (learning) return { kind: "lesson", taskId: learning };
-	const working = ids.find((id) => statusOf(team, id) === "in_progress");
+	const working = ids.find(
+		(id) => statusOf(team, id) === "in_progress" && !busy.includes(id),
+	);
 	// A best-of-N task's next attempt has no agent yet (ADR-162): it starts like a task.
 	const fresh = !team.tasks[working ?? ""]?.context.agentId;
 	if (working) return { kind: fresh ? "start" : "work", taskId: working };

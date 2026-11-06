@@ -12,6 +12,11 @@ import { afterModelError } from "../domain/run-events.js";
 import { activeRole, activeSeat, isAsking } from "../domain/team-run.js";
 import { answered, asked } from "./clarify.js";
 import { judged } from "./judge.js";
+import {
+	schedule,
+	schedulerState,
+	stopScheduler,
+} from "./parallel-scheduler.js";
 import { pinnedSeat, runPreferOf } from "./pinned.js";
 import {
 	apply,
@@ -243,8 +248,12 @@ const toolTurn = async (
 			message: repeatChecked(s, l, t, out.message),
 			...(out.external ? { external: true } : {}),
 		});
-	else if (owns(l, token))
-		apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
+	else {
+		// A policy ask ran nothing; recovery must retry it instead of treating it as an uncertain write.
+		apply(s, l, { type: "TOOL_STARTED", callId: undefined });
+		if (owns(l, token))
+			apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
+	}
 };
 
 // A reply that ends a conversation: a judge's choice, a review's verdict, a task's report, or a single
@@ -282,20 +291,31 @@ const step = async (s: EngineState, l: Live, token: object) => {
 	apply(s, l, { type: "PAUSE", at, reason: next.reason });
 };
 
-const loop = async (s: EngineState, l: Live, token: object) => {
+const failLoop = (s: EngineState, l: Live, token: object, error: unknown) => {
+	// A throwing adapter is a bug; only the error name is kept, as for module.crashed (docs/06).
+	s.deps.logger.error({ err: error, runId: l.meta.id }, "run step threw");
+	const message = error instanceof Error ? error.name : "Error";
+	const fail = { type: "FAIL", code: "internal", message } as const;
 	try {
-		while (owns(l, token)) await step(s, l, token);
-	} catch (e) {
-		// A throwing adapter is a bug; only the error name is kept, as for module.crashed (docs/06).
-		s.deps.logger.error({ err: e, runId: l.meta.id }, "run step threw");
-		const message = e instanceof Error ? e.name : "Error";
-		const fail = { type: "FAIL", code: "internal", message } as const;
-		try {
-			if (l.token === token) apply(s, l, { ...fail, at: s.deps.now() });
-		} catch (again) {
-			// The row cannot be written either (a busy database); the run stays as last saved.
-			s.deps.logger.error({ err: again, runId: l.meta.id }, "run not failed");
+		if (l.token === token) apply(s, l, { ...fail, at: s.deps.now() });
+	} catch (again) {
+		// The row cannot be written either (a busy database); the run stays as last saved.
+		s.deps.logger.error({ err: again, runId: l.meta.id }, "run not failed");
+	}
+};
+
+const loop = async (s: EngineState, l: Live, token: object) => {
+	const scheduler = schedulerState();
+	try {
+		while (owns(l, token)) {
+			if (await schedule(s, l, scheduler)) continue;
+			if (!owns(l, token)) break;
+			await step(s, l, token);
 		}
+	} catch (e) {
+		failLoop(s, l, token, e);
+	} finally {
+		await stopScheduler(s, l, scheduler);
 	}
 };
 

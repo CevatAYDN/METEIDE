@@ -642,6 +642,7 @@ describe("single-agent engine", () => {
 		const runId = await begin(h);
 		await settled(h, runId, "paused");
 		expect(view(h, runId)?.pauseReason).toBe("approval");
+		expect(h.store.load(runId)?.snapshot.context.inFlight).toBeUndefined();
 		expect((await h.engine.resume(runId)).ok).toBe(true);
 		await settled(h, runId, "completed");
 		expect(shell).toHaveBeenCalledTimes(2);
@@ -916,6 +917,25 @@ describe("single-agent engine", () => {
 		await later.stop();
 	});
 
+	it("recovers valid paused runs without parsing damaged ended-run metadata", async () => {
+		const h = engineHarness({ scripts: [reply("done"), slow] });
+		const ended = await begin(h);
+		await settled(h, ended, "completed");
+		const waiting = await begin(h);
+		await vi.waitFor(() => expect(h.requests).toHaveLength(2));
+		await h.engine.pause(waiting);
+		h.db.prepare("UPDATE runs SET autonomy_level = 99 WHERE id = ?").run(ended);
+		const later = engineHarness({ scripts: [reply("recovered")], db: h.db });
+		try {
+			expect(() => later.recover()).not.toThrow();
+			expect((await later.engine.resume(waiting)).ok).toBe(true);
+			await settled(later, waiting, "completed");
+		} finally {
+			await h.stop();
+			await later.stop();
+		}
+	});
+
 	it("arms the timer of a quota pause again in the process that recovers the run (ADR-176)", async () => {
 		const resumesAt = new Date(T0 + 60_000).toISOString();
 		const crashed = engineHarness({
@@ -943,48 +963,52 @@ describe("single-agent engine", () => {
 		await later.stop();
 	});
 
-	it("does not run a writing tool call again after a crash in it; the model hears it was interrupted (ADR-177)", async () => {
-		let writes = 0;
-		const hanging: Tool = (_input, ctx) =>
-			new Promise((resolve) => {
-				writes += 1;
-				ctx.signal.addEventListener("abort", () => resolve(ok({ bytes: 1 })));
+	it.each([false, true])(
+		"does not repeat a crashed writing call, including after user pause (%s; ADR-177)",
+		async (paused) => {
+			let writes = 0;
+			const hanging: Tool = (_input, ctx) =>
+				new Promise((resolve) => {
+					writes += 1;
+					ctx.signal.addEventListener("abort", () => resolve(ok({ bytes: 1 })));
+				});
+			const crashed = engineHarness({
+				scripts: [
+					reply("", [
+						{ name: "fs_write", args: { path: "a.txt", content: "x" } },
+					]),
+				],
+				tools: [["fs.write@1", hanging]],
 			});
-		const crashed = engineHarness({
-			scripts: [
-				reply("", [
-					{ name: "fs_write", args: { path: "a.txt", content: "x" } },
-				]),
-			],
-			tools: [["fs.write@1", hanging]],
-		});
-		const runId = await begin(crashed);
-		await vi.waitFor(() => expect(writes).toBe(1));
-		// The row says a writing call is in flight; the process ends here.
-		const row = crashed.db
-			.prepare("SELECT snapshot FROM runs WHERE id = ?")
-			.get(runId) as { snapshot: string };
-		expect(JSON.parse(row.snapshot).context.inFlight).toMatch(/fs_write/);
-		const later = engineHarness({
-			scripts: [reply("done")],
-			tools: [["fs.write@1", hanging]],
-			db: crashed.db,
-		});
-		later.recover();
-		expect(view(later, runId)).toMatchObject({
-			status: "paused",
-			pauseReason: "user",
-		});
-		expect((await later.engine.resume(runId)).ok).toBe(true);
-		await settled(later, runId, "completed");
-		expect(writes).toBe(1);
-		expect(later.requests[0]?.messages.at(-1)).toMatchObject({
-			role: "tool",
-			content: INTERRUPTED,
-		});
-		await crashed.stop();
-		await later.stop();
-	});
+			const runId = await begin(crashed);
+			await vi.waitFor(() => expect(writes).toBe(1));
+			if (paused) expect((await crashed.engine.pause(runId)).ok).toBe(true);
+			// The row says a writing call is in flight; the process ends here.
+			const row = crashed.db
+				.prepare("SELECT snapshot FROM runs WHERE id = ?")
+				.get(runId) as { snapshot: string };
+			expect(JSON.parse(row.snapshot).context.inFlight).toMatch(/fs_write/);
+			const later = engineHarness({
+				scripts: [reply("done")],
+				tools: [["fs.write@1", hanging]],
+				db: crashed.db,
+			});
+			later.recover();
+			expect(view(later, runId)).toMatchObject({
+				status: "paused",
+				pauseReason: "user",
+			});
+			expect((await later.engine.resume(runId)).ok).toBe(true);
+			await settled(later, runId, "completed");
+			expect(writes).toBe(1);
+			expect(later.requests[0]?.messages.at(-1)).toMatchObject({
+				role: "tool",
+				content: INTERRUPTED,
+			});
+			await crashed.stop();
+			await later.stop();
+		},
+	);
 
 	it("skips a damaged row on recovery and keeps the others", async () => {
 		const crashed = engineHarness({ scripts: [slow] });

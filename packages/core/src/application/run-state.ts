@@ -24,6 +24,7 @@ import {
 	type RunSnapshot,
 	runMachine,
 } from "../domain/run-machine.js";
+import { syncSeatedWorker } from "../domain/task-worker.js";
 import type { ArtifactStore } from "../infrastructure/artifact-store.js";
 import type { HandoffStore } from "../infrastructure/handoff-store.js";
 import type { RunMeta, RunStore } from "../infrastructure/run-store.js";
@@ -236,9 +237,18 @@ const leaveHandoff = (s: EngineState, l: Live) => {
 export const apply = (s: EngineState, l: Live, event: RunEvent) => {
 	if (!l.snapshot.can(event)) return false;
 	const prev = l.snapshot;
-	const [next] = transition(runMachine, prev, event);
+	const [changed] = transition(runMachine, prev, event);
+	const context = syncSeatedWorker(changed.context, event);
+	const next =
+		context === changed.context
+			? changed
+			: runMachine.resolveState({ value: changed.value, context });
 	s.deps.store.save(l.meta, next);
 	l.snapshot = next;
+	if (prev.value === "running" && next.value !== "running") {
+		l.token = {};
+		l.model?.abort();
+	}
 	const body = runEventOf(prev, next);
 	if (body) emit(s, l, body);
 	if (body && handoffDue(body)) leaveHandoff(s, l);

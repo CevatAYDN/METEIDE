@@ -15,6 +15,8 @@ export const TaskSessionSchema = z.strictObject({
 	turns: z.number().int().nonnegative(),
 	checkpointed: z.number().int(),
 	snapshot: z.string().optional(),
+	/** A writing call recorded before dispatch, so recovery never repeats an uncertain write (ADR-177). */
+	inFlight: z.string().optional(),
 	tainted: z.boolean(),
 });
 

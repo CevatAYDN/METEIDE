@@ -30,8 +30,8 @@ export const JUDGE_REPAIRS = 1;
 /** Model turns an attempt takes before its run pauses for the budget (docs/08, Task execution sequence and Single agent; ADR-126). */
 export const MAX_TURNS = 25;
 
-// TASKS_IN_FLIGHT (docs/08, Parallel work and merging; ADR-174) comes back with the slice that reads
-// it; a default nothing reads is left out (AGENTS.md, rule 11).
+/** Concurrent task workers (08 Orchestration and teams, Parallel work and merging; ADR-174). */
+export const TASKS_IN_FLIGHT = 2;
 
 /** Calls of the same tool with the same arguments and the same result before the result gets the repeat line (08 Orchestration and teams, Task execution sequence; ADR-166). */
 export const REPEAT_LIMIT = 3;

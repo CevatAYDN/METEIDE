@@ -79,7 +79,14 @@ export const stepsOf = (messages: readonly ChatMessage[]): TranscriptStep[] => {
 
 type Source = Pick<
 	RunContext,
-	"messages" | "agent" | "team" | "task" | "review"
+	| "messages"
+	| "agent"
+	| "team"
+	| "task"
+	| "review"
+	| "clarify"
+	| "judge"
+	| "reservations"
 >;
 
 // A team's tasks in template order: the active one's conversation is in `messages`, unless a review
@@ -90,7 +97,13 @@ const teamConversations = (
 ): Conversation[] => {
 	const tasks = team.template.tasks.flatMap((t) => {
 		const entry = team.tasks[t.id];
-		const live = c.task === t.id && !c.review;
+		const live =
+			c.reservations === undefined &&
+			c.task === t.id &&
+			!c.review &&
+			!c.clarify &&
+			!c.judge &&
+			!entry?.session;
 		const messages = live ? c.messages : (entry?.messages ?? []);
 		if (!entry || messages.length === 0) return [];
 		return [{ taskId: entry.id, roleId: t.role, steps: stepsOf(messages) }];

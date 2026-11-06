@@ -11,7 +11,9 @@ import { and, desc, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { z } from "zod";
+import { migrateLegacyRun } from "../domain/legacy-run.js";
 import type { Budget } from "../domain/next-step.js";
+import { RequestReservationSchema } from "../domain/request-reservations.js";
 import {
 	type AgentRef,
 	type RunSnapshot,
@@ -102,9 +104,11 @@ const PersistedSchema = z.object({
 		turns: z.number().int().nonnegative(),
 		// Rows from before the counter hold one attempt, so its turns are its requests.
 		requests: z.number().int().nonnegative().optional(),
+		reservations: z.array(RequestReservationSchema).optional(),
 		activeMs: z.number().nonnegative(),
 		since: time,
 		checkpointed: z.number().int(),
+		snapshot: text1.optional(),
 		agent: z
 			.strictObject({
 				id: text1,
@@ -192,9 +196,13 @@ const metaOf = (r: Row): RunMeta => ({
 export const loadSnapshot = (json: string): RunSnapshot => {
 	const p = PersistedSchema.parse(JSON.parse(json));
 	const requests = p.context.requests ?? p.context.turns;
+	const context = migrateLegacyRun({ ...p.context, requests }, p.value);
 	return runMachine.resolveState({
 		value: p.value,
-		context: { ...p.context, requests },
+		context: {
+			...context,
+			reservations: context.reservations ?? [],
+		},
 	});
 };
 
@@ -230,6 +238,14 @@ const save = (orm: Orm, meta: RunMeta, s: RunSnapshot) => {
 			.onConflictDoUpdate({ target: runs.id, set: values })
 			.run();
 		if (agent) saveAgent(tx, meta.id, agent, turns);
+		for (const entry of Object.values(s.context.team?.tasks ?? {})) {
+			const session = entry.session;
+			if (
+				session?.agent &&
+				(session.agent.id !== agent?.id || session.turns >= turns)
+			)
+				saveAgent(tx, meta.id, session.agent, session.turns);
+		}
 	});
 };
 
@@ -275,6 +291,15 @@ const unfinished = (orm: Orm) =>
 		.all()
 		.map((r) => r.id);
 
+// Recovery reads each paused row inside its own error boundary, never historical metadata here.
+const paused = (orm: Orm) =>
+	orm
+		.select({ id: runs.id })
+		.from(runs)
+		.where(eq(runs.status, "paused"))
+		.all()
+		.map((r) => r.id);
+
 // A quota or network pause ends by itself (docs/08), so the process that recovers the run arms its timer again.
 const selfPaused = (orm: Orm) =>
 	orm
@@ -306,6 +331,7 @@ export const createRunStore = (db: BetterSqlite3.Database) => {
 		markFailed: (id: string, endedAt: string) => markFailed(orm, id, endedAt),
 		list: (id?: string) => list(orm, id),
 		unfinished: () => unfinished(orm),
+		paused: () => paused(orm),
 		selfPaused: () => selfPaused(orm),
 		endedBefore: (iso: string) => endedBefore(orm, iso),
 		/** Deletes the run's row, its agents and its own handoffs (ADR-143). */

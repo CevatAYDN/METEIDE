@@ -142,6 +142,17 @@ const resolvePrefer = async (
 	return pinFor(s, c.team.template.metadata.id, roleId);
 };
 
+/** Resolves a task-local seat without sharing the coordinator's mutable pin cache. */
+export const pinnedContext = async (
+	s: EngineState,
+	context: RunContext,
+): Promise<Seat> => {
+	const seat = activeSeat(context);
+	if (seat.avoidFamilies) return seat;
+	const prefer = await resolvePrefer(s, context, activeRole(context).roleId);
+	return prefer ? { ...seat, prefer } : seat;
+};
+
 /** The seat of the run's active agent, with its preferred model (ADR-122). */
 export const pinnedSeat = async (s: EngineState, l: Live): Promise<Seat> => {
 	const c = l.snapshot.context;

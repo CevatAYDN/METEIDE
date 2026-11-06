@@ -1,117 +1,19 @@
-import type {
-	ChatChunk,
-	ChatMessage,
-	PauseReasonSchema,
-	RunPrefer,
-} from "@mete/contracts";
+import type { ChatMessage, RunPrefer } from "@mete/contracts";
 import { assign, setup } from "xstate";
-import type { z } from "zod";
 import { MAX_TURNS } from "../defaults.js";
-import type { TeamState } from "./team.js";
+import { canReserve, reservedFor } from "./request-reservations.js";
+import type { RunContext, RunEvent } from "./run-types.js";
+import {
+	resumeWorkers,
+	switchContext,
+	taskContext,
+	workerProgress,
+} from "./task-worker.js";
+
+export type { AgentRef, RunContext, RunEvent } from "./run-types.js";
 
 // The run state machine of docs/07 for a single-agent run (docs/08, Single agent). Pure:
 // callers apply events with xstate's transition() and persist the snapshot after each one.
-
-type PauseReason = z.infer<typeof PauseReasonSchema>;
-type Finish = Extract<ChatChunk, { type: "finish" }>["reason"];
-type Assistant = Extract<ChatMessage, { role: "assistant" }>;
-type ToolMessage = Extract<ChatMessage, { role: "tool" }>;
-
-/** The model behind the run's one agent. */
-export type AgentRef = {
-	readonly id: string;
-	/** The team role it plays; a single agent is role assistant. */
-	readonly roleId?: string | undefined;
-	readonly providerId: string;
-	readonly modelId: string;
-	/** The model's family, when the gateway named it (ADR-162). */
-	readonly family?: string | undefined;
-	/** The model's context window in tokens, when the gateway named it (ADR-169). */
-	readonly contextWindow?: number | undefined;
-};
-
-/** Everything a run needs to continue after a restart; times are epoch milliseconds. */
-export type RunContext = {
-	readonly goal: string;
-	readonly priority: 0 | 1 | 2;
-	readonly messages: readonly ChatMessage[];
-	/** Model replies of the current attempt; MAX_TURNS limits them. */
-	readonly turns: number;
-	/** Model replies of the whole run, the cloud requests of the budget. */
-	readonly requests: number;
-	/** Running time before `since`. */
-	readonly activeMs: number;
-	/** When the current running stretch began. */
-	readonly since?: number | undefined;
-	/** Index of the last step (assistant message) that has its checkpoint. */
-	readonly checkpointed: number;
-	/** The file snapshot of that step, in a folder that is not a git repository (ADR-080). */
-	readonly snapshot?: string | undefined;
-	readonly agent?: AgentRef | undefined;
-	readonly pause?:
-		| { readonly reason: PauseReason; readonly resumesAt?: string | undefined }
-		| undefined;
-	readonly summary?: string | undefined;
-	readonly error?:
-		| { readonly code: string; readonly message: string }
-		| undefined;
-	readonly startedAt?: number | undefined;
-	readonly endedAt?: number | undefined;
-	/** A team run's tasks and template (docs/08); absent for a single agent. */
-	readonly team?: TeamState | undefined;
-	/** The team task whose conversation is in `messages`. */
-	readonly task?: string | undefined;
-	/** The approver role reviewing `task` in this conversation (docs/08, step 7). */
-	readonly review?: string | undefined;
-	/** The role answering `task`'s questions in this conversation (docs/08, step 1; ADR-142). */
-	readonly clarify?: string | undefined;
-	/** A judge chooses among `task`'s attempts in this conversation (ADR-162). */
-	readonly judge?: boolean | undefined;
-	/** The start brief every conversation of the run opens with (docs/08, Run memory). */
-	readonly brief?: string | undefined;
-	/** The workspace block every task conversation and the single agent's open with (ADR-126). */
-	readonly workspace?: string | undefined;
-	/** External content joined this attempt, so its tool calls are tainted (SECURITY.md). */
-	readonly tainted?: boolean | undefined;
-	/** The writing tool call that started and has no result yet; a crash leaves it here (ADR-177). */
-	readonly inFlight?: string | undefined;
-	/** The chosen model for the single agent or per role (ADR-122). */
-	readonly prefer?: RunPrefer | undefined;
-	/** Incremented on each preference change to invalidate seat caches (ADR-122). */
-	readonly preferRevision?: number | undefined;
-};
-
-/** What happens to a run. */
-export type RunEvent =
-	| { type: "START"; at: number }
-	| { type: "REPLIED"; message: Assistant; finish: Finish }
-	| { type: "TOOL_STARTED"; callId: string }
-	| { type: "TOOL_DONE"; message: ToolMessage; external?: boolean }
-	| { type: "MODEL"; agent: AgentRef }
-	| { type: "TEAM"; team: TeamState }
-	| { type: "PREFER"; prefer: RunPrefer | undefined }
-	| { type: "SUMMARIZED"; messages: readonly ChatMessage[] }
-	| { type: "CUT"; messages: readonly ChatMessage[] }
-	| { type: "LEARNED"; team: TeamState; replied: boolean }
-	| { type: "REPAIR"; team: TeamState; content: string }
-	| {
-			type: "SWITCH";
-			task: string;
-			team: TeamState;
-			messages: readonly ChatMessage[];
-			review?: string;
-			clarify?: string;
-			judge?: boolean;
-			/** The attempt goes on where it left off: its turns and taint (SECURITY.md). */
-			state?: { readonly turns: number; readonly tainted: boolean };
-	  }
-	| { type: "REVIEWED"; team: TeamState }
-	| { type: "CHECKPOINTED"; step: number; snapshot?: string }
-	| { type: "PAUSE"; at: number; reason: PauseReason; resumesAt?: string }
-	| { type: "RESUME"; at: number }
-	| { type: "COMPLETE"; at: number; summary: string }
-	| { type: "FAIL"; at: number; code: string; message: string }
-	| { type: "CANCEL"; at: number };
 
 /** The user message that asks for more after a reply cut at the token limit. */
 export const CONTINUE = "Continue where your last reply was cut off.";
@@ -123,6 +25,7 @@ export const activeTime = (c: RunContext, at: number) =>
 const stop = (c: RunContext, at: number) => ({
 	activeMs: activeTime(c, at),
 	since: undefined,
+	reservations: [],
 });
 
 const reply = (c: RunContext, e: Extract<RunEvent, { type: "REPLIED" }>) => {
@@ -136,6 +39,17 @@ const reply = (c: RunContext, e: Extract<RunEvent, { type: "REPLIED" }>) => {
 };
 
 const ended = (c: RunContext, at: number) => ({ ...stop(c, at), endedAt: at });
+
+const resumed = (context: RunContext, at: number) => {
+	const next = resumeWorkers(context);
+	return {
+		...next,
+		since: at,
+		pause: undefined,
+		reservations: [],
+		turns: next.turns >= MAX_TURNS ? 0 : next.turns,
+	};
+};
 
 /** The run machine; its input is a new run's goal, priority and opening messages. */
 export const runMachine = setup({
@@ -166,6 +80,7 @@ export const runMachine = setup({
 		preferRevision: 0,
 		turns: 0,
 		requests: 0,
+		reservations: [],
 		activeMs: 0,
 		checkpointed: -1,
 	}),
@@ -174,6 +89,24 @@ export const runMachine = setup({
 	on: {
 		MODEL: { actions: assign({ agent: ({ event }) => event.agent }) },
 		TEAM: { actions: assign({ team: ({ event }) => event.team }) },
+		ACTIVATE: {
+			actions: assign(
+				({ context, event }) => taskContext(context, event.task) ?? {},
+			),
+		},
+		RELEASE: {
+			guard: ({ context, event }) =>
+				context.reservations?.some((r) => r.id === event.id) === true,
+			actions: assign(({ context, event }) => ({
+				reservations: context.reservations?.filter((r) => r.id !== event.id),
+			})),
+		},
+		WORKER: {
+			guard: ({ context, event }) =>
+				!event.reservation ||
+				reservedFor(context, event.reservation, event.task),
+			actions: assign(({ context, event }) => workerProgress(context, event)),
+		},
 		PREFER: {
 			actions: assign(({ context, event }) => ({
 				prefer: event.prefer,
@@ -213,20 +146,7 @@ export const runMachine = setup({
 		// A new attempt: its own turns, checkpoints and agent (docs/08, Task execution sequence); an
 		// attempt that goes on after its questions or a lifted block keeps its turns and taint.
 		SWITCH: {
-			actions: assign(({ event }) => ({
-				task: event.task,
-				team: event.team,
-				messages: event.messages,
-				turns: event.state?.turns ?? 0,
-				checkpointed: -1,
-				snapshot: undefined,
-				agent: undefined,
-				review: event.review,
-				clarify: event.clarify,
-				judge: event.judge,
-				tainted: event.state?.tainted ?? false,
-				inFlight: undefined,
-			})),
+			actions: assign(({ event }) => switchContext(event)),
 		},
 		// A review's or a judge's verdict is recorded with the conversation it ends (ADR-162).
 		REVIEWED: {
@@ -270,6 +190,13 @@ export const runMachine = setup({
 		},
 		running: {
 			on: {
+				RESERVE: {
+					guard: ({ context, event }) =>
+						canReserve(context, event.reservation, event.limit),
+					actions: assign(({ context, event }) => ({
+						reservations: [...(context.reservations ?? []), event.reservation],
+					})),
+				},
 				REPLIED: {
 					actions: assign(({ context, event }) => reply(context, event)),
 				},
@@ -305,11 +232,7 @@ export const runMachine = setup({
 				RESUME: {
 					target: "running",
 					// A resume after the turn limit gives the attempt MAX_TURNS more (ADR-126).
-					actions: assign(({ context, event }) => ({
-						since: event.at,
-						pause: undefined,
-						turns: context.turns >= MAX_TURNS ? 0 : context.turns,
-					})),
+					actions: assign(({ context, event }) => resumed(context, event.at)),
 				},
 				CANCEL: "#run.cancelled",
 			},

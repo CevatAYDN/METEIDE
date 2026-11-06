@@ -58,15 +58,20 @@ const recoverOne = (s: EngineState, find: Find, id: string) => {
 	}
 };
 
-// A quota or network pause ends by itself (docs/08): the timer of a run an earlier process paused is
-// armed again here, and fires at once when its time has passed (ADR-176).
+// A user pause lets a tool finish, so a crash can leave an uncertain write in a paused row too.
+// Quota/network timers are rearmed only after these interrupted calls have been settled.
 const rearm = (s: EngineState, find: Find) => {
-	for (const id of s.deps.store.selfPaused()) {
+	for (const id of s.deps.store.paused()) {
 		try {
 			const l = find(s, id);
 			if (!l.ok) continue;
-			const resumesAt = l.value.snapshot.context.pause?.resumesAt;
-			if (resumesAt) armTimer(s, l.value, resumesAt);
+			settleInFlight(s, l.value);
+			const pause = l.value.snapshot.context.pause;
+			if (
+				pause?.resumesAt &&
+				(pause.reason === "quota" || pause.reason === "network")
+			)
+				armTimer(s, l.value, pause.resumesAt);
 		} catch (e) {
 			s.deps.logger.warn({ err: e, runId: id }, "pause timer not armed");
 		}
