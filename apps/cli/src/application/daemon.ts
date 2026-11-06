@@ -40,6 +40,7 @@ import { parsed, readyEngine, refused } from "./daemon-errors.js";
 import { guardedConnection, maskerOf } from "./daemon-guard.js";
 import { serveMcpTest } from "./daemon-mcp.js";
 import { serveAudit, serveKnowledgeSearch } from "./daemon-reads.js";
+import { serveReply } from "./daemon-reply.js";
 import { estimateFor } from "./estimate.js";
 import { draftMember } from "./member-draft.js";
 import {
@@ -332,6 +333,7 @@ const forwardEvents = (events: EventBus, conn: MessageConnection, io: Io) => {
 const serveMethods = (conn: MessageConnection, app: App, io: Io) => {
 	serveStatus(conn, app);
 	serveRunStart(conn, app);
+	serveReply(conn, app);
 	serveSteering(conn, app);
 	serveStopAll(conn, app, io);
 	serveEvents(conn, app);
