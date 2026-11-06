@@ -334,6 +334,11 @@ export type Pool = {
 	readonly usage: (now: number) => UnitUsage[];
 	/** Usage and learned limits changed since the last call. */
 	readonly takeDirty: () => { usage: UsageRow[]; limits: LimitRow[] };
+	/** Retries failed persistence using the latest in-memory values, never an old batch. */
+	readonly retryDirty: (dirty: {
+		usage: UsageRow[];
+		limits: LimitRow[];
+	}) => void;
 	/** Restores saved usage and learned limits without marking them changed. */
 	readonly load: (saved: {
 		usage: readonly UsageRow[];
@@ -366,6 +371,12 @@ export const createPool = (opts: PoolOptions = {}): Pool => {
 		sweep: (now) => sweep(ps, now),
 		usage: (now) => usageOf(ps, now),
 		takeDirty: () => takeDirty(ps),
+		retryDirty: (dirty) => {
+			for (const row of dirty.usage)
+				ps.dirtyUsage.add(keyOf(row.providerId, row.unit, row.scopeKey));
+			for (const row of dirty.limits)
+				ps.dirtyLimits.add(keyOf(row.providerId, row.unit));
+		},
 		load: (saved) => load(ps, saved),
 	};
 };

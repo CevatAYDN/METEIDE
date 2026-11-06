@@ -58,9 +58,19 @@ const toUsage = ({ resetsAt, history, ...row }: UnitUsage): QuotaUsage => ({
 	history: history.map((e) => ({ at: iso(e.at), amount: e.amount })),
 });
 
+const saveDirty = ({ pool, store, logger }: ReserveDeps) => {
+	const dirty = pool.takeDirty();
+	try {
+		store.save(dirty);
+	} catch (error) {
+		pool.retryDirty(dirty);
+		logger.error({ err: error }, "quota usage could not be saved");
+	}
+};
+
 // Publishes closing and opening units, saves changes and waits for the next opening.
 const afterChange = (st: ReserveState) => {
-	const { pool, emit, store, logger, now, setTimer } = st.deps;
+	const { pool, emit, now, setTimer } = st.deps;
 	const at = now();
 	const swept = pool.sweep(at);
 	for (const c of swept.closed)
@@ -73,12 +83,7 @@ const afterChange = (st: ReserveState) => {
 			},
 		});
 	for (const payload of swept.opened) emit({ type: "quota.restored", payload });
-	try {
-		store.save(pool.takeDirty());
-	} catch (error) {
-		// The pool stays right in memory; the unit's next save rewrites all its rows.
-		logger.error({ err: error }, "quota usage could not be saved");
-	}
+	saveDirty(st.deps);
 	st.cancelTimer?.();
 	st.cancelTimer =
 		swept.next === undefined
@@ -156,6 +161,7 @@ export const createQuotaReserve = (deps: ReserveDeps) => {
 			st.cancelTimer?.();
 			st.cancelTimer = undefined;
 			deps.scheduler.dispose();
+			saveDirty(deps);
 		},
 	};
 };
