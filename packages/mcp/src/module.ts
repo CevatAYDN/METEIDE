@@ -10,6 +10,7 @@ import {
 	type ModuleManifest,
 	ok,
 	type PolicyCheckAdapter,
+	type SecretsMaskAdapter,
 	type ToolContext,
 } from "@mete/contracts";
 import type {
@@ -84,7 +85,12 @@ const MANIFEST: ModuleManifest = {
 	trust: "core",
 	provides: ["mcp.tools@1", "mcp.status@1", "runtime.ensure@1"],
 	requires: ["policy.check@1"],
-	optional: ["registry.search@1", "llm.chat@2", "shell.exec@1"],
+	optional: [
+		"registry.search@1",
+		"llm.chat@2",
+		"shell.exec@1",
+		"secrets.mask@1",
+	],
 	activation: ["onStartup"],
 	isolation: "in-process",
 	permissions: ["shell", "net", "fs.write", "secrets"],
@@ -213,6 +219,18 @@ const openSessions = (
 		open: opts.open ?? openTransport,
 		...(opts.fetch ? { fetch: opts.fetch } : {}),
 		logger: ctx.logger,
+		mask: {
+			mask: async (text) => {
+				const chain =
+					ctx.capabilities.resolve<SecretsMaskAdapter>("secrets.mask@1");
+				return chain.ok
+					? chain.value[0].impl.mask(text)
+					: {
+							text: "[MCP progress message omitted: masking unavailable]",
+							masked: 1,
+						};
+			},
+		},
 		...(ensure ? { ensure } : {}),
 		...(opts.elicit ? { elicit: opts.elicit } : {}),
 		calls,

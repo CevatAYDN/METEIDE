@@ -8,6 +8,7 @@ import {
 	type Result,
 	type RuntimeEnsureAdapter,
 	type SecretStore,
+	type SecretsMaskAdapter,
 	type ToolContext,
 	type ToolError,
 } from "@mete/contracts";
@@ -20,10 +21,11 @@ import type {
 	Progress,
 	Tool,
 } from "@modelcontextprotocol/client";
-import { PROGRESS_EVERY_MS, SIGN_IN_ATTEMPTS } from "../defaults.js";
+import { SIGN_IN_ATTEMPTS } from "../defaults.js";
 import { oauthSignIn, type SignInFlow } from "../infrastructure/oauth.js";
 import type { Opened, OpenTransport } from "../infrastructure/transport.js";
 import type { Calls } from "./calls.js";
+import { logProgress, progressThrottle } from "./progress-log.js";
 import type { Sample } from "./sampling.js";
 import { type Authorize, type SignInMemory, signIn } from "./sign-in.js";
 
@@ -60,6 +62,7 @@ export type SessionDeps = {
 	readonly open: OpenTransport;
 	readonly fetch?: typeof fetch;
 	readonly logger: Logger;
+	readonly mask?: SecretsMaskAdapter;
 	/** runtime.ensure@1; without it a stdio command runs as configured. */
 	readonly ensure?: RuntimeEnsureAdapter;
 	/** How the host asks the user; without it the client does not offer elicitation and a server's request fails. */
@@ -118,11 +121,11 @@ const onToolsChanged =
 		server: McpServer,
 		state: { tools: readonly Tool[] },
 	): ListChangedCallback<Tool> =>
-	(error, tools) => {
+	(_error, tools) => {
 		const at = { moduleId: deps.moduleId, server: server.id };
 		if (!tools)
 			return deps.logger.warn(
-				{ ...at, reason: error?.message ?? "" },
+				at,
 				"MCP server tool list could not be refreshed",
 			);
 		state.tools = tools;
@@ -288,35 +291,27 @@ const notConfigured = (id: string) =>
 		}),
 	);
 
-// True for a call's first step and then at most once a second, since storage keeps every event (ADR-067).
-const throttle = (now: () => number) => {
-	let last = Number.NEGATIVE_INFINITY;
-	return () => {
-		const at = now();
-		if (at - last < PROGRESS_EVERY_MS) return false;
-		last = at;
-		return true;
-	};
-};
-
 // A tool that reports progress is a long one; the SDK's request timeout would kill it otherwise.
 // Every step reaches the log; a call in a run also publishes the steps the throttle lets through.
 const callOptions =
-	(deps: SessionDeps) =>
+	(deps: SessionDeps, pending: Set<Promise<void>>) =>
 	(
 		server: string,
 		tool: string,
 		ctx: ToolContext,
 		capability: CapabilityRef,
 	) => {
-		const due = throttle(deps.now ?? Date.now);
+		const due = progressThrottle(deps.now ?? Date.now);
 		return {
 			signal: ctx.signal,
 			resetTimeoutOnProgress: true,
 			onprogress: (p: Progress) => {
-				deps.logger.info(
-					{ moduleId: deps.moduleId, server, tool, ...p },
-					"MCP tool progress",
+				const fields = { moduleId: deps.moduleId, server, tool };
+				const logged = logProgress(deps, fields, p);
+				pending.add(logged);
+				void logged.then(
+					() => pending.delete(logged),
+					() => pending.delete(logged),
 				);
 				if (!deps.progress || ctx.runId === undefined || !due()) return;
 				deps.progress(ctx, {
@@ -337,8 +332,18 @@ const remembered = (all: Map<string, SignInMemory>, id: string) => {
 	return fresh;
 };
 
+const closeClients = async (
+	live: Map<string, Promise<Result<Session, ToolError>>>,
+) => {
+	const all = [...live.values()];
+	live.clear();
+	for (const session of await Promise.all(all))
+		if (session.ok) await session.value.client.close().catch(() => {});
+};
+
 export const createSessions = (deps: SessionDeps) => {
 	const live = new Map<string, Promise<Result<Session, ToolError>>>();
+	const pending = new Set<Promise<void>>();
 	const signIns = new Map<string, SignInMemory>();
 	let closing = false;
 
@@ -351,11 +356,11 @@ export const createSessions = (deps: SessionDeps) => {
 		const forget = () => {
 			if (live.get(id) === opening) live.delete(id);
 		};
-		const closed = (stderr: string) => {
+		const closed = () => {
 			if (closing) return;
 			forget();
 			deps.logger.warn(
-				{ moduleId: deps.moduleId, server: id, stderr },
+				{ moduleId: deps.moduleId, server: id },
 				"MCP server connection closed",
 			);
 		};
@@ -370,10 +375,8 @@ export const createSessions = (deps: SessionDeps) => {
 
 	const close = async () => {
 		closing = true;
-		const all = [...live.values()];
-		live.clear();
-		for (const s of await Promise.all(all))
-			if (s.ok) await s.value.client.close().catch(() => {});
+		await closeClients(live);
+		await Promise.allSettled([...pending]);
 	};
 
 	return {
@@ -382,7 +385,7 @@ export const createSessions = (deps: SessionDeps) => {
 		servers: deps.servers,
 		calls: deps.calls,
 		/** The options of one callTool: the run's signal, progress in the log, no timeout while it reports. */
-		callOptions: callOptions(deps),
+		callOptions: callOptions(deps, pending),
 	};
 };
 

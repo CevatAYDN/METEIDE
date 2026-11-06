@@ -34,10 +34,10 @@ const list: (deps: McpToolsDeps) => McpToolsAdapter["list"] =
 		const all: McpToolInfo[] = [];
 		for (const { id } of deps.sessions.servers) {
 			const s = await deps.sessions.get(id, signal);
-			// One broken server must not hide the others; it is logged with its reason.
+			// One broken server must not hide the others; raw failure text may hold credentials.
 			if (!s.ok) {
 				deps.logger.warn(
-					{ moduleId: deps.adapterId, server: id, reason: s.error.message },
+					{ moduleId: deps.adapterId, server: id, code: s.error.code },
 					"MCP server skipped in list",
 				);
 				continue;

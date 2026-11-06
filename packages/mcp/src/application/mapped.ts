@@ -72,10 +72,11 @@ const callTool = async (
 	t: Target,
 	args: Record<string, unknown>,
 	ctx: ToolContext,
-): Promise<Result<Scope, string>> => {
+): Promise<Result<Scope, ToolError>> => {
 	const { signal } = ctx;
 	const s = await deps.sessions.get(t.mapping.server, signal);
-	if (!s.ok) return err(s.error.message);
+	if (!s.ok)
+		return err({ ...s.error, message: failed(t)(s.error.message).message });
 	try {
 		const options = deps.sessions.callOptions(
 			t.mapping.server,
@@ -89,10 +90,10 @@ const callTool = async (
 		const blocks = Array.isArray(r.content) ? r.content : [];
 		const texts = blocks.flatMap((b) => (b.type === "text" ? [b.text] : []));
 		if (r.isError === true)
-			return err(`tool ${t.entry.tool} failed: ${texts.join(" ")}`);
+			return err(failed(t)(`tool ${t.entry.tool} failed: ${texts.join(" ")}`));
 		return ok(resultScope(r.structuredContent, texts));
 	} catch (e) {
-		return err(`tool ${t.entry.tool}: ${why(e)}`);
+		return err(failed(t)(`tool ${t.entry.tool}: ${why(e)}`));
 	}
 };
 
@@ -142,7 +143,7 @@ const run = async (
 	const allowed = permit(deps.policy(), check, ctx);
 	if (!allowed.ok) return allowed;
 	const result = await callTool(deps, t, args, ctx);
-	if (!result.ok) return err(failed(t)(result.error));
+	if (!result.ok) return result;
 	const out = outputOf(t.ref, t.entry.output, {
 		...base,
 		result: result.value,

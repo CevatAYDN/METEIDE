@@ -1,6 +1,13 @@
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { err, type McpServer, type McpToolsAdapter, ok } from "@mete/contracts";
+import {
+	err,
+	type McpMapping,
+	type McpMappingEntry,
+	type McpServer,
+	type McpToolsAdapter,
+	ok,
+} from "@mete/contracts";
 import { describe, expect, it, vi } from "vitest";
 import { mappedAdapter } from "../src/application/mapped.js";
 import { mcpTools } from "../src/application/mcp-tools.js";
@@ -72,6 +79,53 @@ describe("mcp.tools@1 listing", () => {
 });
 
 describe("mapped args", () => {
+	it.each(["approval_required", "denied"] as const)(
+		"preserves a session's %s and rule without invoking its tool",
+		async (code) => {
+			client.callTool.mockClear();
+			const refusal = {
+				code,
+				rule: "runtime.install",
+				message: "runtime refused",
+			};
+			const get = vi.fn(async () => err(refusal));
+			const entry: McpMappingEntry = {
+				tool: "search",
+				action: "net.fetch",
+				args: { query: "{{input.query}}" },
+				output: { results: [] },
+				features: [],
+			};
+			const mapping: McpMapping = {
+				apiVersion: "mete/v1",
+				kind: "AdapterMapping",
+				metadata: { id: "search-map", version: "1.0.0" },
+				type: "mcp",
+				server: "fixture",
+				implements: { "web.search@1": entry },
+			};
+			const adapter = mappedAdapter(
+				{
+					workspaceDir: tmpdir(),
+					sessions: { ...sessions([]), get },
+					policy: () => ({
+						check: () => ok({ verdict: "allow", rule: "test" }),
+					}),
+				},
+				{ mapping, ref: "web.search@1", entry },
+			);
+			expect(await adapter.run({ query: "q" }, { signal })).toEqual({
+				ok: false,
+				error: {
+					...refusal,
+					message: "mapping search-map for web.search@1: runtime refused",
+				},
+			});
+			expect(get).toHaveBeenCalledOnce();
+			expect(client.callTool).not.toHaveBeenCalled();
+		},
+	);
+
 	it("refuses arguments that do not render to an object", async () => {
 		// Args are typed as a record, but `{ each, as }` or a hand-built entry can render otherwise.
 		const entry = { tool: "t", action: "net.fetch", args: "{{input.query}}" };

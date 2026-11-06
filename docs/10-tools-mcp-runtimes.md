@@ -40,6 +40,11 @@ Rules shared by the file and shell tools (types in tab 06) \[D\]:
 
 ## MCP client
 
+ADR-067 progress text is retained in diagnostics only after `secrets.mask@1`
+has masked it. Missing or failed masking never falls back to raw text; numeric
+progress remains available, and session shutdown waits for pending diagnostic
+masking. Server error/stderr text is not copied directly into global log fields.
+
 METE supports the whole protocol, not only tool calls \[C\]:
 
 | Feature | METE behavior |

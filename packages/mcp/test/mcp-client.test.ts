@@ -9,6 +9,7 @@ import type {
 	McpToolsAdapter,
 	MeteEvent,
 	PolicyVerdict,
+	SecretsMaskAdapter,
 } from "@mete/contracts";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { openTransport } from "../src/infrastructure/transport.js";
@@ -42,6 +43,12 @@ const start = async (
 		...more,
 	});
 	const { ctx, registry, infos } = moduleContext(verdict, { mcp: { servers } });
+	registry.provide<SecretsMaskAdapter>("secrets.mask@1", {
+		id: "fixture-mask",
+		trust: "core",
+		features: [],
+		impl: { mask: async (text) => ({ text, masked: 0 }) },
+	});
 	const activated = await module.activate(ctx);
 	const r = registry.resolve<McpToolsAdapter>("mcp.tools@1");
 	return {
@@ -182,7 +189,7 @@ describe("mcp-client notifications", () => {
 		);
 	});
 
-	it("logs each progress step of a call", async () => {
+	it("logs each progress step with its masked message (ADR-067)", async () => {
 		await call("steps");
 		const steps = s.infos.filter((i) => i.msg === "MCP tool progress");
 		expect(steps).toEqual([
