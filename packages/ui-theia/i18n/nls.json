@@ -1,5 +1,17 @@
 {
 	"mete": {
+		"chat": {
+			"details": "Activity, model and checkpoints",
+			"keyboard": "Enter to send · Shift+Enter for a new line",
+			"message": "Message METE",
+			"send": "Send message",
+			"sendFailed": "Could not send. Your message is kept; try again.",
+			"title": "Conversation",
+			"teams": "Use a team instead",
+			"summary": "Earlier messages summarized",
+			"wait": "Wait for the current response, or resolve the paused run above.",
+			"you": "You"
+		},
 		"assets": {
 			"caption": "METE: the files tools saved",
 			"from": "From",

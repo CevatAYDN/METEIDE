@@ -1,5 +1,17 @@
 {
 	"mete": {
+		"chat": {
+			"details": "İşlemler, model ve geri yükleme noktaları",
+			"keyboard": "Göndermek için Enter · Yeni satır için Shift+Enter",
+			"message": "METE'ye mesaj yaz",
+			"send": "Mesajı gönder",
+			"sendFailed": "Gönderilemedi. Mesajın korundu; yeniden dene.",
+			"title": "Sohbet",
+			"teams": "Bir takımla çalış",
+			"summary": "Önceki mesajların özeti",
+			"wait": "Yanıtı bekle veya yukarıdaki duraklatılmış görevi çöz.",
+			"you": "Sen"
+		},
 		"assets": {
 			"caption": "METE: araçların kaydettiği dosyalar",
 			"from": "Kaynak",
