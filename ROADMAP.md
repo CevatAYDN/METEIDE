@@ -17,6 +17,12 @@ Rules: a phase starts only when the previous exit gate passes \[D\]. AI agents w
 | 6 Autonomy and intelligence | Autonomy level 3, triggers (schedule, file, issue, webhook), replay view, learning router, retrospectives and vault consolidation, optional engine adapters (CrewAI, MetaGPT, ChatDev), optional tab completion module, knowledge graph view | A scheduled overnight run survives quota resets with pause and resume and leaves a report with pending approvals |
 | 7 Reach (1.0.0) | macOS build, SignPath Foundation application, community registry, studio themes, frozen plugin API, opt-in shared memory server for vault notes and handoffs (ADR-041) | 1.0.0 released |
 
+Current Phase 5 additions approved by the user: conversation-first single-agent
+follow-ups (ADR-178; `docs/superpowers/specs/2026-11-06-conversation-first-design.md`)
+and SignPath readiness with an optional, manually approved signed-release pipeline
+(ADR-179; `docs/superpowers/plans/2026-11-06-signpath-readiness.md`). Neither changes
+the Phase 5 exit gate or makes cloud CI a local-development requirement.
+
 ## Phase 1 task order
 
 Agents SHOULD take Phase 1 work in this order, because each step depends on the previous one:

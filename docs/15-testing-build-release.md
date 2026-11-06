@@ -66,6 +66,54 @@ Today's `lefthook.yml` is simpler than the table: pre-commit runs Biome on the s
 
 ## Builds
 
+Local desktop verification on 2026-11-06 (not a Phase 5 exit-gate pass): `pnpm check`
+passed all 34 tasks, `pnpm build` passed all 18 packages, and the production desktop
+bundle completed without errors. The source-built Electron acceptance subset
+(`onboarding.e2e.ts`, `run-flow.e2e.ts`, `screens.e2e.ts`, `settings-scope.e2e.ts`)
+passed all 9 scenarios in 2.6 minutes, using scripted models for runs. This covers
+onboarding, human approval, blocked-task instructions, best-of-N, workspace
+read/search, an MCP tool, quota pause/resume, every METE screen under CSP with
+accessibility checks, and global settings Save/Apply. `pnpm test:chaos` also passed.
+The four team acceptance scenarios (`templates.e2e.ts`, `seo-audit.e2e.ts`,
+`web-dev.e2e.ts`, `game-studio.e2e.ts`) then passed in 1.6 minutes with scripted
+model/web/browser responses, bringing this source-built acceptance subset to 13
+passing scenarios. This does not prove a live Game Studio prototype is playable.
+A separate normal-profile source launch restored the existing workspace and
+displayed the composer and all four templates; its existing paused runs were not
+resumed and no live inference was requested. Installer validation, a real model
+run and the other release-tier checks are separate evidence, not implied by these
+results.
+
+Conversation-first verification on 2026-11-07 (ADR-178; not a release-gate pass):
+`pnpm check` passed 34/34 tasks (the final rerun reused all 34 cached task results,
+after Biome, TypeScript and dependency checks), and the scripted two-user-message Electron test
+passed three consecutive runs (27.7 seconds total). It checks both user turns and
+both replies, the persistent composer, Shift+Enter and serious/critical axe findings.
+An earlier full suite passed 23/24 tests: the conversation assertions passed, but
+teardown failed deleting its temporary profile with `EPERM`. No app process using
+that profile was found afterwards; the isolated repeats did not reproduce it.
+No cleanup error was suppressed and no retry limit or assertion was weakened.
+The subsequent full source-built Electron suite passed 24/24 scenarios in 5.1
+minutes, including all four team templates, with cleanup unchanged. The intermittent
+cleanup cause remains unestablished; a passing rerun is not a root-cause fix.
+`pnpm --filter @mete/desktop test:e2e:packaged` then passed 9/9 scenarios in 1.4
+minutes against the rebuilt installer's `win-unpacked` application: two-turn
+conversation, onboarding, human approval, blocked-task instructions, best-of-N,
+workspace read/search, an MCP tool, quota pause/resume and the MCP settings card.
+This verifies the packaged application, not an NSIS installation or a real update.
+
+The rebuilt Windows installer is `METE-IDE-0.0.0-x64.exe` (225,284,836 bytes),
+SHA-256 `77c99981904c73af141d1e2083aeef9317bc3babdf20de7fac3c92d270a25e93`.
+PowerShell reports `NotSigned` for the installer and unpacked application; both
+SHA-512 entries in its `latest.yml` match the installer and its blockmap exists.
+These checks do not prove installation,
+trusted signing or an installed-version update.
+
+Visual review of the two-turn conversation still found usability work: the large
+run summary competes with the messages, each follow-up appears as a separate run
+with the same title in the sidebar, and the composer controls sit at the screen's
+lower edge. Functional acceptance is not approval of the final visual design.
+
 | Target | Format | Built on |
 | --- | --- | --- |
 | Windows x64 | NSIS installer \[D\], built by `pnpm --filter @mete/desktop package:win` after `bundle` and `download:plugins` (ADR-115) | Windows |
@@ -86,7 +134,7 @@ Today's `lefthook.yml` is simpler than the table: pre-commit runs Biome on the s
 5. Publish through `release.publish@1`; the default adapter runs `gh release create` from the developer's machine \[C\].
 6. electron-updater reads the same release for Windows and Linux AppImage updates \[C\]. The user asks for it with Help → "Check for Updates…": a newer release downloads, then "Restart now" installs it; with no release published, or in an app run from source, the answer says so (ADR-137) \[D\]. The download is proven offline, the install never: an unpacked 0.0.0 build whose `resources/app-update.yml` names a `generic` feed on 127.0.0.1 that serves a 0.0.1 build's `latest.yml`, `.blockmap` and `.exe` finds 0.0.1, downloads it in full (the feed holds no 0.0.0 blockmap to download only the changed blocks against), with the sha512 `latest.yml` names, and offers "Restart now"; the app is then killed by force, so the install on quit never starts \[D\]. On 2026-11-05 the Help command was exercised in the source-built Electron app and returned the expected source-build message. GitHub's public releases API returned an empty list that day; no packaged update was available to install, so the real downloaded-update install remains unverified \[D\].
 
-Signing: builds ship unsigned first; the README explains the SmartScreen warning step by step. An application to SignPath Foundation for free Windows signing is part of Phase 7 \[C\].
+Signing: builds currently ship unsigned; the README explains the SmartScreen warning step by step. ADR-179 moves SignPath Foundation application preparation into Phase 5 and permits only an optional signed-release pipeline on GitHub-hosted Actions; local development and unsigned packaging remain independent of it. Admission, owner MFA/approval and verified build origin are prerequisites, not completed work. See CODE_SIGNING.md and docs/superpowers/plans/2026-11-06-signpath-readiness.md \[D\].
 
 Versions: SemVer. The public MVP is `0.1.0`. `1.0.0` comes after macOS support and a frozen plugin API \[D\]. A breaking kernel API change needs a major version and a migration guide.
 

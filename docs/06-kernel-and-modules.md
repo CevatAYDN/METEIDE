@@ -419,6 +419,7 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 | `knowledge.search@1` | Hybrid search | knowledge-search module | Plain ripgrep search |
 | `vault.read@1`, `vault.write@1` | Notes and lessons | vault module | Lessons are not saved; runs continue |
 | `team.engine@2` | Execute a team template | Native XState engine; optional CrewAI, MetaGPT, ChatDev | Never empty (essential) |
+| `run.reply@1` | Follow up a completed single-agent conversation with a new run (ADR-178) | Native core-engine | The UI reports follow-up unavailable |
 | `media.image.generate@1`, `media.image.edit@1` | Images | MCP mapping adapters (for example an NVIDIA NIM MCP server with FLUX, Hugging Face Spaces) | Artist writes specs and placeholders |
 | `media.3d.fromText@1`, `media.3d.fromImage@1` | 3D assets | MCP mapping adapters (for example TRELLIS) | Artist writes specs and placeholders |
 | `3d.cleanup@1`, `3d.export@1` | Mesh cleanup and export | MCP or CLI adapters (Blender, 3ds Max, others) | Raw generated file is kept |

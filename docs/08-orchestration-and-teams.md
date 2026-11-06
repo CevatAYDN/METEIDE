@@ -15,6 +15,14 @@ A start without `templateId` is routed; `templateId: null` asks for a single age
 
 ## Single agent
 
+ADR-178 adds `run.reply@1` for conversational follow-ups: a non-empty user message
+starts a new run from a completed single-agent run's saved conversation in this
+workspace. The old run stays immutable; taint and model preference carry forward,
+while budgets, counters, agent identity and checkpoints start fresh. Team runs and
+unfinished/failed/cancelled runs cannot be reply sources. Each follow-up keeps the
+original goal as its conversation title, appends the new message to saved history,
+and bypasses template routing. The desktop switches to the returned run.
+
 The single agent runs every request that the router or the user (`templateId: null`) did not give to a team. Rules \[D\]:
 
 - The agent has role `assistant` and calls `llm.chat@2` with tier `coder`, needs `tool_calling` and the run's priority (default 1).

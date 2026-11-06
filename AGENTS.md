@@ -80,7 +80,7 @@ to THIRD_PARTY_NOTICES.md (project, license, files, changes).
 - add telemetry, network calls outside adapters, or hardcoded API keys
 - write to .mete/*.yaml (policy, bindings, MCP servers, settings sections), .mete/teams/ or .meteignore from agent code paths
 - disable a lint rule without a comment that explains why
-- use Docker, GitHub Actions or local model runtimes as requirements
+- use Docker, GitHub Actions or local model runtimes as development requirements; ADR-179 permits only an optional, manually approved Windows signed-release pipeline on GitHub-hosted Actions, never as a prerequisite for local checks or unsigned packaging
 
 <!-- BEGIN:turborepo-agent-rules -->
 

@@ -71,12 +71,13 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 
 ## Daemon protocol
 
-`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 27 (ADR-164) has twenty-five requests and one notification, and each side validates what it receives with the schemas in `@mete/contracts` (`daemon.ts`) \[D\]:
+`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 28 (ADR-178) has twenty-six requests and one notification, and each side validates what it receives with the schemas in `@mete/contracts` (`daemon.ts`) \[D\]:
 
 | Message | Kind | Params | Result |
 | --- | --- | --- | --- |
 | `mete/status` | request | `{ runId? }` | the `RunView` list that `mete status` prints, with the run's model choice `prefer` (ADR-122) when one run is asked (ADR-125); on failure a JSON-RPC error whose `data.code` is the `EngineError` code, or `not_ready` with `data.reasons` (the lines `mete status` prints) while core-engine is not active |
 | `mete/run.start` | request | the `RunStart` of team.engine@2: `{ goal?, templateId?, priority?, continue?, prefer? }` | `{ runId }`; errors as for `mete/status`, and `choose_template` carries the router's `data.suggestions` |
+| `mete/run.reply` | request | `run.reply@1`: `{ runId, message }` | new `{ runId }`; completed single-agent history is preserved, predecessor unchanged; errors as for `mete/status` (ADR-178, protocol 28) |
 | `mete/run.approve` | request | `{ runId, input }`, `input` the `ApprovalInput` of team.engine@2 | `null`; errors as for `mete/status` |
 | `mete/run.resume` | request | `{ runId }` | `null`; errors as for `mete/status` |
 | `mete/run.allow` | request | `{ runId, scope }`, `scope` `once`, `run` or `always` | `null`: grants the run's newest `policy.asked` and resumes the run, as `mete allow` does (ADR-121); `not_found` when the run is not paused for approval or has no such ask, `bad_input` for `always` on an ask that is no command; errors as for `mete/status` |

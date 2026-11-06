@@ -6,6 +6,13 @@ The desktop UI is Theia plus METE panels; its signature is the studio view, wher
 
 ## Screens
 
+Conversation-first change (ADR-178): single-agent
+work is a user/assistant thread with a persistent message composer, model selection
+and clear working/pause/error states. A follow-up carries prior context via
+`run.reply@1`, not by reopening a completed run. Diagnostics and checkpoints are
+progressively disclosed; team workflows remain an explicit choice. See
+`docs/superpowers/specs/2026-11-06-conversation-first-design.md` for the staged scope.
+
 | Screen | Purpose | Key elements |
 | --- | --- | --- |
 | Onboarding wizard | First start | Language (English or Turkish); provider keys for NVIDIA, OpenRouter and OpenCode Zen (at least one required, with links to get keys); privacy choice (training providers off by default); personal vault folder; web search (Exa MCP default, optional Tavily and Exa keys) \[C\]. Built as the Welcome screen (ADR-088), which with a folder open shows each keyed provider's state (ADR-147): the vault folder comes with the vaults (ADR-144), the Exa key with an Exa API adapter, and the privacy choice is saved once a folder is open |

@@ -30,7 +30,10 @@ pnpm --filter @mete/desktop start
 
 ## Windows SmartScreen
 
-Windows builds ship unsigned first (docs/15; free code signing through SignPath Foundation is part of Phase 7), so Windows SmartScreen will warn before the first start ("Windows protected your PC"):
+Signing enrollment status and verification instructions: [CODE_SIGNING.md](CODE_SIGNING.md).
+The SignPath route is being prepared; no signing approval or certificate is claimed.
+
+Windows builds currently ship unsigned (docs/15; SignPath preparation has moved into Phase 5 under ADR-179), so Windows SmartScreen may warn before the first start ("Windows protected your PC"):
 
 1. Click **More info** in the SmartScreen warning dialog.
 2. Click **Run anyway** to launch the installer.
