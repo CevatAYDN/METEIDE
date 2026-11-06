@@ -359,6 +359,10 @@ export const startRun = async (
 	const field = page.locator("textarea.mete-field");
 	await expect(field).toBeVisible({ timeout: 60_000 });
 	const radio = page.getByRole("radio", { name: team });
+	const choices = page
+		.locator("details")
+		.filter({ has: page.locator('input[type="radio"]') });
+	if (await choices.count()) await choices.locator("summary").click();
 	await expect(radio).toBeVisible({ timeout: 60_000 });
 	await field.fill(goal);
 	await radio.check();

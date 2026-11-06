@@ -107,6 +107,7 @@ test("the web-dev team builds a page, merges it and audits the built folder", as
 	await page
 		.getByLabel("What should METE do in this folder?")
 		.fill("a one-page site that says hi");
+	await page.getByText("Use a team instead", { exact: true }).click();
 	await page.getByRole("radio", { name: /Web development/ }).check();
 	await page.getByRole("button", { name: "Start run", exact: true }).click();
 

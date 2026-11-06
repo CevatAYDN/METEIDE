@@ -94,6 +94,7 @@ test("the SEO audit team turns a URL into a ranked audit", async ({ mete }) => {
 	const { page, dir } = mete;
 	await runCommand(page, "METE: Start run");
 	await page.getByLabel("What should METE do in this folder?").fill(PAGE);
+	await page.getByText("Use a team instead", { exact: true }).click();
 	await page.getByRole("radio", { name: /SEO audit/ }).check();
 	await page.getByRole("button", { name: "Start run", exact: true }).click();
 

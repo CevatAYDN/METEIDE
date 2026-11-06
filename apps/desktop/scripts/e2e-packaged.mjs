@@ -20,6 +20,7 @@ const result = spawnSync(
 		cli,
 		"test",
 		"e2e/onboarding.e2e.ts",
+		"e2e/conversation.e2e.ts",
 		"e2e/run-flow.e2e.ts",
 		"e2e/settings-mcp.e2e.ts",
 	],

@@ -59,6 +59,7 @@ test("the research team turns a goal into a cited report", async ({ mete }) => {
 	await page
 		.getByLabel("What should METE do in this folder?")
 		.fill("free model providers");
+	await page.getByText("Use a team instead", { exact: true }).click();
 	await page.getByRole("radio", { name: /Research/ }).check();
 	await page.getByRole("button", { name: "Start run", exact: true }).click();
 

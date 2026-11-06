@@ -55,9 +55,6 @@ tasks:
   - { id: summary, role: writer, title: Write the summary, context: [notes] }
 `;
 
-/** The panel's answer, so a phrase the Activity feed also prints is read once. */
-const answer = (page: Page) => page.getByRole("region", { name: "Answer" });
-
 /** The Team panel that holds the phrase, so a Home button of the same name is never clicked. */
 const board = (page: Page, phrase: RegExp) =>
 	page.locator(".mete-panel").filter({ hasText: phrase });
@@ -253,6 +250,14 @@ test.describe("a run that reads and searches the workspace", () => {
 	}) => {
 		const { page, dir } = mete;
 		await startRun(page, { goal: "find the token", team: /single agent/i });
+		await expect(
+			page
+				.getByRole("region", { name: "Conversation" })
+				.getByText(`The workspace mentions ${TOKEN}.`),
+		).toBeVisible({ timeout: 90_000 });
+		await page
+			.getByText("Activity, model and checkpoints", { exact: true })
+			.click();
 
 		// The Activity feed names the capability of every finished call.
 		await expect(page.getByText(/uses fs\.read@1/)).toBeVisible({
@@ -261,9 +266,6 @@ test.describe("a run that reads and searches the workspace", () => {
 		await expect(page.getByText(/uses fs\.grep@1/)).toBeVisible({
 			timeout: 60_000,
 		});
-		await expect(
-			answer(page).getByText(`The workspace mentions ${TOKEN}.`),
-		).toBeVisible({ timeout: 60_000 });
 		// The center's steps name each call with its first argument (ADR-125).
 		await expect(page.getByText("fs_read README.md")).toBeVisible();
 
