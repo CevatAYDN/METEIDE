@@ -1,4 +1,4 @@
-import { type LlmChatRequest, ok } from "@mete/contracts";
+import { type LlmChatRequest, type LlmChunk, ok } from "@mete/contracts";
 import { describe, expect, it } from "vitest";
 import { createLlmChat } from "../../src/application/chat.js";
 import {
@@ -369,7 +369,11 @@ describe("llm.chat@2 pipeline", () => {
 		});
 		const chat = createLlmChat(d);
 		const first = async () => {
-			const out = await collect(chat.chat(req, signal()));
+			const out: LlmChunk[] = [];
+			for await (const chunk of chat.chat(req, signal())) {
+				out.push(chunk);
+				if (chunk.type === "finish") break; // Core and HTTP stop at this terminal chunk.
+			}
 			return out.find((c) => c.type === "model");
 		};
 		// a is tried first and fails three calls in a row.
@@ -382,6 +386,44 @@ describe("llm.chat@2 pipeline", () => {
 		// The answer put a back in its place.
 		expect(await first()).toMatchObject({ providerId: "a" });
 	});
+
+	it.each([400, 401])(
+		"masks provider diagnostics before logging an HTTP %s failure",
+		async (code) => {
+			const failed = status(code);
+			if (failed.type !== "error") throw new Error("expected error");
+			const a = fakeProvider("a", [
+				[
+					{
+						...failed,
+						error: { ...failed.error, message: "provider echoed sk-live" },
+					},
+				],
+			]);
+			const b = fakeProvider("b", [[text("ok"), done]]);
+			const { deps: d, warned } = deps({
+				discover: async () => [
+					offer(a.adapter, "m", 100_000),
+					offer(b.adapter, "n"),
+				],
+				quota: fakeQuota().quota,
+				mask: {
+					mask: async (value) => ({
+						text: value.replaceAll("sk-live", "[SECRET:x]"),
+						masked: 1,
+					}),
+				},
+			});
+			await collect(createLlmChat(d).chat(req, signal()));
+			expect(warned).toEqual([
+				expect.objectContaining({
+					reason: "provider echoed [SECRET:x]",
+					status: code,
+				}),
+			]);
+			expect(JSON.stringify(warned)).not.toContain("sk-live");
+		},
+	);
 
 	// A pinned model that kept dropping mid-answer led every retry of its paused run (docs/09).
 	it("counts a failure after streaming toward the three, so a model that keeps dropping mid-answer goes last", async () => {

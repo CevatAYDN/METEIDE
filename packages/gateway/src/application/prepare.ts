@@ -19,6 +19,7 @@ import type { Discovered } from "../domain/resolve.js";
 export type Offered = Discovered & { readonly adapter: ProviderAdapter };
 
 export type DiscoveryDeps = {
+	readonly mask: SecretsMaskAdapter;
 	/** The provider.chat@2 or provider.embed@2 adapters registered now. */
 	readonly providers: () => readonly ProviderAdapter[];
 	/** How an adapter lists its models; `listModels`, the chat models, when left out. */
@@ -50,7 +51,8 @@ export const createDiscovery = (deps: DiscoveryDeps) => {
 		const r = await (deps.list?.(a, signal) ?? a.listModels(signal));
 		if (!r.ok) {
 			failedAt.set(a.id, now());
-			deps.warn(`${a.id}: listing models failed: ${r.error.message}`);
+			const masked = await deps.mask.mask(r.error.message);
+			deps.warn(`${a.id}: listing models failed: ${masked.text}`);
 			return [];
 		}
 		failedAt.delete(a.id);

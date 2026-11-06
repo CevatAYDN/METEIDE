@@ -128,16 +128,23 @@ const discovery = (ctx: ModuleContext, dailySpendUsd: number) => {
 			// The spending cap is METE's own unit over every provider (ADR-042).
 			quota.define([spendSpec(dailySpendUsd)]);
 			const warn = (msg: string) => ctx.logger.warn({}, msg);
+			const mask: SecretsMaskAdapter = {
+				mask: (text) =>
+					first<SecretsMaskAdapter>(ctx.capabilities, "secrets.mask@1").mask(
+						text,
+					),
+			};
 			const define = (s: Parameters<typeof quota.define>[0]) => quota.define(s);
 			const chat = providers("provider.chat@2");
 			const embed = providers("provider.embed@2");
 			kept = {
 				quota,
-				chat: createDiscovery({ providers: chat, define, warn }),
+				chat: createDiscovery({ providers: chat, define, warn, mask }),
 				embed: createDiscovery({
 					providers: embed,
 					define,
 					warn,
+					mask,
 					list: (a, signal) => a.embedModels?.(signal) ?? listsNone(),
 				}),
 			};

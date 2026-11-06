@@ -15,15 +15,15 @@ import { ABORTED, chainEnd } from "../domain/llm-errors.js";
 import { type PrivacyRules, usableModels } from "../domain/resolve.js";
 import { costOf } from "../domain/spend.js";
 import type { ModelCall } from "../infrastructure/model-calls.js";
+import { type ChatDeps, grant, onFailure, type WalkState } from "./chat.js";
 import {
-	type ChatDeps,
-	grant,
+	demoted,
+	forgive,
 	keyOf,
-	onFailure,
+	type Memory,
+	newMemory,
 	refOf,
-	type WalkState,
-} from "./chat.js";
-import { demoted, forgive, type Memory, newMemory } from "./model-memory.js";
+} from "./model-memory.js";
 import type { Offered } from "./prepare.js";
 
 // The llm.embed@1 pipeline (docs/09, Gateway; ADR-152): privacy filter → secret masking → quota

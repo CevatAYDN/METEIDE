@@ -61,6 +61,21 @@ export type Who = {
 	readonly fields: Readonly<Record<string, unknown>>;
 };
 
+/** The provider/model identity used in routing and diagnostic metadata. */
+export const refOf = (o: Discovered) => ({
+	providerId: o.model.providerId,
+	modelId: o.model.id,
+});
+
+/** The stable key of a discovered model in failure memory. */
+export const keyOf = (o: Discovered) => `${o.model.providerId}/${o.model.id}`;
+
+/** A model's identity and safe routing metadata for a diagnostic. */
+export const whoOf = (o: Discovered): Who => ({
+	key: keyOf(o),
+	fields: refOf(o),
+});
+
 export type Warn = (
 	fields: Readonly<Record<string, unknown>>,
 	msg: string,

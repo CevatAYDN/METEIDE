@@ -120,6 +120,7 @@ describe("createDiscovery", () => {
 		);
 		const defined: QuotaUnitSpec[][] = [];
 		const discover = createDiscovery({
+			mask,
 			providers: () => [a.adapter],
 			define: (s) => defined.push([...s]),
 			warn: () => {},
@@ -140,18 +141,24 @@ describe("createDiscovery", () => {
 		let fail = true;
 		let now = 1_000;
 		const a = fakeAdapter("a", async () =>
-			fail ? err({ code: "network", message: "down" }) : ok([info("a", "m")]),
+			fail
+				? err({ code: "network", message: "down sk-live" })
+				: ok([info("a", "m")]),
 		);
 		const b = fakeAdapter("b", async () => ok([info("b", "n")]));
 		const warnings: string[] = [];
 		const discover = createDiscovery({
+			mask,
 			providers: () => [a.adapter, b.adapter],
 			define: () => {},
 			warn: (msg) => warnings.push(msg),
 			now: () => now,
 		});
 		expect((await discover(signal)).map((d) => d.model.id)).toEqual(["n"]);
-		expect(warnings).toEqual(["a: listing models failed: down"]);
+		expect(warnings).toEqual([
+			"a: listing models failed: down [SECRET:1234abcd]",
+		]);
+		expect(warnings.join()).not.toContain("sk-live");
 		fail = false;
 		// Within the retry time the failure is kept and the provider is not asked again.
 		now += LISTING_RETRY_MS - 1;
@@ -166,6 +173,7 @@ describe("createDiscovery", () => {
 		const a = fakeAdapter("a", async () => ok([info("a", "m")]));
 		let list = [a.adapter];
 		const discover = createDiscovery({
+			mask,
 			providers: () => list,
 			define: () => {},
 			warn: () => {},

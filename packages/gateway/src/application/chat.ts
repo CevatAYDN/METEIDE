@@ -44,11 +44,14 @@ import {
 	blame,
 	demoted,
 	forgive,
+	keyOf,
 	type Memory,
 	newMemory,
 	noteBlocked,
+	refOf,
 	refuse,
 	report,
+	whoOf,
 } from "./model-memory.js";
 import { maskCall, type Offered } from "./prepare.js";
 import { type StallLimits, watched } from "./stall.js";
@@ -171,7 +174,7 @@ const callRow = (
 // the model chunk, which is why that chunk is yielded inside the try.
 async function* settled(
 	deps: ChatDeps,
-	t: Try,
+	t: Try & { readonly memory: Memory },
 	named: LlmChunk | undefined,
 	signal: AbortSignal,
 ): AsyncGenerator<LlmChunk, Attempted> {
@@ -193,6 +196,7 @@ async function* settled(
 		return { outcome: ended.outcome, observations };
 	} finally {
 		const { outcome } = ended;
+		if (outcome?.kind === "finish") forgive(t.memory, keyOf(t.o));
 		deps.quota.settle(
 			t.reservation,
 			actualOf(outcome, t.o.model),
@@ -201,11 +205,6 @@ async function* settled(
 		deps.record(callRow(t, outcome, seen, { start, end: deps.now() }));
 	}
 }
-
-export const refOf = (o: Offered) => ({
-	providerId: o.model.providerId,
-	modelId: o.model.id,
-});
 
 // A paid entry carries its estimated cost, so the spending cap holds it back (ADR-042).
 const entryOf = (o: Offered, tokens: Walk["tokens"]) => {
@@ -280,10 +279,6 @@ const nameModel = (st: WalkState, o: Offered, first: Offered | undefined) => {
 	} as const;
 };
 
-export const keyOf = (o: Offered) => `${o.model.providerId}/${o.model.id}`;
-
-const whoOf = (o: Offered) => ({ key: keyOf(o), fields: refOf(o) });
-
 // Leaves the model; ends the call once CHAIN_LENGTH models failed for another reason.
 const moveOn = (
 	deps: ChatDeps,
@@ -320,7 +315,10 @@ export const onFailure = async (
 	st.failures.set(o, n);
 	const step = afterFailure(outcome.error, n, observations, deps.now());
 	if (step.kind === "end") return outcome.error;
-	if (step.kind === "next") return moveOn(deps, st, o, outcome.error);
+	if (step.kind === "next") {
+		const masked = await deps.mask.mask(outcome.error.message);
+		return moveOn(deps, st, o, { ...outcome.error, message: masked.text });
+	}
 	await deps.sleep(step.waitMs, signal);
 	return signal.aborted ? ABORTED : undefined;
 };
@@ -348,9 +346,9 @@ async function* walk(
 		const named = nameModel(st, o, w.chain[0]);
 		const call = { ...w.call, model: o.model.id };
 		const stall = deps.stall ?? STALL_LIMITS;
-		const t: Try = { o, reservation: id, call, req: w.req, stall };
+		const t = { o, reservation: id, call, req: w.req, stall, memory };
 		const { outcome, observations } = yield* settled(deps, t, named, signal);
-		if (outcome.kind === "finish") return void forgive(memory, keyOf(o));
+		if (outcome.kind === "finish") return;
 		const end = await onFailure(deps, st, { o, outcome, observations }, signal);
 		if (end) return yield fail(end);
 	}
