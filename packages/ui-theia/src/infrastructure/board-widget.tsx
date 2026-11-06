@@ -38,6 +38,7 @@ import {
 	type ModelSession,
 } from "../application/model-session.js";
 import { panelRoot } from "../application/panel-root.js";
+import { replyShown } from "../application/reply-shown.js";
 import type { RunFacts } from "../application/run-hero.js";
 import { failureText, plain } from "../application/status-text.js";
 import { roleNames, teamName } from "../application/team-draft.js";
@@ -52,16 +53,7 @@ import { MeteRunComposer } from "./run-composer.js";
 import { MeteShownRun } from "./shown-run.js";
 import { StudioView } from "./studio-view.js";
 import { showWorktreeFiles } from "./worktree-files.js";
-import "../../style/mete-avatar.css";
-import "../../style/mete-feed.css";
-import "../../style/mete-hero.css";
-import "../../style/mete-now.css";
-import "../../style/mete-picker.css";
-import "../../style/mete-roster.css";
-import "../../style/mete-run.css";
-import "../../style/mete-side.css";
-import "../../style/mete-steps.css";
-import "../../style/mete-wait.css";
+import "../../style/mete-board.css";
 
 // The Team panel (docs/13; ADR-051; ADR-078; ADR-122).
 @injectable()
@@ -89,13 +81,21 @@ export class MeteBoardWidget extends MetePanelWidget {
 	protected asked = new Set<string>();
 	protected composing = true;
 	protected focusWhenReady = false;
-	// The shown run's model choice (ADR-122); made once the daemon is injected.
 	protected models!: ModelSession;
-	// The shown run's steps (ADR-125); the daemon is injected before the first call.
 	protected readonly transcripts = createTranscriptSession({
 		fetch: (dir, runId) => this.daemon.transcript(dir, runId),
 		onChange: () => this.update(),
 	});
+	protected readonly sendReply = (message: string) =>
+		replyShown(
+			{
+				daemon: this.daemon,
+				shown: this.session.shown,
+				current: () => this.session.shown,
+				show: this.showRun.bind(this),
+			},
+			message,
+		);
 
 	@postConstruct()
 	protected init(): void {
@@ -135,8 +135,6 @@ export class MeteBoardWidget extends MetePanelWidget {
 		this.update();
 	}
 
-	// An event of the shown run: run.created names its team, a run event reads its entry again, and a
-	// removed run has nothing left to show, so the composer takes its place (ADR-143).
 	protected onShownEvent(dir: string, runId: string, event: MeteEvent) {
 		if (event.type === "run.created")
 			this.models.setTemplate(event.payload.templateId);
@@ -372,6 +370,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 			preferredModels: this.models.preferred,
 			modelFacts: this.models.picker,
 			transcript: this.transcripts.state,
+			onReply: this.sendReply,
 			waiting: {
 				onApprove: () => void this.decide(APPROVE_RUN_COMMAND.id),
 				onRevise: (feedback) =>

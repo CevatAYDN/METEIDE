@@ -6,6 +6,7 @@ import { type CSSProperties, type ReactNode, useId } from "react";
 import { rosterOf } from "../domain/roster.js";
 import type { DaemonFailure } from "../domain/status-service.js";
 import { Columns } from "./board-columns.js";
+import { ChatBoard } from "./chat-board.js";
 import { CheckpointList, type RestoreControls } from "./checkpoint-list.js";
 import type { PickerFacts } from "./composer.js";
 import type { Windows } from "./context-meter.js";
@@ -101,6 +102,7 @@ export type TeamControls = {
 	readonly modelFacts?: PickerFacts | undefined;
 	/** The shown run's steps and why their latest read failed (ADR-125). */
 	readonly transcript: TranscriptState;
+	readonly onReply?: (message: string) => Promise<string | undefined>;
 };
 
 const MODE_ICONS: Readonly<Record<TeamMode, string>> = {
@@ -249,7 +251,7 @@ const Shown = ({
 };
 
 // The view switch over the chosen view, as tabs and their panel.
-const Views = ({
+export const Views = ({
 	model,
 	controls,
 }: {
@@ -358,7 +360,15 @@ export const BoardView = ({
 			<p role="alert">{failureText(model.failure)}</p>
 		) : null}
 		{model.kind === "board" ? (
-			<Board model={model} controls={controls} />
+			model.view.tasks.length === 0 && controls.onReply ? (
+				<ChatBoard
+					model={model}
+					controls={controls}
+					details={<Views model={model} controls={controls} />}
+				/>
+			) : (
+				<Board model={model} controls={controls} />
+			)
 		) : null}
 	</section>
 );

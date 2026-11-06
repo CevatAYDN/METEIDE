@@ -83,6 +83,29 @@ const GoalField = ({
 );
 
 /** The composer for a model and the user's input; Ctrl+Enter in the goal starts the run. */
+const TeamChoices = (
+	props: Props & { readonly model: Extract<ComposerModel, { kind: "ready" }> },
+) => {
+	const teams = (
+		<Teams
+			options={props.model.options}
+			unsure={props.model.unsure}
+			selected={props.selected}
+			onSelect={props.onSelect}
+			onEdit={props.onEdit}
+			onNewTeam={props.onNewTeam}
+		/>
+	);
+	return props.selected === "single" && !props.model.unsure ? (
+		<details className="mete-chat-details">
+			<summary>{nls.localize("mete/chat/teams", "Use a team instead")}</summary>
+			{teams}
+		</details>
+	) : (
+		teams
+	);
+};
+
 export const ComposerView = (props: Props) => {
 	const { model, goal, selected, busy, error } = props;
 	if (model.kind === "no_folder") return <Message>{noFolderText()}</Message>;
@@ -110,14 +133,7 @@ export const ComposerView = (props: Props) => {
 				/>
 			</header>
 			<div className="mete-composer-columns">
-				<Teams
-					options={model.options}
-					unsure={model.unsure}
-					selected={selected}
-					onSelect={props.onSelect}
-					onEdit={props.onEdit}
-					onNewTeam={props.onNewTeam}
-				/>
+				<TeamChoices {...props} model={model} />
 				<Side
 					chosen={model.options.find((o) => o.key === selected)}
 					singleModel={props.singleModel}

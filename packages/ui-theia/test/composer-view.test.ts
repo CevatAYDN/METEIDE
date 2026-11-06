@@ -41,6 +41,13 @@ const html = (model: ComposerModel, input: Partial<ComposerInput> = {}) =>
 	);
 
 describe("ComposerView", () => {
+	it("keeps team selection folded in the default single-agent flow", () => {
+		const out = html(READY, { selected: "single" });
+		expect(out).toContain(
+			'<details class="mete-chat-details"><summary>Use a team instead</summary>',
+		);
+		expect(out).not.toContain('<details class="mete-chat-details" open');
+	});
 	it("shows the goal field, every option with its description and estimate, and Start", () => {
 		const out = html(READY);
 		expect(out).toContain("<textarea");

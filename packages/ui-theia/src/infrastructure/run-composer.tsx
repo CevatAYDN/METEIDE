@@ -64,7 +64,7 @@ export class MeteRunComposer {
 	/** Every option, as the lists came; the shown ones narrow to the router's suggestions. */
 	protected all: readonly ComposerOption[] = [];
 	protected goal = "";
-	protected selected = "choose";
+	protected selected = "single";
 	protected singleModel: string | undefined;
 	/** The folder's uncommitted changes, which a team's worktree does not hold (ADR-156); unknown when the ask failed. */
 	protected uncommitted: number | undefined = 0;
