@@ -9,11 +9,12 @@
 		"node": ">=24"
 	},
 	"scripts": {
-		"check": "biome check . && tsc -b && tsc -p tsconfig.test.json && depcruise packages apps && turbo run test",
+		"check": "biome check . && tsc -b && tsc -p tsconfig.test.json && depcruise packages apps && pnpm test:scripts && turbo run test",
 		"check:mcp": "pnpm build && node scripts/mcp-conformance.mjs",
 		"test:chaos": "pnpm --filter @mete/cli build && pnpm --filter @mete/cli exec vitest run --config vitest.chaos.config.ts",
 		"release:check": "node scripts/release-check.mjs",
 		"test": "turbo run test",
+		"test:scripts": "node --experimental-vm-modules --test scripts/test/maintenance.test.mjs",
 		"build": "turbo run build",
 		"test:record": "echo \"test:record is not built yet; provider tests use hand-written fetch fakes (docs/15)\" && exit 1"
 	},

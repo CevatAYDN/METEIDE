@@ -65,7 +65,13 @@ const findings = (csv) => {
 		: { status: "fail", reason: `${summary}: ${high.join(", ")}` };
 };
 
+let bundleReady = false;
 const electronegativity = () => {
+	if (!bundleReady)
+		return {
+			status: "fail",
+			reason: "desktop bundle failed; current artifact was not scanned",
+		};
 	const out = mkdtempSync(join(tmpdir(), "mete-electronegativity-"));
 	const report = join(out, "report.csv");
 	try {
@@ -136,7 +142,8 @@ assert.equal(allowed("LGPL-3.0-only"), false);
 const licenses = () => {
 	const r = spawnSync(
 		process.execPath,
-		[PNPM, "licenses", "list", "--prod", "--json"],
+		// The root has no dependencies of its own; pnpm 11 then prints "No licenses in packages found".
+		[PNPM, "licenses", "list", "--recursive", "--prod", "--json"],
 		{
 			cwd: ROOT,
 			encoding: "utf8",
@@ -213,11 +220,15 @@ const STEPS = [
 	],
 	["licenses of what ships", licenses],
 	["osv-scanner", osvScanner],
-	["Electronegativity", electronegativity],
 	[
 		"desktop bundle",
-		() => viaPnpm(["--filter", "@mete/desktop", "bundle"], 15),
+		() => {
+			const result = viaPnpm(["--filter", "@mete/desktop", "bundle"], 15);
+			bundleReady = result.status === "pass";
+			return result;
+		},
 	],
+	["Electronegativity", electronegativity],
 	[
 		"end-to-end (Playwright for Electron)",
 		() => viaPnpm(["--filter", "@mete/desktop", "test:e2e"], 15),

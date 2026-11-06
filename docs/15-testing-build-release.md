@@ -56,6 +56,12 @@ Phase 5 exit gate, as of 2026-11-04: not passed. `apps/cli/test/game-studio.test
 
 ## Local CI
 
+The 2026-11-07 review regressions also run through `pnpm test:scripts` inside
+`pnpm check`: merge-only secret additions, release bundle/security-scan ordering
+and Windows packaging cleanup are exercised offline with isolated Git fixtures and
+substituted process/filesystem effects. They do not install or publish an application.
+See `docs/reviews/2026-11-07-code-review.md` for the findings and verification status.
+
 | Hook or script | Runs |
 | --- | --- |
 | pre-commit | Biome on staged files, `tsc --noEmit` on affected packages, dependency-cruiser |

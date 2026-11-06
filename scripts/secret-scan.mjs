@@ -43,13 +43,19 @@ const rangeOf = (line) => {
 		: [local, "--not", "--remotes"];
 };
 
-// shortcut: merge commits' own lines are not scanned, add -m when merges carry edits.
 /** The lines each commit adds, keyed by `<short sha> <file>`. */
 const addedLines = (range) => {
 	const out = new Map();
 	let key = "";
 	let sha = "";
-	const log = git(["log", "-p", "--unified=0", "--format=%x00%h", ...range]);
+	const log = git([
+		"log",
+		"-p",
+		"-m",
+		"--unified=0",
+		"--format=%x00%h",
+		...range,
+	]);
 	for (const line of log.split("\n")) {
 		if (line.startsWith("\0")) sha = line.slice(1);
 		else if (line.startsWith("+++ "))

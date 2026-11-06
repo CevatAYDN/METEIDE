@@ -32,7 +32,8 @@ const run = (command, args, cwd) => {
 		shell: process.platform === "win32" && command === "pnpm",
 	});
 	if (r.error) console.error(r.error.message);
-	if (r.status !== 0) process.exit(r.status ?? 1);
+	if (r.status !== 0)
+		throw new Error(`Packaging command failed with exit ${r.status ?? 1}`);
 };
 
 // The packaged app needs the built shell and the downloaded plugins; say what is missing instead of
