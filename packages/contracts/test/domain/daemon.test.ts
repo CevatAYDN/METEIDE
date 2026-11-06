@@ -171,6 +171,7 @@ describe("daemon protocol version 24", () => {
 		expect(DAEMON_METHODS).toEqual({
 			status: "mete/status",
 			runStart: "mete/run.start",
+			runReply: "mete/run.reply",
 			runApprove: "mete/run.approve",
 			runResume: "mete/run.resume",
 			runAllow: "mete/run.allow",
@@ -198,9 +199,9 @@ describe("daemon protocol version 24", () => {
 		});
 	});
 
-	it("counts 25 requests and one notification, and names version 27 (ARCHITECTURE.md)", () => {
-		expect(Object.keys(DAEMON_METHODS)).toHaveLength(26);
-		expect(DAEMON_PROTOCOL_VERSION).toBe(27);
+	it("counts 26 requests and one notification, and names version 28 (ARCHITECTURE.md)", () => {
+		expect(Object.keys(DAEMON_METHODS)).toHaveLength(27);
+		expect(DAEMON_PROTOCOL_VERSION).toBe(28);
 	});
 
 	it("takes the words and an optional note type for mete/knowledge.search, and reads its hits (ADR-159)", () => {

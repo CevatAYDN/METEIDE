@@ -257,6 +257,13 @@ export {
 } from "./domain/registry.js";
 export { err, ok, type Result } from "./domain/result.js";
 export {
+	type RunReplyAdapter,
+	type RunReplyInput,
+	RunReplyInputSchema,
+	type RunReplyOutput,
+	RunReplyOutputSchema,
+} from "./domain/run-reply.js";
+export {
 	type RuntimeEnsureAdapter,
 	type RuntimeEnsureInput,
 	RuntimeEnsureInputSchema,

@@ -10,13 +10,14 @@ import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 import { VaultScopeSchema } from "./vault.js";
 
-// Daemon protocol v27 (ARCHITECTURE.md, ADR-045..ADR-164); mete/event checked with MeteEventSchema.
+// Daemon protocol v28 (ARCHITECTURE.md, ADR-178); mete/event checked with MeteEventSchema.
 const text = z.string().min(1);
 
-/** The messages of version 27; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** The messages of version 28; the params of mete/run.start are RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	status: "mete/status",
 	runStart: "mete/run.start",
+	runReply: "mete/run.reply",
 	runApprove: "mete/run.approve",
 	runResume: "mete/run.resume",
 	runAllow: "mete/run.allow",
@@ -44,7 +45,7 @@ export const DAEMON_METHODS = {
 } as const;
 
 /** The daemon protocol version these messages belong to (ARCHITECTURE.md). */
-export const DAEMON_PROTOCOL_VERSION = 27;
+export const DAEMON_PROTOCOL_VERSION = 28;
 
 /** JSON-RPC code of an error answer: the implementation-defined range; a client reads `data.code`. */
 export const DAEMON_ERROR_CODE = -32000;
