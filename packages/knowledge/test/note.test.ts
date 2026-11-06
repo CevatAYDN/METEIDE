@@ -26,6 +26,16 @@ describe("slugOf", () => {
 });
 
 describe("notePath", () => {
+	it("reserves history without case on Windows, keeping case-sensitive paths elsewhere", () => {
+		for (const path of [".HiStOrY/lessons/a.md/1.md", ".HISTORY\\a.md"]) {
+			const normalized = path.replaceAll("\\", "/");
+			expect(notePath(path)).toBe(
+				process.platform === "win32" ? undefined : normalized,
+			);
+		}
+		expect(notePath("lessons/../.history/a.md")).toBeUndefined();
+	});
+
 	it("normalizes a note path inside the vault", () => {
 		expect(notePath("lessons/./a.md")).toBe("lessons/a.md");
 		expect(notePath("lessons\\a.md")).toBe("lessons/a.md");

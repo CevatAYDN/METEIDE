@@ -66,9 +66,11 @@ const listNotes = async (deps: SearchDeps, ctx: ToolContext): Out<string[]> => {
 	);
 };
 
-// A note as the index stores it; a frontmatter that is not a map leaves the whole text as body.
+// Invalid frontmatter must not hide a private flag; an excluded note also loses its old sections.
 const indexed = (path: string, sha: string, text: string): IndexedNote => {
-	const { data, body } = splitNote(text) ?? { data: {}, body: text };
+	const parts = splitNote(text);
+	if (!parts) return { path, sha, sections: [] };
+	const { data, body } = parts;
 	const facts = noteFacts(path, data, body);
 	return facts
 		? { path, sha, facts, sections: sectionsOf(body) }

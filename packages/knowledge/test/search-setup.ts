@@ -71,11 +71,13 @@ const fakeFs = (root: string, hidden: Set<string>) => ({
 export type SetupOptions = {
 	readonly embed?: LlmEmbedAdapter;
 	readonly now?: () => number;
+	/** Reopens a caller-owned fixture; the caller cleans it up. */
+	readonly root?: string;
 };
 
 export const setup = async (opts: SetupOptions = {}) => {
-	const root = await mkdtemp(join(tmpdir(), "mete-search-"));
-	roots.push(root);
+	const root = opts.root ?? (await mkdtemp(join(tmpdir(), "mete-search-")));
+	if (!opts.root) roots.push(root);
 	const registry = createCapabilityRegistry(() => []);
 	const log = () => {};
 	const base: ModuleContext = {

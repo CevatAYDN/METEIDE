@@ -13,13 +13,15 @@ export type NoteParts = {
 const isMap = (v: unknown): v is Record<string, unknown> =>
 	typeof v === "object" && v !== null && !Array.isArray(v);
 
-/** The note's frontmatter and body; undefined when its frontmatter is not a YAML map. */
+/** The note's frontmatter and body; undefined for an unclosed fence or anything but a YAML map. */
 export const splitNote = (text: string): NoteParts | undefined => {
-	const m = FENCE.exec(text);
-	if (!m) return { data: {}, body: text };
+	const view = text.startsWith("\uFEFF") ? text.slice(1) : text;
+	const m = FENCE.exec(view);
+	if (!m)
+		return /^---(?:\r?\n|$)/.test(view) ? undefined : { data: {}, body: text };
 	const doc = parseDocument(m[1] ?? "");
 	const data: unknown = doc.errors.length === 0 ? doc.toJS() : undefined;
-	return isMap(data) ? { data, body: text.slice(m[0].length) } : undefined;
+	return isMap(data) ? { data, body: view.slice(m[0].length) } : undefined;
 };
 
 /** A note as text: its frontmatter, then its body. */

@@ -200,6 +200,15 @@ describe("vault.read@1", () => {
 		await writeFile(file, text, "utf8");
 	};
 
+	it("cannot read history through mixed-case paths on Windows", async () => {
+		const t = await tools();
+		const path = ".HiStOrY/lessons/a.md/1.md";
+		await put(t.root, path, "old version");
+		expect(code(await t.read.run({ path }, ctx()))).toBe(
+			process.platform === "win32" ? "bad_input" : "ok",
+		);
+	});
+
 	it("never gives a private note to a model", async () => {
 		const t = await tools();
 		await put(
@@ -211,6 +220,34 @@ describe("vault.read@1", () => {
 			"ignored",
 		);
 		expect(accessesOf(t.db, "entities/me.md")).toBeUndefined();
+	});
+
+	it.each([
+		["\uFEFF---\nprivate: true\n---\nSecret.", "ignored"],
+		["\uFEFF---\nprivate: true\ntags: [\n---\nSecret.", "bad_input"],
+		["\uFEFF---\nprivate: true\nSecret.", "bad_input"],
+	])(
+		"does not let a BOM bypass private frontmatter: %s",
+		async (text, expected) => {
+			const t = await tools();
+			const path = "entities/bom.md";
+			await put(t.root, path, text);
+			expect(code(await t.read.run({ path }, ctx()))).toBe(expected);
+			expect(accessesOf(t.db, path)).toBeUndefined();
+			expect(await t.file(`.mete/knowledge/${path}`)).toBe(text);
+		},
+	);
+
+	it.each([
+		"\uFEFF---\r\nprivate: false\r\n---\r\nPublic.",
+		"\uFEFFPlain note.",
+	])("returns a readable BOM note exactly as written: %s", async (text) => {
+		const t = await tools();
+		const path = "entities/bom.md";
+		await put(t.root, path, text);
+		const read = await t.read.run({ path }, ctx());
+		expect(read.ok && read.value.content).toBe(text);
+		expect(await t.file(`.mete/knowledge/${path}`)).toBe(text);
 	});
 
 	it("counts a note it answers as one access of aging (ADR-173)", async () => {

@@ -110,6 +110,11 @@ Output: the results best first, at most `k`, each with the note's path relative 
 
 ## Indexing
 
+Invalid or unclosed frontmatter is excluded from retrieval and document embedding,
+not treated as ordinary note text. A leading UTF-8 BOM does not bypass frontmatter
+parsing. The 2026-11-07 cache migration invalidates previously indexed note hashes so
+unchanged notes are evaluated under these privacy rules; it never changes note files.
+
 - Chunking \[D\]: code by symbol up to 1,500 tokens; Markdown by heading section up to 1,000 tokens; other text in 1,000-token windows with 100 tokens of overlap.
 - Embedding cache key: SHA-256 of the chunk text plus the embedding model id. Only changed chunks are embedded, in batches of 32 \[D\].
 - Changing the embedding model triggers a background re-index; vectors store the model id that produced them \[C\].

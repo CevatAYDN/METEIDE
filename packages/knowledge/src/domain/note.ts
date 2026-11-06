@@ -45,7 +45,10 @@ export const notePath = (path: string) => {
 		/^[a-zA-Z]:/.test(p) ||
 		p === ".." ||
 		p.startsWith("../");
-	if (outside || p.split("/")[0] === ".history" || !p.endsWith(".md"))
+	const folder = p.split("/")[0];
+	const reserved =
+		process.platform === "win32" ? folder?.toLowerCase() : folder;
+	if (outside || reserved === ".history" || !p.endsWith(".md"))
 		return undefined;
 	return p;
 };

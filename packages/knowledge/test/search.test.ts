@@ -6,6 +6,48 @@ import { paths, setup } from "./search-setup.js";
 // knowledge.search@1's keyword source over real storage (docs/11, Hybrid search; ADR-149).
 
 describe("knowledge.search@1", () => {
+	it.each([
+		"\uFEFF---\nprivate: true\n---\nsecret word",
+		"\uFEFF---\nprivate: true\ntags: [\n---\nsecret word",
+		"\uFEFF---\nprivate: true\nsecret word",
+	])(
+		"excludes BOM-prefixed private or malformed frontmatter: %s",
+		async (text) => {
+			const s = await setup();
+			try {
+				await s.note("lessons/private.md", text);
+				expect(paths(await s.search({ query: "secret" }))).toEqual([]);
+			} finally {
+				await s.close();
+			}
+		},
+	);
+
+	it.each([
+		"---\nprivate: true\ntags: [\n---\nsecret word",
+		"---\n- private: true\n---\nsecret word",
+		"---\nprivate: true\nsecret word",
+	])(
+		"excludes malformed frontmatter and forgets the previously indexed note: %s",
+		async (text) => {
+			const s = await setup();
+			try {
+				await s.note("lessons/private.md", "old public word");
+				expect(paths(await s.search({ query: "public" }))).toEqual([
+					"lessons/private.md",
+				]);
+				await s.note("lessons/private.md", text);
+				expect(paths(await s.search({ query: "secret public" }))).toEqual([]);
+				await s.note("lessons/plain.md", "ordinary word");
+				expect(paths(await s.search({ query: "ordinary" }))).toEqual([
+					"lessons/plain.md",
+				]);
+			} finally {
+				await s.close();
+			}
+		},
+	);
+
 	it("finds a section by a word without its accents, with its note's facts and its rank", async () => {
 		const s = await setup();
 		expect(s.activated.ok).toBe(true);

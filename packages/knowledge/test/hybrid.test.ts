@@ -51,6 +51,73 @@ const fakeEmbed = () => {
 const lesson = (body: string) => `---\ntype: lesson\n---\n\n${body}\n`;
 
 describe("knowledge.search@1 with the vector source", () => {
+	it("never embeds BOM-prefixed private, malformed or unclosed notes", async () => {
+		const e = fakeEmbed();
+		const s = await setup({ embed: e.embed });
+		try {
+			await s.note(
+				"lessons/private.md",
+				"\uFEFF---\nprivate: true\n---\nsecret tsc",
+			);
+			await s.note(
+				"lessons/malformed.md",
+				"\uFEFF---\nprivate: true\ntags: [\n---\nsecret tsc",
+			);
+			await s.note(
+				"lessons/unclosed.md",
+				"\uFEFF---\nprivate: true\nsecret tsc",
+			);
+			await s.note(
+				"lessons/public.md",
+				"\uFEFF---\nprivate: false\n---\nordinary palette",
+			);
+			expect(paths(await s.search({ query: "secret" }))).toEqual([]);
+			await vi.waitFor(() => expect(e.documents()).toHaveLength(1));
+			expect(paths(await s.search({ query: "compilation" }))).toEqual([]);
+			expect(e.documents().map((c) => c.input)).toEqual([["ordinary palette"]]);
+		} finally {
+			await s.close();
+		}
+	});
+
+	it("never embeds malformed frontmatter and drops a note's old searchable version", async () => {
+		const e = fakeEmbed();
+		const s = await setup({ embed: e.embed });
+		try {
+			await s.note("lessons/old.md", lesson("public tsc text"));
+			await s.search({ query: "tsc" });
+			await vi.waitFor(() => expect(e.documents()).toHaveLength(1));
+			await s.note(
+				"lessons/old.md",
+				"---\nprivate: true\ntags: [\n---\nsecret tsc text",
+			);
+			await s.note(
+				"lessons/invalid.md",
+				"---\n- private: true\n---\nsecret compilation text",
+			);
+			await s.note(
+				"lessons/unclosed.md",
+				"---\nprivate: true\nsecret build text",
+			);
+			await s.note("lessons/plain.md", "ordinary palette text");
+			expect(paths(await s.search({ query: "tsc" }))).toEqual([]);
+			await vi.waitFor(() => expect(e.documents()).toHaveLength(2));
+			expect(e.documents().map((c) => c.input)).toEqual([
+				["public tsc text"],
+				["ordinary palette text"],
+			]);
+			expect(paths(await s.search({ query: "compilation" }))).toEqual([]);
+			expect(
+				e
+					.documents()
+					.flatMap((c) => c.input)
+					.join("\n"),
+			).not.toContain("secret");
+		} finally {
+			await s.close();
+		}
+	});
+
 	it("finds a section by meaning, once the background job has embedded it, and none far from it", async () => {
 		const e = fakeEmbed();
 		const s = await setup({ embed: e.embed });

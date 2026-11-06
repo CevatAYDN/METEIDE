@@ -28,6 +28,11 @@ ALTER TABLE knowledge_files ADD COLUMN born TEXT;
 ALTER TABLE knowledge_files ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;
 UPDATE knowledge_files SET sha = '';`,
 	},
+	// Reparse unchanged notes indexed before malformed/BOM frontmatter failed closed.
+	{
+		id: "004-knowledge-frontmatter",
+		sql: "UPDATE knowledge_files SET sha = '';",
+	},
 ];
 
 const files = sqliteTable("knowledge_files", {
