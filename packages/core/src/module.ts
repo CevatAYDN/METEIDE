@@ -31,7 +31,7 @@ const MANIFEST: ModuleManifest = {
 	displayName: "Core engine",
 	class: "essential",
 	trust: "core",
-	provides: ["team.engine@2", "checkpoint.restore@1"],
+	provides: ["team.engine@2", "checkpoint.restore@1", "run.reply@1"],
 	requires: [
 		"llm.chat@2",
 		"fs.read@1",
@@ -108,6 +108,14 @@ export const createCoreEngineModule = (opts: CoreEngineOptions): MeteModule => {
 			const migrated = ctx.storage.migrate("workspace", RUN_MIGRATIONS);
 			if (!migrated.ok) return err(failed(migrated.error.message));
 			const created = createEngine(depsOf(opts, ctx, ctx.storage.workspace));
+			ctx.disposables.add(
+				ctx.capabilities.provide("run.reply@1", {
+					id: MANIFEST.id,
+					trust: "core",
+					features: [],
+					impl: created.reply,
+				}),
+			);
 			if (opts.recover !== false) created.recover();
 			stop = created.stop;
 			ctx.disposables.add(

@@ -27,6 +27,7 @@ import { type Opening, offerBrief, takeHandoff } from "./continue.js";
 import { nextPrefer, validateStartPrefer } from "./pinned.js";
 import { recover } from "./recovery.js";
 import { removeRun } from "./remove.js";
+import { createReply, type ReplyStart } from "./reply.js";
 import { createCheckpointRestore } from "./restore.js";
 import { pruneOldCheckpoints } from "./retention.js";
 import { routeFor } from "./route.js";
@@ -106,11 +107,12 @@ type Begin = {
 	readonly prefer?: RunPrefer | undefined;
 	/** The workspace block, read once when the run starts (ADR-126). */
 	readonly workspace?: string | undefined;
+	readonly conversation?: Pick<ReplyStart, "messages" | "tainted">;
 };
 
 const begin = (
 	s: EngineState,
-	{ id, goal, priority, team, opening, prefer, workspace }: Begin,
+	{ id, goal, priority, team, opening, prefer, workspace, conversation }: Begin,
 ): Result<{ runId: string }, EngineError> => {
 	const p = policy(s, team);
 	if (!p.ok) return p;
@@ -118,10 +120,18 @@ const begin = (
 	if (!where.ok) return err(fromConfig(where.error));
 	const brief = opening.brief;
 	// A team task opens its own conversation when it starts (team-driver).
-	const messages = team
-		? []
-		: openingMessages(goal, where.value, brief, workspace);
-	const input = { goal, priority, messages, brief, workspace, prefer };
+	const messages =
+		conversation?.messages ??
+		(team ? [] : openingMessages(goal, where.value, brief, workspace));
+	const input = {
+		goal,
+		priority,
+		messages,
+		brief,
+		workspace,
+		prefer,
+		tainted: conversation?.tainted,
+	};
 	const [fresh] = initialTransition(runMachine, input);
 	const snapshot = team
 		? transition(runMachine, fresh, { type: "TEAM", team })[0]
@@ -342,6 +352,14 @@ export const createEngine = (deps: EngineDeps) => {
 	};
 	return {
 		engine,
+		reply: createReply(s, ({ messages, tainted, ...input }) =>
+			begin(s, {
+				...input,
+				id: s.deps.newId(),
+				opening: {},
+				conversation: { messages, tainted },
+			}),
+		),
 		// Only the process that drives runs recovers them and prunes old checkpoints, so a command
 		// that only reads (mete status, mete events) never removes refs a live run may still use.
 		recover: () => {

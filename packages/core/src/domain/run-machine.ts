@@ -149,6 +149,7 @@ export const runMachine = setup({
 			brief?: string | undefined;
 			workspace?: string | undefined;
 			prefer?: RunPrefer | undefined;
+			tainted?: boolean | undefined;
 		},
 	},
 }).createMachine({
@@ -161,6 +162,7 @@ export const runMachine = setup({
 		...(input.brief ? { brief: input.brief } : {}),
 		...(input.workspace ? { workspace: input.workspace } : {}),
 		...(input.prefer ? { prefer: input.prefer } : {}),
+		...(input.tainted ? { tainted: true } : {}),
 		preferRevision: 0,
 		turns: 0,
 		requests: 0,
