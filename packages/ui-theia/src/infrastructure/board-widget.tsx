@@ -91,7 +91,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 			{
 				daemon: this.daemon,
 				shown: this.session.shown,
-				current: () => this.session.shown,
+				current: () => (this.isDisposed ? undefined : this.session.shown),
 				show: this.showRun.bind(this),
 			},
 			message,
@@ -146,7 +146,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 	showComposer(): Promise<void> {
 		this.composing = true;
 		this.shownRun.set(undefined);
-		this.tickThinking();
+		this.setSession(IDLE_BOARD);
 		this.update();
 		return this.composer.reopen();
 	}

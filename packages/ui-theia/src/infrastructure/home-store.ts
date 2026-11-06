@@ -1,11 +1,14 @@
 import { CommandService } from "@theia/core";
+import { DisposableCollection } from "@theia/core/lib/common/disposable";
 import { Emitter } from "@theia/core/lib/common/event";
+import { ILogger } from "@theia/core/lib/common/logger";
 import { nls } from "@theia/core/lib/common/nls";
 import URI from "@theia/core/lib/common/uri";
 import {
 	inject,
 	injectable,
 	postConstruct,
+	preDestroy,
 } from "@theia/core/shared/inversify";
 import { FileDialogService } from "@theia/filesystem/lib/browser/file-dialog/file-dialog-service";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
@@ -42,6 +45,7 @@ export class MeteHomeStore {
 	@inject(CommandService) protected readonly commands!: CommandService;
 	@inject(MeteInboxBadge) protected readonly badge!: MeteInboxBadge;
 	@inject(FileDialogService) protected readonly dialogs!: FileDialogService;
+	@inject(ILogger) protected readonly logger!: ILogger;
 
 	protected readonly changed = new Emitter<void>();
 	/** Fires when the model or the workspaces change. */
@@ -50,57 +54,118 @@ export class MeteHomeStore {
 	workspaces: readonly Workspace[] = [];
 	/** The folder the shown runs belong to. */
 	protected dir: string | undefined;
+	protected generation = 0;
+	protected disposed = false;
+	protected readonly subscriptions = new DisposableCollection(this.changed);
 
 	@postConstruct()
 	protected init(): void {
 		// A run of the shown folder changed: ask again; run events are few, so no debounce.
-		this.events.onDidReceive(({ workspaceDir, event }) => {
-			if (workspaceDir === this.dir && event.type.startsWith("run."))
-				void this.refresh();
-		});
+		this.subscriptions.push(
+			this.events.onDidReceive(({ workspaceDir, event }) => {
+				if (workspaceDir === this.dir && event.type.startsWith("run."))
+					void this.refresh();
+			}),
+		);
 		// A key set from the palette or from the button restarts the daemon: ask again either way.
-		this.commands.onDidExecuteCommand(({ commandId }) => {
-			if (commandId === SET_KEY_COMMAND.id) void this.refresh();
-		});
+		this.subscriptions.push(
+			this.commands.onDidExecuteCommand(({ commandId }) => {
+				if (commandId === SET_KEY_COMMAND.id) void this.refresh();
+			}),
+		);
+		this.subscriptions.push(
+			this.workspace.onWorkspaceChanged(() => void this.refresh()),
+		);
 		void this.refresh();
 	}
 
+	/** Invalidates pending refreshes and releases the store's listeners. */
+	@preDestroy()
+	dispose(): void {
+		this.disposed = true;
+		this.generation++;
+		this.subscriptions.dispose();
+	}
+
 	// The folders opened before, newest first, as Theia remembers them (docs/13, Home: Workspaces).
-	protected async loadWorkspaces(current: string | undefined) {
-		const recent = await this.workspace.recentWorkspaces();
-		this.workspaces = recent.map((uri) => {
-			const path = new URI(uri).path;
-			return {
-				uri,
-				name: path.base,
-				path: path.fsPath(),
-				current: uri === current,
-			};
-		});
-		this.changed.fire();
+	protected async loadWorkspaces(current: string | undefined, asked: number) {
+		const dir = this.dir;
+		try {
+			const recent = await this.workspace.recentWorkspaces();
+			if (!this.isCurrent(asked, dir)) return;
+			this.workspaces = recent.map((uri) => {
+				const path = new URI(uri).path;
+				return {
+					uri,
+					name: path.base,
+					path: path.fsPath(),
+					current: uri === current,
+				};
+			});
+			this.changed.fire();
+		} catch (e) {
+			if (this.isCurrent(asked, dir))
+				void this.logger
+					.warn("METE Home could not read recent workspaces.", e)
+					.catch((error: unknown) => console.error(error));
+		}
 	}
 
 	/** Asks the daemon of the first open folder again; the sections draw the answer. */
 	async refresh(): Promise<void> {
-		// The roots promise waits for the workspace to load; tryGetRoots is empty until then.
-		const [root] = await this.workspace.roots;
-		void this.loadWorkspaces(root?.resource.toString());
-		if (!root) return this.setModel({ kind: "no_folder" });
-		this.dir = root.resource.path.fsPath();
-		if (this.model.kind !== "runs") this.setModel({ kind: "loading" });
-		const reply = await this.daemon.status(this.dir);
-		const at = new Date().toISOString();
-		// The runs draw at once; the quota states can wait on a first model listing, so they follow.
-		this.setModel(homeModel(reply, at));
-		if (!reply.ok) return;
-		this.setModel(homeModel(reply, at, await this.providers(this.dir)));
+		if (this.disposed) return;
+		const asked = ++this.generation;
+		let dir: string | undefined;
+		try {
+			// The roots promise waits for the workspace to load.
+			const [root] = await this.workspace.roots;
+			dir = root?.resource.path.fsPath();
+			if (!this.isCurrent(asked, dir)) return;
+			this.dir = dir;
+			void this.loadWorkspaces(root?.resource.toString(), asked);
+			if (!dir) return this.setModel({ kind: "no_folder" });
+			if (this.model.kind !== "runs") this.setModel({ kind: "loading" });
+			const reply = await this.daemon.status(dir);
+			if (!this.isCurrent(asked, dir)) return;
+			const at = new Date().toISOString();
+			// Runs draw before the potentially slow first model listing.
+			this.setModel(homeModel(reply, at));
+			if (!reply.ok) return;
+			const providers = await this.providers(dir, asked);
+			if (this.isCurrent(asked, dir))
+				this.setModel(homeModel(reply, at, providers));
+		} catch (e) {
+			if (!this.isCurrent(asked, dir)) return;
+			this.setModel(
+				homeModel(
+					{ ok: false, error: { code: "protocol", detail: String(e) } },
+					new Date().toISOString(),
+				),
+			);
+		}
+	}
+
+	protected isCurrent(asked: number, dir: string | undefined): boolean {
+		return (
+			!this.disposed &&
+			asked === this.generation &&
+			dir === this.workspace.tryGetRoots()[0]?.resource.path.fsPath()
+		);
 	}
 
 	// The quota chips and the lines under a quota pause add to the runs, which show without them;
 	// a failed ask leaves them out, and METE: Quota says why it failed.
-	protected async providers(dir: string) {
-		const r = await this.daemon.quota(dir);
-		return r.ok ? r.value.providers : [];
+	protected async providers(dir: string, asked: number) {
+		try {
+			const r = await this.daemon.quota(dir);
+			return r.ok ? r.value.providers : [];
+		} catch (e) {
+			if (this.isCurrent(asked, dir))
+				void this.logger
+					.warn("METE Home could not read quota states.", e)
+					.catch((error: unknown) => console.error(error));
+			return [];
+		}
 	}
 
 	/** Runs a section's button as its palette command, so the keyboard and the mouse share one path. */

@@ -216,7 +216,7 @@ export class MeteRunComposer {
 		const goal = this.goal;
 		void this.messages.info(startedText(goal));
 		this.goal = "";
-		this.selected = "choose";
+		this.selected = "single";
 		this.singleModel = undefined;
 		this.roleModels = {};
 		this.setModel({ kind: "ready", options: this.all, unsure: false });
