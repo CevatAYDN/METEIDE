@@ -5,6 +5,7 @@ import {
 	type PolicyCheckAdapter,
 	type PolicyCheckInput,
 	PolicyCheckInputSchema,
+	type PolicyForgetInput,
 	type PolicyVerdict,
 } from "@mete/contracts";
 import { type CheckerEnv, decide } from "../domain/checker.js";
@@ -41,8 +42,22 @@ const hashArgs = (args: unknown) => {
 export type CheckHooks = {
 	readonly now?: () => number;
 	readonly grants?: Grants;
+	/** Exact process-local task requests (ADR-181); remember is synchronous and audit-gated. */
+	readonly requests?: {
+		take(input: PolicyCheckInput): "once" | "task" | undefined;
+		remember(input: PolicyCheckInput, verdict: PolicyVerdict): void;
+		forget(input: PolicyForgetInput): void;
+	};
 	/** Called after the audit row of a check that still asks is written (ADR-121). */
 	readonly asked?: (input: PolicyCheckInput, v: PolicyVerdict) => void;
+};
+
+const forgetAfterAuditFailure = (
+	input: PolicyCheckInput,
+	requests: CheckHooks["requests"],
+) => {
+	if (input.runId && input.agentId)
+		requests?.forget({ runId: input.runId, agentId: input.agentId });
 };
 
 // The last decision step (SECURITY.md): a grant of the run turns an ask into allow, never a deny.
@@ -52,9 +67,9 @@ const granted = (
 	v: PolicyVerdict,
 	input: PolicyCheckInput,
 	env: CheckerEnv,
-	grants: Grants | undefined,
+	hooks: CheckHooks,
 ): PolicyVerdict => {
-	const scope = grants?.take(input, env);
+	const scope = hooks.requests?.take(input) ?? hooks.grants?.take(input, env);
 	return scope && v.verdict === "ask"
 		? { verdict: "allow", rule: `granted:${scope}` }
 		: v;
@@ -65,13 +80,13 @@ export const createPolicyCheck = (
 	/** The environment of each check: the policy in it may change between two calls (ADR-073). */
 	env: () => CheckerEnv,
 	writeAudit: AuditWriter,
-	{ now = Date.now, grants, asked }: CheckHooks = {},
+	{ now = Date.now, ...hooks }: CheckHooks = {},
 ): PolicyCheckAdapter => ({
 	check(raw) {
 		// Typed in-process callers cannot normally fail this, so a failure is a bug (ADR-034).
 		const input = PolicyCheckInputSchema.parse(raw);
 		const e = env();
-		const v = granted(decide(input, e), input, e, grants);
+		const v = granted(decide(input, e), input, e, hooks);
 		try {
 			writeAudit({
 				ts: new Date(now()).toISOString(),
@@ -86,12 +101,16 @@ export const createPolicyCheck = (
 				tainted: input.tainted ?? false,
 			});
 		} catch (e) {
+			forgetAfterAuditFailure(input, hooks.requests);
 			return err({
 				code: "audit_failed",
 				message: e instanceof Error ? e.message : String(e),
 			});
 		}
-		if (v.verdict === "ask") asked?.(input, v);
+		if (v.verdict === "ask") {
+			hooks.requests?.remember(input, v);
+			hooks.asked?.(input, v);
+		}
 		return ok(v);
 	},
 });

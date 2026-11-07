@@ -28,7 +28,7 @@
 }
 
 .mete-quota-card tbody + tbody {
-	border-top: 1.5px solid var(--line, var(--theia-panel-border));
+	border-top: 1px solid var(--line, var(--theia-panel-border));
 }
 
 /* A provider's name, once, over its units. */
@@ -51,7 +51,7 @@
 }
 
 .mete-quota-card tbody tr + tr > td {
-	border-top: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-top: 1px solid var(--line-soft, var(--theia-panel-border));
 }
 
 .mete-quota-card tbody tr.open {
@@ -59,7 +59,7 @@
 }
 
 .mete-quota-unit {
-	border-left: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-left: 1px solid var(--line-soft, var(--theia-panel-border));
 	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
 	font-size: 13px;
 }
@@ -142,8 +142,8 @@
 	font-weight: 700;
 	color: var(--muted-2, var(--theia-descriptionForeground));
 	background: transparent;
-	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	border-radius: 10px;
+	border: 1px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 4px;
 	cursor: pointer;
 }
 
@@ -164,15 +164,15 @@
 /* The amounts in the window, oldest first, each on a dot of the rail. */
 .mete-quota-card tbody tr.mete-quota-rail > td {
 	padding: 0 16px 16px;
-	border-left: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-left: 1px solid var(--line-soft, var(--theia-panel-border));
 }
 
 .mete-quota-timeline {
 	position: relative;
 	padding: 16px 20px 14px;
 	background: var(--panel, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	border-radius: 14px;
+	border: 1px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 8px;
 }
 
 .mete-quota-timeline::before {
@@ -181,7 +181,7 @@
 	top: 20.25px;
 	right: 20px;
 	left: 24px;
-	height: 1.5px;
+	height: 1px;
 	background: var(--line, var(--theia-panel-border));
 }
 
@@ -213,7 +213,7 @@
 	height: 10px;
 	border-radius: 50%;
 	background: var(--panel, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--muted, var(--theia-descriptionForeground));
+	border: 1px solid var(--muted, var(--theia-descriptionForeground));
 }
 
 .mete-quota-timeline time {

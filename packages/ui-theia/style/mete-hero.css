@@ -6,11 +6,9 @@
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 20px 28px;
-	padding: 22px 22px 22px 26px;
-	background: var(--raised, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line, var(--theia-panel-border));
-	border-radius: 16px;
+	gap: 10px 16px;
+	padding: 0 0 10px;
+	border-bottom: 1px solid var(--line, var(--theia-panel-border));
 }
 
 .mete-hero-main {
@@ -27,11 +25,11 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 9px;
-	height: 32px;
-	padding: 0 15px 0 13px;
-	border-radius: 999px;
-	font-size: 15px;
-	font-weight: 700;
+	height: 24px;
+	padding: 0 8px;
+	border-radius: 4px;
+	font-size: 12px;
+	font-weight: 600;
 	background: color-mix(
 		in srgb,
 		var(--tone) 14%,
@@ -82,11 +80,11 @@
 /* docs/13: inside the panel the subject is its h2, where an artboard, a page, has its h1. */
 .mete-hero-goal {
 	max-width: 100%;
-	margin: 12px 0 0;
-	font-size: 28px;
-	font-weight: 800;
+	margin: 6px 0 0;
+	font-size: 16px;
+	font-weight: 600;
 	line-height: 1.2;
-	letter-spacing: -0.01em;
+	letter-spacing: 0;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -111,17 +109,14 @@
 .mete-tiles {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 10px;
-	margin: 16px 0 0;
+	gap: 12px;
+	margin: 8px 0 0;
 }
 
 .mete-tiles > div {
-	min-width: 104px;
+	min-width: 72px;
 	box-sizing: border-box;
-	padding: 10px 16px 11px;
-	background: var(--panel, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	border-radius: 14px;
+	padding: 0;
 }
 
 .mete-tiles dt {
@@ -133,7 +128,7 @@
 
 .mete-tiles dd {
 	margin: 3px 0 0;
-	font-size: 22px;
+	font-size: 14px;
 	font-weight: 700;
 	line-height: 1.2;
 	font-variant-numeric: tabular-nums;
@@ -156,18 +151,15 @@
 	align-self: stretch;
 	display: flex;
 	align-items: center;
-	gap: 22px;
-	padding: 18px 22px;
-	background: var(--panel, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	border-radius: 14px;
+	gap: 12px;
+	padding: 0;
 }
 
 .mete-ring {
 	position: relative;
 	flex: none;
-	width: 84px;
-	height: 84px;
+	width: 56px;
+	height: 56px;
 }
 
 .mete-ring > svg {
@@ -223,7 +215,7 @@
 	margin: 0;
 	padding: 0 0 0 22px;
 	list-style: none;
-	border-left: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-left: 1px solid var(--line-soft, var(--theia-panel-border));
 }
 
 /* Wide enough for the longest state words, such as "Working with browser.screenshot" (ADR-128). */

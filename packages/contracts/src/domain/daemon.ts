@@ -10,15 +10,30 @@ import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 import { VaultScopeSchema } from "./vault.js";
 
-// Daemon protocol v28 (ARCHITECTURE.md, ADR-178); mete/event checked with MeteEventSchema.
+// Daemon protocol v33 (ARCHITECTURE.md, ADR-184); mete/event checked with MeteEventSchema.
 const text = z.string().min(1);
 
-/** The messages of version 28; the params of mete/run.start are RunStartSchema (engine.ts). */
+/** Protocol messages; existing run.start remains RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
+	quiesce: "mete/daemon.quiesce",
 	status: "mete/status",
 	runStart: "mete/run.start",
 	runReply: "mete/run.reply",
+	conversationStart: "mete/conversation.start",
+	conversationReply: "mete/conversation.reply",
+	threadStart: "mete/thread.start",
+	threadReply: "mete/thread.reply",
+	threadList: "mete/thread.list",
+	threadRead: "mete/thread.read",
+	threadContextPrepare: "mete/thread.context.prepare",
+	threadContextStart: "mete/thread.context.start",
+	threadContextReply: "mete/thread.context.reply",
+	threadContextRead: "mete/thread.context.read",
+	registrySearch: "mete/registry.search",
+	registryPrepare: "mete/registry.prepare",
 	runApprove: "mete/run.approve",
+	taskPending: "mete/task.pending",
+	taskAnswer: "mete/task.answer",
 	runResume: "mete/run.resume",
 	runAllow: "mete/run.allow",
 	runModel: "mete/run.model",
@@ -41,11 +56,13 @@ export const DAEMON_METHODS = {
 	memberDraft: "mete/member.draft",
 	knowledgeSearch: "mete/knowledge.search",
 	mcpTest: "mete/mcp.test",
+	mcpConnection: "mete/mcp.connection",
+	registrySetup: "mete/registry.setup",
 	event: "mete/event",
 } as const;
 
 /** The daemon protocol version these messages belong to (ARCHITECTURE.md). */
-export const DAEMON_PROTOCOL_VERSION = 28;
+export const DAEMON_PROTOCOL_VERSION = 33;
 
 /** JSON-RPC code of an error answer: the implementation-defined range; a client reads `data.code`. */
 export const DAEMON_ERROR_CODE = -32000;

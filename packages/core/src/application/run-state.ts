@@ -30,6 +30,7 @@ import type { HandoffStore } from "../infrastructure/handoff-store.js";
 import type { RunMeta, RunStore } from "../infrastructure/run-store.js";
 import type { SnapshotStore } from "../infrastructure/snapshot-store.js";
 import type { TemplateDirs } from "../infrastructure/template-store.js";
+import type { ControlState } from "./control-turn.js";
 import type { StepDeps } from "./steps.js";
 
 // The engine's state and the primitives every driver uses: apply an event, publish, hold a run.
@@ -59,7 +60,7 @@ export type EngineDeps = StepDeps & {
  * One run held in memory. `token` names the drive loop that owns it; `loop` settles when
  * that loop stops, so a resumed run starts only after a tool call in flight finished.
  */
-export type Live = {
+export type Live = ControlState & {
 	meta: RunMeta;
 	snapshot: RunSnapshot;
 	token: object;
@@ -83,6 +84,7 @@ export type Live = {
 
 /** The engine's state: its dependencies, the runs in memory and how a quota timer resumes. */
 export type EngineState = {
+	quiescing?: boolean;
 	readonly deps: EngineDeps;
 	readonly live: Map<string, Live>;
 	readonly onPauseEnded: (runId: string) => void;

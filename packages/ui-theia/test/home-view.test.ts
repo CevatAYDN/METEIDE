@@ -1,13 +1,21 @@
 import { EMPTY_TEAM_VIEW } from "@mete/ui-studio";
-import { createElement, Fragment } from "react";
+import {
+	Children,
+	createElement,
+	Fragment,
+	isValidElement,
+	type ReactElement,
+	type ReactNode,
+} from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
 	QuotaSection,
 	RunsSection,
 	WaitingSection,
 } from "../src/application/home-view.js";
 import { heroOf } from "../src/application/run-hero.js";
+import type { Act } from "../src/application/runs-list.js";
 import { shortWhen, when } from "../src/application/time-text.js";
 import {
 	parentTail,
@@ -50,7 +58,21 @@ const html = (model: HomeModel, workspaces: readonly Workspace[] = []) =>
 		),
 	);
 
-const RUNS = 'aria-label="Runs"';
+const RUNS = 'aria-label="Team runs"';
+
+type Clickable = { children?: ReactNode; onClick?: () => void };
+// The inbox components are stateless; expand them to exercise their actual button callbacks.
+const inboxButtons = (node: ReactNode): ReactElement<Clickable>[] =>
+	Children.toArray(node).flatMap((child) => {
+		if (!isValidElement<Clickable>(child)) return [];
+		if (typeof child.type === "function")
+			return inboxButtons(
+				(child.type as (props: unknown) => ReactNode)(child.props),
+			);
+		return child.type === "button"
+			? [child]
+			: inboxButtons(child.props.children);
+	});
 
 const run = (
 	status: string,
@@ -178,9 +200,9 @@ describe("the Home view", () => {
 		expect(waitingCount({ kind: "loading" })).toBe(0);
 	});
 
-	it("says there are no runs yet", () => {
+	it("distinguishes an empty team list from conversation runs", () => {
 		expect(html(homeModel({ ok: true, value: [] }, AT))).toContain(
-			"No runs in this folder yet.",
+			"No team runs in this folder yet.",
 		);
 	});
 
@@ -210,7 +232,7 @@ describe("the Home view", () => {
 		expect(notReady).toContain("METE is not ready yet: no key");
 	});
 
-	it("lists the runs that wait for you above the runs, with the answers each can take", () => {
+	it("routes team waits to exact decisions and preserves the single-agent resume flow", () => {
 		const out = html(
 			homeModel(
 				{
@@ -230,10 +252,11 @@ describe("the Home view", () => {
 		expect(inbox).toContain("single goal");
 		expect(inbox).not.toContain("quota goal");
 		expect(inbox).toContain('title="Open in the team panel"');
-		expect(inbox.match(/>Approve</g)).toHaveLength(1);
-		expect(inbox.match(/>Revise…</g)).toHaveLength(1);
-		expect(inbox.match(/>Open artifact</g)).toHaveLength(1);
-		expect(inbox.match(/>Resume</g)).toHaveLength(2);
+		expect(inbox).not.toContain(">Approve<");
+		expect(inbox).not.toContain(">Revise…<");
+		expect(inbox).not.toContain(">Open artifact<");
+		expect(inbox.match(/>Open in the team panel</g)).toHaveLength(1);
+		expect(inbox.match(/>Resume</g)).toHaveLength(1);
 		expect(inbox).toContain("Open the run to answer.");
 		// A long goal ends in an ellipsis, so the row's tooltip keeps it whole (ADR-109).
 		expect(inbox).toContain('class="mete-title" title="team goal"');
@@ -244,6 +267,22 @@ describe("the Home view", () => {
 		expect(inbox).not.toContain("· duo");
 		// The hint explains that answering happens in the run, so it wraps instead of being cut.
 		expect(inbox).toContain('class="mete-note"');
+	});
+
+	it("opens the selected team from either inbox control without a run-level mutation", () => {
+		const team = run("paused", "two exact policy requests", "duo", "approval");
+		const single = run("paused", "single policy request", null, "approval");
+		const model = homeModel({ ok: true, value: [team, single] }, AT);
+		const onAct = vi.fn<Act>();
+		const buttons = inboxButtons(WaitingSection({ model, onAct }));
+		expect(buttons).toHaveLength(4);
+		for (const button of buttons) button.props.onClick?.();
+		expect(onAct.mock.calls).toEqual([
+			["open", team.id],
+			["open", team.id],
+			["open", single.id],
+			["resume", single.id],
+		]);
 	});
 
 	it("says under a run paused for quota why each provider cannot carry it on, and only there", () => {

@@ -9,6 +9,7 @@ import {
 	verdictRepair,
 } from "../domain/review.js";
 import { checkSpawns } from "../domain/spawn.js";
+import { taskContext } from "../domain/task-worker.js";
 import {
 	applyTask,
 	approve,
@@ -23,6 +24,7 @@ import { afterAttempt, settle } from "./attempts.js";
 import { openJudge } from "./judge.js";
 import { lessonTurn } from "./lesson.js";
 import { readNotes } from "./notes.js";
+import { waitForPolicy } from "./policy-wait.js";
 import {
 	apply,
 	type EngineState,
@@ -34,7 +36,7 @@ import {
 } from "./run-state.js";
 import { afterApproval } from "./spawned.js";
 import { changed, endAttempt, land } from "./submission.js";
-import { humanRequest } from "./vcs-steps.js";
+import { humanRequest, worktreeSetupCommand } from "./vcs-steps.js";
 import { verifyGates } from "./verify.js";
 import { merge, worktreeOf } from "./worktrees.js";
 
@@ -53,6 +55,8 @@ const verified = async (
 ) => {
 	const gates = verifyOf(team, task);
 	if (gates.length === 0) return true;
+	const context = taskContext(l.snapshot.context, task);
+	const token = l.token;
 	const taskId = team.tasks[task]?.id;
 	const gated = await verifyGates(s.deps, {
 		gates,
@@ -64,7 +68,14 @@ const verified = async (
 				"verify gate skipped: no adapter provides its capability",
 			),
 	});
-	if (l.snapshot.value !== "running") return false;
+	if (l.snapshot.value !== "running" || l.token !== token) return false;
+	if (
+		gated.kind === "approval" &&
+		context &&
+		(await waitForPolicy(s, l, context, "verify"))
+	)
+		return false;
+	if (l.token !== token) return false;
 	if (gated.kind === "passed") return true;
 	if (gated.kind === "failed")
 		apply(s, l, { type: "REPAIR", team, content: gated.content });
@@ -80,9 +91,18 @@ const verified = async (
  * (docs/08).
  */
 export const submit = async (s: EngineState, l: Live, reply: string) => {
-	const { team, task } = l.snapshot.context;
-	if (!team || !task) return stuck(s, l);
-	if (!(await verified(s, l, team, task))) return;
+	const { team: before, task } = l.snapshot.context;
+	if (!before || !task) return stuck(s, l);
+	const token = l.token;
+	if (!(await verified(s, l, before, task))) return;
+	const { team } = l.snapshot.context;
+	if (
+		!team ||
+		l.token !== token ||
+		l.snapshot.context.task !== task ||
+		team.tasks[task]?.context !== before.tasks[task]?.context
+	)
+		return;
 	const guard = guardrailOf(team, task);
 	const checked = checkSpawns(team, task, checkReport(guard?.schema, reply));
 	if (checked.ok) return passed(s, l, checked.report);
@@ -127,17 +147,33 @@ const open = (
 	s: EngineState,
 	l: Live,
 	team: TeamState,
-	task: { readonly id: string; readonly notes?: string | undefined },
+	task: {
+		readonly id: string;
+		readonly notes?: string | undefined;
+		readonly setup?: boolean;
+	},
 ) => {
 	const where = platform(s, l);
 	if (!where) return false;
 	const run = { ...l.snapshot.context, notes: task.notes };
 	const opened = openTask(team, task.id, run, where);
+	const entry = opened.team.tasks[task.id];
+	const prepared: TeamState =
+		task.setup && entry
+			? {
+					...opened.team,
+					tasks: {
+						...opened.team.tasks,
+						[task.id]: { ...entry, setup: "pending" },
+					},
+				}
+			: opened.team;
 	const session = team.tasks[task.id]?.session;
 	return apply(s, l, {
 		type: "SWITCH",
 		task: task.id,
 		...opened,
+		team: prepared,
 		state: attemptState(team, task.id),
 		...(session ? { session } : {}),
 	});
@@ -223,6 +259,16 @@ export const verdict = (s: EngineState, l: Live, reply: string) => {
 	after.announce();
 };
 
+const needsSetup = (
+	s: EngineState,
+	team: TeamState,
+	id: string,
+	tree: string | undefined,
+) =>
+	tree &&
+	tree !== team.tasks[id]?.context.worktree &&
+	worktreeSetupCommand(s.deps);
+
 const start = async (s: EngineState, l: Live, team: TeamState, id: string) => {
 	const token = l.token;
 	const agentId = team.tasks[id]?.context.agentId ?? s.deps.newId();
@@ -244,7 +290,14 @@ const start = async (s: EngineState, l: Live, team: TeamState, id: string) => {
 	} as const;
 	const r = applyTask(team, id, event);
 	if (r.team === team) return stuck(s, l);
-	if (!open(s, l, r.team, { id, notes })) return;
+	if (
+		!open(s, l, r.team, {
+			id,
+			notes,
+			setup: !!needsSetup(s, team, id, worktree),
+		})
+	)
+		return;
 	const taskId = team.tasks[id]?.id;
 	emit(s, l, { type: "task.assigned", payload: { agentId } }, taskId);
 	changed(s, l, taskId, r.change);

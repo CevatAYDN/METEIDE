@@ -37,6 +37,66 @@ const LISTED: McpTest = {
 };
 
 describe("a server's Test from the MCP card", () => {
+	it("invalidates all saved rows and late answers together", async () => {
+		const { tests, release } = setup({ ok: true, value: LISTED });
+		const old = tests.test("b");
+		tests.saved([{ id: "a" }, { id: "b" }]);
+		release();
+		await old;
+		expect(tests.stateOf("a")).toEqual({ kind: "saved_pending" });
+		expect(tests.stateOf("b")).toEqual({ kind: "saved_pending" });
+	});
+
+	it("retries pending and failed probes and requests activation only for a not-loaded row", async () => {
+		let answer: Answer = {
+			ok: false,
+			error: { code: "refused", detail: "shadowed global row" },
+		};
+		const tests = new McpTests({
+			test: async () => answer,
+			onChange: () => {},
+		});
+		tests.pending("demo");
+		expect(await tests.testCurrent("demo")).toBe(false);
+		answer = {
+			ok: true,
+			value: {
+				id: "demo",
+				ok: false,
+				failed: { code: "io", message: "offline" },
+			},
+		};
+		expect(await tests.testCurrent("demo")).toBe(true);
+		expect(tests.stateOf("demo")).toMatchObject({
+			kind: "done",
+			answer: { ok: false },
+		});
+		answer = { ok: true, value: LISTED };
+		expect(await tests.testCurrent("demo")).toBe(true);
+		expect(tests.stateOf("demo")).toEqual({ kind: "done", answer: LISTED });
+	});
+
+	it("does not restore a stale connected answer after reset or pending activation", async () => {
+		const { tests, asked, release } = setup({ ok: true, value: LISTED });
+		const running = tests.test("demo");
+		tests.reset();
+		release();
+		await running;
+		expect(tests.stateOf("demo")).toEqual({ kind: "idle" });
+		tests.pending("demo");
+		expect(tests.stateOf("demo")).toEqual({ kind: "saved_pending" });
+		expect(asked).toEqual(["demo"]);
+	});
+
+	it("does not replace pending activation with an older probe response", async () => {
+		const { tests, release } = setup({ ok: true, value: LISTED });
+		const running = tests.test("demo");
+		tests.pending("demo");
+		release();
+		await running;
+		expect(tests.stateOf("demo")).toEqual({ kind: "saved_pending" });
+	});
+
 	it("asks once while testing, then keeps the answer under the server's id", async () => {
 		const { tests, asked, release } = setup({ ok: true, value: LISTED });
 		expect(tests.stateOf("demo")).toEqual({ kind: "idle" });

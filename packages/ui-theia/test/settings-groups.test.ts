@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupsOf } from "../src/application/settings-groups.js";
+import { groupsOf, searchGroups } from "../src/application/settings-groups.js";
 
 // The Settings groups (ADR-095): labels over the sections that exist; none is dropped.
 
@@ -16,7 +16,7 @@ const KNOWN = named(
 	"mcp",
 	"shell",
 );
-const ids = (groups: ReturnType<typeof groupsOf>) =>
+const ids = (groups: Readonly<ReturnType<typeof groupsOf>>) =>
 	Object.fromEntries(groups.map((g) => [g.id, g.sections.map((s) => s.name)]));
 
 describe("groupsOf", () => {
@@ -68,5 +68,40 @@ describe("groupsOf", () => {
 			"workbench.action.configureLanguage",
 		]);
 		expect(links.models).toEqual(["mete.key.set"]);
+		expect(links.tools).toContain("vsxExtensions.toggle");
+	});
+});
+
+describe("settings search", () => {
+	const groups = groupsOf([...KNOWN, ...named("custom-file")]);
+
+	it("keeps all categories for an empty or whitespace query", () => {
+		expect(searchGroups(groups, "  ")).toEqual(groups);
+	});
+
+	it("matches a category label and retains all its sections and navigation", () => {
+		const result = searchGroups(groups, "MODELS AND KEYS");
+		expect(ids(result)).toEqual({
+			models: ["providers", "gateway", "models", "quota"],
+		});
+		expect(result[0]?.links).toEqual(["mete.key.set"]);
+		expect(ids(groups).tools).toEqual(["bindings", "mcp", "shell"]);
+	});
+
+	it("matches translated labels, section titles and IDs without case or accent sensitivity", () => {
+		expect(ids(searchGroups(groups, "daily spend"))).toEqual({
+			models: ["gateway"],
+		});
+		expect(ids(searchGroups(groups, "mcp"))).toEqual({ tools: ["mcp"] });
+		expect(ids(searchGroups(groups, "custom-file"))).toEqual({
+			other: ["custom-file"],
+		});
+		const translated = groups.map((group) => ({ ...group, label: "Gizlilik" }));
+		expect(searchGroups(translated, "GİZLİLİK")).toEqual(translated);
+	});
+
+	it("finds categories without sections, and returns no invented result", () => {
+		expect(searchGroups(groups, "Look and language")[0]?.id).toBe("look");
+		expect(searchGroups(groups, "not-a-setting")).toEqual([]);
 	});
 });

@@ -29,7 +29,13 @@ const runs = (...rows: StatusRuns) => homeModel({ ok: true, value: rows }, AT);
 
 describe("the METE view's sections", () => {
 	it("stacks the sections in the order the view shows them", () => {
-		expect(HOME_SECTIONS).toEqual(["waiting", "runs", "workspaces", "quota"]);
+		expect(HOME_SECTIONS).toEqual([
+			"waiting",
+			"conversations",
+			"runs",
+			"workspaces",
+			"quota",
+		]);
 	});
 
 	it("names each section's widget after itself", () => {
@@ -46,13 +52,16 @@ describe("the METE view's sections", () => {
 		expect(sectionCount("waiting", model, 0)).toBe(2);
 	});
 
-	it("counts every run, whatever its status", () => {
+	it("counts team runs separately from conversations", () => {
 		const model = runs(
 			run("running"),
 			run("completed"),
 			run("paused", "quota"),
 		);
-		expect(sectionCount("runs", model, 0)).toBe(3);
+		expect(sectionCount("runs", model, 0)).toBe(0);
+		const team = runs({ ...run("running"), templateId: "research" });
+		expect(sectionCount("runs", team, 0)).toBe(1);
+		expect(sectionCount("conversations", team, 0)).toBeUndefined();
 	});
 
 	it("counts the folders opened before", () => {

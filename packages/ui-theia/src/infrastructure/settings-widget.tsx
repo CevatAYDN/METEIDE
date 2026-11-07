@@ -1,8 +1,9 @@
-import type { ProviderState } from "@mete/contracts";
+import { err, ok, type ProviderState } from "@mete/contracts";
 import { CommandService } from "@theia/core";
 import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import { ThemeService } from "@theia/core/lib/browser/theming";
 import { codicon } from "@theia/core/lib/browser/widgets/widget";
+import { WindowService } from "@theia/core/lib/browser/window/window-service";
 import { nls } from "@theia/core/lib/common/nls";
 import URI from "@theia/core/lib/common/uri";
 import {
@@ -21,6 +22,8 @@ import {
 	type SettingsModel,
 	SettingsView,
 } from "../application/settings-view.js";
+import { failureText } from "../application/status-text.js";
+import type { ToolCatalog } from "../application/tool-catalog.js";
 import { activeRunsOf } from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { BindingsForm } from "./bindings-form.js";
@@ -28,7 +31,13 @@ import { EndpointKeys } from "./endpoint-keys.js";
 import { EndpointTests } from "./endpoint-tests.js";
 import { EndpointsForm } from "./endpoints-form.js";
 import { McpForm } from "./mcp-form.js";
-import { McpTests } from "./mcp-tests.js";
+import {
+	connectMcp,
+	createMcpSettings,
+	type McpSettings,
+	probeMcp,
+} from "./mcp-settings.js";
+import type { McpTests } from "./mcp-tests.js";
 import { MetePanelWidget } from "./panel-widget.js";
 import { SettingsForms } from "./settings-forms.js";
 import "../../style/mete.css";
@@ -38,9 +47,6 @@ import "../../style/mete-screen.css";
 import "../../style/mete-settings.css";
 import "../../style/mete-settings-body.css";
 import "../../style/mete-endpoints.css";
-
-// The read-only Settings screen (docs/13; ADR-081) of the first open folder: it asks the daemon
-// what it loaded when it opens and on Refresh; a file opens in Theia's editor.
 
 /** The METE Settings screen in Theia's main area. */
 @injectable()
@@ -53,6 +59,7 @@ export class MeteSettingsWidget extends MetePanelWidget {
 	@inject(CommandService) protected readonly commands!: CommandService;
 	@inject(OpenerService) protected readonly openers!: OpenerService;
 	@inject(FileService) protected readonly files!: FileService;
+	@inject(WindowService) protected readonly windows!: WindowService;
 
 	protected model: SettingsModel = { kind: "loading" };
 	protected forms: SettingsForms | undefined;
@@ -62,6 +69,9 @@ export class MeteSettingsWidget extends MetePanelWidget {
 	protected keys: EndpointKeys | undefined;
 	protected tests: EndpointTests | undefined;
 	protected mcpTests: McpTests | undefined;
+	protected catalog: ToolCatalog | undefined;
+	protected mcpConnections: McpSettings | undefined;
+	protected refreshRevision = 0;
 	/** The providers' states from mete/quota, for the endpoints card (ADR-154). */
 	protected states: readonly ProviderState[] | undefined;
 	protected apply: ApplyState = { busy: false, activeRuns: 0 };
@@ -104,67 +114,164 @@ export class MeteSettingsWidget extends MetePanelWidget {
 				this.daemon.providerTest(await this.folderDir(), id, models),
 			onChange: () => this.update(),
 		});
-		this.mcpTests = new McpTests({
-			test: async (id) => this.daemon.mcpTest(await this.folderDir(), id),
-			onChange: () => this.update(),
-		});
+		this.initMcp();
 		void this.refresh();
+	}
+
+	protected initMcp(): void {
+		const mcp = createMcpSettings({
+			daemon: this.daemon,
+			windows: this.windows,
+			dir: () => this.folderDir(),
+			form: () => this.mcp,
+			test: async (id) => this.testTool(id),
+			changed: () => this.update(),
+		});
+		this.mcpTests = mcp.tests;
+		this.mcpConnections = mcp.connections;
+		this.catalog = mcp.catalog;
+		this.toDispose.push(mcp);
+		this.toDispose.push(
+			this.workspace.onWorkspaceChanged(() => {
+				this.apply = { busy: false, activeRuns: 0 };
+				void this.refresh();
+			}),
+		);
 	}
 
 	/** Asks the daemon of the first open folder what configuration it loaded. */
 	async refresh(): Promise<void> {
+		const revision = ++this.refreshRevision;
+		this.setModel({ kind: "loading" });
+		await this.mcpConnections?.workspace(undefined);
 		const [root] = await this.workspace.roots;
+		if (revision !== this.refreshRevision) return;
 		if (!root) return this.setModel({ kind: "no_folder" });
 		const dir = root.resource.path.fsPath();
-		// A restarted daemon may have loaded other endpoints and servers, so earlier Test answers and
-		// states go.
+		// A restart invalidates earlier connection evidence.
 		this.tests?.reset();
 		this.mcpTests?.reset();
 		this.states = undefined;
-		this.apply = { ...this.apply, activeRuns: await this.activeRuns(dir) };
+		const status = await this.runStatus(dir);
+		if (revision !== this.refreshRevision) return;
+		this.apply = {
+			busy: this.apply.busy,
+			activeRuns: status.ok ? (status.value ?? 0) : 0,
+			error: status.ok ? undefined : status.error,
+		};
+		await this.loadSettings(root.resource, revision);
+	}
+
+	protected async loadSettings(resource: URI, revision: number): Promise<void> {
+		const dir = resource.path.fsPath();
 		const r = await this.daemon.settings(dir);
-		this.setModel(
-			r.ok
-				? { kind: "settings", settings: r.value }
-				: { kind: "failed", failure: r.error },
-		);
+		if (revision !== this.refreshRevision) return;
 		// The forms read their files from disk, not the loaded values (ADR-082).
-		if (!r.ok) return;
-		await this.forms?.load(root.resource, r.value.globalFile);
-		await this.endpoints?.load(root.resource, r.value.globalFile);
-		await this.bindings?.load(root.resource, r.value.globalFile);
-		await this.mcp?.load(root.resource, r.value.globalFile);
+		if (!r.ok) return this.setModel({ kind: "failed", failure: r.error });
+		await this.forms?.load(resource, r.value.globalFile);
+		await this.endpoints?.load(resource, r.value.globalFile);
+		await this.bindings?.load(resource, r.value.globalFile);
+		await this.mcp?.load(resource, r.value.globalFile);
+		if (revision !== this.refreshRevision) return;
+		await this.mcpConnections?.workspace(dir);
+		if (revision !== this.refreshRevision) return;
+		this.setModel({ kind: "settings", settings: r.value });
 		// The states wait on the daemon's first model listing, so they follow the forms (ADR-154).
 		const q = await this.daemon.quota(dir);
+		if (revision !== this.refreshRevision) return;
 		this.states = q.ok ? q.value.providers : undefined;
 		this.update();
 	}
 
-	// Runs a restart would pause (ADR-083): queued or running ones; none when the status fails.
-	protected async activeRuns(dir: string): Promise<number> {
+	// An unavailable status is not evidence that restarting is safe (ADR-180).
+	protected async runStatus(dir: string) {
 		const r = await this.daemon.status(dir);
-		return r.ok ? activeRunsOf(r.value) : 0;
+		if (!r.ok && r.error.code === "not_ready") return ok(undefined);
+		return r.ok ? ok(activeRunsOf(r.value)) : err(failureText(r.error));
 	}
 
 	// Apply now (ADR-083): checks the runs again, restarts the daemon, and shows what it loaded.
 	protected async applyNow(): Promise<void> {
 		const [root] = await this.workspace.roots;
 		if (!root || this.apply.busy) return;
-		const activeRuns = await this.activeRuns(root.resource.path.fsPath());
-		this.apply = { busy: activeRuns === 0, activeRuns };
+		const dir = root.resource.path.fsPath();
+		this.apply = { busy: true, activeRuns: 0, error: undefined };
 		this.update();
-		if (activeRuns > 0) return;
-		await this.daemon.restart();
-		this.apply = { busy: false, activeRuns: 0 };
-		await this.refresh();
+		try {
+			const status = await this.runStatus(dir);
+			if (!status.ok) {
+				this.apply = { busy: false, activeRuns: 0, error: status.error };
+				return;
+			}
+			if (status.value !== undefined && status.value > 0) {
+				this.apply = { busy: false, activeRuns: status.value };
+				return;
+			}
+			const restarted = await this.daemon.restartIdle(dir);
+			if (restarted.ok) await this.refresh();
+			else this.apply = { ...this.apply, error: failureText(restarted.error) };
+		} catch (error) {
+			this.apply = { busy: false, activeRuns: 0, error: String(error) };
+		} finally {
+			this.apply = { ...this.apply, busy: false };
+			this.update();
+		}
 	}
 
 	protected async folderRuns(): Promise<number> {
 		const [root] = await this.workspace.roots;
-		return root ? this.activeRuns(root.resource.path.fsPath()) : 0;
+		if (!root) return Number.POSITIVE_INFINITY;
+		const result = await this.runStatus(root.resource.path.fsPath());
+		return result.ok
+			? (result.value ?? Number.POSITIVE_INFINITY)
+			: Number.POSITIVE_INFINITY;
 	}
 
-	// The card shows only while a folder is open, so a Test always has one.
+	protected async connectTool(id: string): Promise<void> {
+		const revision = this.refreshRevision;
+		await connectMcp({
+			id,
+			dir: () => this.folderDir(),
+			form: this.mcp,
+			tests: this.mcpTests,
+			connections: this.mcpConnections,
+			busy: this.apply.busy,
+			current: () => revision === this.refreshRevision,
+			status: (dir) => this.runStatus(dir),
+			daemon: this.daemon,
+			loaded: async (dir) => {
+				const result = await this.daemon.settings(dir);
+				if (
+					!result.ok ||
+					(this.mcpConnections && this.mcpConnections.dir !== dir)
+				)
+					return false;
+				this.setModel({ kind: "settings", settings: result.value });
+				this.tests?.reset();
+				this.mcpTests?.reset();
+				return true;
+			},
+			changed: (state) => {
+				if (revision !== this.refreshRevision) return;
+				this.apply = state;
+				this.update();
+			},
+		});
+	}
+
+	protected async testTool(id: string) {
+		const revision = this.refreshRevision,
+			dir = await this.folderDir();
+		return probeMcp({
+			id,
+			form: this.mcp?.form(),
+			dir,
+			daemon: this.daemon,
+			connections: this.mcpConnections,
+			blocked: revision !== this.refreshRevision,
+		});
+	}
+
 	protected async folderDir(): Promise<string> {
 		const [root] = await this.workspace.roots;
 		return root?.resource.path.fsPath() ?? "";
@@ -195,18 +302,15 @@ export class MeteSettingsWidget extends MetePanelWidget {
 		};
 	}
 
-	// The MCP servers card with each server's Test (ADR-164).
 	protected mcpView() {
 		const form = this.mcp?.form();
 		const tests = this.mcpTests;
-		if (!form || !tests) return form;
-		return {
-			...form,
-			tests: {
-				stateOf: (id: string) => tests.stateOf(id),
-				onTest: (id: string) => void tests.test(id),
-			},
-		};
+		if (!form || !tests || !this.mcpConnections) return form;
+		return this.mcpConnections.view(form, tests, {
+			busy: this.apply.busy,
+			connect: (id) => void this.connectTool(id),
+			catalog: this.catalog,
+		});
 	}
 
 	// Typed keys are kept by slug, so they follow a slug edit and go with a removed endpoint.
@@ -232,19 +336,32 @@ export class MeteSettingsWidget extends MetePanelWidget {
 
 	// The scope switch (ADR-095) moves every form and the two cards that follow it (ADR-096, ADR-097).
 	protected async scope(target: Target): Promise<void> {
+		if (this.apply.busy) return;
+		const revision = ++this.refreshRevision;
+		const dir = this.mcpConnections?.dir;
+		this.apply = { ...this.apply, busy: true };
+		await this.mcpConnections?.workspace(undefined);
+		this.catalog?.reset();
+		this.mcpTests?.reset();
 		await Promise.all([
 			this.forms?.retargetAll(target),
 			this.bindings?.retarget(target),
 			this.mcp?.retarget(target),
 		]);
+		if (revision !== this.refreshRevision) return;
+		await this.mcpConnections?.workspace(dir);
+		if (revision !== this.refreshRevision) return;
+		this.apply = { ...this.apply, busy: false };
+		this.update();
 	}
 
-	// The save bar (ADR-095) saves every changed form and the two cards (ADR-096, ADR-097), and the
-	// endpoints card to its own target (ADR-087) when it changed.
+	// Save every changed section to its selected target (ADR-095).
 	protected async saveAll(): Promise<void> {
 		await this.forms?.saveAll();
 		await this.bindings?.save();
-		await this.mcp?.save();
+		const mcp = this.mcp?.form();
+		if (mcp?.state.dirty && (await this.mcp?.save()))
+			this.mcpTests?.saved(mcp.state.servers);
 		if (this.endpoints?.form()?.state.dirty) await this.endpoints.save();
 	}
 

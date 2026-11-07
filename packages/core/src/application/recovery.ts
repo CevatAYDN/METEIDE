@@ -1,4 +1,5 @@
 import type { EngineError, Result } from "@mete/contracts";
+import { isAsking } from "../domain/team-run.js";
 import {
 	apply,
 	armTimer,
@@ -27,6 +28,40 @@ export const INTERRUPTED =
 // A writing call that was running when the process ended may or may not have written (ADR-177): it is
 // not run again; the model gets the line above as its result and the human sees the pause.
 const settleInFlight = (s: EngineState, l: Live) => {
+	const context = l.snapshot.context;
+	const seated =
+		context.task &&
+		!context.review &&
+		!context.clarify &&
+		!context.judge &&
+		!isAsking(context) &&
+		context.team?.tasks[context.task]?.session?.inFlight === context.inFlight
+			? context.task
+			: undefined;
+	for (const [task, entry] of Object.entries(context.team?.tasks ?? {})) {
+		if (!entry.session) continue;
+		const { inFlight: callId, ...session } = entry.session;
+		if (!callId) continue;
+		s.deps.logger.warn(
+			{ runId: l.meta.id, taskId: entry.id, callId },
+			"a writing tool call was running when the process ended; not run again",
+		);
+		apply(s, l, {
+			type: "WORKER",
+			task,
+			session,
+			requests: 0,
+			messages: [
+				...entry.messages,
+				{
+					role: "tool",
+					toolCallId: callId,
+					content: INTERRUPTED,
+				},
+			],
+		});
+	}
+	if (seated) apply(s, l, { type: "ACTIVATE", task: seated });
 	const callId = l.snapshot.context.inFlight;
 	if (!callId) return;
 	s.deps.logger.warn(

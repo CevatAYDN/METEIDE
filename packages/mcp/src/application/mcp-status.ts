@@ -10,7 +10,9 @@ export const mcpStatus = (sessions: Sessions): McpStatusAdapter => ({
 		const s = await sessions.get(server, signal);
 		if (!s.ok) return s;
 		return ok({
-			tools: s.value.tools.map((t) => t.name),
+			tools: s.value.tools
+				.map((t) => t.name)
+				.filter((name) => sessions.redact(name) === name),
 			ms: Date.now() - started,
 		});
 	},

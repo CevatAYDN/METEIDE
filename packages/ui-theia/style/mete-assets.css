@@ -41,7 +41,7 @@
 }
 
 .mete-assets-card tbody tr + tr > td {
-	border-top: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-top: 1px solid var(--line-soft, var(--theia-panel-border));
 }
 
 .mete-asset-thumb,
@@ -50,13 +50,13 @@
 	display: flex;
 	width: 120px;
 	height: 72px;
-	border-radius: 10px;
+	border-radius: 4px;
 }
 
 .mete-asset-thumb {
 	object-fit: cover;
 	background: var(--chip, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line, var(--theia-panel-border));
+	border: 1px solid var(--line, var(--theia-panel-border));
 }
 
 .mete-asset-ext {
@@ -65,10 +65,10 @@
 	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
 	font-size: 15px;
 	font-weight: 700;
-	letter-spacing: 0.04em;
+	letter-spacing: 0;
 	color: var(--muted-2, var(--theia-descriptionForeground));
 	background: var(--raised, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border: 1px solid var(--line-soft, var(--theia-panel-border));
 }
 
 .mete-asset-name,

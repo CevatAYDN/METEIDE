@@ -44,8 +44,8 @@ const Sub = ({ row }: { readonly row: HomeRow }) => (
 	</span>
 );
 
-// A team run waits for a decision (the check: an approval); a single-agent run waits only for a
-// policy ask, which Resume repeats (docs/08), so it gets Resume and the hint — and the terminal tile.
+// Team decisions require exact task identities (ADR-181), which this run-level row cannot supply.
+// Single-agent policy asks keep their existing Resume action and hint.
 const Waiting = ({
 	row,
 	act,
@@ -67,32 +67,19 @@ const Waiting = ({
 			<Sub row={row} />
 			<div className="mete-side-actions">
 				{row.templateId ? (
-					<>
-						<Button
-							label={nls.localize("mete/home/approve", "Approve")}
-							onClick={() => act("approve", row.id)}
-							icon="check"
-						/>
-						<Button
-							label={nls.localize("mete/home/revise", "Revise…")}
-							onClick={() => act("revise", row.id)}
-							icon="edit"
-							quiet
-						/>
-						<Button
-							label={nls.localize("mete/run/openArtifact", "Open artifact")}
-							onClick={() => act("artifact", row.id)}
-							icon="file"
-							quiet
-						/>
-					</>
-				) : null}
-				<Button
-					label={nls.localize("mete/home/resume", "Resume")}
-					onClick={() => act("resume", row.id)}
-					icon="play"
-					quiet
-				/>
+					<Button
+						label={nls.localize("mete/home/openRun", "Open in the team panel")}
+						onClick={() => act("open", row.id)}
+						icon="arrow-right"
+					/>
+				) : (
+					<Button
+						label={nls.localize("mete/home/resume", "Resume")}
+						onClick={() => act("resume", row.id)}
+						icon="play"
+						quiet
+					/>
+				)}
 			</div>
 			{row.templateId ? null : (
 				<span className="mete-note">
@@ -174,6 +161,16 @@ const Body = ({
 		return <Empty icon="folder-opened" text={noFolderText()} accent />;
 	if (model.kind === "failed")
 		return <Failed model={model} onSetKey={onSetKey} />;
+	if (model.rows.length === 0)
+		return (
+			<Empty
+				icon="list-unordered"
+				text={nls.localize(
+					"mete/thread/noTeamRuns",
+					"No team runs in this folder yet.",
+				)}
+			/>
+		);
 	return (
 		<Runs rows={model.rows} blocked={model.blocked} act={act} shown={shown} />
 	);
@@ -200,7 +197,7 @@ export const RunsSection = ({
 	<section
 		className="mete-side-section"
 		aria-live="polite"
-		aria-label={nls.localize("mete/home/runs", "Runs")}
+		aria-label={nls.localize("mete/home/runs", "Team runs")}
 	>
 		{model.kind === "no_folder" ? null : (
 			<div className="mete-side-actions">

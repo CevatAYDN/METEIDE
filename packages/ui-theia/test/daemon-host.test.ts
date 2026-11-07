@@ -30,6 +30,105 @@ const setup = async (max = 3) => {
 };
 
 describe("the daemon host", () => {
+	it("routes thread mutations and reads through the new validated host bridge", async () => {
+		const { host } = await setup();
+		const id = "00000000-0000-4000-8000-000000000001";
+		expect(await host.threadStart("/w", { goal: "hi", requestId: id })).toEqual(
+			{ ok: true, value: { conversationId: id, runId: id } },
+		);
+		expect(
+			await host.threadReply("/w", {
+				conversationId: id,
+				expectedRunId: id,
+				requestId: id,
+				message: "next",
+			}),
+		).toEqual({ ok: true, value: { conversationId: id, runId: id } });
+		expect(await host.threadList("/w", {})).toEqual({
+			ok: true,
+			value: { conversations: [] },
+		});
+		expect(await host.threadRead("/w", { runId: id })).toMatchObject({
+			ok: true,
+			value: { conversation: { id }, turns: [{ id }] },
+		});
+		expect(
+			await host.threadStart("/w", { goal: "garbage", requestId: id }),
+		).toMatchObject({ ok: false, error: { code: "protocol" } });
+	});
+	it("restarts only the checked idle daemon and refuses active work", async () => {
+		const { host, fake } = await setup();
+		await host.status("/w");
+		expect(await host.restartIdle("/elsewhere")).toMatchObject({ ok: false });
+		expect(await host.restartIdle("/w")).toEqual({ ok: true, value: null });
+		fake.state.mode = "one";
+		await host.status("/w");
+		expect(await host.restartIdle("/w")).toMatchObject({
+			ok: false,
+			error: { code: "refused" },
+		});
+		expect(await host.status("/w")).toMatchObject({ ok: true });
+	});
+	it("carries explicit conversation capabilities and validates start/reply ids", async () => {
+		const { host } = await setup();
+		expect(
+			await host.conversationStart("/w", {
+				goal: "hello",
+				capabilities: ["mcp.tools@1"],
+			}),
+		).toMatchObject({
+			ok: true,
+			value: { runId: "hello:mcp.tools@1" },
+		});
+		expect(
+			await host.conversationReply("/w", {
+				runId: "previous",
+				message: "next",
+				capabilities: [],
+			}),
+		).toMatchObject({
+			ok: true,
+			value: { runId: "next:[]" },
+		});
+		expect(
+			await host.conversationStart("/w", { goal: "garbage", capabilities: [] }),
+		).toMatchObject({
+			ok: false,
+			error: { code: "protocol" },
+		});
+		expect(
+			await host.conversationReply("/w", { runId: "garbage", message: "next" }),
+		).toMatchObject({
+			ok: false,
+			error: { code: "protocol" },
+		});
+	});
+
+	it("validates registry search and prepared drafts without starting another process or connecting", async () => {
+		const { host, fake } = await setup();
+		expect(await host.registrySearch("/w", "catalog")).toMatchObject({
+			ok: true,
+			value: { entries: [{ id: "catalog", kind: "mcp", runtime: "remote" }] },
+		});
+		expect(await host.registryPrepare("/w", "catalog")).toMatchObject({
+			ok: true,
+			value: {
+				server: { id: "catalog", transport: "sse" },
+				notes: ["Review required settings"],
+				source: "fixture:catalog",
+			},
+		});
+		expect(await host.registrySearch("/w", "odd")).toMatchObject({
+			ok: false,
+			error: { code: "protocol" },
+		});
+		expect(await host.registryPrepare("/w", "odd")).toMatchObject({
+			ok: false,
+			error: { code: "protocol" },
+		});
+		expect(fake.state.starts).toEqual(["/w"]);
+	});
+
 	it("sends a follow-up to the exact run and validates its returned run id", async () => {
 		const { host } = await setup();
 		expect(

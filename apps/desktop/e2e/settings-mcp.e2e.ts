@@ -3,7 +3,7 @@ import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./launch.js";
 
 // The MCP servers card's Test (ADR-164) through the real daemon and mcp-client: a working server
-// names its tools, a broken one says why, and a server the daemon has not loaded says so.
+// names its tools, a broken one says why, and a saved draft stays pending until activation.
 
 const FIXTURE = join(
 	process.cwd(),
@@ -30,7 +30,7 @@ const MCP = `servers:
 `;
 
 // A narrow window wraps the answers: no sideways scroll hides a tool or a reason.
-const fitsNarrow = async (page: Page, card: Locator) => {
+const fitsNarrow = async (page: Page, card: Locator, row: Locator) => {
 	const cdp = await page.context().newCDPSession(page);
 	await cdp.send("Emulation.setDeviceMetricsOverride", {
 		width: 760,
@@ -38,7 +38,14 @@ const fitsNarrow = async (page: Page, card: Locator) => {
 		deviceScaleFactor: 1,
 		mobile: false,
 	});
-	await expect(card.getByRole("status").nth(1)).toBeVisible();
+	await expect(row.locator(".mete-tool-status")).toBeVisible();
+	await expect(row.locator(".mete-tool-status")).toHaveText(
+		"Saved; pending activation",
+	);
+	await expect(
+		row.getByRole("button", { name: "Connect later", exact: true }),
+	).toBeEnabled();
+	await expect(row.locator(".mete-mcp-answer")).toBeEmpty();
 	const [client, scroll] = await card.evaluate((e) => [
 		e.clientWidth,
 		e.scrollWidth,
@@ -47,38 +54,91 @@ const fitsNarrow = async (page: Page, card: Locator) => {
 	await card.screenshot({ path: test.info().outputPath("card-narrow.png") });
 };
 
-test.describe("the MCP servers card", () => {
-	test.use({ files: { ".mete/mcp.yaml": MCP } });
-
-	test("tests each server as METE loaded it", async ({ mete }) => {
-		const { page } = mete;
-		await page.locator('[id="status-bar-mete-screens-settings"]').click();
-		await page
-			.locator('[aria-label="Settings groups"] button')
-			.filter({ hasText: "Tools and web search" })
-			.click();
-		const card = page.getByRole("region", { name: "MCP servers" });
-		const answers = card.getByRole("status");
-
-		// The button's name is its word and the server's id as typed.
-		await card.getByRole("button", { name: "Test demo" }).click();
-		await expect(answers.nth(0)).toContainText("Tools (", { timeout: 60_000 });
-		await expect(answers.nth(0)).toContainText("echo");
-
-		await card.getByRole("button", { name: "Test broken" }).click();
-		await expect(answers.nth(1)).toContainText("MCP server broken", {
-			timeout: 60_000,
-		});
-
-		await card.getByRole("button", { name: "Add server" }).click();
-		await card.getByLabel("Server id").last().fill("later");
-		await card.getByRole("button", { name: "Test later" }).click();
-		await expect(answers.nth(2)).toContainText(
-			"METE has not loaded later: no MCP server later in mcp.yaml.",
-			{ timeout: 60_000 },
-		);
-		await card.screenshot({ path: test.info().outputPath("card.png") });
-
-		await fitsNarrow(page, card);
+const rowOf = (card: Locator, id: string) =>
+	card.locator(".mete-tool-row").filter({
+		has: card.page().getByText(id, { exact: true }),
 	});
+
+const openTools = async (page: Page) => {
+	await page.locator('[id="status-bar-mete-screens-settings"]').click();
+	await page
+		.locator('[aria-label="Settings groups"] button')
+		.filter({ hasText: "Tools and web search" })
+		.click();
+	return page.getByRole("region", { name: "MCP servers" });
+};
+
+const testLoadedServers = async (card: Locator) => {
+	const demo = rowOf(card, "demo");
+	await expect(demo.locator(".mete-tool-status")).toHaveText("Not tested");
+	await demo.getByText("Advanced", { exact: true }).click();
+	await demo.getByRole("button", { name: "Connect demo", exact: true }).click();
+	await expect(demo.locator(".mete-tool-status")).toHaveText("Connected", {
+		timeout: 60_000,
+	});
+	await expect(demo.locator(".mete-mcp-answer")).toContainText("Tools (");
+	await expect(demo.locator(".mete-mcp-answer")).toContainText("echo");
+	const broken = rowOf(card, "broken");
+	await broken.getByText("Advanced", { exact: true }).click();
+	await broken
+		.getByRole("button", { name: "Connect broken", exact: true })
+		.click();
+	await expect(broken.locator(".mete-mcp-answer")).toContainText(
+		"MCP server broken",
+		{ timeout: 60_000 },
+	);
+	await expect(broken.locator(".mete-tool-status")).toHaveText(
+		"Connection failed",
+	);
+};
+
+const savePendingServer = async (page: Page, card: Locator) => {
+	await card.getByRole("button", { name: "Add server" }).click();
+	await card
+		.getByRole("button", { name: "Advanced setup", exact: true })
+		.click();
+	const later = card.locator(".mete-tool-row").last();
+	await later.getByLabel("Server id", { exact: true }).fill("later");
+	await later.getByLabel("Transport", { exact: true }).selectOption("stdio");
+	await later.getByLabel("Runtime", { exact: true }).selectOption("node");
+	await later.getByLabel("Command", { exact: true }).fill(process.execPath);
+	await later.getByLabel("Arguments, one per line").fill(FIXTURE);
+	await expect(
+		later.getByRole("button", { name: "Test later", exact: true }),
+	).toHaveCount(0);
+	await expect(later.locator(".mete-tool-status")).toHaveText(
+		"Unsaved changes",
+	);
+	await page.getByRole("button", { name: "Save changes", exact: true }).click();
+	await expect(later.locator(".mete-tool-status")).toHaveText(
+		"Saved; pending activation",
+	);
+	await expect(later.locator(".mete-mcp-answer")).toBeEmpty();
+	await expect(
+		later.getByRole("button", { name: "Connect later", exact: true }),
+	).toBeEnabled();
+	return later;
+};
+
+test.use({
+	files: { ".mete/mcp.yaml": MCP },
+	script: {
+		turns: [
+			[
+				{ type: "text", text: "Offline fixture" },
+				{ type: "finish", reason: "stop", usage: { prompt: 1, completion: 1 } },
+			],
+		],
+	},
+});
+
+test("the MCP card tests loaded servers and leaves ordinary saves pending activation", async ({
+	mete,
+}) => {
+	const { page } = mete;
+	const card = await openTools(page);
+	await testLoadedServers(card);
+	const later = await savePendingServer(page, card);
+	await card.screenshot({ path: test.info().outputPath("card.png") });
+	await fitsNarrow(page, card, later);
 });

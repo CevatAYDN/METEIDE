@@ -15,7 +15,12 @@ import {
 	EndpointsCard,
 	type EndpointsState,
 } from "./endpoints-card.js";
-import { type McpActions, McpCard, type McpState } from "./mcp-card.js";
+import {
+	type McpActions,
+	McpCard,
+	type McpConnections,
+	type McpState,
+} from "./mcp-card.js";
 import type { McpTestsView } from "./mcp-test.js";
 import { type FormSection, layerOf } from "./section-draft.js";
 import { Origin, SectionForm } from "./section-form.js";
@@ -63,6 +68,8 @@ export type Mcp = {
 	readonly state: McpState;
 	readonly actions: McpActions;
 	readonly tests?: McpTestsView | undefined;
+	readonly catalog?: ReactNode;
+	readonly connection?: McpConnections | undefined;
 };
 
 // The sections with a form or a card always show, also when no file sets them.
@@ -147,36 +154,44 @@ export const SectionCard = ({
 			<SectionTitle name={section.name} />
 			{origin}
 		</div>
-		{!section.global && !section.workspace ? (
-			<p className="mete-settings-unset">
-				{nls.localize(
-					"mete/settings/unset",
-					"No file sets this section; its defaults apply.",
-				)}
-			</p>
-		) : null}
-		{/* With one file the merged value is that file's; with both, it is what modules read. */}
-		{section.global && section.workspace ? (
-			<div className="mete-settings-file">
-				<p>{nls.localize("mete/settings/merged", "What METE uses:")}</p>
-				<pre>{yamlOf(section.merged)}</pre>
-			</div>
-		) : null}
-		{section.global ? (
-			<FileValue
-				label={nls.localize("mete/settings/global", "Global:")}
-				from={section.global}
-				onOpen={onOpen}
-			/>
-		) : null}
-		{section.workspace ? (
-			<FileValue
-				label={nls.localize("mete/settings/workspace", "This folder:")}
-				from={section.workspace}
-				onOpen={onOpen}
-			/>
-		) : null}
 		{form}
+		<details className="mete-settings-source">
+			<summary>
+				{nls.localize(
+					"mete/settings/sourceDetails",
+					"Loaded values and source files",
+				)}
+			</summary>
+			{!section.global && !section.workspace ? (
+				<p className="mete-settings-unset">
+					{nls.localize(
+						"mete/settings/unset",
+						"No file sets this section; its defaults apply.",
+					)}
+				</p>
+			) : null}
+			{/* With one file the merged value is that file's; with both, it is what modules read. */}
+			{section.global && section.workspace ? (
+				<div className="mete-settings-file">
+					<p>{nls.localize("mete/settings/merged", "What METE uses:")}</p>
+					<pre>{yamlOf(section.merged)}</pre>
+				</div>
+			) : null}
+			{section.global ? (
+				<FileValue
+					label={nls.localize("mete/settings/global", "Global:")}
+					from={section.global}
+					onOpen={onOpen}
+				/>
+			) : null}
+			{section.workspace ? (
+				<FileValue
+					label={nls.localize("mete/settings/workspace", "This folder:")}
+					from={section.workspace}
+					onOpen={onOpen}
+				/>
+			) : null}
+		</details>
 	</section>
 );
 

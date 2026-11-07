@@ -15,6 +15,9 @@ export const STREAM_MAX_CHARS = 30_000;
 /** Tab 10, Built-in tools: a NUL byte in this many leading bytes marks a binary file. */
 export const BINARY_SNIFF_BYTES = 8 * 1024;
 
+/** ADR-183: bounded context link walking, matching the native realTarget helper's 40-hop ceiling. */
+export const CONTEXT_LINK_HOPS = 40;
+
 /** Tab 09, Privacy: `.meteignore` lines that always apply. */
 export const METEIGNORE_DEFAULTS = [
 	".env*",

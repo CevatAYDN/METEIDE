@@ -1,20 +1,30 @@
 import { randomUUID } from "node:crypto";
-import { err, ok, type Result, type SecretStore } from "@mete/contracts";
-import type {
-	OAuthClientProvider,
-	OAuthDiscoveryState,
-} from "@modelcontextprotocol/client";
-import type {
-	OAuthClientInformationSchema,
-	OAuthTokensSchema,
-} from "@modelcontextprotocol/core";
-import type { z } from "zod";
+import { err, ok, type Result, type ToolError } from "@mete/contracts";
+import type { OAuthClientProvider } from "@modelcontextprotocol/client";
+import {
+	OAUTH_CALLBACK_CODE_CHARS,
+	OAUTH_CALLBACK_STATE_CHARS,
+	OAUTH_CALLBACK_URL_CHARS,
+} from "../defaults.js";
+import {
+	commitOAuthRecord,
+	type OAuthRecord,
+	type OAuthSignInOptions,
+	oauthRecordSchema,
+	oauthTarget,
+	type OAuthPending as Pending,
+	readOAuthRecord,
+	saveOAuthTokens,
+} from "./oauth-record.js";
 
-// OAuth for a remote MCP server (docs/10, MCP client, Authentication): the SDK's provider over the
-// keychain. The redirect address is fixed and nothing listens on it; the user pastes the address the
-// browser lands on, so the host needs no port and it works over SSH.
+/** Exact-target local status and Forget; neither starts OAuth interaction. */
+export {
+	forgetOAuth,
+	type OAuthSignInOptions,
+	oauthConfigured,
+} from "./oauth-record.js";
 
-/** The redirect address registered for every server; the browser shows a connection error there. */
+/** Default terminal paste-back address; desktop flows supply their temporary loopback callback. */
 export const REDIRECT_URL = "http://127.0.0.1/callback";
 
 /** The code the browser came back with, and the issuer it names, which the SDK checks (RFC 9207, ADR-163). */
@@ -25,171 +35,352 @@ export type SignInFlow = {
 	readonly provider: OAuthClientProvider;
 	readonly url: () => URL | undefined;
 	readonly codeFrom: (pasted: string) => Result<Callback, string>;
+	/** Caller invokes this only after successful handshake and tools/list. */
+	readonly commit: () => Promise<Result<void, ToolError>>;
 };
 
 /** The authorization code in the address the browser landed on, if it belongs to the sign-in with `state`. */
 export const codeFromAddress = (
 	pasted: string,
 	state: string,
+	redirectUrl = REDIRECT_URL,
 ): Result<Callback, string> => {
+	if (
+		pasted.length > OAUTH_CALLBACK_URL_CHARS ||
+		state.length > OAUTH_CALLBACK_STATE_CHARS
+	)
+		return err("invalid sign-in callback");
 	let address: URL;
+	let redirect: URL;
 	try {
 		address = new URL(pasted.trim());
+		redirect = new URL(redirectUrl);
 	} catch {
 		return err("paste the whole address the browser landed on");
 	}
+	if (!sameRoute(address, redirect))
+		return err("that address does not belong to this sign-in");
 	const params = address.searchParams;
+	if ([...params.keys()].some((key) => params.getAll(key).length !== 1))
+		return err("invalid sign-in callback");
 	if (params.get("state") !== state)
 		return err("that address does not belong to this sign-in");
 	const refused = params.get("error");
-	if (refused) return err(`the server refused the sign-in: ${refused}`);
+	if (refused !== null) return err("the server refused the sign-in");
 	const code = params.get("code");
 	if (!code) return err("that address carries no code");
+	if (code.length > OAUTH_CALLBACK_CODE_CHARS)
+		return err("invalid sign-in callback");
 	const iss = params.get("iss");
 	return ok(iss ? { code, iss } : { code });
 };
 
-// One keychain entry per resource server, not per mcp.yaml id: tokens belong to the server,
-// and two workspaces may use the same id for different servers.
-const entry = (origin: string, what: "tokens" | "client") =>
-	`mcp/${origin}/${what}`;
+const sameRoute = (address: URL, redirect: URL) =>
+	address.origin === redirect.origin &&
+	address.pathname === redirect.pathname &&
+	!address.hash &&
+	!address.username &&
+	!address.password;
+type RecordSchema = Awaited<ReturnType<typeof oauthRecordSchema>>;
+const fail = (message: string) => err<ToolError>({ code: "io", message });
+const SIGN_IN_NEEDED =
+	"you need to sign in; sign in once with `mete run` in a terminal";
 
-// The Windows keychain keeps at most 1280 characters in one entry (measured), and a JWT pair is
-// longer, so a value is cut into numbered entries `<name>/0`, `<name>/1` ... and `<name>` holds how many.
-// shortcut: pieces of an older, longer value are left behind; upgrade if the keychain fills up.
-const PIECE_CHARS = 1000;
-const MAX_PIECES = 64;
-
-const put = async (secrets: SecretStore, name: string, value: string) => {
-	const saved = await secrets.set(name, value);
-	if (!saved.ok) throw new Error(`keychain: ${saved.error.message}`);
+// SDK hooks cannot return Result: a fixed exception aborts its network flow; public operations return Result.
+const reject = (
+	pending: Pending,
+	message = "MCP OAuth sign-in failed",
+): never => {
+	pending.failed = true;
+	throw new Error(message);
 };
-
-const write = async (secrets: SecretStore, name: string, value: unknown) => {
-	const text = JSON.stringify(value);
-	const count = Math.ceil(text.length / PIECE_CHARS);
-	for (let i = 0; i < count; i++)
-		await put(
-			secrets,
-			`${name}/${i}`,
-			text.slice(i * PIECE_CHARS, (i + 1) * PIECE_CHARS),
-		);
-	await put(secrets, name, String(count));
+const active = (pending: Pending, signal: AbortSignal) => {
+	if (pending.failed || signal.aborted) reject(pending);
 };
-
-// The pieces joined, or undefined when any is missing; the count goes last when written, so a half write is not read.
-const readText = async (secrets: SecretStore, name: string) => {
-	const stored = await secrets.get(name);
-	const count = stored.ok ? Number(stored.value) : 0;
-	if (!Number.isInteger(count) || count < 1 || count > MAX_PIECES)
-		return undefined;
-	let text = "";
-	for (let i = 0; i < count; i++) {
-		const piece = await secrets.get(`${name}/${i}`);
-		if (!piece.ok || piece.value === undefined) return undefined;
-		text += piece.value;
-	}
-	return text;
+const bound = <T extends { issuer: string }>(
+	pending: Pending,
+	value: T | undefined,
+	context?: { readonly issuer: string },
+) => {
+	if (value && context && value.issuer !== context.issuer)
+		reject(pending, "MCP OAuth issuer mismatch");
+	const expected =
+		pending.discovery?.authorizationServerMetadata?.issuer ??
+		pending.discovery?.authorizationServerUrl ??
+		pending.client?.issuer;
+	if (value && expected && value.issuer !== expected)
+		reject(pending, "MCP OAuth issuer mismatch");
+	return value;
 };
-
-// The SDK's schemas load with the first keychain read, not when a command starts (docs/15, CLI cold start).
-const schemas = () => import("@modelcontextprotocol/core");
-
-const read = async <T>(
-	secrets: SecretStore,
-	name: string,
-	schema: z.ZodType<T>,
-): Promise<T | undefined> => {
-	const text = await readText(secrets, name);
-	if (text === undefined) return undefined;
+const notify = (options: OAuthSignInOptions, pending: Pending) => {
+	const values = [
+		pending.tokens?.access_token,
+		pending.tokens?.refresh_token,
+		pending.client?.client_secret,
+		pending.verifier,
+	];
 	try {
-		const parsed = schema.safeParse(JSON.parse(text));
-		return parsed.success ? parsed.data : undefined;
+		options.onSecrets?.(
+			values.filter(
+				(value): value is string =>
+					typeof value === "string" && value.length > 0,
+			),
+		);
 	} catch {
-		return undefined;
+		reject(pending);
 	}
 };
 
-// How METE registers: a native public client with PKCE, at the fixed redirect address (ADR-163).
-const CLIENT: OAuthClientProvider["clientMetadata"] = {
-	client_name: "METE",
-	application_type: "native",
-	redirect_uris: [REDIRECT_URL],
-	grant_types: ["authorization_code", "refresh_token"],
-	response_types: ["code"],
-	token_endpoint_auth_method: "none",
-};
-
-type Saved = Pick<
+const credentialHooks = (
+	options: OAuthSignInOptions,
+	pending: Pending,
+	schema: RecordSchema,
+	interactive: boolean,
+): Pick<
 	OAuthClientProvider,
 	"clientInformation" | "saveClientInformation" | "tokens" | "saveTokens"
->;
-
-// The tokens and the client of one origin, read from the keychain once and written through when they change.
-const saved = (secrets: SecretStore, origin: string): Saved => {
-	const names = {
-		tokens: entry(origin, "tokens"),
-		client: entry(origin, "client"),
+> => {
+	const saveClientInformation: NonNullable<
+		OAuthClientProvider["saveClientInformation"]
+	> = (info, context) => {
+		active(pending, options.signal);
+		const parsed = schema.shape.client.safeParse(info);
+		if (!parsed.success) return reject(pending);
+		bound(pending, parsed.data, context);
+		if (pending.live) {
+			if (JSON.stringify(parsed.data) !== JSON.stringify(pending.live.client))
+				reject(pending);
+			return;
+		}
+		pending.client = parsed.data;
+		pending.dirty = true;
+		notify(options, pending);
 	};
-	let tokens: z.infer<typeof OAuthTokensSchema> | undefined;
-	let client: z.infer<typeof OAuthClientInformationSchema> | undefined;
 	return {
-		clientInformation: async () =>
-			(client ??= await read(
-				secrets,
-				names.client,
-				(await schemas()).OAuthClientInformationSchema,
-			)),
-		saveClientInformation: async (info) => {
-			client = info;
-			await write(secrets, names.client, info);
+		...(interactive ? { saveClientInformation } : {}),
+		clientInformation: (context) => {
+			active(pending, options.signal);
+			return bound(pending, pending.client, context);
 		},
-		tokens: async () =>
-			(tokens ??= await read(
-				secrets,
-				names.tokens,
-				(await schemas()).OAuthTokensSchema,
-			)),
-		saveTokens: async (next) => {
-			tokens = next;
-			await write(secrets, names.tokens, next);
+		tokens: (context) => {
+			active(pending, options.signal);
+			return bound(pending, pending.tokens, context);
+		},
+		saveTokens: async (next, context) => {
+			active(pending, options.signal);
+			const parsed = schema.shape.tokens.safeParse(next);
+			if (!parsed.success) return reject(pending);
+			if (parsed.data.issuer !== pending.client?.issuer) reject(pending);
+			bound(pending, parsed.data, context);
+			notify(options, { ...pending, tokens: parsed.data });
+			await saveOAuthTokens(options, pending, parsed.data);
 		},
 	};
 };
 
-/**
- * The sign-in of one resource server: a public client with PKCE, registered dynamically.
- * Tokens and the client are read from the keychain once and written through when they change.
- */
-export const oauthSignIn = (
-	secrets: SecretStore,
-	resource: URL,
-): SignInFlow => {
-	const state = randomUUID();
-	let verifier = "";
-	// Kept beside the verifier: the SDK checks the callback's issuer against the one it found (ADR-163).
-	let discovery: OAuthDiscoveryState | undefined;
-	let pending: URL | undefined;
-	const provider: OAuthClientProvider = {
-		redirectUrl: REDIRECT_URL,
-		clientMetadata: CLIENT,
-		state: () => state,
-		...saved(secrets, resource.origin),
-		redirectToAuthorization: (url) => {
-			pending = url;
-		},
-		saveCodeVerifier: (v) => {
-			verifier = v;
-		},
-		codeVerifier: () => verifier,
-		saveDiscoveryState: (found) => {
-			discovery = found;
-		},
-		discoveryState: () => discovery,
-	};
-	return {
-		provider,
-		url: () => pending,
-		codeFrom: (pasted) => codeFromAddress(pasted, state),
-	};
+const interactionHooks = (
+	options: OAuthSignInOptions,
+	pending: Pending,
+	interactive: boolean,
+) => ({
+	state: () => pending.state,
+	codeVerifier: () => {
+		active(pending, options.signal);
+		return pending.verifier;
+	},
+	saveCodeVerifier: (value: string) => {
+		active(pending, options.signal);
+		if (!interactive) reject(pending, SIGN_IN_NEEDED);
+		pending.verifier = value;
+		notify(options, pending);
+	},
+	redirectToAuthorization: (url: URL) => {
+		active(pending, options.signal);
+		if (!interactive) reject(pending, SIGN_IN_NEEDED);
+		if (url.protocol !== "https:" || url.username || url.password || url.hash)
+			reject(pending);
+		pending.url = url;
+	},
+	invalidateCredentials: (
+		scope: "all" | "client" | "tokens" | "verifier" | "discovery",
+	) => {
+		active(pending, options.signal);
+		if (!interactive) reject(pending, SIGN_IN_NEEDED);
+		invalidatePending(pending, scope);
+	},
+});
+
+const invalidatePending = (pending: Pending, scope: string) => {
+	if (["all", "client", "tokens"].includes(scope)) pending.live = undefined;
+	if (["all", "client"].includes(scope)) pending.client = undefined;
+	if (["all", "client", "tokens"].includes(scope)) pending.tokens = undefined;
+	if (["all", "verifier"].includes(scope)) pending.verifier = "";
+	if (["all", "discovery"].includes(scope)) pending.discovery = undefined;
+};
+
+const discoveryHooks = (
+	options: OAuthSignInOptions,
+	pending: Pending,
+): Partial<OAuthClientProvider> => ({
+	saveDiscoveryState: (found) => {
+		active(pending, options.signal);
+		const issuer =
+			found.authorizationServerMetadata?.issuer ?? found.authorizationServerUrl;
+		if (pending.client && issuer !== pending.client.issuer)
+			reject(pending, "MCP OAuth issuer mismatch");
+		pending.discovery = found;
+	},
+	discoveryState: () => pending.discovery,
+	validateResourceURL: async (serverUrl, resource) => {
+		active(pending, options.signal);
+		if (
+			!matchesResource(serverUrl, pending.resource) ||
+			(resource && !matchesResource(resource, pending.resource))
+		)
+			reject(pending);
+		return new URL(pending.resource);
+	},
+	saveResourceUrl: (resource) => {
+		active(pending, options.signal);
+		if (!matchesResource(resource, pending.resource)) reject(pending);
+	},
+});
+
+const matchesResource = (value: string | URL, resource: string) => {
+	try {
+		return new URL(value).href === resource;
+	} catch {
+		return false;
+	}
+};
+
+const providerFor = (
+	options: OAuthSignInOptions,
+	pending: Pending,
+	schema: RecordSchema,
+	interactive: boolean,
+): OAuthClientProvider => ({
+	redirectUrl: pending.redirectUrl,
+	clientMetadata: {
+		client_name: "METE",
+		application_type: "native",
+		redirect_uris: [pending.redirectUrl],
+		grant_types: ["authorization_code", "refresh_token"],
+		response_types: ["code"],
+		token_endpoint_auth_method: "none",
+	},
+	...credentialHooks(options, pending, schema, interactive),
+	...interactionHooks(options, pending, interactive),
+	...discoveryHooks(options, pending),
+});
+
+const callbackFor = (
+	pending: Pending,
+	options: OAuthSignInOptions,
+	pasted: string,
+): Result<Callback, string> => {
+	if (pending.failed || pending.callbackUsed || options.signal.aborted)
+		return err("sign-in callback unavailable");
+	const callback = codeFromAddress(pasted, pending.state, pending.redirectUrl);
+	const issuer =
+		pending.discovery?.authorizationServerMetadata?.issuer ??
+		pending.discovery?.authorizationServerUrl ??
+		pending.client?.issuer;
+	if (
+		!callback.ok ||
+		(callback.value.iss && issuer && callback.value.iss !== issuer)
+	) {
+		pending.failed = true;
+		return callback.ok ? err("MCP OAuth issuer mismatch") : callback;
+	}
+	pending.callbackUsed = true;
+	return callback;
+};
+
+const redirectFor = (value: string): Result<string, ToolError> => {
+	try {
+		const url = new URL(value);
+		return url.protocol === "http:" &&
+			url.hostname === "127.0.0.1" &&
+			!url.username &&
+			!url.password &&
+			!url.search &&
+			!url.hash
+			? ok(url.href)
+			: fail("Invalid MCP OAuth callback target");
+	} catch {
+		return fail("Invalid MCP OAuth callback target");
+	}
+};
+
+const pendingFor = (
+	record: OAuthRecord | undefined,
+	resource: string,
+	redirectUrl: string,
+	name: string,
+): Pending => ({
+	client: record?.client,
+	tokens: record?.tokens,
+	discovery: undefined,
+	resource,
+	name,
+	redirectUrl,
+	state: randomUUID(),
+	verifier: "",
+	url: undefined,
+	failed: false,
+	dirty: false,
+	callbackUsed: false,
+	live: undefined,
+	committing: undefined,
+});
+const defaultRedirect = (
+	options: OAuthSignInOptions,
+	record: OAuthRecord | undefined,
+) => {
+	if (options.interactive && options.redirectUrl !== undefined)
+		return options.redirectUrl;
+	return record?.redirectUrl ?? options.redirectUrl ?? REDIRECT_URL;
+};
+const reusableRecord = (
+	options: OAuthSignInOptions,
+	record: OAuthRecord | undefined,
+) =>
+	options.interactive && options.redirectUrl !== undefined ? undefined : record;
+/** Creates an exact-target SDK flow; writes are staged until the caller commits after handshake/tools-list. */
+export const oauthSignIn = async (
+	options: OAuthSignInOptions,
+): Promise<Result<SignInFlow, ToolError>> => {
+	if (options.signal.aborted) return fail("MCP OAuth sign-in cancelled");
+	const target = await oauthTarget(options.workspaceDir, options.server);
+	if (!target.ok) return target;
+	const saved = await readOAuthRecord(
+		options.secrets,
+		target.value.name,
+		target.value.resource,
+	);
+	if (!saved.ok) return saved;
+	const redirect = redirectFor(defaultRedirect(options, saved.value));
+	if (!redirect.ok) return redirect;
+	const record = reusableRecord(options, saved.value);
+	if (!record && !options.interactive) return fail(SIGN_IN_NEEDED);
+	const pending = pendingFor(
+		record,
+		target.value.resource,
+		redirect.value,
+		target.value.name,
+	);
+	const schema = await oauthRecordSchema();
+	if (options.signal.aborted) return fail("MCP OAuth sign-in cancelled");
+	try {
+		notify(options, pending);
+	} catch {
+		return fail("MCP OAuth sign-in failed");
+	}
+	return ok({
+		provider: providerFor(options, pending, schema, options.interactive),
+		url: () => pending.url,
+		codeFrom: (pasted) => callbackFor(pending, options, pasted),
+		commit: () => commitOAuthRecord(options, pending, schema),
+	});
 };

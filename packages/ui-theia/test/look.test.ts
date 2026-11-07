@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { SHAPE, TOKEN_NAMES } from "@mete/ui-kit";
+import { TOKEN_NAMES } from "@mete/ui-kit";
 import { describe, expect, it } from "vitest";
 import * as look from "../src/application/look.js";
 import { TONES } from "../src/application/tone.js";
@@ -43,12 +43,11 @@ describe("the panels' look", () => {
 			expect(CSS).toContain(`.mete-chip.${tone}`);
 	});
 
-	it("keeps settings text visible while cards rise into place", () => {
-		const animation =
-			CSS.match(/@keyframes mete-rise\s*\{([^}]+)\}/)?.[1] ?? "";
-		expect(CSS).toContain("animation: mete-rise 0.4s ease-out both");
-		expect(animation).toContain("transform: translateY(6px)");
-		expect(animation).not.toContain("opacity");
+	it("keeps operational sections static and the composer outside the scrolling transcript", () => {
+		expect(CSS).not.toContain("animation: mete-rise");
+		expect(CSS).toContain(".mete-chat-scroll");
+		expect(CSS).toContain("grid-template-rows: minmax(0, 1fr) auto");
+		expect(CSS).toContain(".mete-chat-composer");
 	});
 
 	it("leaves no Theia colour in a view except as a METE token's fallback", () => {
@@ -75,11 +74,11 @@ describe("the panels' look", () => {
 		}
 	});
 
-	it("bundles Baloo 2 at the docs/13 weights and uses the docs/13 shape", () => {
-		expect(CSS).toContain('font-family: "Baloo 2"');
-		expect(CSS).toContain("font-weight: 500");
+	it("uses native UI type and compact boundaries while retaining the bundled Studio font", () => {
+		expect(CSS).toContain("font-family: var(--theia-ui-font-family)");
 		expect(CSS).toContain("url(../fonts/Baloo2-latin.woff)");
 		expect(CSS).not.toMatch(/url\(["']?https?:/);
-		for (const value of Object.values(SHAPE)) expect(CSS).toContain(value);
+		expect(CSS).toContain("border-radius: 4px");
+		expect(look.CELL.borderBottom).toContain("1px solid");
 	});
 });

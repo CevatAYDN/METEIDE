@@ -19,6 +19,7 @@ import {
 } from "../application/home-view.js";
 import { SET_KEY_COMMAND } from "../application/key-command.js";
 import { panelRoot } from "../application/panel-root.js";
+import { ConversationsSection } from "../application/thread-list-view.js";
 import { WorkspacesSection } from "../application/workspaces-section.js";
 import {
 	type HomeSection,
@@ -38,7 +39,8 @@ import { MeteShownRun } from "./shown-run.js";
 const labelOf = (section: HomeSection) =>
 	({
 		waiting: nls.localize("mete/home/waiting", "Waiting for you"),
-		runs: nls.localize("mete/home/runs", "Runs"),
+		runs: nls.localize("mete/home/runs", "Team runs"),
+		conversations: nls.localize("mete/thread/conversations", "Conversations"),
 		workspaces: nls.localize("mete/home/workspaces", "Workspaces"),
 		quota: nls.localize("mete/home/quota", "Quota"),
 	})[section];
@@ -92,10 +94,26 @@ export class MeteHomeSectionWidget extends MetePanelWidget {
 		return void this.commands.executeCommand(id);
 	}
 
+	protected conversationBody() {
+		const list = this.store.conversations;
+		return (
+			<ConversationsSection
+				state={list.state}
+				shown={this.shownRun.runId}
+				onSearch={(query) => void list.search(query)}
+				onMore={() => void list.more()}
+				onRetry={() => void list.retry()}
+				onOpen={(id) => void this.store.act("open", id)}
+				onStart={() => this.run(START_RUN_COMMAND.id)}
+			/>
+		);
+	}
+
 	protected body() {
 		const { model, workspaces } = this.store;
 		const act = (a: Parameters<MeteHomeStore["act"]>[0], runId: string) =>
 			void this.store.act(a, runId);
+		if (this.section === "conversations") return this.conversationBody();
 		if (this.section === "waiting")
 			return <WaitingSection model={model} onAct={act} />;
 		if (this.section === "workspaces")
@@ -118,7 +136,14 @@ export class MeteHomeSectionWidget extends MetePanelWidget {
 			);
 		return (
 			<RunsSection
-				model={model}
+				model={
+					model.kind === "runs"
+						? {
+								...model,
+								rows: model.rows.filter((row) => row.templateId !== null),
+							}
+						: model
+				}
 				onAct={act}
 				onSetKey={() => this.run(SET_KEY_COMMAND.id)}
 				onStart={() => this.run(START_RUN_COMMAND.id)}

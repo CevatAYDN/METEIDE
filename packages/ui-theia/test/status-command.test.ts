@@ -8,6 +8,8 @@ import {
 } from "@theia/core";
 import { QuickInputService } from "@theia/core/lib/common/quick-pick-service";
 import { Container } from "@theia/core/shared/inversify";
+import { VSXExtensionEditorManager } from "@theia/vsx-registry/lib/browser/vsx-extension-editor-manager";
+import { VSXExtensionsModel } from "@theia/vsx-registry/lib/browser/vsx-extensions-model";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import { describe, expect, it, vi } from "vitest";
 import { QUOTA_COMMAND } from "../src/application/status-command.js";
@@ -21,6 +23,22 @@ import { MeteCommandContribution, STATUS_COMMAND } from "../src/index.js";
 import frontendModule from "../src/infrastructure/frontend-module.js";
 
 // The contribution runs in a real inversify container; Theia's services and the daemon are fakes.
+// Native extension widgets are covered by offline Electron tests, not this command-only suite.
+vi.mock("@theia/vsx-registry/lib/browser/vsx-extensions-model", () => ({
+	VSXExtensionsModel: class {},
+}));
+vi.mock("@theia/vsx-registry/lib/browser/vsx-extension-editor-manager", () => ({
+	VSXExtensionEditorManager: class {},
+}));
+// Attachment commands and editor wiring have their own focused tests and Electron acceptance.
+vi.mock("../src/infrastructure/editor-context-service.js", () => ({
+	MeteEditorContext: class {},
+}));
+vi.mock("../src/infrastructure/editor-context-contribution.js", () => ({
+	MeteEditorContextContribution: class {
+		registerCommands() {}
+	},
+}));
 // These two Theia browser modules load lumino, which needs a DOM; only their identity is used here,
 // and the window check (README) covers the real wiring.
 vi.mock("@theia/workspace/lib/browser/workspace-service", () => ({
@@ -111,6 +129,8 @@ const setup = (folders: string[], reply: Reply) => {
 	const warn: string[] = [];
 	const asked: string[] = [];
 	const c = new Container();
+	c.bind(VSXExtensionsModel).toSelf();
+	c.bind(VSXExtensionEditorManager).toSelf();
 	c.bind(MessageService).toConstantValue({
 		info: async (m: string) => void info.push(m),
 		warn: async (m: string) => void warn.push(m),

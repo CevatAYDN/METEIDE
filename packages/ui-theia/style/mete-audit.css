@@ -9,8 +9,8 @@
 	gap: 10px 22px;
 	padding: 12px 18px;
 	background: var(--panel, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	border-radius: 14px;
+	border: 1px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 8px;
 }
 
 .mete-audit-filters > .codicon {
@@ -90,7 +90,7 @@
 }
 
 .mete-audit-card tbody tr + tr > td {
-	border-top: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-top: 1px solid var(--line-soft, var(--theia-panel-border));
 }
 
 .mete-audit-card td:first-child {
@@ -120,7 +120,7 @@
 	height: 24px;
 	padding: 0 10px 0 7px;
 	border-radius: 999px;
-	font-family: "Baloo 2", system-ui, sans-serif;
+	font-family: var(--theia-ui-font-family);
 	font-size: 13px;
 	font-weight: 700;
 	background: color-mix(

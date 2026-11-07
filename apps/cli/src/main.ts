@@ -7,7 +7,7 @@ import { serveStdio, type Transport } from "@mete/mcp";
 import { createScriptedModule } from "@mete/providers";
 import { createKeychainStore } from "@mete/security";
 import { auditCommand } from "./application/audit.js";
-import { terminalAuthorize } from "./application/authorize.js";
+import { terminalAuthOptions } from "./application/authorize.js";
 import {
 	eventsCommand,
 	type Io,
@@ -22,6 +22,7 @@ import { type DaemonStreams, daemonCommand } from "./application/daemon.js";
 import { terminalElicit } from "./application/elicit.js";
 import { folderCommand } from "./application/folder-commands.js";
 import { keyCommand } from "./application/keys.js";
+import { mcpKeyCommand } from "./application/mcp-credentials.js";
 import { registryAddCommand, registryCommand } from "./application/registry.js";
 import { removeCommand } from "./application/remove.js";
 import { rollbackCommand } from "./application/rollback.js";
@@ -111,7 +112,7 @@ const unlessDriven = async (
 const asking = (io: Io) => ({
 	elicit: terminalElicit(io),
 	confirm: terminalConfirm(io),
-	authorize: terminalAuthorize(io),
+	...terminalAuthOptions(io),
 });
 
 const run = (opts: AppOptions, io: Io, what: RunWhat) =>
@@ -242,6 +243,9 @@ const read = (
 	return usage(io);
 };
 
+const keys = (opts: AppOptions, io: Io, args: readonly string[]) =>
+	keyCommand(opts.secrets ?? createKeychainStore(), io, args[0], args[1]);
+
 const dispatch = (
 	p: Parsed,
 	opts: AppOptions,
@@ -280,12 +284,9 @@ const dispatch = (
 		case "vault":
 			return folderCommand(reader, io, p.positionals, p.values.json === true);
 		case "key":
-			return keyCommand(
-				opts.secrets ?? createKeychainStore(),
-				io,
-				rest[0],
-				rest[1],
-			);
+			return keys(opts, io, rest);
+		case "mcp-key":
+			return mcpKeyCommand(reader, io, rest);
 		default:
 			return usage(io, p.values.help === true);
 	}

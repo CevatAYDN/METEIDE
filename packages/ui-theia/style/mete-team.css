@@ -9,9 +9,9 @@
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
-	padding: 20px;
-	font-size: 14px;
+	gap: 12px;
+	padding: 12px;
+	font-size: 13px;
 	line-height: 1.4;
 }
 
@@ -19,14 +19,15 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 7px;
-	height: 36px;
+	min-height: 28px;
+	height: auto;
 	padding: 0 14px 0 12px;
 	font-size: 14px;
 	font-weight: 700;
 }
 
 .mete-team .mete-field {
-	min-height: 38px;
+	min-height: 28px;
 	font-size: 14px;
 	font-weight: 600;
 }
@@ -46,11 +47,9 @@
 	display: flex;
 	flex-wrap: wrap;
 	align-items: stretch;
-	gap: 20px 28px;
-	padding: 22px 22px 22px 26px;
-	background: var(--raised, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line, var(--theia-panel-border));
-	border-radius: 16px;
+	gap: 12px 16px;
+	padding: 0 0 12px;
+	border-bottom: 1px solid var(--line, var(--theia-panel-border));
 }
 
 .mete-team-intro {
@@ -73,17 +72,15 @@
 	display: grid;
 	place-items: center;
 	box-sizing: border-box;
-	width: 48px;
-	height: 48px;
+	width: 24px;
+	height: 24px;
 	margin-right: 4px;
-	border-radius: 10px;
-	background: var(--panel, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	color: var(--accent, var(--theia-focusBorder));
+	border-radius: 4px;
+	color: var(--muted-2, var(--theia-descriptionForeground));
 }
 
 .mete-team-tile > .codicon {
-	font-size: 22px;
+	font-size: 16px;
 }
 
 .mete-team-title {
@@ -96,10 +93,10 @@
 	align-items: baseline;
 	gap: 10px;
 	margin: 0;
-	font-size: 28px;
-	font-weight: 800;
+	font-size: 16px;
+	font-weight: 600;
 	line-height: 1.2;
-	letter-spacing: -0.01em;
+	letter-spacing: 0;
 	white-space: nowrap;
 }
 
@@ -107,7 +104,7 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
-	font-size: 22px;
+	font-size: 14px;
 	font-weight: 700;
 	letter-spacing: 0;
 }
@@ -139,13 +136,13 @@
 		var(--bad, var(--theia-errorForeground)) 10%,
 		var(--panel, var(--theia-editorWidget-background))
 	);
-	border: 1.5px solid
+	border: 1px solid
 		color-mix(
 			in srgb,
 			var(--bad, var(--theia-errorForeground)) 40%,
 			var(--panel, var(--theia-editorWidget-background))
 		);
-	border-radius: 12px;
+	border-radius: 8px;
 	color: color-mix(
 		in srgb,
 		var(--bad, var(--theia-errorForeground)) 65%,
@@ -191,7 +188,7 @@
 	align-items: end;
 	gap: 14px;
 	padding-top: 16px;
-	border-top: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-top: 1px solid var(--line-soft, var(--theia-panel-border));
 }
 
 .mete-team .mete-team-copy > .mete-button {
@@ -206,10 +203,7 @@
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
-	padding: 16px 18px;
-	background: var(--panel, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	border-radius: 14px;
+	padding: 0;
 }
 
 .mete-team-limits > div {
@@ -221,11 +215,8 @@
 .mete-team .mete-team-limits label {
 	justify-content: space-between;
 	gap: 6px;
-	padding: 10px 12px 12px;
+	padding: 0;
 	font-size: 12px;
-	background: var(--raised, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	border-radius: 14px;
 }
 
 .mete-team .mete-team-limits .mete-number {
@@ -233,7 +224,7 @@
 	min-height: 36px;
 	padding: 0 10px;
 	font-variant-numeric: tabular-nums;
-	font-size: 18px;
+	font-size: 14px;
 	font-weight: 700;
 }
 

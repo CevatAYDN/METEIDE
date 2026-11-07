@@ -1,6 +1,10 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type ChatChunk, SeoAuditReportSchema } from "@mete/contracts";
+import {
+	type ChatChunk,
+	type ChatRequest,
+	SeoAuditReportSchema,
+} from "@mete/contracts";
 import type { BrowserOptions } from "@mete/tools";
 import { afterEach, describe, expect, it } from "vitest";
 import { runCommand } from "../src/application/commands.js";
@@ -83,6 +87,37 @@ const call = (name: string, args: unknown): ChatChunk[] => [
 	finish("tool-calls"),
 ];
 
+const technical = (used: ReadonlySet<string>): ChatChunk[] => {
+	if (!used.has("seo_audit")) return call("seo_audit", { url: PAGE });
+	if (!used.has("browser_screenshot"))
+		return call("browser_screenshot", { url: PAGE });
+	return say(
+		"Scores: performance 72, accessibility 90, bestPractices 100, seo 64. Failing: meta-description, image-alt.",
+	);
+};
+
+// Parallel tasks must receive their own answers, independent of adapter completion order.
+const respond = (request: ChatRequest): ChatChunk[] => {
+	const tools = new Set(request.tools?.map((tool) => tool.name));
+	const used = new Set(
+		request.messages.flatMap((message) =>
+			message.role === "assistant"
+				? (message.toolCalls?.map((tool) => tool.name) ?? [])
+				: [],
+		),
+	);
+	if (tools.has("seo_audit")) return technical(used);
+	if (tools.has("web_search"))
+		return used.has("web_search")
+			? say(`A rival (${RIVAL}) describes every product.`)
+			: call("web_search", { query: "hand-made goods shop" });
+	if (tools.has("web_fetch"))
+		return used.has("web_fetch")
+			? say("The page has a title and one heading but no meta description.")
+			: call("web_fetch", { url: PAGE });
+	return say(REPORT);
+};
+
 // Tavily's search and two pages; anything else, the built-in Exa server among them, is a 404.
 const web: typeof fetch = async (input, init) => {
 	const url = String(input);
@@ -121,24 +156,12 @@ afterEach(async () => {
 describe("the seo-audit template", () => {
 	it("turns a URL into a ranked audit whose every fix cites a Lighthouse audit", async () => {
 		const repo = await tempRepo({ "README.md": "# shop\n" });
-		const script = [
-			call("seo_audit", { url: PAGE }),
-			call("browser_screenshot", { url: PAGE }),
-			say(
-				"Scores: performance 72, accessibility 90, bestPractices 100, seo 64. Failing: meta-description, image-alt.",
-			),
-			call("web_fetch", { url: PAGE }),
-			say("The page has a title and one heading but no meta description."),
-			call("web_search", { query: "hand-made goods shop" }),
-			say(`A rival (${RIVAL}) describes every product.`),
-			say(REPORT),
-		];
 		const app = await createApp({
 			workspaceDir: repo.workspaceDir,
 			globalDir: repo.globalDir,
 			logger: silent,
 			secrets: memorySecrets({ "search/tavily/apiKey": "tvly-test" }),
-			providers: [scriptedProvider({ script })],
+			providers: [scriptedProvider({ script: respond })],
 			fetch: web,
 			browser,
 		});

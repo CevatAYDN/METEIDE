@@ -1,0 +1,66 @@
+.mete-context-draft {
+	min-width: 0;
+	width: 100%;
+}
+.mete-context-edit-fields {
+	border: 0;
+	padding: 0;
+	margin: 0;
+	min-width: 0;
+}
+.mete-context-draft ul {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	max-height: min(240px, 25vh);
+	overflow: auto;
+	overscroll-behavior: contain;
+	scrollbar-gutter: stable;
+}
+.mete-context-draft li {
+	display: flex;
+	align-items: flex-start;
+	gap: 4px;
+	border-bottom: 1px solid var(--line, var(--theia-panel-border));
+}
+.mete-context-preview {
+	flex: 1;
+	min-width: 0;
+}
+.mete-context-preview summary {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	cursor: pointer;
+	overflow-wrap: anywhere;
+}
+.mete-context-preview pre {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	max-height: 180px;
+	overflow: auto;
+	margin: 8px 0;
+}
+.mete-context-preview small {
+	display: block;
+	overflow-wrap: anywhere;
+}
+.mete-context-menu summary {
+	width: 28px;
+	height: 28px;
+	display: grid;
+	place-items: center;
+	cursor: pointer;
+	border-radius: 4px;
+}
+.mete-context-menu > div {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+.mete-context-menu summary:focus-visible,
+.mete-context-preview summary:focus-visible,
+.mete-context-preview pre:focus-visible {
+	outline: 1px solid var(--theia-focusBorder);
+	outline-offset: 2px;
+}

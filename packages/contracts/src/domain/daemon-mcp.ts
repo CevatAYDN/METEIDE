@@ -1,11 +1,15 @@
 import { z } from "zod";
+import { McpServerSchema } from "./mcp.js";
 
 // The Settings screen's MCP servers request of the daemon protocol (ARCHITECTURE.md, ADR-164).
 
 const text = z.string().min(1);
 
 /** Params of `mete/mcp.test`: one server of the loaded `mcp` section, by its id. */
-export const DaemonMcpTestParamsSchema = z.strictObject({ id: text });
+export const DaemonMcpTestParamsSchema = z.strictObject({
+	id: text,
+	expected: McpServerSchema.optional(),
+});
 
 /** Result of `mete/mcp.test`: the names of the tools the server lists, or why connecting failed. */
 export const DaemonMcpTestResultSchema = z.discriminatedUnion("ok", [

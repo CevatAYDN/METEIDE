@@ -1,17 +1,30 @@
 import { nls } from "@theia/core/lib/common/nls";
-import { useId, useRef, useState } from "react";
+import { type ReactNode, useId, useRef, useState } from "react";
+import type { MessageDraft } from "./context-drafts.js";
+import { Icon } from "./roster-look.js";
 
 type Props = {
 	readonly status?: string | undefined;
 	readonly onReply: (message: string) => Promise<string | undefined>;
+	readonly tools?: ReactNode | undefined;
+	readonly replyReady?: boolean | undefined;
+	readonly onDraftChange?: (() => void) | undefined;
+	readonly messageDraft?: MessageDraft | undefined;
+	readonly attachments?: ReactNode | undefined;
 };
 
-const useMessage = ({ status, onReply }: Props) => {
-	const [draft, setDraft] = useState("");
+const useMessage = ({ status, onReply, replyReady, messageDraft }: Props) => {
+	const [localDraft, setLocalDraft] = useState("");
+	const draft = messageDraft?.value ?? localDraft;
+	const setDraft = messageDraft?.onChange ?? setLocalDraft;
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string>();
 	const pending = useRef(false);
-	const ready = status === "completed" && !busy;
+	const ready =
+		status === "completed" &&
+		replyReady !== false &&
+		!busy &&
+		!messageDraft?.busy;
 	const send = async () => {
 		if (!ready || pending.current || !draft.trim()) return;
 		pending.current = true;
@@ -19,7 +32,7 @@ const useMessage = ({ status, onReply }: Props) => {
 		try {
 			const failure = await onReply(draft.trim());
 			setError(failure);
-			if (!failure) setDraft("");
+			if (!failure && !messageDraft) setLocalDraft("");
 		} catch {
 			setError(
 				nls.localize(
@@ -34,6 +47,20 @@ const useMessage = ({ status, onReply }: Props) => {
 	};
 	return { draft, setDraft, busy, error, ready, send };
 };
+
+const WaitNote = ({ replyReady }: Pick<Props, "replyReady">) => (
+	<span role="status" className="mete-chat-wait">
+		{replyReady === false
+			? nls.localize(
+					"mete/thread/returnLatest",
+					"Return to the latest turn to reply.",
+				)
+			: nls.localize(
+					"mete/chat/wait",
+					"Wait for the current response, or resolve the paused run above.",
+				)}
+	</span>
+);
 
 /** A draft remains editable while work is in flight; only Send waits for completion. */
 export const MessageForm = (props: Props) => {
@@ -53,10 +80,15 @@ export const MessageForm = (props: Props) => {
 			<textarea
 				id={id}
 				className="mete-field"
-				rows={3}
+				rows={2}
 				value={draft}
-				disabled={busy}
-				onChange={(event) => setDraft(event.target.value)}
+				disabled={
+					busy || props.messageDraft?.busy || props.replyReady === false
+				}
+				onChange={(event) => {
+					props.onDraftChange?.();
+					setDraft(event.target.value);
+				}}
 				onKeyDown={(event) => {
 					if (
 						event.key === "Enter" &&
@@ -68,22 +100,20 @@ export const MessageForm = (props: Props) => {
 					}
 				}}
 			/>
+			{props.attachments}
 			<div className="mete-chat-send">
-				<span>
-					{ready
-						? nls.localize(
-								"mete/chat/keyboard",
-								"Enter to send · Shift+Enter for a new line",
-							)
-						: nls.localize(
-								"mete/chat/wait",
-								"Wait for the current response, or resolve the paused run above.",
-							)}
-				</span>
-				<button type="submit" disabled={!ready || !draft.trim()}>
-					{nls.localize("mete/chat/send", "Send message")}
+				<div className="mete-chat-tools">{props.tools}</div>
+				<button
+					type="submit"
+					className="mete-button icon"
+					disabled={!ready || !draft.trim()}
+					aria-label={nls.localize("mete/chat/send", "Send message")}
+					title={nls.localize("mete/chat/send", "Send message")}
+				>
+					<Icon name={busy ? "loading" : "send"} spin={busy} />
 				</button>
 			</div>
+			{!ready ? <WaitNote replyReady={props.replyReady} /> : null}
 			{error ? <p role="alert">{error}</p> : null}
 		</form>
 	);

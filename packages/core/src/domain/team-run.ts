@@ -53,7 +53,15 @@ export const isAsking = (c: RunContext) =>
 
 /** The seat of the run's active agent: its task's role, a reviewer's or an answerer's, or the single agent. */
 export const activeSeat = (c: RunContext): Seat => {
-	if (!c.team || !c.task) return SINGLE_AGENT;
+	if (!c.team)
+		return {
+			...SINGLE_AGENT,
+			capabilities: [
+				...(SINGLE_AGENT.capabilities ?? []),
+				...(c.extraCapabilities ?? []),
+			],
+		};
+	if (!c.task) return SINGLE_AGENT;
 	// A best-of-N task's judge: its tier, no tools (ADR-162).
 	const judge = taskOf(c.team, c.task)?.attempts?.judge_tier;
 	if (c.judge && judge) return { tier: judge, needs: [], capabilities: [] };

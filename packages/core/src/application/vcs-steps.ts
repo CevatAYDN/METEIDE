@@ -19,19 +19,26 @@ import { type Emit, runCapability, type StepDeps } from "./steps.js";
  * wants the workspace recorded leaves `cwd` out.
  */
 export const createCheckpoint = async (
-	deps: StepDeps,
+	deps: Pick<StepDeps, "registry" | "checkpointQueue">,
 	ctx: ToolContext & { readonly runId: string },
+	expected?: VcsGitAdapter,
 ): Promise<Result<string | undefined, string>> => {
-	const chain = deps.registry.resolve<VcsGitAdapter>("vcs.git@2");
-	if (!chain.ok) return ok(undefined);
-	const r = await chain.value[0].impl.run(
-		{ op: "checkpoint.create", runId: ctx.runId },
-		ctx,
-	);
-	if (!r.ok) return err(r.error.message);
-	return r.value.op === "checkpoint.create"
-		? ok(r.value.ref)
-		: err(`unexpected ${r.value.op} result`);
+	const record = async (): Promise<Result<string | undefined, string>> => {
+		const chain = deps.registry.resolve<VcsGitAdapter>("vcs.git@2");
+		if (!chain.ok || (expected && chain.value[0].impl !== expected))
+			return ok(undefined);
+		const r = await chain.value[0].impl.run(
+			{ op: "checkpoint.create", runId: ctx.runId },
+			ctx,
+		);
+		if (!r.ok) return err(r.error.message);
+		return r.value.op === "checkpoint.create"
+			? ok(r.value.ref)
+			: err(`unexpected ${r.value.op} result`);
+	};
+	return deps.checkpointQueue
+		? deps.checkpointQueue(ctx.runId, record)
+		: record();
 };
 
 /**

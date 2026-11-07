@@ -3,7 +3,10 @@ import {
 	DaemonMcpTestResultSchema,
 	DaemonProviderModelsResultSchema,
 	DaemonProviderTestResultSchema,
+	DaemonRegistryPrepareResultSchema,
+	DaemonRegistrySearchResultSchema,
 	DaemonSettingsResultSchema,
+	type McpServer,
 	type Result,
 } from "@mete/contracts";
 import type { DaemonFailure } from "../domain/status-service.js";
@@ -25,6 +28,14 @@ export type Send = <T>(
 ) => Promise<Result<T, DaemonFailure>>;
 
 export const settingsRequests = (send: Send) => ({
+	registrySearch: (dir: string, query: string) =>
+		send(dir, DAEMON_METHODS.registrySearch, { query }, (raw) =>
+			DaemonRegistrySearchResultSchema.safeParse(raw),
+		),
+	registryPrepare: (dir: string, name: string) =>
+		send(dir, DAEMON_METHODS.registryPrepare, { name }, (raw) =>
+			DaemonRegistryPrepareResultSchema.safeParse(raw),
+		),
 	settings: (dir: string) =>
 		send(dir, DAEMON_METHODS.settings, {}, (raw) =>
 			DaemonSettingsResultSchema.safeParse(raw),
@@ -37,8 +48,11 @@ export const settingsRequests = (send: Send) => ({
 		send(dir, DAEMON_METHODS.providerTest, { providerId, models }, (raw) =>
 			DaemonProviderTestResultSchema.safeParse(raw),
 		),
-	mcpTest: (dir: string, id: string) =>
-		send(dir, DAEMON_METHODS.mcpTest, { id }, (raw) =>
-			DaemonMcpTestResultSchema.safeParse(raw),
+	mcpTest: (dir: string, id: string, expected?: McpServer) =>
+		send(
+			dir,
+			DAEMON_METHODS.mcpTest,
+			{ id, ...(expected ? { expected } : {}) },
+			(raw) => DaemonMcpTestResultSchema.safeParse(raw),
 		),
 });

@@ -1,6 +1,5 @@
 import {
 	type ChatMessage,
-	isWrite,
 	type LlmChunk,
 	TIER_MIN_CONTEXT,
 } from "@mete/contracts";
@@ -9,15 +8,16 @@ import { foldable, toSummarize } from "../domain/compact.js";
 import { type NextStep, nextStep } from "../domain/next-step.js";
 import { guarded } from "../domain/repeat.js";
 import { afterModelError } from "../domain/run-events.js";
+import { currentWait } from "../domain/task-wait.js";
 import { activeRole, activeSeat, isAsking } from "../domain/team-run.js";
+import { allowed } from "../domain/tools.js";
+import { mayWrite } from "../domain/write-call.js";
 import { answered, asked } from "./clarify.js";
+import { runTurn } from "./control-turn.js";
 import { judged } from "./judge.js";
-import {
-	schedule,
-	schedulerState,
-	stopScheduler,
-} from "./parallel-scheduler.js";
+import { schedule, schedulerState } from "./parallel-scheduler.js";
 import { pinnedSeat, runPreferOf } from "./pinned.js";
+import { waitForPolicy } from "./policy-wait.js";
 import {
 	apply,
 	type EngineState,
@@ -25,8 +25,10 @@ import {
 	type Live,
 	toolContext,
 } from "./run-state.js";
+import { stopScheduler } from "./scheduler-drain.js";
 import { callModel, callTool, type ModelOutcome, masked } from "./steps.js";
 import { cutTurn, summarizeTurn } from "./summarize.js";
+import { syncHumanWaits } from "./task-waits.js";
 import { submit, teamTurn, verdict } from "./team-driver.js";
 import { createCheckpoint } from "./vcs-steps.js";
 
@@ -124,6 +126,9 @@ const modelTurn = async (s: EngineState, l: Live, token: object) => {
 	// The pin is read before the call starts: a run paused while it is read never calls the model.
 	const seat = await pinnedSeat(s, l);
 	if (!owns(l, token)) return;
+	// MCP descriptions and schemas are external input before the first tool result.
+	if (allowed(seat, "mcp.tools@1") && s.deps.registry.has("mcp.tools@1"))
+		apply(s, l, { type: "TAINT" });
 	const model = new AbortController();
 	l.model = model;
 	const signal = AbortSignal.any([l.all.signal, model.signal]);
@@ -223,6 +228,14 @@ const repeatChecked = (
 };
 
 // A finished tool call is kept even when the run was paused meanwhile (docs/08).
+const pauseForPolicy = async (s: EngineState, l: Live, token: object) => {
+	// Policy refused before effects: this is not an uncertain write on recovery.
+	apply(s, l, { type: "TOOL_STARTED", callId: undefined });
+	if (await waitForPolicy(s, l, l.snapshot.context)) return;
+	if (owns(l, token))
+		apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
+};
+
 const toolTurn = async (
 	s: EngineState,
 	l: Live,
@@ -231,7 +244,8 @@ const toolTurn = async (
 ) => {
 	if (t.checkpoint && !(await checkpoint(s, l, token, t))) return;
 	// A writing call is on record before it runs, so a crash in it is not run again (ADR-177).
-	if (isWrite(t.call)) apply(s, l, { type: "TOOL_STARTED", callId: t.call.id });
+	if (mayWrite(t.call))
+		apply(s, l, { type: "TOOL_STARTED", callId: t.call.id });
 	const out = await callTool(
 		s.deps,
 		{
@@ -248,12 +262,7 @@ const toolTurn = async (
 			message: repeatChecked(s, l, t, out.message),
 			...(out.external ? { external: true } : {}),
 		});
-	else {
-		// A policy ask ran nothing; recovery must retry it instead of treating it as an uncertain write.
-		apply(s, l, { type: "TOOL_STARTED", callId: undefined });
-		if (owns(l, token))
-			apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
-	}
+	else await pauseForPolicy(s, l, token);
 };
 
 // A reply that ends a conversation: a judge's choice, a review's verdict, a task's report, or a single
@@ -273,7 +282,10 @@ const step = async (s: EngineState, l: Live, token: object) => {
 	const c = l.snapshot.context;
 	// A best-of-N task between attempts is in progress with no agent yet (ADR-162).
 	const entry = c.task ? c.team?.tasks[c.task] : undefined;
-	const working = entry?.status === "in_progress" && entry.context.agentId;
+	const working =
+		entry?.status === "in_progress" &&
+		entry.context.agentId &&
+		!currentWait(entry);
 	if (c.team && !c.review && !working) return teamTurn(s, l, c.team);
 	const at = s.deps.now();
 	const next = nextStep(c, l.meta.budget, at);
@@ -293,14 +305,28 @@ const step = async (s: EngineState, l: Live, token: object) => {
 
 const failLoop = (s: EngineState, l: Live, token: object, error: unknown) => {
 	// A throwing adapter is a bug; only the error name is kept, as for module.crashed (docs/06).
-	s.deps.logger.error({ err: error, runId: l.meta.id }, "run step threw");
-	const message = error instanceof Error ? error.name : "Error";
+	const known = [
+		"Error",
+		"TypeError",
+		"RangeError",
+		"SyntaxError",
+		"ReferenceError",
+		"URIError",
+		"EvalError",
+		"AggregateError",
+	];
+	const message =
+		error instanceof Error && known.includes(error.name) ? error.name : "Error";
+	s.deps.logger.error(
+		{ errorType: message, runId: l.meta.id },
+		"run step threw",
+	);
 	const fail = { type: "FAIL", code: "internal", message } as const;
 	try {
 		if (l.token === token) apply(s, l, { ...fail, at: s.deps.now() });
-	} catch (again) {
+	} catch {
 		// The row cannot be written either (a busy database); the run stays as last saved.
-		s.deps.logger.error({ err: again, runId: l.meta.id }, "run not failed");
+		s.deps.logger.error({ runId: l.meta.id }, "run not failed");
 	}
 };
 
@@ -308,14 +334,21 @@ const loop = async (s: EngineState, l: Live, token: object) => {
 	const scheduler = schedulerState();
 	try {
 		while (owns(l, token)) {
-			if (await schedule(s, l, scheduler)) continue;
-			if (!owns(l, token)) break;
-			await step(s, l, token);
+			await runTurn(l, async () => {
+				if (!owns(l, token)) return;
+				syncHumanWaits(s, l);
+				if (await schedule(s, l, scheduler)) return;
+				if (owns(l, token)) await step(s, l, token);
+			});
 		}
 	} catch (e) {
 		failLoop(s, l, token, e);
 	} finally {
-		await stopScheduler(s, l, scheduler);
+		try {
+			await stopScheduler(s, l, scheduler);
+		} catch (error) {
+			failLoop(s, l, token, error);
+		}
 	}
 };
 

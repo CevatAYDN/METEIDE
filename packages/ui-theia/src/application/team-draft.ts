@@ -9,6 +9,8 @@ import {
 import { Document, isNode, parseDocument } from "yaml";
 import { z } from "zod";
 
+export { runsOf, withRuns } from "./verify-commands.js";
+
 // The team editor's draft (docs/13, Settings, Templates; ADR-075): the template's YAML document,
 // edited in place so the file keeps its comments, read leniently for the screen while it is half
 // done, and checked by TeamTemplateSchema alone before Save. Every edit returns a new document.
@@ -314,30 +316,6 @@ export const withCheckpoint = (doc: Draft, taskId: string, on: boolean) => {
 		["policies", "human_checkpoints"],
 		next.length > 0 ? next : undefined,
 	);
-};
-
-/** The shell commands among a task's verify gates. */
-export const runsOf = (verify: readonly Gate[]): string[] =>
-	verify.flatMap((g) => {
-		const run = commandOf(g);
-		return run === undefined ? [] : [run];
-	});
-
-const commandOf = (g: Gate) =>
-	typeof g === "object" && g !== null && "run" in g && typeof g.run === "string"
-		? g.run
-		: undefined;
-
-/**
- * The verify gates with these commands: the capability gates come first, as the file has them,
- * since the screen shows no control for them; undefined when no gate is left.
- */
-export const withRuns = (verify: readonly Gate[], runs: readonly string[]) => {
-	const next = [
-		...verify.filter((g) => commandOf(g) === undefined),
-		...runs.map((run) => ({ run })),
-	];
-	return next.length > 0 ? next : undefined;
 };
 
 /** The draft under a new template id and name, for "Save as new team". */

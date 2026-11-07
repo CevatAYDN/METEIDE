@@ -18,6 +18,10 @@ if (mode === "exit") {
 }
 const run = { id: "6f1c3d52-9b7e-4a52-8d5f-0a1b2c3d4e5f", workspaceId: "0b6f0a43-3f0e-4a3e-9a58-1b2c3d4e5f60", templateId: null, goal: "fix it", status: "paused", pauseReason: "quota", autonomyLevel: 2, budget: { cloudRequests: 10, maxHours: 1 }, createdAt: "2026-10-23T10:00:00.000Z" };
 const conn = createMessageConnection(new StreamMessageReader(process.stdin), new StreamMessageWriter(process.stdout));
+conn.onRequest("mete/daemon.quiesce", () => {
+	if (mode === "one") throw new ResponseError(-32000, "work is active", { code: "failed" });
+	return null;
+});
 conn.onRequest("mete/status", (p) => {
 	if (mode === "notready") throw new ResponseError(-32000, "core-engine is not active", { code: "not_ready", reasons: ["core-engine is not active.", "Add a provider key with: mete key set openrouter"] });
 	if (mode === "events") {
@@ -34,6 +38,34 @@ conn.onRequest("mete/status", (p) => {
 	return mode === "one" ? [run] : [];
 });
 conn.onRequest("mete/run.reply", (p) => p.runId === "garbage" ? { runId: "" } : { runId: p.message });
+conn.onRequest("mete/task.pending", (p) => {
+	if (mode === "notasks") throw new ResponseError(-32000, "task.control@1 is not active", { code: "not_supported" });
+	if (mode === "badtasks") return { requests: [], extra: true };
+	return { requests: [{ runId: p.runId, taskId: "22222222-2222-4222-8222-222222222222", requestId: "33333333-3333-4333-8333-333333333333",
+		templateTaskId: "write", title: "Write", kind: "approval" }] };
+});
+conn.onRequest("mete/task.answer", (p) => {
+	if (mode === "notasks") throw new ResponseError(-32000, "task.control@1 is not active", { code: "not_supported" });
+	if (p.runId !== "11111111-1111-4111-8111-111111111111" || p.taskId !== "22222222-2222-4222-8222-222222222222" || p.requestId !== "33333333-3333-4333-8333-333333333333")
+		throw new ResponseError(-32000, "stale request", { code: "bad_input" });
+	return mode === "badtasks" ? {} : null;
+});
+conn.onRequest("mete/conversation.start", (p) => p.goal === "garbage" ? { runId: "" } : { runId: p.goal + ":" + p.capabilities.join(",") });
+conn.onRequest("mete/conversation.reply", (p) => p.runId === "garbage" ? { runId: "" } : { runId: p.message + ":" + JSON.stringify(p.capabilities) });
+conn.onRequest("mete/thread.start", (p) => p.goal === "garbage" ? {} : { conversationId: p.requestId, runId: p.requestId });
+conn.onRequest("mete/thread.reply", (p) => ({ conversationId: p.conversationId, runId: p.expectedRunId }));
+conn.onRequest("mete/thread.list", () => ({ conversations: [] }));
+conn.onRequest("mete/thread.read", (p) => {
+	const head = { ...run, id: p.runId };
+	return { conversation: { id: p.runId, title: head.goal, head, createdAt: head.createdAt, updatedAt: head.createdAt, turnCount: 1 }, turns: [head] };
+});
+conn.onRequest("mete/registry.search", (p) => p.query === "odd" ? { entries: [{}] } : {
+	entries: [{ id: p.query, kind: "mcp", version: "1.0.0", description: "Protocol fixture", source: "fixture:catalog", runtime: "remote", permissions: [] }]
+});
+conn.onRequest("mete/registry.prepare", (p) => p.name === "odd" ? { server: {}, notes: [], source: "" } : {
+	server: { id: p.name, transport: "sse", url: "https://example.test/mcp" },
+	notes: ["Review required settings"], source: "fixture:catalog"
+});
 conn.onRequest("mete/run.start", (p) => {
 	if (!p.templateId && p.goal === "unsure" && p.templateId !== null) throw new ResponseError(-32000, "the router is unsure", { code: "choose_template", suggestions: ["research", "web-dev"] });
 	return { runId: run.id };

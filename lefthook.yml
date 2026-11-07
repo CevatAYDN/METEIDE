@@ -3,7 +3,8 @@ pre-commit:
   jobs:
     - name: biome
       glob: "*.{ts,mts,tsx,js,mjs,json,jsonc,css}"
-      run: pnpm exec biome check --no-errors-on-unmatched {staged_files}
+      # Let Biome read Git's staged paths without expanding a Windows command line.
+      run: pnpm exec biome check --staged --no-errors-on-unmatched
     # shortcut: tsc -b checks every package and emits dist; tab 15 wants --noEmit on affected packages, switch when builds get slow.
     - name: typecheck
       run: pnpm exec tsc -b && pnpm exec tsc -p tsconfig.test.json

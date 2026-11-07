@@ -1,8 +1,15 @@
 import type { ChatMessage, TeamTemplate } from "@mete/contracts";
 import { transition } from "xstate";
+import {
+	dequeueMerge,
+	enqueueMerge,
+	pendingMerges,
+	unmergedTask,
+} from "./merge-queue.js";
 import { type TaskEvent, taskMachine } from "./task-machine.js";
 import { readyTasks } from "./task-readiness.js";
 import { freshTaskSession } from "./task-session-schema.js";
+import { currentWait } from "./task-wait.js";
 import type { TeamState } from "./team-schema.js";
 
 export { readyTasks } from "./task-readiness.js";
@@ -49,10 +56,16 @@ export const teamOf = (
 	),
 });
 
-const withEntry = (team: TeamState, id: string, entry: TaskEntry) => ({
-	...team,
-	tasks: { ...team.tasks, [id]: entry },
-});
+const withEntry = (
+	team: TeamState,
+	id: string,
+	entry: TaskEntry,
+): TeamState => {
+	const next = { ...team, tasks: { ...team.tasks, [id]: entry } };
+	return entry.status === "approved" && team.tasks[id]?.status !== "approved"
+		? enqueueMerge(next, id)
+		: next;
+};
 
 /** What a task's attempt carries between the conversations the run holds (SECURITY.md, taint). */
 export type AttemptState = {
@@ -102,10 +115,13 @@ export const withArtifact = (
 export const withoutWorktree = (team: TeamState, id: string): TeamState => {
 	const entry = team.tasks[id];
 	return entry
-		? withEntry(team, id, {
-				...entry,
-				context: { ...entry.context, worktree: undefined },
-			})
+		? dequeueMerge(
+				withEntry(team, id, {
+					...entry,
+					context: { ...entry.context, worktree: undefined },
+				}),
+				id,
+			)
 		: team;
 };
 
@@ -213,7 +229,9 @@ export const approve = (team: TeamState, id: string, by: string) => {
 const statusOf = (team: TeamState, id: string) => team.tasks[id]?.status;
 
 const review = (team: TeamState, ids: readonly string[]) => {
-	for (const id of ids.filter((x) => statusOf(team, x) === "submitted")) {
+	for (const id of ids.filter(
+		(x) => statusOf(team, x) === "submitted" && !currentWait(team.tasks[x]),
+	)) {
 		const next = missing(team, id)[0];
 		if (next === undefined) return { kind: "accept", taskId: id } as const;
 		if (next !== "human")
@@ -271,9 +289,7 @@ export const decide = (team: TeamState, id: string, d: Decision) => {
 };
 
 // An approved task whose worktree is still set has work to land in the workspace.
-const unmerged = (team: TeamState, id: string) =>
-	statusOf(team, id) === "approved" &&
-	Boolean(team.tasks[id]?.context.worktree);
+const unmerged = unmergedTask;
 
 /** Whether an approved task still has its worktree to merge. */
 export const waitsToMerge = (team: TeamState, id: string) => unmerged(team, id);
@@ -296,20 +312,28 @@ export const withLesson = (
 };
 
 /**
- * Decides the team's next step from its state alone, in template order; a pending merge comes first,
- * then an approved task's lesson, before the next task starts or the run completes.
+ * Pending merges follow final-approval order; other task choices retain template order.
+ * Merges and lessons finish before the next dependency starts or the run completes.
  */
+const allLanded = (team: TeamState, ids: readonly string[]) =>
+	pendingMerges(team).length === 0 &&
+	ids.every((id) => statusOf(team, id) === "approved");
+
 export const nextTeamStep = (
 	team: TeamState,
 	busy: readonly string[] = [],
 ): TeamStep => {
 	const ids = team.template.tasks.map((t) => t.id);
-	const landing = ids.find((id) => unmerged(team, id));
-	if (landing) return { kind: "merge", taskId: landing };
+	const landing = pendingMerges(team)[0];
+	if (landing && !currentWait(team.tasks[landing]))
+		return { kind: "merge", taskId: landing };
 	const learning = ids.find((id) => owesLesson(team, id));
 	if (learning) return { kind: "lesson", taskId: learning };
 	const working = ids.find(
-		(id) => statusOf(team, id) === "in_progress" && !busy.includes(id),
+		(id) =>
+			statusOf(team, id) === "in_progress" &&
+			!busy.includes(id) &&
+			!currentWait(team.tasks[id]),
 	);
 	// A best-of-N task's next attempt has no agent yet (ADR-162): it starts like a task.
 	const fresh = !team.tasks[working ?? ""]?.context.agentId;
@@ -318,12 +342,13 @@ export const nextTeamStep = (
 	if (reviewed) return reviewed;
 	const start = readyTasks(team)[0];
 	if (start) return { kind: "start", taskId: start };
-	if (ids.every((id) => statusOf(team, id) === "approved"))
-		return { kind: "complete" };
+	if (allLanded(team, ids)) return { kind: "complete" };
 	const stuck = (s: TaskStatus | undefined) =>
 		s === "blocked" || s === "submitted";
 	return {
 		kind: "wait",
-		taskIds: ids.filter((id) => stuck(statusOf(team, id))),
+		taskIds: ids.filter(
+			(id) => stuck(statusOf(team, id)) || currentWait(team.tasks[id]),
+		),
 	};
 };

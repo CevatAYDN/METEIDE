@@ -74,6 +74,36 @@ Protected paths: agents MUST NOT write, delete or restore every `.mete/*.yaml` f
 
 ## Threat model
 
+Explicit editor context (ADR-183) is user-supplied data, including unsaved edits;
+path validation does not attest that text matches disk. Preparation and each
+fresh attached send recheck eligibility via `fs.context@1` and require masking.
+The attachment port excludes `.mete/`, `.git/` and `.meteignore` in addition
+to effective ignore rules, without changing ordinary file-tool permissions.
+Snapshots taint their run and are stored masked; no raw content enters events,
+global logs or errors. A preview digest is content identity, not authorization.
+The fixed copy does not follow later file edits. As with other file tools,
+these checks are not an OS sandbox against concurrent filesystem replacement.
+
+Task-local requests (ADR-181) use `policy.requests@1` rather than the newest
+`policy.asked` event. A grant is bound to the run, the exact agent and a retained
+request id, including the original action/capability/adapter, command/path and
+argument identity. Display masking never becomes authorization input. `once`
+is consumed once; `task` does not apply on tainted steps. Neither can change a
+deny, and an audit failure invalidates the affected exact requests and grants.
+Process restart retires these permissions; pending tools must ask again.
+
+The desktop's task controls never write `shell.always` or other configuration.
+Legacy run-level Allow may delegate to one exact task policy request; multiple
+requests, invalid data or a team with no exact pending request are refused. The
+legacy single-agent path keeps ADR-121's behavior.
+
+Worktree confinement is checked both before admitting a parallel native file
+write and again at execution. It rejects resolved-target escapes, outside
+directory entries reached through symlinks, and multiply linked existing files.
+Checkpoint allocation is serialized per run. These checks are not an OS sandbox
+or a guarantee against another process changing filesystem topology between
+system calls.
+
 | Threat | Mitigation |
 | --- | --- |
 | Prompt injection in web pages, files or MCP results | External content is wrapped and labeled as data. A step that read external content is tainted; at level 2 its `always_ask` actions and all non-allow-listed commands need approval even if they were pre-approved \[C\]. The remembered approvals are a `run` grant and a `shell.always` command (ADR-121), and neither holds on a tainted step; a `once` grant is the approval of the very call that asked, so it holds \[D\] |

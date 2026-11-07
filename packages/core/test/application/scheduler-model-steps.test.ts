@@ -19,7 +19,7 @@ afterEach(async () => {
 });
 
 describe("parallel worker model steps", () => {
-	it("executes tools sequentially and feeds each result only to its own model session", async () => {
+	it("executes query tools in parallel and feeds each result only to its own model session", async () => {
 		let release = () => {};
 		const gate = new Promise<void>((resolve) => {
 			release = resolve;
@@ -63,7 +63,7 @@ describe("parallel worker model steps", () => {
 			await untilRequests(h, 2);
 			a.release();
 			b.release();
-			await vi.waitFor(() => expect(paths).toEqual(["a"]));
+			await vi.waitFor(() => expect(paths).toEqual(["a", "b"]));
 		} finally {
 			release();
 		}

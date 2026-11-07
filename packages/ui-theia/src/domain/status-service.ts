@@ -2,6 +2,11 @@ import type {
 	AllowScope,
 	ApprovalInput,
 	AuditEntry,
+	ContextDraft,
+	ContextSnapshot,
+	ConversationReplyInput,
+	ConversationRunOutput,
+	ConversationStartInput,
 	DaemonChainResultSchema,
 	DaemonChangesResultSchema,
 	DaemonCheckpointRestoreResultSchema,
@@ -12,9 +17,12 @@ import type {
 	DaemonModelsResultSchema,
 	DaemonProviderModelsResultSchema,
 	DaemonProviderTestResultSchema,
+	DaemonRegistryPrepareResultSchema,
+	DaemonRegistrySearchResultSchema,
 	DaemonSettingsResultSchema,
 	DaemonStatusResultSchema,
 	DaemonTemplateReadResultSchema,
+	McpServer,
 	MeteEvent,
 	ModelRef,
 	NeedSchema,
@@ -23,9 +31,25 @@ import type {
 	Result,
 	RunPrefer,
 	RunStart,
+	TaskControlAnswer,
+	TaskPendingResult,
+	ThreadContextReadResult,
+	ThreadContextReplyInput,
+	ThreadContextStartInput,
+	ThreadListInput,
+	ThreadListResult,
+	ThreadReadInput,
+	ThreadReadResult,
+	ThreadReplyInput,
+	ThreadStarted,
+	ThreadStartInput,
 	Tier,
 	Transcript,
 } from "@mete/contracts";
+import type { DaemonFailure } from "./daemon-failure.js";
+import type { McpManagementService } from "./mcp-management.js";
+
+export type { DaemonFailure } from "./daemon-failure.js";
 
 import type { ProviderKey } from "./provider-keys.js";
 
@@ -82,29 +106,15 @@ export type EndpointTest = ReturnType<
 
 /** What `mete/mcp.test` answers (ADR-164): a server's tools, or why connecting to it failed. */
 export type McpTest = ReturnType<typeof DaemonMcpTestResultSchema.parse>;
+export type RegistryResults = ReturnType<
+	typeof DaemonRegistrySearchResultSchema.parse
+>;
+export type RegistryDraft = ReturnType<
+	typeof DaemonRegistryPrepareResultSchema.parse
+>;
 
 /** What `mete/estimate` answers (ADR-068), as the daemon protocol schema parses it. */
 export type Estimate = ReturnType<typeof DaemonEstimateResultSchema.parse>;
-
-/**
- * Why a status call has no runs: the daemon is not ready (`detail` is what core-engine waits for,
- * ADR-046), it stopped (`detail` is its exit code and last stderr lines), the restart limit is
- * reached, the router wants a template chosen, the daemon refused the request, its answer did
- * not parse, or a `mete` command the backend ran ended badly.
- */
-export type DaemonFailure = {
-	readonly code:
-		| "not_ready"
-		| "choose_template"
-		| "stopped"
-		| "blocked"
-		| "refused"
-		| "protocol"
-		| "cli";
-	readonly detail: string;
-	/** With choose_template: the templates the router suggests for the goal (ADR-047). */
-	readonly suggestions?: readonly string[];
-};
 
 /** The filters of mete/audit (ADR-053); each one is optional. */
 export type AuditFilter = {
@@ -120,7 +130,69 @@ export interface MeteDaemonClient {
 
 /** The backend side of the METE panels; the first call for a folder starts its daemon. */
 export const MeteDaemonService = Symbol("MeteDaemonService");
-export interface MeteDaemonService {
+export interface MeteDaemonService extends McpManagementService {
+	/** Explicit editor snapshots; unavailable @2 ports never downgrade (ADR-183). */
+	threadContextPrepare(
+		dir: string,
+		input: ContextDraft,
+	): Promise<Result<ContextSnapshot, DaemonFailure>>;
+	threadContextStart(
+		dir: string,
+		input: ThreadContextStartInput,
+	): Promise<Result<ThreadStarted, DaemonFailure>>;
+	threadContextReply(
+		dir: string,
+		input: ThreadContextReplyInput,
+	): Promise<Result<ThreadStarted, DaemonFailure>>;
+	threadContextRead(
+		dir: string,
+		input: ThreadReadInput,
+	): Promise<Result<ThreadContextReadResult, DaemonFailure>>;
+	/** Durable thread intent and exact current-head reply (ADR-182). */
+	threadStart(
+		dir: string,
+		input: ThreadStartInput,
+	): Promise<Result<ThreadStarted, DaemonFailure>>;
+	threadReply(
+		dir: string,
+		input: ThreadReplyInput,
+	): Promise<Result<ThreadStarted, DaemonFailure>>;
+	/** Local search/paging and retained history, with explicit read failures. */
+	threadList(
+		dir: string,
+		input: ThreadListInput,
+	): Promise<Result<ThreadListResult, DaemonFailure>>;
+	threadRead(
+		dir: string,
+		input: ThreadReadInput,
+	): Promise<Result<ThreadReadResult, DaemonFailure>>;
+	/** Authoritative task waits, including while independent tasks are running (ADR-181). */
+	taskPending(
+		workspaceDir: string,
+		runId: string,
+	): Promise<Result<TaskPendingResult, DaemonFailure>>;
+	/** Answers only the captured task request; never grants configuration permissions. */
+	taskAnswer(
+		workspaceDir: string,
+		input: TaskControlAnswer,
+	): Promise<Result<null, DaemonFailure>>;
+	conversationStart(
+		workspaceDir: string,
+		input: ConversationStartInput,
+	): Promise<Result<ConversationRunOutput, DaemonFailure>>;
+	conversationReply(
+		workspaceDir: string,
+		input: ConversationReplyInput,
+	): Promise<Result<ConversationRunOutput, DaemonFailure>>;
+	/** Read-only catalog discovery and draft preparation; neither installs nor connects. */
+	registrySearch(
+		workspaceDir: string,
+		query: string,
+	): Promise<Result<RegistryResults, DaemonFailure>>;
+	registryPrepare(
+		workspaceDir: string,
+		name: string,
+	): Promise<Result<RegistryDraft, DaemonFailure>>;
 	status(
 		workspaceDir: string,
 		runId?: string,
@@ -227,6 +299,8 @@ export interface MeteDaemonService {
 	): Promise<Result<ModelFacts, DaemonFailure>>;
 	/** Restarts the folder's daemon so it loads the configuration again (ADR-083). */
 	restart(): Promise<void>;
+	/** Atomically refuses active work, then restarts exactly this workspace's daemon. */
+	restartIdle(workspaceDir: string): Promise<Result<null, DaemonFailure>>;
 	/** The configuration the folder's daemon loaded, every string masked (ADR-081). */
 	settings(workspaceDir: string): Promise<Result<Settings, DaemonFailure>>;
 	/** A custom endpoint's models; refused while it is not loaded or has no key (ADR-087). */
@@ -245,6 +319,7 @@ export interface MeteDaemonService {
 	mcpTest(
 		workspaceDir: string,
 		id: string,
+		expected?: McpServer,
 	): Promise<Result<McpTest, DaemonFailure>>;
 	/** The open folder's working tree, and one file's diff when `path` names it (ADR-100). */
 	changes(

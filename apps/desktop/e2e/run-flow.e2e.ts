@@ -55,12 +55,14 @@ tasks:
   - { id: summary, role: writer, title: Write the summary, context: [notes] }
 `;
 
-/** The Team panel that holds the phrase, so a Home button of the same name is never clicked. */
-const board = (page: Page, phrase: RegExp) =>
-	page.locator(".mete-panel").filter({ hasText: phrase });
-
-/** The Team panel's center column, whose strip names a wait; the rail's feed says it too (ADR-119). */
-const center = (page: Page) => page.locator(".mete-run-center");
+/** The exact task request, excluding matching titles and actions in the Home inbox or feed. */
+const taskRequest = (page: Page, title: string) =>
+	page
+		.getByRole("region", { name: "Task decisions", exact: true })
+		.getByRole("listitem")
+		.filter({
+			has: page.getByRole("heading", { name: title, exact: true }),
+		});
 
 /** Opens the Quota dashboard and checks the scripted provider's spent unit: one request of one. */
 const expectSpentUnit = async (page: Page) => {
@@ -87,8 +89,11 @@ test.describe("a run that waits for approval", () => {
 	test("is answered from the Home inbox and completes", async ({ mete }) => {
 		const { page } = mete;
 		await startRun(page, { goal: GOAL, team: /duo/i });
-		const asks = /asks you to approve “Write the summary”/;
-		await expect(page.getByText(asks)).toBeVisible({ timeout: 90_000 });
+		const approve = taskRequest(page, "Write the summary").getByRole("button", {
+			name: "Approve",
+			exact: true,
+		});
+		await expect(approve).toBeVisible({ timeout: 90_000 });
 
 		// The inbox counts the run and its goal opens the run's panel.
 		await runCommand(page, "METE: Show what waits for you");
@@ -97,16 +102,16 @@ test.describe("a run that waits for approval", () => {
 		});
 		await expect(inboxLink(page, GOAL)).toBeVisible({ timeout: 60_000 });
 		await inboxLink(page, GOAL).click();
-		await expect(page.getByText(asks)).toBeVisible({ timeout: 60_000 });
+		await expect(approve).toBeVisible({ timeout: 60_000 });
 
-		// The goal's link opened the Team panel; its own Approve answers the run (ADR-048), and the
+		// The goal's link opened the Team panel; Approve answers this task request (ADR-181), and the
 		// panel took focus when it opened, so the first click on the button is delivered (ADR-112).
-		await board(page, asks).getByRole("button", { name: "Approve" }).click();
+		await approve.click();
 		await expect(page.getByText("1 waiting for you")).toHaveCount(0, {
 			timeout: 60_000,
 		});
 		await expect(
-			page.locator('section[aria-label="Runs"]').getByText("Done"),
+			page.locator('section[aria-label="Team runs"]').getByText("Done"),
 		).toBeVisible({ timeout: 60_000 });
 	});
 });
@@ -125,8 +130,12 @@ test.describe("a run blocked by its guardrail", () => {
 	}) => {
 		const { page } = mete;
 		await startRun(page, { goal: GOAL, team: /triage/i });
-		const blocked = /is blocked on “Write the report”/;
-		await expect(center(page).getByText(blocked)).toBeVisible({
+		const report = taskRequest(page, "Write the report");
+		const instruction = report.getByRole("button", {
+			name: "Continue with feedback",
+			exact: true,
+		});
+		await expect(instruction).toBeVisible({
 			timeout: 90_000,
 		});
 
@@ -134,21 +143,23 @@ test.describe("a run blocked by its guardrail", () => {
 		await runCommand(page, "METE: Show what waits for you");
 		await expect(inboxLink(page, GOAL)).toBeVisible({ timeout: 60_000 });
 		await inboxLink(page, GOAL).click();
-		await expect(center(page).getByText(blocked)).toBeVisible({
+		await expect(instruction).toBeVisible({
 			timeout: 60_000,
 		});
 
-		await page.getByText("Give an instruction…").click();
-		await page
-			.getByRole("textbox", { name: "What should it do?" })
+		await report
+			.getByRole("textbox", { name: "Feedback", exact: true })
 			.fill("Write the report as JSON with one finding and one source.");
-		await page.getByRole("button", { name: "Send the instruction" }).click();
+		await instruction.click();
 
-		const asks = /asks you to approve “Write the report”/;
-		await expect(page.getByText(asks)).toBeVisible({ timeout: 60_000 });
-		await board(page, asks).getByRole("button", { name: "Approve" }).click();
+		const approve = report.getByRole("button", {
+			name: "Approve",
+			exact: true,
+		});
+		await expect(approve).toBeVisible({ timeout: 60_000 });
+		await approve.click();
 		await expect(
-			page.locator('section[aria-label="Runs"]').getByText("Done"),
+			page.locator('section[aria-label="Team runs"]').getByText("Done"),
 		).toBeVisible({ timeout: 60_000 });
 	});
 });
@@ -200,7 +211,7 @@ test.describe("a best-of-N task", () => {
 			page.getByText("It names its source.", { exact: true }),
 		).toBeVisible();
 		await expect(
-			page.locator('section[aria-label="Runs"]').getByText("Done"),
+			page.locator('section[aria-label="Team runs"]').getByText("Done"),
 		).toBeVisible({ timeout: 60_000 });
 	});
 });
@@ -253,7 +264,8 @@ test.describe("a run that reads and searches the workspace", () => {
 		await expect(
 			page
 				.getByRole("region", { name: "Conversation" })
-				.getByText(`The workspace mentions ${TOKEN}.`),
+				.locator(".mete-chat-message")
+				.getByText(`The workspace mentions ${TOKEN}.`, { exact: true }),
 		).toBeVisible({ timeout: 90_000 });
 		await page
 			.getByText("Activity, model and checkpoints", { exact: true })
@@ -374,7 +386,7 @@ test.describe("a run whose provider quota is spent", () => {
 		await startRun(page, { goal: GOAL, team: /pair/i });
 
 		// Home's Runs row says why each provider cannot help (ADR-050) and offers ADR-059's resume.
-		const runs = page.locator('section[aria-label="Runs"]');
+		const runs = page.locator('section[aria-label="Team runs"]');
 		await expect(
 			runs.getByText(/scripted: its free quota is used up until/),
 		).toBeVisible({ timeout: 90_000 });

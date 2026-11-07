@@ -1,12 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import {
-	existsSync,
-	mkdirSync,
-	mkdtempSync,
-	readdirSync,
-	rmSync,
-	writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -18,7 +11,6 @@ import {
 	type Page,
 } from "@playwright/test";
 import { appCommand, missingApp } from "./app.js";
-import { runCommand } from "./palette.js";
 
 // One launched app: the built Electron main, the downloaded plugins and a fresh git workspace,
 // so a test sees the daemon, the panels and the extension host as a user does (docs/15).
@@ -36,6 +28,8 @@ export type Launch = {
 	/** The fresh git workspace the app opened. */
 	readonly dir: string;
 	readonly close: () => Promise<void>;
+	/** Restarts the actual application and daemon while preserving this fixture's data. */
+	readonly restart: () => Promise<Page>;
 	/** The app's remote-debugging port on 127.0.0.1, for tools that attach over CDP. */
 	readonly port: number;
 };
@@ -209,6 +203,33 @@ const startApp = async (
 	return { port, child, tail: () => tail };
 };
 
+const openApp = async (
+	workspace: string,
+	global: string,
+	env: NodeJS.ProcessEnv,
+) => {
+	const process = await startApp(workspace, global, env);
+	const front = await waitForFrontend(process.port);
+	if (!front) {
+		killTree(process.child.pid);
+		throw new Error(`the app did not open its window: ${process.tail()}`);
+	}
+	try {
+		await front.page.bringToFront();
+		await settle(front.page);
+		return { ...process, ...front };
+	} catch (error) {
+		await front.browser.close().catch(() => undefined);
+		killTree(process.child.pid);
+		throw error;
+	}
+};
+
+const stopApp = async (session: Awaited<ReturnType<typeof openApp>>) => {
+	await session.browser.close().catch(() => undefined);
+	killTree(session.child.pid);
+};
+
 const writeFiles = (root: string, files: Record<string, string>) => {
 	for (const [name, text] of Object.entries(files)) {
 		const path = join(root, name);
@@ -325,67 +346,41 @@ export const test = base.extend<MeteOptions & { mete: Launch }>({
 			...(webScript ? { web: webScript } : {}),
 			...(browserFile ? { browser: browserFile } : {}),
 		});
-		const { port, child, tail } = await startApp(workspace, global, env);
-		const stop = async (browser?: Browser) => {
-			await browser?.close().catch(() => undefined);
-			killTree(child.pid);
+		let session: Awaited<ReturnType<typeof openApp>> | undefined;
+		const stop = async () => {
+			const active = session;
+			session = undefined;
+			if (active) await stopApp(active);
 			await removeDir(workspace);
 			await removeDir(global);
 			if (chat) await removeDir(chat.dir);
 			if (webScript) await removeDir(webScript.dir);
 			if (browserFile) await removeDir(browserFile.dir);
 		};
-		const front = await waitForFrontend(port);
-		if (!front) {
+		try {
+			session = await openApp(workspace, global, env);
+			const initial = session;
+			await use({
+				get page() {
+					return session?.page ?? initial.page;
+				},
+				dir: workspace,
+				get port() {
+					return session?.port ?? initial.port;
+				},
+				close: stop,
+				restart: async () => {
+					if (session) await stopApp(session);
+					session = await openApp(workspace, global, env);
+					return session.page;
+				},
+			});
+		} finally {
 			await stop();
-			throw new Error(`the app did not open its window: ${tail()}`);
 		}
-		const { browser, page } = front;
-		await page.bringToFront();
-		await settle(page);
-		await use({ page, dir: workspace, close: () => stop(browser), port });
-		await stop(browser);
 	},
 });
 
+export { artifactPath, inboxLink, startRun } from "./launch-actions.js";
+export { runCommand } from "./palette.js";
 export { expect };
-
-/** Starts a run from the composer, the keyboard-first way docs/13 asks every METE action to be reachable. */
-export const startRun = async (
-	page: Page,
-	{ goal, team }: { readonly goal: string; readonly team: RegExp },
-) => {
-	await runCommand(page, "METE: Start run");
-	const field = page.locator("textarea.mete-field");
-	await expect(field).toBeVisible({ timeout: 60_000 });
-	const radio = page.getByRole("radio", { name: team });
-	const choices = page
-		.locator("details")
-		.filter({ has: page.locator('input[type="radio"]') });
-	if (await choices.count()) await choices.locator("summary").click();
-	await expect(radio).toBeVisible({ timeout: 60_000 });
-	await field.fill(goal);
-	await radio.check();
-	await page.getByRole("button", { name: "Start run" }).click();
-};
-
-/** The Home inbox's row whose goal opens the run in the Team panel (ADR-110). */
-export const inboxLink = (page: Page, goal: string) =>
-	page
-		.locator('section[aria-label="Waiting for you"]')
-		.filter({ has: page.getByTitle("Open in the team panel") })
-		.getByTitle("Open in the team panel")
-		.filter({ hasText: goal });
-
-/** The file a run's artifact landed in, under `.mete/artifacts/`, once a task wrote it. */
-export const artifactPath = (dir: string, name: string): string | undefined => {
-	const artifacts = join(dir, ".mete", "artifacts");
-	if (!existsSync(artifacts)) return undefined;
-	for (const runId of readdirSync(artifacts)) {
-		const file = join(artifacts, runId, name);
-		if (existsSync(file)) return file;
-	}
-	return undefined;
-};
-
-export { runCommand };

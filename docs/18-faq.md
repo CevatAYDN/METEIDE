@@ -36,7 +36,7 @@ Each answer is binding and names the tab that holds the full rule. A question no
 | --- | --- | --- |
 | Can I give a member a specific model? | Yes: "Pinned model" under the member's tier in the team editor saves a pin in the folder's `.mete/pins.yaml`. The pinned model goes first when it can serve the tier; otherwise the tier's other models carry on, so a pin never stops a run. The team file keeps the tier (ADR-077) | 09, 13 |
 | How do I make my own team? | Write a YAML template in `.mete/teams/` or use the visual template editor ("METE: Edit team", or Edit under a team in the run composer; ADR-075) | 08, 13 |
-| Can I run CrewAI, MetaGPT or ChatDev? | Yes, as optional engines with `engine: crewai`, `metagpt` or `chatdev`; their calls still pass the gateway | 08 |
+| Can I run CrewAI, MetaGPT or ChatDev? | Planned for Phase 6. Their names exist in the template schema, but the engine adapter package is currently an empty stub; only the native engine is implemented | 08, 16 |
 | Who decides that a task is done? | Verify gates, the guardrail and the approver. A model's claim never decides | 08 |
 | What if the lead keeps rejecting? | After 3 revisions the task is blocked and the human decides | 07 |
 | What if two agents edit the same file? | The task list assigns file ownership, each writer has a worktree, and conflicts become a merge task | 08 |
@@ -48,13 +48,14 @@ Each answer is binding and names the tab that holds the full rule. A question no
 
 | Question | Answer | Tab |
 | --- | --- | --- |
-| How do I add an MCP server? | Settings, MCP servers, or `.mete/mcp.yaml`. Needed runtimes download by themselves | 10 |
+| How do I add an MCP server? | Settings: Tools, then Add server (URL, local command or JSON), or Browse catalog and review a prepared draft. Save and connect activates only when work is idle; otherwise it stays pending. Needed runtimes follow their existing approval rules | 10 |
+| How do I sign in or provide an MCP key? | Save and apply the server, then use Sign in or its credential fields in Settings. Declared credential values are stored in the OS keychain, scoped to this workspace and exact server configuration. Replacing one optional value preserves other saved values. Forget local credentials does not revoke the remote account's grant. Tool setup does not require a model provider | 10, 13 |
 | Can agents install plugins? | No. Agents may propose; only the user installs, after seeing permissions | 10, 12 |
 | How do I use Blender, 3ds Max, Unity or Unreal? | Add its MCP server or CLI, connect it with a mapping file, and bind it to the capability. Templates stay unchanged | 10 |
 | A capability has no adapter. What happens? | Its defined empty-chain behavior runs; the UI names the missing capability and suggests registry entries | 06 |
 | Do I need Python? | No manual install. uv downloads Python when a server needs it | 10 |
 | Do I need Docker? | No. It is used only for container-based MCP servers, and only if already installed | 10, 12 |
-| Do VS Code extensions work? | Yes, from Open VSX through Theia. They become agent tools only if they expose MCP | 10 |
+| Do VS Code extensions work? | Compatible extensions can be installed from Theia's Extensions view using Open VSX or a VSIX. Not every extension is compatible. Editor extensions run third-party code outside METE's tool policy; they become agent tools only through a configured integration such as MCP | 10 |
 | Does web search need a key? | No: the default is Exa's hosted MCP server without a key (the `exa-mcp` mapping). A free Tavily key (`mete key set tavily`) adds a fallback for when Exa's anonymous limit is reached | 06, 10 |
 | Can other tools use METE? | Yes. `mete mcp` exposes teams and knowledge as MCP tools | 10 |
 
@@ -86,6 +87,11 @@ Each answer is binding and names the tab that holds the full rule. A question no
 | Is the studio animation real? | Yes. Every movement is drawn from an event | 13 |
 | Can I speed up the studio? | Only in Replay. The live view runs in real time | 13 |
 | Which languages? | English and Turkish | 13 |
+| Can I attach unsaved code? | Yes, for an existing eligible workspace text file: Add selection or Add open file captures the current buffer, marks Unsaved, and shows the masked preview. It never saves or sends automatically. Untitled and remote documents are not supported | ADR-183 |
+| Does an attachment follow later file edits? | No. It is a fixed copy. Update captures that source again; Remove drops it from the draft. Sent copies stay with their immutable run | ADR-183 |
+| Why does a conversation contain several runs? | A run owns one turn's budget, checkpoints and audit history. ADR-182 groups explicit turns under one sidebar conversation without changing completed runs | 08, 13 |
+| Are old runs with the same title merged? | No. Unlinked runs remain individual conversations. Only explicit new-port replies create relationships | ADR-182 |
+| What does conversation search include? | Masked titles and new-port user messages, locally. Legacy runs are searchable by title; model, tool and system text are not indexed | ADR-182 |
 
 ## Building METE
 

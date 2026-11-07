@@ -43,17 +43,17 @@ import {
 import { STDERR_TAIL_LINES } from "../defaults.js";
 import type { RestartPolicy } from "../domain/restart-policy.js";
 import type { DaemonFailure, Need } from "../domain/status-service.js";
+import { conversationRequests } from "./conversation-requests.js";
+import { mcpConnectionRequests } from "./mcp-connection-requests.js";
 import {
 	type Parsed,
 	type Send,
 	settingsRequests,
 } from "./settings-requests.js";
+import { taskControlRequests } from "./task-control-requests.js";
+import { threadContextRequests } from "./thread-context-requests.js";
 
-// Owns the `mete daemon` child of one folder: starts it on the first call, talks the daemon protocol
-// to it and starts it again after a crash, within the restart policy (ARCHITECTURE.md, Failure handling).
-// A daemon that had answered starts again at once, so the runs it held resume from their snapshots; one
-// that ended before it answered (a held run lock, an invalid configuration) would fail the same way, so
-// it starts again on the next call, after the user could fix the cause.
+// Owns one folder's daemon. Served processes recover automatically; startup failures retry on demand.
 
 /** Starts `mete daemon` for a folder. */
 export type SpawnDaemon = (
@@ -148,9 +148,7 @@ const detailOf = (live: Live) => {
 	return [code, live.tail.join(" ")].filter(Boolean).join(": ");
 };
 
-// A refusal carries its reason in data (ADR-046): not_ready lists what core-engine waits for. An
-// error without data, such as invalid params, keeps its message; data that does not parse is a
-// protocol fault.
+// ADR-046: refusals retain readiness reasons or messages; malformed error data is a protocol fault.
 const refusal = (e: ResponseError<unknown>): Result<never, DaemonFailure> => {
 	if (e.data === undefined) return err({ code: "refused", detail: e.message });
 	const data = DaemonErrorDataSchema.safeParse(e.data);
@@ -190,8 +188,7 @@ const call = async <T>(
 	}
 };
 
-// Closing its input is how a daemon is asked to stop; it releases the run lock itself, and a
-// start after a stop that was asked for is not a restart the policy counts.
+// Closing stdin releases the run lock; an intentional restart does not count as a crash.
 const askToStop = (live: Live | undefined) => {
 	if (!live || live.ended) return live;
 	live.stopping = true;
@@ -202,9 +199,7 @@ const askToStop = (live: Live | undefined) => {
 /** The one daemon the host keeps. */
 type Slot = { live?: Live };
 
-// A start after a daemon that ended on its own, in the same folder, is a restart; a first start
-// and a start for another folder are free. Another folder's daemon is asked to stop and waited
-// for first, so the two never hold the same folder's run lock at once.
+// Only same-folder crashes spend restart budget; await the old process before taking its run lock.
 const ensure = async (
 	deps: HostDeps,
 	slot: Slot,
@@ -226,8 +221,6 @@ const ensure = async (
 	return ok(slot.live);
 };
 
-// The requests that only read: the runs, one run's events (ADR-051), the providers' states (ADR-050),
-// the audit log (ADR-053) and the workspace vault's search for the Memory screen (ADR-159).
 const reads = (send: Send) => ({
 	status: (dir: string, runId?: string) =>
 		send(
@@ -236,17 +229,14 @@ const reads = (send: Send) => ({
 			runId === undefined ? {} : { runId },
 			(raw) => DaemonStatusResultSchema.safeParse(raw),
 		),
-	/** A run's persisted events and how many rows no longer parse (ADR-051). */
 	events: (dir: string, runId: string) =>
 		send(dir, DAEMON_METHODS.events, { runId }, (raw) =>
 			DaemonEventsResultSchema.safeParse(raw),
 		),
-	/** The steps of a run's saved conversation (ADR-125). */
 	transcript: (dir: string, runId: string) =>
 		send(dir, DAEMON_METHODS.runTranscript, { runId }, (raw) =>
 			TranscriptSchema.safeParse(raw),
 		),
-	/** The workspace audit log, filtered (ADR-053). */
 	audit: (dir: string, filter: object) =>
 		send(dir, DAEMON_METHODS.audit, filter, (raw) =>
 			DaemonAuditResultSchema.safeParse(raw),
@@ -255,7 +245,6 @@ const reads = (send: Send) => ({
 		send(dir, DAEMON_METHODS.knowledgeSearch, { query }, (raw) =>
 			DaemonKnowledgeSearchResultSchema.safeParse(raw),
 		),
-	/** The folder's working tree, for the Changes panel (ADR-100). */
 	changes: (dir: string, path?: string) =>
 		send(
 			dir,
@@ -263,7 +252,6 @@ const reads = (send: Send) => ({
 			path === undefined ? {} : { path },
 			(raw) => DaemonChangesResultSchema.safeParse(raw),
 		),
-	/** Each provider's state (ADR-050). */
 	quota: (dir: string) =>
 		send(dir, DAEMON_METHODS.quota, {}, (raw) =>
 			DaemonQuotaResultSchema.safeParse(raw),
@@ -286,9 +274,7 @@ const draftRead = (send: Send) => ({
 		),
 });
 
-// What the run composer asks before Start: the team templates (ADR-058) and each one's request
-// estimate (ADR-068); and the text of one template and a tier's models for the team editor
-// (ADR-075, ADR-077).
+// Templates, estimates and model facts for composing runs and teams.
 const composing = (send: Send) => ({
 	templates: (dir: string) =>
 		send(dir, DAEMON_METHODS.templates, {}, (raw) =>
@@ -359,6 +345,9 @@ const steering = (
 		),
 });
 
+const cancellable = (slot: Slot) => (dir: string) =>
+	slot.live?.dir === dir && !slot.live.ended && !slot.live.stopping;
+
 /** Serves the daemon's requests for one folder at a time; another folder replaces the daemon. */
 export const createDaemonHost = (deps: HostDeps) => {
 	const slot: Slot = {};
@@ -373,6 +362,10 @@ export const createDaemonHost = (deps: HostDeps) => {
 		...draftRead(send),
 		...composing(send),
 		...settingsRequests(send),
+		...mcpConnectionRequests(send, cancellable(slot)),
+		...conversationRequests(send),
+		...threadContextRequests(send),
+		...taskControlRequests(send),
 		...steering(send, done),
 		/** Cancels every run of the folder that has not ended (ADR-065). */
 		stopAll: (dir: string) =>
@@ -380,6 +373,24 @@ export const createDaemonHost = (deps: HostDeps) => {
 				DaemonStopAllResultSchema.safeParse(raw),
 			),
 		stop: () => void askToStop(slot.live),
+		restartIdle: async (dir: string): Promise<Result<null, DaemonFailure>> => {
+			const live = slot.live;
+			if (!live || live.dir !== dir || live.ended || live.stopping)
+				return err({
+					code: "stopped",
+					detail:
+						"The workspace daemon changed; refresh before applying settings",
+				});
+			const ready = await call(live, DAEMON_METHODS.quiesce, {}, done);
+			if (!ready.ok) return ready;
+			if (slot.live !== live)
+				return err({
+					code: "stopped",
+					detail: "The workspace changed during restart",
+				});
+			await askToStop(live)?.closed;
+			return ok(null);
+		},
 		/** Stops the daemon and waits until it has ended; the next call starts it again, uncounted (ADR-049). */
 		restart: async () => {
 			await askToStop(slot.live)?.closed;

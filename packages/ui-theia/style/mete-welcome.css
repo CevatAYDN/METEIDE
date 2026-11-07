@@ -6,9 +6,9 @@
 	container-type: inline-size;
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
-	padding: 24px;
-	font-size: 14px;
+	gap: 12px;
+	padding: 12px;
+	font-size: 13px;
 	line-height: 1.4;
 }
 
@@ -26,11 +26,9 @@
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 24px 32px;
-	padding: 24px 24px 24px 28px;
-	background: var(--raised, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line, var(--theia-panel-border));
-	border-radius: 16px;
+	gap: 12px 16px;
+	padding: 0 0 12px;
+	border-bottom: 1px solid var(--line, var(--theia-panel-border));
 }
 
 .mete-welcome-title {
@@ -45,15 +43,15 @@
 	display: grid;
 	place-items: center;
 	box-sizing: border-box;
-	width: 52px;
-	height: 52px;
-	border-radius: 14px;
+	width: 28px;
+	height: 28px;
+	border-radius: 8px;
 	background: color-mix(
 		in srgb,
 		var(--accent, var(--theia-focusBorder)) 16%,
 		var(--panel, var(--theia-editorWidget-background))
 	);
-	border: 1.5px solid
+	border: 1px solid
 		color-mix(
 			in srgb,
 			var(--accent, var(--theia-focusBorder)) 35%,
@@ -67,15 +65,15 @@
 }
 
 .mete-welcome-rocket > .codicon {
-	font-size: 26px;
+	font-size: 18px;
 }
 
 .mete-welcome-title > h2 {
-	margin: 16px 0 0;
-	font-size: 28px;
-	font-weight: 800;
+	margin: 8px 0 0;
+	font-size: 16px;
+	font-weight: 600;
 	line-height: 1.2;
-	letter-spacing: -0.01em;
+	letter-spacing: 0;
 }
 
 .mete-welcome-title > p {
@@ -94,10 +92,8 @@
 	display: flex;
 	flex-direction: column;
 	min-width: 0;
-	padding: 20px 24px 22px;
-	background: var(--panel, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line, var(--theia-panel-border));
-	border-radius: 16px;
+	padding: 12px 0;
+	border-top: 1px solid var(--line, var(--theia-panel-border));
 }
 
 .mete-welcome-step > :nth-child(n + 3) {
@@ -113,7 +109,7 @@
 .mete-welcome-head > h3 {
 	margin: 0;
 	font-size: 18px;
-	font-weight: 800;
+	font-weight: 600;
 	line-height: 1.25;
 }
 
@@ -130,7 +126,7 @@
 	place-items: center;
 	width: 34px;
 	height: 34px;
-	border-radius: 10px;
+	border-radius: 4px;
 	background: color-mix(
 		in srgb,
 		var(--accent, var(--theia-focusBorder)) 14%,
@@ -158,10 +154,10 @@
 .mete-welcome-hero > .mete-welcome-step {
 	flex: 0 1 460px;
 	box-sizing: border-box;
-	padding: 18px 20px 20px;
+	padding: 0;
 	background: transparent;
 	border: 0;
-	border-radius: 14px;
+	border-radius: 8px;
 }
 
 .mete-welcome-hero .mete-welcome-step > .mete-welcome-lead {
@@ -200,7 +196,7 @@
 	align-items: center;
 	gap: 6px 14px;
 	padding: 14px 0;
-	border-top: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-top: 1px solid var(--line-soft, var(--theia-panel-border));
 }
 
 .mete-welcome-providers[data-kind="model"] .mete-key-field,
@@ -288,7 +284,7 @@
 	box-sizing: border-box;
 	width: 6px;
 	height: 6px;
-	border: 1.5px solid currentColor;
+	border: 1px solid currentColor;
 	border-radius: 50%;
 }
 
@@ -298,11 +294,7 @@
 		var(--good, var(--theia-testing-iconPassed)) 14%,
 		var(--panel, var(--theia-editorWidget-background))
 	);
-	color: color-mix(
-		in srgb,
-		var(--good, var(--theia-testing-iconPassed)) 60%,
-		var(--ink, var(--theia-foreground))
-	);
+	color: var(--ink, var(--theia-foreground));
 }
 
 .mete-welcome-state[data-set="true"]::before {
@@ -317,7 +309,7 @@
 	height: 24px;
 	padding: 0 7px;
 	border: 0;
-	border-radius: 10px;
+	border-radius: 4px;
 	background: transparent;
 	font: inherit;
 	font-size: 13px;
@@ -343,7 +335,7 @@
 	gap: 10px;
 	margin-top: 6px;
 	padding-top: 14px;
-	border-top: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-top: 1px solid var(--line-soft, var(--theia-panel-border));
 }
 
 .mete-welcome .mete-form-target {
@@ -364,8 +356,8 @@
 	gap: 16px;
 	padding: 16px 20px;
 	background: var(--raised, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line, var(--theia-panel-border));
-	border-radius: 16px;
+	border: 1px solid var(--line, var(--theia-panel-border));
+	border-radius: 8px;
 }
 
 .mete-welcome-start > .mete-button {

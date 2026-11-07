@@ -98,8 +98,8 @@ describe("draftOf and teamOf", () => {
 		).tasks[0]?.verify;
 		expect(runsOf(verify ?? [])).toEqual(["npm test"]);
 		expect(withRuns(verify ?? [], ["npm run build"])).toEqual([
-			"oops",
 			{ run: "npm run build" },
+			"oops",
 		]);
 	});
 });
@@ -237,6 +237,99 @@ describe("the rules of the work", () => {
 			{ run: "npm test" },
 		]);
 		expect(withRuns([{ run: "npm test" }], [])).toBeUndefined();
+	});
+
+	it("keeps interleaved gates and unknown command fields when commands are unchanged", () => {
+		const gates = [
+			{ run: "npm test", future: { retries: 4 } },
+			{
+				capability: "gameengine.build@1",
+				args: { a: 1 },
+				expect: { ok: true },
+			},
+			"unreadable gate",
+			{ run: "npm run build", extra: ["keep"] },
+		];
+		const next = withRuns(gates, runsOf(gates));
+		expect(next).toEqual(gates);
+		for (const [i, gate] of gates.entries()) expect(next?.[i]).toBe(gate);
+	});
+
+	it("removes only the selected command without shifting surviving commands past capability gates", () => {
+		const gates = [
+			{ run: "first", extra: 1 },
+			{ capability: "gameengine.build@1", args: { nested: [1, 2] } },
+			{ run: "second", extra: 2 },
+			{ capability: "gameengine.test@1", expect: false },
+			{ run: "third", extra: 3 },
+		];
+		expect(withRuns(gates, ["second", "third"])).toEqual(gates.slice(1));
+		expect(withRuns(gates, ["first", "third"])).toEqual([
+			gates[0],
+			gates[1],
+			gates[3],
+			gates[4],
+		]);
+		expect(withRuns(gates, [])).toEqual([gates[1], gates[3]]);
+	});
+
+	it("replaces commands in their original slots, keeps their extra fields, and appends additions", () => {
+		const gates = [
+			{ run: "old", extra: { keep: true } },
+			{ capability: "gameengine.build@1", future: ["keep"] },
+			{ run: "unchanged", extra: 2 },
+			{ broken: true },
+		];
+		expect(withRuns(gates, ["new", "unchanged", "added"])).toEqual([
+			{ run: "new", extra: { keep: true } },
+			gates[1],
+			gates[2],
+			gates[3],
+			{ run: "added" },
+		]);
+		expect(gates[0]?.run).toBe("old");
+		expect(withRuns([], [])).toBeUndefined();
+	});
+
+	it("roundtrips interleaved verify entries and unknown fields through the YAML draft", () => {
+		const doc = draft(`tasks:
+  - id: t
+    verify:
+      - { run: first, future: { keep: true } }
+      - { capability: gameengine.build@1, args: { target: web }, expect: false }
+      - { run: second, extra: [keep] }
+      - { unknown: untouched }
+`);
+		const gates = teamOf(doc).tasks[0]?.verify ?? [];
+		const next = edited(
+			doc,
+			["tasks", 0, "verify"],
+			withRuns(gates, ["second", "added"]),
+		);
+		const reopened = draft(next.toString());
+		expect(teamOf(reopened).tasks[0]?.verify).toEqual([
+			gates[1],
+			gates[2],
+			gates[3],
+			{ run: "added" },
+		]);
+		expect(teamOf(doc).tasks[0]?.verify).toEqual(gates);
+	});
+
+	it("keeps fields attached to reordered and repeated commands rather than to another command", () => {
+		const gates = [
+			{ run: "first", extra: 1 },
+			{ capability: "gameengine.build@1" },
+			{ run: "second", extra: 2 },
+			{ run: "second", extra: 3 },
+		];
+		expect(withRuns(gates, ["second", "first", "second"])).toEqual([
+			gates[2],
+			gates[1],
+			gates[0],
+			gates[3],
+		]);
+		expect(withRuns(gates, runsOf(gates))).toEqual(gates);
 	});
 
 	it("turns the human checkpoint of a task on and off, and drops it with the task", () => {

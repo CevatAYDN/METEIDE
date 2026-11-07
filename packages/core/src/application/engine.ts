@@ -1,30 +1,29 @@
 import {
 	type ApprovalInput,
+	type ConversationCapability,
 	type EngineError,
 	err,
 	type ModelRef,
 	ok,
-	PolicySchema,
 	type Result,
-	type RunPrefer,
 	type RunStart,
 	RunStartSchema,
 	type TeamEngineAdapter,
 } from "@mete/contracts";
-import type { ConfigInvalid } from "@mete/kernel";
-import { initialTransition, transition } from "xstate";
 import { z } from "zod";
-import type { Budget } from "../domain/next-step.js";
-import { openingMessages } from "../domain/prompt.js";
-import { runMachine } from "../domain/run-machine.js";
 import { type TeamState, teamOf } from "../domain/team.js";
 import {
 	loadTemplate,
 	type TemplateError,
 } from "../infrastructure/template-store.js";
 import { recordDecision } from "./approvals.js";
-import { type Opening, offerBrief, takeHandoff } from "./continue.js";
+import { begin } from "./begin.js";
+import { createCheckpointQueue } from "./checkpoint-queue.js";
+import { offerBrief, takeHandoff } from "./continue.js";
+import { createConversation } from "./conversation.js";
+import { policy } from "./engine-policy.js";
 import { nextPrefer, validateStartPrefer } from "./pinned.js";
+import { createQuiescence, gateAdapters, retiring } from "./quiesce.js";
 import { recover } from "./recovery.js";
 import { removeRun } from "./remove.js";
 import { createReply, type ReplyStart } from "./reply.js";
@@ -37,15 +36,19 @@ import {
 	clearTimer,
 	type EngineDeps,
 	type EngineState,
-	emit,
 	hold,
-	iso,
 	type Live,
 	loaded,
 	peek,
-	platformOf,
 } from "./run-state.js";
-import { announce } from "./spawned.js";
+import { createTaskControl } from "./task-control.js";
+import {
+	forgetPolicyRequests,
+	recoverTaskControls,
+} from "./task-control-recovery.js";
+import { createThreadContext } from "./thread-context.js";
+import { createThreadMutations } from "./thread-mutations.js";
+import { createThreadReads } from "./thread-reads.js";
 import { readTranscript } from "./transcript.js";
 import { readWorkspace } from "./workspace.js";
 
@@ -53,37 +56,12 @@ import { readWorkspace } from "./workspace.js";
 
 type Out<T> = Promise<Result<T, EngineError>>;
 
-const fromConfig = (e: ConfigInvalid): EngineError => ({
-	code: "bad_input",
-	message: `${e.file}: ${e.path}: ${e.reason}`,
-});
-
 const invalid = (l: Live, call: string): Result<never, EngineError> =>
 	err({
 		code: "invalid_state",
 		message: `cannot ${call} a ${l.snapshot.value} run`,
 		status: l.snapshot.value,
 	});
-
-// The policy's autonomy and budget (SECURITY.md); a team run takes the lower of the policy's
-// and its template's budget, so a template never raises the user's limit.
-const policy = (
-	s: EngineState,
-	team?: TeamState,
-): Result<{ autonomy: 0 | 1 | 2 | 3; budget: Budget }, EngineError> => {
-	const p = s.deps.config.get("policy", PolicySchema);
-	if (!p.ok) return err(fromConfig(p.error));
-	const b = p.value.budget;
-	const t = team?.template.budget;
-	const budget = {
-		cloudRequests: Math.min(
-			b.cloud_requests_per_run,
-			t?.cloud_requests ?? Infinity,
-		),
-		maxHours: Math.min(b.max_hours, t?.max_hours ?? Infinity),
-	};
-	return ok({ autonomy: p.value.autonomy, budget });
-};
 
 const find = (s: EngineState, runId: string): Result<Live, EngineError> => {
 	const held = s.live.get(runId);
@@ -97,77 +75,6 @@ const find = (s: EngineState, runId: string): Result<Live, EngineError> => {
 		: err({ code: "not_found", message: `no run ${runId}` });
 };
 
-/** What begin() needs: the run id made before a handoff was taken, the goal, the opening. */
-type Begin = {
-	readonly id: string;
-	readonly goal: string;
-	readonly priority: 0 | 1 | 2;
-	readonly team?: TeamState | undefined;
-	readonly opening: Opening;
-	readonly prefer?: RunPrefer | undefined;
-	/** The workspace block, read once when the run starts (ADR-126). */
-	readonly workspace?: string | undefined;
-	readonly conversation?: Pick<ReplyStart, "messages" | "tainted">;
-};
-
-const begin = (
-	s: EngineState,
-	{ id, goal, priority, team, opening, prefer, workspace, conversation }: Begin,
-): Result<{ runId: string }, EngineError> => {
-	const p = policy(s, team);
-	if (!p.ok) return p;
-	const where = platformOf(s);
-	if (!where.ok) return err(fromConfig(where.error));
-	const brief = opening.brief;
-	// A team task opens its own conversation when it starts (team-driver).
-	const messages =
-		conversation?.messages ??
-		(team ? [] : openingMessages(goal, where.value, brief, workspace));
-	const input = {
-		goal,
-		priority,
-		messages,
-		brief,
-		workspace,
-		prefer,
-		tainted: conversation?.tainted,
-	};
-	const [fresh] = initialTransition(runMachine, input);
-	const snapshot = team
-		? transition(runMachine, fresh, { type: "TEAM", team })[0]
-		: fresh;
-	const at = s.deps.now();
-	const meta = {
-		id,
-		workspaceId: s.deps.workspaceId,
-		autonomyLevel: p.value.autonomy,
-		budget: p.value.budget,
-		createdAt: iso(at),
-	};
-	s.deps.store.save(meta, snapshot);
-	const l = hold(s, meta, snapshot);
-	const templateId = team?.template.metadata.id ?? null;
-	emit(s, l, { type: "run.created", payload: { templateId, goal } });
-	if (opening.accepted)
-		emit(s, l, {
-			type: "handoff.accepted",
-			payload: { handoffId: opening.accepted, byRunId: id },
-		});
-	apply(s, l, { type: "START", at });
-	if (team) created(s, l, team);
-	drive(s, l);
-	return ok({ runId: meta.id });
-};
-
-// task.created for every task, in template order, once the run started and before its first step.
-const created = (s: EngineState, l: Live, team: TeamState) =>
-	announce(
-		s,
-		l,
-		team,
-		team.template.tasks.map((t) => t.id),
-	);
-
 const fromTemplate = (e: TemplateError): EngineError =>
 	e.code === "invalid_template"
 		? { code: "bad_input", message: e.issues.join("; ") }
@@ -176,7 +83,11 @@ const fromTemplate = (e: TemplateError): EngineError =>
 				message: e.message,
 			};
 
-const start = async (s: EngineState, req: RunStart): Out<{ runId: string }> => {
+const start = async (
+	s: EngineState,
+	req: RunStart,
+	extraCapabilities: readonly ConversationCapability[] = [],
+): Out<{ runId: string }> => {
 	const r = RunStartSchema.safeParse(req);
 	if (!r.success)
 		return err({ code: "bad_input", message: z.prettifyError(r.error) });
@@ -206,6 +117,7 @@ const start = async (s: EngineState, req: RunStart): Out<{ runId: string }> => {
 		opening: opening.value,
 		prefer,
 		workspace: await readWorkspace(s.deps, id),
+		extraCapabilities,
 	});
 };
 
@@ -234,6 +146,7 @@ const pause = async (s: EngineState, runId: string): Out<void> => {
 
 // The budget is read again, so a raised budget clears a budget pause (docs/08).
 const resume = async (s: EngineState, runId: string): Out<void> => {
+	if (s.quiescing) return retiring();
 	const l = find(s, runId);
 	if (!l.ok) return l;
 	if (!l.value.snapshot.can({ type: "RESUME", at: 0 }))
@@ -287,6 +200,7 @@ const cancel = async (s: EngineState, runId: string): Out<void> => {
 	if (!apply(s, l.value, { type: "CANCEL", at: s.deps.now() }))
 		return invalid(l.value, "cancel");
 	l.value.all.abort();
+	forgetPolicyRequests(s, runId);
 	clearTimer(l.value);
 	return ok(undefined);
 };
@@ -321,6 +235,7 @@ const pauseEnded = (s: EngineState, runId: string) => {
 
 /** Pauses every running run, aborts what is in flight and waits for the loops to stop. */
 const stop = async (s: EngineState) => {
+	s.quiescing = true;
 	for (const l of s.live.values()) {
 		apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "user" });
 		l.all.abort();
@@ -329,47 +244,73 @@ const stop = async (s: EngineState) => {
 	await Promise.allSettled([...s.live.values()].map((l) => l.loop));
 };
 
+const engineAdapter = (s: EngineState): TeamEngineAdapter => ({
+	start: (req) => start(s, req),
+	pause: (runId) => pause(s, runId),
+	resume: (runId) => resume(s, runId),
+	cancel: (runId) => cancel(s, runId),
+	approve: (runId, input) => approveRun(s, runId, input),
+	status: (runId) => status(s, runId),
+	model: (runId, model, roleId) => updateModel(s, runId, model, roleId),
+	transcript: (runId) => readTranscript(s, runId),
+	remove: (runId) => removeRun(s, runId),
+});
+
+const adaptersOf = (s: EngineState) => {
+	const { context, ...threadMutations } = createThreadMutations(s);
+	const threadReads = createThreadReads(s);
+	const replyStart = ({ messages, tainted, ...input }: ReplyStart) =>
+		begin(s, {
+			...input,
+			id: s.deps.newId(),
+			opening: {},
+			conversation: { messages, tainted },
+		});
+	return {
+		engine: engineAdapter(s),
+		reply: createReply(s, replyStart),
+		conversation: createConversation(s, {
+			start: (req, extras) => start(s, req, extras),
+			reply: replyStart,
+		}),
+		thread: { ...threadMutations, ...threadReads },
+		threadContext: createThreadContext(s, context, threadReads),
+		restore: createCheckpointRestore(s.deps, async (runId) => {
+			await s.live.get(runId)?.loop;
+		}),
+	};
+};
+
 /**
  * Creates team.engine@2; the module calls `recover` when it activates in the process that drives runs
  * (it also prunes old checkpoints), and `stop` when it deactivates.
  */
 export const createEngine = (deps: EngineDeps) => {
 	const s: EngineState = {
-		deps,
+		deps: { ...deps, checkpointQueue: createCheckpointQueue() },
 		live: new Map(),
 		onPauseEnded: (runId) => pauseEnded(s, runId),
 	};
-	const engine: TeamEngineAdapter = {
-		start: (req) => start(s, req),
-		pause: (runId) => pause(s, runId),
-		resume: (runId) => resume(s, runId),
-		cancel: (runId) => cancel(s, runId),
-		approve: (runId, input) => approveRun(s, runId, input),
-		status: (runId) => status(s, runId),
-		model: (runId, model, roleId) => updateModel(s, runId, model, roleId),
-		transcript: (runId) => readTranscript(s, runId),
-		remove: (runId) => removeRun(s, runId),
-	};
+	const gate = createQuiescence(s);
+	const tasks = createTaskControl(s, {
+		find: (id) => find(s, id),
+		resume: (id) => resume(s, id),
+	});
 	return {
-		engine,
-		reply: createReply(s, ({ messages, tainted, ...input }) =>
-			begin(s, {
-				...input,
-				id: s.deps.newId(),
-				opening: {},
-				conversation: { messages, tainted },
-			}),
-		),
+		tasks: {
+			pending: tasks.pending,
+			answer: (input: Parameters<typeof tasks.answer>[0]) =>
+				gate.enter(() => tasks.answer(input)),
+		},
+		...gateAdapters(gate, adaptersOf(s)),
 		// Only the process that drives runs recovers them and prunes old checkpoints, so a command
 		// that only reads (mete status, mete events) never removes refs a live run may still use.
 		recover: () => {
 			recover(s, find);
+			recoverTaskControls(s);
 			void pruneOldCheckpoints(s.deps);
 		},
 		stop: () => stop(s),
-		restore: createCheckpointRestore(deps, async (runId) => {
-			await s.live.get(runId)?.loop;
-		}),
 	};
 };
 

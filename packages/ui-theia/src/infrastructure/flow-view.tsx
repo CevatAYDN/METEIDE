@@ -58,7 +58,7 @@ const nodeStyle = (data: FlowNodeData): CSSProperties => ({
 	border: borderOf(data),
 	background: "var(--panel, var(--theia-editor-background))",
 	color: "var(--ink, var(--theia-foreground))",
-	borderRadius: "10px",
+	borderRadius: "8px",
 	width: 200,
 });
 

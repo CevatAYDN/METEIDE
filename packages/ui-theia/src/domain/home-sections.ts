@@ -7,6 +7,7 @@ import { type HomeModel, waitingCount } from "./home-model.js";
 /** The sections, in the order the METE view stacks them. */
 export const HOME_SECTIONS = [
 	"waiting",
+	"conversations",
 	"runs",
 	"workspaces",
 	"quota",
@@ -31,7 +32,11 @@ export const sectionCount = (
 		case "waiting":
 			return model.kind === "runs" ? waitingCount(model) : undefined;
 		case "runs":
-			return model.kind === "runs" ? model.rows.length : undefined;
+			return model.kind === "runs"
+				? model.rows.filter((row) => row.templateId !== null).length
+				: undefined;
+		case "conversations":
+			return undefined;
 		case "workspaces":
 			return workspaces;
 		case "quota":

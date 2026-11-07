@@ -19,8 +19,13 @@ import type {
 import { createGrants } from "./application/grants.js";
 import {
 	type AuditWriter,
+	type CheckHooks,
 	createPolicyCheck,
 } from "./application/policy-check.js";
+import {
+	createPolicyRequests,
+	type PolicyRequests,
+} from "./application/policy-requests.js";
 import {
 	AUDIT_MIGRATIONS,
 	createAuditWriter,
@@ -126,7 +131,12 @@ const MANIFEST: ModuleManifest = {
 	displayName: "Security",
 	class: "essential",
 	trust: "core",
-	provides: ["policy.check@1", "policy.grant@1", "secrets.mask@1"],
+	provides: [
+		"policy.check@1",
+		"policy.grant@1",
+		"policy.requests@1",
+		"secrets.mask@1",
+	],
 	requires: ["storage.sql@1"],
 	optional: [],
 	activation: ["onStartup"],
@@ -141,6 +151,21 @@ const failed = (message: string): ModuleError => ({
 });
 
 const masker: SecretsMaskAdapter = { mask: maskSecrets };
+const requestHooks = (
+	requests: PolicyRequests,
+	ctx: ModuleContext,
+): NonNullable<CheckHooks["requests"]> => ({
+	take: requests.take,
+	forget: requests.forget,
+	remember(input, verdict) {
+		const result = requests.remember(input, verdict);
+		if (!result.ok)
+			ctx.logger.warn(
+				{ code: result.error.code },
+				"policy request identity not retained",
+			);
+	},
+});
 
 // The policy as it is at each check (ADR-073). `since` is the files' stamp from before the policy was
 // read, so an edit during activation is not missed.
@@ -183,17 +208,21 @@ const checkerOf = (
 		now,
 	);
 	const grants = createGrants();
+	const requests = createPolicyRequests({
+		mask: async (text) => (await maskSecrets(text)).text,
+	});
 	const asks = announcingAsks(ctx, opts.workspaceId, now);
 	const check = createPolicyCheck(env, write, {
 		now,
 		grants,
+		requests: requestHooks(requests, ctx),
 		asked: asks.asked,
 	});
 	const grant: PolicyGrantAdapter = { grant: (input) => grants.grant(input) };
-	return { check, grant, settled: asks.settled };
+	return { check, grant, requests, settled: asks.settled };
 };
 
-/** Creates the security module, which provides policy.check@1, policy.grant@1 and secrets.mask@1. */
+/** Creates security's policy checks, legacy grants, exact requests and secret masking. */
 export const createSecurityModule = (opts: SecurityOptions): MeteModule => {
 	let created: Disposable[] = [];
 	let settled = async () => {};
@@ -221,6 +250,14 @@ export const createSecurityModule = (opts: SecurityOptions): MeteModule => {
 				ctx.capabilities.provide("policy.grant@1", {
 					...core,
 					impl: policies.grant,
+				}),
+				ctx.capabilities.provide("policy.requests@1", {
+					...core,
+					impl: {
+						pending: policies.requests.pending,
+						grant: policies.requests.grant,
+						forget: policies.requests.forget,
+					},
 				}),
 				ctx.capabilities.provide("secrets.mask@1", { ...core, impl: masker }),
 			];

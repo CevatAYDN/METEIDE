@@ -102,3 +102,17 @@ export const PROGRESS_EVERY_MS = 1_000;
 
 /** Tab 10, MCP client (Authentication): how many sign-in addresses one connection asks for while each is refused. */
 export const SIGN_IN_ATTEMPTS = 3;
+
+/** ADR-184: deadline of one explicit desktop authorization attempt. */
+export const OAUTH_TIMEOUT_MS = 300_000;
+/** ADR-184: OS-keychain pieces remain below Windows' per-entry limit. */
+export const CREDENTIAL_PIECE_CHARS = 1000;
+export const CREDENTIAL_MAX_PIECES = 64;
+/** ADR-184: reject oversized callback requests before parsing or reflecting them. */
+export const OAUTH_CALLBACK_URL_CHARS = 8192;
+export const OAUTH_CALLBACK_CODE_CHARS = 4096;
+export const OAUTH_CALLBACK_STATE_CHARS = 128;
+/** ADR-184: maximum OAuth error bytes inspected before replacing unsafe diagnostics. */
+export const OAUTH_ERROR_BYTES = 16_384;
+/** ADR-184: bounded token responses before SDK parsing and diagnostic logging. */
+export const OAUTH_TOKEN_BYTES = 65_536;

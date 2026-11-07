@@ -1,0 +1,168 @@
+/* ADR-180: catalog, server rows and guided setup use the Settings surface. */
+.mete-settings .mete-tools-catalog,
+.mete-settings .mete-tools-review,
+.mete-settings .mete-tool-list,
+.mete-settings .mete-tool-setup,
+.mete-settings .mete-tool-fields {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+}
+
+.mete-settings .mete-mcp-connection {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+	padding-block: 8px;
+	overflow-wrap: anywhere;
+}
+
+.mete-settings .mete-mcp-connection .mete-field {
+	width: 100%;
+	min-width: 0;
+	box-sizing: border-box;
+}
+
+.mete-settings .mete-mcp-connection .mete-button:not(.icon) {
+	height: auto;
+	min-height: 28px;
+	white-space: normal;
+	text-align: start;
+}
+
+.mete-settings .mete-tools-results {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.mete-settings .mete-tools-result,
+.mete-settings .mete-tool-row-head {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px 12px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.mete-settings .mete-tools-result,
+.mete-settings .mete-tool-row {
+	padding: 10px 0;
+	border-bottom: 1px solid var(--line, var(--theia-panel-border));
+}
+
+.mete-settings .mete-tools-result > :first-child,
+.mete-settings .mete-tool-row-head > strong {
+	flex: 1;
+	min-width: 0;
+}
+
+.mete-settings .mete-tools-review,
+.mete-settings .mete-tool-setup {
+	padding-block: 10px;
+	border-block: 1px solid var(--line, var(--theia-panel-border));
+}
+
+.mete-settings .mete-tool-pair {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-items: start;
+	gap: 10px 12px;
+	min-width: 0;
+}
+
+.mete-settings .mete-tools-form {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 8px;
+}
+
+.mete-settings .mete-tool-modes {
+	border: 0;
+	padding: 0;
+	margin: 0;
+	min-width: 0;
+}
+
+.mete-settings .mete-tools-review pre {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	margin: 0;
+}
+
+.mete-settings .mete-tools-form label,
+.mete-settings .mete-tool-field,
+.mete-settings .mete-tool-fields > label {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+.mete-settings .mete-tools-actions,
+.mete-settings .mete-tool-actions,
+.mete-settings .mete-tool-modes {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.mete-settings .mete-tool-fields,
+.mete-settings .mete-tool-permissions {
+	margin: 8px 0 0;
+	padding: 0;
+	border: 0;
+}
+
+.mete-settings .mete-tool-permissions legend {
+	margin-bottom: 6px;
+}
+
+.mete-settings .mete-tool-permissions label {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.mete-settings .mete-tool-advanced {
+	margin-top: 8px;
+}
+
+.mete-settings .mete-tool-advanced > summary {
+	width: fit-content;
+	cursor: pointer;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+}
+
+.mete-settings .mete-tool-fields > .mete-button {
+	align-self: flex-start;
+}
+
+.mete-settings .mete-tools-error,
+.mete-settings .mete-tool-field [role="alert"],
+.mete-settings .mete-tool-setup > [role="alert"] {
+	margin: 0;
+	color: var(--bad, var(--theia-errorForeground));
+	overflow-wrap: anywhere;
+}
+
+.mete-settings .mete-tool-field [aria-invalid="true"] {
+	border-color: var(--bad, var(--theia-inputValidation-errorBorder));
+}
+
+.mete-settings .mete-tools-note {
+	margin: 0;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+	overflow-wrap: anywhere;
+}
+
+@container (max-width: 600px) {
+	.mete-settings .mete-tool-pair {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}

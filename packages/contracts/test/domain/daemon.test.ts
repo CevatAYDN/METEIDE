@@ -63,7 +63,7 @@ const run: RunView = {
 	prefer: { writer: { providerId: "groq", modelId: "llama-3.3-70b" } },
 };
 
-describe("daemon protocol version 24", () => {
+describe("daemon protocol version 33", () => {
 	it("answers mete/events with the run's events in order and the count of unreadable rows", () => {
 		const event = {
 			id: crypto.randomUUID(),
@@ -169,10 +169,26 @@ describe("daemon protocol version 24", () => {
 
 	it("names the messages of ARCHITECTURE.md", () => {
 		expect(DAEMON_METHODS).toEqual({
+			conversationStart: "mete/conversation.start",
+			conversationReply: "mete/conversation.reply",
+			threadStart: "mete/thread.start",
+			threadReply: "mete/thread.reply",
+			threadList: "mete/thread.list",
+			threadRead: "mete/thread.read",
+			threadContextPrepare: "mete/thread.context.prepare",
+			threadContextStart: "mete/thread.context.start",
+			threadContextReply: "mete/thread.context.reply",
+			threadContextRead: "mete/thread.context.read",
+			registrySearch: "mete/registry.search",
+			registryPrepare: "mete/registry.prepare",
+			registrySetup: "mete/registry.setup",
+			quiesce: "mete/daemon.quiesce",
 			status: "mete/status",
 			runStart: "mete/run.start",
 			runReply: "mete/run.reply",
 			runApprove: "mete/run.approve",
+			taskPending: "mete/task.pending",
+			taskAnswer: "mete/task.answer",
 			runResume: "mete/run.resume",
 			runAllow: "mete/run.allow",
 			runModel: "mete/run.model",
@@ -195,13 +211,14 @@ describe("daemon protocol version 24", () => {
 			memberDraft: "mete/member.draft",
 			knowledgeSearch: "mete/knowledge.search",
 			mcpTest: "mete/mcp.test",
+			mcpConnection: "mete/mcp.connection",
 			event: "mete/event",
 		});
 	});
 
-	it("counts 26 requests and one notification, and names version 28 (ARCHITECTURE.md)", () => {
-		expect(Object.keys(DAEMON_METHODS)).toHaveLength(27);
-		expect(DAEMON_PROTOCOL_VERSION).toBe(28);
+	it("counts 43 requests and one notification, and names version 33 (ARCHITECTURE.md)", () => {
+		expect(Object.keys(DAEMON_METHODS)).toHaveLength(44);
+		expect(DAEMON_PROTOCOL_VERSION).toBe(33);
 	});
 
 	it("takes the words and an optional note type for mete/knowledge.search, and reads its hits (ADR-159)", () => {

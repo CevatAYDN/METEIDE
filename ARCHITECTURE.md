@@ -71,14 +71,31 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 
 ## Daemon protocol
 
-`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 28 (ADR-178) has twenty-six requests and one notification, and each side validates what it receives with the schemas in `@mete/contracts` (`daemon.ts`) \[D\]:
+`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 33 (ADR-184) adds explicit MCP management and structured registry setup to version 32's editor context, and each side validates what it receives with the schemas in `@mete/contracts` \[D\]:
 
 | Message | Kind | Params | Result |
 | --- | --- | --- | --- |
 | `mete/status` | request | `{ runId? }` | the `RunView` list that `mete status` prints, with the run's model choice `prefer` (ADR-122) when one run is asked (ADR-125); on failure a JSON-RPC error whose `data.code` is the `EngineError` code, or `not_ready` with `data.reasons` (the lines `mete status` prints) while core-engine is not active |
 | `mete/run.start` | request | the `RunStart` of team.engine@2: `{ goal?, templateId?, priority?, continue?, prefer? }` | `{ runId }`; errors as for `mete/status`, and `choose_template` carries the router's `data.suggestions` |
 | `mete/run.reply` | request | `run.reply@1`: `{ runId, message }` | new `{ runId }`; completed single-agent history is preserved, predecessor unchanged; errors as for `mete/status` (ADR-178, protocol 28) |
+| `mete/conversation.start` | request | `conversation.run@1`: `{ goal, prefer?, capabilities? }` | new `{ runId }`; a single agent with explicit optional capability groups, default `[]` (ADR-180) |
+| `mete/conversation.reply` | request | `conversation.run@1`: `{ runId, message, capabilities? }` | new `{ runId }`; omission inherits the completed predecessor's tool groups; history and taint retained, predecessor unchanged (ADR-180) |
+| `mete/thread.start` | request | `{ requestId, goal, prefer?, capabilities? }` | `{ conversationId, runId }`; durable idempotent start through `conversation.thread@1` (ADR-182) |
+| `mete/thread.reply` | request | `{ conversationId, expectedRunId, requestId, message, capabilities? }` | `{ conversationId, runId }`; identical receipt replays, changed intents/stale heads are refused (ADR-182) |
+| `mete/thread.list` | request | `{ query?, limit?, cursor?: { updatedAt, id } }` | `{ conversations, nextCursor? }`; masked local title/authored-message search, bounded pages (ADR-182) |
+| `mete/thread.read` | request | `{ runId }` | `{ conversation, turns }`; retained runs in order, current head and stable conversation identity (ADR-182) |
+| `mete/thread.context.prepare` | request | `{ path, content, modified, range? }` | Masked, canonical snapshot with `sha256`; local only, no run or model call (ADR-183) |
+| `mete/thread.context.start` | request | @1 start fields plus `attachments?` | `{ conversationId, runId }` through `conversation.thread@2`; snapshots participate in atomic admission and exact retry (ADR-183) |
+| `mete/thread.context.reply` | request | @1 reply fields plus `attachments?` | `{ conversationId, runId }`; exact head, reviewed snapshots and immutable predecessor (ADR-183) |
+| `mete/thread.context.read` | request | `{ runId }` | `{ runId, attachments }`, masked snapshots sent with that turn; empty for legacy runs (ADR-183) |
+| `mete/registry.search` | request | `{ query }` | `{ entries }` from the MCP registry chain; read-only, no installation, available before core-engine is ready (ADR-180) |
+| `mete/registry.prepare` | request | `{ name }` | `{ server, notes, source }`: official pinned MCP draft and setup requirements; never saves, installs or connects (ADR-180) |
+| `mete/registry.setup` | request | `{ name }` | `{ server, notes, source, fields, blocked }`: structured requirements; no installation, credentials or model provider needed (ADR-184) |
+| `mete/mcp.connection` | request | `{ op: status \| start \| forget, expected }` or `{ op: cancel, expected, attemptId }` | `{ state, authorizationUrl? }`: strict local states and configured booleans, no tokens; only start can return the system-browser URL. Mutations require exact loaded configuration and idle admission; cancel addresses one attempt (ADR-184) |
+| `mete/daemon.quiesce` | request | `{}` | `null` after `run.quiesce@1` atomically refuses active runs/starts, blocks subsequent starts/resumes, clears timers and drains paused loops. The host then closes this exact daemon; unknown state refuses (ADR-180) |
 | `mete/run.approve` | request | `{ runId, input }`, `input` the `ApprovalInput` of team.engine@2 | `null`; errors as for `mete/status` |
+| `mete/task.pending` | request | `{ runId }` | `{ requests }` from `task.control@1`: exact pending identities with masked display data (ADR-181) |
+| `mete/task.answer` | request | `TaskControlAnswer`: `{ runId, taskId, requestId, decision, ... }`; allow takes `scope`, revise/answer take `feedback` | `null`; stale identities fail closed; no replacement action arguments or configuration writes (ADR-181) |
 | `mete/run.resume` | request | `{ runId }` | `null`; errors as for `mete/status` |
 | `mete/run.allow` | request | `{ runId, scope }`, `scope` `once`, `run` or `always` | `null`: grants the run's newest `policy.asked` and resumes the run, as `mete allow` does (ADR-121); `not_found` when the run is not paused for approval or has no such ask, `bad_input` for `always` on an ask that is no command; errors as for `mete/status` |
 | `mete/run.model` | request | `{ runId, roleId?, model }` | `null`: sets or clears a run-specific model preference (`null` clears), taking priority over `.mete/pins.yaml` on the next call and saved in the snapshot; errors as for `mete/status` (ADR-122) |

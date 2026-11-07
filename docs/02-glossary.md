@@ -15,6 +15,7 @@ Every term below has exactly one meaning across all tabs. Code identifiers use t
 | Capability | A named, versioned unit of functionality, for example `knowledge.search@1` |
 | Capability contract | Zod input and output schemas plus required and optional features of a capability |
 | Checkpoint | A restorable snapshot taken before a step that writes |
+| Conversation | A persistent identity grouping explicit single-agent message turns; each turn still has its own immutable run (ADR-182) |
 | Clarification | A question an agent asks the task giver before starting work |
 | Code knowledge graph | Nodes (files, symbols, concepts) and edges (imports, calls, references) extracted from a workspace |
 | Custom endpoint | A user-added provider defined by base URL, API key, headers and API format |

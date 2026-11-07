@@ -243,8 +243,8 @@ describe("parseEvent", () => {
 });
 
 describe("EVENT_TYPES", () => {
-	it("covers the 46 types of the catalog in tab 07, all well formed", () => {
-		expect(EVENT_TYPES).toHaveLength(46);
+	it("covers the 48 types of the catalog in tab 07, all well formed", () => {
+		expect(EVENT_TYPES).toHaveLength(48);
 		for (const t of EVENT_TYPES) expect(EventTypeSchema.parse(t)).toBe(t);
 	});
 

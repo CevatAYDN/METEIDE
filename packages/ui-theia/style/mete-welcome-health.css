@@ -17,7 +17,7 @@
 	font-weight: 600;
 	color: color-mix(
 		in srgb,
-		var(--good, var(--theia-testing-iconPassed)) 60%,
+		var(--good, var(--theia-testing-iconPassed)) 20%,
 		var(--ink, var(--theia-foreground))
 	);
 }
@@ -35,7 +35,7 @@
 	font-weight: 600;
 	color: color-mix(
 		in srgb,
-		var(--bad, var(--theia-errorForeground)) 65%,
+		var(--bad, var(--theia-errorForeground)) 20%,
 		var(--ink, var(--theia-foreground))
 	);
 }

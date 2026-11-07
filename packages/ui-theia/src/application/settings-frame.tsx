@@ -25,6 +25,7 @@ const LINK_ICONS: Readonly<Record<string, string>> = {
 	"mete.key.set": "key",
 	"preferences:open": "settings-gear",
 	"workbench.action.configureLanguage": "globe",
+	"vsxExtensions.toggle": "extensions",
 };
 
 /** The hero band: the title and caption with Refresh, then the loaded screen's note and scope switch. */
@@ -40,20 +41,74 @@ export const Hero = ({
 	<ScreenHero
 		icon="settings"
 		title={nls.localize("mete/settings/title", "Settings")}
-		caption={nls.localize(
-			"mete/settings/caption",
-			"METE: the configuration it loaded",
-		)}
+		caption={null}
 		actions={
-			<button type="button" className="mete-button quiet" onClick={onRefresh}>
+			<button
+				type="button"
+				className="mete-button quiet icon"
+				aria-label={nls.localize("mete/settings/refresh", "Refresh")}
+				title={nls.localize("mete/settings/refresh", "Refresh")}
+				onClick={onRefresh}
+			>
 				<Icon name="refresh" />
-				{nls.localize("mete/settings/refresh", "Refresh")}
 			</button>
 		}
 		aside={scope}
 	>
 		{note}
 	</ScreenHero>
+);
+
+/** Search stays local to the screen and never changes a setting or its draft. */
+export const SettingsSearch = ({
+	query,
+	onQuery,
+}: {
+	readonly query: string;
+	readonly onQuery: (query: string) => void;
+}) => (
+	<div className="mete-settings-search">
+		<input
+			type="search"
+			className="mete-field"
+			aria-label={nls.localize("mete/settings/search", "Search settings")}
+			placeholder={nls.localize("mete/settings/search", "Search settings")}
+			value={query}
+			onChange={(event) => onQuery(event.target.value)}
+		/>
+		<button
+			type="button"
+			className="mete-button quiet icon"
+			disabled={!query}
+			aria-label={nls.localize("mete/settings/clearSearch", "Clear search")}
+			title={nls.localize("mete/settings/clearSearch", "Clear search")}
+			onClick={() => onQuery("")}
+		>
+			<Icon name="clear-all" />
+		</button>
+	</div>
+);
+
+/** An empty search offers a local reset without refreshing or discarding drafts. */
+export const NoSettings = ({
+	query,
+	onReset,
+}: {
+	readonly query: string;
+	readonly onReset: () => void;
+}) => (
+	<div className="mete-settings-state">
+		<p role="status">
+			{nls.localize(
+				"mete/settings/noResults",
+				"No settings match “{0}”.",
+				query.trim(),
+			)}
+		</p>
+		<button type="button" className="mete-button quiet" onClick={onReset}>
+			{nls.localize("mete/settings/clearSearch", "Clear search")}
+		</button>
+	</div>
 );
 
 const GroupItem = ({
@@ -152,6 +207,7 @@ export const GroupHead = ({
 export type ApplyState = {
 	readonly busy: boolean;
 	readonly activeRuns: number;
+	readonly error?: string | undefined;
 };
 
 /** Apply now; a restart pauses a running run (ADR-061), so it waits, with the reason, until none runs. */
@@ -180,6 +236,11 @@ export const ApplyNow = ({
 					"mete/settings/applyWaits",
 					"A run is running; Apply now waits until it is paused or ends.",
 				)}
+			</span>
+		) : null}
+		{apply.error ? (
+			<span className="mete-save-bar-problem" role="alert">
+				{apply.error}
 			</span>
 		) : null}
 	</>

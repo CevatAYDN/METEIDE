@@ -15,6 +15,7 @@ import {
 } from "@mete/contracts";
 import type { CapabilityRegistry, MeteModule } from "@mete/kernel";
 import { type FsDeps, scoped } from "./application/fs-common.js";
+import { createFsIsolation } from "./application/fs-isolation.js";
 import {
 	globTool,
 	grepTool,
@@ -24,7 +25,9 @@ import {
 import { editTool, writeTool } from "./application/fs-write.js";
 import { shellTool } from "./application/shell.js";
 import { vcsTool } from "./application/vcs.js";
+import { serializeCheckpoints } from "./application/vcs-checkpoint-queue.js";
 import { realTarget } from "./infrastructure/files.js";
+import { createFsContext } from "./infrastructure/fs-context.js";
 import { repoRoot } from "./infrastructure/git.js";
 
 /** Where the workspace and the global data folder are; the composition root passes them. */
@@ -46,6 +49,8 @@ const FS_MANIFEST: ModuleManifest = {
 		"fs.list@1",
 		"fs.glob@1",
 		"fs.grep@1",
+		"tool.isolation@1",
+		"fs.context@1",
 	],
 	requires: ["policy.check@1"],
 	optional: [],
@@ -76,6 +81,14 @@ export const policyOf =
 		return r.ok ? r.value[0].impl : undefined;
 	};
 
+const provideFsContext = (registry: CapabilityRegistry, deps: FsDeps) =>
+	registry.provide("fs.context@1", {
+		id: deps.adapterId,
+		trust: "core",
+		features: [],
+		impl: createFsContext(deps),
+	});
+
 /** The tools-fs module: fs.read, write, edit, list, glob and grep (docs/10). */
 export const createToolsFsModule = (opts: ToolsOptions): MeteModule => ({
 	manifest: FS_MANIFEST,
@@ -103,6 +116,15 @@ export const createToolsFsModule = (opts: ToolsOptions): MeteModule => ({
 				}),
 			);
 		}
+		ctx.disposables.add(
+			ctx.capabilities.provide("tool.isolation@1", {
+				id: deps.adapterId,
+				trust: "core",
+				features: [],
+				impl: createFsIsolation(deps),
+			}),
+		);
+		ctx.disposables.add(provideFsContext(ctx.capabilities, deps));
 		return ok(undefined);
 	},
 	async deactivate() {},
@@ -174,7 +196,12 @@ const VCS_MANIFEST: ModuleManifest = {
 };
 
 /** The vcs-git module: vcs.git@2 (docs/10); without a repository or git it does not activate. */
-export const createVcsGitModule = (opts: ToolsOptions): MeteModule => ({
+export const createVcsGitModule = (
+	opts: ToolsOptions & {
+		/** Composition-owned attestation of the exact native checkpoint implementation. */
+		readonly onCheckpointAdapter?: (adapter: VcsGitAdapter) => void;
+	},
+): MeteModule => ({
 	manifest: VCS_MANIFEST,
 	async activate(ctx) {
 		const workspaceDir = await realTarget(opts.workspaceDir);
@@ -192,7 +219,7 @@ export const createVcsGitModule = (opts: ToolsOptions): MeteModule => ({
 			policy: policyOf(ctx.capabilities),
 			root: root.value,
 		};
-		const impl: VcsGitAdapter = {
+		const impl: VcsGitAdapter = serializeCheckpoints({
 			run: async (input, c) => {
 				const d = await scoped(deps, c);
 				if (!d.ok) return d;
@@ -203,7 +230,7 @@ export const createVcsGitModule = (opts: ToolsOptions): MeteModule => ({
 						: { ...d.value, root: d.value.workspaceDir };
 				return vcsTool(here, input, c);
 			},
-		};
+		});
 		ctx.disposables.add(
 			ctx.capabilities.provide("vcs.git@2", {
 				id: VCS_MANIFEST.id,
@@ -212,6 +239,7 @@ export const createVcsGitModule = (opts: ToolsOptions): MeteModule => ({
 				impl,
 			}),
 		);
+		opts.onCheckpointAdapter?.(impl);
 		return ok(undefined);
 	},
 	async deactivate() {},

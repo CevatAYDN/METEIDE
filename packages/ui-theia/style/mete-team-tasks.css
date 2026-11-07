@@ -35,8 +35,8 @@
 	font-weight: 500;
 	color: var(--ink, var(--theia-foreground));
 	background: var(--chip, var(--theia-badge-background));
-	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	border-radius: 10px;
+	border: 1px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 4px;
 	cursor: pointer;
 }
 
@@ -81,8 +81,8 @@
 	gap: 12px;
 	padding: 14px 16px 16px;
 	background: var(--raised, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	border-radius: 14px;
+	border: 1px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 8px;
 }
 
 .mete-task-head {
@@ -97,7 +97,7 @@
 	align-items: center;
 	gap: 8px;
 	font-size: 14px;
-	font-weight: 800;
+	font-weight: 600;
 }
 
 .mete-task-tile {
@@ -106,9 +106,9 @@
 	box-sizing: border-box;
 	width: 28px;
 	height: 28px;
-	border-radius: 10px;
+	border-radius: 4px;
 	background: var(--panel, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line, var(--theia-panel-border));
+	border: 1px solid var(--line, var(--theia-panel-border));
 	color: var(--muted-2, var(--theia-descriptionForeground));
 }
 

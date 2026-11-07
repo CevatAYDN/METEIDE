@@ -24,25 +24,32 @@ test("a single agent accepts a second user message in the same visible conversat
 		name: "Conversation",
 		exact: true,
 	});
+	const messages = thread.locator(".mete-chat-message");
 	await expect(
-		thread.getByText("Merhaba! Sana nasil yardim edebilirim?", { exact: true }),
+		messages.getByText("Merhaba! Sana nasil yardim edebilirim?", {
+			exact: true,
+		}),
 	).toBeVisible({ timeout: 60_000 });
 	const input = thread.getByRole("textbox", { name: "Message METE" });
 	await input.fill("Beni hatirliyor musun?");
 	await input.press("Enter");
 	await expect(
-		thread.getByText("Onceki selamini hatirliyorum.", { exact: true }),
+		messages.getByText("Onceki selamini hatirliyorum.", { exact: true }),
 	).toBeVisible({ timeout: 60_000 });
 	await expect(
-		thread.getByText("Beni hatirliyor musun?", { exact: true }),
+		messages.getByText("Beni hatirliyor musun?", { exact: true }),
 	).toBeVisible();
 	await expect(
-		thread.getByText("Merhaba! Sana nasil yardim edebilirim?", { exact: true }),
+		messages.getByText("Merhaba! Sana nasil yardim edebilirim?", {
+			exact: true,
+		}),
 	).toBeVisible();
 	await expect(input).toHaveValue("");
-	await expect(page.locator("details.mete-chat-details")).not.toHaveAttribute(
-		"open",
-	);
+	await expect(
+		page.locator("details.mete-chat-details").filter({
+			has: page.getByText("Activity, model and checkpoints", { exact: true }),
+		}),
+	).not.toHaveAttribute("open");
 	await input.fill("Birinci satir");
 	await input.press("Shift+Enter");
 	await input.press("x");

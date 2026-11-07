@@ -9,8 +9,8 @@
 	gap: 16px;
 	padding: 18px 22px 20px 20px;
 	background: var(--panel, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line, var(--theia-panel-border));
-	border-radius: 16px;
+	border: 1px solid var(--line, var(--theia-panel-border));
+	border-radius: 8px;
 }
 
 .mete-now::after {

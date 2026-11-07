@@ -6,6 +6,14 @@ Built-in tools cover files, shell, web and git; everything else arrives through 
 
 ## Built-in tools
 
+The explicit editor-context path is `fs.context@1` (ADR-183), separate from the
+model tool catalog. It checks an existing regular text source inside the current
+workspace, both lexical and resolved paths against current ignore rules, and
+refuses `.mete/`, `.git/`, root `.meteignore`, stream paths and hardlinks.
+Its file read is bounded to the binary-sniff prefix; it returns a canonical
+relative path only. The caller's selected editor text is validated independently.
+Legacy `fs.read@1` rules below are unchanged.
+
 | Capability | Input | Output | Rules |
 | --- | --- | --- | --- |
 | `fs.read@1` | path, startLine?, endLine? | content, totalLines, lineEnding | Workspace or worktree only; `.meteignore` paths refused |
@@ -40,6 +48,16 @@ Rules shared by the file and shell tools (types in tab 06) \[D\]:
 
 ## MCP client
 
+Desktop setup (ADR-180): Settings offers an installed/draft list, remote URL,
+local command plus separate arguments, JSON import and advanced fields. Imports
+accept `mcpServers` maps or METE `servers` lists; unsupported fields and raw
+credentials in the simplified path are rejected rather than silently discarded.
+Save and connect validates and saves through the user-action file service, then
+checks run status. Active work leaves a saved, pending-activation row; unknown
+status refuses restart. Only an idle daemon is restarted, and Test checks the
+effective loaded server before displaying a connection result. A workspace
+override of a global row is not reported as that global row being connected.
+
 ADR-067 progress text is retained in diagnostics only after `secrets.mask@1`
 has masked it. Missing or failed masking never falls back to raw text; numeric
 progress remains available, and session shutdown waits for pending diagnostic
@@ -68,7 +86,41 @@ The commands that drive a run (`mete run`, `mete approve`, `mete revise`) answer
 
 Sampling is offered under the same commands. A request spends the budget of the run whose tool call is in flight on that server and stops when that run stops; without a run it is refused. `policy.check@1` decides first with `mcp.sampling`: where it asks, METE asks you once per server until it exits, names the server and says it spends the run's budget, and a no is asked again at the next request; without a terminal the answer is no. The request goes to `llm.chat@2` with a tier from its priorities (`reasoning` when intelligence counts most, `fast` when speed does, otherwise `coder`); model-name hints are ignored, and a request with images or tools is refused \[D\].
 
-A remote server with `auth: oauth` needs one sign-in. The client registers itself dynamically as a native public client (`application_type` `native`) with PKCE, at a fixed redirect address, `http://127.0.0.1/callback`, on which nothing listens. `mete run`, `mete approve` and `mete revise` print the address to open and ask you to paste the address your browser ends up on, a connection-error page whose address carries the code; METE opens no browser, and it takes the code only from an address that carries the state it sent and, when the address names an issuer (`iss`), the issuer of the server it signs in to (ADR-163). When METE refuses the address you paste, it says why and asks again at once with a fresh address, up to three addresses per connection; when the input ends instead (Ctrl+D), it says the server's tools are left out and does not ask again during that command \[D\]. The tokens and the registration go to the keychain under the server's origin, not its `mcp.yaml` id, in numbered pieces because the Windows keychain keeps at most 1280 characters in one entry, and every later connection, `mete mcp` and piped runs included, reuses them without asking. Without saved tokens and without a terminal the error says to sign in once with `mete run` in a terminal, and a server that does not offer dynamic registration cannot be signed in to yet \[D\].
+A remote server with `auth: oauth` uses an explicit sign-in (ADR-184). Settings
+offers system-browser authorization with a temporary random-port loopback
+callback. PKCE, state, resource and issuer validation use the installed SDK.
+One flow per workspace expires after five minutes; cancellation and restart
+close it. Callback input bounds are in ADR-184. The terminal paste-back
+interaction remains available at `http://127.0.0.1/callback`, with at most three
+refused addresses per connection; desktop retries are explicit.
+
+OAuth tokens and client registration are staged together until handshake and
+tools/list succeed, then stored in the OS keychain. The identity includes the
+canonical workspace and exact normalized server configuration, resource, issuer
+and client, not just origin. Old origin records are not automatically migrated.
+Agent calls without an interactive host may reuse/refresh exact saved credentials
+but never register a new client or open a browser. Unsupported registration
+methods remain explicit failures.
+
+The optional `credentialFields` server metadata contains only
+`kind: env | header`, `name`, `required`, `secret` and optional `description`;
+no value is stored in YAML. This preserves registry setup requirements over
+restart. Values are written by explicit user action through `mete mcp-key set
+<folder>` stdin, under the workspace run lock, and stored only in the keychain.
+The stdin object is `{ expected, fields, values }`; value keys are `kind:name`.
+Configuration identity must still match. No value-read route exists.
+Missing required fields prevent server start and runtime installation.
+Manual headers and OAuth cannot both supply Authorization. Secrets reach only
+the exact child/endpoint, with no credential-bearing redirect, and exact values
+are redacted before diagnostics, mapping or persisted tool output.
+
+`mcp.connection@1` supports local status, explicit start/cancel, local forget and
+write-only configuration. It is not a model tool. Credential mutations require
+idle admission; the desktop restarts the quiesced daemon after management.
+With no engine active the daemon's exclusive run lock proves there is no
+concurrent driver; an active engine without an idle gate refuses management.
+Configured is not connected: only a successful handshake and tools/list is
+connection evidence. Forget removes local credentials only, not remote grants.
 
 `mcp.status@1` connects to one configured server the way `mcp.tools@1` does and answers the names of the tools it lists, or why it failed; the Settings screen's Test calls it through `mete/mcp.test` (ADR-164). No tool is called, so `mcp.call` is not asked; a runtime download asks `runtime.install` first, as on any connection \[D\].
 
@@ -170,12 +222,31 @@ The mcp-client module provides `runtime.ensure@1` (`RuntimeEnsureInputSchema` in
 
 ## Plugins, skills and extensions
 
+The desktop includes native Theia Open VSX discovery and VSIX installation
+through Extensions (ADR-180), also reachable from Settings. Discovery starts on
+user intent, not startup recommendations. Native install, uninstall and
+enable/disable controls retain Theia's confirmation flow. An editor extension is
+third-party executable code, not a tool sandboxed by METE's policy. Compatibility
+with every VS Code extension is not guaranteed.
+
 - Plugin: a METE module package with a manifest, installed into the global `plugins/` folder, always in its own process (third-party trust) \[C\].
 - Install rule: agents MAY find and propose a plugin or MCP server; only the user installs it, after seeing its permissions. Versions are pinned \[C\].
 - Skills: `SKILL.md` folders in `.mete/skills/` (workspace) and the global `skills/` folder; matched to tasks by their description \[C\].
 - VS Code extensions: installed through Theia from Open VSX. They become agent tools only if they expose an MCP server \[D\].
 
 ## Registries
+
+The desktop's explicit catalog search calls the registry chain and displays real
+entries. Prepare reads the official pinned server draft with any remaining setup
+requirements. Search/prepare never save configuration or start a server. Add draft
+requires separate user intent and rejects duplicate IDs; credential-dependent
+drafts remain setup-required until configured. There are no synthetic popularity
+lists or automatic probes.
+
+`registry.setup@1` (ADR-184) adds structured `fields` and `blocked` to a separate
+prepared result. Legacy search and prepare ports remain unchanged. Supported
+required env/header fields can be completed in Settings; unsupported metadata,
+secret arguments and templated credential URLs block guided installation.
 
 `registry.search@1` adapters, in order: the official MCP registry, the METE registry (a git repository with `index.json`), a local folder \[C\]. A registry entry holds: id, kind (`mcp`, `plugin`, `skill`, `template`, `mapping`), version, source URL, SHA-256, runtime, permissions, description.
 

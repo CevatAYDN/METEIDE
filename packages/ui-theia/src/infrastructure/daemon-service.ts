@@ -1,10 +1,23 @@
 import type {
 	AllowScope,
 	ApprovalInput,
+	ContextDraft,
+	ConversationReplyInput,
+	ConversationStartInput,
+	McpConnectionRequest,
+	McpCredentialWrite,
+	McpServer,
 	ModelRef,
 	RunPrefer,
 	RunReplyInput,
 	RunStart,
+	TaskControlAnswer,
+	ThreadContextReplyInput,
+	ThreadContextStartInput,
+	ThreadListInput,
+	ThreadReadInput,
+	ThreadReplyInput,
+	ThreadStartInput,
 	Tier,
 } from "@mete/contracts";
 import { ILogger } from "@theia/core/lib/common/logger";
@@ -20,6 +33,7 @@ import type {
 } from "../domain/status-service.js";
 import { createDaemonHost } from "./daemon-host.js";
 import { createKeyService } from "./key-service.js";
+import { createMcpCredentialService } from "./mcp-credential-service.js";
 import { runCli, spawnCli } from "./spawn-cli.js";
 
 /**
@@ -60,6 +74,21 @@ export class MeteDaemonBackend
 		return this.keyService.setKey(providerId, key);
 	}
 
+	mcpConnection(dir: string, input: McpConnectionRequest) {
+		return this.host.mcpConnection(dir, input);
+	}
+
+	registrySetup(dir: string, name: string) {
+		return this.host.registrySetup(dir, name);
+	}
+
+	setMcpCredentials(dir: string, input: McpCredentialWrite) {
+		return createMcpCredentialService({
+			run: runCli,
+			restartIdle: (folder) => this.host.restartIdle(folder),
+		}).set(dir, input);
+	}
+
 	/** A frontend connected; it receives the events of every folder's daemon until it leaves. */
 	addClient(client: MeteDaemonClient): void {
 		this.clients.add(client);
@@ -73,8 +102,56 @@ export class MeteDaemonBackend
 		return this.host.status(workspaceDir, runId);
 	}
 
+	taskPending(workspaceDir: string, runId: string) {
+		return this.host.taskPending(workspaceDir, runId);
+	}
+
+	taskAnswer(workspaceDir: string, input: TaskControlAnswer) {
+		return this.host.taskAnswer(workspaceDir, input);
+	}
+
 	startRun(workspaceDir: string, req: RunStart) {
 		return this.host.startRun(workspaceDir, req);
+	}
+
+	conversationStart(workspaceDir: string, input: ConversationStartInput) {
+		return this.host.conversationStart(workspaceDir, input);
+	}
+
+	conversationReply(workspaceDir: string, input: ConversationReplyInput) {
+		return this.host.conversationReply(workspaceDir, input);
+	}
+
+	threadStart(dir: string, input: ThreadStartInput) {
+		return this.host.threadStart(dir, input);
+	}
+
+	threadContextPrepare(dir: string, input: ContextDraft) {
+		return this.host.threadContextPrepare(dir, input);
+	}
+
+	threadContextStart(dir: string, input: ThreadContextStartInput) {
+		return this.host.threadContextStart(dir, input);
+	}
+
+	threadContextReply(dir: string, input: ThreadContextReplyInput) {
+		return this.host.threadContextReply(dir, input);
+	}
+
+	threadContextRead(dir: string, input: ThreadReadInput) {
+		return this.host.threadContextRead(dir, input);
+	}
+
+	threadReply(dir: string, input: ThreadReplyInput) {
+		return this.host.threadReply(dir, input);
+	}
+
+	threadList(dir: string, input: ThreadListInput) {
+		return this.host.threadList(dir, input);
+	}
+
+	threadRead(dir: string, input: ThreadReadInput) {
+		return this.host.threadRead(dir, input);
 	}
 
 	replyRun(workspaceDir: string, input: RunReplyInput) {
@@ -171,6 +248,10 @@ export class MeteDaemonBackend
 		return this.host.restart();
 	}
 
+	restartIdle(workspaceDir: string) {
+		return this.host.restartIdle(workspaceDir);
+	}
+
 	settings(workspaceDir: string) {
 		return this.host.settings(workspaceDir);
 	}
@@ -187,8 +268,16 @@ export class MeteDaemonBackend
 		return this.host.providerTest(workspaceDir, providerId, models);
 	}
 
-	mcpTest(workspaceDir: string, id: string) {
-		return this.host.mcpTest(workspaceDir, id);
+	mcpTest(workspaceDir: string, id: string, expected?: McpServer) {
+		return this.host.mcpTest(workspaceDir, id, expected);
+	}
+
+	registrySearch(workspaceDir: string, query: string) {
+		return this.host.registrySearch(workspaceDir, query);
+	}
+
+	registryPrepare(workspaceDir: string, name: string) {
+		return this.host.registryPrepare(workspaceDir, name);
 	}
 
 	checkpointRestore(workspaceDir: string, runId: string, checkpointId: string) {

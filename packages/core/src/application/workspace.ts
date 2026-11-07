@@ -16,6 +16,7 @@ const firstFile = async (
 	names: readonly string[],
 ) => {
 	for (const path of INSTRUCTION_FILES.filter((f) => names.includes(f))) {
+		if (ctx.signal.aborted) return undefined;
 		const r = await runCapability(
 			deps,
 			{ ref: "fs.read@1", input: { path } },
@@ -37,10 +38,12 @@ const firstFile = async (
 export const readWorkspace = async (
 	deps: StepDeps,
 	runId: string,
+	signal: AbortSignal = new AbortController().signal,
 ): Promise<string | undefined> => {
-	const ctx = { runId, signal: new AbortController().signal };
+	const ctx = { runId, signal };
 	const input = { path: "." };
 	const r = await runCapability(deps, { ref: "fs.list@1", input }, ctx, quiet);
+	if (signal.aborted) return undefined;
 	const listed = r.ok ? Listed.safeParse(r.value) : undefined;
 	if (!listed?.success) {
 		// A workspace without fs.list@1 simply opens without the block.

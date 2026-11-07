@@ -2,7 +2,10 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { McpToolsAdapter } from "@mete/contracts";
 import { afterEach, describe, expect, it } from "vitest";
-import { terminalAuthorize } from "../src/application/authorize.js";
+import {
+	terminalAuthOptions,
+	terminalAuthorize,
+} from "../src/application/authorize.js";
 import { createApp } from "../src/infrastructure/app.js";
 import { memorySecrets, recordingIo, silent, tempRepo } from "./helpers.js";
 
@@ -10,6 +13,12 @@ const signal = new AbortController().signal;
 const URL_TO_OPEN = "https://auth.example/authorize?client_id=c1&state=s1";
 
 describe("terminal sign-in", () => {
+	it("offers no authorization capability to a piped or headless command", () => {
+		expect(terminalAuthOptions(recordingIo().io)).toEqual({});
+		expect(terminalAuthOptions(recordingIo("", []).io).authorize).toBeTypeOf(
+			"function",
+		);
+	});
 	it("shows the address to open and returns the address the user pasted", async () => {
 		const t = recordingIo("", ["http://127.0.0.1/callback?code=c&state=s1"]);
 		const pasted = await terminalAuthorize(t.io)("remote", URL_TO_OPEN, signal);

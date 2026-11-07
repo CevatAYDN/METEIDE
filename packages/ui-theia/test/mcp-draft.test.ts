@@ -102,6 +102,86 @@ describe("serversOf", () => {
 });
 
 describe("serversText", () => {
+	it("refuses retained unsupported fields on unchanged and edited rows", () => {
+		const before =
+			"servers:\n  - id: demo\n    transport: sse\n    url: https://example.test\n    headers: { Authorization: secret }\n";
+		for (const target of ["workspace", "global"] as const) {
+			const source =
+				target === "global"
+					? `gateway: {}\nmcp:\n${before.replace(/^/gm, "  ")}`
+					: before;
+			const drafts = draftOf(source, target);
+			expect(serversText(source, target, drafts).ok).toBe(false);
+			expect(
+				serversText(
+					source,
+					target,
+					drafts.map((row) => ({ ...row, url: "https://changed.test" })),
+				).ok,
+			).toBe(false);
+			expect(source).toContain("Authorization: secret");
+		}
+	});
+
+	it("keeps row comments, unrelated rows and omitted defaults on an append", () => {
+		const before =
+			"# servers\nservers:\n  # keep me\n  - id: plain # identity\n    transport: sse\n    url: https://example.test # address\n";
+		const out = textOf(before, "workspace", [
+			...draftOf(before, "workspace"),
+			LOCAL,
+		]);
+		expect(out).toContain("# keep me");
+		expect(out).toContain("id: plain # identity");
+		expect(out).toContain("url: https://example.test # address");
+		expect(parse(out).servers[0]).not.toHaveProperty("auth");
+		expect(parse(out).servers[0]).not.toHaveProperty("permissions");
+	});
+
+	it("keeps per-field comments and exact argv when editing a row", () => {
+		const before =
+			"servers:\n  - id: demo\n    transport: stdio\n    runtime: node\n    command: npx # runner\n    args: [old] # options\n";
+		const drafts = draftOf(before, "workspace").map((row) => ({
+			...row,
+			args: " a b \n--next",
+		}));
+		const out = textOf(before, "workspace", drafts);
+		expect(out).toContain("command: npx # runner");
+		expect(out).toContain("# options");
+		expect(parse(out).servers[0].args).toEqual([" a b ", "--next"]);
+	});
+
+	it("does not trim advanced environment values during another field edit", () => {
+		const before =
+			'servers:\n  - id: demo\n    transport: stdio\n    runtime: node\n    command: npx\n    env: { PADDED: " value " }\n';
+		const out = textOf(
+			before,
+			"workspace",
+			draftOf(before, "workspace").map((row) => ({
+				...row,
+				args: "package@1",
+			})),
+		);
+		expect(parse(out).servers[0].env).toEqual({ PADDED: " value " });
+	});
+
+	it("keeps comments when renaming a server and leaves explicit defaults untouched on append", () => {
+		const before =
+			"servers:\n  # description\n  - id: plain # identity\n    transport: sse\n    url: https://example.test\n    auth: none # explicit choice\n";
+		const renamed = textOf(
+			before,
+			"workspace",
+			draftOf(before, "workspace").map((row) => ({ ...row, id: "renamed" })),
+		);
+		expect(renamed).toContain("# description");
+		expect(renamed).toContain("id: renamed # identity");
+		expect(renamed).toContain("auth: none # explicit choice");
+		const appended = textOf(before, "workspace", [
+			...draftOf(before, "workspace"),
+			LOCAL,
+		]);
+		expect(appended).toContain("auth: none # explicit choice");
+	});
+
 	it("writes a local server with only the keys it sets, and keeps a comment", () => {
 		const out = textOf("# my servers\nservers: []\n", "workspace", [LOCAL]);
 		expect(out).toContain("# my servers");

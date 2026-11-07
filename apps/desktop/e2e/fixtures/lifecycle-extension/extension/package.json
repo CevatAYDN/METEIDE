@@ -1,0 +1,24 @@
+{
+	"name": "lifecycle-fixture",
+	"displayName": "METE Lifecycle Fixture",
+	"publisher": "mete-test",
+	"version": "1.0.0",
+	"description": "Local-only extension for METE installation acceptance.",
+	"license": "Apache-2.0",
+	"engines": {
+		"vscode": "^1.80.0"
+	},
+	"main": "./main.cjs",
+	"activationEvents": [
+		"onCommand:meteFixture.ping"
+	],
+	"contributes": {
+		"commands": [
+			{
+				"command": "meteFixture.ping",
+				"title": "Ping",
+				"category": "METE Fixture"
+			}
+		]
+	}
+}

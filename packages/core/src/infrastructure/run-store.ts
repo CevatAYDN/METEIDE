@@ -1,5 +1,7 @@
 import {
 	ChatRequestSchema,
+	ContextAttachmentsSchema,
+	ConversationCapabilitiesSchema,
 	type Migration,
 	PauseReasonSchema,
 	RunPreferSchema,
@@ -7,7 +9,16 @@ import {
 	type RunView,
 } from "@mete/contracts";
 import type BetterSqlite3 from "better-sqlite3";
-import { and, desc, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
+import {
+	and,
+	desc,
+	eq,
+	getTableColumns,
+	inArray,
+	isNotNull,
+	lt,
+	sql,
+} from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { z } from "zod";
@@ -20,7 +31,9 @@ import {
 	runMachine,
 } from "../domain/run-machine.js";
 import { TeamStateSchema } from "../domain/team.js";
+import type { ThreadIntent } from "../domain/thread.js";
 import { HANDOFF_MIGRATIONS, handoffs } from "./handoff-store.js";
+import { createThreadStore, THREAD_MIGRATIONS } from "./thread-store.js";
 
 // The runs and agents tables in the workspace database (docs/07, core-engine tables).
 
@@ -55,6 +68,7 @@ export const RUN_MIGRATIONS: ReadonlyArray<Migration> = [
 		CREATE INDEX agents_run ON agents (run_id)`,
 	},
 	...HANDOFF_MIGRATIONS,
+	...THREAD_MIGRATIONS,
 ];
 
 const runs = sqliteTable("runs", {
@@ -101,6 +115,8 @@ const PersistedSchema = z.object({
 		goal: text1,
 		priority: z.union([z.literal(0), z.literal(1), z.literal(2)]),
 		messages: z.array(ChatRequestSchema.shape.messages.element),
+		extraCapabilities: ConversationCapabilitiesSchema.default([]),
+		attachments: ContextAttachmentsSchema.optional(),
 		turns: z.number().int().nonnegative(),
 		// Rows from before the counter hold one attempt, so its turns are its requests.
 		requests: z.number().int().nonnegative().optional(),
@@ -162,10 +178,12 @@ const rowOf = (meta: RunMeta, s: RunSnapshot) => ({
 });
 
 type Row = typeof runs.$inferSelect;
+const { snapshot: _snapshot, ...metadataColumns } = getTableColumns(runs);
+type Metadata = Omit<Row, "snapshot">;
 
 const Level = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]);
 
-const viewOf = (r: Row): RunView => {
+const viewOf = (r: Metadata): RunView => {
 	const { autonomyLevel, budget } = metaOf(r);
 	return {
 		id: r.id,
@@ -184,7 +202,7 @@ const viewOf = (r: Row): RunView => {
 	};
 };
 
-const metaOf = (r: Row): RunMeta => ({
+const metaOf = (r: Metadata): RunMeta => ({
 	id: r.id,
 	workspaceId: r.workspaceId,
 	autonomyLevel: Level.parse(r.autonomyLevel),
@@ -206,7 +224,10 @@ export const loadSnapshot = (json: string): RunSnapshot => {
 	});
 };
 
-type Orm = ReturnType<typeof drizzle>;
+type Orm = Pick<
+	ReturnType<typeof drizzle>,
+	"select" | "insert" | "update" | "delete" | "transaction"
+>;
 
 /** Writes the agent's row with its model and request count. */
 const saveAgent = (
@@ -229,25 +250,27 @@ const saveAgent = (
 };
 
 /** Writes the run's row after a transition, and its agent's row in the same transaction. */
-const save = (orm: Orm, meta: RunMeta, s: RunSnapshot) => {
+const saveRows = (orm: Orm, meta: RunMeta, s: RunSnapshot) => {
 	const values = rowOf(meta, s);
 	const { agent, turns } = s.context;
-	orm.transaction((tx) => {
-		tx.insert(runs)
-			.values({ id: meta.id, ...values })
-			.onConflictDoUpdate({ target: runs.id, set: values })
-			.run();
-		if (agent) saveAgent(tx, meta.id, agent, turns);
-		for (const entry of Object.values(s.context.team?.tasks ?? {})) {
-			const session = entry.session;
-			if (
-				session?.agent &&
-				(session.agent.id !== agent?.id || session.turns >= turns)
-			)
-				saveAgent(tx, meta.id, session.agent, session.turns);
-		}
-	});
+	orm
+		.insert(runs)
+		.values({ id: meta.id, ...values })
+		.onConflictDoUpdate({ target: runs.id, set: values })
+		.run();
+	if (agent) saveAgent(orm, meta.id, agent, turns);
+	for (const entry of Object.values(s.context.team?.tasks ?? {})) {
+		const session = entry.session;
+		if (
+			session?.agent &&
+			(session.agent.id !== agent?.id || session.turns >= turns)
+		)
+			saveAgent(orm, meta.id, session.agent, session.turns);
+	}
 };
+
+const save = (orm: Orm, meta: RunMeta, s: RunSnapshot) =>
+	orm.transaction((tx) => saveRows(tx, meta, s));
 
 const load = (orm: Orm, id: string) => {
 	const r = orm.select().from(runs).where(eq(runs.id, id)).get();
@@ -266,7 +289,7 @@ const markFailed = (orm: Orm, id: string, endedAt: string) => {
 /** One run or all runs, newest first. */
 const list = (orm: Orm, id?: string): RunView[] =>
 	orm
-		.select()
+		.select(metadataColumns)
 		.from(runs)
 		.where(id === undefined ? undefined : eq(runs.id, id))
 		.orderBy(desc(runs.createdAt), desc(sql`rowid`))
@@ -319,13 +342,18 @@ const remove = (orm: Orm, id: string) =>
 	orm.transaction((tx) => {
 		tx.delete(agents).where(eq(agents.runId, id)).run();
 		tx.delete(handoffs).where(eq(handoffs.runId, id)).run();
+		createThreadStore(tx).remove(id);
 		tx.delete(runs).where(eq(runs.id, id)).run();
 	});
 
 /** Reads and writes runs and agents rows. */
 export const createRunStore = (db: BetterSqlite3.Database) => {
 	const orm = drizzle(db);
+	const threads = createThreadStore(orm);
 	return {
+		threads,
+		saveInitial: (meta: RunMeta, s: RunSnapshot, intent: ThreadIntent) =>
+			threads.commit(intent, meta, (tx) => saveRows(tx, meta, s)),
 		save: (meta: RunMeta, s: RunSnapshot) => save(orm, meta, s),
 		load: (id: string) => load(orm, id),
 		markFailed: (id: string, endedAt: string) => markFailed(orm, id, endedAt),

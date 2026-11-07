@@ -1,6 +1,8 @@
 import type {
 	ChatChunk,
 	ChatMessage,
+	ContextSnapshot,
+	ConversationCapability,
 	PauseReasonSchema,
 	RunPrefer,
 } from "@mete/contracts";
@@ -32,6 +34,10 @@ export type RunContext = {
 	readonly goal: string;
 	readonly priority: 0 | 1 | 2;
 	readonly messages: readonly ChatMessage[];
+	/** Human-selected optional single-agent tools (ADR-180); absent in old snapshots. */
+	readonly extraCapabilities?: readonly ConversationCapability[] | undefined;
+	/** Masked immutable snapshots sent with this turn only (ADR-183). */
+	readonly attachments?: readonly ContextSnapshot[] | undefined;
 	/** Model replies of the current attempt; MAX_TURNS limits them. */
 	readonly turns: number;
 	/** Model replies of the whole run, the cloud requests of the budget. */
@@ -85,6 +91,7 @@ export type RunEvent =
 	| { type: "REPLIED"; message: Assistant; finish: Finish }
 	| { type: "TOOL_STARTED"; callId: string | undefined }
 	| { type: "TOOL_DONE"; message: ToolMessage; external?: boolean }
+	| { type: "TAINT" }
 	| { type: "MODEL"; agent: AgentRef }
 	| { type: "TEAM"; team: TeamState }
 	| { type: "ACTIVATE"; task: string }

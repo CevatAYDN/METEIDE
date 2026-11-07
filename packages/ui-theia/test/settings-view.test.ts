@@ -10,6 +10,11 @@ import type {
 } from "../src/application/mcp-test.js";
 import type { Target } from "../src/application/section-draft.js";
 import { type FormState, shortPath } from "../src/application/settings-form.js";
+import {
+	ApplyNow,
+	NoSettings,
+	SettingsSearch,
+} from "../src/application/settings-frame.js";
 import type { GroupId } from "../src/application/settings-groups.js";
 import {
 	SETTINGS_LINKS,
@@ -69,6 +74,40 @@ const LOADED: SettingsModel = {
 };
 
 describe("the Settings screen", () => {
+	it("offers reset for a typed search and an explicit no-result state", () => {
+		const search = (query: string) =>
+			renderToStaticMarkup(
+				createElement(SettingsSearch, { query, onQuery: none }),
+			);
+		expect(search("")).toMatch(/disabled="" aria-label="Clear search"/);
+		expect(search("mcp")).toContain('value="mcp"');
+		expect(search("mcp")).not.toContain("disabled");
+		const empty = renderToStaticMarkup(
+			createElement(NoSettings, {
+				query: "missing",
+				onReset: none,
+			}),
+		);
+		expect(empty).toContain('role="status"');
+		expect(empty).toContain("No settings match “missing”.");
+		expect(empty).toContain(">Clear search</button>");
+	});
+
+	it("offers labeled search and native collapsed disclosures without hiding editable forms", () => {
+		const out = html(LOADED);
+		expect(out).toMatch(/type="search"[^>]*aria-label="Search settings"/);
+		expect(out).toContain(
+			'<details class="mete-settings-loaded"><summary>Loaded configuration</summary>',
+		);
+		const gateway = out.slice(
+			out.indexOf('aria-label="Models and daily spend"'),
+		);
+		expect(gateway).toContain(
+			'<details class="mete-settings-source"><summary>Loaded values and source files</summary>',
+		);
+		expect(gateway).not.toMatch(/<details[^>]* open/);
+	});
+
 	it("shows each section merged and each file's value under its path, as YAML", () => {
 		const out = html(LOADED, "models");
 		const gateway = out.slice(
@@ -109,6 +148,7 @@ describe("the Settings screen", () => {
 			"mete.team.new": "teams",
 			"preferences:open": "look",
 			"workbench.action.configureLanguage": "look",
+			"vsxExtensions.toggle": "tools",
 		};
 		for (const [id, label] of SETTINGS_LINKS) {
 			expect(html(LOADED, where[id])).toContain(`>${label()}<`);
@@ -177,6 +217,9 @@ describe("the Settings forms (ADR-082)", () => {
 		const gateway = withForms(LOADED, "models");
 		expect(gateway).toContain(
 			'<label for="mete-setting-models">Models</label>',
+		);
+		expect(gateway.indexOf('<label for="mete-setting-models"')).toBeLessThan(
+			gateway.indexOf('<details class="mete-settings-source"'),
 		);
 		expect(gateway).toContain(
 			'<option value="both" selected="">Free first, then paid</option>',
@@ -370,6 +413,23 @@ describe("the Settings forms (ADR-082)", () => {
 });
 
 describe("Apply now (ADR-083)", () => {
+	it("shows an actionable failure without disabling retry when status is unknown", () => {
+		const out = renderToStaticMarkup(
+			createElement(ApplyNow, {
+				apply: {
+					busy: false,
+					activeRuns: 0,
+					error: "Could not read run status. Try again.",
+				},
+				onApply: none,
+			}),
+		);
+		expect(out).toContain('role="alert"');
+		expect(out).toContain("Could not read run status. Try again.");
+		expect(out).toContain("Apply now");
+		expect(out).not.toContain("disabled");
+	});
+
 	const withApply = (activeRuns: number) =>
 		renderToStaticMarkup(
 			createElement(SettingsView, {
@@ -731,7 +791,8 @@ describe("the MCP servers card (ADR-097)", () => {
 			tests,
 		);
 		const card = out.slice(out.indexOf('aria-label="MCP servers"'));
-		expect(card).toContain("Test connects to a server as METE loaded it");
+		expect(card).toContain("Connected");
+		expect(card).not.toContain("Test connects to a server as METE loaded it");
 		// The button is named by its word and the server's id as typed: "Test demo".
 		expect(card).toContain(
 			'id="mete-mcp-0-test" class="mete-button quiet" aria-labelledby="mete-mcp-0-test mete-mcp-0-id">',

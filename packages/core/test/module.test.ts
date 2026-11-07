@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
 	type CheckpointRestoreAdapter,
+	type ConversationThreadAdapter,
+	type ConversationThreadV2Adapter,
 	err,
 	type LlmChatAdapter,
 	type LlmChunk,
@@ -225,6 +227,76 @@ checkpointRestoreContract("core-engine", async (kind) => {
 });
 
 describe("core-engine module", () => {
+	it("registers explicit context as optional source validation beside the legacy ports", async () => {
+		const h = await setup("answers");
+		try {
+			expect(h.module.manifest.provides).toContain("conversation.thread@2");
+			expect(h.module.manifest.optional).toContain("fs.context@1");
+			expect(h.module.manifest.requires).not.toContain("fs.context@1");
+			const resolved = h.registry.resolve<ConversationThreadV2Adapter>(
+				"conversation.thread@2",
+			);
+			if (!resolved.ok) throw new Error("context port missing");
+			expect(
+				await resolved.value[0].impl.prepare({
+					path: "a.ts",
+					content: "dirty",
+					modified: true,
+				}),
+			).toMatchObject({ ok: false, error: { code: "not_supported" } });
+			expect(h.registry.has("conversation.thread@1")).toBe(true);
+			await h.module.deactivate();
+			h.base.disposables.dispose();
+			expect(h.registry.has("conversation.thread@2")).toBe(false);
+		} finally {
+			await h.close();
+		}
+	});
+
+	it("registers persistent threads beside unchanged legacy ports and recovers receipt identity", async () => {
+		const h = await setup("answers");
+		try {
+			const resolved = h.registry.resolve<ConversationThreadAdapter>(
+				"conversation.thread@1",
+			);
+			if (!resolved.ok) throw new Error("thread port");
+			expect(h.registry.has("conversation.run@1")).toBe(true);
+			expect(h.registry.has("run.reply@1")).toBe(true);
+			const input = { goal: "hello", requestId: randomUUID() };
+			const started = await resolved.value[0].impl.start(input);
+			if (!started.ok) throw new Error(started.error.message);
+			await vi.waitFor(() =>
+				expect(engineOf(h.registry).status(started.value.runId)).toMatchObject({
+					value: [{ status: "completed" }],
+				}),
+			);
+			await h.module.deactivate();
+			h.base.disposables.dispose();
+			expect(h.registry.has("conversation.thread@1")).toBe(false);
+			const sql = h.registry.resolve<StorageSqlAdapter>("storage.sql@1");
+			if (!sql.ok) throw new Error("storage");
+			expect(
+				await h.module.activate({
+					...h.base,
+					storage: sql.value[0].impl.scopeFor("core-engine"),
+				}),
+			).toMatchObject({ ok: true });
+			const restarted = h.registry.resolve<ConversationThreadAdapter>(
+				"conversation.thread@1",
+			);
+			if (!restarted.ok) throw new Error("thread port");
+			expect(await restarted.value[0].impl.start(input)).toEqual(started);
+			expect(engineOf(h.registry).status()).toMatchObject({
+				value: [{ id: started.value.runId }],
+			});
+			expect(
+				h.events.filter((event) => event.type === "run.created"),
+			).toHaveLength(1);
+		} finally {
+			await h.close();
+		}
+	});
+
 	it("answers no_vcs for a restore without vcs.git@2", async () => {
 		const h = await setup("slow");
 		const runId = await pausedRun(engineOf(h.registry));

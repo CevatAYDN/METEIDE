@@ -1,6 +1,7 @@
 import { tmpdir } from "node:os";
 import {
 	err,
+	type McpServer as McpServerConfig,
 	type McpStatusAdapter,
 	type McpToolsAdapter,
 	ok,
@@ -12,6 +13,11 @@ import {
 } from "@modelcontextprotocol/server";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import {
+	credentialIdentity,
+	credentialRecordName,
+} from "../src/infrastructure/credential-identity.js";
+import { readOAuthRecord } from "../src/infrastructure/oauth-record.js";
 import { createMcpClientModule, type McpClientOptions } from "../src/module.js";
 import { moduleContext } from "./helpers/context.js";
 
@@ -21,7 +27,7 @@ const TOKEN = "t".repeat(3000);
 const REFRESHED = "r".repeat(3000);
 const KEYCHAIN_LIMIT = 1280;
 const signal = new AbortController().signal;
-const remote = {
+const remote: McpServerConfig = {
 	id: "remote",
 	transport: "streamable-http",
 	url: `${BASE}/mcp`,
@@ -63,7 +69,7 @@ const remoteServer = async () => {
 	// What the client registered as: the spec asks a native client to say so (ADR-163).
 	const registration: { application_type?: unknown } = {};
 	// The one access token the server accepts; `expire` makes the one it handed out stop working.
-	const accepted = { token: TOKEN };
+	const accepted = { token: TOKEN, refuseRefresh: false };
 	const metadata = (pathname: string) => {
 		if (pathname.startsWith("/.well-known/oauth-protected-resource"))
 			return json({ resource: `${BASE}/mcp`, authorization_servers: [BASE] });
@@ -81,9 +87,9 @@ const remoteServer = async () => {
 		});
 	};
 	const refresh = (form: URLSearchParams) => {
-		if (form.get("refresh_token") !== "refresh-1")
-			return json({ error: "invalid_grant" }, 400);
 		seen.refreshes += 1;
+		if (accepted.refuseRefresh || form.get("refresh_token") !== "refresh-1")
+			return json({ error: "invalid_grant" }, 400);
 		accepted.token = REFRESHED;
 		return json({
 			access_token: REFRESHED,
@@ -91,14 +97,16 @@ const remoteServer = async () => {
 			token_type: "Bearer",
 		});
 	};
-	const grant = (form: URLSearchParams) =>
-		form.get("code") === "good-code"
-			? json({
-					access_token: TOKEN,
-					refresh_token: "refresh-1",
-					token_type: "Bearer",
-				})
-			: json({ error: "invalid_grant" }, 400);
+	const grant = (form: URLSearchParams) => {
+		if (form.get("code") !== "good-code")
+			return json({ error: "invalid_grant" }, 400);
+		accepted.token = TOKEN;
+		return json({
+			access_token: TOKEN,
+			refresh_token: "refresh-1",
+			token_type: "Bearer",
+		});
+	};
 	const oauth = async (req: Request, pathname: string) => {
 		if (pathname === "/register") {
 			seen.registered += 1;
@@ -140,6 +148,10 @@ const remoteServer = async () => {
 		expire: () => {
 			accepted.token = "expired";
 		},
+		refuseRefresh: () => {
+			accepted.token = "expired";
+			accepted.refuseRefresh = true;
+		},
 	};
 };
 
@@ -156,18 +168,14 @@ const memorySecrets = (): SecretStore & { names: () => string[] } => {
 	};
 };
 
-// The tokens as the client keeps them: numbered pieces, `<name>` holding how many.
 const savedTokens = async (secrets: SecretStore) => {
-	const name = `mcp/${BASE}/tokens`;
-	const count = await secrets.get(name);
-	let text = "";
-	for (let i = 0; count.ok && i < Number(count.value); i++) {
-		const piece = await secrets.get(`${name}/${i}`);
-		text += piece.ok ? (piece.value ?? "") : "";
-	}
-	return z
-		.object({ access_token: z.string(), refresh_token: z.string() })
-		.parse(JSON.parse(text));
+	const identity = await credentialIdentity(tmpdir(), remote);
+	if (!identity.ok) throw new Error("fixture identity unavailable");
+	const name = credentialRecordName(identity.value, "oauth");
+	const record = await readOAuthRecord(secrets, name, `${BASE}/mcp`);
+	if (!record.ok || !record.value)
+		throw new Error("fixture record unavailable");
+	return record.value.tokens;
 };
 
 // What the browser lands on after the user allows access: the code, the state the sign-in sent and,
@@ -236,10 +244,13 @@ describe("mcp-client OAuth", () => {
 		expect(server.registration.application_type).toBe("native");
 		// The token is longer than one keychain entry, so it is stored in numbered pieces.
 		const names = secrets.names();
-		expect(names).toContain(`mcp/${BASE}/client`);
-		expect(names).toContain(`mcp/${BASE}/tokens`);
+		const identity = await credentialIdentity(tmpdir(), remote);
+		if (!identity.ok) throw new Error("fixture identity unavailable");
+		const name = credentialRecordName(identity.value, "oauth");
+		expect(names).toContain(`${name}/manifest`);
+		expect(names.some((n) => n.includes(BASE))).toBe(false);
 		expect(
-			names.filter((n) => n.startsWith(`mcp/${BASE}/tokens/`)).length,
+			names.filter((n) => n.startsWith(`${name}/`)).length,
 		).toBeGreaterThan(2);
 		await first.module.deactivate();
 		// Another process, another module: no host to ask, the keychain has the tokens.
@@ -285,13 +296,55 @@ describe("mcp-client OAuth", () => {
 			authorize: async (_id, url) =>
 				`http://127.0.0.1/callback?error=access_denied&state=${new URL(url).searchParams.get("state")}`,
 		});
-		expect(await denied.echo()).toMatch(/access_denied/);
+		expect(await denied.echo()).toMatch(/server refused the sign-in/);
 		await denied.module.deactivate();
 		const bare = await start(server, memorySecrets(), {
 			authorize: async () => "not an address",
 		});
 		expect(await bare.echo()).toMatch(/whole address/);
 		await bare.module.deactivate();
+	});
+
+	it("does not launch or register after a noninteractive failed refresh and preserves prior tokens", async () => {
+		const server = await remoteServer();
+		const secrets = memorySecrets();
+		const first = await start(server, secrets, {
+			authorize: async (_id, url) => landing(url),
+		});
+		expect(await first.echo()).toBe("hi");
+		await first.module.deactivate();
+		const before = await savedTokens(secrets);
+		server.refuseRefresh();
+		const second = await start(server, secrets);
+		expect(await second.echo()).not.toBe("hi");
+		expect(server.seen.registered).toBe(1);
+		expect(await savedTokens(secrets)).toEqual(before);
+		await second.module.deactivate();
+	});
+
+	it("lets an explicit terminal host reauthorize a refused refresh without re-registering", async () => {
+		const server = await remoteServer();
+		const secrets = memorySecrets();
+		const first = await start(server, secrets, {
+			authorize: async (_id, url) => landing(url),
+		});
+		expect(await first.echo()).toBe("hi");
+		await first.module.deactivate();
+		server.refuseRefresh();
+		let asked = 0;
+		const second = await start(server, secrets, {
+			authorize: async (_id, url) => {
+				asked++;
+				return landing(url);
+			},
+		});
+		try {
+			expect(await second.echo()).toBe("hi");
+			expect(asked).toBe(1);
+			expect(server.seen.registered).toBe(1);
+		} finally {
+			await second.module.deactivate();
+		}
 	});
 
 	it("takes the code only from the issuer it signs in to, when the address names one", async () => {
@@ -372,6 +425,8 @@ describe("mcp-client OAuth", () => {
 		const server = await remoteServer();
 		const s = await start(server, memorySecrets());
 		expect(await s.echo()).toMatch(/sign in.*mete run.*terminal/);
+		expect(server.seen.registered).toBe(0);
+		expect(server.seen.tokens).toBe(0);
 		await s.module.deactivate();
 	});
 

@@ -38,9 +38,12 @@ import { changesOf } from "./changes.js";
 import type { Io } from "./commands.js";
 import { parsed, readyEngine, refused } from "./daemon-errors.js";
 import { guardedConnection, maskerOf } from "./daemon-guard.js";
-import { serveMcpTest } from "./daemon-mcp.js";
+import { serveMcpConnection } from "./daemon-mcp-connection.js";
+import { serveQuiesce } from "./daemon-quiesce.js";
 import { serveAudit, serveKnowledgeSearch } from "./daemon-reads.js";
+import { serveRegistry } from "./daemon-registry.js";
 import { serveReply } from "./daemon-reply.js";
+import { serveTaskControl } from "./daemon-task-control.js";
 import { estimateFor } from "./estimate.js";
 import { draftMember } from "./member-draft.js";
 import {
@@ -334,6 +337,7 @@ const serveMethods = (conn: MessageConnection, app: App, io: Io) => {
 	serveStatus(conn, app);
 	serveRunStart(conn, app);
 	serveReply(conn, app);
+	serveTaskControl(conn, app);
 	serveSteering(conn, app);
 	serveStopAll(conn, app, io);
 	serveEvents(conn, app);
@@ -350,7 +354,10 @@ const serveMethods = (conn: MessageConnection, app: App, io: Io) => {
 	serveMemberDraft(conn, app);
 	serveSettings(conn, app);
 	serveProviders(conn, app);
-	serveMcpTest(conn, app);
+	serveMcpConnection(conn, app);
+	serveRegistry(conn, app);
+	serveConversation(conn, app);
+	serveQuiesce(conn, app);
 };
 
 /**
@@ -392,3 +399,5 @@ export const daemonCommand = async (
 	conn.dispose();
 	return 0;
 };
+
+import { serveConversation } from "./daemon-conversation.js";

@@ -6,6 +6,7 @@ import type {
 	Transport,
 } from "@modelcontextprotocol/client";
 import { STDERR_TAIL_CHARS } from "../defaults.js";
+import { createSseCredentialEndpoint } from "./sse-credential-endpoint.js";
 
 // Transports of docs/10 (MCP client): stdio, Streamable HTTP and legacy SSE. The SDK loads on the
 // first connection, not when a command starts (docs/15, CLI cold start).
@@ -23,6 +24,8 @@ export type OpenOptions = {
 	readonly fetch?: typeof fetch;
 	readonly cwd?: string;
 	readonly auth?: OAuthClientProvider;
+	/** Per-connection SDK-advertised SSE message URLs shared with credentialFetch. */
+	readonly credentialEndpoints?: Set<string>;
 	/** Ends a stdio server's whole process tree on Windows; tests swap it. */
 	readonly killTree?: (pid: number) => void;
 	readonly platform?: NodeJS.Platform;
@@ -87,8 +90,17 @@ export const openTransport: OpenTransport = async (server, opts = {}) => {
 		"@modelcontextprotocol/client"
 	);
 	const url = new URL(server.url);
+	const credentials =
+		server.transport === "sse" && opts.credentialEndpoints
+			? createSseCredentialEndpoint(
+					opts.fetch ?? fetch,
+					url,
+					opts.credentialEndpoints,
+				)
+			: undefined;
+	const fetcher = credentials?.fetch ?? opts.fetch;
 	const more = {
-		...(opts.fetch ? { fetch: opts.fetch } : {}),
+		...(fetcher ? { fetch: fetcher } : {}),
 		...(opts.auth ? { authProvider: opts.auth } : {}),
 	};
 	// docs/10 keeps legacy SSE for older servers although the SDK deprecates it.
@@ -96,6 +108,7 @@ export const openTransport: OpenTransport = async (server, opts = {}) => {
 		server.transport === "sse"
 			? new SSEClientTransport(url, more)
 			: new StreamableHTTPClientTransport(url, more);
+	credentials?.bind(transport);
 	return {
 		transport,
 		stderr: () => "",

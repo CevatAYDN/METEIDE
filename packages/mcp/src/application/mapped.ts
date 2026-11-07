@@ -15,6 +15,7 @@ import {
 } from "@mete/contracts";
 import { render, resultScope, type Scope } from "../domain/render.js";
 import { permit } from "./permit.js";
+import { redactWireValue } from "./redact-content.js";
 import type { Sessions } from "./sessions.js";
 
 // A level 2 MCP mapping as an adapter of the capability it implements (docs/10, Integration
@@ -88,12 +89,21 @@ const callTool = async (
 			s.value.client.callTool({ name: t.entry.tool, arguments: args }, options),
 		);
 		const blocks = Array.isArray(r.content) ? r.content : [];
-		const texts = blocks.flatMap((b) => (b.type === "text" ? [b.text] : []));
+		const texts = blocks.flatMap((b) =>
+			b.type === "text" ? [deps.sessions.redact(b.text)] : [],
+		);
 		if (r.isError === true)
 			return err(failed(t)(`tool ${t.entry.tool} failed: ${texts.join(" ")}`));
-		return ok(resultScope(r.structuredContent, texts));
+		return ok(
+			redactWireValue(
+				resultScope(r.structuredContent, texts),
+				deps.sessions.redact,
+			),
+		);
 	} catch (e) {
-		return err(failed(t)(`tool ${t.entry.tool}: ${why(e)}`));
+		return err(
+			failed(t)(deps.sessions.redact(`tool ${t.entry.tool}: ${why(e)}`)),
+		);
 	}
 };
 

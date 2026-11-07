@@ -8,6 +8,7 @@ import {
 } from "@mete/contracts";
 import { z } from "zod";
 import { openTask } from "../domain/clarify.js";
+import { currentWait, withTaskWait } from "../domain/task-wait.js";
 import {
 	attemptState,
 	decide,
@@ -19,6 +20,7 @@ import {
 	apply,
 	type EngineState,
 	emit,
+	emitAs,
 	type Live,
 	platformOf,
 } from "./run-state.js";
@@ -103,7 +105,8 @@ export const recordDecision = (
 	if (!c.team) return invalid(l, "a single-agent run has no tasks to approve");
 	const id = pick(c.team, a.data.taskId);
 	if (!id.ok) return id;
-	const r = decide(c.team, id.value, a.data);
+	const waiting = currentWait(c.team.tasks[id.value]);
+	const r = decide(withTaskWait(c.team, id.value, undefined), id.value, a.data);
 	if (!r) return invalid(l, refusal(c.team, id.value));
 	const after = afterApproval(s, l, r.team, id.value);
 	const applied = goOn(s, l, after.team, id.value);
@@ -116,6 +119,19 @@ export const recordDecision = (
 		...(feedback ? { feedback } : {}),
 	};
 	emit(s, l, { type: "approval.resolved", payload }, taskId);
+	if (waiting)
+		emitAs(
+			s,
+			l,
+			{
+				type: "task.wait.resolved",
+				payload: {
+					requestId: waiting.request.requestId,
+					kind: waiting.request.kind,
+				},
+			},
+			{ taskId, agentId: waiting.request.agentId },
+		);
 	if (r.change)
 		emit(s, l, { type: "task.status.changed", payload: r.change }, taskId);
 	after.announce();

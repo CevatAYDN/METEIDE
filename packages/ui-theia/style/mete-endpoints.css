@@ -17,8 +17,8 @@
 	margin: 0;
 	padding: 16px 18px;
 	background: var(--raised, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	border-radius: 14px;
+	border: 1px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 8px;
 }
 
 .mete-endpoint-fields,
@@ -34,7 +34,7 @@
 }
 
 .mete-endpoint-rule {
-	height: 1.5px;
+	height: 1px;
 	background: var(--line-soft, var(--theia-panel-border));
 }
 
@@ -70,8 +70,8 @@
 	flex-direction: column;
 	padding: 6px 6px 10px;
 	background: var(--panel, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	border-radius: 14px;
+	border: 1px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 8px;
 }
 
 .mete-endpoint-models > p {
@@ -86,7 +86,7 @@
 	align-items: center;
 	gap: 12px;
 	padding: 8px 10px;
-	border-radius: 10px;
+	border-radius: 4px;
 	cursor: pointer;
 }
 
@@ -126,7 +126,7 @@
 	min-height: 24px;
 	box-sizing: border-box;
 	padding: 3px 10px 3px 8px;
-	border-radius: 12px;
+	border-radius: 8px;
 	font-family: "JetBrains Mono", var(--theia-code-font-family, monospace);
 	font-variant-numeric: tabular-nums;
 	font-size: 12px;

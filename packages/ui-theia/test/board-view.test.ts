@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
 	type BoardModel,
 	BoardView,
+	type TeamControls,
 	type TeamMode,
 } from "../src/application/board-view.js";
 import { restoredText } from "../src/application/checkpoint-list.js";
@@ -19,7 +20,7 @@ const html = (
 	model: BoardModel,
 	mode: TeamMode = "board",
 	restoring?: string,
-	run: RunFacts = {},
+	run: RunFacts & Pick<TeamControls, "taskControls" | "onReply"> = {},
 ) =>
 	renderToStaticMarkup(
 		createElement(BoardView, {
@@ -40,6 +41,8 @@ const html = (
 				windows: {},
 				transcript: {},
 				run,
+				taskControls: run.taskControls,
+				...(run.onReply ? { onReply: run.onReply } : {}),
 				waiting: {
 					onApprove: () => {},
 					onRevise: () => {},
@@ -76,6 +79,75 @@ const runEntry = (status: "running" | "completed") => ({
 	autonomyLevel: 1 as const,
 	budget: { cloudRequests: 0, maxHours: 1 },
 	createdAt: "2026-10-23T10:00:00.000Z",
+});
+
+describe("authoritative task controls", () => {
+	const model: Extract<BoardModel, { kind: "board" }> = {
+		kind: "board",
+		goal: "Work",
+		unreadable: 0,
+		recent: [],
+		feed: [],
+		view: {
+			...EMPTY_TEAM_VIEW,
+			signals: {
+				...EMPTY_TEAM_VIEW.signals,
+				pausedFor: "approval",
+				asked: {
+					action: "shell.exec",
+					capability: "shell.exec@1",
+					adapterId: "native",
+					command: "npm test",
+				},
+			},
+		},
+	};
+	it("shows exact task controls during a running team, without old wait actions", () => {
+		const team = {
+			...model,
+			view: {
+				...model.view,
+				tasks: [
+					{
+						id: "task",
+						title: "Write",
+						roleId: "writer",
+						dependsOn: [],
+						status: "blocked" as const,
+						waitsForHuman: true as const,
+					},
+				],
+			},
+		};
+		const out = html(team, "board", undefined, {
+			run: runEntry("running"),
+			taskControls: createElement("p", {}, "Exact task request"),
+		});
+		expect(out).toContain("Exact task request");
+		// The RunHero member badge may still say "Waiting for you".
+		expect(out).not.toContain('class="mete-wait"');
+		expect(out).not.toContain('class="mete-wait-feedback"');
+		expect(out).not.toContain("Give an instruction");
+		expect(out).not.toContain("Allow once");
+	});
+	it("never falls back to event-derived team controls when new state or run facts are absent", () => {
+		for (const run of [{ run: runEntry("running") }, {}]) {
+			const out = html(model, "board", undefined, run);
+			expect(out).toContain("Task decisions are unavailable");
+			expect(out).not.toContain('class="mete-wait"');
+			expect(out).not.toContain('class="mete-wait-feedback"');
+			expect(out).not.toContain("Allow once");
+		}
+	});
+	it("preserves the single-agent policy wait", () => {
+		const out = html(model, "board", undefined, {
+			run: { ...runEntry("running"), templateId: null },
+			onReply: async () => undefined,
+		});
+		expect(out).toContain("Waiting for you");
+		expect(out).toContain('class="mete-wait"');
+		expect(out).not.toContain("Task decisions are unavailable");
+	});
 });
 
 const task = (title: string) => {

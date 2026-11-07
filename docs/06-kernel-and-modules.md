@@ -352,6 +352,29 @@ A crash is an exception thrown by `activate` or `deactivate`, or a `crash(module
 
 ## Capability resolution
 
+ADR-181 adds `tool.isolation@1`. Its `inspect({ capability, adapterId, input,
+cwd? }, signal)` returns `Result<{ scope: "workspace" } | { scope: "worktree",
+root: string }, ToolError>`. The descriptor must have the described adapter's
+id and trust. Core validates the result, checks non-overlapping canonical roots
+and executes only the captured, still-current adapter chain. Unknown or invalid
+claims require exclusive execution. Initially only native fs write/edit in a
+worktree qualify; shell, Git mutation and mappings do not.
+
+`policy.requests@1` retains process-local, exact server-owned policy challenges.
+`pending({ runId, agentId })` returns masked `{ requests }`;
+`grant({ runId, agentId, requestId, scope: "once" | "task" })` consumes that exact
+pending identity, and `forget({ runId, agentId? })` retires its requests/grants.
+Each operation returns `Result`; old `policy.check@1` and `policy.grant@1`
+schemas are unchanged. Invalid or lossy argument serialization cannot create an
+exact grant.
+
+`task.control@1` lists authoritative pending decisions with `pending({ runId })`
+and accepts `answer({ runId, taskId, requestId, decision, ... })`.
+`allow` takes `scope: "once" | "task"`; `revise`/`answer` take nonempty feedback;
+`approve` and merge `retry` take no replacement action data. Task state and pending
+identity are rechecked in a serialized run-control turn. A user/quota pause is
+not resumed by answering a task; an approval-only pause may resume.
+
 1. Collect active adapters for the same capability id and major version.
 2. Order them by the binding list: the user's list for that capability (`bindings.yaml` or the `bindings:` settings section), otherwise the built-in list the composition root passes to `loadConfig` \[D\]; adapters not in the binding follow, core before first-party before third-party, then in registration order. One adapter id provides a capability at most once; a second `provide` is a bug and throws.
 3. Remove adapters whose circuit is open or that lack a required feature.
@@ -374,7 +397,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | provider-groq | `@mete/providers` | optional | `provider.chat@2` | none | none | in-process |
 | provider-google | `@mete/providers` | optional | `provider.chat@2` | none | none | in-process |
 | provider-custom | `@mete/providers` | optional | `provider.chat@2`, `provider.embed@2` when the format supports it | none | none | in-process |
-| tools-fs | `@mete/tools` | essential | `fs.read@1`, `fs.write@1`, `fs.edit@1`, `fs.list@1`, `fs.glob@1`, `fs.grep@1` | `policy.check@1` | none | in-process |
+| tools-fs | `@mete/tools` | essential | `fs.read@1`, `fs.write@1`, `fs.edit@1`, `fs.list@1`, `fs.glob@1`, `fs.grep@1`, `fs.context@1` (ADR-183, not a model tool) | `policy.check@1` | none | in-process |
 | tools-shell | `@mete/tools` | essential | `shell.exec@1` | `policy.check@1` | none | in-process |
 | tools-web | `@mete/tools` | optional | `web.fetch@1`, `web.search@1` (HTTP adapters) | `policy.check@1` | `mcp.tools@1` | in-process |
 | vcs-git | `@mete/tools` | optional | `vcs.git@2` | `policy.check@1` | none | in-process |
@@ -384,7 +407,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | knowledge-graph | `@mete/knowledge` | optional | `code.graph@1` | `fs.read@1` | `llm.chat@2` | worker |
 | vault | `@mete/knowledge` | optional | `vault.read@1`, `vault.write@1` | `fs.read@1`, `fs.write@1`, `events.read@1` (ADR-144) | none | in-process |
 | knowledge-search | `@mete/knowledge` | optional | `knowledge.search@1`, `knowledge.index@1` (not yet, ADR-149) | `storage.sql@1`, `fs.glob@1`, `fs.read@1` (ADR-149) | `llm.embed@1`, `llm.rerank@1`, `code.graph@1`, `vault.read@1` | in-process while it indexes the vault's notes and, in the background, embeds them (ADR-152); a worker for code index jobs (ADR-149) |
-| core-engine | `@mete/core` | essential | `team.engine@2` (native), `checkpoint.restore@1`, runs, router, artifacts, checkpoints | `llm.chat@2`, `fs.*`, `policy.check@1`, `secrets.mask@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@2`, `web.fetch@1`, `web.search@1`, `mcp.tools@1`, `knowledge.search@1`, `vault.*` | in-process |
+| core-engine | `@mete/core` | essential | `team.engine@2` (native), `checkpoint.restore@1`, `conversation.thread@1`, `conversation.thread@2`, runs, router, artifacts, checkpoints | `llm.chat@2`, `fs.*`, `policy.check@1`, `secrets.mask@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@2`, `web.fetch@1`, `web.search@1`, `mcp.tools@1`, `knowledge.search@1`, `vault.*`, `fs.context@1` (ADR-183) | in-process |
 | autonomy | `@mete/core` | optional | triggers, schedules | `team.engine@2` | `issues.source@1` | in-process |
 | browser | `@mete/tools` | optional | `browser.screenshot@2`, `seo.audit@2` | `policy.check@1` | none | in-process; each call in a child process; Chromium comes from Playwright's own installer, not `runtime.ensure@1` (tab 10) \[D\] |
 | engine-crewai, engine-metagpt, engine-chatdev | `@mete/engines` | optional | `team.engine@2` | `runtime.ensure@1`, `llm.chat@2` | none | process |
@@ -398,18 +421,28 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 
 ## Capability catalog
 
+ADR-184 adds `mcp.connection@1` on mcp-client and `registry.setup@1` on registry.
+They are user-management ports, never entries in the model tool catalog.
+`mcp.connection@1` provides `status`, `start`, `cancel`, `forget`, and a write-only
+`configure`. Status exposes configured booleans only and never connects.
+`registry.setup@1.prepare` returns `{server, notes, source, fields, blocked}`.
+The `McpServer` configuration accepts optional value-free `credentialFields`;
+existing tool/status/search interfaces remain unchanged. See docs/10 and ADR-184.
+
 | Capability | Purpose | Default adapters, in fallback order | When the chain is empty |
 | --- | --- | --- | --- |
 | `storage.sql@1` | The workspace and global SQLite databases, with per-module migrations | Native (storage module) | Never empty (essential) |
 | `events.read@1` | One run's persisted catalog events in `seq` order, and the rows that no longer parse (ADR-144) | Native (storage module) | Never empty (essential) |
 | `policy.check@1` | Allow, ask or deny a side-effect action, and write its audit row | Native (security module) | Never empty (essential) |
 | `policy.grant@1` | Let a run do what the policy asked about, once or for the rest of the run (ADR-121) | Native (security module) | Never empty (essential) |
+| `policy.requests@1` | Exact process-local, agent-bound policy requests and grants (ADR-181) | Native (security module) | Exact task permission is unavailable; never silently grant another action |
 | `secrets.mask@1` | Replace secrets in outbound text | Native (security module, secretlint) | Never empty (essential) |
 | `quota.reserve@4` | Reserve and settle provider quota for a model call, and read the pool | Native (quota module) | Never empty (essential) |
 | `llm.chat@2` | Chat with tools and streaming | Gateway → tier chain of discovered models the model mode allows (free by default, ADR-042) | Run pauses with reason `quota` or `no_model` |
 | `llm.embed@1` | Embeddings | NVIDIA embedding model | Vector search off; hybrid search continues |
 | `llm.rerank@1` | Reranking | NVIDIA rerank model | Rerank skipped |
 | `fs.*@1` | Files: read, write, edit, list, glob, grep | Native | Never empty (essential) |
+| `tool.isolation@1` | Inspect an exact adapter call's worktree confinement (ADR-181) | Descriptor owned by each supporting adapter | The call is workspace-scoped and exclusive |
 | `shell.exec@1` | Run commands under policy | Native (child process) | Never empty (essential) |
 | `web.fetch@1` | Page to clean Markdown | Native reader | Steps needing it are blocked with a notice |
 | `web.search@1` | Web search returning URLs | Exa MCP (no key) → Tavily → Exa API → You.com → Firecrawl | Steps needing it are blocked with a notice |
@@ -420,6 +453,12 @@ The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools
 | `vault.read@1`, `vault.write@1` | Notes and lessons | vault module | Lessons are not saved; runs continue |
 | `team.engine@2` | Execute a team template | Native XState engine; optional CrewAI, MetaGPT, ChatDev | Never empty (essential) |
 | `run.reply@1` | Follow up a completed single-agent conversation with a new run (ADR-178) | Native core-engine | The UI reports follow-up unavailable |
+| `conversation.run@1` | `start({ goal, prefer?, capabilities? })` and `reply({ runId, message, capabilities? })`, returning `{ runId }`; optional capability list limited to `web.search@1`, `web.fetch@1`, `mcp.tools@1`, without duplicates (ADR-180) | Native core-engine | The UI reports conversation tools unavailable |
+| `conversation.thread@1` | Idempotent `start`/`reply`, paged `list` and ordered `read`; exact intent/head identity over immutable single-agent runs (ADR-182) | Native core-engine | History/send failure is explicit; never downgrade to a legacy send |
+| `conversation.thread@2` | @1 history plus explicit editor-context `prepare`, attached `start`/`reply` and per-turn `context`; ADR-183 | Native core-engine | Attached sends are unavailable; never strip attachments and resend |
+| `fs.context@1` | `inspect({ path }, signal)` checks an attachment source and returns its canonical workspace-relative path; not a model tool (ADR-183) | Native tools-fs | Context preparation and new attached sends are refused |
+| `run.quiesce@1` | `prepare()` atomically refuses active work, otherwise prevents new work and drains paused calls before a settings restart (ADR-180) | Native core-engine | Safe restart is refused |
+| `task.control@1` | Read and answer exact task-local waits while independent work continues (ADR-181) | Native core-engine | The UI reports task controls unavailable |
 | `media.image.generate@1`, `media.image.edit@1` | Images | MCP mapping adapters (for example an NVIDIA NIM MCP server with FLUX, Hugging Face Spaces) | Artist writes specs and placeholders |
 | `media.3d.fromText@1`, `media.3d.fromImage@1` | 3D assets | MCP mapping adapters (for example TRELLIS) | Artist writes specs and placeholders |
 | `3d.cleanup@1`, `3d.export@1` | Mesh cleanup and export | MCP or CLI adapters (Blender, 3ds Max, others) | Raw generated file is kept |

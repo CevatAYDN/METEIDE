@@ -1,11 +1,9 @@
 import type { ReactNode } from "react";
 import { Icon } from "./roster-look.js";
 
-// The hero band the main screens share (ADR-128): a tile with the screen's glyph, its title with the
-// caption of its tab, the actions beside them, what the screen adds under them and an aside at the
-// right. Laid out by style/mete-screen.css.
+// ADR-180: shared compact screen header, retaining each screen's facts and actions.
 
-/** The hero band of a main screen. `compact` is the dashboards' slimmer band. */
+/** A main screen's header. `compact` trims its trailing space on dashboards. */
 export const ScreenHero = ({
 	icon,
 	title,
@@ -30,8 +28,8 @@ export const ScreenHero = ({
 					<Icon name={icon} />
 				</span>
 				<div className="mete-screen-title">
-					<h2>{title}</h2>
-					<p>{caption}</p>
+					<h2 title={title}>{title}</h2>
+					{caption ? <p>{caption}</p> : null}
 				</div>
 				{actions}
 			</div>

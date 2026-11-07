@@ -1,4 +1,5 @@
 // Public API of this package: types, contracts and the module (CONTRIBUTING.md).
+
 export {
 	CHARS_PER_TOKEN,
 	TEMPLATE_DEFAULTS,
@@ -28,6 +29,18 @@ export type {
 	CheckpointRestoreError,
 	CheckpointRestoreInput,
 } from "./domain/checkpoint.js";
+export {
+	ConversationCapabilitiesSchema,
+	type ConversationCapability,
+	ConversationCapabilitySchema,
+	type ConversationReplyInput,
+	ConversationReplyInputSchema,
+	type ConversationRunAdapter,
+	type ConversationRunOutput,
+	ConversationRunOutputSchema,
+	type ConversationStartInput,
+	ConversationStartInputSchema,
+} from "./domain/conversation-run.js";
 export {
 	type AllowScope,
 	AllowScopeSchema,
@@ -86,6 +99,12 @@ export {
 	DaemonProviderTestParamsSchema,
 	DaemonProviderTestResultSchema,
 } from "./domain/daemon-providers.js";
+export {
+	DaemonRegistryPrepareParamsSchema,
+	DaemonRegistryPrepareResultSchema,
+	DaemonRegistrySearchParamsSchema,
+	DaemonRegistrySearchResultSchema,
+} from "./domain/daemon-registry.js";
 export {
 	type ApprovalInput,
 	ApprovalInputSchema,
@@ -257,6 +276,11 @@ export {
 } from "./domain/registry.js";
 export { err, ok, type Result } from "./domain/result.js";
 export {
+	DaemonQuiesceParamsSchema,
+	DaemonQuiesceResultSchema,
+	type RunQuiesceAdapter,
+} from "./domain/run-quiesce.js";
+export {
 	type RunReplyAdapter,
 	type RunReplyInput,
 	RunReplyInputSchema,
@@ -365,3 +389,6 @@ export {
 	type WebSearchOutput,
 	WebSearchOutputSchema,
 } from "./domain/web.js";
+export * from "./mcp-management-contracts.js";
+export * from "./parallel-contracts.js";
+export * from "./thread-contracts.js";

@@ -36,6 +36,10 @@ export const SETTINGS_LINKS: readonly SettingsLink[] = [
 		"workbench.action.configureLanguage",
 		() => nls.localize("mete/settings/language", "Display language"),
 	],
+	[
+		"vsxExtensions.toggle",
+		() => nls.localize("mete/settings/extensions", "Editor extensions"),
+	],
 ];
 
 /** What a group is: its words, the sections it holds and the links it leads to. */
@@ -92,7 +96,7 @@ export const GROUPS: readonly GroupDef[] = [
 				"Adapters, MCP servers and the shell",
 			),
 		sections: ["bindings", "mcp", "shell"],
-		links: [],
+		links: ["vsxExtensions.toggle"],
 	},
 	{
 		id: "teams",
@@ -194,4 +198,25 @@ export const groupsOf = <S extends GroupedSection>(
 					changedHere: other.some((s) => s.workspace !== undefined),
 				},
 			];
+};
+
+const searchable = (text: string) =>
+	text.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
+
+/** Search translated category labels and section titles, retaining stable section IDs. */
+export const searchGroups = <S extends GroupedSection>(
+	groups: readonly Group<S>[],
+	query: string,
+): readonly Group<S>[] => {
+	const needle = searchable(query.trim());
+	if (!needle) return groups;
+	return groups.flatMap((group) => {
+		if (searchable(group.label).includes(needle)) return [group];
+		const sections = group.sections.filter((section) =>
+			searchable(
+				`${section.name} ${sectionTitle(section.name) ?? ""}`,
+			).includes(needle),
+		);
+		return sections.length ? [{ ...group, sections }] : [];
+	});
 };

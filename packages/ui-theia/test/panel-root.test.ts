@@ -6,15 +6,31 @@ import { panelRoot } from "../src/application/panel-root.js";
 // high-contrast theme, so every style falls back to Theia's colours there.
 
 describe("a METE panel's root", () => {
-	it("sets the token colours of the theme's mode in a light or dark theme", () => {
+	it("keeps METE accents but uses neutral Theia surfaces in light and dark themes", () => {
 		expect(panelRoot("light")).toEqual({
 			className: "mete-panel",
 			style: expect.objectContaining({ "--accent": TOKENS.light.accent }),
 		});
 		expect(panelRoot("dark").style).toEqual(
-			expect.objectContaining({ "--bg": TOKENS.dark.bg }),
+			expect.objectContaining({
+				"--bg": "var(--theia-editor-background)",
+				"--ink": "var(--theia-foreground)",
+				"--accent": TOKENS.dark.accent,
+			}),
 		);
 	});
+
+	it.each(["light", "dark"] as const)(
+		"uses foreground for secondary text on tinted %s surfaces",
+		(type) => {
+			expect(panelRoot(type).style).toEqual(
+				expect.objectContaining({
+					"--muted": "var(--theia-foreground)",
+					"--muted-2": "var(--theia-foreground)",
+				}),
+			);
+		},
+	);
 
 	it("sets no token in a high-contrast theme", () => {
 		expect(panelRoot("hc")).toEqual({ className: "mete-panel" });

@@ -188,6 +188,20 @@ describe("TeamEditorView", () => {
 });
 
 describe("the rules of the work", () => {
+	it("keeps unwired member fields read-only and labels them inactive", () => {
+		const doc = edited(
+			edited(DOC, ["roles", 0, "watches"], ["gdd@1"]),
+			["roles", 0, "prefer_different_family_than"],
+			["qa"],
+		);
+		const out = html(ready(doc));
+		expect(out).toContain("Artifact watches (not active)");
+		expect(out).toContain("Model family preference (not active)");
+		expect(out).toMatch(/<input[^>]*disabled="" value="gdd@1"/);
+		expect(out).toMatch(/<input[^>]*disabled="" value="qa"/);
+		expect(out).not.toContain("Wakes on artifacts");
+	});
+
 	const GAME = draftOf(
 		readFileSync(
 			join(__dirname, "..", "..", "..", "templates", "game-studio.yaml"),

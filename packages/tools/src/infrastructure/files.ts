@@ -63,6 +63,38 @@ export const kindOf = async (
 	return s.ok ? ok(s.value.isDirectory() ? "folder" : "file") : s;
 };
 
+const missingTarget = async (
+	path: string,
+): Promise<Result<boolean, ToolError>> => {
+	const parent = dirname(path);
+	const kind = await kindOf(parent);
+	if (!kind.ok)
+		return kind.error.code === "not_found" && parent !== path
+			? missingTarget(parent)
+			: kind;
+	return kind.value === "folder"
+		? ok(false)
+		: err({ code: "not_found", message: `${parent} is not a folder` });
+};
+
+/** Whether an existing file shares its inode; only a missing new file is allowed (ADR-181). */
+export const multiplyLinked = async (
+	path: string,
+): Promise<Result<boolean, ToolError>> => {
+	const s = await attempt(path, async () => {
+		try {
+			return await stat(path);
+		} catch (e) {
+			if (errnoOf(e) === "ENOENT") return undefined;
+			throw e;
+		}
+	});
+	if (!s.ok) return s;
+	return s.value === undefined
+		? missingTarget(path)
+		: ok(s.value.isFile() && s.value.nlink > 1);
+};
+
 /** A file's bytes. */
 export const readBytes = (path: string) => attempt(path, () => readFile(path));
 

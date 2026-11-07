@@ -13,7 +13,7 @@ import { TierTiles } from "./tier-tiles.js";
 // What the team editor asks of the work (docs/08, Task fields; ADR-075): a task's or a member's
 // spawn defaults' output, approver, whom it asks before starting (ADR-142), pair reviewer (ADR-136),
 // verify commands, guardrail, lesson (ADR-145) and attempts (ADR-162), and the team's revision limit and budget. Only what core honors is
-// shown: capability gates are not yet; a pair's max_turns stays in the YAML.
+// shown: capability gates are read-only and expect is unused; a pair's max_turns stays in the YAML.
 // The fields sit in the grid of `.mete-task-grid` (style/mete-team-form.css).
 
 type Path = readonly (string | number)[];
@@ -60,20 +60,62 @@ export const Work = (props: {
 				</select>
 			</label>
 			<Clarify {...props} />
+			<Lesson {...props} />
+			<Advanced {...props} />
+		</>
+	);
+};
+
+const Advanced = (props: Parameters<typeof Work>[0]) => (
+	<details className="mete-wide">
+		<summary>
+			{nls.localize(
+				"mete/team/advanced",
+				"Advanced: verify, review and best-of-N",
+			)}
+		</summary>
+		<div className="mete-task-grid">
 			<Pair {...props} />
 			<Chips
 				label={nls.localize(
 					"mete/team/verify",
 					"Commands that must pass before it is submitted (such as npm test)",
 				)}
-				values={runsOf(work.verify)}
+				values={runsOf(props.work.verify)}
 				hints={[]}
-				onChange={(v) => onEdit(at("verify"), withRuns(work.verify, v))}
+				onChange={(v) =>
+					props.onEdit(
+						[...props.base, "verify"],
+						withRuns(props.work.verify, v),
+					)
+				}
 			/>
+			<CapabilityChecks work={props.work} />
 			<Guardrail {...props} />
-			<Lesson {...props} />
 			<Attempts {...props} />
-		</>
+		</div>
+	</details>
+);
+
+// Capability args and unused expect stay intact in the YAML; this is not a gate result.
+const CapabilityChecks = ({ work }: { readonly work: WorkView }) => {
+	const gates = work.verify.filter(
+		(g) => typeof g === "object" && g !== null && "capability" in g,
+	);
+	if (gates.length === 0) return null;
+	return (
+		<label className="mete-wide">
+			{nls.localize(
+				"mete/team/capabilityChecks",
+				"Capability checks (YAML; expect is not evaluated)",
+			)}
+			<textarea
+				className="mete-field mono"
+				rows={3}
+				readOnly
+				value={JSON.stringify(gates, null, 2)}
+			/>
+		</label>
 	);
 };
 
@@ -229,7 +271,7 @@ const Pair = ({
 				{nls.localize("mete/team/noPair", "No pair review")}
 			</option>
 			{team.roles.map((r) => (
-				<option key={r.id} value={r.id}>
+				<option key={r.id} value={r.id} disabled={r.id === work.approval}>
 					{r.name || r.id}
 				</option>
 			))}

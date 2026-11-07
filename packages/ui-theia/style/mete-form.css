@@ -32,22 +32,22 @@
 .mete-field {
 	font: inherit;
 	width: 100%;
-	min-height: 36px;
+	min-height: 28px;
 	box-sizing: border-box;
 	resize: vertical;
-	padding: 0 12px;
+	padding: 3px 8px;
 	color: var(--ink, var(--theia-input-foreground));
 	background: var(--panel, var(--theia-input-background));
-	border: 1.5px solid
+	border: 1px solid
 		var(
 			--line,
 			var(--theia-contrastBorder, var(--theia-input-border, transparent))
 		);
-	border-radius: 10px;
+	border-radius: 4px;
 }
 
 textarea.mete-field {
-	padding: 8px 12px;
+	padding: 6px 8px;
 }
 
 .mete-field[type="number"],
@@ -76,28 +76,9 @@ textarea.mete-field {
 
 /* A choice drawn without the platform's arrow: a chevron in --muted-2 at the field's end. */
 select.mete-field {
-	appearance: none;
-	padding-right: 36px;
+	appearance: auto;
+	padding-right: 8px;
 	cursor: pointer;
-	/* Two thin strokes, "\" then "/", meet in a "v". */
-	background-image:
-		linear-gradient(
-			45deg,
-			transparent 38%,
-			var(--muted-2, var(--theia-descriptionForeground)) 38% 62%,
-			transparent 62%
-		),
-		linear-gradient(
-			-45deg,
-			transparent 38%,
-			var(--muted-2, var(--theia-descriptionForeground)) 38% 62%,
-			transparent 62%
-		);
-	background-position:
-		calc(100% - 20px) 50%,
-		calc(100% - 14px) 50%;
-	background-size: 6px 6px;
-	background-repeat: no-repeat;
 }
 
 /* A field the user cannot change, such as a team member's id that tasks name, reads as fixed. */

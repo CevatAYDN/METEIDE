@@ -1,6 +1,5 @@
-/* The design system of docs/13 on METE's panels (ADR-069). Each colour is a METE token with a Theia
-   colour as its fallback: a panel root in a high-contrast theme sets no tokens, so Theia's colours
-   apply there. Theia's chrome, editor and terminal are never styled here. */
+/* ADR-180: compact operational panels; semantic tokens keep their Theia fallbacks.
+   The Studio canvas, Theia chrome, editor and terminal are not styled here. */
 
 /* Baloo 2, bundled (THIRD_PARTY_NOTICES.md): one variable font covers weights 400 to 800. */
 @font-face {
@@ -19,9 +18,10 @@
 }
 
 .mete-panel {
-	font-family: "Baloo 2", var(--theia-ui-font-family);
-	/* docs/13: Baloo 2 in weights 500 to 800. */
-	font-weight: 500;
+	font-family: var(--theia-ui-font-family);
+	font-size: var(--theia-ui-font-size1, 13px);
+	font-weight: 400;
+	letter-spacing: 0;
 	color: var(--ink, var(--theia-foreground));
 	background: var(--bg, var(--theia-editor-background));
 	/* A definite height, so a view that fills the panel (the Flow canvas) gets one; a long panel
@@ -36,45 +36,56 @@
 	outline-offset: 2px;
 }
 
-/* A section or a card: 1.5 px border, panel radius. */
+/* Repeated items, not page sections, can have a frame. */
 .mete-card {
 	background: var(--panel, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line, var(--theia-panel-border));
-	border-radius: 14px;
-	padding: 12px 14px;
+	border: 1px solid var(--line, var(--theia-panel-border));
+	border-radius: 8px;
+	padding: 10px 12px;
 }
 
 /* Controls: control radius. The accent button is the primary act (ADR-107's redesign); a quiet one
    is the redesign's outline button; a danger one names a destructive act. */
 .mete-button {
 	font: inherit;
-	font-weight: 700;
+	font-weight: 600;
 	/* A high-contrast theme marks controls with its contrast border; the accent hides it elsewhere. */
-	border: 1.5px solid var(--accent, var(--theia-contrastBorder, transparent));
-	border-radius: 10px;
-	padding: 4px 14px;
+	border: 1px solid var(--theia-contrastBorder, transparent);
+	border-radius: 4px;
+	padding: 4px 10px;
+	min-height: 28px;
 	cursor: pointer;
-	color: var(--panel, var(--theia-button-foreground));
-	background: var(--accent, var(--theia-button-background));
-	white-space: nowrap;
+	color: var(--theia-button-foreground);
+	background: var(--theia-button-background);
+	white-space: normal;
+	overflow-wrap: anywhere;
 }
 
 .mete-button:not(:disabled):hover {
 	/* Toward the ink of the theme: lighter in dark, darker in light (ADR-107). */
-	background: color-mix(
-		in srgb,
-		var(--accent, var(--theia-button-background)) 85%,
-		var(--ink, var(--theia-foreground))
-	);
-	border-color: color-mix(
-		in srgb,
-		var(--accent, var(--theia-button-background)) 85%,
-		var(--ink, var(--theia-foreground))
-	);
+	background: var(--theia-button-hoverBackground);
 }
 
 .mete-button:not(:disabled):active {
-	transform: translateY(1px);
+	filter: brightness(0.95);
+}
+
+.mete-panel .mete-button.icon {
+	display: inline-grid;
+	place-items: center;
+	flex: none;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+}
+
+.mete-panel input,
+.mete-panel textarea {
+	caret-color: var(--ink, var(--theia-input-foreground));
+}
+
+.mete-panel ::selection {
+	background: var(--theia-editor-selectionBackground);
 }
 
 .mete-button.quiet {
@@ -137,7 +148,7 @@
 /* A state: ready, waiting or blocked, as words in a chip. */
 .mete-chip {
 	display: inline-block;
-	border-radius: 10px;
+	border-radius: 4px;
 	padding: 0 10px;
 	background: var(--chip, var(--theia-badge-background));
 	color: var(--ink, var(--theia-badge-foreground));
@@ -148,53 +159,48 @@
 button.mete-chip {
 	font: inherit;
 	font-weight: 600;
-	border: 1.5px solid var(--line, var(--theia-contrastBorder, transparent));
+	border: 1px solid var(--line, var(--theia-contrastBorder, transparent));
 	cursor: pointer;
 }
 
 /* A state pill is the redesign's wash (ADR-107, refining ADR-106): the state token at a low share
    of the panel behind, its text the same token mixed toward the ink of the theme, and the pure
-   state token as a dot before the word. Each tone names its token and its text share (`--share`,
-   measured to clear WCAG AA in light, the tighter theme; dark clears at every share), and one rule
-   draws every pill from them, so no colour value exists besides the tokens. */
+   state token as a dot before the word. Keep text close to the active theme's ink: its neutral
+   foreground can be lighter than the original METE palette. */
 .mete-chip.good,
 .mete-chip.accent,
 .mete-chip.muted,
 .mete-chip.warn,
 .mete-chip.bad {
-	border-radius: 7px;
+	border-radius: 4px;
 	border: 1px solid transparent;
 }
 
 .mete-chip.good {
 	--st: var(--good, var(--theia-testing-iconPassed));
-	--share: 60%;
+	--share: 20%;
 }
 
 .mete-chip.accent {
 	--st: var(--accent, var(--theia-focusBorder));
-	--share: 70%;
+	--share: 20%;
 }
 
 .mete-chip.warn {
 	--st: var(--warn, var(--theia-editorWarning-foreground));
-	--share: 45%;
+	--share: 20%;
 }
 
 .mete-chip.bad {
 	--st: var(--bad, var(--theia-errorForeground));
-	--share: 65%;
+	--share: 20%;
 }
 
 .mete-chip.good,
 .mete-chip.accent,
 .mete-chip.warn,
 .mete-chip.bad {
-	color: color-mix(
-		in srgb,
-		var(--st) var(--share),
-		var(--ink, var(--theia-badge-foreground))
-	);
+	color: var(--ink, var(--theia-badge-foreground));
 	background: color-mix(
 		in srgb,
 		var(--st) 12%,

@@ -10,6 +10,7 @@ import type { EventBody } from "../domain/run-events.js";
 import { restorePlan } from "../domain/snapshot-plan.js";
 import type { SnapshotStore } from "../infrastructure/snapshot-store.js";
 import { type EngineDeps, iso } from "./run-state.js";
+import { createCheckpoint } from "./vcs-steps.js";
 
 // checkpoint.restore@1 (ADR-079, ADR-080): restores a run's git checkpoint or file snapshot while the
 // run is paused or ended.
@@ -20,6 +21,7 @@ import { type EngineDeps, iso } from "./run-state.js";
 type Deps = Pick<
 	EngineDeps,
 	| "registry"
+	| "checkpointQueue"
 	| "store"
 	| "events"
 	| "now"
@@ -104,11 +106,10 @@ const rollBack = async (
 	{ runId, checkpointId, ref }: CheckpointRestoreInput,
 ) => {
 	const ctx = { runId, signal: AbortSignal.timeout(GIT_TIMEOUT_MS) };
-	const made = await git.run({ op: "checkpoint.create", runId }, ctx);
-	if (!made.ok) return fail("failed", made.error.message);
-	if (made.value.op !== "checkpoint.create")
-		return fail("failed", `unexpected ${made.value.op} result`);
-	const undo = made.value.ref;
+	const made = await createCheckpoint(deps, ctx, git);
+	if (!made.ok) return fail("failed", made.error);
+	if (!made.value) return fail("failed", "checkpoint adapter changed");
+	const undo = made.value;
 	publish(deps, runId, {
 		type: "checkpoint.created",
 		payload: { kind: "git", ref: undo },

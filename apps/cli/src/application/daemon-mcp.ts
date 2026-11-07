@@ -1,9 +1,12 @@
 import {
 	DAEMON_METHODS,
 	DaemonMcpTestParamsSchema,
+	McpConfigSchema,
+	type McpServer,
 	type McpStatusAdapter,
 	type SecretsMaskAdapter,
 } from "@mete/contracts";
+import { mergedSection } from "@mete/kernel";
 import {
 	ErrorCodes,
 	type MessageConnection,
@@ -28,7 +31,15 @@ const maskerOf = (app: App) => {
 
 export const serveMcpTest = (conn: MessageConnection, app: App) =>
 	conn.onRequest(DAEMON_METHODS.mcpTest, async (params: unknown) => {
-		const { id } = parsed(DaemonMcpTestParamsSchema.safeParse(params));
+		const { id, expected } = parsed(
+			DaemonMcpTestParamsSchema.safeParse(params),
+		);
+		if (expected && !matchesLoadedServer(app, id, expected))
+			throw refused({
+				code: "not_found",
+				message:
+					"The saved server differs from the active configuration; apply its scope first",
+			});
 		const status = app.registry.resolve<McpStatusAdapter>("mcp.status@1");
 		if (!status.ok)
 			throw refused({
@@ -46,3 +57,23 @@ export const serveMcpTest = (conn: MessageConnection, app: App) =>
 		const { text } = await mask.mask(r.error.message);
 		return { id, ok: false, failed: { code: r.error.code, message: text } };
 	});
+
+import { isDeepStrictEqual } from "node:util";
+
+/** Compare behind the daemon boundary: settings responses remain masked. */
+export const matchesLoadedServer = (
+	app: Pick<App, "config">,
+	id: string,
+	expected: McpServer,
+): boolean => {
+	const loaded = McpConfigSchema.safeParse(
+		mergedSection(app.config.layers, "mcp"),
+	);
+	return (
+		loaded.success &&
+		isDeepStrictEqual(
+			loaded.data.servers.find((server) => server.id === id),
+			expected,
+		)
+	);
+};

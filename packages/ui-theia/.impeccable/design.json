@@ -1,0 +1,57 @@
+{
+	"schemaVersion": 2,
+	"generatedAt": "2026-11-07T00:00:00.000Z",
+	"title": "METE IDE Operational UI",
+	"extensions": {
+		"shadows": [],
+		"motion": [],
+		"breakpoints": [{ "name": "tool-fields", "value": "600px" }]
+	},
+	"components": [
+		{
+			"name": "Primary Button",
+			"kind": "button",
+			"refersTo": "button",
+			"description": "A clear primary command.",
+			"html": "<button class=\"ds-primary\">Save and connect</button>",
+			"css": ".ds-primary{font:inherit;border:1px solid var(--theia-contrastBorder,transparent);border-radius:4px;padding:4px 10px;min-height:28px;color:var(--theia-button-foreground);background:var(--theia-button-background)}.ds-primary:hover{background:var(--theia-button-hoverBackground)}.ds-primary:focus-visible{outline:2px solid var(--theia-focusBorder);outline-offset:2px}"
+		},
+		{
+			"name": "Quiet Button",
+			"kind": "button",
+			"description": "A secondary command.",
+			"html": "<button class=\"ds-quiet\">Cancel</button>",
+			"css": ".ds-quiet{font:inherit;background:transparent;color:var(--theia-foreground);border:1px solid var(--theia-panel-border);border-radius:4px;padding:4px 10px;min-height:28px}.ds-quiet:hover{background:var(--theia-list-hoverBackground)}.ds-quiet:focus-visible{outline:2px solid var(--theia-focusBorder)}"
+		},
+		{
+			"name": "Search Input",
+			"kind": "input",
+			"description": "Local settings search.",
+			"html": "<input class=\"ds-search\" type=\"search\" aria-label=\"Search settings\" placeholder=\"Search settings\">",
+			"css": ".ds-search{font:inherit;min-height:28px;border:1px solid var(--theia-input-border);border-radius:4px;background:var(--theia-input-background);color:var(--theia-input-foreground)}.ds-search:focus-visible{outline:2px solid var(--theia-focusBorder)}"
+		},
+		{
+			"name": "Settings Category",
+			"kind": "nav",
+			"description": "A compact category in the settings navigation.",
+			"html": "<nav aria-label=\"Settings groups\"><button class=\"ds-category\" aria-pressed=\"true\">Tools and web search</button></nav>",
+			"css": ".ds-category{font:inherit;text-align:left;border:0;padding:6px;color:var(--theia-foreground);background:var(--theia-list-inactiveSelectionBackground)}.ds-category:hover{background:var(--theia-list-hoverBackground)}.ds-category:focus-visible{outline:2px solid var(--theia-focusBorder)}"
+		},
+		{
+			"name": "Tool Status",
+			"kind": "custom",
+			"description": "A truthful text state, independent of color.",
+			"html": "<span class=\"ds-status\" role=\"status\">Saved; pending activation</span>",
+			"css": ".ds-status{font:inherit;color:var(--theia-descriptionForeground);overflow-wrap:anywhere}"
+		}
+	],
+	"narrative": {
+		"overview": "The approved direction is a familiar working IDE: compact controls, readable conversations, predictable navigation and explicit installation actions.",
+		"keyCharacteristics": ["Compact", "Theme-aligned", "Explicit actions"],
+		"rules": [],
+		"dos": [
+			"Do keep errors next to their inputs and retain drafts on failures."
+		],
+		"donts": ["Do not describe editor extensions as sandboxed agent tools."]
+	}
+}

@@ -25,6 +25,7 @@ const answered = (r: Result<McpTest, DaemonFailure>): McpTestState => {
 /** Each server's Test by id. */
 export class McpTests {
 	protected readonly states = new Map<string, McpTestState>();
+	protected readonly requests = new Map<string, object>();
 
 	constructor(protected readonly deps: McpTestDeps) {}
 
@@ -34,14 +35,39 @@ export class McpTests {
 
 	/** Forgets every answer: a restarted daemon may have loaded other servers. */
 	reset() {
+		this.requests.clear();
 		this.states.clear();
 		this.deps.onChange();
 	}
 
+	/** A successful save has not activated this server yet; discard any older answer. */
+	pending(id: string) {
+		if (!id) return;
+		this.requests.delete(id);
+		this.put(id, { kind: "saved_pending" });
+	}
+
+	/** A full-form save invalidates every row, including probes still in flight. */
+	saved(servers: readonly { readonly id: string }[]) {
+		this.reset();
+		for (const server of servers) this.pending(server.id.trim());
+	}
+
 	async test(id: string) {
 		if (!id || this.stateOf(id).kind === "testing") return;
+		const request = {};
+		this.requests.set(id, request);
 		this.put(id, { kind: "testing" });
-		this.put(id, answered(await this.deps.test(id)));
+		const result = await this.deps.test(id);
+		if (this.requests.get(id) !== request) return;
+		this.requests.delete(id);
+		this.put(id, answered(result));
+	}
+
+	/** Retry a saved row; only an effective-config refusal calls for safe activation. */
+	async testCurrent(id: string): Promise<boolean> {
+		await this.test(id);
+		return this.stateOf(id).kind !== "not_loaded";
 	}
 
 	protected put(id: string, state: McpTestState) {

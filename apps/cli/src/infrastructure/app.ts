@@ -6,6 +6,7 @@ import type {
 	SecretStore,
 	StorageSqlAdapter,
 	TeamEngineAdapter,
+	VcsGitAdapter,
 } from "@mete/contracts";
 import { err, ok } from "@mete/contracts";
 import { createCoreEngineModule, type TemplateDirs } from "@mete/core";
@@ -189,6 +190,7 @@ const modulesFor = (
 	gateway: GatewayModule,
 ): MeteModule[] => {
 	const dirs = { workspaceDir: opts.workspaceDir, globalDir: opts.globalDir };
+	const checkpointAdapters = new WeakSet<VcsGitAdapter>();
 	return [
 		createStorageModule(dirs),
 		createSecurityModule({ ...dirs, workspaceId }),
@@ -197,7 +199,10 @@ const modulesFor = (
 		gateway,
 		createToolsFsModule(dirs),
 		createToolsShellModule(dirs),
-		createVcsGitModule(dirs),
+		createVcsGitModule({
+			...dirs,
+			onCheckpointAdapter: (adapter) => checkpointAdapters.add(adapter),
+		}),
 		...webModules(opts, dirs),
 		createRegistryModule({
 			globalDir: opts.globalDir,
@@ -215,6 +220,7 @@ const modulesFor = (
 		}),
 		createCoreEngineModule({
 			workspaceId,
+			checkpointAdapters,
 			recover: opts.recover !== false,
 			templates: templatesOf(opts),
 			workspaceDir: opts.workspaceDir,

@@ -3,6 +3,17 @@ import { join } from "node:path";
 import { meteViolations } from "./axe.js";
 import { expect, runCommand, test } from "./launch.js";
 
+test.use({
+	script: {
+		turns: [
+			[
+				{ type: "text", text: "Offline screen fixture" },
+				{ type: "finish", reason: "stop", usage: { prompt: 1, completion: 1 } },
+			],
+		],
+	},
+});
+
 // The renderer under sandbox and CSP (ADR-175): every METE screen opens, axe finds no serious or
 // critical violation (docs/15, Accessibility), and the console shows no CSP refusal or failed fetch.
 // With METE_AUDIT_OUT set, a screenshot and the panel HTML of each screen are kept there for a design

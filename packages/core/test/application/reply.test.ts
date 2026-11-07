@@ -109,7 +109,6 @@ describe("run.reply@1", () => {
 		const started = await h.engine.start({ goal: "hello", templateId: null });
 		if (!started.ok) throw new Error("start");
 		await completed(h, started.value.runId);
-		await h.stop();
 		const row = h.store.load(started.value.runId);
 		if (!row) throw new Error("row");
 		for (const value of [
@@ -158,6 +157,7 @@ describe("run.reply@1", () => {
 			await h.reply.reply({ runId: "team", message: "next" }),
 		).toMatchObject({ ok: false, error: { code: "not_supported" } });
 		expect(h.requests).toHaveLength(1);
+		await h.stop();
 		h.db.close();
 	});
 });

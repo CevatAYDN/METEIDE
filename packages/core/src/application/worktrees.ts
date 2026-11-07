@@ -9,11 +9,11 @@ import {
 	stuck,
 } from "./run-state.js";
 import { masked } from "./steps.js";
+import { setTaskWait, waitIdentity } from "./task-waits.js";
 import {
 	createCheckpoint,
 	dropWorktree,
 	landWorktree,
-	runWorktreeSetup,
 	startWorktree,
 } from "./vcs-steps.js";
 
@@ -30,23 +30,7 @@ export const worktreeOf = async (
 	if (!entry || !isWriter(team, target.id)) return undefined;
 	if (entry.context.worktree) return entry.context.worktree;
 	const ids = { runId: l.meta.id, taskId: attemptId(team, target.id) };
-	const tree = await startWorktree(s.deps, ids, l.all.signal);
-	if (!tree || l.snapshot.value !== "running") return tree;
-	const res = await runWorktreeSetup(
-		s.deps,
-		{
-			worktree: tree,
-			runId: l.meta.id,
-			taskId: entry.id,
-			agentId: target.agentId,
-		},
-		l.all.signal,
-		(body) => emit(s, l, body, entry.id),
-	);
-	if (l.snapshot.value !== "running") return tree;
-	if (res === "approval")
-		apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
-	return tree;
+	return startWorktree(s.deps, ids, l.all.signal);
 };
 
 // An approved task's worktree lands in the workspace before the next task starts (so that one begins
@@ -93,5 +77,14 @@ export const merge = async (
 	const branch = `mete/${runId}/${taskId}`;
 	const payload = { code, message, branch, ...(paths ? { paths } : {}) };
 	emit(s, l, { type: "task.merge.failed", payload }, entry.id);
-	apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
+	setTaskWait(s, l, id, {
+		stage: "merge",
+		request: {
+			...waitIdentity(l, id),
+			requestId: s.deps.newId(),
+			kind: "merge",
+			message,
+			...(paths ? { paths: [...paths] } : {}),
+		},
+	});
 };

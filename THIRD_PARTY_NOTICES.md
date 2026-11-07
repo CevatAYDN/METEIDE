@@ -60,3 +60,10 @@ SOFTWARE.
 - License: MIT. Copyright (c) 2012-2015, Christopher Jeffrey; Copyright (c) 2016, Daniel Imms; Copyright (c) 2018 - present Microsoft Corporation. The full license text ships in the package (`LICENSE`).
 - Files: `patches/node-pty@1.2.0-beta.12.patch`, applied by pnpm at install time.
 - Changes: `binding.gyp` loses the `SpectreMitigation: Spectre` MSVC configuration attribute for the Windows build, for the same reason as above; no source file changes.
+
+## @theia/task
+
+- Project: Eclipse Theia, https://github.com/eclipse-theia/theia, version 1.76.0, installed with the desktop debugger (ADR-105).
+- License: EPL-2.0 OR GPL-2.0-only WITH Classpath-exception-2.0. Copyright (C) 2017 Ericsson and others. METE's patch is provided under EPL-2.0; the unchanged `LICENSE-EPL` from tag `v1.76.0` is included in the patched package.
+- Files: `patches/@theia__task@1.76.0.patch`, applied by pnpm at install time to `src/browser/task-service.ts` and `lib/browser/task-service.js`, with the upstream license and its `package.json` files-list entry.
+- Changes: clear the last task's problem-matcher owners before rerunning its cached configuration, just as a normal task run does. No other owners are cleared. The source is available under EPL-2.0 from the upstream tag and this repository's patch; the upstream copyright and license notices are preserved.

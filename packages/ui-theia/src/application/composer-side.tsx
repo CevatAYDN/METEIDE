@@ -1,12 +1,11 @@
 import { nls } from "@theia/core/lib/common/nls";
-import { useId } from "react";
+import { type ReactNode, useId } from "react";
 import type { ComposerOption, PickerFacts } from "./composer.js";
 import { ModelPicker } from "./model-picker.js";
 import { Icon } from "./roster-look.js";
 
-// The composer's side column in the Composer board's look (ADR-128): the chosen option's preferred
-// models (ADR-122) in the model picker (ADR-161), the folder's uncommitted changes for a team
-// (ADR-156), and Start. Laid out by style/mete-composer.css.
+// The composer's action row (ADR-180): existing preferred-model picker (ADR-161), tools,
+// Start and inline feedback. The folder's uncommitted warning remains for teams (ADR-156).
 
 const prefer = () =>
 	nls.localize("mete/run/preferModel", "Preferred model (optional)");
@@ -33,7 +32,7 @@ const ModelChoice = ({
 			<label htmlFor={id}>{choice.label}</label>
 			<ModelPicker
 				id={id}
-				label={`${choice.label} · ${prefer()}`}
+				label={choice.label}
 				value={choice.value ?? ""}
 				models={choice.models}
 				facts={picker?.facts ?? []}
@@ -46,6 +45,7 @@ const ModelChoice = ({
 };
 
 type SideProps = {
+	readonly tools?: ReactNode;
 	readonly chosen: ComposerOption | undefined;
 	readonly singleModel?: string | undefined;
 	readonly roleModels?: Readonly<Record<string, string>> | undefined;
@@ -56,6 +56,7 @@ type SideProps = {
 	readonly uncommitted: number | undefined;
 	readonly ready: boolean;
 	readonly busy: boolean;
+	readonly preparing?: boolean | undefined;
 	readonly error?: string | undefined;
 	readonly onStart: () => void;
 };
@@ -68,7 +69,7 @@ const choicesOf = (p: SideProps): readonly Choice[] => {
 		return [
 			{
 				key: "single",
-				label: chosen.label,
+				label: prefer(),
 				value: p.singleModel,
 				models: chosen.models ?? [],
 				onChange: (v) => p.onSingleModel?.(v),
@@ -76,7 +77,7 @@ const choicesOf = (p: SideProps): readonly Choice[] => {
 		];
 	return (chosen.roles ?? []).map((r) => ({
 		key: r.id,
-		label: r.name || r.id,
+		label: `${r.name || r.id} · ${prefer()}`,
 		value: p.roleModels?.[r.id],
 		models: r.models ?? [],
 		onChange: (v) => p.onRoleModel?.(r.id, v),
@@ -92,8 +93,6 @@ const Preferences = ({
 }) =>
 	choices.length === 0 ? null : (
 		<div className="mete-composer-prefer">
-			<h3>{prefer()}</h3>
-			<p className="mete-composer-hint">providerId/modelId</p>
 			{choices.map((c) => (
 				<ModelChoice key={c.key} choice={c} picker={picker} />
 			))}
@@ -122,23 +121,37 @@ const Uncommitted = ({ chosen, uncommitted: count }: SideProps) => {
 	return <p className="mete-composer-uncommitted">{`${has} ${why}`}</p>;
 };
 
-/** The chosen option's preferred models, the uncommitted line and Start, beside the teams. */
+const Start = (props: Pick<SideProps, "ready" | "busy" | "onStart">) => (
+	<button
+		type="button"
+		className="mete-button icon mete-composer-start"
+		disabled={!props.ready}
+		onClick={props.onStart}
+		aria-label={nls.localize("mete/run/start", "Start run")}
+		title={nls.localize("mete/run/start", "Start run")}
+	>
+		<Icon name={props.busy ? "loading" : "play"} spin={props.busy} />
+	</button>
+);
+
+/** Model/tools and Start share the goal surface; feedback stays outside collapsible team choices. */
 export const Side = (props: SideProps) => (
-	<aside className="mete-composer-side">
-		<Preferences choices={choicesOf(props)} picker={props.picker} />
+	<div className="mete-composer-side">
+		<div className="mete-composer-actions">
+			<div className="mete-composer-controls">
+				<fieldset className="mete-context-edit-fields" disabled={props.busy}>
+					<Preferences choices={choicesOf(props)} picker={props.picker} />
+				</fieldset>
+				{props.tools}
+			</div>
+			<Start {...props} />
+		</div>
 		<Uncommitted {...props} />
-		<button
-			type="button"
-			className="mete-button mete-composer-start"
-			disabled={!props.ready}
-			onClick={props.onStart}
-		>
-			<Icon name="play" />
-			{nls.localize("mete/run/start", "Start run")}
-		</button>
 		{props.busy ? (
 			<p className="mete-composer-hint" role="status">
-				{nls.localize("mete/run/starting", "METE is starting the run…")}
+				{props.preparing
+					? nls.localize("mete/context/preparing", "Preparing attachment...")
+					: nls.localize("mete/run/starting", "METE is starting the run…")}
 			</p>
 		) : null}
 		{/* A disabled Start reads as gated, not broken: the hint names what it waits for. */}
@@ -151,5 +164,5 @@ export const Side = (props: SideProps) => (
 			</p>
 		)}
 		{props.error ? <p role="alert">{props.error}</p> : null}
-	</aside>
+	</div>
 );

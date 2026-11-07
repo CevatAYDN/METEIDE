@@ -1,7 +1,8 @@
-import { type ChatMessage, isWrite, type ToolCall } from "@mete/contracts";
+import type { ChatMessage, ToolCall } from "@mete/contracts";
 import { MAX_TURNS } from "../defaults.js";
 import { occupiedRequests } from "./request-reservations.js";
 import { activeTime, type RunContext } from "./run-machine.js";
+import { mayWrite } from "./write-call.js";
 
 // What a running single-agent run does next (docs/08, Single agent), read from its context alone,
 // so a resumed run picks up exactly where it stopped.
@@ -65,7 +66,7 @@ export const nextStep = (
 			kind: "tool",
 			call,
 			step,
-			checkpoint: isWrite(call) && c.checkpointed !== step,
+			checkpoint: mayWrite(call) && c.checkpointed !== step,
 		};
 	const last = c.messages.at(-1);
 	if (last?.role === "assistant" && !last.toolCalls?.length)

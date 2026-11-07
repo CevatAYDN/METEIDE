@@ -7,6 +7,7 @@ import {
 import { z } from "zod";
 import { AttemptsSchema } from "./attempts-schema.js";
 import { TaskSessionSchema } from "./task-session-schema.js";
+import { TaskContinuationSchema, TaskWaitSchema } from "./task-wait-schema.js";
 
 const TaskContextSchema = z.strictObject({
 	revisionLimit: z.number().int().nonnegative(),
@@ -36,6 +37,10 @@ const TaskEntrySchema = z.strictObject({
 	messages: z.array(ChatRequestSchema.shape.messages.element),
 	/** The worker's execution state, separate from the run-level coordinator conversation. */
 	session: TaskSessionSchema.optional(),
+	/** Durable worktree setup progress; absent on legacy tasks. */
+	setup: z.enum(["pending", "running", "done", "uncertain"]).optional(),
+	wait: TaskWaitSchema.optional(),
+	continuation: TaskContinuationSchema.optional(),
 	/** Who approved the current submission: approver roles, "human" or "system". */
 	approvals: z.array(z.string()),
 	/** Guardrail repairs asked in the current attempt (docs/08, step 4). */
@@ -58,10 +63,26 @@ const TaskEntrySchema = z.strictObject({
 });
 
 /** A team run's state as the run snapshot keeps it; checked on load like the rest. */
-export const TeamStateSchema = z.strictObject({
-	template: TeamTemplateSchema,
-	tasks: z.record(z.string(), TaskEntrySchema),
-});
+export const TeamStateSchema = z
+	.strictObject({
+		template: TeamTemplateSchema,
+		tasks: z.record(z.string(), TaskEntrySchema),
+		/** Approval order of worktrees waiting to land; absent on legacy snapshots. */
+		mergeQueue: z.array(z.string().min(1)).optional(),
+	})
+	.refine(
+		(team) => {
+			const queue = team.mergeQueue ?? [];
+			return (
+				new Set(queue).size === queue.length &&
+				queue.every((id) => Object.hasOwn(team.tasks, id))
+			);
+		},
+		{
+			message: "merge queue must contain unique known tasks",
+			path: ["mergeQueue"],
+		},
+	);
 
 /** A team run's state. */
 export type TeamState = z.output<typeof TeamStateSchema>;

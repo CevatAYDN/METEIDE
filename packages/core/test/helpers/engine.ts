@@ -7,6 +7,7 @@ import type {
 	MeteEvent,
 	Result,
 	ToolContext,
+	VcsGitAdapter,
 } from "@mete/contracts";
 import {
 	createCapabilityRegistry,
@@ -115,8 +116,10 @@ export const engineHarness = (opts: {
 	templates?: TemplateDirs;
 	artifacts?: ArtifactStore;
 	snapshots?: SnapshotStore;
+	workspaceId?: string;
 }) => {
 	const registry = createCapabilityRegistry(() => []);
+	const checkpointAdapters = new WeakSet<VcsGitAdapter>();
 	const events: MeteEvent[] = [];
 	const bus = createEventBus((e) => {
 		throw e;
@@ -176,8 +179,9 @@ export const engineHarness = (opts: {
 	const plain = createRunStore(db);
 	const store = opts.wrapStore ? opts.wrapStore(plain) : plain;
 	const created = createEngine({
-		workspaceId: randomUUID(),
+		workspaceId: opts.workspaceId ?? randomUUID(),
 		registry,
+		checkpointAdapters,
 		events: bus,
 		config,
 		logger,
@@ -209,6 +213,7 @@ export const engineHarness = (opts: {
 		clock,
 		timers,
 		registry,
+		checkpointAdapters,
 		logged,
 	};
 };

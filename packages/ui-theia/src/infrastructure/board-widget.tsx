@@ -13,11 +13,8 @@ import {
 	postConstruct,
 } from "@theia/core/shared/inversify";
 import { FileService } from "@theia/filesystem/lib/browser/file-service";
-import {
-	APPROVE_RUN_COMMAND,
-	RESUME_RUN_COMMAND,
-	REVISE_RUN_COMMAND,
-} from "../application/approval-commands.js";
+import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
+import { REMOVE_RUN_COMMAND } from "../application/approval-commands.js";
 import {
 	type BoardSession,
 	IDLE_BOARD,
@@ -38,39 +35,40 @@ import {
 	type ModelSession,
 } from "../application/model-session.js";
 import { panelRoot } from "../application/panel-root.js";
-import { replyShown } from "../application/reply-shown.js";
 import type { RunFacts } from "../application/run-hero.js";
 import { failureText, plain } from "../application/status-text.js";
+import { createTaskControlPanel } from "../application/task-control-panel.js";
 import { roleNames, teamName } from "../application/team-draft.js";
 import { createTranscriptSession } from "../application/transcript-session.js";
 import { isPage } from "../application/worktree-files.js";
 import { waitsForQuota } from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
-import { FlowView } from "./flow-view.js";
+import { boardContextListeners, createBoardContext } from "./board-context.js";
+import { boardScenes, boardWaiting } from "./board-presentations.js";
+import { MeteEditorContext } from "./editor-context-service.js";
+import { focusComposer } from "./focus-composer.js";
 import { MetePanelWidget } from "./panel-widget.js";
 import { OPEN_QUOTA_COMMAND } from "./quota-contribution.js";
 import { MeteRunComposer } from "./run-composer.js";
 import { MeteShownRun } from "./shown-run.js";
-import { StudioView } from "./studio-view.js";
 import { showWorktreeFiles } from "./worktree-files.js";
 import "../../style/mete-board.css";
 
-// The Team panel (docs/13; ADR-051; ADR-078; ADR-122).
 @injectable()
 export class MeteBoardWidget extends MetePanelWidget {
 	static readonly ID = "mete.board";
-
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;
 	@inject(MeteDaemonEvents) protected readonly events!: MeteDaemonEvents;
 	@inject(ThemeService) protected readonly themes!: ThemeService;
 	@inject(CommandService) protected readonly commands!: CommandService;
 	@inject(MessageService) protected readonly messages!: MessageService;
 	@inject(MeteRunComposer) protected readonly composer!: MeteRunComposer;
+	@inject(MeteEditorContext) protected readonly context?: MeteEditorContext;
 	@inject(MeteShownRun) protected readonly shownRun!: MeteShownRun;
 	@inject(OpenerService) protected readonly openers!: OpenerService;
 	@inject(FileService) protected readonly files!: FileService;
 	@inject(QuickInputService) protected readonly quick!: QuickInputService;
-
+	@inject(WorkspaceService) protected readonly workspace!: WorkspaceService;
 	protected session: BoardSession = IDLE_BOARD;
 	protected shown = true;
 	protected mode: TeamMode = "board";
@@ -82,23 +80,31 @@ export class MeteBoardWidget extends MetePanelWidget {
 	protected composing = true;
 	protected focusWhenReady = false;
 	protected models!: ModelSession;
+	protected readonly tasks = createTaskControlPanel(
+		() => this.daemon,
+		() => this.session.shown,
+		() => this.update(),
+	);
 	protected readonly transcripts = createTranscriptSession({
 		fetch: (dir, runId) => this.daemon.transcript(dir, runId),
 		onChange: () => this.update(),
 	});
-	protected readonly sendReply = (message: string) =>
-		replyShown(
-			{
-				daemon: this.daemon,
-				shown: this.session.shown,
-				current: () => (this.isDisposed ? undefined : this.session.shown),
-				show: this.showRun.bind(this),
-			},
-			message,
-		);
+	protected readonly conversation = createBoardContext({
+		context: () => this.context,
+		daemon: () => this.daemon,
+		shown: () => this.session.shown,
+		disposed: () => this.isDisposed,
+		leave: () => this.composer.leave(),
+		currentDir: () => this.workspace.tryGetRoots()[0]?.resource.path.fsPath(),
+		show: this.showRun.bind(this),
+		remove: (runId) =>
+			void this.commands.executeCommand(REMOVE_RUN_COMMAND.id, runId),
+		onChange: () => this.update(),
+	});
 
 	@postConstruct()
 	protected init(): void {
+		this.conversation.selectInitial();
 		this.models = createModelSession({
 			daemon: this.daemon,
 			onChange: () => this.update(),
@@ -112,12 +118,28 @@ export class MeteBoardWidget extends MetePanelWidget {
 		);
 		this.title.iconClass = codicon("project");
 		this.title.closable = true;
+		this.watch();
+		void this.composer.reopen();
+		this.update();
+	}
+
+	protected watch(): void {
 		this.toDispose.pushAll([
+			...boardContextListeners(
+				this.context,
+				this.workspace,
+				() => this.update(),
+				() => void this.showComposer(),
+			),
 			this.themes.onDidColorThemeChange(() => this.update()),
 			this.events.onDidReceive(({ workspaceDir, event }) => {
+				this.tasks.session.onEvent(workspaceDir, event);
 				this.setSession(receiveBoard(this.session, workspaceDir, event));
 				this.transcripts.onEvent(event);
 				const shown = this.session.shown;
+				if (shown?.dir !== workspaceDir) return;
+				if (event.type.startsWith("run."))
+					void this.conversation.history.refresh();
 				if (shown && event.runId === shown.runId)
 					this.onShownEvent(shown.dir, shown.runId, event);
 			}),
@@ -125,14 +147,15 @@ export class MeteBoardWidget extends MetePanelWidget {
 				this.update();
 				this.focusComposer();
 			}),
-			this.composer.onDidStart(
-				(s) => void this.showRun(s.dir, s.runId, s.goal),
-			),
+			this.composer.onDidStart((s) => {
+				this.conversation.remember(s, s.capabilities);
+				void this.showRun(s.dir, s.runId, s.goal);
+			}),
 			{ dispose: () => this.shownRun.set(undefined) },
 			{ dispose: () => this.transcripts.dispose() },
+			{ dispose: () => this.tasks.session.clear() },
+			{ dispose: this.conversation.dispose },
 		]);
-		void this.composer.reopen();
-		this.update();
 	}
 
 	protected onShownEvent(dir: string, runId: string, event: MeteEvent) {
@@ -144,6 +167,9 @@ export class MeteBoardWidget extends MetePanelWidget {
 
 	/** Shows the run composer in place of the run. */
 	showComposer(): Promise<void> {
+		this.conversation.clear();
+		this.conversation.selectInitial();
+		this.tasks.session.clear();
 		this.composing = true;
 		this.shownRun.set(undefined);
 		this.setSession(IDLE_BOARD);
@@ -151,8 +177,8 @@ export class MeteBoardWidget extends MetePanelWidget {
 		return this.composer.reopen();
 	}
 
-	/** Shows the run: its history first, then its live events. */
 	async showRun(dir: string, runId: string, goal: string): Promise<void> {
+		this.conversation.clear();
 		this.composing = false;
 		this.shownRun.set(runId);
 		this.names = {};
@@ -162,27 +188,30 @@ export class MeteBoardWidget extends MetePanelWidget {
 		this.models.show(dir, runId);
 		const shown = { dir, runId, goal };
 		this.setSession(startBoard(shown));
+		void this.tasks.session.show(dir, runId);
 		this.transcripts.show(dir, runId);
 		const r = await this.daemon.events(dir, runId);
 		const created = r.ok
 			? r.value.events.find((e) => e.type === "run.created")
 			: undefined;
-		// Before the first agents reach the view: a single-agent run asks its chain for tool calling.
 		if (created?.type === "run.created")
 			this.models.setTemplate(created.payload.templateId);
 		this.setSession(loadedBoard(this.session, shown, r));
+		if (this.session.shown !== shown) return;
+		if (!created?.payload.templateId)
+			await this.conversation.history.show(shown);
+		if (this.session.shown === shown && !created?.payload.templateId)
+			this.conversation.selectRun(shown);
 		void this.loadRun(dir, runId);
 		if (created?.type === "run.created" && created.payload.templateId)
 			void this.loadNames(dir, runId, created.payload.templateId);
 	}
 
-	// The run's entry of mete/status; a run another panel state replaced meanwhile is not drawn.
 	protected async loadRun(dir: string, runId: string): Promise<void> {
 		const r = await this.daemon.status(dir, runId);
 		if (!r.ok || this.shownRun.runId !== runId) return;
 		const run = r.value.find((x) => x.id === runId);
 		if (!run) return;
-		// The hero lists the providers that cannot carry a quota pause on, as the side-bar row does.
 		const q = waitsForQuota(run) ? await this.daemon.quota(dir) : undefined;
 		if (this.shownRun.runId !== runId) return;
 		const blocked = q?.ok
@@ -193,7 +222,6 @@ export class MeteBoardWidget extends MetePanelWidget {
 		this.update();
 	}
 
-	// The names the team file gives now; a run of an edited or removed team keeps its role ids in words.
 	protected async loadNames(dir: string, runId: string, templateId: string) {
 		const t = await this.daemon.readTemplate(dir, templateId);
 		const stale =
@@ -206,47 +234,35 @@ export class MeteBoardWidget extends MetePanelWidget {
 		void this.models.loadTemplate(t.value.yaml);
 	}
 
-	// The strip's answers run ADR-048's commands with the shown run, as the Home view's buttons do.
 	protected decide(command: string, feedback?: string) {
 		const runId = this.shownRun.runId;
 		if (!runId) return Promise.resolve();
 		return this.commands.executeCommand(command, runId, feedback);
 	}
 
-	// Coming to the composer puts the cursor in the goal field (docs/13: keyboard-first) and asks for
-	// the teams again (ADR-071); every other activation leaves the keyboard on the panel itself.
 	protected override onActivateRequest(msg: Message): void {
 		super.onActivateRequest(msg);
 		if (!this.showsComposer()) return;
 		this.focusWhenReady = true;
 		void this.composer.reopen();
 	}
-
 	protected focusComposer(): void {
 		if (!this.focusWhenReady || !this.composer.canFocusGoal()) return;
-		const focus = () => {
-			const active = this.node.ownerDocument.activeElement;
-			if (
-				this.showsComposer() &&
-				this.composer.canFocusGoal() &&
-				this.isVisible &&
-				(active === this.node || this.node.contains(active))
-			) {
-				this.node.querySelector("textarea")?.focus();
+		focusComposer(
+			{
+				node: this.node,
+				ready: () => this.showsComposer() && this.composer.canFocusGoal(),
+				visible: () => this.isVisible,
+			},
+			() => {
 				this.focusWhenReady = false;
-			}
-		};
-		const window = this.node.ownerDocument.defaultView;
-		if (window) window.requestAnimationFrame(focus);
-		else focus();
+			},
+		);
 	}
-
 	protected showsComposer() {
 		return this.composing || this.session.model.kind === "no_run";
 	}
 
-	// Restores one of the shown run's checkpoints; the list updates from the live events it causes
-	// (checkpoint.created for the undo, rollback.performed), and a refusal says why.
 	protected async restore(checkpointId: string): Promise<void> {
 		const shown = this.session.shown;
 		if (!shown || this.restoring) return;
@@ -263,8 +279,6 @@ export class MeteBoardWidget extends MetePanelWidget {
 		void this.messages.info(restoredText(r.value));
 	}
 
-	// A report or a changed file of the shown run, by its path relative to the run's folder; a page
-	// opens rendered (ADR-085, ADR-129, ADR-133).
 	protected async openReport(path: string): Promise<void> {
 		const shown = this.session.shown;
 		if (!shown) return;
@@ -276,7 +290,6 @@ export class MeteBoardWidget extends MetePanelWidget {
 		}
 	}
 
-	// The files a submitted task wrote, in its worktree, for the human to read before deciding (ADR-132).
 	protected showFiles(
 		worktree: string,
 		changed?: readonly string[],
@@ -309,8 +322,6 @@ export class MeteBoardWidget extends MetePanelWidget {
 		void this.models.askChains(this.session.view.agents);
 	}
 
-	// The context windows of the models the shown run's calls used, each asked once (ADR-090); a
-	// model the listing lacks keeps none, so its row shows the tokens alone.
 	protected askWindows(): void {
 		const { shown, view } = this.session;
 		const refs = shown ? unaskedModels(view.agents, this.asked) : [];
@@ -318,7 +329,6 @@ export class MeteBoardWidget extends MetePanelWidget {
 			void this.loadWindows(shown.dir, shown.runId, refs);
 	}
 
-	// The thinking row counts while the shown run has a model call in flight (ADR-125).
 	protected tickThinking(): void {
 		const thinking = this.session.view.thinkingSince !== undefined;
 		this.transcripts.tick(this.shown && thinking && !this.showsComposer());
@@ -346,16 +356,9 @@ export class MeteBoardWidget extends MetePanelWidget {
 				this.update();
 			},
 			markdown: this.markdown,
-			flow: (view) => <FlowView view={view} />,
-			studio: (view, pulse) => (
-				<StudioView
-					view={view}
-					active={this.shown}
-					onCoffee={() =>
-						void this.commands.executeCommand(OPEN_QUOTA_COMMAND.id)
-					}
-					{...(pulse ? { pulse } : {})}
-				/>
+			...boardScenes(
+				this.shown,
+				() => void this.commands.executeCommand(OPEN_QUOTA_COMMAND.id),
 			),
 			restore: {
 				onRestore: (id) => void this.restore(id),
@@ -370,16 +373,13 @@ export class MeteBoardWidget extends MetePanelWidget {
 			preferredModels: this.models.preferred,
 			modelFacts: this.models.picker,
 			transcript: this.transcripts.state,
-			onReply: this.sendReply,
-			waiting: {
-				onApprove: () => void this.decide(APPROVE_RUN_COMMAND.id),
-				onRevise: (feedback) =>
-					void this.decide(REVISE_RUN_COMMAND.id, feedback),
-				onResume: () => void this.decide(RESUME_RUN_COMMAND.id),
-				onAllow: (scope) => this.allowShown(scope),
-				onShowFiles: (worktree, changed) =>
-					void this.showFiles(worktree, changed),
-			},
+			...this.conversation.controls(),
+			taskControls: this.tasks.render(),
+			waiting: boardWaiting(
+				this.decide.bind(this),
+				this.allowShown.bind(this),
+				this.showFiles.bind(this),
+			),
 		};
 	}
 

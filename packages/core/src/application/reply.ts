@@ -1,5 +1,6 @@
 import {
 	type ChatMessage,
+	type ConversationCapability,
 	type EngineError,
 	err,
 	type Result,
@@ -17,12 +18,14 @@ export type ReplyStart = {
 	readonly prefer?: RunPrefer | undefined;
 	readonly messages: readonly ChatMessage[];
 	readonly tainted: boolean;
+	readonly extraCapabilities?: readonly ConversationCapability[] | undefined;
 };
 
 /** Starts from server-owned saved history; completed run state is never modified. */
 export const createReply = (
 	state: EngineState,
 	start: (input: ReplyStart) => Result<RunReplyOutput, EngineError>,
+	extraCapabilities?: readonly ConversationCapability[],
 ): RunReplyAdapter => ({
 	async reply(input) {
 		const parsed = RunReplyInputSchema.safeParse(input);
@@ -47,6 +50,8 @@ export const createReply = (
 			priority,
 			prefer,
 			tainted: tainted === true,
+			extraCapabilities:
+				extraCapabilities ?? source.value.context.extraCapabilities ?? [],
 			messages: [...messages, { role: "user", content: parsed.data.message }],
 		});
 	},

@@ -56,6 +56,7 @@ const sessions = (tools: { name: string; description?: string }[]) =>
 	({
 		servers: [server],
 		get: async () => ok({ client, tools }),
+		redact: (text: string) => text,
 		callOptions: () => ({}),
 		calls: { during: (_s: string, _c: unknown, f: () => unknown) => f() },
 	}) as unknown as Sessions;

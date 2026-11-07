@@ -20,6 +20,7 @@ import type {
 } from "@mete/kernel";
 import { type Calls, createCalls } from "./application/calls.js";
 import type { ShellExec } from "./application/cli-mapped.js";
+import { createMcpConnection } from "./application/mcp-connection.js";
 import { mcpStatus } from "./application/mcp-status.js";
 import { mcpTools } from "./application/mcp-tools.js";
 import { provideMappings } from "./application/provide-mappings.js";
@@ -28,6 +29,7 @@ import { type Confirm, createSampling } from "./application/sampling.js";
 import {
 	createSessions,
 	type Elicit,
+	type SessionDeps,
 	type Sessions,
 	type ToolProgress,
 } from "./application/sessions.js";
@@ -83,7 +85,12 @@ const MANIFEST: ModuleManifest = {
 	displayName: "MCP client",
 	class: "optional",
 	trust: "core",
-	provides: ["mcp.tools@1", "mcp.status@1", "runtime.ensure@1"],
+	provides: [
+		"mcp.tools@1",
+		"mcp.status@1",
+		"mcp.connection@1",
+		"runtime.ensure@1",
+	],
 	requires: ["policy.check@1"],
 	optional: [
 		"registry.search@1",
@@ -203,15 +210,15 @@ const runtimeEnsure = (ctx: ModuleContext, opts: McpClientOptions) => {
 };
 
 // The connections of every configured server, with what the host lets them ask of the user and the model.
-const openSessions = (
+const sessionDependencies = (
 	ctx: ModuleContext,
 	opts: McpClientOptions,
 	servers: readonly McpServer[],
-) => {
+): SessionDeps => {
 	const ensure = runtimeEnsure(ctx, opts);
 	const calls = createCalls();
 	const sample = samplingOf(ctx, opts, calls);
-	return createSessions({
+	return {
 		moduleId: MANIFEST.id,
 		version: MANIFEST.version,
 		servers,
@@ -241,7 +248,7 @@ const openSessions = (
 			? {}
 			: { progress: publishProgress(ctx, opts.workspaceId) }),
 		...(opts.now ? { now: opts.now } : {}),
-	});
+	};
 };
 
 // agent.tool.progress (ADR-067), with the run and agent of the call on the envelope.
@@ -263,6 +270,7 @@ const publishProgress =
 /** The mcp-client module: mcp.tools@1 and mcp.status@1 over the servers of mcp.yaml (docs/10, MCP client). */
 export const createMcpClientModule = (opts: McpClientOptions): MeteModule => {
 	let sessions: Sessions | undefined;
+	let connection: ReturnType<typeof createMcpConnection> | undefined;
 	return {
 		manifest: MANIFEST,
 		async activate(ctx) {
@@ -279,12 +287,27 @@ export const createMcpClientModule = (opts: McpClientOptions): MeteModule => {
 				config.value.servers,
 				opts.builtInServers ?? BUILT_IN_SERVERS,
 			);
-			sessions = openSessions(ctx, opts, servers);
+			const deps = sessionDependencies(ctx, opts, servers);
+			sessions = createSessions(deps);
+			connection = createMcpConnection({
+				sessionDeps: deps,
+				retire: sessions.close,
+			});
 			await provideAll(ctx, opts, servers, sessions);
 			provideStatus(ctx, sessions);
+			ctx.disposables.add(
+				ctx.capabilities.provide("mcp.connection@1", {
+					id: MANIFEST.id,
+					trust: "core",
+					features: [],
+					impl: connection.adapter,
+				}),
+			);
 			return ok(undefined);
 		},
 		async deactivate() {
+			await connection?.close();
+			connection = undefined;
 			await sessions?.close();
 			sessions = undefined;
 		},

@@ -9,6 +9,7 @@ import { Columns } from "./board-columns.js";
 import { ChatBoard } from "./chat-board.js";
 import { CheckpointList, type RestoreControls } from "./checkpoint-list.js";
 import type { PickerFacts } from "./composer.js";
+import type { MessageDraft } from "./context-drafts.js";
 import type { Windows } from "./context-meter.js";
 import { MUTED, PANEL } from "./look.js";
 import { NowSlot } from "./now-slot.js";
@@ -19,6 +20,7 @@ import { Answer, Failure, SingleAgent } from "./single-agent.js";
 import { failureText } from "./status-text.js";
 import { studioText } from "./studio-text.js";
 import { TabList } from "./tab-list.js";
+import { taskControlNotice } from "./task-control-panel.js";
 import { TeamView as Roster } from "./team-view.js";
 import type { TranscriptState } from "./transcript-session.js";
 import type { WaitingControls } from "./waiting-strip.js";
@@ -103,7 +105,20 @@ export type TeamControls = {
 	/** The shown run's steps and why their latest read failed (ADR-125). */
 	readonly transcript: TranscriptState;
 	readonly onReply?: (message: string) => Promise<string | undefined>;
+	readonly tools?: ReactNode;
+	readonly taskControls?: ReactNode;
+	readonly threadHistory?: ReactNode;
+	readonly replyReady?: boolean | undefined;
+	readonly onDraftChange?: (() => void) | undefined;
+	readonly conversationKey?: string | undefined;
+	readonly messageDraft?: MessageDraft | undefined;
+	readonly attachments?: ReactNode | undefined;
 };
+
+const usesTaskControls = (
+	model: Extract<BoardModel, { kind: "board" }>,
+	controls: TeamControls,
+) => model.view.tasks.length > 0 || controls.run.run?.templateId !== null;
 
 const MODE_ICONS: Readonly<Record<TeamMode, string>> = {
 	board: "project",
@@ -306,6 +321,8 @@ const Board = ({
 		) : null}
 		<div className="mete-run-body">
 			<div className="mete-run-center">
+				{usesTaskControls(model, controls) &&
+					taskControlNotice(controls.taskControls)}
 				{model.view.tasks.length === 0 ? (
 					<Ended model={model} controls={controls} />
 				) : null}
@@ -313,12 +330,15 @@ const Board = ({
 					<NoBoard model={model} controls={controls} />
 				) : (
 					<>
-						<NowSlot
-							view={model.view}
-							names={controls.names}
-							windows={controls.windows}
-							waiting={{ ...controls.waiting, onOpen: controls.onOpenReport }}
-						/>
+						{usesTaskControls(model, controls) &&
+						model.view.signals.pausedFor === "approval" ? null : (
+							<NowSlot
+								view={model.view}
+								names={controls.names}
+								windows={controls.windows}
+								waiting={{ ...controls.waiting, onOpen: controls.onOpenReport }}
+							/>
+						)}
 						<Views model={model} controls={controls} />
 					</>
 				)}
@@ -360,7 +380,7 @@ export const BoardView = ({
 			<p role="alert">{failureText(model.failure)}</p>
 		) : null}
 		{model.kind === "board" ? (
-			model.view.tasks.length === 0 && controls.onReply ? (
+			!usesTaskControls(model, controls) && controls.onReply ? (
 				<ChatBoard
 					model={model}
 					controls={controls}

@@ -103,6 +103,21 @@ core-engine keeps runs in the workspace `runs` table: `id`, `workspace_id`, `tem
 
 From Phase 2, handoffs go into the workspace `handoffs` table: `id`, `workspace_id`, `run_id`, `state`, `body`, `created_at`, `accepted_at` and `accepted_by_run_id`, with an index on `(state, created_at)`. Accepting is one conditional update from `open`, so exactly one run gets a handoff; rows are kept until the user removes the run that wrote them (ADR-143) \[D\].
 
+ADR-183 keeps each turn's masked editor-context snapshots in that run's existing
+snapshot, in the same initial transaction as its membership and request receipt.
+The ordered context participates in the receipt digest, but not the authored
+message/search text. Old snapshots without attachments read as empty. No new
+event or separate draft database is added; per-run removal removes the snapshots.
+
+ADR-182 adds core-owned `conversation_threads` (id, created_at),
+`conversation_turns` (run_id, conversation_id, position, predecessor_id, authored
+message) and `conversation_receipts` (request_id, digest, conversation_id, run_id,
+deleted). New runs, their membership and receipts share the initial-save
+transaction. Existing rows are not rewritten or grouped by similarity.
+Removing a run also removes its authored-message membership and tombstones its
+receipts; an empty thread disappears from reads. Existing run events are enough
+to refresh conversation readers, so ADR-182 adds no event payload.
+
 ## Event catalog
 
 | Type | Payload | Published by |
@@ -120,6 +135,8 @@ From Phase 2, handoffs go into the workspace `handoffs` table: `id`, `workspace_
 | `task.assigned` | agentId | core-engine |
 | `task.status.changed` | from, to | core-engine |
 | `task.merge.failed` | code (`merge_conflict` or `io`), message, branch, paths (the conflicting files) | core-engine |
+| `task.waiting` | requestId, kind (`policy`, `approval`, `clarification`, `blocked`, `merge`); envelope identifies the run/task/agent (ADR-181) | core-engine |
+| `task.wait.resolved` | requestId, kind; the exact pending decision was accepted (ADR-181) | core-engine |
 | `task.clarification.requested` | toRoleId, question | core-engine |
 | `task.attempt.chosen` | attempt, of, by (`checks` or `judge`), reason? (the judge's words, ADR-162) | core-engine |
 | `agent.created` | roleId, providerId, modelId, tier? (the role's tier, ADR-077), attempt? `{ k, n }` (the attempt of a best-of-N task it works, ADR-162) | core-engine |

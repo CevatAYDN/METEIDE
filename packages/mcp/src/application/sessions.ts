@@ -1,4 +1,3 @@
-import { delimiter } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
 	type CapabilityRef,
@@ -15,22 +14,31 @@ import {
 import type { Logger } from "@mete/kernel";
 import type {
 	Client,
-	ElicitRequestFormParams,
-	ElicitResult,
 	ListChangedCallback,
 	Progress,
 	Tool,
 } from "@modelcontextprotocol/client";
 import { SIGN_IN_ATTEMPTS } from "../defaults.js";
-import { oauthSignIn, type SignInFlow } from "../infrastructure/oauth.js";
 import type { Opened, OpenTransport } from "../infrastructure/transport.js";
 import type { Calls } from "./calls.js";
 import { logProgress, progressThrottle } from "./progress-log.js";
 import type { Sample } from "./sampling.js";
-import { type Authorize, type SignInMemory, signIn } from "./sign-in.js";
+import { type Elicit, installSessionCallbacks } from "./session-callbacks.js";
 
-// One connection per configured server, opened on first use so a run pays only for the
-// servers it calls; a closed connection is dropped and the next call reconnects (docs/10).
+export type { Elicit } from "./session-callbacks.js";
+
+import {
+	closeSessionTransport,
+	connectAndCommit,
+	drainSessionCredentials,
+	type PreparedSessionCredentials,
+	prepareSessionCredentials,
+	sessionConnectionError,
+	sessionCredentialContext,
+	trackSessionClose,
+} from "./session-credentials.js";
+import { openPendingSession, openSessionTransport } from "./session-opening.js";
+import { type Authorize, type SignInMemory, signIn } from "./sign-in.js";
 
 // The SDK client is imported on the first connection, as transport.ts imports the transports, so a
 // command that calls no server never loads the SDK (ADR-163, docs/15 cold start).
@@ -45,13 +53,6 @@ export type Session = {
 	readonly client: Client;
 	readonly tools: readonly Tool[];
 };
-
-/** Asks the user for a server: the answer is accept (with the filled form), decline or cancel (docs/10, Elicitation). */
-export type Elicit = (
-	server: string,
-	params: ElicitRequestFormParams,
-	signal: AbortSignal,
-) => Promise<ElicitResult>;
 
 export type SessionDeps = {
 	readonly moduleId: string;
@@ -75,6 +76,8 @@ export type SessionDeps = {
 	readonly secrets?: SecretStore;
 	/** How the host sends the user to sign in; without it only saved tokens work. */
 	readonly authorize?: Authorize;
+	/** ADR-184: a dedicated desktop attempt's exact loopback address; absent for terminal paste-back. */
+	readonly oauthRedirectUrl?: string;
 	/** Publishes a progress step of a call made in a run (ADR-067); without it progress reaches the log only. */
 	readonly progress?: (ctx: ToolContext, step: ToolProgress) => void;
 	/** The clock the progress throttle reads; tests pass a fixed one. */
@@ -88,32 +91,13 @@ export type ToolProgress = {
 	readonly total?: number;
 };
 
-const why = (e: unknown) => (e instanceof Error ? e.message : String(e));
-
-const io = (server: string, e: unknown, stderr: string): ToolError => ({
-	code: "io",
-	message: `MCP server ${server}: ${why(e)}${stderr ? `; stderr: ${stderr}` : ""}`,
-});
-
-// The runtime's folder goes first on PATH, so npx, uvx or docker runs as configured (docs/10).
-const withRuntime = async (
-	deps: SessionDeps,
-	server: McpServer,
-	signal: AbortSignal,
-): Promise<Result<McpServer, ToolError>> => {
-	if (server.transport !== "stdio" || !deps.ensure) return ok(server);
-	const { runtime, url = "", sha256 = "" } = server;
-	const input = runtime === "binary" ? { runtime, url, sha256 } : { runtime };
-	const r = await deps.ensure.run(input, { signal });
-	if (!r.ok)
-		return err({
-			...r.error,
-			message: `MCP server ${server.id}: ${r.error.message}`,
-		});
-	const path = server.env?.PATH ?? process.env.PATH ?? "";
-	const PATH = `${r.value.binDir}${delimiter}${path}`;
-	return ok({ ...server, env: { ...server.env, PATH } });
+type ConnectionDeps = SessionDeps & {
+	readonly pending: Set<Promise<void>>;
+	readonly onSecrets: (values: readonly string[]) => void;
+	readonly redact: (text: string) => string;
 };
+const failed = () =>
+	err<ToolError>({ code: "io", message: "MCP connection cancelled or failed" });
 
 const onToolsChanged =
 	(
@@ -138,7 +122,7 @@ const onToolsChanged =
 // The client lists the workspace as its one root, follows the server's tool list and, when the host
 // can ask the user, answers form requests (docs/10, MCP client).
 const newClient = (
-	deps: SessionDeps,
+	deps: ConnectionDeps,
 	server: McpServer,
 	state: { tools: readonly Tool[] },
 	{ Client }: ClientSdk,
@@ -164,16 +148,8 @@ const newClient = (
 		name: "workspace",
 	};
 	client.setRequestHandler("roots/list", () => ({ roots: [root] }));
-	if (sample)
-		client.setRequestHandler("sampling/createMessage", ({ params }, ctx) =>
-			sample(server.id, params, ctx.mcpReq.signal),
-		);
-	if (elicit)
-		client.setRequestHandler("elicitation/create", ({ params }, ctx) =>
-			params.mode === "url"
-				? { action: "decline" }
-				: elicit(server.id, params, ctx.mcpReq.signal),
-		);
+	installSessionCallbacks(client, server.id, deps);
+	trackSessionClose(client, deps.pending);
 	return client;
 };
 
@@ -185,21 +161,6 @@ type Target = {
 	readonly signIns: SignInMemory;
 };
 
-// A remote server with `auth: oauth` signs in through the keychain (docs/10, Authentication).
-const oauthFlow = (
-	deps: SessionDeps,
-	server: McpServer,
-): Result<SignInFlow | undefined, ToolError> => {
-	if (server.transport === "stdio" || server.auth !== "oauth")
-		return ok(undefined);
-	if (!deps.secrets)
-		return err({
-			code: "io",
-			message: `MCP server ${server.id}: OAuth sign-in needs the keychain, which this module was not given`,
-		});
-	return ok(oauthSignIn(deps.secrets, new URL(server.url)));
-};
-
 type Tried = {
 	readonly result: Result<Session, ToolError>;
 	readonly refused?: Opened;
@@ -207,37 +168,48 @@ type Tried = {
 
 // One try at a connection. A server that answers 401 while a sign-in flow is ready hands back its transport.
 const attempt = async (
-	deps: SessionDeps,
+	deps: ConnectionDeps,
 	{ server, signal, closed }: Target,
-	flow: SignInFlow | undefined,
+	prepared: PreparedSessionCredentials,
 ): Promise<Tried> => {
-	const ready = await withRuntime(deps, server, signal);
-	if (!ready.ok) return { result: ready };
-	const opened = await deps.open(ready.value, {
-		cwd: deps.workspaceDir,
-		...(deps.fetch ? { fetch: deps.fetch } : {}),
-		...(flow ? { auth: flow.provider } : {}),
-	});
-	const state: { tools: readonly Tool[] } = { tools: [] };
+	const { flow } = prepared;
 	const sdk = await clientSdk();
-	const client = newClient(deps, server, state, sdk);
+	let opened: Opened | undefined;
+	let client: Client | undefined;
 	try {
-		await client.connect(opened.transport, { signal });
-		state.tools = (await client.listTools(undefined, { signal })).tools;
-		client.onclose = () => closed(opened.stderr());
-		const tools = () => state.tools;
+		if (signal.aborted) return { result: failed() };
+		opened = await openSessionTransport(deps.open, deps.workspaceDir, prepared);
+		if (signal.aborted) {
+			await opened.transport.close();
+			return { result: failed() };
+		}
+		const state: { tools: readonly Tool[] } = { tools: [] };
+		client = newClient(deps, server, state, sdk);
+		const verified = await connectAndCommit(client, opened, signal, flow);
+		if (!verified.ok) {
+			await client.close();
+			return { result: verified };
+		}
+		state.tools = verified.value;
+		client.onclose = () => closed("");
 		return {
 			result: ok({
 				client,
 				get tools() {
-					return tools();
+					return state.tools;
 				},
 			}),
 		};
 	} catch (e) {
-		await client.close().catch(() => {});
-		const result = err(io(server.id, e, opened.stderr()));
-		return flow && e instanceof sdk.UnauthorizedError
+		await closeSessionTransport(client, opened);
+		const result = err(
+			await sessionConnectionError(
+				server.id,
+				opened?.stderr() ?? "",
+				deps.mask,
+			),
+		);
+		return flow && opened && e instanceof sdk.UnauthorizedError
 			? { result, refused: opened }
 			: { result };
 	}
@@ -251,21 +223,21 @@ type Round = {
 
 // One try with a sign-in flow of its own, so every address asked for has a fresh state and PKCE: a
 // server that wants a sign-in gets one, then one more try with the tokens it earned.
-const round = async (deps: SessionDeps, at: Target): Promise<Round> => {
-	const flow = oauthFlow(deps, at.server);
-	if (!flow.ok) return { result: flow, again: false };
-	const tried = await attempt(deps, at, flow.value);
-	if (!tried.refused || !flow.value)
-		return { result: tried.result, again: false };
+const round = async (deps: ConnectionDeps, at: Target): Promise<Round> => {
+	const prepared = await prepareSessionCredentials(deps, at.server, at.signal);
+	if (!prepared.ok) return { result: prepared, again: false };
+	const flow = prepared.value.flow;
+	const tried = await attempt(deps, at, prepared.value);
+	if (!tried.refused || !flow) return { result: tried.result, again: false };
 	const refused = {
 		server: at.server,
-		flow: flow.value,
+		flow,
 		opened: tried.refused,
 	};
 	const done = await signIn(deps.authorize, refused, at.signal, at.signIns);
 	if (done.kind === "ok")
 		return {
-			result: (await attempt(deps, at, flow.value)).result,
+			result: (await attempt(deps, at, prepared.value)).result,
 			again: false,
 		};
 	return { result: err(done.error), again: done.kind === "refused" };
@@ -273,12 +245,17 @@ const round = async (deps: SessionDeps, at: Target): Promise<Round> => {
 
 // A refused address is asked for again at once, up to SIGN_IN_ATTEMPTS addresses per connection (docs/10).
 const connect = async (
-	deps: SessionDeps,
+	deps: ConnectionDeps,
 	at: Target,
 ): Promise<Result<Session, ToolError>> => {
 	for (let asked = 1; ; asked++) {
 		const r = await round(deps, at);
-		if (!r.again || asked >= SIGN_IN_ATTEMPTS || at.signal.aborted)
+		if (
+			!r.again ||
+			deps.oauthRedirectUrl ||
+			asked >= SIGN_IN_ATTEMPTS ||
+			at.signal.aborted
+		)
 			return r.result;
 	}
 };
@@ -294,7 +271,7 @@ const notConfigured = (id: string) =>
 // A tool that reports progress is a long one; the SDK's request timeout would kill it otherwise.
 // Every step reaches the log; a call in a run also publishes the steps the throttle lets through.
 const callOptions =
-	(deps: SessionDeps, pending: Set<Promise<void>>) =>
+	(deps: SessionDeps, pending: Set<Promise<void>>, lifetime: AbortSignal) =>
 	(
 		server: string,
 		tool: string,
@@ -303,7 +280,7 @@ const callOptions =
 	) => {
 		const due = progressThrottle(deps.now ?? Date.now);
 		return {
-			signal: ctx.signal,
+			signal: AbortSignal.any([ctx.signal, lifetime]),
 			resetTimeoutOnProgress: true,
 			onprogress: (p: Progress) => {
 				const fields = { moduleId: deps.moduleId, server, tool };
@@ -334,58 +311,72 @@ const remembered = (all: Map<string, SignInMemory>, id: string) => {
 
 const closeClients = async (
 	live: Map<string, Promise<Result<Session, ToolError>>>,
+	pending: Set<Promise<void>>,
+	lifetime: AbortController,
 ) => {
 	const all = [...live.values()];
+	lifetime.abort();
 	live.clear();
 	for (const session of await Promise.all(all))
 		if (session.ok) await session.value.client.close().catch(() => {});
+	await Promise.allSettled([...pending]);
 };
 
+const connectionClosed =
+	(deps: SessionDeps, signal: AbortSignal, forget: () => void, id: string) =>
+	() => {
+		if (signal.aborted) return;
+		forget();
+		deps.logger.warn(
+			{ moduleId: deps.moduleId, server: id },
+			"MCP server connection closed",
+		);
+	};
+
+/** Owns lazy connections, credential redaction and retirement for one captured configuration. */
 export const createSessions = (deps: SessionDeps) => {
 	const live = new Map<string, Promise<Result<Session, ToolError>>>();
 	const pending = new Set<Promise<void>>();
 	const signIns = new Map<string, SignInMemory>();
 	let closing = false;
+	const lifetime = new AbortController();
+	const credentials = sessionCredentialContext(deps.mask);
+	const connections: ConnectionDeps = { ...deps, ...credentials, pending };
+	const drain = () => drainSessionCredentials(deps.secrets);
 
 	const get = (id: string, signal: AbortSignal) => {
+		if (closing || signal.aborted) return Promise.resolve(failed());
 		const server = deps.servers.find((s) => s.id === id);
 		if (!server) return notConfigured(id);
 		const known = live.get(id);
 		if (known) return known;
-		// Only this connection's own entry is dropped, so a newer one survives an old close.
-		const forget = () => {
-			if (live.get(id) === opening) live.delete(id);
-		};
-		const closed = () => {
-			if (closing) return;
-			forget();
-			deps.logger.warn(
-				{ moduleId: deps.moduleId, server: id },
-				"MCP server connection closed",
-			);
-		};
-		const at = { server, signal, closed, signIns: remembered(signIns, id) };
-		const opening = connect(deps, at).then((r) => {
-			if (!r.ok) forget();
-			return r;
-		});
-		live.set(id, opening);
-		return opening;
-	};
-
-	const close = async () => {
-		closing = true;
-		await closeClients(live);
-		await Promise.allSettled([...pending]);
+		const combined = AbortSignal.any([signal, lifetime.signal]);
+		const memory = remembered(signIns, id);
+		return openPendingSession(live, id, combined, (forget) =>
+			connect(connections, {
+				server,
+				signal: combined,
+				closed: connectionClosed(deps, lifetime.signal, forget, id),
+				signIns: memory,
+			}),
+		);
 	};
 
 	return {
 		get,
-		close,
+		close: async () => {
+			closing = true;
+			await closeClients(live, pending, lifetime);
+			await drain();
+		},
+		/** Must succeed before a manager publishes a terminal sign-in state. */
+		drain,
 		servers: deps.servers,
 		calls: deps.calls,
+		/** Removes this instance's actual credential values before any output leaves it. */
+		redact: credentials.redact,
 		/** The options of one callTool: the run's signal, progress in the log, no timeout while it reports. */
-		callOptions: callOptions(deps, pending),
+		callOptions: callOptions(connections, pending, lifetime.signal),
 	};
 };
 

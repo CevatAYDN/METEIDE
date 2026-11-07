@@ -14,6 +14,7 @@ import type { Logger } from "@mete/kernel";
 import { TOOL_DESCRIPTION_MAX } from "../defaults.js";
 import { toContent } from "./content.js";
 import { permit } from "./permit.js";
+import { redactWireValue } from "./redact-content.js";
 import type { Session, Sessions } from "./sessions.js";
 
 // mcp.tools@1 (docs/10, level 1 raw access): every call asks policy.check@1 with action
@@ -29,6 +30,22 @@ export type McpToolsDeps = {
 
 const why = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
+const listedTools = (
+	session: Session,
+	sessions: Sessions,
+	server: string,
+): McpToolInfo[] =>
+	session.tools
+		.filter((t) => sessions.redact(t.name) === t.name)
+		.map((t) => ({
+			server,
+			name: t.name,
+			description: sessions
+				.redact(t.description ?? "")
+				.slice(0, TOOL_DESCRIPTION_MAX),
+			inputSchema: redactWireValue(t.inputSchema, sessions.redact),
+		}));
+
 const list: (deps: McpToolsDeps) => McpToolsAdapter["list"] =
 	(deps) => async (signal) => {
 		const all: McpToolInfo[] = [];
@@ -42,13 +59,7 @@ const list: (deps: McpToolsDeps) => McpToolsAdapter["list"] =
 				);
 				continue;
 			}
-			for (const t of s.value.tools)
-				all.push({
-					server: id,
-					name: t.name,
-					description: (t.description ?? "").slice(0, TOOL_DESCRIPTION_MAX),
-					inputSchema: t.inputSchema,
-				});
+			all.push(...listedTools(s.value, deps.sessions, id));
 		}
 		return ok(all);
 	};
@@ -104,15 +115,21 @@ const invoke = async (
 		);
 		const { server, tool } = input;
 		const origin = { server, tool, ...(ctx.runId ? { runId: ctx.runId } : {}) };
+		const { CallToolResultSchema } = await import("@modelcontextprotocol/core");
+		const safe = CallToolResultSchema.parse(
+			redactWireValue(r, deps.sessions.redact),
+		);
 		const content = await toContent(
 			{ workspaceDir: deps.workspaceDir, origin },
-			r.content,
+			safe.content,
 		);
 		return ok({ content, isError: r.isError === true });
 	} catch (e) {
 		return err({
 			code: "io",
-			message: `MCP server ${input.server} tool ${input.tool}: ${why(e)}`,
+			message: deps.sessions.redact(
+				`MCP server ${input.server} tool ${input.tool}: ${why(e)}`,
+			),
 		});
 	}
 };

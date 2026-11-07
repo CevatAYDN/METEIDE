@@ -27,7 +27,7 @@ export type Authorize = (
 export type SignInMemory = { refused: string | undefined; declined: boolean };
 
 const NOT_GIVEN =
-	"no sign-in was given; sign in once with `mete run` in a terminal";
+	"no sign-in was given; use Settings or sign in once with `mete run` in a terminal";
 
 const failed = (server: McpServer, message: string): ToolError => ({
 	code: "io",
@@ -40,13 +40,14 @@ const finish = async (
 	opened: Opened,
 	pasted: string,
 ): Promise<Result<void, string>> => {
-	const code = flow.codeFrom(pasted);
-	if (!code.ok) return err(code.error);
 	try {
-		await opened.finishAuth?.(code.value.code, code.value.iss);
+		const code = flow.codeFrom(pasted);
+		if (!code.ok) return err(code.error);
+		if (!opened.finishAuth) return err("MCP token exchange is unavailable");
+		await opened.finishAuth(code.value.code, code.value.iss);
 		return ok(undefined);
-	} catch (e) {
-		return err(e instanceof Error ? e.message : String(e));
+	} catch {
+		return err("MCP token exchange failed");
 	}
 };
 
@@ -82,10 +83,16 @@ export const signIn = async (
 	if (!authorize)
 		return stopped(
 			server,
-			"you need to sign in; sign in once with `mete run` in a terminal",
+			"you need to sign in; use Settings or `mete run` in a terminal",
 		);
 	if (memory.declined) return stopped(server, NOT_GIVEN);
-	const pasted = await authorize(server.id, url.href, signal, memory.refused);
+	let pasted: string | undefined;
+	try {
+		pasted = await authorize(server.id, url.href, signal, memory.refused);
+	} catch {
+		return stopped(server, "MCP authorization failed");
+	}
+	if (signal.aborted) return stopped(server, "MCP authorization cancelled");
 	if (pasted === undefined) {
 		memory.declined = true;
 		return stopped(server, NOT_GIVEN);

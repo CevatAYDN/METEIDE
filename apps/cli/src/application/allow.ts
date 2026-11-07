@@ -9,6 +9,11 @@ import {
 	type PolicyAsk,
 	type PolicyGrantAdapter,
 	type Result,
+	type TaskControlAdapter,
+	TaskControlAnswerSchema,
+	type TaskPending,
+	TaskPendingInputSchema,
+	TaskPendingResultSchema,
 	type TeamEngineAdapter,
 } from "@mete/contracts";
 import { allowCommandForGood } from "@mete/security";
@@ -93,6 +98,10 @@ const askFor = (
 	const view = engine.status(runId);
 	if (!view.ok) return view;
 	const run = view.value[0];
+	if (run?.templateId && app.registry.has("task.control@1"))
+		return err(
+			notFound("this team has no exact pending policy request to answer"),
+		);
 	if (run?.status !== "paused" || run.pauseReason !== "approval")
 		return err(notFound(`run ${runId} is not paused for approval`));
 	const asked = pendingAsk(runHistory(app.registry, runId)?.events ?? []);
@@ -115,13 +124,65 @@ const writeAlways = async (
 	return r.ok ? r : err({ code: "bad_input", message: r.error });
 };
 
-/** Grants the run's pending ask, after writing an Always to the policy file, then resumes the run. */
+const badTask = (message: string): Result<void, EngineError> =>
+	err({ code: "bad_input", message });
+
+const answerTask = async (
+	control: TaskControlAdapter,
+	requests: readonly TaskPending[],
+	call: { readonly runId: string; readonly scope: AllowScope },
+): Promise<Result<void, EngineError> | undefined> => {
+	if (requests.length === 0) return undefined;
+	if (requests.some((request) => request.runId !== call.runId))
+		return badTask("pending task decisions belong to another run");
+	if (call.scope === "always")
+		return badTask("Always allow is not supported for task waits");
+	const [request, ...others] = requests.filter(
+		(wait) => wait.kind === "policy",
+	);
+	if (!request || others.length > 0)
+		return badTask(
+			"answer a specific task policy request, not the run's newest event",
+		);
+	return control.answer(
+		TaskControlAnswerSchema.parse({
+			runId: call.runId,
+			taskId: request.taskId,
+			requestId: request.requestId,
+			decision: "allow",
+			scope: call.scope === "run" ? "task" : "once",
+		}),
+	);
+};
+
+const allowTask = async (
+	app: App,
+	runId: string,
+	scope: AllowScope,
+): Promise<Result<void, EngineError> | undefined> => {
+	const controls = app.registry.resolve<TaskControlAdapter>("task.control@1");
+	if (!controls.ok) return undefined;
+	const input = TaskPendingInputSchema.safeParse({ runId });
+	if (!input.success) return badTask(input.error.message);
+	const pending = await controls.value[0].impl.pending(input.data);
+	if (!pending.ok) return pending;
+	const result = TaskPendingResultSchema.safeParse(pending.value);
+	if (!result.success) return badTask("invalid task pending response");
+	return answerTask(controls.value[0].impl, result.data.requests, {
+		runId,
+		scope,
+	});
+};
+
+/** Answers an exact task policy wait, or grants and resumes the legacy single-run ask. */
 export const allowAndResume = async (
 	app: App,
 	engine: TeamEngineAdapter,
 	runId: string,
 	scope: AllowScope,
 ): Promise<Result<void, EngineError>> => {
+	const task = await allowTask(app, runId, scope);
+	if (task !== undefined) return task;
 	const ask = askFor(app, engine, runId);
 	if (!ask.ok) return ask;
 	const grants = app.registry.resolve<PolicyGrantAdapter>("policy.grant@1");

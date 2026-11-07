@@ -31,9 +31,9 @@
 	gap: 14px;
 	padding: 16px 18px 16px 16px;
 	background: var(--panel, var(--theia-editorWidget-background));
-	border: 1.5px solid
+	border: 1px solid
 		color-mix(in srgb, var(--tone) 45%, var(--panel, var(--theia-panel-border)));
-	border-radius: 16px;
+	border-radius: 8px;
 }
 
 .mete-roster-row[data-state="idle"] {
@@ -75,7 +75,7 @@
 .mete-roster-name > h3 {
 	margin: 0;
 	font-size: 17px;
-	font-weight: 800;
+	font-weight: 600;
 	line-height: 1.25;
 }
 
@@ -94,7 +94,7 @@
 }
 
 .mete-roster-tier > .mete-mono {
-	font-size: 11.5px;
+	font-size: 11px;
 	font-weight: 500;
 	color: var(--muted-2, var(--theia-descriptionForeground));
 }
@@ -153,8 +153,8 @@
 	display: flex;
 	flex-wrap: wrap;
 	background: var(--raised, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line-soft, var(--theia-panel-border));
-	border-radius: 12px;
+	border: 1px solid var(--line-soft, var(--theia-panel-border));
+	border-radius: 8px;
 }
 
 .mete-roster-strip > * {
@@ -164,7 +164,7 @@
 }
 
 .mete-roster-strip > * + * {
-	border-left: 1.5px solid var(--line-soft, var(--theia-panel-border));
+	border-left: 1px solid var(--line-soft, var(--theia-panel-border));
 }
 
 .mete-roster-now {

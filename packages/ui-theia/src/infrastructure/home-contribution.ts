@@ -59,9 +59,10 @@ const PARTS: {
 	readonly [S in HomeSection]: ViewContainer.Factory.WidgetOptions;
 } = {
 	waiting: { order: 0, weight: WAITING_WEIGHT, canHide: true },
-	runs: { order: 1, weight: 45, canHide: false },
-	workspaces: { order: 2, weight: 20, canHide: true },
-	quota: { order: 3, weight: 15, canHide: true },
+	conversations: { order: 1, weight: 30, canHide: false },
+	runs: { order: 2, weight: 15, canHide: false },
+	workspaces: { order: 3, weight: 20, canHide: true },
+	quota: { order: 4, weight: 15, canHide: true },
 };
 
 @injectable()

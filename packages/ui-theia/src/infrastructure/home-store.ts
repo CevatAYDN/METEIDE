@@ -20,6 +20,7 @@ import {
 } from "../application/approval-commands.js";
 import { MeteDaemonEvents } from "../application/daemon-events.js";
 import { SET_KEY_COMMAND } from "../application/key-command.js";
+import { createThreadList } from "../application/thread-list.js";
 import type { Workspace } from "../application/workspaces-section.js";
 import {
 	type HomeAction,
@@ -57,6 +58,10 @@ export class MeteHomeStore {
 	protected generation = 0;
 	protected disposed = false;
 	protected readonly subscriptions = new DisposableCollection(this.changed);
+	readonly conversations = createThreadList({
+		fetch: (dir, input) => this.daemon.threadList(dir, input),
+		onChange: () => this.changed.fire(),
+	});
 
 	@postConstruct()
 	protected init(): void {
@@ -84,6 +89,7 @@ export class MeteHomeStore {
 	dispose(): void {
 		this.disposed = true;
 		this.generation++;
+		this.conversations.clear();
 		this.subscriptions.dispose();
 	}
 
@@ -123,7 +129,11 @@ export class MeteHomeStore {
 			if (!this.isCurrent(asked, dir)) return;
 			this.dir = dir;
 			void this.loadWorkspaces(root?.resource.toString(), asked);
-			if (!dir) return this.setModel({ kind: "no_folder" });
+			if (!dir) {
+				this.conversations.clear();
+				return this.setModel({ kind: "no_folder" });
+			}
+			void this.conversations.show(dir);
 			if (this.model.kind !== "runs") this.setModel({ kind: "loading" });
 			const reply = await this.daemon.status(dir);
 			if (!this.isCurrent(asked, dir)) return;

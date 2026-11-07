@@ -4,6 +4,7 @@ import { freshTaskSession, type TaskSession } from "./task-session-schema.js";
 
 const SEAT_EVENTS: readonly RunEvent["type"][] = [
 	"MODEL",
+	"TAINT",
 	"REPLIED",
 	"TOOL_STARTED",
 	"TOOL_DONE",

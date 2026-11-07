@@ -1,4 +1,4 @@
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { optionsOf } from "../src/application/composer.js";
@@ -26,12 +26,17 @@ const OPTIONS = optionsOf(
 const READY: ComposerModel = { kind: "ready", options: OPTIONS, unsure: false };
 const INPUT: ComposerInput = { goal: "", selected: "choose", busy: false };
 
-const html = (model: ComposerModel, input: Partial<ComposerInput> = {}) =>
+const html = (
+	model: ComposerModel,
+	input: Partial<ComposerInput> = {},
+	tools?: ReactNode,
+) =>
 	renderToStaticMarkup(
 		createElement(ComposerView, {
 			model,
 			...INPUT,
 			...input,
+			tools,
 			onGoal: () => {},
 			onSelect: () => {},
 			onStart: () => {},
@@ -84,25 +89,54 @@ describe("ComposerView", () => {
 		expect(teams.slice(0, teams.indexOf("</section>"))).not.toContain("style=");
 	});
 
-	// The board's page: the goal on top, then the teams beside a column with the chosen team's
-	// preferred models, the uncommitted line and Start; a narrow panel stacks them (style sheet).
-	it("puts the goal on top and the preferences, the uncommitted line and Start beside the teams", () => {
+	// F2 / ADR-180: the ordinary action surface precedes explicit team configuration.
+	it("keeps the goal and Start together before team choices, with warnings and errors inline", () => {
 		const out = html(READY, { selected: "web-dev", uncommitted: 2 });
 		const order = [
 			"Start a run",
 			"<textarea",
-			"Which team should work on it?",
-			'<aside class="mete-composer-side"',
+			'<div class="mete-composer-side"',
+			'aria-label="Start run"',
 			"This folder has 2 uncommitted changes.",
-			"Start run</button>",
+			"</header>",
+			"Which team should work on it?",
 		].map((s) => out.indexOf(s));
 		expect(order.every((at, i) => at >= 0 && at > (order[i - 1] ?? -1))).toBe(
 			true,
 		);
 		expect(out).toMatch(
-			/<button type="button" class="mete-button mete-composer-start"/,
+			/<button type="button" class="mete-button icon mete-composer-start"/,
 		);
+		expect(out).not.toContain("<aside");
 		expect(out).not.toContain("style=");
+	});
+
+	it("puts the existing single model picker and tools beside the primary action below the goal", () => {
+		const out = html(
+			READY,
+			{
+				selected: "single",
+				singleModel: "custom/model",
+				goal: "Long goal ".repeat(200),
+			},
+			createElement("button", { type: "button" }, "Tools"),
+		);
+		const surface = out.slice(out.indexOf("<header"), out.indexOf("</header>"));
+		const order = [
+			"<textarea",
+			'role="combobox"',
+			">Tools<",
+			'aria-label="Start run"',
+		].map((text) => surface.indexOf(text));
+		expect(order.every((at, i) => at >= 0 && at > (order[i - 1] ?? -1))).toBe(
+			true,
+		);
+		expect(surface).toContain('value="custom/model"');
+		expect(surface).toContain('title="Start run"');
+		expect(surface).not.toContain("<details");
+		expect(out.indexOf("Use a team instead")).toBeGreaterThan(
+			out.indexOf("</header>"),
+		);
 	});
 
 	it("shows an estimate as its total and one chip per share, what no provider takes marked", () => {
@@ -163,6 +197,7 @@ describe("ComposerView", () => {
 			"METE is not sure which team fits this goal; choose one",
 		);
 		expect(out).not.toContain("Let METE choose");
+		expect(out).not.toContain("<details");
 		expect(html(READY)).not.toContain("not sure");
 	});
 

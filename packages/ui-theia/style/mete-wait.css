@@ -47,13 +47,13 @@
 	display: flex;
 	gap: 16px;
 	padding: 18px 20px 20px;
-	border-radius: 16px;
+	border-radius: 8px;
 	background: color-mix(
 		in srgb,
 		var(--tone) var(--wash),
 		var(--panel, var(--theia-editorWidget-background))
 	);
-	border: 1.5px solid
+	border: 1px solid
 		color-mix(
 			in srgb,
 			var(--tone) var(--edge),
@@ -71,7 +71,7 @@
 	flex: none;
 	width: 42px;
 	height: 42px;
-	border-radius: 10px;
+	border-radius: 4px;
 	display: grid;
 	place-items: center;
 	background: color-mix(
@@ -158,8 +158,8 @@
 	gap: 10px;
 	padding: 9px 14px 9px 10px;
 	background: var(--raised, var(--theia-editorWidget-background));
-	border: 1.5px solid var(--line, var(--theia-panel-border));
-	border-radius: 10px;
+	border: 1px solid var(--line, var(--theia-panel-border));
+	border-radius: 4px;
 }
 
 .mete-wait-ask > .mete-tile {
@@ -252,9 +252,9 @@
 	font-size: 14px;
 	color: var(--ink, var(--theia-input-foreground));
 	background: var(--panel, var(--theia-input-background));
-	border: 1.5px solid
+	border: 1px solid
 		var(--line, var(--theia-input-border, var(--theia-panel-border)));
-	border-radius: 10px;
+	border-radius: 4px;
 }
 
 .mete-wait-feedback textarea:focus-visible {

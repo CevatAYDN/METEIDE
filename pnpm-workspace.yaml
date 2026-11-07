@@ -65,6 +65,7 @@ overrides:
 # Drops SpectreMitigation from the proxy agent's binding.gyp so it compiles with the plain
 # VS C++ Build Tools the Theia build already requires (ADR-103).
 patchedDependencies:
+  '@theia/task@1.76.0': patches/@theia__task@1.76.0.patch
   '@vscode/windows-ca-certs@0.3.4': patches/@vscode__windows-ca-certs@0.3.4.patch
   # node-pty's binding.gyp asks for Spectre-mitigated libraries the plain VS C++ Build Tools lack;
   # @electron/rebuild compiles it for Electron's ABI during packaging, so the attribute goes as in

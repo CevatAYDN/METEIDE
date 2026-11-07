@@ -1,0 +1,51 @@
+.mete-task-controls,
+.mete-task-request {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+.mete-task-controls header,
+.mete-task-actions {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.mete-task-controls h3,
+.mete-task-request h4 {
+	margin: 0;
+	font-size: 13px;
+	font-weight: 600;
+}
+.mete-task-controls ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.mete-task-request {
+	padding: 12px 0;
+	border-top: 1px solid var(--theia-panel-border);
+}
+.mete-task-request p {
+	margin: 8px 0;
+}
+.mete-task-reason {
+	white-space: pre-wrap;
+}
+.mete-task-request fieldset {
+	border: 0;
+	min-width: 0;
+	padding: 0;
+	margin: 0;
+}
+.mete-task-request label {
+	display: block;
+	margin: 8px 0;
+}
+.mete-task-request textarea {
+	display: block;
+	max-width: 100%;
+	margin-top: 4px;
+}
+.mete-task-controls [role="alert"] {
+	color: var(--theia-errorForeground);
+}

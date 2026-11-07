@@ -1,12 +1,12 @@
 import { nls } from "@theia/core/lib/common/nls";
+import type { ReactNode } from "react";
 import type { ComposerOption, PickerFacts } from "./composer.js";
 import { Side } from "./composer-side.js";
 import { Teams } from "./composer-teams.js";
 import { noFolderText } from "./status-text.js";
 
-// The run composer's screen (docs/13, Run composer; ADR-071) in the Composer board's look (ADR-128):
-// the goal on top, then the teams to pick from with their request estimates beside the side column
-// with Start. The view holds no state: the widget passes it and the actions.
+// The compact run composer (docs/13; ADR-180): goal, model/tools and Start on one surface,
+// with explicit teams and their estimates below. The widget owns state and actions.
 // Text is shown as it is: React escapes it, Markdown is not involved.
 
 /** What the screen is showing: waiting for the lists, no folder, or the teams on offer. */
@@ -25,6 +25,7 @@ export type ComposerInput = {
 	readonly goal: string;
 	readonly selected: string;
 	readonly busy: boolean;
+	readonly preparing?: boolean | undefined;
 	readonly error?: string | undefined;
 	readonly singleModel?: string | undefined;
 	readonly roleModels?: Readonly<Record<string, string>> | undefined;
@@ -35,6 +36,8 @@ export type ComposerInput = {
 };
 
 type Props = ComposerInput & {
+	readonly tools?: ReactNode;
+	readonly attachments?: ReactNode;
 	readonly model: ComposerModel;
 	readonly onGoal: (goal: string) => void;
 	readonly onSelect: (key: string) => void;
@@ -56,11 +59,13 @@ const Message = ({ children }: { readonly children: string }) => (
 const GoalField = ({
 	goal,
 	ready,
+	busy,
 	onGoal,
 	onStart,
 }: {
 	readonly goal: string;
 	readonly ready: boolean;
+	readonly busy: boolean;
 	readonly onGoal: (goal: string) => void;
 	readonly onStart: () => void;
 }) => (
@@ -68,12 +73,13 @@ const GoalField = ({
 		{nls.localize("mete/run/goal", "What should METE do in this folder?")}
 		<textarea
 			className="mete-field"
-			rows={4}
+			rows={2}
 			placeholder={nls.localize(
 				"mete/run/goalHint",
 				"Describe the task you want METE to complete.",
 			)}
 			value={goal}
+			disabled={busy}
 			onChange={(e) => onGoal(e.target.value)}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && ready) onStart();
@@ -107,7 +113,7 @@ const TeamChoices = (
 };
 
 export const ComposerView = (props: Props) => {
-	const { model, goal, selected, busy, error } = props;
+	const { model, goal, selected, busy } = props;
 	if (model.kind === "no_folder") return <Message>{noFolderText()}</Message>;
 	if (model.kind === "loading")
 		return (
@@ -125,29 +131,18 @@ export const ComposerView = (props: Props) => {
 				<h2 className="mete-composer-title">
 					{nls.localize("mete/composer/title", "Start a run")}
 				</h2>
-				<GoalField
-					goal={goal}
-					ready={ready}
-					onGoal={props.onGoal}
-					onStart={props.onStart}
-				/>
-			</header>
-			<div className="mete-composer-columns">
-				<TeamChoices {...props} model={model} />
+				<GoalField {...props} ready={ready} />
+				{props.attachments}
 				<Side
+					{...props}
 					chosen={model.options.find((o) => o.key === selected)}
-					singleModel={props.singleModel}
-					roleModels={props.roleModels}
-					picker={props.picker}
-					onSingleModel={props.onSingleModel}
-					onRoleModel={props.onRoleModel}
 					uncommitted={props.uncommitted}
 					ready={ready}
-					busy={busy}
-					error={error}
-					onStart={props.onStart}
 				/>
-			</div>
+			</header>
+			<fieldset className="mete-context-edit-fields" disabled={busy}>
+				<TeamChoices {...props} model={model} />
+			</fieldset>
 		</section>
 	);
 };

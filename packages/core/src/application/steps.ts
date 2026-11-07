@@ -14,13 +14,20 @@ import {
 	type ToolContext,
 	toolName,
 	toolSpec,
+	type VcsGitAdapter,
 } from "@mete/contracts";
 import type { AdapterChain, CapabilityRegistry, Logger } from "@mete/kernel";
 import { z } from "zod";
 import type { EventBody } from "../domain/run-events.js";
 import { textCalls } from "../domain/text-calls.js";
 import { allowed, EXTERNAL_LABEL, type Seat } from "../domain/tools.js";
+import type { createCheckpointQueue } from "./checkpoint-queue.js";
 import { mcpSpecs, runMcpTool } from "./mcp-steps.js";
+import {
+	type AnyTool,
+	type PreparedTool,
+	preparedCurrent,
+} from "./prepared-tool.js";
 
 // One model call and one tool call of a run (docs/08, Single agent); the checkpoint and worktree steps are in vcs-steps.ts.
 
@@ -32,6 +39,8 @@ type ModelChunk = Extract<LlmChunk, { type: "model" }>;
 
 /** What the steps need from the module. */
 export type StepDeps = {
+	readonly checkpointQueue?: ReturnType<typeof createCheckpointQueue>;
+	readonly checkpointAdapters?: Pick<WeakSet<VcsGitAdapter>, "has"> | undefined;
 	readonly registry: CapabilityRegistry;
 	readonly logger: Logger;
 	readonly now: () => number;
@@ -188,9 +197,6 @@ export type ToolOutcome =
 	| { readonly kind: "approval"; readonly rule: string };
 
 type Failure = { readonly code: string; readonly message: string };
-type AnyTool = {
-	run(input: unknown, ctx: ToolContext): Promise<Result<unknown, Failure>>;
-};
 
 // The mask's replacement has no JSON-special characters, so the content stays JSON; external
 // content gets a label line before it (SECURITY.md, prompt injection).
@@ -322,7 +328,13 @@ export const callTool = async (
 		call,
 		seat,
 		beforeWrite,
-	}: { call: ToolCall; seat: Seat; beforeWrite?: BeforeWrite | undefined },
+		prepared,
+	}: {
+		call: ToolCall;
+		seat: Seat;
+		beforeWrite?: BeforeWrite | undefined;
+		prepared?: PreparedTool | undefined;
+	},
 	ctx: ToolContext,
 	emit: Emit,
 ): Promise<ToolOutcome> => {
@@ -349,6 +361,15 @@ export const callTool = async (
 			code: "io",
 			message: `the file could not be snapshotted first: ${unkept}`,
 		});
+	if (
+		prepared &&
+		(prepared.ref !== entry.ref || !preparedCurrent(deps.registry, prepared))
+	)
+		return refused(deps, call, {
+			code: "io",
+			message:
+				"the tool adapter chain changed before dispatch; resolve it again",
+		});
 	const chain = deps.registry.resolve<AnyTool>(entry.ref);
 	if (!chain.ok)
 		return refused(deps, call, {
@@ -358,7 +379,7 @@ export const callTool = async (
 	const out = await walk(
 		{ deps, input: args.data, ctx, emit },
 		entry,
-		chain.value,
+		prepared?.chain ?? chain.value,
 	);
 	return finished(deps, call, out, entry.external === true);
 };

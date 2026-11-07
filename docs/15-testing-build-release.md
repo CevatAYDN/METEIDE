@@ -70,6 +70,9 @@ See `docs/reviews/2026-11-07-code-review.md` for the findings and verification s
 
 Today's `lefthook.yml` is simpler than the table: pre-commit runs Biome on the staged files, `tsc -b` for every package (it emits `dist/`) plus `tsc -p tsconfig.test.json`, dependency-cruiser, and a lockfile check (`pnpm install --frozen-lockfile --offline` with the lockfile and every `package.json` staged together); pre-push runs the secret scan and then the tests of all packages through `pnpm exec turbo run test`. Affected-only type checks and tests (`turbo --affected`, `--noEmit`) are a later switch, noted as shortcuts in that file \[D\].
 
+Biome reads staged paths through `--staged`, rather than expanding every filename
+on the hook's command line, so large commits stay within Windows command limits.
+
 ## Builds
 
 Local desktop verification on 2026-11-06 (not a Phase 5 exit-gate pass): `pnpm check`

@@ -64,3 +64,18 @@ export const CHARS_PER_TOKEN = 4;
 
 /** Tab 09, Gateway (ADR-042): the daily spending cap over paid models, in US dollars. */
 export const DAILY_SPEND_USD = 1;
+
+/** ADR-182: default and maximum summaries in one conversation history page. */
+export const THREAD_LIST_LIMIT = 50;
+export const THREAD_LIST_MAX = 100;
+
+/** ADR-183: explicit editor-context count and UTF-8 byte limits. */
+export const CONTEXT_ATTACHMENT_COUNT = 4;
+export const CONTEXT_ATTACHMENT_BYTES = 32 * 1024;
+export const CONTEXT_TOTAL_BYTES = 64 * 1024;
+/** ADR-183: maximum input source-path characters. */
+export const CONTEXT_PATH_CHARS = 4096;
+
+/** ADR-184: bounded write-only MCP field count and per-value characters. */
+export const MCP_CREDENTIAL_FIELDS_MAX = 32;
+export const MCP_CREDENTIAL_VALUE_CHARS = 4096;

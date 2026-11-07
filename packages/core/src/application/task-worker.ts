@@ -10,6 +10,7 @@ type WorkerEvent = Extract<
 	{
 		type:
 			| "MODEL"
+			| "TAINT"
 			| "REPLIED"
 			| "TOOL_STARTED"
 			| "TOOL_DONE"

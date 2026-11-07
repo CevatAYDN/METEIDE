@@ -15,6 +15,7 @@ overrides:
   undici@>=7.0.0 <7.30.1: 7.30.1
 
 patchedDependencies:
+  '@theia/task@1.76.0': d78b0b48bbf65960d1490be2a0601c870aa1d023593d1435e3f18daf326cd072
   '@vscode/windows-ca-certs@0.3.4': 4ff0c39bd0e83c0374825eb67e0b0e7f2dd44a36da592269847f05b787e4d8b8
   node-pty@1.2.0-beta.12: d19942121ae4e360add9fe3ccc1c86efba1f102829074c0d6a2ca8ecacb55cb7
 
@@ -155,6 +156,9 @@ importers:
       '@theia/terminal':
         specifier: 1.76.0
         version: 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/vsx-registry':
+        specifier: 1.76.0
+        version: 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)(zod@4.6.7)
       '@theia/workspace':
         specifier: 1.76.0
         version: 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
@@ -536,9 +540,15 @@ importers:
       '@theia/core':
         specifier: 1.76.0
         version: 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)
+      '@theia/editor':
+        specifier: 1.76.0
+        version: 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)
       '@theia/filesystem':
         specifier: 1.76.0
         version: 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/vsx-registry':
+        specifier: 1.76.0
+        version: 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)(zod@4.6.7)
       '@theia/workspace':
         specifier: 1.76.0
         version: 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
@@ -1770,6 +1780,9 @@ packages:
 
   '@theia/variable-resolver@1.76.0':
     resolution: {integrity: sha512-TtrMHLPNGt/lLs4kAXqIhkvapE9+rjznJ6sC54GyJHhhjVXxGGuCMJlXPtgEAYtj3v/JbyatkblBs3F4k5tOYg==}
+
+  '@theia/vsx-registry@1.76.0':
+    resolution: {integrity: sha512-SW8bRaSeT/DcJKBnMDfKQgBdl18a6cIBAZdorzDCpQyRH3lcb0Y+HkZPEhDwgEOf2LoJAtMfeAVBNwKyEKCzYQ==}
 
   '@theia/workspace@1.76.0':
     resolution: {integrity: sha512-KxR85wdO1HFB3P30zozHp2X/m2BSjeB8VyRQdS/360qOl6rZksJPIfHlDedlbZiD/j6gbVgWnwHVAagZTWn8BA==}
@@ -4206,8 +4219,8 @@ packages:
     resolution: {integrity: sha512-37fYHAhL12r1twaEV0PA5TwoIT491eTGGYjhhXxlYNMq3DSkiGZBQ++Jfk5maXj0vq52NRauLtMikBKtbNJs3Q==}
     hasBin: true
 
-  legacy-javascript@0.0.3:
-    resolution: {integrity: sha512-1r6MT4dVaJyXt4G07Cm2cQ0AUaLJdefiEp4SmIAylA++gnEQ82YvmzE58RkM5EP0fk5hROLCslUPGnwIYdZQVA==}
+  legacy-javascript@0.0.4:
+    resolution: {integrity: sha512-UTmeKBVxnfJcpmpOvzzNnLsQT99BXHpPlc/ZKddIRmWmrR0fw6335I3lq4+sJoP60UTbBNaYsGYVPc65YB1x3A==}
 
   lighthouse-logger@2.0.2:
     resolution: {integrity: sha512-vWl2+u5jgOQuZR55Z1WM0XDdrJT6mzMP8zHUct7xTlWhuQs+eV0g+QL0RQdFjT54zVmbhLCP8vIVpy1wGn/gCg==}
@@ -4382,6 +4395,10 @@ packages:
   lru-cache@6.0.0:
     resolution: {integrity: sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==}
     engines: {node: '>=10'}
+
+  luxon@2.5.2:
+    resolution: {integrity: sha512-Yg7/RDp4nedqmLgyH0LwgGRvMEKVzKbUdkBYyCosbHgJ+kaOUx0qzSiSatVc3DFygnirTPYnMM2P5dg2uH1WvA==}
+    engines: {node: '>=12'}
 
   macaddress@0.5.4:
     resolution: {integrity: sha512-i8xVWoUjj2woYU8kbpQby86Kq7uF7xl2brtKREXUBWpfgqx1fKXEeYzDiVMVxA/IufC1d3xxwJRHtFCX+9IspA==}
@@ -7245,7 +7262,7 @@ snapshots:
 
   '@paulirish/trace_engine@0.0.65':
     dependencies:
-      legacy-javascript: 0.0.3
+      legacy-javascript: 0.0.4
       third-party-web: 0.30.0
 
   '@peculiar/asn1-schema@2.10.0':
@@ -7739,7 +7756,7 @@ snapshots:
       '@theia/monaco-editor-core': 1.108.201
       '@theia/output': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
       '@theia/process': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)
-      '@theia/task': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/task': 1.76.0(patch_hash=d78b0b48bbf65960d1490be2a0601c870aa1d023593d1435e3f18daf326cd072)(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
       '@theia/terminal': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
       '@theia/test': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
       '@theia/variable-resolver': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)
@@ -8142,7 +8159,7 @@ snapshots:
       '@theia/preferences': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
       '@theia/scm': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
       '@theia/search-in-workspace': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
-      '@theia/task': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/task': 1.76.0(patch_hash=d78b0b48bbf65960d1490be2a0601c870aa1d023593d1435e3f18daf326cd072)(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
       '@theia/telemetry': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)
       '@theia/terminal': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
       '@theia/test': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
@@ -8299,7 +8316,7 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@theia/task@1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)':
+  '@theia/task@1.76.0(patch_hash=d78b0b48bbf65960d1490be2a0601c870aa1d023593d1435e3f18daf326cd072)(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)':
     dependencies:
       '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)
       '@theia/editor': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)
@@ -8469,6 +8486,38 @@ snapshots:
       - react-dom
       - supports-color
       - utf-8-validate
+
+  '@theia/vsx-registry@1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)(zod@4.6.7)':
+    dependencies:
+      '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)
+      '@theia/filesystem': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/navigator': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/ovsx-client': 1.76.0
+      '@theia/plugin-ext': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)(zod@4.6.7)
+      '@theia/plugin-ext-vscode': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)(zod@4.6.7)
+      '@theia/preferences': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
+      '@theia/workspace': 1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
+      limiter: 2.1.0
+      luxon: 2.5.2
+      p-debounce: 2.1.0
+      semver: 7.8.5
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - '@cfworker/json-schema'
+      - '@theia/electron'
+      - '@types/react'
+      - '@types/react-dom'
+      - bare-abort-controller
+      - bare-buffer
+      - bufferutil
+      - debug
+      - react
+      - react-dom
+      - react-native-b4a
+      - supports-color
+      - typescript
+      - utf-8-validate
+      - zod
 
   '@theia/workspace@1.76.0(@theia/electron@1.76.0(electron@42.11.14(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)':
     dependencies:
@@ -11150,7 +11199,7 @@ snapshots:
       lefthook-windows-arm64: 2.2.2
       lefthook-windows-x64: 2.2.2
 
-  legacy-javascript@0.0.3: {}
+  legacy-javascript@0.0.4: {}
 
   lighthouse-logger@2.0.2(supports-color@8.1.1):
     dependencies:
@@ -11331,6 +11380,8 @@ snapshots:
   lru-cache@6.0.0:
     dependencies:
       yallist: 4.0.0
+
+  luxon@2.5.2: {}
 
   macaddress@0.5.4: {}
 

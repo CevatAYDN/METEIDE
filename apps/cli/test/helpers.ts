@@ -109,7 +109,10 @@ const MANIFEST: ModuleManifest = {
 
 /** How the scripted provider behaves: replies in order (the last repeats), no models, or a call that waits. */
 export type Behaviour =
-	| { script: ChatChunk[][]; seen?: ChatRequest[] }
+	| {
+			script: ChatChunk[][] | ((request: ChatRequest) => ChatChunk[]);
+			seen?: ChatRequest[];
+	  }
 	| { noModels: true }
 	| { hang: true };
 
@@ -159,7 +162,9 @@ export const scriptedProvider = (
 			}
 			if ("script" in b) {
 				b.seen?.push(req);
-				yield* b.script[Math.min(calls++, b.script.length - 1)] ?? [];
+				yield* (typeof b.script === "function"
+					? b.script(req)
+					: b.script[Math.min(calls++, b.script.length - 1)]) ?? [];
 			}
 		},
 		quotaUnits: () => [

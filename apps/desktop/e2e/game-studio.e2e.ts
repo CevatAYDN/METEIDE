@@ -177,6 +177,18 @@ const screenshotIsValid = (dir: string) => {
 	expect(bytes.readUInt32BE(20)).toBe(720);
 };
 
+const designApproval = (page: Page) =>
+	page
+		.getByRole("region", { name: "Task decisions", exact: true })
+		.getByRole("listitem")
+		.filter({
+			has: page.getByRole("heading", {
+				name: "Write the game design document",
+				exact: true,
+			}),
+		})
+		.getByRole("button", { name: "Approve", exact: true });
+
 test("the game studio turns an idea into an approved design, spawned tasks and a game", async ({
 	mete,
 }) => {
@@ -184,20 +196,16 @@ test("the game studio turns an idea into an approved design, spawned tasks and a
 	await startRun(page, { goal: GOAL, team: /Game studio/ });
 
 	// The design's own approval waits for the lead and then for the human (docs/08).
-	const design = /asks you to approve “Write the game design document”/;
-	await expect(page.getByText(design)).toBeVisible({ timeout: 120_000 });
+	const approve = designApproval(page);
+	await expect(approve).toBeVisible({ timeout: 120_000 });
 	await runCommand(page, "METE: Show what waits for you");
 	await expect(inboxLink(page, GOAL)).toBeVisible({ timeout: 60_000 });
 	await inboxLink(page, GOAL).click();
-	await page
-		.locator(".mete-panel")
-		.filter({ hasText: design })
-		.getByRole("button", { name: "Approve" })
-		.click();
+	await approve.click();
 
 	// The spawned tasks run one at a time and the run ends once the lead approves the test report.
 	await expect(
-		page.locator('section[aria-label="Runs"]').getByText("Done"),
+		page.locator('section[aria-label="Team runs"]').getByText("Done"),
 	).toBeVisible({ timeout: 240_000 });
 
 	// The developer's game merged from its worktree into the workspace.

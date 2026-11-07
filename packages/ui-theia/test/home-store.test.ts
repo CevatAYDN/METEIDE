@@ -73,7 +73,11 @@ const setup = () => {
 	const logger = { warn: vi.fn(async () => {}) };
 	const badge = { set: vi.fn() };
 	const store = new HomeStore({
-		daemon: { status, quota: askQuota },
+		daemon: {
+			status,
+			quota: askQuota,
+			threadList: async () => ok({ conversations: [] }),
+		},
 		workspace: {
 			get roots() {
 				return Promise.resolve(roots);

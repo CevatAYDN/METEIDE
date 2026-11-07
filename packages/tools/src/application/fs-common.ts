@@ -1,3 +1,4 @@
+import { basename, dirname, isAbsolute, join } from "node:path";
 import {
 	type CapabilityRef,
 	err,
@@ -10,7 +11,7 @@ import {
 } from "@mete/contracts";
 import type { ZodType } from "zod";
 import { absolute, isInside, namesStream } from "../domain/paths.js";
-import { realTarget } from "../infrastructure/files.js";
+import { kindOf, multiplyLinked, realTarget } from "../infrastructure/files.js";
 import {
 	type IgnoreCheck,
 	loadIgnore,
@@ -40,11 +41,22 @@ export const scoped = async <D extends FsDeps>(
 	ctx: ToolContext,
 ): Promise<Result<D, ToolError>> => {
 	if (ctx.cwd === undefined) return ok(deps);
+	if (!isAbsolute(ctx.cwd) || ctx.cwd.includes("\0"))
+		return err({
+			code: "bad_input",
+			message: "cwd must be an absolute folder path",
+		});
 	const real = await realTarget(ctx.cwd);
 	if (real === deps.worktreesDir || !isInside(deps.worktreesDir, real))
 		return err({
 			code: "bad_input",
 			message: `${ctx.cwd} is not a folder inside the worktrees folder`,
+		});
+	const kind = await kindOf(real);
+	if (!kind.ok || kind.value !== "folder")
+		return err({
+			code: "bad_input",
+			message: `${ctx.cwd} is not an existing folder`,
 		});
 	const ignore = deps.ignore ?? {
 		workspaceDir: deps.workspaceDir,
@@ -68,6 +80,8 @@ export const place = async (
 	deps: FsDeps,
 	path: string,
 ): Promise<Result<Place, ToolError>> => {
+	if (path.includes("\0"))
+		return err({ code: "bad_input", message: "path contains a NUL byte" });
 	const abs = absolute(deps.workspaceDir, path);
 	if (WINDOWS && namesStream(abs))
 		return err({ code: "bad_input", message: `${path} names a file stream` });
@@ -95,6 +109,21 @@ export const rules = (deps: FsDeps): Promise<Result<IgnoreCheck, ToolError>> =>
 		deps.ignore?.worktreesDir ?? deps.worktreesDir,
 	);
 
+const confinedChange = async (
+	deps: FsDeps,
+	path: string,
+	real: string,
+): Promise<Result<void, ToolError>> => {
+	if (!isInside(deps.workspaceDir, real)) return err(outside(path));
+	const given = absolute(deps.workspaceDir, path);
+	// Deletes unlink this entry, not its resolved target; parent aliases must not escape.
+	const entry = join(await realTarget(dirname(given)), basename(given));
+	if (!isInside(deps.workspaceDir, entry)) return err(outside(path));
+	const shared = await multiplyLinked(real);
+	if (!shared.ok) return shared;
+	return shared.value ? err(outside(path)) : ok(undefined);
+};
+
 /** Where a path to write or edit really is; refused when .meteignore excludes it (docs/10). */
 export const placeToChange = async (
 	deps: FsDeps,
@@ -102,6 +131,10 @@ export const placeToChange = async (
 ): Promise<Result<Place, ToolError>> => {
 	const at = await place(deps, path);
 	if (!at.ok) return at;
+	if (deps.ignore) {
+		const confined = await confinedChange(deps, path, at.value.real);
+		if (!confined.ok) return confined;
+	}
 	const ignored = await rules(deps);
 	if (!ignored.ok) return ignored;
 	return ignored.value(at.value.real) ? err(ignoredError(path)) : at;

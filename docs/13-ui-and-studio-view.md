@@ -1,10 +1,75 @@
 # 13 UI and studio view
 
+ADR-184 extends each saved MCP row with explicit system-browser sign-in,
+cancel/retry and local credential forgetting. Registry-required env/header
+fields use labeled inputs (masked for secrets) and OS-keychain storage.
+Missing credentials, configured/untested and connected are distinct. Opening
+Settings never starts a server or login. Setup works without a model provider;
+credential replacement is refused during active work. Tokens are never read
+back into the UI, and late responses cannot update another workspace/target.
+
 Repository file: `docs/13-ui-and-studio-view.md`. Depends on: 07 Domain model and events, 08 Orchestration and teams.
 
 The desktop UI is Theia plus METE panels; its signature is the studio view, where agents appear as small characters and every movement is a real event, as in the approved concept demo \[C\].
 
 ## Screens
+
+ADR-183 adds explicit Add selection and Add open file commands to the native
+editor and single-agent composers. Each prepared snapshot shows its path/range,
+unsaved marker and exact masked text, with Update and Remove before sending.
+Editor changes do not silently replace the copy and no automatic save occurs.
+Drafts survive failed sends and in-session navigation, not application exit.
+Internal context envelopes appear as collapsed Attached context details with
+escaped previews; malformed/truncated envelopes remain inspectable as raw data.
+Scrollable code previews have named keyboard focus. Historical read-only state
+does not display a pending-operation notice.
+Sent attachments are readable on their immutable turn after restart. Team runs,
+untitled/remote/binary files, image uploads and automatic context gathering are
+outside this slice. Four attachments, 32 KiB each and 64 KiB total are hard limits.
+
+ADR-182 groups single-agent follow-ups into one persistent Conversations row with
+the latest run's status. Search and load-more use authoritative local thread
+results; an error is not an empty history. The conversation exposes individual
+run history and existing diagnostics. Viewing an older run never silently replies
+to it: return to the latest turn first. The composer preserves the same intent id
+when retrying an uncertain send and retains drafts on failure. Team Runs and
+task decisions remain separate. Existing unlinked runs appear as separate
+conversations, without guessing relationships from their titles.
+
+ADR-180 updates operational panels to compact, neutral Theia-aligned surfaces:
+native UI typography, 1px boundaries, 4px controls and repeated frames at most
+8px. Conversation input and actions stay in the panel; diagnostics are collapsible.
+Settings has translated-label/section-ID search and visible user/workspace scope.
+The tools list leads to guided URL, local command or JSON setup and a real catalog;
+advanced values remain available. Save and connect leaves activation pending while
+a run is active and refuses restart when status is unknown. Editor extensions open
+Theia's native Extensions view. Studio's existing event-driven artwork is retained.
+Conversation controls explicitly select Web or all configured MCP servers;
+an unknown persisted selection is shown as mixed, not falsely disabled. The
+desktop uses `conversation.run@1` while the original `run.reply@1` remains available.
+Starting from the composer navigates to the run as its success feedback; no
+redundant success toast covers the message actions in a narrow panel.
+The initial composer keeps goal, preferred model, optional tools and Start in one
+compact form; team choice remains explicit below it. A tool row has one connection
+action: Save and connect for edits, Connect for an untested saved row, and Retry
+connection after a failed connection. Saved rows probe their exact loaded
+configuration before considering a safe restart. Refresh retains edited MCP drafts.
+Team task and spawn-default forms group checks, pair review and best-of-N under
+Advanced. Capability checks remain read-only YAML; unsupported fields are marked
+inactive, and editing command gates preserves the order of other verify gates.
+
+ADR-181 adds authoritative task decisions to the team panel, including while
+independent tasks remain running. Each row names its task, reason and available
+worktree/branch, and carries the exact pending request identity. Policy actions
+offer Allow once and Allow for this task, never Always. Approval, clarification,
+blocked work and merge retry have their own actions. Loading, failed and stale
+reads cannot enable old event-derived task controls; duplicate submissions are
+locked, navigation discards old responses, and terminal run events remove old
+actions. Single-agent legacy wait controls are unchanged. Interrupted setup
+requires explicit feedback after checking its effects before retrying.
+Home's team waiting rows only open that panel: run-level Approve, Revise,
+Resume and artifact actions cannot identify a task request and are not offered
+there. The single-agent inbox action and the existing run-goal link stay intact.
 
 Conversation-first change (ADR-178): single-agent
 work is a user/assistant thread with a persistent message composer, model selection

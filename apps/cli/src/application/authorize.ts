@@ -1,6 +1,12 @@
 import type { Authorize } from "@mete/mcp";
 import type { Io } from "./commands.js";
 
+/** Availability is decided before SDK registration, not after it requests a redirect. */
+export const terminalAuthOptions = (
+	io: Io,
+): { readonly authorize?: Authorize } =>
+	io.readLine ? { authorize: terminalAuthorize(io) } : {};
+
 /**
  * The Authorize of a terminal (docs/10, MCP client, Authentication): METE prints the address to open,
  * the user opens it in their own browser, and pastes back the address it ends up on. METE opens no

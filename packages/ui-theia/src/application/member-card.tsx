@@ -115,16 +115,14 @@ const Fields = ({
 	</div>
 );
 
-// What a member may use and what wakes it: its capabilities, the families it avoids, its artifacts.
+// Unwired family preferences and watches stay visible but cannot imply active behavior.
 const Reach = ({
 	member,
-	others,
 	hints,
 	at,
 	onEdit,
 }: {
 	readonly member: MemberView;
-	readonly others: readonly string[];
 	readonly hints: readonly string[];
 	readonly at: Path;
 	readonly onEdit: OnEdit;
@@ -140,23 +138,23 @@ const Reach = ({
 			onChange={(v) => onEdit(at("capabilities"), v)}
 		/>
 		<div className="mete-reach-pair">
-			<Ticks
+			<Text
 				label={nls.localize(
-					"mete/team/otherFamily",
-					"Prefer a different model family than",
+					"mete/team/otherFamilyInactive",
+					"Model family preference (not active)",
 				)}
-				options={others}
-				values={member.prefer_different_family_than}
-				onChange={(v) => onEdit(at("prefer_different_family_than"), orEmpty(v))}
+				value={member.prefer_different_family_than.join(", ")}
+				disabled
+				onChange={() => {}}
 			/>
-			<Chips
+			<Text
 				label={nls.localize(
-					"mete/team/watches",
-					"Wakes on artifacts (such as gdd@1)",
+					"mete/team/watchesInactive",
+					"Artifact watches (not active)",
 				)}
-				values={member.watches}
-				hints={[]}
-				onChange={(v) => onEdit(at("watches"), orEmpty(v))}
+				value={member.watches.join(", ")}
+				disabled
+				onChange={() => {}}
 			/>
 		</div>
 	</div>
@@ -277,7 +275,6 @@ export const MemberCard = (props: MemberProps) => {
 	const member = team.roles[index];
 	if (!member) return null;
 	const at: Path = (key) => ["roles", index, key] as const;
-	const others = team.roles.map((r) => r.id).filter((id) => id !== member.id);
 	const tasks = team.tasks.flatMap((t, i) => (t.role === member.id ? [i] : []));
 	const name = member.name || member.id;
 	return (
@@ -307,13 +304,7 @@ export const MemberCard = (props: MemberProps) => {
 				<PinField fixed={props.fixed} {...props.pin} onPin={props.onPin} />
 			</div>
 			<span className="mete-member-rule" aria-hidden="true" />
-			<Reach
-				member={member}
-				others={others}
-				hints={props.hints}
-				at={at}
-				onEdit={onEdit}
-			/>
+			<Reach member={member} hints={props.hints} at={at} onEdit={onEdit} />
 			<Tasks
 				team={team}
 				member={member}

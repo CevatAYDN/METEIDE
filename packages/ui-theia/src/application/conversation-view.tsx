@@ -1,6 +1,9 @@
 import type { TranscriptStep } from "@mete/contracts";
 import type { MarkdownRenderer } from "@theia/core/lib/browser/markdown-rendering/markdown-renderer";
 import { nls } from "@theia/core/lib/common/nls";
+import type { ReactNode } from "react";
+import type { MessageDraft } from "./context-drafts.js";
+import { AttachedContext, isContextEnvelope } from "./conversation-context.js";
 import { MarkdownView } from "./markdown-view.js";
 import { MessageForm } from "./message-form.js";
 import { uniqueKeys } from "./row-keys.js";
@@ -11,6 +14,13 @@ type Props = {
 	readonly steps: readonly TranscriptStep[];
 	readonly markdown: MarkdownRenderer;
 	readonly onReply: (message: string) => Promise<string | undefined>;
+	readonly tools?: ReactNode | undefined;
+	readonly details?: ReactNode;
+	readonly replyReady?: boolean | undefined;
+	readonly onDraftChange?: (() => void) | undefined;
+	readonly conversationKey?: string | undefined;
+	readonly messageDraft?: MessageDraft | undefined;
+	readonly attachments?: ReactNode | undefined;
 };
 
 const Turn = ({
@@ -21,6 +31,7 @@ const Turn = ({
 	readonly markdown: MarkdownRenderer;
 }) => {
 	if (!step.text) return null;
+	if (isContextEnvelope(step)) return <AttachedContext text={step.text} />;
 	if (step.from === "summary")
 		return (
 			<details className="mete-chat-details">
@@ -65,16 +76,40 @@ export const Conversation = ({
 	steps,
 	markdown,
 	onReply,
+	tools,
+	details,
+	replyReady,
+	onDraftChange,
+	conversationKey,
+	messageDraft,
+	attachments,
 }: Props) => (
 	<section
 		className="mete-conversation"
 		aria-label={nls.localize("mete/chat/title", "Conversation")}
 	>
-		<div className="mete-chat-message mete-chat-user">
-			<strong>{nls.localize("mete/chat/you", "You")}</strong>
-			<p style={{ whiteSpace: "pre-wrap" }}>{goal}</p>
-		</div>
-		<Turns steps={steps} markdown={markdown} />
-		<MessageForm status={status} onReply={onReply} />
+		<section
+			className="mete-chat-scroll"
+			// biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users must focus the transcript to scroll it without moving the composer.
+			tabIndex={0}
+			aria-label={nls.localize("mete/chat/messages", "Messages")}
+		>
+			<div className="mete-chat-message mete-chat-user">
+				<strong>{nls.localize("mete/chat/you", "You")}</strong>
+				<p style={{ whiteSpace: "pre-wrap" }}>{goal}</p>
+			</div>
+			<Turns steps={steps} markdown={markdown} />
+			{details}
+		</section>
+		<MessageForm
+			key={conversationKey}
+			status={status}
+			onReply={onReply}
+			tools={tools}
+			replyReady={replyReady}
+			onDraftChange={onDraftChange}
+			messageDraft={messageDraft}
+			attachments={attachments}
+		/>
 	</section>
 );

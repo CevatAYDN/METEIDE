@@ -1,6 +1,8 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { SeoAuditReportSchema } from "@mete/contracts";
+import { listTemplates } from "@mete/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { SCRIPTED_BROWSER_ENV } from "../src/defaults.js";
 import {
@@ -87,6 +89,27 @@ const pngSize = (bytes: Buffer) => ({
 	width: bytes.readUInt32BE(16),
 	height: bytes.readUInt32BE(20),
 });
+
+// File replay is positional. Keep this browser-boundary fixture sequential; seo-audit.test.ts
+// covers the unchanged shipped parallel template with answers routed by capability and history.
+const serialBrowserTeam = async (workspace: string) => {
+	const loaded = await listTemplates({
+		workspace,
+		builtIn: fileURLToPath(new URL("../../../templates/", import.meta.url)),
+	});
+	const template = loaded.templates.find(
+		(entry) => entry.metadata.id === "seo-audit",
+	);
+	if (!template) throw new Error("shipped SEO template did not validate");
+	return {
+		...template,
+		tasks: template.tasks.map((task) => {
+			if (task.id === "content") return { ...task, context: ["technical"] };
+			if (task.id === "competitors") return { ...task, context: ["content"] };
+			return task;
+		}),
+	};
+};
 
 describe("the browser script", () => {
 	it("writes a real PNG of the scripted size", async () => {
@@ -184,6 +207,11 @@ describe("a run on the browser script", () => {
 	it("audits the page for the seo-audit team without opening it", async () => {
 		const repo = await tempRepo({ "README.md": "# shop\n" });
 		close = repo.close;
+		await write(
+			join(repo.workspaceDir, ".mete", "teams"),
+			"seo-audit.yaml",
+			await serialBrowserTeam(repo.workspaceDir),
+		);
 		const chat = await write(repo.globalDir, "chat.json", [
 			call("seo_audit", { url: PAGE }),
 			call("browser_screenshot", { url: PAGE }),

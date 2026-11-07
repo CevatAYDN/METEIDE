@@ -35,6 +35,6 @@ describe("run.reply@1", () => {
 
 	it("adds an explicit daemon request without changing team.engine@2", () => {
 		expect(DAEMON_METHODS.runReply).toBe("mete/run.reply");
-		expect(DAEMON_PROTOCOL_VERSION).toBe(28);
+		expect(DAEMON_PROTOCOL_VERSION).toBe(33);
 	});
 });

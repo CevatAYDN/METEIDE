@@ -56,6 +56,10 @@ const moduleChange = z.strictObject({
 	moduleId: ModuleIdSchema,
 	reason: z.string().optional(),
 });
+const taskWait = z.strictObject({
+	requestId: IdSchema,
+	kind: z.enum(["policy", "approval", "clarification", "blocked", "merge"]),
+});
 
 const PAYLOADS = {
 	"run.created": z.strictObject({ templateId: text.nullable(), goal: text }),
@@ -81,6 +85,8 @@ const PAYLOADS = {
 		dependsOn: z.array(IdSchema).readonly(),
 	}),
 	"task.assigned": z.strictObject({ agentId: IdSchema }),
+	"task.waiting": taskWait,
+	"task.wait.resolved": taskWait,
 	"task.status.changed": z.strictObject({
 		from: TaskStatusSchema,
 		to: TaskStatusSchema,

@@ -1,8 +1,6 @@
 import type { CSSProperties } from "react";
 
-// The panels' shared styles (docs/13 Design system, ADR-069): each colour is a METE token with a
-// Theia colour as its fallback, which a high-contrast theme uses, since its panel root sets no tokens.
-// The shape and Baloo 2 come from style/mete.css through the root's class.
+// ADR-180: compact shared layout on neutral theme surfaces, with semantic Theia fallbacks.
 
 const ink = "var(--ink, var(--theia-foreground))";
 const muted = "var(--muted, var(--theia-descriptionForeground))";
@@ -10,11 +8,11 @@ const line = "var(--line, var(--theia-panel-border))";
 
 /** A panel's body: its sections stacked. */
 export const PANEL: CSSProperties = {
-	padding: "16px",
+	padding: "12px",
 	color: ink,
 	display: "flex",
 	flexDirection: "column",
-	gap: "14px",
+	gap: "10px",
 };
 
 /** A panel's section heading. */
@@ -45,7 +43,7 @@ export const TABLE: CSSProperties = {
 export const CELL: CSSProperties = {
 	textAlign: "left",
 	padding: "6px 8px",
-	borderBottom: `1.5px solid ${line}`,
+	borderBottom: `1px solid ${line}`,
 	verticalAlign: "top",
 };
 

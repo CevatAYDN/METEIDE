@@ -23,6 +23,25 @@ and SignPath readiness with an optional, manually approved signed-release pipeli
 (ADR-179; `docs/superpowers/plans/2026-11-06-signpath-readiness.md`). Neither changes
 the Phase 5 exit gate or makes cloud CI a local-development requirement.
 
+ADR-180 adds the approved IDE-usability continuation: compact operational UI,
+guided MCP setup, explicit conversation tools and user-initiated editor extension
+management. See `docs/superpowers/specs/2026-11-07-ide-usability-design.md`.
+
+ADR-181 completes the approved Phase 5 parallel-task scope with verified native
+file isolation and exact task-local decisions; it does not pull in Phase 6.
+Implementation and current acceptance evidence are tracked in
+`docs/reviews/2026-11-07-parallel-control.md`.
+
+ADR-182 implements the user-approved C1-C3 continuation: persistent conversation
+identity, idempotent messages and a single searchable sidebar entry while retaining
+immutable per-turn runs. ADR-183 approves C4-C5 explicit editor-context snapshots;
+their implementation ledger is `docs/superpowers/plans/2026-11-07-editor-context.md`.
+ADR-184 approves T1-T3 guided MCP sign-in and target-bound keychain credentials;
+implementation is tracked in `docs/superpowers/plans/2026-11-07-mcp-auth-and-secrets.md`.
+Windows source/desktop evidence and explicit remaining acceptance boundaries are
+recorded in `docs/reviews/2026-11-07-mcp-auth-and-secrets.md`.
+The G/K decisions remain separate.
+
 ## Phase 1 task order
 
 Agents SHOULD take Phase 1 work in this order, because each step depends on the previous one:

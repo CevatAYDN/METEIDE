@@ -58,6 +58,18 @@ const setup = () => {
 };
 
 describe("task-local worker progress", () => {
+	it("persists metadata taint in only the exposed worker before any reply", () => {
+		const { live, state } = setup();
+		expect(applyWorker(state, live, "a", { type: "TAINT" })).toBe(true);
+		const saved = loadSnapshot(
+			JSON.stringify(runMachine.getPersistedSnapshot(live.snapshot)),
+		);
+		expect(taskContext(saved.context, "a")?.tainted).toBe(true);
+		expect(taskContext(saved.context, "b")?.tainted).toBe(false);
+		expect(saved.context.tainted).toBeUndefined();
+		expect(saved.context.requests).toBe(0);
+	});
+
 	it("isolates agents, messages, turns, taint and checkpoints while sharing request accounting", () => {
 		const { live, state, save } = setup();
 		const coordinator = live.snapshot.context;

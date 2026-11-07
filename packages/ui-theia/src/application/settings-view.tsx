@@ -1,4 +1,5 @@
 import { nls } from "@theia/core/lib/common/nls";
+import { useState } from "react";
 import type { DaemonFailure, Settings } from "../domain/status-service.js";
 import { SaveBar, type SaveEntry } from "./save-bar.js";
 import { ScopeSwitch } from "./scope-switch.js";
@@ -9,8 +10,15 @@ import {
 	GroupHead,
 	GroupList,
 	Hero,
+	NoSettings,
+	SettingsSearch,
 } from "./settings-frame.js";
-import { type Group, type GroupId, groupsOf } from "./settings-groups.js";
+import {
+	type Group,
+	type GroupId,
+	groupsOf,
+	searchGroups,
+} from "./settings-groups.js";
 import {
 	type Bindings,
 	cardParts,
@@ -97,6 +105,21 @@ const GroupBody = ({
 	</>
 );
 
+const LoadedNote = ({ loadedAt }: Pick<Settings, "loadedAt">) => (
+	<details className="mete-settings-loaded">
+		<summary>
+			{nls.localize("mete/settings/loadedDetails", "Loaded configuration")}
+		</summary>
+		<p className="mete-settings-note">
+			{nls.localize(
+				"mete/settings/loaded",
+				"As METE loaded them at {0}. Edits to these files apply when METE starts again or on Apply now, except pins, which apply when the next task starts; a key no file sets takes its module's built-in default.",
+				new Date(loadedAt).toLocaleString(),
+			)}
+		</p>
+	</details>
+);
+
 const Loaded = ({
 	settings,
 	actions,
@@ -110,7 +133,8 @@ const Loaded = ({
 	readonly apply: ApplyState;
 	readonly choice: GroupChoice;
 }) => {
-	const groups = groupsOf(withForms(settings.sections));
+	const [query, setQuery] = useState("");
+	const groups = searchGroups(groupsOf(withForms(settings.sections)), query);
 	const chosen = groups.find((g) => g.id === choice.group) ?? groups[0];
 	const scoped = saveablesOf(parts.forms, parts.bindings, parts.mcp);
 	// The forms move together, so the first one tells where they all save.
@@ -123,15 +147,7 @@ const Loaded = ({
 		<>
 			<Hero
 				onRefresh={actions.onRefresh}
-				note={
-					<p className="mete-settings-note">
-						{nls.localize(
-							"mete/settings/loaded",
-							"As METE loaded them at {0}. Edits to these files apply when METE starts again or on Apply now, except pins, which apply when the next task starts; a key no file sets takes its module's built-in default.",
-							new Date(settings.loadedAt).toLocaleString(),
-						)}
-					</p>
-				}
+				note={<LoadedNote loadedAt={settings.loadedAt} />}
 				scope={
 					target ? (
 						<ScopeSwitch
@@ -142,6 +158,7 @@ const Loaded = ({
 					) : undefined
 				}
 			/>
+			<SettingsSearch query={query} onQuery={setQuery} />
 			<div className="mete-settings-columns">
 				<GroupList groups={groups} chosen={chosen} onGroup={choice.onGroup} />
 				<div className="mete-settings-body">
@@ -152,12 +169,14 @@ const Loaded = ({
 							actions={actions}
 							parts={parts}
 						/>
-					) : null}
-					<SaveBar entries={saveables} onSave={actions.onSaveAll}>
-						<ApplyNow apply={apply} onApply={actions.onApply} />
-					</SaveBar>
+					) : (
+						<NoSettings query={query} onReset={() => setQuery("")} />
+					)}
 				</div>
 			</div>
+			<SaveBar entries={saveables} onSave={actions.onSaveAll}>
+				<ApplyNow apply={apply} onApply={actions.onApply} />
+			</SaveBar>
 		</>
 	);
 };

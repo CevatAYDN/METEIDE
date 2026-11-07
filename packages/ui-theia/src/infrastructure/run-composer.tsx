@@ -1,5 +1,5 @@
-import type { RunPrefer } from "@mete/contracts";
-import { CommandService, MessageService } from "@theia/core";
+import type { ConversationCapability, RunPrefer } from "@mete/contracts";
+import { CommandService } from "@theia/core";
 import { Emitter } from "@theia/core/lib/common/event";
 import { inject, injectable } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
@@ -14,18 +14,33 @@ import {
 	preferOf,
 	settledChoice,
 	singleAgentModels,
-	startOf,
 	withEstimate,
 } from "../application/composer.js";
 import {
 	type ComposerModel,
 	ComposerView,
 } from "../application/composer-view.js";
-import { failureText, startedText } from "../application/status-text.js";
+import { contextScope } from "../application/context-drafts.js";
+import {
+	contextStartFailure,
+	type StartedRun,
+	sendInitialDraft,
+	startComposerMessage,
+} from "../application/context-start.js";
+import { ConversationTools } from "../application/conversation-tools.js";
+import {
+	initialMessage,
+	initialSettings,
+	retireInitialRequest,
+} from "../application/initial-context-receipt.js";
+import { createSendIntent } from "../application/send-intent.js";
+import { failureText } from "../application/status-text.js";
 import {
 	type DaemonFailure,
 	MeteDaemonService,
 } from "../domain/status-service.js";
+import { composerContext } from "./composer-context.js";
+import { MeteEditorContext } from "./editor-context-service.js";
 import {
 	EDIT_TEAM_COMMAND,
 	NEW_TEAM_COMMAND,
@@ -37,20 +52,14 @@ import "../../style/mete-picker.css";
 // while it shows no run (ADR-078): it asks the daemon for the templates and each one's estimate every
 // time it is shown, so a new `.mete/teams/` file shows, and a started run takes the panel's place.
 
-/** A run the composer started, in its folder. */
-export type StartedRun = {
-	readonly dir: string;
-	readonly runId: string;
-	readonly goal: string;
-};
-
+export type { StartedRun } from "../application/context-start.js";
 /** The METE run composer: its state and requests; the Team panel draws it. */
 @injectable()
 export class MeteRunComposer {
 	@inject(MeteDaemonService) protected readonly daemon!: MeteDaemonService;
 	@inject(WorkspaceService) protected readonly workspace!: WorkspaceService;
 	@inject(CommandService) protected readonly commands!: CommandService;
-	@inject(MessageService) protected readonly messages!: MessageService;
+	@inject(MeteEditorContext) protected readonly context?: MeteEditorContext;
 
 	protected readonly changed = new Emitter<void>();
 	/** Fires when the composer needs drawing again. */
@@ -66,6 +75,7 @@ export class MeteRunComposer {
 	protected goal = "";
 	protected selected = "single";
 	protected singleModel: string | undefined;
+	protected capabilities: readonly ConversationCapability[] = [];
 	/** The folder's uncommitted changes, which a team's worktree does not hold (ADR-156); unknown when the ask failed. */
 	protected uncommitted: number | undefined = 0;
 	/** Counts the estimates asked again, so an answer that came after a newer ask is dropped. */
@@ -80,6 +90,21 @@ export class MeteRunComposer {
 	/** Why a list the composer asked for did not come, so a missing team or model says why. */
 	protected loadError: string | undefined;
 	protected pending: Promise<void> | undefined;
+	protected readonly localIntents = createSendIntent();
+	protected get intents() {
+		return this.context?.drafts.intents ?? this.localIntents;
+	}
+	protected selectionVersion = 0;
+
+	/** Retires navigation authority when another run takes the panel. */
+	leave(): void {
+		this.selectionVersion++;
+	}
+
+	protected edited(): void {
+		retireInitialRequest(this.context?.drafts, this.intents, this.dir);
+		this.selectionVersion++;
+	}
 
 	/** Whether the goal field exists and can receive focus. */
 	canFocusGoal(): boolean {
@@ -98,6 +123,8 @@ export class MeteRunComposer {
 		// The command and the tab's activation may both ask at once: they share one round of requests.
 		this.pending ??= this.load().finally(() => {
 			this.pending = undefined;
+			const dir = this.workspace.tryGetRoots?.()[0]?.resource.path.fsPath();
+			if (dir && dir !== this.dir) void this.refresh();
 		});
 		return this.pending;
 	}
@@ -105,15 +132,12 @@ export class MeteRunComposer {
 	protected async load(): Promise<void> {
 		const [root] = await this.workspace.roots;
 		if (!root) return this.setModel({ kind: "no_folder" });
-		this.dir = root.resource.path.fsPath();
-		this.chainCache.clear();
-		if (this.model.kind !== "ready") this.setModel({ kind: "loading" });
-		this.ready = false;
+		const dir = root.resource.path.fsPath();
+		this.openFolder(dir);
 		const failures: DaemonFailure[] = [];
-		const listed = await this.daemon.templates(this.dir);
+		const listed = await this.daemon.templates(dir);
 		if (!listed.ok) failures.push(listed.error);
 		const raw = listed.ok ? listed.value.templates : [];
-		const dir = this.dir;
 		const ctx: ChainContext = {
 			daemon: this.daemon,
 			dir,
@@ -144,24 +168,71 @@ export class MeteRunComposer {
 		this.changed.fire();
 	}
 
+	protected openFolder(dir: string): void {
+		if (this.dir !== dir) {
+			const restored = initialSettings(this.context?.drafts, dir);
+			this.selected = "single";
+			this.singleModel = restored.singleModel;
+			this.capabilities = restored.capabilities;
+		}
+		this.dir = dir;
+		if (this.context)
+			this.goal = this.context.drafts.read(contextScope(dir)).message;
+		this.chainCache.clear();
+		if (this.model.kind !== "ready") this.setModel({ kind: "loading" });
+		this.ready = false;
+	}
+
 	// Start sends the goal and the pick; an unsure router narrows the list in place (ADR-047), and a
 	// started run takes the composer's place in the Team panel.
 	protected async start(): Promise<void> {
 		const option = this.options().find((o) => o.key === this.selected);
 		const dir = this.dir;
-		if (!dir || !option || this.busy || !this.goal.trim()) return;
+		const goal = initialMessage(this.context?.drafts, dir, this.goal);
+		if (!dir || !option || this.busy || !goal.trim()) return;
+		const failure = contextStartFailure(
+			this.context?.drafts,
+			dir,
+			option.templateId,
+		);
+		if (failure) {
+			this.error = failure;
+			this.changed.fire();
+			return;
+		}
+		const version = this.selectionVersion;
 		this.busy = true;
 		this.error = undefined;
 		this.changed.fire();
-		const r = await this.daemon.startRun(
+		const r = await sendInitialDraft({
+			drafts: this.context?.drafts,
 			dir,
-			startOf(this.goal, option, this.preferFor(option)),
-		);
+			send: () => this.startSelected(dir, option),
+		});
 		this.busy = false;
+		if (r?.ok) this.intents.clear(dir);
+		this.changed.fire();
+		if (!r) return;
+		const [root] = await this.workspace.roots;
+		if (root?.resource.path.fsPath() !== dir) return this.refresh();
+		if (version !== this.selectionVersion) return;
 		if (r.ok) return this.started(dir, r.value.runId);
 		if (r.error.code === "choose_template") this.narrow(r.error.suggestions);
 		else this.error = failureText(r.error);
 		this.changed.fire();
+	}
+
+	protected startSelected(dir: string, option: ComposerOption) {
+		return startComposerMessage({
+			daemon: this.daemon,
+			dir,
+			option,
+			goal: initialMessage(this.context?.drafts, dir, this.goal),
+			prefer: this.preferFor(option),
+			capabilities: this.capabilities,
+			intents: this.intents,
+			drafts: this.context?.drafts,
+		});
 	}
 
 	// The model choice of an option: the single agent's, or its roles' (ADR-122).
@@ -213,14 +284,17 @@ export class MeteRunComposer {
 	}
 
 	protected started(dir: string, runId: string): void {
+		this.intents.clear(dir);
 		const goal = this.goal;
-		void this.messages.info(startedText(goal));
+		const capabilities =
+			this.selected === "single" ? this.capabilities : undefined;
 		this.goal = "";
 		this.selected = "single";
 		this.singleModel = undefined;
+		this.capabilities = [];
 		this.roleModels = {};
 		this.setModel({ kind: "ready", options: this.all, unsure: false });
-		this.startedRun.fire({ dir, runId, goal });
+		this.startedRun.fire({ dir, runId, goal, capabilities });
 	}
 
 	protected setModel(model: ComposerModel): void {
@@ -229,39 +303,53 @@ export class MeteRunComposer {
 	}
 
 	/** The composer's screen. */
+	protected renderTools() {
+		const busy =
+			this.busy ||
+			!!(this.dir && this.context?.drafts.read(contextScope(this.dir)).busy);
+		return this.selected === "single" ? (
+			<ConversationTools
+				capabilities={this.capabilities}
+				disabled={busy}
+				onChange={(selection) => {
+					if (busy) return;
+					this.edited();
+					this.capabilities = selection;
+					this.changed.fire();
+				}}
+			/>
+		) : undefined;
+	}
+
 	render() {
+		const { current, scope, preparing, goal } = composerContext(
+			this.workspace,
+			this.dir,
+			this.context,
+			this.goal,
+		);
 		return (
 			<ComposerView
-				model={this.model}
-				goal={this.goal}
+				model={current ? this.model : { kind: "loading" }}
+				goal={goal}
 				selected={this.selected}
-				busy={this.busy}
+				busy={this.busy || !!preparing}
+				preparing={!!preparing && !this.busy}
+				attachments={
+					current && scope
+						? this.context?.render(
+								scope,
+								this.busy || this.selected !== "single",
+							)
+						: undefined
+				}
 				error={this.error ?? this.loadError}
 				singleModel={this.singleModel}
+				tools={this.renderTools()}
 				uncommitted={this.uncommitted}
 				picker={this.picker}
 				roleModels={this.selected ? this.roleModels[this.selected] : undefined}
-				onGoal={(goal) => {
-					this.goal = goal;
-					this.changed.fire();
-				}}
-				onSelect={(key) => {
-					this.selected = key;
-					this.changed.fire();
-				}}
-				onSingleModel={(model) => {
-					this.singleModel = model;
-					this.chose(model, this.chosen()?.models);
-				}}
-				onRoleModel={(roleId, model) => {
-					const current = this.roleModels[this.selected] ?? {};
-					this.roleModels = {
-						...this.roleModels,
-						[this.selected]: { ...current, [roleId]: model },
-					};
-					const role = this.chosen()?.roles?.find((r) => r.id === roleId);
-					this.chose(model, role?.models);
-				}}
+				{...this.draftHandlers(!!preparing, scope)}
 				onStart={() => void this.start()}
 				onEdit={(id) =>
 					void this.commands.executeCommand(EDIT_TEAM_COMMAND.id, id)
@@ -269,5 +357,40 @@ export class MeteRunComposer {
 				onNewTeam={() => void this.commands.executeCommand(NEW_TEAM_COMMAND.id)}
 			/>
 		);
+	}
+
+	protected draftHandlers(preparing: boolean, scope?: string) {
+		return {
+			onGoal: (goal: string) => {
+				if (this.busy || preparing) return;
+				if (goal !== this.goal) this.edited();
+				this.goal = goal;
+				if (scope) this.context?.drafts.message(scope, goal);
+				this.changed.fire();
+			},
+			onSelect: (key: string) => {
+				if (this.busy || preparing) return;
+				if (key !== this.selected) this.edited();
+				this.selected = key;
+				this.context?.select(key === "single" ? this.dir : undefined);
+				this.changed.fire();
+			},
+			onSingleModel: (model: string) => {
+				if (this.busy || preparing) return;
+				if (model !== this.singleModel) this.edited();
+				this.singleModel = model;
+				this.chose(model, this.chosen()?.models);
+			},
+			onRoleModel: (roleId: string, model: string) => {
+				if (this.busy || preparing) return;
+				const current = this.roleModels[this.selected] ?? {};
+				this.roleModels = {
+					...this.roleModels,
+					[this.selected]: { ...current, [roleId]: model },
+				};
+				const role = this.chosen()?.roles?.find((r) => r.id === roleId);
+				this.chose(model, role?.models);
+			},
+		};
 	}
 }

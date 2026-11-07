@@ -1,4 +1,9 @@
-import type { ChatMessage, RunPrefer } from "@mete/contracts";
+import type {
+	ChatMessage,
+	ContextSnapshot,
+	ConversationCapability,
+	RunPrefer,
+} from "@mete/contracts";
 import { assign, setup } from "xstate";
 import { MAX_TURNS } from "../defaults.js";
 import { canReserve, reservedFor } from "./request-reservations.js";
@@ -64,6 +69,8 @@ export const runMachine = setup({
 			workspace?: string | undefined;
 			prefer?: RunPrefer | undefined;
 			tainted?: boolean | undefined;
+			extraCapabilities?: readonly ConversationCapability[] | undefined;
+			attachments?: readonly ContextSnapshot[] | undefined;
 		},
 	},
 }).createMachine({
@@ -73,6 +80,8 @@ export const runMachine = setup({
 		goal: input.goal,
 		priority: input.priority,
 		messages: input.messages,
+		extraCapabilities: input.extraCapabilities ?? [],
+		...(input.attachments?.length ? { attachments: input.attachments } : {}),
 		...(input.brief ? { brief: input.brief } : {}),
 		...(input.workspace ? { workspace: input.workspace } : {}),
 		...(input.prefer ? { prefer: input.prefer } : {}),
@@ -87,6 +96,7 @@ export const runMachine = setup({
 	// A tool call or checkpoint that finishes after a user pause is kept (docs/08), so these
 	// apply in paused too; a done machine ignores every event.
 	on: {
+		TAINT: { actions: assign({ tainted: true }) },
 		MODEL: { actions: assign({ agent: ({ event }) => event.agent }) },
 		TEAM: { actions: assign({ team: ({ event }) => event.team }) },
 		ACTIVATE: {

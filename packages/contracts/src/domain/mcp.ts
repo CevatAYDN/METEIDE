@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PermissionSchema } from "./manifest.js";
+import { McpCredentialFieldsSchema } from "./mcp-credential-field.js";
 import type { Result } from "./result.js";
 import type { ToolContext, ToolError } from "./tools.js";
 
@@ -26,6 +27,9 @@ const StdioServerSchema = z
 			.readonly()
 			.default(() => []),
 		env: z.record(z.string(), z.string()).optional(),
+		credentialFields: McpCredentialFieldsSchema.refine((list) =>
+			list.every((f) => f.kind === "env"),
+		).optional(),
 		url: z.url({ protocol: /^https$/ }).optional(),
 		sha256: z
 			.string()
@@ -44,13 +48,25 @@ const StdioServerSchema = z
 		},
 	);
 
-const RemoteServerSchema = z.strictObject({
-	id: serverId,
-	transport: z.enum(["streamable-http", "sse"]),
-	url: z.url({ protocol: /^https?$/ }),
-	auth: z.enum(["oauth", "none"]).default("none"),
-	permissions,
-});
+const RemoteServerSchema = z
+	.strictObject({
+		id: serverId,
+		transport: z.enum(["streamable-http", "sse"]),
+		url: z.url({ protocol: /^https?$/ }),
+		auth: z.enum(["oauth", "none"]).default("none"),
+		credentialFields: McpCredentialFieldsSchema.refine((list) =>
+			list.every((f) => f.kind === "header"),
+		).optional(),
+		permissions,
+	})
+	.refine(
+		(server) =>
+			server.auth !== "oauth" ||
+			!server.credentialFields?.some(
+				(f) => f.name.toLowerCase() === "authorization",
+			),
+		{ message: "OAuth cannot use a manual Authorization header" },
+	);
 
 /** One MCP server: a local process over stdio, or a remote one over HTTP. */
 export const McpServerSchema = z.union([StdioServerSchema, RemoteServerSchema]);

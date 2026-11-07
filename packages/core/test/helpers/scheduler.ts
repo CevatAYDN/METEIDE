@@ -45,6 +45,7 @@ export const schedulerHarness = async (options: {
 	llm?: boolean;
 	tools?: NonNullable<Parameters<typeof engineHarness>[0]["tools"]>;
 	rewrite?: (source: string) => string;
+	configure?: (harness: ReturnType<typeof engineHarness>) => void;
 }) => {
 	const root = await mkdtemp(join(tmpdir(), "mete-scheduler-"));
 	const templates = { builtIn: join(root, "templates"), workspace: root };
@@ -55,6 +56,7 @@ export const schedulerHarness = async (options: {
 		options.rewrite?.(source) ?? source,
 	);
 	const harness = engineHarness({ ...options, templates });
+	options.configure?.(harness);
 	const started = await harness.engine.start({
 		goal: "independent research",
 		templateId: "parallel",

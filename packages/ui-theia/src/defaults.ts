@@ -36,3 +36,5 @@ export const THINKING_TICK_MS = 1000;
  * preload cannot work with it.
  */
 export const RENDERER_SANDBOX = true;
+/** ADR-184: local pending-auth status polling; never a server connection probe. */
+export const MCP_CONNECTION_POLL_MS = 750;
