@@ -4,46 +4,26 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { createContext, SourceTextModule, SyntheticModule } from "node:vm";
+import { fileURLToPath } from "node:url";
+import { processState, releaseScript, script } from "./maintenance-fixture.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
-// Execute the real maintenance entrypoints with filesystem/process effects replaced, not their logic.
-const script = async (path, overrides, processState) => {
-	const context = createContext({
-		process: processState,
-		console: { log() {}, error() {} },
-	});
-	const module = new SourceTextModule(readFileSync(path, "utf8"), {
-		context,
-		initializeImportMeta: (meta) => {
-			meta.url = pathToFileURL(path).href;
-		},
-	});
-	await module.link(async (name) => {
-		const exports = { ...(await import(name)), ...overrides[name] };
-		return new SyntheticModule(
-			Object.keys(exports),
-			function () {
-				for (const [key, value] of Object.entries(exports))
-					this.setExport(key, value);
-			},
-			{ context },
-		);
-	});
-	return module.evaluate();
-};
-
-const processState = () => ({
-	execPath: process.execPath,
-	platform: process.platform,
-	env: { npm_execpath: "pnpm.cjs" },
-	exitCode: undefined,
-	exit: (code) => {
-		throw new Error(`process.exit(${code})`);
-	},
-});
+const RELEASE_GATES = [
+	"pnpm check",
+	"all tests, contract kits included",
+	"chaos",
+	"MCP conformance",
+	"audit, high and critical fail",
+	"licenses of what ships",
+	"osv-scanner",
+	"desktop bundle",
+	"Electronegativity",
+	"end-to-end (Playwright for Electron)",
+	"accessibility (axe-core in end-to-end)",
+	"Windows installer",
+	"packaged app (onboarding and run flow)",
+];
 
 test("secret scan rejects a credential introduced only by a merge resolution", () => {
 	const root = mkdtempSync(join(tmpdir(), "mete-secret-merge-"));
@@ -89,46 +69,56 @@ test("secret scan rejects a credential introduced only by a merge resolution", (
 });
 
 for (const fails of [false, true]) {
-	test(`release scan uses the current bundle and fails closed (bundle fails: ${fails})`, async () => {
-		const calls = [];
-		const state = processState();
-		await script(
-			join(ROOT, "scripts", "release-check.mjs"),
-			{
-				"node:child_process": {
-					spawnSync: (_command, args) => {
-						calls.push(args.join(" "));
-						const bundle = args.includes("bundle");
-						return {
-							status: fails && bundle ? 1 : 0,
-							stdout: args.includes("licenses") ? "{}" : "",
-							stderr: "",
-						};
-					},
-				},
-				"node:fs": {
-					readFileSync: (path) =>
-						String(path).endsWith("package.json")
-							? '{"devDependencies":{"electron":"42.11.14"}}'
-							: "id,severity\n",
-					mkdtempSync: () => join(tmpdir(), "fake-electronegativity"),
-					rmSync() {},
-					readdirSync: () => ["installer.exe"],
-				},
-			},
-			state,
+	test(`release forwards exact accessibility argv and scans the current bundle (bundle fails: ${fails})`, async () => {
+		const { calls, state } = await releaseScript({
+			failedGate: fails ? "desktop bundle" : undefined,
+		});
+		const accessibility = calls.find((args) => args.includes("@a11y"));
+		assert.deepEqual(accessibility, [
+			"pnpm.cjs",
+			"--filter",
+			"@mete/desktop",
+			"test:e2e",
+			"--grep",
+			"@a11y",
+		]);
+		const desktop = JSON.parse(
+			readFileSync(join(ROOT, "apps", "desktop", "package.json"), "utf8"),
 		);
-		const bundle = calls.findIndex((call) =>
-			call.includes("@mete/desktop bundle"),
+		assert.equal(desktop.scripts["test:e2e"], "playwright test");
+		assert.deepEqual(
+			["test", ...accessibility.slice(4)],
+			["test", "--grep", "@a11y"],
 		);
-		const scan = calls.findIndex((call) =>
-			call.includes("dlx electronegativity"),
-		);
+		const bundle = calls.findIndex((args) => args.includes("bundle"));
+		const scan = calls.findIndex((args) => args.includes("electronegativity"));
 		assert.ok(bundle >= 0);
 		if (fails) {
 			assert.equal(scan, -1);
 			assert.equal(state.exitCode, 1);
 		} else assert.ok(scan > bundle);
+	});
+}
+
+for (const failedGate of [undefined, ...RELEASE_GATES]) {
+	test(`release reports all 13 mandatory gates and fails closed (${failedGate ?? "all pass"})`, async () => {
+		const { messages, state } = await releaseScript({ failedGate });
+		const results = messages.filter((message) =>
+			/^(pass|fail)\s/.test(message),
+		);
+		assert.deepEqual(
+			results.map(
+				(message) => message.replace(/^(pass|fail)\s+/, "").split(":")[0],
+			),
+			RELEASE_GATES,
+		);
+		assert.equal(state.exitCode, failedGate ? 1 : 0);
+		if (failedGate)
+			assert.ok(
+				results.some((message) =>
+					message.startsWith(`fail      ${failedGate}`),
+				),
+			);
 	});
 }
 

@@ -7,6 +7,7 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { readLicenseMetadata } from "./license-metadata.mjs";
 
 // 1.10.3 is the newest release, published 2023-03-09, older than the 14 days docs/05 asks for.
 const ELECTRONEGATIVITY = "@doyensec/electronegativity@1.10.3";
@@ -158,13 +159,13 @@ const licenses = () => {
 				tail(`${r.stdout}
 ${r.stderr}`) || `exit code ${r.status}`,
 		};
-	const outside = Object.entries(JSON.parse(r.stdout))
-		.filter(([license]) => !allowed(license))
-		.map(
-			([license, pkgs]) => `${license} (${pkgs.map((p) => p.name).join(", ")})`,
-		);
+	const checked = readLicenseMetadata(r.stdout, ROOT);
+	if (!checked.ok) return { status: "fail", reason: checked.error.message };
+	const outside = checked.value.packages
+		.filter(({ license }) => !allowed(license))
+		.map(({ license, name }) => `${license} (${name})`);
 	return outside.length === 0
-		? { status: "pass", reason: "" }
+		? { status: "pass", reason: checked.value.evidence.join("; ") }
 		: {
 				status: "fail",
 				reason: `not allowed by docs/05: ${outside.join("; ")}`,
@@ -236,10 +237,7 @@ const STEPS = [
 	[
 		"accessibility (axe-core in end-to-end)",
 		() =>
-			viaPnpm(
-				["--filter", "@mete/desktop", "test:e2e", "--", "--grep", "@a11y"],
-				15,
-			),
+			viaPnpm(["--filter", "@mete/desktop", "test:e2e", "--grep", "@a11y"], 15),
 	],
 	["Windows installer", installer],
 	[

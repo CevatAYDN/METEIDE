@@ -61,7 +61,7 @@ const expect = (ok, why) => {
 const REFUSED = [
 	["mete_task_status", ["runId=nope"], "not_found"],
 	["mete_approve", ["runId=nope", "decision=approve"], "not_found"],
-	["mete_knowledge_search", ["query=x"], "Phase 4"],
+	["mete_knowledge_search", ["query=!!!"], "bad_input"],
 	["mete_run_team", ["goal=x", "templateId=no-such-template"], "no template"],
 ];
 

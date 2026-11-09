@@ -51,8 +51,8 @@ SOFTWARE.
 
 - Project: @vscode/windows-ca-certs by Microsoft (originally Stas Ukolov), https://github.com/microsoft/vscode-windows-ca-certs, version 0.3.4, installed as a dependency of the desktop's extension host (ADR-103).
 - License: BSD 3-Clause. Copyright (c) 2016, Stas Ukolov; Copyright (c) Microsoft Corporation. The full license text ships in the package (`LICENSE`).
-- Files: `patches/@vscode__windows-ca-certs@0.3.4.patch`, applied by pnpm at install time.
-- Changes: `binding.gyp` loses the `SpectreMitigation: Spectre` MSVC configuration attribute, so the native module builds with the plain Visual Studio C++ Build Tools that the Theia build needs (ADR-103); no source file changes.
+- Files: `patches/@vscode__windows-ca-certs@0.3.4.patch`, applied by pnpm at install time; `scripts/test/fixtures/windows-ca-certs-0.3.4.LICENSE`, the offline license-verification fixture.
+- Changes: `binding.gyp` loses the `SpectreMitigation: Spectre` MSVC configuration attribute, so the native module builds with the plain Visual Studio C++ Build Tools that the Theia build needs (ADR-103). The manifest's ambiguous `BSD` license label is corrected to `BSD-3-Clause`, matching the unchanged upstream LICENSE at tag `v0.3.4`; no source or shipped license text changes. The test fixture preserves that LICENSE with CRLF normalized to LF.
 
 ## node-pty
 

@@ -10,3 +10,15 @@ index 1f7f13f20db8ce38750d8b1b8d1a28831b35dfc0..e541c9f29116faf778fdd071660e12fa
        },
        "msvs_settings": {
          "VCCLCompilerTool": {
+diff --git a/package.json b/package.json
+--- a/package.json
++++ b/package.json
+@@ -35,7 +35,7 @@
+       "name": "Microsoft Corporation"
+     }
+   ],
+-  "license": "BSD",
++  "license": "BSD-3-Clause",
+   "bugs": {
+     "url": "https://github.com/microsoft/vscode-windows-ca-certs/issues"
+   },
