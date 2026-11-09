@@ -27,7 +27,10 @@ const setup = () => {
 	};
 	const acquire = vi.fn(async (_dir: string) => ok(transport));
 	return {
-		api: skillRuntimeRequests({ acquire }),
+		api: skillRuntimeRequests({
+			acquire,
+			current: () => (current ? transport : undefined),
+		}),
 		acquire,
 		sent,
 		transport,

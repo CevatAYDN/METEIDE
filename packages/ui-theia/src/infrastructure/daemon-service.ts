@@ -4,10 +4,13 @@ import type {
 	ContextDraft,
 	ConversationReplyInput,
 	ConversationStartInput,
+	DaemonRunSkillsStartParams,
 	DaemonSkillsApproveParams,
 	DaemonSkillsDisableParams,
 	DaemonSkillsEditorParams,
 	DaemonSkillsPrepareParams,
+	DaemonThreadSkillsReplyParams,
+	DaemonThreadSkillsStartParams,
 	McpConnectionRequest,
 	McpCredentialWrite,
 	McpServer,
@@ -83,6 +86,15 @@ export class MeteDaemonBackend
 	}
 	runSkillsRead(dir: string, input: RunSkillsReadInput) {
 		return this.host.runSkillsRead(dir, input);
+	}
+	threadSkillsStart(dir: string, input: DaemonThreadSkillsStartParams) {
+		return this.host.threadSkillsStart(dir, input);
+	}
+	threadSkillsReply(dir: string, input: DaemonThreadSkillsReplyParams) {
+		return this.host.threadSkillsReply(dir, input);
+	}
+	runSkillsStart(dir: string, input: DaemonRunSkillsStartParams) {
+		return this.host.runSkillsStart(dir, input);
 	}
 
 	skillsPrepare(dir: string, input: DaemonSkillsPrepareParams) {

@@ -231,6 +231,17 @@ distinct from transport failures and valid empty catalogs. Eight focused tests
 and nine host tests pass, including the actual fake-daemon JSON-RPC pipe.
 Root `pnpm check`: 34/34 passed (31 cached), including ui-theia 1218/1218.
 
+## U1b session-bound sends
+
+S2 start/reply/team-start methods are exposed through the backend. A successful
+runtime catalog read captures its session and transport; sends validate input
+before dispatch, require that exact workspace/session/process, and never acquire
+or replay against a replacement. Reply results must name the requested
+conversation. Explicit retry keeps the submitted request identity and ordered
+selections; omitted reply policy stays omitted. Nine focused send tests failed
+before implementation and now pass. Composer draft integration remains in U2.
+Root `pnpm check`: 34/34 passed (31 cached), including ui-theia 1227/1227.
+
 Codex reference: the user requested using `openai/codex` as implementation
 reference. Re-read its Apache-2.0 LICENSE and bounded skill discovery at the
 existing fixed revision `e0aa0434f415b0c5bc0fb64abd7f03c5510f9ed6` (see the
