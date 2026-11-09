@@ -9,6 +9,8 @@ import {
 	type PolicyGrantAdapter,
 	PolicySchema,
 	type SecretsMaskAdapter,
+	type SkillRuntimeAdapter,
+	type SkillSelectionAdapter,
 } from "@mete/contracts";
 import type {
 	Disposable,
@@ -27,11 +29,21 @@ import {
 	type PolicyRequests,
 } from "./application/policy-requests.js";
 import {
+	createSkillRuntime,
+	NO_SKILL_RUNTIME_ATTESTATIONS,
+	type SkillRuntimeAttestations,
+} from "./application/skill-runtime.js";
+import {
 	AUDIT_MIGRATIONS,
 	createAuditWriter,
 } from "./infrastructure/audit-log.js";
 import { maskSecrets } from "./infrastructure/masker.js";
 import { policySource, policyStamp } from "./infrastructure/policy-source.js";
+import {
+	createSkillRuntimeStore,
+	SKILL_RUNTIME_MIGRATIONS,
+} from "./infrastructure/skill-runtime-store.js";
+import { skillWorkspaceKey } from "./infrastructure/skill-workspace-key.js";
 
 /** Folders and OS facts the policy needs; the composition root knows them. */
 export type SecurityOptions = {
@@ -42,6 +54,8 @@ export type SecurityOptions = {
 	readonly home?: string;
 	readonly platform?: NodeJS.Platform;
 	readonly now?: () => number;
+	/** Native skill attestations (ADR-190); omitted means every fresh load fails closed. */
+	readonly skills?: SkillRuntimeAttestations;
 };
 
 // policy.blocked (docs/07) follows each denial once its audit row is written; a write that throws
@@ -136,6 +150,8 @@ const MANIFEST: ModuleManifest = {
 		"policy.grant@1",
 		"policy.requests@1",
 		"secrets.mask@1",
+		"skill.runtime@1",
+		"skill.selection@1",
 	],
 	requires: ["storage.sql@1"],
 	optional: [],
@@ -222,16 +238,102 @@ const checkerOf = (
 	return { check, grant, requests, settled: asks.settled };
 };
 
+/** Lazily binds the canonical workspace; no skill read or scan happens at activation. */
+const lazySkillRuntime = (
+	opts: SecurityOptions,
+	ctx: ModuleContext,
+	live: { current: boolean },
+): { runtime: SkillRuntimeAdapter; selection: SkillSelectionAdapter } => {
+	let built: Promise<ReturnType<typeof createSkillRuntime> | undefined>;
+	const build = async () => {
+		const storage = ctx.storage;
+		if (!storage) return undefined;
+		const key = await skillWorkspaceKey(opts.workspaceDir, opts.workspaceId);
+		return createSkillRuntime({
+			registry: ctx.capabilities,
+			masker,
+			attestations: opts.skills ?? NO_SKILL_RUNTIME_ATTESTATIONS,
+			store: createSkillRuntimeStore(storage.global),
+			workspaceKey: key,
+			current: () => live.current,
+		});
+	};
+	const get = () => {
+		built ??= build().catch(() => undefined);
+		return built;
+	};
+	const unavailable = err({ code: "unavailable" } as const);
+	return {
+		runtime: {
+			inventory: async (i, s) =>
+				(await get())?.runtime.inventory(i, s) ?? unavailable,
+			catalog: async (s) => (await get())?.runtime.catalog(s) ?? unavailable,
+			load: async (i, s) => (await get())?.runtime.load(i, s) ?? unavailable,
+			check: async (i, s) => (await get())?.runtime.check(i, s) ?? unavailable,
+		},
+		selection: {
+			check: async (i, s) =>
+				(await get())?.selection.check(i, s) ?? unavailable,
+		},
+	};
+};
+
+/** Every security capability for one activation, each a disposable registration. */
+const provideAll = (
+	ctx: ModuleContext,
+	policies: ReturnType<typeof checkerOf>,
+	skills: ReturnType<typeof lazySkillRuntime>,
+): Disposable[] => {
+	const core = { id: MANIFEST.id, trust: "core", features: [] } as const;
+	const { requests } = policies;
+	return [
+		ctx.capabilities.provide("policy.check@1", {
+			...core,
+			impl: policies.check,
+		}),
+		ctx.capabilities.provide("policy.grant@1", {
+			...core,
+			impl: policies.grant,
+		}),
+		ctx.capabilities.provide("policy.requests@1", {
+			...core,
+			impl: {
+				pending: requests.pending,
+				grant: requests.grant,
+				forget: requests.forget,
+			},
+		}),
+		ctx.capabilities.provide("secrets.mask@1", { ...core, impl: masker }),
+		ctx.capabilities.provide("skill.runtime@1", {
+			...core,
+			impl: skills.runtime,
+		}),
+		ctx.capabilities.provide("skill.selection@1", {
+			...core,
+			impl: skills.selection,
+		}),
+	];
+};
+
+const migrateAll = (ctx: ModuleContext): ModuleError | undefined => {
+	if (!ctx.storage) return failed("storage.sql@1 was not provided");
+	const audit = ctx.storage.migrate("workspace", AUDIT_MIGRATIONS);
+	if (!audit.ok) return failed(audit.error.message);
+	const receipts = ctx.storage.migrate("global", SKILL_RUNTIME_MIGRATIONS);
+	return receipts.ok ? undefined : failed(receipts.error.message);
+};
+
 /** Creates security's policy checks, legacy grants, exact requests and secret masking. */
 export const createSecurityModule = (opts: SecurityOptions): MeteModule => {
 	let created: Disposable[] = [];
 	let settled = async () => {};
+	let live = { current: false };
 	return {
 		manifest: MANIFEST,
 		async activate(ctx) {
-			if (!ctx.storage) return err(failed("storage.sql@1 was not provided"));
-			const migrated = ctx.storage.migrate("workspace", AUDIT_MIGRATIONS);
-			if (!migrated.ok) return err(failed(migrated.error.message));
+			const migration = migrateAll(ctx);
+			if (migration || !ctx.storage)
+				return err(migration ?? failed("storage.sql@1 was not provided"));
 			const since = policyStamp(opts);
 			const policy = ctx.config.get("policy", PolicySchema);
 			if (!policy.ok) {
@@ -241,30 +343,14 @@ export const createSecurityModule = (opts: SecurityOptions): MeteModule => {
 			const current = currentPolicy(opts, ctx, policy.value, since);
 			const policies = checkerOf(opts, ctx, current, ctx.storage.workspace);
 			settled = policies.settled;
-			const core = { id: MANIFEST.id, trust: "core", features: [] } as const;
-			created = [
-				ctx.capabilities.provide("policy.check@1", {
-					...core,
-					impl: policies.check,
-				}),
-				ctx.capabilities.provide("policy.grant@1", {
-					...core,
-					impl: policies.grant,
-				}),
-				ctx.capabilities.provide("policy.requests@1", {
-					...core,
-					impl: {
-						pending: policies.requests.pending,
-						grant: policies.requests.grant,
-						forget: policies.requests.forget,
-					},
-				}),
-				ctx.capabilities.provide("secrets.mask@1", { ...core, impl: masker }),
-			];
+			// A reload gets a fresh lifetime; the retired one stays false forever.
+			live = { current: true };
+			created = provideAll(ctx, policies, lazySkillRuntime(opts, ctx, live));
 			for (const d of created) ctx.disposables.add(d);
 			return ok(undefined);
 		},
 		async deactivate() {
+			live.current = false;
 			await settled();
 			for (const d of created.splice(0)) d.dispose();
 		},

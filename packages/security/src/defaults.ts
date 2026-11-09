@@ -6,6 +6,11 @@ export const KEYCHAIN_SERVICE = "mete";
 /** Tab 09, Privacy: a masked secret shows this many hex digits of its sha256. */
 export const MASK_TAG_HEX = 8;
 
+/** ADR-189 skill-runtime design: pending previews per workspace process. */
+export const SKILL_PREVIEW_LIMIT = 8;
+/** ADR-189 skill-runtime design: five-minute process-local preview lifetime. */
+export const SKILL_PREVIEW_TTL_MS = 5 * 60 * 1_000;
+
 /**
  * SECURITY.md, Protected paths (ADR-072): an agent never writes, deletes or restores these, at any
  * autonomy level. Path globs under the workspace folder; `*` stays in one folder, so the agents' own
