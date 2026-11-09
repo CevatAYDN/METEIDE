@@ -1,9 +1,11 @@
-import type {
-	ApprovalInput,
-	EngineError,
-	MeteEvent,
-	RunView,
-	TeamEngineAdapter,
+import {
+	type ApprovalInput,
+	type EngineError,
+	err,
+	type MeteEvent,
+	type RunSkillsAdapter,
+	type RunView,
+	type TeamEngineAdapter,
 } from "@mete/contracts";
 import type { EventBus } from "@mete/kernel";
 
@@ -172,7 +174,16 @@ const begin = (app: App, engine: TeamEngineAdapter, what: RunWhat) => {
 	// --continue without a goal takes the handoff's goal (docs/08, Run memory).
 	const goal = what.goal ? { goal: what.goal } : {};
 	const more = what.continue ? { continue: true as const } : {};
-	return engine.start({ ...goal, ...template, ...more });
+	// New CLI runs use S2 defaults; an unavailable versioned port cannot silently downgrade.
+	const runs = app.registry.resolve<RunSkillsAdapter>("run.skills@1");
+	if (!runs.ok)
+		return Promise.resolve(
+			err<EngineError>({
+				code: "not_supported",
+				message: "Skill-aware run starts are unavailable.",
+			}),
+		);
+	return runs.value[0].impl.start({ ...goal, ...template, ...more });
 };
 
 // A start that did not start: the router's suggestions exit 2 like a pause, the rest exits 1.

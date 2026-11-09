@@ -202,6 +202,30 @@ Implementation is in progress, not done.
 | T1 | Main / cli + core | implemented, tests passed | core-engine hands its process-local load admission through `onNativeControls`; `createNativeControls().skillLoads` always delegates to the latest activation and is closed before one; `nativeSkillModules` returns `SkillRuntimeAttestations` (sources, catalogs, trust, admission) that `createSecurityModule({ skills })` receives; real-module composition test: preflight and catalog work end to end, a forged load is `stale` (2/2) |
 | T2 | Main / cli | implemented, tests passed | `daemon-skill-runtime.ts` (`skills.runtime`, `run.skills.read`) and `daemon-skill-runs.ts` (`thread.skills.start/reply`, `run.skills.start`) share the existing connection session; the session id is checked then removed, selections are passed through unchanged, an omitted reply policy stays omitted, a stale session never dispatches, a read failure is an error; 5/5 over a real JSON-RPC pipe. `pnpm check` 34/34 on the second run (first failed on baseline-flaky `spawn-engine`, `team-engine`) |
 
+## T3 continuation
+
+The user's subsequent commit/push request supersedes the original no-push
+baseline: twelve local commits through `54dba9e3` were pushed to `origin/main`.
+Pre-push secret scanning and all 34 cached test tasks passed.
+
+T3 is the CLI default-entry slice; desktop sends remain in U1/U2. New terminal
+starts resolve `run.skills@1` without overriding its schema defaults. Resume,
+approval and permission answers keep their current ports and saved identity.
+The existing real-module edit test now requires an authenticated S2 `auto`
+summary, and a missing-port regression refuses instead of calling legacy start.
+Both regressions failed before implementation; all 15 `run.test.ts` cases now
+pass. The chaos release test also verifies the S2 policy for every omitted-module
+set and passed 1/1. Root `pnpm check`: 34/34 passed (29 cached), including
+CLI 317/317. The first root attempt stopped on test formatting; formatting was
+corrected before the successful run.
+
+Codex reference: the user requested using `openai/codex` as implementation
+reference. Re-read its Apache-2.0 LICENSE and bounded skill discovery at the
+existing fixed revision `e0aa0434f415b0c5bc0fb64abd7f03c5510f9ed6` (see the
+[reference refresh](../../reviews/2026-11-08-reference-source-refresh.md)).
+Its complete-inventory versus uncertain metadata distinction remains useful;
+this CLI routing change copies no upstream code or text.
+
 Development evidence: [Skill Activation Development](../../reviews/2026-11-08-skill-activation.md).
 
 November 9 integration decision: explicit-set aggregate validation before run

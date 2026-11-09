@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { ChatChunk } from "@mete/contracts";
+import type { ChatChunk, RunSkillsAdapter } from "@mete/contracts";
 import { describe, expect, it } from "vitest";
 import { runCommand } from "../src/application/commands.js";
 import { createApp } from "../src/infrastructure/app.js";
@@ -73,7 +73,13 @@ const fixture = async (without: readonly string[]) => {
 			goal: "fix the typo in greet.js",
 		});
 		const text = await readFile(join(repo.workspaceDir, "greet.js"), "utf8");
-		return { code, fixed: text.includes("Hello "), err: t.err };
+		const runs = app.value.registry.resolve<RunSkillsAdapter>("run.skills@1");
+		if (!runs.ok) throw new Error("Essential skill-aware start port missing");
+		const runId = t.out[0]?.split(" ")[1] ?? "";
+		const read = await runs.value[0].impl.read({ runId });
+		const skillMode =
+			read.ok && read.value.kind === "summary" ? read.value.policy.mode : null;
+		return { code, fixed: text.includes("Hello "), skillMode, err: t.err };
 	} finally {
 		await app.value.stop();
 		await repo.close();
@@ -120,6 +126,7 @@ describe(`chaos (seed ${SEED})`, () => {
 				without,
 				code: 0,
 				fixed: true,
+				skillMode: "auto",
 			});
 		}
 	}, 600_000);

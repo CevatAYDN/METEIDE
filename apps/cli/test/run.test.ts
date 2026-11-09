@@ -1,6 +1,11 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type ChatChunk, ok, type TeamEngineAdapter } from "@mete/contracts";
+import {
+	type ChatChunk,
+	ok,
+	type RunSkillsAdapter,
+	type TeamEngineAdapter,
+} from "@mete/contracts";
 import { createCapabilityRegistry, createEventBus } from "@mete/kernel";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -104,6 +109,43 @@ describe("mete run", () => {
 		expect(JSON.parse(j.out.join("\n"))).toMatchObject([
 			{ status: "completed", goal: "fix the typo in greet.js" },
 		]);
+		const runs = app.registry.resolve<RunSkillsAdapter>("run.skills@1");
+		if (!runs.ok) throw new Error("Skill-aware runs are unavailable");
+		const runId = t.out[0]?.split(" ")[1] ?? "";
+		expect(await runs.value[0].impl.read({ runId })).toMatchObject({
+			ok: true,
+			value: {
+				kind: "summary",
+				policy: {
+					mode: "auto",
+					roles: [{ roleId: "assistant", selected: [] }],
+				},
+			},
+		});
+	});
+
+	it("refuses a new start without the S2 port instead of using the legacy engine", async () => {
+		const { app } = await setup({ script: EDIT });
+		const selected = app.registry.resolve("run.skills@1");
+		const engine = app.registry.resolve<TeamEngineAdapter>("team.engine@3");
+		if (!selected.ok || !engine.ok)
+			throw new Error("Native start ports missing");
+		const legacy = vi.spyOn(engine.value[0].impl, "start");
+		const resolve = app.registry.resolve.bind(app.registry);
+		vi.spyOn(app.registry, "resolve").mockImplementation(
+			<C>(...args: Parameters<App["registry"]["resolve"]>) =>
+				args[0] === "run.skills@1"
+					? { ok: false, error: { code: "capability_missing", ref: args[0] } }
+					: resolve<C>(...args),
+		);
+		const t = recordingIo();
+		expect(await runCommand(app, t.io, { goal: "fix the typo" })).toBe(1);
+		expect(t.err).toContain("Skill-aware run starts are unavailable.");
+		expect(legacy).not.toHaveBeenCalled();
+		expect(engine.value[0].impl.status()).toMatchObject({
+			ok: true,
+			value: [],
+		});
 	});
 
 	it("points at the provider keys when the run fails because a key was refused", async () => {
