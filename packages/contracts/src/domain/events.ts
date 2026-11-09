@@ -16,6 +16,10 @@ import {
 	QuotaUnitSchema,
 	TaskStatusSchema,
 } from "./states.js";
+import {
+	VerificationEvaluatedSchema,
+	VerificationUpdatedSchema,
+} from "./verification.js";
 
 // Event envelope and catalog from docs/07-domain-model-and-events.md.
 // A new event type needs a payload here and a row in tab 07 in the same change.
@@ -79,6 +83,8 @@ const PAYLOADS = {
 		messages: z.number().int().positive(),
 		chars: z.number().int().nonnegative(),
 	}),
+	// ADR-190: views read retained evidence; events never carry instruction content.
+	"run.skills.updated": z.strictObject({ contextId: IdSchema }),
 	"task.created": z.strictObject({
 		title: text,
 		roleId: text,
@@ -168,6 +174,8 @@ const PAYLOADS = {
 		ok: z.boolean(),
 		details: z.string(),
 	}),
+	"verify.updated": VerificationUpdatedSchema,
+	"verify.evaluated": VerificationEvaluatedSchema,
 	"review.requested": review,
 	"review.completed": review,
 	"approval.requested": approvalRequest,

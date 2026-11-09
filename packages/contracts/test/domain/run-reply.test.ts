@@ -33,8 +33,8 @@ describe("run.reply@1", () => {
 			expect(RunReplyOutputSchema.safeParse(output).success).toBe(false);
 	});
 
-	it("adds an explicit daemon request without changing team.engine@2", () => {
+	it("keeps the explicit reply request under protocol37", () => {
 		expect(DAEMON_METHODS.runReply).toBe("mete/run.reply");
-		expect(DAEMON_PROTOCOL_VERSION).toBe(33);
+		expect(DAEMON_PROTOCOL_VERSION).toBe(37);
 	});
 });

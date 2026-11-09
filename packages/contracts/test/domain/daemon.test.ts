@@ -63,7 +63,7 @@ const run: RunView = {
 	prefer: { writer: { providerId: "groq", modelId: "llama-3.3-70b" } },
 };
 
-describe("daemon protocol version 33", () => {
+describe("daemon protocol version 37", () => {
 	it("answers mete/events with the run's events in order and the count of unreadable rows", () => {
 		const event = {
 			id: crypto.randomUUID(),
@@ -182,6 +182,16 @@ describe("daemon protocol version 33", () => {
 			registrySearch: "mete/registry.search",
 			registryPrepare: "mete/registry.prepare",
 			registrySetup: "mete/registry.setup",
+			skillsList: "mete/skills.list",
+			skillsPrepare: "mete/skills.prepare",
+			skillsApprove: "mete/skills.approve",
+			skillsDisable: "mete/skills.disable",
+			skillsEditor: "mete/skills.editor",
+			skillsRuntime: "mete/skills.runtime",
+			threadSkillsStart: "mete/thread.skills.start",
+			threadSkillsReply: "mete/thread.skills.reply",
+			runSkillsStart: "mete/run.skills.start",
+			runSkillsRead: "mete/run.skills.read",
 			quiesce: "mete/daemon.quiesce",
 			status: "mete/status",
 			runStart: "mete/run.start",
@@ -189,6 +199,7 @@ describe("daemon protocol version 33", () => {
 			runApprove: "mete/run.approve",
 			taskPending: "mete/task.pending",
 			taskAnswer: "mete/task.answer",
+			taskVerification: "mete/task.verification",
 			runResume: "mete/run.resume",
 			runAllow: "mete/run.allow",
 			runModel: "mete/run.model",
@@ -216,9 +227,10 @@ describe("daemon protocol version 33", () => {
 		});
 	});
 
-	it("counts 43 requests and one notification, and names version 33 (ARCHITECTURE.md)", () => {
-		expect(Object.keys(DAEMON_METHODS)).toHaveLength(44);
-		expect(DAEMON_PROTOCOL_VERSION).toBe(33);
+	it("counts 54 requests and one notification in protocol 37", () => {
+		expect(Object.keys(DAEMON_METHODS)).toHaveLength(55);
+		expect(DAEMON_PROTOCOL_VERSION).toBe(37);
+		expect(DAEMON_METHODS.taskVerification).toBe("mete/task.verification");
 	});
 
 	it("takes the words and an optional note type for mete/knowledge.search, and reads its hits (ADR-159)", () => {

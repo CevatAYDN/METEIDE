@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SKILL_DAEMON_METHODS } from "./daemon-skill-methods.js";
 import { ApprovalInputSchema, RunPreferSchema } from "./engine.js";
 import { type MeteEvent, MeteEventSchema } from "./events.js";
 import { CapabilityRefSchema, IdSchema, TimestampSchema } from "./ids.js";
@@ -10,9 +11,8 @@ import { QuotaUsageSchema } from "./quota.js";
 import { PauseReasonSchema, RunStatusSchema } from "./states.js";
 import { VaultScopeSchema } from "./vault.js";
 
-// Daemon protocol v33 (ARCHITECTURE.md, ADR-184); mete/event checked with MeteEventSchema.
+// Daemon protocol v37 (ADR-193); selection preflight remains internal.
 const text = z.string().min(1);
-
 /** Protocol messages; existing run.start remains RunStartSchema (engine.ts). */
 export const DAEMON_METHODS = {
 	quiesce: "mete/daemon.quiesce",
@@ -31,9 +31,11 @@ export const DAEMON_METHODS = {
 	threadContextRead: "mete/thread.context.read",
 	registrySearch: "mete/registry.search",
 	registryPrepare: "mete/registry.prepare",
+	...SKILL_DAEMON_METHODS,
 	runApprove: "mete/run.approve",
 	taskPending: "mete/task.pending",
 	taskAnswer: "mete/task.answer",
+	taskVerification: "mete/task.verification",
 	runResume: "mete/run.resume",
 	runAllow: "mete/run.allow",
 	runModel: "mete/run.model",
@@ -60,18 +62,14 @@ export const DAEMON_METHODS = {
 	registrySetup: "mete/registry.setup",
 	event: "mete/event",
 } as const;
-
 /** The daemon protocol version these messages belong to (ARCHITECTURE.md). */
-export const DAEMON_PROTOCOL_VERSION = 33;
-
+export const DAEMON_PROTOCOL_VERSION = 37;
 /** JSON-RPC code of an error answer: the implementation-defined range; a client reads `data.code`. */
 export const DAEMON_ERROR_CODE = -32000;
-
 /** Params of `mete/status`: one run, or every run of the workspace. */
 export const DaemonStatusParamsSchema = z.strictObject({
 	runId: z.string().min(1).optional(),
 });
-
 /** A run as `mete/status` shows it; the same fields as `RunView` (engine.ts). */
 export const RunViewSchema = z.strictObject({
 	id: IdSchema,

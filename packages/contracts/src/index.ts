@@ -116,6 +116,7 @@ export {
 	type RunStatus,
 	type RunView,
 	type TeamEngineAdapter,
+	type TeamEngineV3Adapter,
 } from "./domain/engine.js";
 export {
 	EVENT_TYPES,
@@ -314,9 +315,12 @@ export type {
 	StorageSqlAdapter,
 } from "./domain/storage.js";
 export {
+	LocalIdSchema,
 	parseTemplate,
 	type TeamTemplate,
 	TeamTemplateSchema,
+	TeamTemplateV1Schema,
+	TeamTemplateV2Schema,
 	type TemplateParseError,
 } from "./domain/template.js";
 export {
@@ -391,4 +395,6 @@ export {
 } from "./domain/web.js";
 export * from "./mcp-management-contracts.js";
 export * from "./parallel-contracts.js";
+export * from "./skill-contracts.js";
 export * from "./thread-contracts.js";
+export * from "./verification-contracts.js";

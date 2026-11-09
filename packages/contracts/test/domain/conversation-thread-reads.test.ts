@@ -92,8 +92,8 @@ describe("conversation thread reads", () => {
 		).toBe(false);
 	});
 
-	it("preserves protocol31 routes under protocol32 without renaming older entry points", () => {
-		expect(DAEMON_PROTOCOL_VERSION).toBe(33);
+	it("preserves protocol31 routes under protocol35 without renaming older entry points", () => {
+		expect(DAEMON_PROTOCOL_VERSION).toBe(37);
 		expect(DAEMON_METHODS).toMatchObject({
 			threadStart: "mete/thread.start",
 			threadReply: "mete/thread.reply",

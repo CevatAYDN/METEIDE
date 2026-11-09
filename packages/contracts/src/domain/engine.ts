@@ -118,3 +118,6 @@ export interface TeamEngineAdapter {
 	/** Deletes an ended run with its worktrees, branches and checkpoints, then publishes run.removed (ADR-143). */
 	remove?(runId: string): Promise<Result<void, EngineError>>;
 }
+
+/** team.engine@3 keeps the method shapes and requires strict evidence for new team runs (ADR-187). */
+export type TeamEngineV3Adapter = TeamEngineAdapter;

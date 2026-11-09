@@ -46,6 +46,29 @@ describe("parseEvent", () => {
 		expect(parseEvent(envelope("run.removed", { runId: "r1" })).ok).toBe(false);
 	});
 
+	it("refreshes skill evidence by context identity without publishing content", () => {
+		const contextId = crypto.randomUUID();
+		const event = {
+			...envelope("run.skills.updated", { contextId }),
+			runId: crypto.randomUUID(),
+			taskId: crypto.randomUUID(),
+			agentId: crypto.randomUUID(),
+		};
+		const parsed = parseEvent(event);
+		expect(parsed.ok).toBe(true);
+		if (parsed.ok && parsed.value.type === "run.skills.updated")
+			expect(parsed.value.payload).toEqual({ contextId });
+		for (const payload of [
+			{},
+			{ contextId: "invalid" },
+			{ contextId, text: "private instructions" },
+			{ contextId, description: "private metadata" },
+			{ contextId, snapshots: [] },
+			{ contextId, usedSuccessfully: true },
+		])
+			expect(parseEvent({ ...event, payload }).ok).toBe(false);
+	});
+
 	it("rejects an unknown event type", () => {
 		const r = parseEvent(envelope("run.exploded", {}));
 		expect(r.ok).toBe(false);
@@ -243,8 +266,8 @@ describe("parseEvent", () => {
 });
 
 describe("EVENT_TYPES", () => {
-	it("covers the 48 types of the catalog in tab 07, all well formed", () => {
-		expect(EVENT_TYPES).toHaveLength(48);
+	it("covers the 51 types of the catalog in tab 07, all well formed", () => {
+		expect(EVENT_TYPES).toHaveLength(51);
 		for (const t of EVENT_TYPES) expect(EventTypeSchema.parse(t)).toBe(t);
 	});
 

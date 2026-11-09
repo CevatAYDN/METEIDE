@@ -79,3 +79,22 @@ export const CONTEXT_PATH_CHARS = 4096;
 /** ADR-184: bounded write-only MCP field count and per-value characters. */
 export const MCP_CREDENTIAL_FIELDS_MAX = 32;
 export const MCP_CREDENTIAL_VALUE_CHARS = 4096;
+
+/** ADR-189 skill-runtime design: public S1 bounds; candidates = two 256-entry roots. */
+export const SKILL_LIMITS = {
+	fileBytes: 65_536,
+	nameChars: 64,
+	descriptionChars: 1024,
+	optionalTextChars: 500,
+	metadataPairs: 32,
+	metadataValueChars: 1024,
+	catalogEntries: 128,
+	sourceCandidates: 256 * 2,
+} as const;
+
+/** ADR-190 accepted skill-activation-design.md: S2 catalog and per-context UTF-8 budgets. */
+export const SKILL_RUNTIME_LIMITS = {
+	catalogBytes: 16_384,
+	perContext: 4,
+	totalBytes: 65_536,
+} as const;

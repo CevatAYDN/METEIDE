@@ -53,13 +53,16 @@ const RoleSchema = z.strictObject({
 	watches: z.array(ArtifactTypeRefSchema).readonly().optional(),
 });
 
-const VerifySchema = z.union([
-	z.strictObject({
-		capability: CapabilityRefSchema,
-		args: z.record(z.string(), z.unknown()).optional(),
-		expect: z.unknown().optional(),
-	}),
-	z.strictObject({ run: text }),
+const CapabilityGateSchema = z.strictObject({
+	capability: CapabilityRefSchema,
+	args: z.record(z.string(), z.unknown()).optional(),
+	expect: z.unknown().optional(),
+});
+const CommandGateSchema = z.strictObject({ run: text });
+const VerifySchema = z.union([CapabilityGateSchema, CommandGateSchema]);
+const VerifyV2Schema = z.union([
+	CapabilityGateSchema.extend({ optional: z.boolean().optional() }),
+	CommandGateSchema.extend({ optional: z.boolean().optional() }),
 ]);
 
 const count = z.number().int();
@@ -136,7 +139,17 @@ const BaseSchema = z.strictObject({
 		.prefault({}),
 });
 
-type Base = z.output<typeof BaseSchema>;
+const taskFieldsV2 = {
+	...taskFields,
+	verify: z.array(VerifyV2Schema).readonly().optional(),
+};
+const BaseV2Schema = BaseSchema.extend({
+	apiVersion: z.literal("mete/v2"),
+	tasks: z.array(TaskSchema.extend(taskFieldsV2)).min(1).readonly(),
+	spawn_defaults: z.record(z.string(), z.strictObject(taskFieldsV2)).optional(),
+});
+
+type Base = Omit<z.output<typeof BaseSchema>, "apiVersion">;
 type Path = (string | number)[];
 type Refs = {
 	readonly ctx: z.RefinementCtx;
@@ -258,8 +271,16 @@ const checkRefs = (t: Base, ctx: z.RefinementCtx) => {
 	known(r, ["policies", "human_checkpoints"], checkpoints, "task");
 };
 
-/** A team template file; unknown keys are rejected and references must resolve (docs/08). */
-export const TeamTemplateSchema = BaseSchema.superRefine(checkRefs);
+/** The original template format, unchanged for legacy files and snapshots (ADR-187). */
+export const TeamTemplateV1Schema = BaseSchema.superRefine(checkRefs);
+
+/** Template format with explicit optional verification gates (ADR-187). */
+export const TeamTemplateV2Schema = BaseV2Schema.superRefine(checkRefs);
+
+/** Supported template formats; unknown keys and invalid references are rejected. */
+export const TeamTemplateSchema = z
+	.discriminatedUnion("apiVersion", [BaseSchema, BaseV2Schema])
+	.superRefine(checkRefs);
 
 /** A validated team template with its defaults filled in. */
 export type TeamTemplate = z.output<typeof TeamTemplateSchema>;
