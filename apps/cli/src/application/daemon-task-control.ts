@@ -9,6 +9,7 @@ import type { MessageConnection } from "vscode-jsonrpc/node";
 import { z } from "zod";
 import type { App } from "../infrastructure/app.js";
 import { parsed, refused } from "./daemon-errors.js";
+import { serveTaskVerification } from "./daemon-verification.js";
 
 const controlOf = (app: App): TaskControlAdapter => {
 	const adapters = app.registry.resolve<TaskControlAdapter>("task.control@1");
@@ -22,6 +23,7 @@ const controlOf = (app: App): TaskControlAdapter => {
 
 /** Serves exact task decisions through the authoritative port, including pending reads before readiness. */
 export const serveTaskControl = (connection: MessageConnection, app: App) => {
+	const verification = serveTaskVerification(connection, app);
 	const pending = connection.onRequest(
 		DAEMON_METHODS.taskPending,
 		async (params: unknown) => {
@@ -45,6 +47,7 @@ export const serveTaskControl = (connection: MessageConnection, app: App) => {
 		dispose: () => {
 			pending.dispose();
 			answer.dispose();
+			verification.dispose();
 		},
 	};
 };

@@ -8,7 +8,6 @@ import {
 	type DaemonErrorData,
 	DaemonEstimateParamsSchema,
 	DaemonMemberDraftParamsSchema,
-	DaemonModelsParamsSchema,
 	DaemonProviderModelsParamsSchema,
 	DaemonProviderTestParamsSchema,
 	DaemonRunAllowParamsSchema,
@@ -40,9 +39,14 @@ import { parsed, readyEngine, refused } from "./daemon-errors.js";
 import { guardedConnection, maskerOf } from "./daemon-guard.js";
 import { serveMcpConnection } from "./daemon-mcp-connection.js";
 import { serveQuiesce } from "./daemon-quiesce.js";
-import { serveAudit, serveKnowledgeSearch } from "./daemon-reads.js";
+import {
+	serveAudit,
+	serveKnowledgeSearch,
+	serveModels,
+} from "./daemon-reads.js";
 import { serveRegistry } from "./daemon-registry.js";
 import { serveReply } from "./daemon-reply.js";
+import { serveSkills } from "./daemon-skills.js";
 import { serveTaskControl } from "./daemon-task-control.js";
 import { estimateFor } from "./estimate.js";
 import { draftMember } from "./member-draft.js";
@@ -58,7 +62,7 @@ import { restoreCheckpoint } from "./rollback.js";
 import { settingsOf } from "./settings.js";
 import { serveTranscript } from "./transcript.js";
 
-// `mete daemon`: protocol version 24 of ARCHITECTURE.md (Daemon protocol, ADR-045 to ADR-143).
+// `mete daemon`: protocol35 adds exact-session skill management (ADR-189).
 
 /** What the daemon reads requests from and writes answers and events to. */
 export type DaemonStreams = {
@@ -272,15 +276,6 @@ const serveChain = (conn: MessageConnection, app: App) =>
 		return { models: await app.chain({ tier }, { needs }, signal) };
 	});
 
-// The listed facts of the models a run's agents use, for the Team view's context share (ADR-090):
-// the gateway's listing only, so no engine is needed.
-const serveModels = (conn: MessageConnection, app: App) =>
-	conn.onRequest(DAEMON_METHODS.models, async (params: unknown) => {
-		const { models } = parsed(DaemonModelsParamsSchema.safeParse(params));
-		const signal = AbortSignal.timeout(LISTING_TIMEOUT_MS);
-		return { models: await app.info(models, signal) };
-	});
-
 // The composer's request estimate per provider (ADR-068), with the run's own model choice (ADR-155):
 // files and the gateway's listing only, so no
 // engine is needed; a template that does not load is not_found.
@@ -358,12 +353,10 @@ const serveMethods = (conn: MessageConnection, app: App, io: Io) => {
 	serveRegistry(conn, app);
 	serveConversation(conn, app);
 	serveQuiesce(conn, app);
+	return serveSkills(conn, app);
 };
 
-/**
- * `mete daemon`: serves the workspace to one desktop client until it closes the input or Ctrl+C.
- * stdout carries only the protocol, so every line here goes to stderr.
- */
+/** Serve one desktop client over stdio until close/interrupt; stdout is protocol-only. */
 export const daemonCommand = async (
 	app: App,
 	io: Io,
@@ -382,7 +375,7 @@ export const daemonCommand = async (
 		maskerOf(app),
 		io.err,
 	);
-	serveMethods(conn, app, io);
+	const disposeSkills = serveMethods(conn, app, io);
 	const spent = trackExhausted(app.events);
 	serveQuota(conn, app, spent.until);
 	serveEstimate(conn, app, spent.until);
@@ -394,6 +387,7 @@ export const daemonCommand = async (
 		stop = io.onInterrupt(resolve);
 	});
 	stop();
+	disposeSkills();
 	unsubscribe();
 	spent.dispose();
 	conn.dispose();

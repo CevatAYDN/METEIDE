@@ -15,7 +15,7 @@ export const admitManagement = async (app: Pick<App, "registry">) => {
 		if (!result.ok) throw refused(result.error);
 		return;
 	}
-	if (app.registry.has("team.engine@2"))
+	if (app.registry.has("team.engine@3"))
 		throw refused({
 			code: "not_supported",
 			message: "Safe restart is unavailable",

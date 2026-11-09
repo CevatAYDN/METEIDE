@@ -107,14 +107,19 @@ describe("a cli mapping as a verify gate", () => {
 		const events = runHistory(app.value.registry, runId)?.events ?? [];
 		expect(
 			events
-				.filter((e) => e.type === "verify.completed")
-				.map((e) => ({ gate: e.payload.gate, ok: e.payload.ok })),
+				.filter((e) => e.type === "verify.evaluated")
+				.map((e) => ({
+					gate: e.payload.result.gate,
+					status: e.payload.result.status,
+					optional: e.payload.result.optional,
+				})),
 		).toEqual([
-			{ gate: "gameengine.build@1", ok: false },
-			{ gate: "gameengine.build@1", ok: true },
+			{ gate: "gameengine.build@1", status: "failed", optional: false },
+			{ gate: "gameengine.build@1", status: "passed", optional: false },
 		]);
-		const failed = events.find((e) => e.type === "verify.completed");
-		expect(String(failed?.payload.details)).toContain(
+		expect(events.some((e) => e.type === "verify.completed")).toBe(false);
+		const failed = events.find((e) => e.type === "verify.evaluated");
+		expect(String(failed?.payload.result.details)).toContain(
 			'node check.mjs "a b" exited with 1',
 		);
 		expect(await exists(join(repo.workspaceDir, "check.mjs"))).toBe(true);

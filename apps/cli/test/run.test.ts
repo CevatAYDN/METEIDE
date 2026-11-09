@@ -260,7 +260,7 @@ describe("mete run with an engine that throws", () => {
 			status: () => ok([]),
 			approve: async () => ok(undefined),
 		};
-		registry.provide("team.engine@2", {
+		registry.provide("team.engine@3", {
 			id: "fake-engine",
 			trust: "core",
 			features: [],

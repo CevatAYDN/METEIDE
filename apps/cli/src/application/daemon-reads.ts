@@ -2,6 +2,7 @@ import {
 	DAEMON_METHODS,
 	DaemonAuditParamsSchema,
 	DaemonKnowledgeSearchParamsSchema,
+	DaemonModelsParamsSchema,
 	type KnowledgeSearchInput,
 	type KnowledgeSearchOutput,
 	type ToolAdapter,
@@ -15,10 +16,17 @@ import { SEARCH_K, SEARCH_TIMEOUT_MS } from "../defaults.js";
 import type { App } from "../infrastructure/app.js";
 import { auditEntries } from "./audit.js";
 import { parsed, refused } from "./daemon-errors.js";
+import { LISTING_TIMEOUT_MS } from "./provider-states.js";
 
-// The daemon's reads of storage-backed modules (ARCHITECTURE.md, Daemon protocol): the audit log
-// and the workspace vault's search. Neither needs core-engine, so both answer while it is not
-// active too, as mete/quota does.
+// Read-only daemon routes whose services can answer without core-engine.
+
+/** Gateway model facts for the Team view's context share (ADR-090). */
+export const serveModels = (conn: MessageConnection, app: App) =>
+	conn.onRequest(DAEMON_METHODS.models, async (params: unknown) => {
+		const { models } = parsed(DaemonModelsParamsSchema.safeParse(params));
+		const signal = AbortSignal.timeout(LISTING_TIMEOUT_MS);
+		return { models: await app.info(models, signal) };
+	});
 
 // The workspace audit log (ADR-053).
 export const serveAudit = (conn: MessageConnection, app: App) =>

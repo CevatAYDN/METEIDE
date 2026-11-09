@@ -4,8 +4,10 @@ import type {
 	ModuleManifest,
 	Result,
 	SecretStore,
+	SkillSourceAdapter,
+	SkillTrustAdapter,
 	StorageSqlAdapter,
-	TeamEngineAdapter,
+	TeamEngineV3Adapter,
 	VcsGitAdapter,
 } from "@mete/contracts";
 import { err, ok } from "@mete/contracts";
@@ -58,9 +60,11 @@ import {
 	createVcsGitModule,
 } from "@mete/tools";
 import { BUILT_IN_BINDINGS } from "../defaults.js";
+import { createNativeControls } from "../domain/native-controls.js";
 import { runHistory } from "./history.js";
 import { moduleLogger } from "./log.js";
 import { offlineLookup } from "./scripted-web.js";
+import { nativeSkillModules } from "./skill-modules.js";
 
 // The CLI's composition root (ARCHITECTURE.md, CLI): one workspace, every Phase 1 module in
 // this process, the lifecycle stopped before exit.
@@ -110,6 +114,12 @@ export type App = {
 	/** The folder this app serves; Always allow writes its .mete/policy.yaml (ADR-121). */
 	readonly workspaceDir: string;
 	readonly registry: CapabilityRegistry;
+	/** Actual native trust implementations; registry ids and trust labels are not authority. */
+	readonly skillTrustAdapters: Pick<WeakSet<SkillTrustAdapter>, "has">;
+	/** Optional for legacy hosts; editor lookup requires exact native source attestation. */
+	readonly skillSourceAdapters?: Readonly<
+		Pick<WeakSet<SkillSourceAdapter>, "has">
+	>;
 	readonly events: EventBus;
 	readonly lifecycle: Lifecycle;
 	readonly modules: readonly MeteModule[];
@@ -183,13 +193,37 @@ const webModules = (
 	}),
 ];
 
+const mcpClientFor = (opts: AppOptions, workspaceId: string) =>
+	createMcpClientModule({
+		workspaceDir: opts.workspaceDir,
+		workspaceId,
+		adaptersDir: opts.adaptersDir ?? BUILT_IN_ADAPTERS,
+		globalDir: opts.globalDir,
+		...(opts.fetch ? { fetch: opts.fetch } : {}),
+		...(opts.elicit ? { elicit: opts.elicit } : {}),
+		...(opts.confirm ? { confirm: opts.confirm } : {}),
+		...(opts.authorize ? { authorize: opts.authorize } : {}),
+	});
+
+const gatewayViews = (gateway: GatewayModule) => ({
+	models: gateway.models,
+	chain: gateway.chain,
+	info: gateway.info,
+	embedChain: gateway.embedChain,
+});
+
 const modulesFor = (
 	opts: AppOptions,
 	workspaceId: string,
 	registry: CapabilityRegistry,
-	gateway: GatewayModule,
+	composition: {
+		gateway: GatewayModule;
+		skills: readonly MeteModule[];
+		nativeControls: ReturnType<typeof createNativeControls>;
+	},
 ): MeteModule[] => {
 	const dirs = { workspaceDir: opts.workspaceDir, globalDir: opts.globalDir };
+	const { gateway, skills, nativeControls } = composition;
 	const checkpointAdapters = new WeakSet<VcsGitAdapter>();
 	return [
 		createStorageModule(dirs),
@@ -199,6 +233,7 @@ const modulesFor = (
 		gateway,
 		createToolsFsModule(dirs),
 		createToolsShellModule(dirs),
+		...skills,
 		createVcsGitModule({
 			...dirs,
 			onCheckpointAdapter: (adapter) => checkpointAdapters.add(adapter),
@@ -208,19 +243,11 @@ const modulesFor = (
 			globalDir: opts.globalDir,
 			...(opts.fetch ? { fetch: opts.fetch } : {}),
 		}),
-		createMcpClientModule({
-			workspaceDir: opts.workspaceDir,
-			workspaceId,
-			adaptersDir: opts.adaptersDir ?? BUILT_IN_ADAPTERS,
-			globalDir: opts.globalDir,
-			...(opts.fetch ? { fetch: opts.fetch } : {}),
-			...(opts.elicit ? { elicit: opts.elicit } : {}),
-			...(opts.confirm ? { confirm: opts.confirm } : {}),
-			...(opts.authorize ? { authorize: opts.authorize } : {}),
-		}),
+		mcpClientFor(opts, workspaceId),
 		createCoreEngineModule({
 			workspaceId,
 			checkpointAdapters,
+			onNativeControls: nativeControls.onNativeControls,
 			recover: opts.recover !== false,
 			templates: templatesOf(opts),
 			workspaceDir: opts.workspaceDir,
@@ -267,6 +294,24 @@ const deactivated = (events: EventBus) => {
 	return inactive;
 };
 
+const appModules = (
+	opts: AppOptions,
+	workspaceId: string,
+	registry: CapabilityRegistry,
+) => {
+	const gateway = createGatewayModule();
+	const nativeControls = createNativeControls();
+	const skills = nativeSkillModules(
+		opts,
+		workspaceId,
+		registry,
+		nativeControls.view,
+	);
+	const composition = { gateway, skills: skills.modules, nativeControls };
+	const modules = modulesFor(opts, workspaceId, registry, composition);
+	return { gateway, skills, modules };
+};
+
 /** Loads the configuration, registers every module, starts the kernel and opens the workspace. */
 export const createApp = async (
 	opts: AppOptions,
@@ -292,30 +337,28 @@ export const createApp = async (
 		contextFor,
 		logger: opts.logger,
 	});
-	const gateway = createGatewayModule();
-	const modules = modulesFor(opts, workspaceId, registry, gateway);
+	const { gateway, skills, modules } = appModules(opts, workspaceId, registry);
 	for (const m of modules) await lifecycle.register(m);
 	await lifecycle.start();
 	await lifecycle.openWorkspace();
 	return ok({
 		workspaceDir: opts.workspaceDir,
 		registry,
+		skillTrustAdapters: skills.skillTrustAdapters,
+		skillSourceAdapters: skills.skillSourceAdapters,
 		events,
 		lifecycle,
 		modules,
 		inactive,
 		secrets,
-		models: gateway.models,
-		chain: gateway.chain,
-		info: gateway.info,
-		embedChain: gateway.embedChain,
+		...gatewayViews(gateway),
 		templates: templatesOf(opts),
 		config: { layers, loadedAt },
 		stop: lifecycle.stop,
 	});
 };
 
-/** Why team.engine@2 is missing: the modules still waiting and the capabilities they wait for. */
+/** Why team.engine@3 is missing: the modules still waiting and the capabilities they wait for. */
 export const waiting = (app: App) =>
 	app.modules.flatMap((m) => {
 		const { id, requires } = m.manifest;
@@ -333,8 +376,8 @@ export const notReadyLines = (app: App, lines: readonly string[]) => [
 ];
 
 /** The engine, or the lines that say why it is not active. */
-export const engineOf = (app: App): Result<TeamEngineAdapter, string[]> => {
-	const r = app.registry.resolve<TeamEngineAdapter>("team.engine@2");
+export const engineOf = (app: App): Result<TeamEngineV3Adapter, string[]> => {
+	const r = app.registry.resolve<TeamEngineV3Adapter>("team.engine@3");
 	if (r.ok) return ok(r.value[0].impl);
 	const off = app.inactive.map(
 		(m) => `${m.moduleId} is not active (${m.reason})`,

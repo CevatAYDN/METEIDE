@@ -118,14 +118,33 @@ const teamLine = (e: MeteEvent, title: string): string | undefined => {
 	}
 };
 
+const verificationLine = (e: MeteEvent, title: string): string | undefined => {
+	if (e.type === "verify.updated")
+		return `verify ${title}: evidence updated (gate ${e.payload.index + 1})`;
+	if (e.type !== "verify.evaluated") return undefined;
+	const { attemptNumber, result } = e.payload;
+	const requirement = result.optional ? "optional" : "required";
+	let status: string = result.status;
+	if (result.status === "not_run")
+		status =
+			result.reason === "interrupted"
+				? "outcome uncertain (interrupted)"
+				: `not run (${result.reason})`;
+	return `verify ${title}: ${result.gate} [gate ${result.index + 1}, attempt ${attemptNumber}, ${requirement}] ${status}`;
+};
+
 /** One terminal line for an event of the run, or undefined for events it does not show. */
 export const eventLine = (
 	e: MeteEvent,
 	titleOf: (taskId: string) => string | undefined = () => undefined,
 ) => {
 	const id = e.taskId ?? "";
+	const title = titleOf(id) ?? id.slice(0, 8);
 	return (
-		runLine(e) ?? agentLine(e) ?? teamLine(e, titleOf(id) ?? id.slice(0, 8))
+		runLine(e) ??
+		agentLine(e) ??
+		teamLine(e, title) ??
+		verificationLine(e, title)
 	);
 };
 
@@ -198,7 +217,7 @@ export const waitsForHuman = (events: readonly MeteEvent[]) => {
 
 /**
  * One `mete events` line: when, which event, the module that published it, the task and the
- * agent's role, and what happened. An event mete run does not show keeps its payload as JSON.
+ * agent's role, and what happened. Verification and events without a live line retain their JSON.
  */
 export const historyLine = (
 	e: MeteEvent,
@@ -208,7 +227,9 @@ export const historyLine = (
 		map.get(id) ?? id.slice(0, 8);
 	const task = e.taskId ? `  task=${name(names.titles, e.taskId)}` : "";
 	const agent = e.agentId ? `  agent=${name(names.roles, e.agentId)}` : "";
-	const line = eventLine(e, (id) => names.titles.get(id));
+	const line = e.type.startsWith("verify.")
+		? undefined
+		: eventLine(e, (id) => names.titles.get(id));
 	const detail =
 		line?.trim().replaceAll("\n", " | ") ?? JSON.stringify(e.payload);
 	return `${e.ts}  ${e.type.padEnd(22)} ${e.source}${task}${agent}  ${detail}`;

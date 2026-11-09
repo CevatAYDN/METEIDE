@@ -316,7 +316,7 @@ describe("mete daemon run.model (ADR-122)", () => {
 			await repo.close();
 		};
 		const engine =
-			app.value.registry.resolve<TeamEngineAdapter>("team.engine@2");
+			app.value.registry.resolve<TeamEngineAdapter>("team.engine@3");
 		if (!engine.ok) throw new Error("no engine");
 		delete (engine.value[0].impl as { model?: unknown }).model;
 		const [toDaemon, toClient] = [new PassThrough(), new PassThrough()];

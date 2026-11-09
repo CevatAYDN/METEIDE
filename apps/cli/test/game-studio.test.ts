@@ -159,6 +159,28 @@ describe("the game-studio template", () => {
 
 		// The spawned tasks were announced after the template's two, and the developer's game landed.
 		const events = runHistory(app.value.registry, runId)?.events ?? [];
+		const externalChecks = events
+			.filter((e) => e.type === "verify.evaluated")
+			.map((e) => e.payload.result)
+			.filter(
+				(result) =>
+					result.gate === "gameengine.build@1" ||
+					result.gate === "gameengine.test@1",
+			);
+		expect(externalChecks).toEqual([
+			expect.objectContaining({
+				gate: "gameengine.build@1",
+				status: "not_run",
+				reason: "capability_missing",
+				optional: true,
+			}),
+			expect.objectContaining({
+				gate: "gameengine.test@1",
+				status: "not_run",
+				reason: "capability_missing",
+				optional: true,
+			}),
+		]);
 		const created = events.filter((e) => e.type === "task.created");
 		expect(created.map((e) => e.payload.title)).toEqual([
 			"Write the game design document",
