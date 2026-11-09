@@ -69,6 +69,8 @@ export const syncSeatedWorker = (
 				...team.tasks,
 				[task]: {
 					...entry,
+					verification:
+						event.type === "REPLIED" ? undefined : entry.verification,
 					messages: [...run.messages],
 					session: taskSession(run),
 				},
@@ -125,6 +127,10 @@ export const workerProgress = (
 				...team.tasks,
 				[event.task]: {
 					...entry,
+					verification:
+						event.session.turns > (entry.session?.turns ?? 0)
+							? undefined
+							: entry.verification,
 					messages: [...event.messages],
 					session: event.session,
 				},

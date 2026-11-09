@@ -7,6 +7,7 @@ import {
 	iso,
 	type Live,
 } from "./run-state.js";
+import { recoverVerification } from "./verification-recovery.js";
 
 // What core-engine does with the runs an earlier process left behind when it activates (docs/07,
 // Recovery; ADR-176).
@@ -28,6 +29,7 @@ export const INTERRUPTED =
 // A writing call that was running when the process ended may or may not have written (ADR-177): it is
 // not run again; the model gets the line above as its result and the human sees the pause.
 const settleInFlight = (s: EngineState, l: Live) => {
+	recoverVerification(s, l);
 	const context = l.snapshot.context;
 	const seated =
 		context.task &&

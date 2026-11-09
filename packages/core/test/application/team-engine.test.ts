@@ -692,16 +692,32 @@ describe("verify gates", () => {
 		);
 		expect(String(feedback?.content)).toContain("error TS2304");
 		expect(h.events.at(-1)?.payload).toEqual({ summary: REPORT });
-		// Each gate that ran publishes verify.completed (docs/07), with what failed as details.
-		const gates = h.events.filter((e) => e.type === "verify.completed");
-		expect(gates.map((e) => e.payload)).toEqual([
+		// New runs retain final, attempt-bound evidence for every evaluated gate.
+		const gates = h.events.filter((e) => e.type === "verify.evaluated");
+		expect(gates.map((e) => e.payload.result)).toEqual([
 			{
+				index: 0,
+				optional: false,
+				status: "failed",
 				gate: "pnpm build",
-				ok: false,
 				details: expect.stringContaining("error TS2304"),
 			},
-			{ gate: "pnpm build", ok: true, details: "" },
-			{ gate: "pnpm build", ok: true, details: "" },
+			{
+				index: 0,
+				optional: false,
+				gate: "pnpm build",
+				status: "passed",
+				details:
+					'{"exitCode":0,"stdout":"","stderr":"","timedOut":false,"os":"linux","shell":"sh"}',
+			},
+			{
+				index: 0,
+				optional: false,
+				gate: "pnpm build",
+				status: "passed",
+				details:
+					'{"exitCode":0,"stdout":"","stderr":"","timedOut":false,"os":"linux","shell":"sh"}',
+			},
 		]);
 		expect(gates.every((e) => e.taskId !== undefined)).toBe(true);
 	});
@@ -724,12 +740,29 @@ describe("verify gates", () => {
 		await settled(h, runId, "completed");
 		expect(n).toBe(2);
 		expect(h.requests).toHaveLength(1);
-		// The gate the policy asked about did not run, so only the run after resume is published.
+		// The policy wait is durable nonexecution, not a successful check.
 		expect(
 			h.events
-				.filter((e) => e.type === "verify.completed")
-				.map((e) => e.payload),
-		).toEqual([{ gate: "pnpm build", ok: true, details: "" }]);
+				.filter((e) => e.type === "verify.evaluated")
+				.map((e) => e.payload.result),
+		).toEqual([
+			{
+				index: 0,
+				gate: "pnpm build",
+				optional: false,
+				status: "not_run",
+				reason: "approval_required",
+				details: "asks",
+			},
+			{
+				index: 0,
+				gate: "pnpm build",
+				optional: false,
+				status: "passed",
+				details:
+					'{"exitCode":0,"stdout":"","stderr":"","timedOut":false,"os":"linux","shell":"sh"}',
+			},
+		]);
 	});
 
 	it("block the task when no shell is active", async () => {

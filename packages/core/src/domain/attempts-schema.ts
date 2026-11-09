@@ -1,4 +1,8 @@
-import { ChatRequestSchema, IdSchema } from "@mete/contracts";
+import {
+	ChatRequestSchema,
+	IdSchema,
+	VerificationEvaluationSchema,
+} from "@mete/contracts";
 import { z } from "zod";
 import { TaskSessionSchema } from "./task-session-schema.js";
 
@@ -17,6 +21,7 @@ const FinishedSchema = z.strictObject({
 	/** The family of the model it last ran on, which made its report (ADR-162). */
 	family: z.string().optional(),
 	session: TaskSessionSchema.optional(),
+	verification: VerificationEvaluationSchema.optional(),
 });
 
 /** A best-of-N task's attempts, as the run snapshot keeps them. */

@@ -3,6 +3,7 @@ import {
 	IdSchema,
 	TaskStatusSchema,
 	TeamTemplateSchema,
+	VerificationEvaluationSchema,
 } from "@mete/contracts";
 import { z } from "zod";
 import { AttemptsSchema } from "./attempts-schema.js";
@@ -23,6 +24,7 @@ const TaskContextSchema = z.strictObject({
 			"capability_missing",
 			"guardrail",
 			"revision_limit",
+			"verification",
 		])
 		.optional(),
 	clarify: z.enum(["asking", "asked"]).optional(),
@@ -60,16 +62,31 @@ const TaskEntrySchema = z.strictObject({
 		.optional(),
 	/** A best-of-N task's finished attempts and the live one's id (ADR-162). */
 	attempts: AttemptsSchema.optional(),
+	verification: VerificationEvaluationSchema.optional(),
 });
 
 /** A team run's state as the run snapshot keeps it; checked on load like the rest. */
 export const TeamStateSchema = z
 	.strictObject({
 		template: TeamTemplateSchema,
+		/** Only new runs opt into ADR-187; absent stays legacy on load. */
+		verificationVersion: z.literal(1).optional(),
 		tasks: z.record(z.string(), TaskEntrySchema),
 		/** Approval order of worktrees waiting to land; absent on legacy snapshots. */
 		mergeQueue: z.array(z.string().min(1)).optional(),
 	})
+	.refine(
+		(team) =>
+			team.verificationVersion === 1 ||
+			Object.values(team.tasks).every(
+				(entry) =>
+					entry.verification === undefined &&
+					(entry.attempts?.finished ?? []).every(
+						(record) => record.verification === undefined,
+					),
+			),
+		{ message: "strict evidence requires the verification version marker" },
+	)
 	.refine(
 		(team) => {
 			const queue = team.mergeQueue ?? [];

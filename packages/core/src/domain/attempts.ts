@@ -4,6 +4,7 @@ import type { AttemptsSchema } from "./attempts-schema.js";
 import type { RunContext } from "./run-machine.js";
 import { freshTaskSession } from "./task-session-schema.js";
 import type { TeamState } from "./team.js";
+import { eligibleEvidence } from "./verification.js";
 
 // Best-of-N attempts (docs/08, Task fields; ADR-162): a task whose `attempts.n` is 2 or more works,
 // verifies and checks its report up to n times, each attempt with an agent and a worktree of its
@@ -100,6 +101,7 @@ const recordOf = (entry: Entry, attempts: Attempts, done: Done) => ({
 	agentId: entry.context.agentId ?? "",
 	messages: [...done.messages],
 	...(entry.session ? { session: entry.session } : {}),
+	...(entry.verification ? { verification: entry.verification } : {}),
 	...(done.report !== undefined ? { report: done.report } : {}),
 	...(entry.context.worktree ? { worktree: entry.context.worktree } : {}),
 	...(done.family ? { family: done.family } : {}),
@@ -123,6 +125,7 @@ export const finishAttempt = (
 		return {
 			...entry,
 			session: freshTaskSession(),
+			verification: undefined,
 			context: {
 				...entry.context,
 				agentId: undefined,
@@ -139,21 +142,45 @@ export const finishAttempt = (
 /** The attempts whose checks passed, 1-based, in the order they ran. */
 export const candidates = (team: TeamState, key: string) =>
 	(entryOf(team, key)?.attempts?.finished ?? []).flatMap((f, i) =>
-		f.report !== undefined ? [i + 1] : [],
+		eligibleEvidence(team, key, {
+			...currentEvidence(team, key, f),
+			number: i + 1,
+		})
+			? [i + 1]
+			: [],
 	);
 
+const currentEvidence = (
+	team: TeamState,
+	key: string,
+	record: Attempts["finished"][number],
+) => {
+	const entry = entryOf(team, key);
+	return team.verificationVersion === 1 && attemptId(team, key) === record.id
+		? { ...record, verification: entry?.verification }
+		: record;
+};
+
 /** A finished attempt, 1-based. */
-export const finishedOf = (team: TeamState, key: string, k: number) =>
-	entryOf(team, key)?.attempts?.finished[k - 1];
+export const finishedOf = (team: TeamState, key: string, k: number) => {
+	const record = entryOf(team, key)?.attempts?.finished[k - 1];
+	return record ? currentEvidence(team, key, record) : undefined;
+};
 
 /** Attempt k goes on: its agent, worktree, report and conversation become the task's again. */
 export const goOn = (team: TeamState, key: string, k: number): TeamState =>
 	withAttempts(team, key, (entry, attempts) => {
-		const chosen = attempts.finished[k - 1];
+		const chosen = finishedOf(team, key, k);
 		if (!chosen) return entry;
+		if (
+			chosen.report !== undefined &&
+			!eligibleEvidence(team, key, { ...chosen, number: k })
+		)
+			return entry;
 		return {
 			...entry,
 			session: chosen.session ?? freshTaskSession(),
+			verification: chosen.verification,
 			context: {
 				...entry.context,
 				agentId: chosen.agentId,

@@ -6,11 +6,13 @@ import {
 	type ModelRef,
 	ok,
 	type Result,
+	type RunSkillPolicy,
 	type RunStart,
 	RunStartSchema,
-	type TeamEngineAdapter,
+	type TeamEngineV3Adapter,
 } from "@mete/contracts";
 import { z } from "zod";
+import type { RunSkillState } from "../domain/skill-state.js";
 import { type TeamState, teamOf } from "../domain/team.js";
 import {
 	loadTemplate,
@@ -31,6 +33,7 @@ import { createCheckpointRestore } from "./restore.js";
 import { pruneOldCheckpoints } from "./retention.js";
 import { routeFor } from "./route.js";
 import { drive } from "./run-driver.js";
+import { createRunSkills } from "./run-skills.js";
 import {
 	apply,
 	clearTimer,
@@ -41,6 +44,12 @@ import {
 	loaded,
 	peek,
 } from "./run-state.js";
+import { admitRunSkills } from "./skill-admission.js";
+import { guardResume } from "./skill-guard.js";
+import { liveSkillHost } from "./skill-host.js";
+import { createSkillLoadAuthority } from "./skill-load-authority.js";
+import { loadSkill, type SkillLoadRequest } from "./skill-loader.js";
+import { readSkills } from "./skill-reads.js";
 import { createTaskControl } from "./task-control.js";
 import {
 	forgetPolicyRequests,
@@ -50,9 +59,10 @@ import { createThreadContext } from "./thread-context.js";
 import { createThreadMutations } from "./thread-mutations.js";
 import { createThreadReads } from "./thread-reads.js";
 import { readTranscript } from "./transcript.js";
+import { cancelVerification, createVerification } from "./verification.js";
 import { readWorkspace } from "./workspace.js";
 
-// team.engine@2 (docs/06 engine types, docs/07 Run state machine, docs/08 Single agent and teams).
+// team.engine@3 (docs/06 engine types, docs/07 Run state machine, docs/08 Single agent and teams).
 
 type Out<T> = Promise<Result<T, EngineError>>;
 
@@ -87,6 +97,7 @@ const start = async (
 	s: EngineState,
 	req: RunStart,
 	extraCapabilities: readonly ConversationCapability[] = [],
+	skillPolicy?: RunSkillPolicy,
 ): Out<{ runId: string }> => {
 	const r = RunStartSchema.safeParse(req);
 	if (!r.success)
@@ -103,6 +114,8 @@ const start = async (
 	if (!team.ok) return team;
 	const validPrefer = validateStartPrefer(team.value, r.data.prefer);
 	if (!validPrefer.ok) return validPrefer;
+	const skills = await skillsFor(s, id, skillPolicy, team.value);
+	if (!skills.ok) return skills;
 	// The template is checked first, so a bad one never uses up a handoff.
 	const opening = r.data.continue ? takeHandoff(s, id) : ok(offerBrief(s));
 	if (!opening.ok) return opening;
@@ -118,8 +131,18 @@ const start = async (
 		prefer,
 		workspace: await readWorkspace(s.deps, id),
 		extraCapabilities,
+		skills: skills.value,
 	});
 };
+
+/** Legacy starts carry no S2 state; run.skills@1 starts are admitted before any handoff. */
+const skillsFor = async (
+	s: EngineState,
+	runId: string,
+	policy: RunSkillPolicy | undefined,
+	team: TeamState | undefined,
+): Promise<Result<RunSkillState | undefined, EngineError>> =>
+	policy ? admitRunSkills(s, runId, policy, team) : ok(undefined);
 
 const teamFor = async (
 	s: EngineState,
@@ -145,17 +168,20 @@ const pause = async (s: EngineState, runId: string): Out<void> => {
 };
 
 // The budget is read again, so a raised budget clears a budget pause (docs/08).
+// An S2 run validates its skills first; manual and timed resume share this check (ADR-190).
 const resume = async (s: EngineState, runId: string): Out<void> => {
 	if (s.quiescing) return retiring();
 	const l = find(s, runId);
 	if (!l.ok) return l;
-	if (!l.value.snapshot.can({ type: "RESUME", at: 0 }))
-		return invalid(l.value, "resume");
+	if (l.value.snapshot.value !== "paused") return invalid(l.value, "resume");
 	const p = policy(s, l.value.snapshot.context.team);
 	if (!p.ok) return p;
+	const guarded = await guardResume(s, l.value);
+	if (!guarded.ok) return guarded;
 	l.value.meta = { ...l.value.meta, budget: p.value.budget };
 	clearTimer(l.value);
-	apply(s, l.value, { type: "RESUME", at: s.deps.now() });
+	if (!apply(s, l.value, { type: "RESUME", at: s.deps.now() }))
+		return invalid(l.value, "resume");
 	drive(s, l.value);
 	return ok(undefined);
 };
@@ -197,6 +223,7 @@ const updateModel = async (
 const cancel = async (s: EngineState, runId: string): Out<void> => {
 	const l = find(s, runId);
 	if (!l.ok) return l;
+	cancelVerification(s, l.value);
 	if (!apply(s, l.value, { type: "CANCEL", at: s.deps.now() }))
 		return invalid(l.value, "cancel");
 	l.value.all.abort();
@@ -208,7 +235,7 @@ const cancel = async (s: EngineState, runId: string): Out<void> => {
 const status: (
 	s: EngineState,
 	runId?: string,
-) => ReturnType<TeamEngineAdapter["status"]> = (s, runId) => {
+) => ReturnType<TeamEngineV3Adapter["status"]> = (s, runId) => {
 	const runs = s.deps.store.list(runId);
 	if (runId !== undefined && runs.length === 0)
 		return err({ code: "not_found", message: `no run ${runId}` });
@@ -238,13 +265,15 @@ const stop = async (s: EngineState) => {
 	s.quiescing = true;
 	for (const l of s.live.values()) {
 		apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "user" });
+		l.token = {};
+		l.model?.abort();
 		l.all.abort();
 		clearTimer(l);
 	}
 	await Promise.allSettled([...s.live.values()].map((l) => l.loop));
 };
 
-const engineAdapter = (s: EngineState): TeamEngineAdapter => ({
+const engineAdapter = (s: EngineState): TeamEngineV3Adapter => ({
 	start: (req) => start(s, req),
 	pause: (runId) => pause(s, runId),
 	resume: (runId) => resume(s, runId),
@@ -257,7 +286,7 @@ const engineAdapter = (s: EngineState): TeamEngineAdapter => ({
 });
 
 const adaptersOf = (s: EngineState) => {
-	const { context, ...threadMutations } = createThreadMutations(s);
+	const { context, skills, ...threadMutations } = createThreadMutations(s);
 	const threadReads = createThreadReads(s);
 	const replyStart = ({ messages, tainted, ...input }: ReplyStart) =>
 		begin(s, {
@@ -268,6 +297,10 @@ const adaptersOf = (s: EngineState) => {
 		});
 	return {
 		engine: engineAdapter(s),
+		runSkills: createRunSkills(
+			({ skills, ...req }) => start(s, req, [], skills),
+			(input) => readSkills(s, input),
+		),
 		reply: createReply(s, replyStart),
 		conversation: createConversation(s, {
 			start: (req, extras) => start(s, req, extras),
@@ -275,6 +308,11 @@ const adaptersOf = (s: EngineState) => {
 		}),
 		thread: { ...threadMutations, ...threadReads },
 		threadContext: createThreadContext(s, context, threadReads),
+		// @3 shares @2 reads and context; only start/reply carry the S2 policy.
+		threadSkills: {
+			...createThreadContext(s, context, threadReads),
+			...skills,
+		},
 		restore: createCheckpointRestore(s.deps, async (runId) => {
 			await s.live.get(runId)?.loop;
 		}),
@@ -282,7 +320,7 @@ const adaptersOf = (s: EngineState) => {
 };
 
 /**
- * Creates team.engine@2; the module calls `recover` when it activates in the process that drives runs
+ * Creates team.engine@3; the module calls `recover` when it activates in the process that drives runs
  * (it also prunes old checkpoints), and `stop` when it deactivates.
  */
 export const createEngine = (deps: EngineDeps) => {
@@ -290,18 +328,30 @@ export const createEngine = (deps: EngineDeps) => {
 		deps: { ...deps, checkpointQueue: createCheckpointQueue() },
 		live: new Map(),
 		onPauseEnded: (runId) => pauseEnded(s, runId),
+		skillLoads: createSkillLoadAuthority(),
 	};
 	const gate = createQuiescence(s);
+	s.gate = gate;
 	const tasks = createTaskControl(s, {
 		find: (id) => find(s, id),
 		resume: (id) => resume(s, id),
 	});
 	return {
+		/** Composition hands this to security; it is the only native load authority. */
+		skillLoadAdmission: s.skillLoads.admission,
+		/** Native load for a live run's own context; never a model tool by itself (E5+). */
+		loadSkill: (runId: string, req: SkillLoadRequest) => {
+			const l = s.live.get(runId);
+			return l
+				? loadSkill(liveSkillHost(s, l), req)
+				: Promise.resolve(err({ code: "stale" } as const));
+		},
 		tasks: {
 			pending: tasks.pending,
 			answer: (input: Parameters<typeof tasks.answer>[0]) =>
 				gate.enter(() => tasks.answer(input)),
 		},
+		verification: createVerification(s),
 		...gateAdapters(gate, adaptersOf(s)),
 		// Only the process that drives runs recovers them and prunes old checkpoints, so a command
 		// that only reads (mete status, mete events) never removes refs a live run may still use.

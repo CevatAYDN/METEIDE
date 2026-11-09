@@ -3,11 +3,13 @@ import {
 	type ConversationRunAdapter,
 	type ConversationThreadAdapter,
 	type ConversationThreadV2Adapter,
+	type ConversationThreadV3Adapter,
 	type EngineError,
 	err,
 	ok,
 	type Result,
 	type RunReplyAdapter,
+	type RunSkillsAdapter,
 	type TeamEngineAdapter,
 } from "@mete/contracts";
 import { clearTimer, type EngineState } from "./run-state.js";
@@ -72,6 +74,8 @@ type Adapters = {
 	conversation: ConversationRunAdapter;
 	thread: ConversationThreadAdapter;
 	threadContext: ConversationThreadV2Adapter;
+	threadSkills: ConversationThreadV3Adapter;
+	runSkills: RunSkillsAdapter;
 	restore: CheckpointRestoreAdapter;
 };
 
@@ -86,6 +90,16 @@ const gateContext = (
 		gate.enter(() => threadContext.start(input)),
 	reply: (input: Parameters<typeof threadContext.reply>[0]) =>
 		gate.enter(() => threadContext.reply(input)),
+});
+
+const gateSkills = (
+	gate: Gate,
+	threadSkills: ConversationThreadV3Adapter,
+): ConversationThreadV3Adapter => ({
+	...threadSkills,
+	prepare: (input) => gate.enter(() => threadSkills.prepare(input)),
+	start: (input) => gate.enter(() => threadSkills.start(input)),
+	reply: (input) => gate.enter(() => threadSkills.reply(input)),
 });
 
 const gateConversations = (gate: Gate, adapters: Adapters) => {
@@ -109,6 +123,7 @@ const gateConversations = (gate: Gate, adapters: Adapters) => {
 				gate.enter(() => thread.reply(input)),
 		},
 		threadContext: gateContext(gate, adapters.threadContext),
+		threadSkills: gateSkills(gate, adapters.threadSkills),
 	};
 };
 
@@ -117,7 +132,7 @@ export const gateAdapters = (
 	gate: ReturnType<typeof createQuiescence>,
 	adapters: Adapters,
 ) => {
-	const { engine, restore } = adapters;
+	const { engine, restore, runSkills } = adapters;
 	const remove = engine.remove;
 	return {
 		engine: {
@@ -131,6 +146,10 @@ export const gateAdapters = (
 				? { remove: (id: string) => gate.enter(() => remove(id)) }
 				: {}),
 		},
+		runSkills: {
+			...runSkills,
+			start: (input) => gate.enter(() => runSkills.start(input)),
+		} satisfies RunSkillsAdapter,
 		...gateConversations(gate, adapters),
 		restore: {
 			restore: (input: Parameters<typeof restore.restore>[0]) =>

@@ -9,6 +9,7 @@ export type BlockReason =
 	| "clarification"
 	| "capability_missing"
 	| "guardrail"
+	| "verification"
 	| "revision_limit";
 
 /** What a task carries across transitions. */

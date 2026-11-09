@@ -16,6 +16,7 @@ import {
 	TeamStateSchema,
 	teamOf,
 } from "../../src/domain/team.js";
+import { checkedTeam } from "../helpers/checked-team.js";
 
 // spawns (docs/08, ADR-057): an approved task-list@1 becomes tasks of the same run. Pure.
 
@@ -99,6 +100,7 @@ describe("spawned tasks (ADR-057)", () => {
 		const team = approved(LIST);
 		const r = withSpawned(team, "plan_tasks");
 		expect(r.created).toEqual(["canvas", "check"]);
+		expect(r.team.verificationVersion).toBe(1);
 		const tasks = r.team.template.tasks;
 		expect(tasks.map((t) => [t.id, t.role, t.context])).toEqual([
 			["plan_tasks", "pm", undefined],
@@ -152,6 +154,7 @@ describe("the built-in game-studio template (ADR-057)", () => {
 			const report = id === "plan_tasks" ? list : "{}";
 			team = applyTask(team, id, { type: "START", agentId: "a1" }).team;
 			team = applyTask(team, id, { type: "SUBMIT", report }).team;
+			team = checkedTeam(team, id, report);
 			team = approve(team, id, "lead").team;
 			team = approve(team, id, "human").team;
 		}

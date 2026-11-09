@@ -64,8 +64,11 @@ export const foldable = (messages: readonly ChatMessage[]) => {
 export const toSummarize = (
 	messages: readonly ChatMessage[],
 	window: number,
+	pinned: readonly ChatMessage[] = [],
 ) => {
-	const tokens = messages.reduce((n, m) => n + sizeOf(m), 0) / CHARS_PER_TOKEN;
+	// The exact pinned skill/catalog block is sent too, so it counts; it is never folded.
+	const all = [...messages, ...pinned];
+	const tokens = all.reduce((n, m) => n + sizeOf(m), 0) / CHARS_PER_TOKEN;
 	if (tokens < SUMMARY_AT * window) return undefined;
 	return foldable(messages);
 };

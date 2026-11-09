@@ -55,7 +55,12 @@ const setup = () => {
 		loop: Promise.resolve(),
 	};
 	const state = {
-		deps: { store: { save: vi.fn() } },
+		deps: {
+			store: {
+				save: vi.fn(),
+				load: () => ({ meta: live.meta, snapshot: live.snapshot }),
+			},
+		},
 	} as unknown as EngineState;
 	return { live, state };
 };

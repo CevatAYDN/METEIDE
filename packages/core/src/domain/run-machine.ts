@@ -8,6 +8,7 @@ import { assign, setup } from "xstate";
 import { MAX_TURNS } from "../defaults.js";
 import { canReserve, reservedFor } from "./request-reservations.js";
 import type { RunContext, RunEvent } from "./run-types.js";
+import type { RunSkillState } from "./skill-state.js";
 import {
 	resumeWorkers,
 	switchContext,
@@ -71,6 +72,7 @@ export const runMachine = setup({
 			tainted?: boolean | undefined;
 			extraCapabilities?: readonly ConversationCapability[] | undefined;
 			attachments?: readonly ContextSnapshot[] | undefined;
+			skills?: RunSkillState | undefined;
 		},
 	},
 }).createMachine({
@@ -82,6 +84,10 @@ export const runMachine = setup({
 		messages: input.messages,
 		extraCapabilities: input.extraCapabilities ?? [],
 		...(input.attachments?.length ? { attachments: input.attachments } : {}),
+		// The S2 marker exists only with genuine state; it is never fabricated.
+		...(input.skills
+			? { skillRuntimeVersion: 1 as const, skills: input.skills }
+			: {}),
 		...(input.brief ? { brief: input.brief } : {}),
 		...(input.workspace ? { workspace: input.workspace } : {}),
 		...(input.prefer ? { prefer: input.prefer } : {}),
@@ -97,6 +103,10 @@ export const runMachine = setup({
 	// apply in paused too; a done machine ignores every event.
 	on: {
 		TAINT: { actions: assign({ tainted: true }) },
+		SKILL_LOADED: { actions: assign({ skills: ({ event }) => event.skills }) },
+		SKILL_BLOCKED: {
+			actions: assign({ skillBlock: ({ event }) => event.error }),
+		},
 		MODEL: { actions: assign({ agent: ({ event }) => event.agent }) },
 		TEAM: { actions: assign({ team: ({ event }) => event.team }) },
 		ACTIVATE: {
@@ -243,6 +253,10 @@ export const runMachine = setup({
 					target: "running",
 					// A resume after the turn limit gives the attempt MAX_TURNS more (ADR-126).
 					actions: assign(({ context, event }) => resumed(context, event.at)),
+				},
+				// A blocked skill context ends a self-resuming pause; only the user resumes it.
+				HOLD: {
+					actions: assign({ pause: { reason: "user" as const } }),
 				},
 				CANCEL: "#run.cancelled",
 			},

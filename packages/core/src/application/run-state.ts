@@ -31,6 +31,7 @@ import type { RunMeta, RunStore } from "../infrastructure/run-store.js";
 import type { SnapshotStore } from "../infrastructure/snapshot-store.js";
 import type { TemplateDirs } from "../infrastructure/template-store.js";
 import type { ControlState } from "./control-turn.js";
+import type { SkillLoadAuthority } from "./skill-load-authority.js";
 import type { StepDeps } from "./steps.js";
 
 // The engine's state and the primitives every driver uses: apply an event, publish, hold a run.
@@ -88,6 +89,14 @@ export type EngineState = {
 	readonly deps: EngineDeps;
 	readonly live: Map<string, Live>;
 	readonly onPauseEnded: (runId: string) => void;
+	/** Process-local native skill load authority (ADR-190); never serialized. */
+	readonly skillLoads: SkillLoadAuthority;
+	/** Shared admission count; a timed resume's awaited check holds it like a manual one. */
+	gate?: {
+		readonly enter: <T, E>(
+			operation: () => Promise<Result<T, E>>,
+		) => Promise<Result<T, E | { code: "failed"; message: string }>>;
+	};
 };
 
 // setTimeout fires at once above 2^31 - 1 ms.
@@ -235,9 +244,49 @@ const leaveHandoff = (s: EngineState, l: Live) => {
 	emit(s, l, { type: "handoff.created", payload });
 };
 
+const terminalCurrent = (s: EngineState, l: Live, event: RunEvent) => {
+	const row = loaded(s, l.meta.id);
+	if (!row.ok) {
+		l.token = {};
+		l.model?.abort();
+		return false;
+	}
+	const status = row.value?.snapshot.value;
+	if (
+		!status ||
+		!["completed", "failed", "cancelled"].includes(status) ||
+		status === l.snapshot.value
+	)
+		return true;
+	l.token = {};
+	if (!row.value) return false;
+	l.snapshot = row.value.snapshot;
+	return status === "failed" && event.type === "CANCEL";
+};
+
+const acceptsEvent = (l: Live, event: RunEvent) => {
+	if (
+		["completed", "cancelled"].includes(l.snapshot.value) ||
+		(l.snapshot.value === "failed" && event.type !== "CANCEL")
+	)
+		return false;
+	if (
+		(event.type === "PAUSE" && l.snapshot.value !== "running") ||
+		(event.type === "RESUME" && l.snapshot.value !== "paused") ||
+		(event.type === "CANCEL" && l.snapshot.value === "cancelled")
+	)
+		return false;
+	return l.snapshot.can(event);
+};
+
 /** Applies one event; the row is written before the event is published (docs/07). */
 export const apply = (s: EngineState, l: Live, event: RunEvent) => {
-	if (!l.snapshot.can(event)) return false;
+	if (
+		!acceptsEvent(l, event) ||
+		!terminalCurrent(s, l, event) ||
+		!acceptsEvent(l, event)
+	)
+		return false;
 	const prev = l.snapshot;
 	const [changed] = transition(runMachine, prev, event);
 	const context = syncSeatedWorker(changed.context, event);

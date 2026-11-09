@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -11,8 +11,10 @@ import {
 	type LlmChunk,
 	type MeteEvent,
 	ok,
+	type RunQuiesceAdapter,
 	type StorageSqlAdapter,
-	type TeamEngineAdapter,
+	type TaskVerificationAdapter,
+	type TeamEngineV3Adapter,
 	type VcsGitAdapter,
 } from "@mete/contracts";
 import {
@@ -27,11 +29,15 @@ import {
 	checkpointRef,
 	checkpointRestoreContract,
 	type EngineScenario,
-	teamEngineContract,
+	taskVerificationContract,
+	teamEngineV3Contract,
 } from "@mete/testing";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { createSnapshotStore } from "../src/infrastructure/snapshot-store.js";
-import { createCoreEngineModule } from "../src/module.js";
+import {
+	type CoreEngineOptions,
+	createCoreEngineModule,
+} from "../src/module.js";
 import { reply, slow } from "./helpers/engine.js";
 
 // Real storage in a temp folder; the model behind llm.chat@2 is a fake.
@@ -62,7 +68,10 @@ const chatFor = (scenario: EngineScenario): LlmChatAdapter["chat"] =>
 		yield { type: "error", error } satisfies LlmChunk;
 	};
 
-const setup = async (scenario: EngineScenario | "none") => {
+const setup = async (
+	scenario: EngineScenario | "none",
+	options: (ctx: ModuleContext) => Partial<CoreEngineOptions> = () => ({}),
+) => {
 	const root = await mkdtemp(join(tmpdir(), "mete-core-"));
 	roots.push(root);
 	const registry = createCapabilityRegistry(() => []);
@@ -103,6 +112,11 @@ const setup = async (scenario: EngineScenario | "none") => {
 		workspaceId: randomUUID(),
 		workspaceDir: join(root, "repo"),
 		snapshotsDir: join(root, "snapshots"),
+		templates: {
+			builtIn: join(root, "templates"),
+			workspace: join(root, "repo"),
+		},
+		...options(base),
 	});
 	const storageCtx = sql.value[0].impl.scopeFor("core-engine");
 	const activated = await module.activate({
@@ -118,14 +132,55 @@ const setup = async (scenario: EngineScenario | "none") => {
 };
 
 const engineOf = (registry: ModuleContext["capabilities"]) => {
-	const r = registry.resolve<TeamEngineAdapter>("team.engine@2");
-	if (!r.ok) throw new Error("team.engine@2 missing");
+	const r = registry.resolve<TeamEngineV3Adapter>("team.engine@3");
+	if (!r.ok) throw new Error("team.engine@3 missing");
 	return r.value[0].impl;
 };
 
-teamEngineContract("core-engine", async (scenario) => {
+const quiesceOf = (registry: ModuleContext["capabilities"]) => {
+	const r = registry.resolve<RunQuiesceAdapter>("run.quiesce@1");
+	if (!r.ok) throw new Error("run.quiesce@1 missing");
+	return r.value[0].impl;
+};
+
+type NativeControls = Parameters<
+	NonNullable<CoreEngineOptions["onNativeControls"]>
+>[0];
+
+teamEngineV3Contract("core-engine", async (scenario) => {
 	const h = await setup(scenario);
 	return { engine: engineOf(h.registry), events: h.events, close: h.close };
+});
+
+taskVerificationContract("core-engine", async () => {
+	const h = await setup("answers");
+	await mkdir(join(h.root, "templates"));
+	for (const [id, apiVersion, optional] of [
+		["required", "mete/v1", ""],
+		["optional", "mete/v2", ", optional: true"],
+	] as const)
+		await writeFile(
+			join(h.root, "templates", `${id}.yaml`),
+			`apiVersion: ${apiVersion}
+kind: TeamTemplate
+metadata: { id: ${id}, name: Fixture, version: 1.0.0 }
+pattern: single
+roles:
+  - { id: dev, name: Dev, goal: Build, tier: coder, capabilities: [] }
+tasks:
+  - { id: build, role: dev, title: Build, verify: [{ capability: gameengine.test@1${optional} }] }
+`,
+		);
+	const port = h.registry.resolve<TaskVerificationAdapter>(
+		"task.verification@1",
+	);
+	if (!port.ok) throw new Error("verification port missing");
+	return {
+		engine: engineOf(h.registry),
+		verification: port.value[0].impl,
+		templates: { required: "required", optional: "optional" },
+		close: h.close,
+	};
 });
 
 // A vcs.git@2 that keeps checkpoint refs in memory: create numbers them per run, restore knows them.
@@ -157,7 +212,7 @@ const restoreOf = (registry: ModuleContext["capabilities"]) => {
 };
 
 // A run of the slow model, paused once it runs.
-const pausedRun = async (engine: TeamEngineAdapter) => {
+const pausedRun = async (engine: TeamEngineV3Adapter) => {
 	const r = await engine.start({ goal: "wait" });
 	if (!r.ok) throw new Error(r.error.message);
 	await engine.pause(r.value.runId);
@@ -227,6 +282,113 @@ checkpointRestoreContract("core-engine", async (kind) => {
 });
 
 describe("core-engine module", () => {
+	it("reports the exact registered native pair once, including with recovery off", async () => {
+		const onNativeControls = vi.fn<(controls: NativeControls) => void>();
+		const h = await setup("answers", (ctx) => ({
+			recover: false,
+			onNativeControls: (controls) => {
+				expect(controls.engine).toBe(engineOf(ctx.capabilities));
+				expect(controls.quiesce).toBe(quiesceOf(ctx.capabilities));
+				onNativeControls(controls);
+			},
+		}));
+		try {
+			expect(h.activated).toMatchObject({ ok: true });
+			expect(onNativeControls).toHaveBeenCalledTimes(1);
+			const controls = onNativeControls.mock.calls[0]?.[0];
+			if (!controls) throw new Error("native pair missing");
+			expect(await controls.quiesce.prepare()).toEqual(ok(null));
+			expect(
+				await controls.engine.start({
+					goal: "must not start",
+					templateId: null,
+				}),
+			).toMatchObject({ ok: false, error: { code: "failed" } });
+			expect(await controls.engine.resume(randomUUID())).toMatchObject({
+				ok: false,
+				error: { code: "failed" },
+			});
+			expect(h.events).toEqual([]);
+		} finally {
+			await h.close();
+		}
+	});
+
+	it("reports a fresh registered pair after restart before recovery arms timers", async () => {
+		const setTimer = vi.fn<NonNullable<CoreEngineOptions["setTimer"]>>(
+			() => () => {},
+		);
+		const onNativeControls = vi.fn<(controls: NativeControls) => void>();
+		const h = await setup("quota-exhausted", (ctx) => ({
+			setTimer,
+			onNativeControls: (controls) => {
+				expect(controls.engine).toBe(engineOf(ctx.capabilities));
+				expect(controls.quiesce).toBe(quiesceOf(ctx.capabilities));
+				expect(setTimer).not.toHaveBeenCalled();
+				onNativeControls(controls);
+			},
+		}));
+		try {
+			expect(onNativeControls).toHaveBeenCalledTimes(1);
+			const first = onNativeControls.mock.calls[0]?.[0];
+			if (!first) throw new Error("first native pair missing");
+			const started = await first.engine.start({
+				goal: "quota pause",
+				templateId: null,
+			});
+			if (!started.ok) throw new Error(started.error.message);
+			await vi.waitFor(() => {
+				expect(first.engine.status(started.value.runId)).toMatchObject({
+					value: [{ status: "paused", pauseReason: "quota" }],
+				});
+				expect(setTimer).toHaveBeenCalledTimes(1);
+			});
+			await h.module.deactivate();
+			h.base.disposables.dispose();
+			expect(h.registry.has("team.engine@3")).toBe(false);
+			expect(h.registry.has("run.quiesce@1")).toBe(false);
+			setTimer.mockClear();
+			const sql = h.registry.resolve<StorageSqlAdapter>("storage.sql@1");
+			if (!sql.ok) throw new Error("storage.sql@1 missing");
+			expect(
+				await h.module.activate({
+					...h.base,
+					storage: sql.value[0].impl.scopeFor("core-engine"),
+				}),
+			).toMatchObject({ ok: true });
+			expect(onNativeControls).toHaveBeenCalledTimes(2);
+			const second = onNativeControls.mock.calls[1]?.[0];
+			if (!second) throw new Error("second native pair missing");
+			expect(second.engine).not.toBe(first.engine);
+			expect(second.quiesce).not.toBe(first.quiesce);
+			expect(setTimer).toHaveBeenCalledTimes(1);
+			expect(second.engine.status(started.value.runId)).toMatchObject({
+				value: [{ status: "paused", pauseReason: "quota" }],
+			});
+		} finally {
+			await h.close();
+		}
+	});
+
+	it("registers only the strict engine version and a read-only verification port", async () => {
+		const h = await setup("answers");
+		try {
+			expect(h.registry.has("team.engine@3")).toBe(true);
+			expect(h.registry.has("team.engine@2")).toBe(false);
+			const port = h.registry.resolve<TaskVerificationAdapter>(
+				"task.verification@1",
+			);
+			if (!port.ok) throw new Error("verification port missing");
+			expect(
+				await port.value[0].impl.read({ runId: randomUUID() }),
+			).toMatchObject({
+				ok: false,
+				error: { code: "not_found" },
+			});
+		} finally {
+			await h.close();
+		}
+	});
 	it("registers explicit context as optional source validation beside the legacy ports", async () => {
 		const h = await setup("answers");
 		try {
@@ -312,12 +474,17 @@ describe("core-engine module", () => {
 
 	it("fails to activate without storage", async () => {
 		const h = await setup("answers");
-		const bare = createCoreEngineModule({ workspaceId: randomUUID() });
+		const onNativeControls = vi.fn();
+		const bare = createCoreEngineModule({
+			workspaceId: randomUUID(),
+			onNativeControls,
+		});
 		const r = await bare.activate(h.base);
 		expect(r.ok ? undefined : r.error).toMatchObject({
 			code: "activation_failed",
 			moduleId: "core-engine",
 		});
+		expect(onNativeControls).not.toHaveBeenCalled();
 		await h.close();
 	});
 
@@ -347,13 +514,13 @@ describe("core-engine module", () => {
 		await h.close();
 	});
 
-	it("pauses its running runs and stops providing team.engine@2 on deactivate", async () => {
+	it("pauses its running runs and stops providing team.engine@3 on deactivate", async () => {
 		const h = await setup("slow");
 		const engine = engineOf(h.registry);
 		const started = await engine.start({ goal: "wait" });
 		if (!started.ok) throw new Error(started.error.message);
 		await h.close();
-		expect(h.registry.has("team.engine@2")).toBe(false);
+		expect(h.registry.has("team.engine@3")).toBe(false);
 		expect(h.events.map((e) => e.type)).toEqual([
 			"run.created",
 			"run.started",

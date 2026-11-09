@@ -5,9 +5,11 @@ import type {
 	ConversationCapability,
 	PauseReasonSchema,
 	RunPrefer,
+	SkillRuntimeError,
 } from "@mete/contracts";
 import type { z } from "zod";
 import type { RequestReservation } from "./reservation-schema.js";
+import type { RunSkillState } from "./skill-state.js";
 import type { TaskSession } from "./task-session-schema.js";
 import type { TeamState } from "./team-schema.js";
 
@@ -38,6 +40,10 @@ export type RunContext = {
 	readonly extraCapabilities?: readonly ConversationCapability[] | undefined;
 	/** Masked immutable snapshots sent with this turn only (ADR-183). */
 	readonly attachments?: readonly ContextSnapshot[] | undefined;
+	/** S2 authority is checked independently; parsing never supplies a legacy marker. */
+	readonly skillRuntimeVersion?: 1 | undefined;
+	readonly skills?: RunSkillState | undefined;
+	readonly skillBlock?: SkillRuntimeError | undefined;
 	/** Model replies of the current attempt; MAX_TURNS limits them. */
 	readonly turns: number;
 	/** Model replies of the whole run, the cloud requests of the budget. */
@@ -92,6 +98,12 @@ export type RunEvent =
 	| { type: "TOOL_STARTED"; callId: string | undefined }
 	| { type: "TOOL_DONE"; message: ToolMessage; external?: boolean }
 	| { type: "TAINT" }
+	/** A security-issued snapshot joins its owning context, or that context is created. */
+	| { type: "SKILL_LOADED"; skills: RunSkillState }
+	/** A typed refusal of the run's skill context; cleared only by a successful check. */
+	| { type: "SKILL_BLOCKED"; error: SkillRuntimeError | undefined }
+	/** Turns a self-resuming pause into a user pause (ADR-190). */
+	| { type: "HOLD" }
 	| { type: "MODEL"; agent: AgentRef }
 	| { type: "TEAM"; team: TeamState }
 	| { type: "ACTIVATE"; task: string }

@@ -16,6 +16,7 @@ export const waitSignature = (entry: TeamState["tasks"][string]): string =>
 				entry.context.report,
 				entry.messages.at(-1),
 				entry.attempts?.id,
+				entry.verification?.evaluationId,
 			]),
 		)
 		.digest("hex");

@@ -1,8 +1,12 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ok, type RunView } from "@mete/contracts";
+import { ok, parseTemplate, type RunView } from "@mete/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { initialTransition } from "xstate";
+import { parse } from "yaml";
+import { runMachine } from "../../src/domain/run-machine.js";
+import { teamOf } from "../../src/domain/team.js";
 import type { TemplateDirs } from "../../src/infrastructure/template-store.js";
 import { engineHarness, reply, type Tool } from "../helpers/engine.js";
 
@@ -48,15 +52,56 @@ const settled = (h: H, runId: string, status: string) =>
 const run = async (
 	verify: string,
 	opts: Parameters<typeof engineHarness>[0],
+	legacy = false,
 ) => {
 	await writeFile(join(templates.builtIn, "duo.yaml"), gated(verify));
 	const h = engineHarness({ ...opts, templates });
+	if (legacy) {
+		const parsed = parseTemplate(parse(gated(verify)));
+		if (!parsed.ok) throw new Error("invalid legacy fixture");
+		const { verificationVersion: _marker, ...team } = teamOf(parsed.value);
+		const [initial] = initialTransition(runMachine, {
+			goal: "a prototype",
+			priority: 1,
+			messages: [],
+		});
+		const runId = crypto.randomUUID();
+		// This saved row predates ADR-187; loading must not attach the new-run marker.
+		h.store.save(
+			{
+				id: runId,
+				workspaceId: crypto.randomUUID(),
+				autonomyLevel: 2,
+				budget: { cloudRequests: 20, maxHours: 1 },
+				createdAt: new Date(0).toISOString(),
+			},
+			runMachine.resolveState({
+				value: "paused",
+				context: { ...initial.context, team, pause: { reason: "user" } },
+			}),
+		);
+		await h.engine.resume(runId);
+		return { h, runId };
+	}
 	const r = await h.engine.start({ goal: "a prototype", templateId: "duo" });
 	if (!r.ok) throw new Error(r.error.message);
 	return { h, runId: r.value.runId };
 };
 const gates = (h: H) =>
-	h.events.filter((e) => e.type === "verify.completed").map((e) => e.payload);
+	h.events.flatMap((e) =>
+		e.type === "verify.completed"
+			? [e.payload]
+			: e.type === "verify.evaluated" &&
+					["passed", "failed"].includes(e.payload.result.status)
+				? [
+						{
+							gate: e.payload.result.gate,
+							ok: e.payload.result.status === "passed",
+							details: e.payload.result.details,
+						},
+					]
+				: [],
+	);
 
 describe("verify gates by capability", () => {
 	it("call the capability with its args, or none, and pass on an ok answer", async () => {
@@ -78,8 +123,8 @@ describe("verify gates by capability", () => {
 		await settled(h, runId, "completed");
 		expect(inputs).toEqual([{}, { file: "a.png" }]);
 		expect(gates(h)).toEqual([
-			{ gate: "gameengine.build@1", ok: true, details: "" },
-			{ gate: "gameengine.importAsset@1", ok: true, details: "" },
+			{ gate: "gameengine.build@1", ok: true, details: '{"log":"done"}' },
+			{ gate: "gameengine.importAsset@1", ok: true, details: '{"log":"done"}' },
 		]);
 	});
 
@@ -107,7 +152,7 @@ describe("verify gates by capability", () => {
 				ok: false,
 				details: expect.stringContaining("exited with 1"),
 			},
-			{ gate: "gameengine.build@1", ok: true, details: "" },
+			{ gate: "gameengine.build@1", ok: true, details: '{"log":"built"}' },
 		]);
 	});
 
@@ -126,7 +171,7 @@ describe("verify gates by capability", () => {
 		await settled(h, runId, "completed");
 		expect(n).toBe(2);
 		expect(gates(h)).toEqual([
-			{ gate: "gameengine.build@1", ok: true, details: "" },
+			{ gate: "gameengine.build@1", ok: true, details: '{"log":"built"}' },
 		]);
 	});
 
@@ -139,6 +184,7 @@ describe("verify gates by capability", () => {
 		const { h, runId } = await run(
 			'[{ capability: gameengine.test@1 }, { run: "npm test" }]',
 			{ scripts: [reply(REPORT)], tools: [["shell.exec@1", shell]] },
+			true,
 		);
 		await settled(h, runId, "completed");
 		expect(commands).toEqual([{ command: "npm test" }]);
@@ -146,6 +192,12 @@ describe("verify gates by capability", () => {
 		expect(h.logged).toContainEqual({
 			level: "warn",
 			msg: "verify gate skipped: no adapter provides its capability",
+		});
+		expect(await h.verification.read({ runId })).toMatchObject({
+			value: {
+				mode: "legacy",
+				tasks: [{ evaluations: [] }],
+			},
 		});
 	});
 });

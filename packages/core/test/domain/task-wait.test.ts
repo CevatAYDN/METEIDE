@@ -6,6 +6,7 @@ import {
 	withTaskWait,
 } from "../../src/domain/task-wait.js";
 import { applyTask, TeamStateSchema, teamOf } from "../../src/domain/team.js";
+import { checkedTeam } from "../helpers/checked-team.js";
 
 const prepared = () => {
 	const parsed = parseTemplate({
@@ -64,5 +65,7 @@ describe("persistent task wait identity", () => {
 		expect(
 			withTaskWait(restored, "a", undefined).tasks.a?.wait,
 		).toBeUndefined();
+		const newer = checkedTeam(restored, "a", "ready");
+		expect(currentWait(newer.tasks.a)).toBeUndefined();
 	});
 });

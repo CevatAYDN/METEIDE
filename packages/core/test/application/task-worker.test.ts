@@ -53,11 +53,28 @@ const setup = () => {
 		all: new AbortController(),
 	};
 	const save = vi.fn();
-	const state = { deps: { store: { save } } } as unknown as EngineState;
+	const state = {
+		deps: {
+			store: {
+				save,
+				load: () => ({ meta: live.meta, snapshot: live.snapshot }),
+			},
+		},
+	} as unknown as EngineState;
 	return { live, state, save };
 };
 
 describe("task-local worker progress", () => {
+	it("refuses progress without saving when its persisted state cannot be read", () => {
+		const { live, state, save } = setup();
+		vi.spyOn(state.deps.store, "load").mockImplementation(() => {
+			throw new Error("read failed");
+		});
+		const before = live.snapshot;
+		expect(applyWorker(state, live, "a", { type: "TAINT" })).toBe(false);
+		expect(live.snapshot).toBe(before);
+		expect(save).not.toHaveBeenCalled();
+	});
 	it("persists metadata taint in only the exposed worker before any reply", () => {
 		const { live, state } = setup();
 		expect(applyWorker(state, live, "a", { type: "TAINT" })).toBe(true);

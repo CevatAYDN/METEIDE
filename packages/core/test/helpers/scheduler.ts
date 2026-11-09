@@ -44,6 +44,7 @@ export const schedulerHarness = async (options: {
 	policy?: unknown;
 	llm?: boolean;
 	tools?: NonNullable<Parameters<typeof engineHarness>[0]["tools"]>;
+	wrapStore?: NonNullable<Parameters<typeof engineHarness>[0]["wrapStore"]>;
 	rewrite?: (source: string) => string;
 	configure?: (harness: ReturnType<typeof engineHarness>) => void;
 }) => {

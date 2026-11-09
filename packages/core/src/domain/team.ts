@@ -11,6 +11,7 @@ import { readyTasks } from "./task-readiness.js";
 import { freshTaskSession } from "./task-session-schema.js";
 import { currentWait } from "./task-wait.js";
 import type { TeamState } from "./team-schema.js";
+import { eligibleVerification } from "./verification.js";
 
 export { readyTasks } from "./task-readiness.js";
 export { type TeamState, TeamStateSchema } from "./team-schema.js";
@@ -51,6 +52,7 @@ export const teamOf = (
 	newId: () => string = () => crypto.randomUUID(),
 ): TeamState => ({
 	template,
+	verificationVersion: 1,
 	tasks: Object.fromEntries(
 		template.tasks.map((t) => [t.id, todoEntry(template, newId())]),
 	),
@@ -184,6 +186,10 @@ export const applyTask = (
 		status: next.value,
 		context: next.context,
 		session,
+		verification:
+			reopened && next.context.blocked !== "revision_limit"
+				? undefined
+				: entry.verification,
 		approvals: fresh ? [] : entry.approvals,
 		repairs: ["START", "ATTEMPT", "SUBMIT", "UNBLOCK"].includes(event.type)
 			? 0
@@ -220,6 +226,8 @@ const missing = (team: TeamState, id: string) =>
 export const approve = (team: TeamState, id: string, by: string) => {
 	const entry = team.tasks[id];
 	if (entry?.status !== "submitted") return { team };
+	if (!eligibleVerification(team, id, entry.context.report ?? ""))
+		return { team };
 	const approvals = [...new Set([...entry.approvals, by])];
 	const after = withEntry(team, id, { ...entry, approvals });
 	if (missing(after, id).length > 0) return { team: after };
@@ -265,8 +273,24 @@ type Decision = {
 // A blocked task goes back to work with the feedback as its instruction, whatever the decision,
 // except that approve accepts the submission a revision-limit block kept, the human's approval
 // standing for the approvers it still waited for (ADR-157).
-const unblock = (team: TeamState, id: string, entry: TaskEntry, d: Decision) =>
-	d.decision === "approve" && entry.context.blocked === "revision_limit"
+const unblock = (
+	team: TeamState,
+	id: string,
+	entry: TaskEntry,
+	d: Decision,
+) => {
+	if (
+		entry.context.blocked === "verification" &&
+		(d.decision !== "revise" || !d.feedback?.trim())
+	)
+		return undefined;
+	if (
+		d.decision === "approve" &&
+		entry.context.blocked === "revision_limit" &&
+		!eligibleVerification(team, id, entry.context.report ?? "")
+	)
+		return undefined;
+	return d.decision === "approve" && entry.context.blocked === "revision_limit"
 		? applyTask(withEntry(team, id, { ...entry, approvals: ["human"] }), id, {
 				type: "APPROVE",
 			})
@@ -274,6 +298,7 @@ const unblock = (team: TeamState, id: string, entry: TaskEntry, d: Decision) =>
 				type: "UNBLOCK",
 				instruction: d.feedback ?? GO_ON,
 			});
+};
 
 /** Applies the human's decision to a task that waits for them; undefined when it does not wait. */
 export const decide = (team: TeamState, id: string, d: Decision) => {
@@ -283,6 +308,11 @@ export const decide = (team: TeamState, id: string, d: Decision) => {
 	if (unmerged(team, id)) return decision === "approve" ? { team } : undefined;
 	const entry = team.tasks[id];
 	if (entry?.status === "blocked") return unblock(team, id, entry, d);
+	if (
+		decision === "approve" &&
+		!eligibleVerification(team, id, entry?.context.report ?? "")
+	)
+		return undefined;
 	return decision === "approve"
 		? approve(team, id, "human")
 		: applyTask(team, id, { type: "REVISE", feedback: feedback ?? "" });

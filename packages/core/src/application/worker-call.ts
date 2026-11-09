@@ -1,6 +1,8 @@
 import type { LlmChunk } from "@mete/contracts";
 import { type Split, summaryRequest } from "../domain/compact.js";
 import type { RunContext } from "../domain/run-machine.js";
+import { pinnedFor } from "../domain/skill-pinned.js";
+import { withSkillMessages } from "../domain/skill-prompt.js";
 import { activeRole } from "../domain/team-run.js";
 import { allowed, type Seat } from "../domain/tools.js";
 import { type EngineState, emitAs, type Live } from "./run-state.js";
@@ -74,11 +76,15 @@ const request = (
 		: call.seat;
 	if (!ownsWorker(live, call) || signal.aborted) return undefined;
 	// Persist the worker's taint before exposing any server-supplied tool metadata.
-	if (allowed(seat, "mcp.tools@1") && state.deps.registry.has("mcp.tools@1"))
-		applyWorker(state, live, call.task, { type: "TAINT" });
+	if (
+		allowed(seat, "mcp.tools@1") &&
+		state.deps.registry.has("mcp.tools@1") &&
+		!applyWorker(state, live, call.task, { type: "TAINT" })
+	)
+		return undefined;
 	const messages = call.split
 		? summaryRequest(call.split.middle)
-		: call.context.messages;
+		: withSkillMessages(call.context.messages, pinnedFor(call.context));
 	const run = {
 		runId: live.meta.id,
 		priority: call.context.priority,

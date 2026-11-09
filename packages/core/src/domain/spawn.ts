@@ -78,7 +78,7 @@ export const withSpawned = (
 	};
 	const tasks = { ...team.tasks };
 	for (const d of defs) tasks[d.id] = todoEntry(template, newId());
-	return { team: { template, tasks }, created: defs.map((d) => d.id) };
+	return { team: { ...team, template, tasks }, created: defs.map((d) => d.id) };
 };
 
 /** A spawned task's acceptance sentences, from the list of the task that spawned it. */

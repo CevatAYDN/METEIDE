@@ -10,7 +10,9 @@ import {
 import { initialTransition, transition } from "xstate";
 import { contextMessages } from "../domain/context-prompt.js";
 import { openingMessages, type Platform } from "../domain/prompt.js";
-import { type RunSnapshot, runMachine } from "../domain/run-machine.js";
+import type { RunSnapshot } from "../domain/run-machine.js";
+import { runMachine } from "../domain/run-machine.js";
+import type { RunSkillState } from "../domain/skill-state.js";
 import type { TeamState } from "../domain/team.js";
 import type { ThreadIntent, ThreadSaved } from "../domain/thread.js";
 import type { RunMeta } from "../infrastructure/run-store.js";
@@ -42,6 +44,8 @@ export type Begin = {
 	readonly conversation?: Pick<ReplyStart, "messages" | "tainted">;
 	readonly extraCapabilities?: readonly ConversationCapability[] | undefined;
 	readonly attachments?: readonly ContextSnapshot[] | undefined;
+	/** Genuine S2 state for an @3 start; absent keeps legacy behavior. */
+	readonly skills?: RunSkillState | undefined;
 };
 type Prepared = { readonly meta: RunMeta; readonly snapshot: RunSnapshot };
 
@@ -69,6 +73,7 @@ const initialSnapshot = (input: Begin, where: Platform) => {
 		messages: [...messages, ...contextMessages(input.attachments ?? [])],
 		tainted: conversation?.tainted || (input.attachments?.length ?? 0) > 0,
 		attachments: input.attachments,
+		skills: input.skills,
 	});
 	return team
 		? transition(runMachine, fresh, { type: "TEAM", team })[0]

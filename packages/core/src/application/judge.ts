@@ -10,6 +10,7 @@ import { setRepairs, type TeamState } from "../domain/team.js";
 import { choose, settle } from "./attempts.js";
 import { apply, type EngineState, type Live, stuck } from "./run-state.js";
 import { worktreeChanges, worktreeDiff } from "./vcs-steps.js";
+import { refreshVerificationSnapshot } from "./verification.js";
 
 // The judge of a best-of-N task (docs/08, Task execution sequence; ADR-162): two or more attempts
 // passed their checks, so an agent of `judge_tier` with no tools reads them in a conversation of its
@@ -32,12 +33,20 @@ const candidateOf = async (
 
 /** Opens the judge's conversation over the candidates' reports, changed files and diffs. */
 export const openJudge = async (s: EngineState, l: Live) => {
+	const token = l.token;
+	const current = () =>
+		!!refreshVerificationSnapshot(s, l) &&
+		l.token === token &&
+		l.snapshot.value === "running";
+	if (!current()) return;
 	const { team, task, goal } = l.snapshot.context;
 	if (!team || !task) return stuck(s, l);
 	const parts: Candidate[] = [];
-	for (const k of candidates(team, task))
+	for (const k of candidates(team, task)) {
 		parts.push(await candidateOf(s, l, { team, task, k }));
-	// A run paused meanwhile keeps the judge's conversation, as it keeps a finished tool call (docs/08).
+		if (!current()) return;
+	}
+	// Candidate reads can outlive their selection; only the unchanged owner may open the judge.
 	const messages = judgeConversation(team, task, { goal, candidates: parts });
 	const fresh = setRepairs(team, task, 0);
 	apply(s, l, { type: "SWITCH", task, team: fresh, messages, judge: true });

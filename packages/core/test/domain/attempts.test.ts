@@ -15,6 +15,8 @@ import {
 	TeamStateSchema,
 	teamOf,
 } from "../../src/domain/team.js";
+import { withVerification } from "../../src/domain/verification.js";
+import { checkedTeam } from "../helpers/checked-team.js";
 
 // A best-of-N task's attempts as the run snapshot keeps them (ADR-162).
 
@@ -159,5 +161,88 @@ describe("attempts in the run snapshot", () => {
 		const chosen = goOn(both, "build", 1);
 		expect(chosen.tasks.build?.session).toEqual(SESSION);
 		expect(TeamStateSchema.parse(chosen)).toEqual(chosen);
+	});
+});
+
+const requiredTeam = () => {
+	const base = team(2);
+	return {
+		...base,
+		template: {
+			...base.template,
+			tasks: base.template.tasks.map((task) => ({
+				...task,
+				verify: [{ run: "check" }],
+			})),
+		},
+	};
+};
+
+describe("strict best-of-N evidence", () => {
+	it("records, clears and restores each attempt's own evaluation", () => {
+		const original = checkedTeam(requiredTeam(), "build", "first");
+		const first = finishAttempt(
+			original,
+			"build",
+			{ report: "first", messages: said("first") },
+			NEXT,
+		);
+		expect(first.tasks.build?.verification).toBeUndefined();
+		expect(first.tasks.build?.attempts?.finished[0]?.verification).toEqual(
+			original.tasks.build?.verification,
+		);
+		const all = finishAttempt(first, "build", {
+			report: "unverified",
+			messages: said("unverified"),
+		});
+		expect(candidates(all, "build")).toEqual([1]);
+		expect(goOn(all, "build", 2).tasks.build?.attempts?.goesOn).toBeUndefined();
+		const chosen = goOn(all, "build", 1);
+		expect(chosen.tasks.build?.verification).toEqual(
+			original.tasks.build?.verification,
+		);
+	});
+	it("does not select report-only or wrong-report candidates", () => {
+		const unverified = finishAttempt(
+			requiredTeam(),
+			"build",
+			{ report: "first", messages: said("first") },
+			NEXT,
+		);
+		const changed = finishAttempt(
+			checkedTeam(unverified, "build", "second"),
+			"build",
+			{
+				report: "different",
+				messages: said("different"),
+			},
+		);
+		expect(candidates(changed, "build")).toEqual([]);
+	});
+	it("cannot reuse a recorded pass after the same attempt has newer failing evidence", () => {
+		const first = checkedTeam(requiredTeam(), "build", "first");
+		const all = finishAttempt(first, "build", {
+			report: "first",
+			messages: said("first"),
+		});
+		const passed = all.tasks.build?.verification;
+		if (!passed) throw new Error("evidence missing");
+		const newer = withVerification(all, "build", {
+			...passed,
+			evaluationId: crypto.randomUUID(),
+			gates: [
+				{
+					index: 0,
+					gate: "check",
+					optional: false,
+					status: "failed",
+					details: "failed",
+				},
+			],
+		});
+		expect(candidates(newer, "build")).toEqual([]);
+		expect(
+			goOn(newer, "build", 1).tasks.build?.attempts?.goesOn,
+		).toBeUndefined();
 	});
 });

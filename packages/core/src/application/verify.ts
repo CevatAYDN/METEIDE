@@ -1,4 +1,6 @@
 import type { CapabilityRef, ToolContext } from "@mete/contracts";
+import { taskContext } from "../domain/task-worker.js";
+import { verifyOf } from "../domain/team-run.js";
 import {
 	type Gate,
 	gateError,
@@ -7,7 +9,16 @@ import {
 	gateRefused,
 	ShellRunSchema,
 } from "../domain/verify.js";
+import { waitForPolicy } from "./policy-wait.js";
+import {
+	apply,
+	type EngineState,
+	emit,
+	type Live,
+	toolContext,
+} from "./run-state.js";
 import { type Emit, masked, runCapability, type StepDeps } from "./steps.js";
+import { endAttempt } from "./submission.js";
 
 // The verify gates of a task (docs/08, step 3): each `run` command goes through shell.exec@1 with
 // the task's ToolContext, so the policy decides whether it runs, asks or is refused; a gate that
@@ -98,4 +109,45 @@ export const verifyGates = async (deps: StepDeps, run: Run): Promise<Gated> => {
 		if (gated) return gated;
 	}
 	return { kind: "passed" };
+};
+
+const settleLegacyGate = (s: EngineState, l: Live, gated: Gated) => {
+	const current = l.snapshot.context.team;
+	if (gated.kind === "failed" && current)
+		apply(s, l, { type: "REPAIR", team: current, content: gated.content });
+	else if (gated.kind === "approval")
+		apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
+	else endAttempt(s, l, { type: "BLOCK", reason: "capability_missing" });
+	return false;
+};
+
+/** Keeps ADR-120 progression for unmarked saved runs, using current state after awaits. */
+export const legacyVerified = async (s: EngineState, l: Live, task: string) => {
+	const team = l.snapshot.context.team;
+	if (!team) return false;
+	const gates = verifyOf(team, task);
+	if (gates.length === 0) return true;
+	const context = taskContext(l.snapshot.context, task);
+	const token = l.token;
+	const taskId = team.tasks[task]?.id;
+	const gated = await verifyGates(s.deps, {
+		gates,
+		ctx: toolContext(l),
+		emit: (body) => emit(s, l, body, taskId),
+		skipped: (capability) =>
+			s.deps.logger.warn(
+				{ runId: l.meta.id, taskId, capability },
+				"verify gate skipped: no adapter provides its capability",
+			),
+	});
+	if (l.snapshot.value !== "running" || l.token !== token) return false;
+	if (
+		gated.kind === "approval" &&
+		context &&
+		(await waitForPolicy(s, l, context, "verify"))
+	)
+		return false;
+	if (l.token !== token) return false;
+	if (gated.kind === "passed") return true;
+	return settleLegacyGate(s, l, gated);
 };

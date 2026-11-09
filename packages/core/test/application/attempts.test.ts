@@ -1,9 +1,13 @@
+import { randomUUID } from "node:crypto";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { setImmediate } from "node:timers/promises";
 import { ok } from "@mete/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { JUDGE_CANDIDATE_CHARS } from "../../src/defaults.js";
+import { runMachine } from "../../src/domain/run-machine.js";
+import { withVerification } from "../../src/domain/verification.js";
 import type { TemplateDirs } from "../../src/infrastructure/template-store.js";
 import {
 	engineHarness,
@@ -186,6 +190,7 @@ describe("best-of-N attempts (ADR-162)", () => {
 			[reply("notes"), PASSES, PASSES],
 		);
 		await settled("paused");
+		const before = await h.verification.read({ runId });
 		const r = await h.engine.approve(runId, {
 			decision: "revise",
 			feedback: "shorter",
@@ -193,6 +198,16 @@ describe("best-of-N attempts (ADR-162)", () => {
 		expect(r.ok).toBe(true);
 		await vi.waitFor(() => expect(h.requests).toHaveLength(3));
 		await settled("paused");
+		const after = await h.verification.read({ runId });
+		if (!before.ok || !after.ok) throw new Error("verification read failed");
+		const oldCurrent = before.value.tasks[0]?.evaluations.find(
+			(e) => e.attemptId === before.value.tasks[0]?.currentAttemptId,
+		);
+		const newCurrent = after.value.tasks[0]?.evaluations.find(
+			(e) => e.attemptId === after.value.tasks[0]?.currentAttemptId,
+		);
+		expect(newCurrent?.attemptId).toBe(oldCurrent?.attemptId);
+		expect(newCurrent?.evaluationId).not.toBe(oldCurrent?.evaluationId);
 		expect(vcs.ids("worktree.create")).toHaveLength(2);
 		expect(payloads("task.attempt.chosen")).toHaveLength(1);
 		const agents = payloads("task.assigned").map(
@@ -379,6 +394,73 @@ describe("the judge of best-of-N attempts (ADR-162)", () => {
 		expect(payloads("task.attempt.chosen")).toEqual([
 			{ attempt: 2, of: 2, by: "judge", reason: "clearer" },
 		]);
+	});
+
+	it("discards two-candidate judge preparation when newer evidence is persisted during its read", async () => {
+		let release = () => {};
+		const waiting = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const { h, vcs, runId, payloads } = await run(
+			", verify: [{ capability: fs.write@1, args: { path: check.txt, content: checked } }]",
+			[...TWO, verdict(2, "clearer")],
+			async (cwd) => {
+				await waiting;
+				return `diff in ${cwd}`;
+			},
+		);
+		try {
+			await vi.waitFor(() => expect(vcs.ids("diff")).toHaveLength(1));
+			const stored = h.store.load(runId);
+			const team = stored?.snapshot.context.team;
+			const evaluation = team?.tasks.build?.verification;
+			if (!stored || !team || !evaluation)
+				throw new Error("Missing current evidence");
+			expect(team.tasks.build?.attempts?.finished).toHaveLength(2);
+			expect(
+				team.tasks.build?.attempts?.finished.every(
+					(attempt) => attempt.verification?.gates[0]?.status === "passed",
+				),
+			).toBe(true);
+			const evaluationId = randomUUID();
+			h.store.save(
+				stored.meta,
+				runMachine.resolveState({
+					value: stored.snapshot.value,
+					context: {
+						...stored.snapshot.context,
+						team: withVerification(team, "build", {
+							...evaluation,
+							evaluationId,
+							gates: [
+								{
+									index: 0,
+									gate: "fs.write@1",
+									optional: false,
+									status: "failed",
+									details: "newer evidence while judge reads",
+								},
+							],
+						}),
+					},
+				}),
+			);
+			release();
+			await setImmediate();
+			const current = h.store.load(runId)?.snapshot.context;
+			expect(current?.team?.tasks.build?.verification?.evaluationId).toBe(
+				evaluationId,
+			);
+			expect(current?.team?.tasks.build?.status).toBe("in_progress");
+			expect(current?.judge).not.toBe(true);
+			expect(h.requests).toHaveLength(2);
+			expect(payloads("task.attempt.chosen")).toEqual([]);
+			expect(vcs.ids("diff")).toHaveLength(1);
+		} finally {
+			release();
+			await h.stop();
+			h.db.close();
+		}
 	});
 
 	it("opens the judge on resume when the run paused while it read the candidates", async () => {

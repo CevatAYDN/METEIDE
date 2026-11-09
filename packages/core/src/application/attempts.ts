@@ -7,9 +7,15 @@ import {
 	goOn,
 	leftBehind,
 } from "../domain/attempts.js";
+import type { TeamState } from "../domain/team.js";
+import {
+	eligibleEvidence,
+	eligibleVerification,
+} from "../domain/verification.js";
 import { apply, type EngineState, emit, type Live } from "./run-state.js";
 import { endAttempt, land } from "./submission.js";
 import { dropWorktree } from "./vcs-steps.js";
+import { refreshVerificationSnapshot } from "./verification.js";
 
 // The checks of a best-of-N task's attempt are done (docs/08, steps 2 to 4; ADR-162): the next
 // attempt starts, a judge chooses among the candidates, or one attempt goes on and the task is
@@ -22,7 +28,8 @@ export type GoesOn =
 			readonly report: string;
 			readonly messages: readonly ChatMessage[];
 	  }
-	| { readonly kind: "block"; readonly messages: readonly ChatMessage[] };
+	| { readonly kind: "block"; readonly messages: readonly ChatMessage[] }
+	| { readonly kind: "stale" };
 
 /** What the task does next: start its next attempt, open the judge, or go on with one attempt. */
 export type AfterAttempt =
@@ -42,10 +49,21 @@ export type Choice = {
  * passed. An attempt with no report is the last one, which is blocked with its problems.
  */
 export const choose = (s: EngineState, l: Live, choice: Choice): GoesOn => {
+	const token = l.token;
+	if (!refreshVerificationSnapshot(s, l) || l.token !== token)
+		return { kind: "stale" };
 	const { team, task, messages } = l.snapshot.context;
-	if (!team || !task) return { kind: "block", messages };
+	if (!team || !task || l.snapshot.value !== "running")
+		return { kind: "block", messages };
+	const chosen = finishedOf(team, task, choice.k);
+	if (
+		chosen?.report !== undefined &&
+		!eligibleEvidence(team, task, { ...chosen, number: choice.k })
+	)
+		return { kind: "block", messages };
 	const went = goOn(team, task, choice.k);
-	apply(s, l, { type: "REVIEWED", team: went });
+	if (!apply(s, l, { type: "REVIEWED", team: went }))
+		return { kind: "block", messages };
 	const record = finishedOf(went, task, choice.k);
 	const kept = record?.messages ?? messages;
 	if (record?.report === undefined) return { kind: "block", messages: kept };
@@ -59,6 +77,30 @@ export const choose = (s: EngineState, l: Live, choice: Choice): GoesOn => {
 	return { kind: "submit", report: record.report, messages: kept };
 };
 
+const recordAttempt = (
+	s: EngineState,
+	l: Live,
+	input: {
+		team: TeamState;
+		task: string;
+		done: Parameters<typeof finishAttempt>[2];
+	},
+): AfterAttempt => {
+	const { team, task, done } = input;
+	const n = attemptsOf(team, task);
+	const k = (team.tasks[task]?.attempts?.finished.length ?? 0) + 1;
+	if (k < n) {
+		const next = finishAttempt(team, task, done, s.deps.newId());
+		if (!apply(s, l, { type: "TEAM", team: next })) return { kind: "next" };
+		return { kind: "next" };
+	}
+	const all = k > n ? team : finishAttempt(team, task, done);
+	if (!apply(s, l, { type: "TEAM", team: all })) return { kind: "next" };
+	const passed = candidates(all, task);
+	if (passed.length >= 2) return { kind: "judging" };
+	return choose(s, l, { k: passed[0] ?? n, by: "checks" });
+};
+
 /**
  * Ends the live attempt with its report when its checks passed. Before the last one the next attempt
  * is recorded, so its worktree is named in the snapshot before git makes it; after the last one a
@@ -70,21 +112,17 @@ export const afterAttempt = (
 	l: Live,
 	report?: string,
 ): AfterAttempt => {
+	const token = l.token;
+	if (!refreshVerificationSnapshot(s, l) || l.token !== token)
+		return { kind: "next" };
 	const { team, task, messages, agent } = l.snapshot.context;
-	if (!team || !task) return { kind: "next" };
-	const n = attemptsOf(team, task);
-	const k = (team.tasks[task]?.attempts?.finished.length ?? 0) + 1;
-	const done = { messages, report, family: agent?.family };
-	if (k < n) {
-		const next = finishAttempt(team, task, done, s.deps.newId());
-		apply(s, l, { type: "TEAM", team: next });
+	if (!team || !task || l.snapshot.value !== "running") return { kind: "next" };
+	if (report !== undefined && !eligibleVerification(team, task, report)) {
+		endAttempt(s, l, { type: "BLOCK", reason: "verification" });
 		return { kind: "next" };
 	}
-	const all = k > n ? team : finishAttempt(team, task, done);
-	apply(s, l, { type: "TEAM", team: all });
-	const passed = candidates(all, task);
-	if (passed.length >= 2) return { kind: "judging" };
-	return choose(s, l, { k: passed[0] ?? n, by: "checks" });
+	const done = { messages, report, family: agent?.family };
+	return recordAttempt(s, l, { team, task, done });
 };
 
 /** Removes the worktrees of the attempts that do not go on, once the task records the one that does. */
@@ -97,6 +135,7 @@ export const dropLeftBehind = async (s: EngineState, l: Live) => {
 
 /** The attempt that goes on is submitted, or the last one blocked; the others' worktrees go after the record. */
 export const settle = async (s: EngineState, l: Live, then: GoesOn) => {
+	if (then.kind === "stale") return;
 	if (then.kind === "submit") await land(s, l, then);
 	else endAttempt(s, l, { type: "BLOCK", reason: "guardrail" }, then);
 	await dropLeftBehind(s, l);

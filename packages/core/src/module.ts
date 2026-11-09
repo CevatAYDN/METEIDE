@@ -1,7 +1,13 @@
 // MeteModule entry (docs/06-kernel-and-modules.md). Modules in this package: core-engine; autonomy comes later.
 import { randomUUID } from "node:crypto";
 import { release, type } from "node:os";
-import { err, type ModuleManifest, ok } from "@mete/contracts";
+import {
+	err,
+	type ModuleManifest,
+	ok,
+	type RunQuiesceAdapter,
+	type TeamEngineV3Adapter,
+} from "@mete/contracts";
 import type { MeteModule, ModuleContext, ModuleError } from "@mete/kernel";
 import { createEngine, type EngineDeps } from "./application/engine.js";
 import { createArtifactStore } from "./infrastructure/artifact-store.js";
@@ -17,6 +23,11 @@ export type CoreEngineOptions = {
 	readonly setTimer?: EngineDeps["setTimer"];
 	/** Pause runs an earlier process left running (docs/07); off for a process that only reads runs. */
 	readonly recover?: boolean;
+	/** Exact registered native controls, supplied before recovery (ADR-190). */
+	readonly onNativeControls?: (controls: {
+		readonly engine: TeamEngineV3Adapter;
+		readonly quiesce: RunQuiesceAdapter;
+	}) => void;
 	/** The built-in templates/ folder and the workspace root; without them team runs are refused. */
 	readonly templates?: TemplateDirs;
 	/** The workspace root; team runs write their artifacts to its .mete/artifacts/. */
@@ -34,12 +45,15 @@ const MANIFEST: ModuleManifest = {
 	class: "essential",
 	trust: "core",
 	provides: [
-		"team.engine@2",
+		"team.engine@3",
+		"task.verification@1",
 		"checkpoint.restore@1",
 		"run.reply@1",
 		"conversation.run@1",
 		"conversation.thread@1",
 		"conversation.thread@2",
+		"conversation.thread@3",
+		"run.skills@1",
 		"run.quiesce@1",
 		"task.control@1",
 	],
@@ -117,6 +131,14 @@ const registerConversations = (
 	ctx: ModuleContext,
 	created: ReturnType<typeof createEngine>,
 ) => {
+	ctx.disposables.add(
+		ctx.capabilities.provide("task.verification@1", {
+			id: MANIFEST.id,
+			trust: "core",
+			features: [],
+			impl: created.verification,
+		}),
+	);
 	registerThread(ctx, created);
 	ctx.disposables.add(
 		ctx.capabilities.provide("run.quiesce@1", {
@@ -149,6 +171,22 @@ const registerThread = (
 	created: ReturnType<typeof createEngine>,
 ) => {
 	ctx.disposables.add(
+		ctx.capabilities.provide("run.skills@1", {
+			id: MANIFEST.id,
+			trust: "core",
+			features: [],
+			impl: created.runSkills,
+		}),
+	);
+	ctx.disposables.add(
+		ctx.capabilities.provide("conversation.thread@3", {
+			id: MANIFEST.id,
+			trust: "core",
+			features: [],
+			impl: created.threadSkills,
+		}),
+	);
+	ctx.disposables.add(
 		ctx.capabilities.provide("conversation.thread@2", {
 			id: MANIFEST.id,
 			trust: "core",
@@ -166,7 +204,7 @@ const registerThread = (
 	);
 };
 
-/** Creates core-engine, which provides team.engine@2 for single-agent and team runs and checkpoint.restore@1. */
+/** Creates core-engine, which provides team.engine@3 and durable task verification (ADR-187). */
 export const createCoreEngineModule = (opts: CoreEngineOptions): MeteModule => {
 	let stop: (() => Promise<void>) | undefined;
 	return {
@@ -185,10 +223,9 @@ export const createCoreEngineModule = (opts: CoreEngineOptions): MeteModule => {
 				}),
 			);
 			registerConversations(ctx, created);
-			if (opts.recover !== false) created.recover();
 			stop = created.stop;
 			ctx.disposables.add(
-				ctx.capabilities.provide("team.engine@2", {
+				ctx.capabilities.provide("team.engine@3", {
 					id: MANIFEST.id,
 					trust: "core",
 					features: [],
@@ -203,6 +240,11 @@ export const createCoreEngineModule = (opts: CoreEngineOptions): MeteModule => {
 					impl: created.restore,
 				}),
 			);
+			opts.onNativeControls?.({
+				engine: created.engine,
+				quiesce: created.quiesce,
+			});
+			if (opts.recover !== false) created.recover();
 			return ok(undefined);
 		},
 		async deactivate() {

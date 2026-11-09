@@ -3,6 +3,7 @@ import { TASKS_IN_FLIGHT } from "../defaults.js";
 import { cutOld, type Split, toSummarize } from "../domain/compact.js";
 import { nextStep } from "../domain/next-step.js";
 import type { RunContext } from "../domain/run-machine.js";
+import { pinnedFor } from "../domain/skill-pinned.js";
 import { currentWait } from "../domain/task-wait.js";
 import { taskContext } from "../domain/task-worker.js";
 import { nextTeamStep, readyTasks, type TeamState } from "../domain/team.js";
@@ -128,7 +129,8 @@ const launch = async (
 	const window =
 		context.agent?.contextWindow ?? TIER_MIN_CONTEXT[activeSeat(context).tier];
 	const split =
-		scheduler.folds.get(task) ?? toSummarize(context.messages, window);
+		scheduler.folds.get(task) ??
+		toSummarize(context.messages, window, pinnedFor(context));
 	scheduler.folds.delete(task);
 	live.model = scheduler.model;
 	const call = callWorker(state, live, {

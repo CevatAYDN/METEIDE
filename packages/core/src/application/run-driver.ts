@@ -8,6 +8,8 @@ import { foldable, toSummarize } from "../domain/compact.js";
 import { type NextStep, nextStep } from "../domain/next-step.js";
 import { guarded } from "../domain/repeat.js";
 import { afterModelError } from "../domain/run-events.js";
+import { pinnedFor } from "../domain/skill-pinned.js";
+import { withSkillMessages } from "../domain/skill-prompt.js";
 import { currentWait } from "../domain/task-wait.js";
 import { activeRole, activeSeat, isAsking } from "../domain/team-run.js";
 import { allowed } from "../domain/tools.js";
@@ -26,6 +28,7 @@ import {
 	toolContext,
 } from "./run-state.js";
 import { stopScheduler } from "./scheduler-drain.js";
+import { skillBoundary } from "./skill-guard.js";
 import { callModel, callTool, type ModelOutcome, masked } from "./steps.js";
 import { cutTurn, summarizeTurn } from "./summarize.js";
 import { syncHumanWaits } from "./task-waits.js";
@@ -127,14 +130,23 @@ const modelTurn = async (s: EngineState, l: Live, token: object) => {
 	const seat = await pinnedSeat(s, l);
 	if (!owns(l, token)) return;
 	// MCP descriptions and schemas are external input before the first tool result.
-	if (allowed(seat, "mcp.tools@1") && s.deps.registry.has("mcp.tools@1"))
-		apply(s, l, { type: "TAINT" });
+	if (
+		allowed(seat, "mcp.tools@1") &&
+		s.deps.registry.has("mcp.tools@1") &&
+		!apply(s, l, { type: "TAINT" })
+	)
+		return;
 	const model = new AbortController();
 	l.model = model;
 	const signal = AbortSignal.any([l.all.signal, model.signal]);
 	const { priority, messages } = l.snapshot.context;
 	const task = activeRole(l.snapshot.context).taskId;
-	const run = { runId: l.meta.id, priority, messages, seat };
+	const run = {
+		runId: l.meta.id,
+		priority,
+		messages: withSkillMessages(messages, pinnedFor(l.snapshot.context)),
+		seat,
+	};
 	const out = await think(s, l, { run, task, signal });
 	if (!owns(l, token)) return; // paused or cancelled meanwhile: the reply is dropped
 	const at = s.deps.now();
@@ -153,6 +165,12 @@ const modelTurn = async (s: EngineState, l: Live, token: object) => {
 };
 
 type ToolStep = Extract<NextStep, { kind: "tool" }>;
+
+const checkpointEvent = (step: number, snapshot?: string) => ({
+	type: "CHECKPOINTED" as const,
+	step,
+	...(snapshot ? { snapshot } : {}),
+});
 
 // false when the checkpoint failed or the run stopped while it was made.
 const checkpoint = async (
@@ -184,12 +202,9 @@ const checkpoint = async (
 			apply(s, l, { type: "FAIL", at: s.deps.now(), ...fail });
 		return false;
 	}
-	apply(s, l, {
-		type: "CHECKPOINTED",
-		step: t.step,
-		...(snapshot?.value ? { snapshot: snapshot.value } : {}),
-	});
-	return owns(l, token);
+	return (
+		apply(s, l, checkpointEvent(t.step, snapshot?.value)) && owns(l, token)
+	);
 };
 
 // Without git, the step's file snapshot (ADR-080); none when the engine keeps no snapshots.
@@ -244,8 +259,11 @@ const toolTurn = async (
 ) => {
 	if (t.checkpoint && !(await checkpoint(s, l, token, t))) return;
 	// A writing call is on record before it runs, so a crash in it is not run again (ADR-177).
-	if (mayWrite(t.call))
-		apply(s, l, { type: "TOOL_STARTED", callId: t.call.id });
+	if (
+		mayWrite(t.call) &&
+		!apply(s, l, { type: "TOOL_STARTED", callId: t.call.id })
+	)
+		return;
 	const out = await callTool(
 		s.deps,
 		{
@@ -294,7 +312,7 @@ const step = async (s: EngineState, l: Live, token: object) => {
 		const ctx = l.snapshot.context;
 		const window =
 			ctx.agent?.contextWindow ?? TIER_MIN_CONTEXT[activeSeat(ctx).tier];
-		const older = toSummarize(ctx.messages, window);
+		const older = toSummarize(ctx.messages, window, pinnedFor(ctx));
 		if (older) return summarizeTurn(s, l, older, () => owns(l, token));
 		return modelTurn(s, l, token);
 	}
@@ -330,16 +348,28 @@ const failLoop = (s: EngineState, l: Live, token: object, error: unknown) => {
 	}
 };
 
+// One turn: the S2 boundary first, so neither the parallel scheduler nor a step dispatches
+// unchecked work (ADR-190).
+const turn = async (
+	s: EngineState,
+	l: Live,
+	token: object,
+	scheduler: ReturnType<typeof schedulerState>,
+) => {
+	if (!owns(l, token)) return;
+	// A legacy run gets `true` without an await, so its turn timing is unchanged.
+	const boundary = skillBoundary(s, l, () => owns(l, token));
+	if (!(boundary === true || (boundary !== false && (await boundary)))) return;
+	syncHumanWaits(s, l);
+	if (await schedule(s, l, scheduler)) return;
+	if (owns(l, token)) await step(s, l, token);
+};
+
 const loop = async (s: EngineState, l: Live, token: object) => {
 	const scheduler = schedulerState();
 	try {
 		while (owns(l, token)) {
-			await runTurn(l, async () => {
-				if (!owns(l, token)) return;
-				syncHumanWaits(s, l);
-				if (await schedule(s, l, scheduler)) return;
-				if (owns(l, token)) await step(s, l, token);
-			});
+			await runTurn(l, () => turn(s, l, token, scheduler));
 		}
 	} catch (e) {
 		failLoop(s, l, token, e);

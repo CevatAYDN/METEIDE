@@ -9,7 +9,6 @@ import {
 	verdictRepair,
 } from "../domain/review.js";
 import { checkSpawns } from "../domain/spawn.js";
-import { taskContext } from "../domain/task-worker.js";
 import {
 	applyTask,
 	approve,
@@ -19,12 +18,11 @@ import {
 	setRepairs,
 	type TeamState,
 } from "../domain/team.js";
-import { guardrailOf, titleOf, verifyOf } from "../domain/team-run.js";
+import { guardrailOf, titleOf } from "../domain/team-run.js";
 import { afterAttempt, settle } from "./attempts.js";
 import { openJudge } from "./judge.js";
 import { lessonTurn } from "./lesson.js";
 import { readNotes } from "./notes.js";
-import { waitForPolicy } from "./policy-wait.js";
 import {
 	apply,
 	type EngineState,
@@ -32,12 +30,12 @@ import {
 	type Live,
 	platform,
 	stuck,
-	toolContext,
 } from "./run-state.js";
 import { afterApproval } from "./spawned.js";
 import { changed, endAttempt, land } from "./submission.js";
 import { humanRequest, worktreeSetupCommand } from "./vcs-steps.js";
-import { verifyGates } from "./verify.js";
+import { strictVerified } from "./verification-driver.js";
+import { legacyVerified } from "./verify.js";
 import { merge, worktreeOf } from "./worktrees.js";
 
 // A team run between attempts (docs/08, Task execution sequence): start the next ready task,
@@ -47,42 +45,12 @@ import { merge, worktreeOf } from "./worktrees.js";
 // Runs the task's verify gates before the guardrail (docs/08, step 3); true when the report may go
 // on. A failed gate is one more user message in the attempt, with no repair counted, so the
 // attempt's turns are its only bound; a run paused or cancelled meanwhile submits again on resume.
-const verified = async (
-	s: EngineState,
-	l: Live,
-	team: TeamState,
-	task: string,
-) => {
-	const gates = verifyOf(team, task);
-	if (gates.length === 0) return true;
-	const context = taskContext(l.snapshot.context, task);
-	const token = l.token;
-	const taskId = team.tasks[task]?.id;
-	const gated = await verifyGates(s.deps, {
-		gates,
-		ctx: toolContext(l),
-		emit: (body) => emit(s, l, body, taskId),
-		skipped: (capability) =>
-			s.deps.logger.warn(
-				{ runId: l.meta.id, taskId, capability },
-				"verify gate skipped: no adapter provides its capability",
-			),
-	});
-	if (l.snapshot.value !== "running" || l.token !== token) return false;
-	if (
-		gated.kind === "approval" &&
-		context &&
-		(await waitForPolicy(s, l, context, "verify"))
-	)
-		return false;
-	if (l.token !== token) return false;
-	if (gated.kind === "passed") return true;
-	if (gated.kind === "failed")
-		apply(s, l, { type: "REPAIR", team, content: gated.content });
-	else if (gated.kind === "approval")
-		apply(s, l, { type: "PAUSE", at: s.deps.now(), reason: "approval" });
-	else endAttempt(s, l, { type: "BLOCK", reason: "capability_missing" });
-	return false;
+const verified = (s: EngineState, l: Live, task: string, report: string) => {
+	const team = l.snapshot.context.team;
+	if (!team || l.snapshot.value !== "running") return false;
+	return team.verificationVersion === 1
+		? strictVerified(s, l, task, report)
+		: legacyVerified(s, l, task);
 };
 
 /**
@@ -94,7 +62,7 @@ export const submit = async (s: EngineState, l: Live, reply: string) => {
 	const { team: before, task } = l.snapshot.context;
 	if (!before || !task) return stuck(s, l);
 	const token = l.token;
-	if (!(await verified(s, l, before, task))) return;
+	if (!(await verified(s, l, task, reply))) return;
 	const { team } = l.snapshot.context;
 	if (
 		!team ||

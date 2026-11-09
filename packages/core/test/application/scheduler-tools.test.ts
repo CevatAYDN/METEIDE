@@ -23,6 +23,7 @@ import {
 	hold,
 } from "../../src/application/run-state.js";
 import { stopScheduler } from "../../src/application/scheduler-drain.js";
+import { createSkillLoadAuthority } from "../../src/application/skill-load-authority.js";
 import { applyWorker } from "../../src/application/task-worker.js";
 import { submit } from "../../src/application/team-driver.js";
 import {
@@ -87,6 +88,7 @@ const workerFixture = (run: Tool) => {
 	const state: EngineState = {
 		live: new Map(),
 		onPauseEnded() {},
+		skillLoads: createSkillLoadAuthority(),
 		deps: {
 			workspaceId,
 			registry: h.registry,

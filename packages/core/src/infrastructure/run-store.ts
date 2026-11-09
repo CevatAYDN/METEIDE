@@ -7,6 +7,7 @@ import {
 	RunPreferSchema,
 	RunStatusSchema,
 	type RunView,
+	SkillRuntimeErrorSchema,
 } from "@mete/contracts";
 import type BetterSqlite3 from "better-sqlite3";
 import {
@@ -30,6 +31,7 @@ import {
 	type RunSnapshot,
 	runMachine,
 } from "../domain/run-machine.js";
+import { RunSkillStateSchema } from "../domain/skill-state.js";
 import { TeamStateSchema } from "../domain/team.js";
 import type { ThreadIntent } from "../domain/thread.js";
 import { HANDOFF_MIGRATIONS, handoffs } from "./handoff-store.js";
@@ -117,6 +119,9 @@ const PersistedSchema = z.object({
 		messages: z.array(ChatRequestSchema.shape.messages.element),
 		extraCapabilities: ConversationCapabilitiesSchema.default([]),
 		attachments: ContextAttachmentsSchema.optional(),
+		skillRuntimeVersion: z.literal(1).optional(),
+		skills: RunSkillStateSchema.optional(),
+		skillBlock: SkillRuntimeErrorSchema.optional(),
 		turns: z.number().int().nonnegative(),
 		// Rows from before the counter hold one attempt, so its turns are its requests.
 		requests: z.number().int().nonnegative().optional(),

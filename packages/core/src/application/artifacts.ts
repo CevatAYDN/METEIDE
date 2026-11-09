@@ -1,5 +1,6 @@
 import type { ArtifactMeta, TeamState } from "../domain/team.js";
 import { apply, type EngineState, emit, iso, type Live } from "./run-state.js";
+import { refreshVerificationSnapshot } from "./verification.js";
 
 // A submitted report becomes its task's Artifact (docs/07): the file in .mete/artifacts/<run id>/
 // and its metadata in the snapshot. A guarded report is JSON, any other one Markdown.
@@ -18,12 +19,25 @@ export const saveArtifact = async (
 	const { team, task } = l.snapshot.context;
 	const out = team?.template.tasks.find((t) => t.id === task)?.expected_output;
 	if (!team || !task || !out || !s.deps.artifacts) return undefined;
+	const token = l.token;
+	const evaluationId = team.tasks[task]?.verification?.evaluationId;
+	const agentId = team.tasks[task]?.context.agentId;
 	const name = `${task}.${json ? "json" : "md"}`;
 	const w = await s.deps.artifacts.write({
 		runId: l.meta.id,
 		name,
 		content: report,
 	});
+	refreshVerificationSnapshot(s, l);
+	const current = l.snapshot.context.team?.tasks[task];
+	if (
+		l.token !== token ||
+		l.snapshot.value !== "running" ||
+		l.snapshot.context.task !== task ||
+		current?.verification?.evaluationId !== evaluationId ||
+		current?.context.agentId !== agentId
+	)
+		return undefined;
 	if (!w.ok) {
 		const fail = { code: "artifact_failed", message: w.error.message };
 		apply(s, l, { type: "FAIL", at: s.deps.now(), ...fail });
