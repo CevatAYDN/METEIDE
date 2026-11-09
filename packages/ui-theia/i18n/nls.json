@@ -250,6 +250,7 @@
 			"toolsHint": "Adapters, MCP servers and the shell"
 		},
 		"skills": {
+			"catalogUnavailable": "Skill catalog unavailable.",
 			"edit": "Edit SKILL.md",
 			"aborted": "The operation was cancelled. Refresh before reviewing again.",
 			"approve": "Approve",
@@ -274,6 +275,11 @@
 			"loading": "Discovering skills...",
 			"maskedText": "Masked SKILL.md",
 			"missing": "Missing",
+			"mode": "Skill mode",
+			"modeAuto": "Automatic",
+			"modeManual": "Manual",
+			"modeOff": "Off",
+			"noneApproved": "No approved skills.",
 			"notFound": "Source not found. Discover again.",
 			"previous": "Previously read inventory; it may be out of date.",
 			"rawHash": "Raw file SHA-256",
@@ -282,6 +288,8 @@
 			"recovery": "Outcome uncertain. Recover this session and refresh; the decision will not be replayed.",
 			"refresh": "Refresh skills",
 			"review": "Review",
+			"selection": "Skills",
+			"sendUnavailable": "Skill selection is unavailable. Your draft is kept.",
 			"stale": "The source or session changed. Discover and review again.",
 			"storageFailed": "The decision could not be saved. Refresh and review again.",
 			"transport": "Skill state could not be confirmed.",

@@ -1,19 +1,20 @@
-import type { ConversationCapability, RunPrefer } from "@mete/contracts";
+import type {
+	ConversationCapability,
+	RunPrefer,
+	SkillPolicy,
+	SkillRuntimeCatalog,
+} from "@mete/contracts";
 import { CommandService } from "@theia/core";
 import { Emitter } from "@theia/core/lib/common/event";
 import { inject, injectable } from "@theia/core/shared/inversify";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import {
-	type ChainContext,
 	type ComposerOption,
-	loadRoles,
 	narrowedTo,
-	optionsOf,
 	type PickerFacts,
 	pickerFacts,
 	preferOf,
 	settledChoice,
-	singleAgentModels,
 	withEstimate,
 } from "../application/composer.js";
 import {
@@ -27,7 +28,6 @@ import {
 	sendInitialDraft,
 	startComposerMessage,
 } from "../application/context-start.js";
-import { ConversationTools } from "../application/conversation-tools.js";
 import {
 	initialMessage,
 	initialSettings,
@@ -35,11 +35,13 @@ import {
 } from "../application/initial-context-receipt.js";
 import { createSendIntent } from "../application/send-intent.js";
 import { failureText } from "../application/status-text.js";
+import { MeteDaemonService } from "../domain/status-service.js";
 import {
-	type DaemonFailure,
-	MeteDaemonService,
-} from "../domain/status-service.js";
-import { composerContext } from "./composer-context.js";
+	composerContext,
+	loadComposerOptions,
+	runtimeCatalogOf,
+	singleAgentControls,
+} from "./composer-context.js";
 import { MeteEditorContext } from "./editor-context-service.js";
 import {
 	EDIT_TEAM_COMMAND,
@@ -72,6 +74,9 @@ export class MeteRunComposer {
 	protected selected = "single";
 	protected singleModel: string | undefined;
 	protected capabilities: readonly ConversationCapability[] = [];
+	protected skills: SkillPolicy = { mode: "auto", selected: [] };
+	protected skillCatalog: SkillRuntimeCatalog | undefined;
+	protected skillSessionId: string | undefined;
 	protected uncommitted: number | undefined = 0;
 	protected estimateAsked = 0;
 	protected roleModels: Record<string, Record<string, string>> = {};
@@ -134,31 +139,11 @@ export class MeteRunComposer {
 		}
 		const dir = root.resource.path.fsPath();
 		this.openFolder(dir);
-		const failures: DaemonFailure[] = [];
-		const listed = await this.daemon.templates(dir);
+		const loaded = await loadComposerOptions(this.daemon, dir, this.chainCache);
 		if (!this.current(dir)) return;
-		if (!listed.ok) failures.push(listed.error);
-		const raw = listed.ok ? listed.value.templates : [];
-		const ctx: ChainContext = {
-			daemon: this.daemon,
-			dir,
-			cache: this.chainCache,
-			failed: (why) => failures.push(why),
-		};
-		const [templates, singleModels, changes, ...estimates] = await Promise.all([
-			loadRoles(ctx, raw),
-			singleAgentModels(ctx),
-			this.daemon.changes(dir),
-			...[...raw.map((t) => t.id), null].map((id) =>
-				this.daemon.estimate(dir, id),
-			),
-		]);
-		if (!this.current(dir)) return;
-		this.all = optionsOf(templates, estimates, singleModels);
-		if (!changes.ok) failures.push(changes.error);
-		this.uncommitted = changes.ok ? changes.value.files.length : undefined;
-		const [first] = failures;
-		this.loadError = first ? failureText(first) : undefined;
+		this.all = loaded.options;
+		this.uncommitted = loaded.uncommitted;
+		this.loadError = loaded.loadError;
 		this.selected = this.all.some((o) => o.key === this.selected)
 			? this.selected
 			: "choose";
@@ -168,18 +153,24 @@ export class MeteRunComposer {
 	}
 	protected async loadPicker(dir: string): Promise<void> {
 		const chains = [...this.chainCache.values()].flat();
-		const picker = await pickerFacts(this.daemon, dir, chains);
+		const [picker, runtime] = await Promise.all([
+			pickerFacts(this.daemon, dir, chains),
+			this.daemon.skillsRuntime?.(dir),
+		]);
 		if (!this.current(dir)) return;
 		this.picker = picker;
+		const resolved = runtimeCatalogOf(runtime);
+		this.skillSessionId = resolved.sessionId ?? this.skillSessionId;
+		this.skillCatalog = resolved.catalog;
 		this.changed.fire();
 	}
 	protected openFolder(dir: string): void {
-		if (this.dir !== dir) {
-			const restored = initialSettings(this.context?.drafts, dir);
-			this.selected = "single";
-			this.singleModel = restored.singleModel;
-			this.capabilities = restored.capabilities;
-		}
+		if (this.dir !== dir)
+			Object.assign(this, {
+				selected: "single",
+				skillCatalog: undefined,
+				...initialSettings(this.context?.drafts, dir),
+			});
 		this.dir = dir;
 		if (this.context)
 			this.goal = this.context.drafts.read(contextScope(dir)).message;
@@ -191,7 +182,7 @@ export class MeteRunComposer {
 		version = this.selectionVersion,
 		dir = this.dir,
 	): Promise<void> {
-		const option = this.options().find((o) => o.key === this.selected);
+		const option = this.chosen();
 		const goal = initialMessage(this.context?.drafts, dir, this.goal).trim();
 		if (!dir || !option || this.busy || !goal || !this.current(dir, version))
 			return;
@@ -200,11 +191,7 @@ export class MeteRunComposer {
 			dir,
 			option.templateId,
 		);
-		if (failure) {
-			this.error = failure;
-			this.changed.fire();
-			return;
-		}
+		if (failure) return this.failStart(failure);
 		this.busy = true;
 		this.error = undefined;
 		this.changed.fire();
@@ -222,7 +209,10 @@ export class MeteRunComposer {
 		if (version !== this.selectionVersion) return;
 		if (r.ok) return this.started(dir, r.value.runId);
 		if (r.error.code === "choose_template") this.narrow(r.error.suggestions);
-		else this.error = failureText(r.error);
+		else this.failStart(failureText(r.error));
+	}
+	protected failStart(error: string): void {
+		this.error = error;
 		this.changed.fire();
 	}
 	protected startSelected(dir: string, option: ComposerOption) {
@@ -233,167 +223,168 @@ export class MeteRunComposer {
 			goal: initialMessage(this.context?.drafts, dir, this.goal),
 			prefer: this.preferFor(option),
 			capabilities: this.capabilities,
+			skills: this.skills,
+			sessionId: this.skillSessionId,
 			intents: this.intents,
 			drafts: this.context?.drafts,
 		});
 	}
-
 	protected preferFor(option: ComposerOption): RunPrefer | undefined {
-		const rolePrefs =
-			typeof option.templateId === "string"
-				? this.roleModels[option.key]
-				: undefined;
 		return preferOf(
 			option.templateId,
 			this.singleModel,
-			rolePrefs,
+			typeof option.templateId === "string"
+				? this.roleModels[option.key]
+				: undefined,
 			option.roles?.map((r) => r.id),
 		);
 	}
-
-	// The chosen option's estimate asked again with its model choice (ADR-155); the last ask wins.
 	protected async reestimate(): Promise<void> {
-		const option = this.options().find((o) => o.key === this.selected);
+		const option = this.chosen();
 		const dir = this.dir;
 		if (!dir || option?.templateId === undefined) return;
 		const asked = ++this.estimateAsked;
-		const prefer = this.preferFor(option);
-		const reply = await this.daemon.estimate(dir, option.templateId, prefer);
+		const reply = await this.daemon.estimate(
+			dir,
+			option.templateId,
+			this.preferFor(option),
+		);
 		if (asked !== this.estimateAsked || this.model.kind !== "ready") return;
 		this.all = withEstimate(this.all, option.key, reply);
-		const options = withEstimate(this.model.options, option.key, reply);
-		this.setModel({ ...this.model, options });
+		this.setModel({
+			...this.model,
+			options: withEstimate(this.model.options, option.key, reply),
+		});
 	}
-
 	protected chose(model: string, listed: readonly string[] | undefined) {
 		this.changed.fire();
 		if (settledChoice(model, listed)) void this.reestimate();
 	}
-
 	protected chosen(): ComposerOption | undefined {
 		return this.options().find((o) => o.key === this.selected);
 	}
-
 	protected options(): readonly ComposerOption[] {
 		return this.model.kind === "ready" ? this.model.options : [];
 	}
-
 	protected narrow(suggestions: readonly string[] | undefined): void {
 		const options = narrowedTo(suggestions ?? [], this.all);
 		this.selected = options[0]?.key ?? "single";
 		this.setModel({ kind: "ready", options, unsure: true });
 	}
-
 	protected started(dir: string, runId: string): void {
 		this.intents.clear(dir);
-		const goal = this.goal;
-		const capabilities =
-			this.selected === "single" ? this.capabilities : undefined;
-		this.goal = "";
-		this.selected = "single";
-		this.singleModel = undefined;
-		this.capabilities = [];
-		this.roleModels = {};
+		const { goal, selected, capabilities } = this;
+		Object.assign(this, {
+			goal: "",
+			selected: "single",
+			singleModel: undefined,
+			capabilities: [],
+			skills: { mode: "auto", selected: [] },
+			roleModels: {},
+		});
 		this.setModel({ kind: "ready", options: this.all, unsure: false });
-		this.startedRun.fire({ dir, runId, goal, capabilities });
+		this.startedRun.fire({
+			dir,
+			runId,
+			goal,
+			capabilities: selected === "single" ? capabilities : undefined,
+		});
 	}
-
 	protected setModel(model: ComposerModel): void {
 		this.model = model;
 		this.changed.fire();
 	}
-
-	/** The composer's screen. */
-	protected renderTools() {
-		const busy =
-			this.busy ||
-			!!(this.dir && this.context?.drafts.read(contextScope(this.dir)).busy);
-		return this.selected === "single" ? (
-			<ConversationTools
-				capabilities={this.capabilities}
-				disabled={busy}
-				onChange={(selection) => {
-					if (busy) return;
-					this.edited();
-					this.capabilities = selection;
-					this.changed.fire();
-				}}
-			/>
-		) : undefined;
+	protected setTools(capabilities: readonly ConversationCapability[]): void {
+		this.edited();
+		this.capabilities = capabilities;
+		this.changed.fire();
 	}
+	protected setSkills(skills: SkillPolicy): void {
+		this.edited();
+		this.skills = skills;
+		this.changed.fire();
+	}
+	/** The composer's screen. */
 	render() {
-		const { dir, selectionVersion } = this;
+		const { dir, selectionVersion, selected } = this;
 		const { current, scope, preparing, goal } = composerContext(
 			this.workspace,
-			this.dir,
+			dir,
 			this.context,
 			this.goal,
 		);
+		const busy = this.busy || !!preparing;
 		return (
 			<ComposerView
 				model={current ? this.model : { kind: "loading" }}
 				goal={goal}
-				selected={this.selected}
-				busy={this.busy || !!preparing}
+				selected={selected}
+				busy={busy}
 				preparing={!!preparing && !this.busy}
 				attachments={
 					current && scope
-						? this.context?.render(
-								scope,
-								this.busy || this.selected !== "single",
-							)
+						? this.context?.render(scope, this.busy || selected !== "single")
 						: undefined
 				}
 				error={this.error ?? this.loadError}
 				singleModel={this.singleModel}
-				tools={this.renderTools()}
+				{...singleAgentControls({
+					selected,
+					busy,
+					capabilities: this.capabilities,
+					skills: this.skills,
+					catalog: this.skillCatalog,
+					onTools: (s) => this.setTools(s),
+					onSkills: (s) => this.setSkills(s),
+				})}
 				uncommitted={this.uncommitted}
 				picker={this.picker}
-				roleModels={this.selected ? this.roleModels[this.selected] : undefined}
+				roleModels={selected ? this.roleModels[selected] : undefined}
 				{...this.draftHandlers(!!preparing, scope)}
 				onStart={() => void this.start(selectionVersion, dir)}
-				onOpenFolder={() =>
-					void this.commands.executeCommand("workspace:openFolder")
-				}
-				onEdit={(id) =>
-					void this.commands.executeCommand(EDIT_TEAM_COMMAND.id, id)
-				}
-				onNewTeam={() => void this.commands.executeCommand(NEW_TEAM_COMMAND.id)}
+				onOpenFolder={() => this.exec("workspace:openFolder")}
+				onEdit={(id) => this.exec(EDIT_TEAM_COMMAND.id, id)}
+				onNewTeam={() => this.exec(NEW_TEAM_COMMAND.id)}
 			/>
 		);
 	}
-
+	protected exec(id: string, ...args: readonly unknown[]): void {
+		void this.commands.executeCommand(id, ...args);
+	}
 	protected draftHandlers(preparing: boolean, scope?: string) {
+		const edit = (fn: () => void) => {
+			if (this.busy || preparing) return;
+			this.edited();
+			fn();
+		};
 		return {
-			onGoal: (goal: string) => {
-				if (this.busy || preparing) return;
-				if (goal !== this.goal) this.edited();
-				this.goal = goal;
-				if (scope) this.context?.drafts.message(scope, goal);
-				this.changed.fire();
-			},
-			onSelect: (key: string) => {
-				if (this.busy || preparing) return;
-				if (key !== this.selected) this.edited();
-				this.selected = key;
-				this.context?.select(key === "single" ? this.dir : undefined);
-				this.changed.fire();
-			},
-			onSingleModel: (model: string) => {
-				if (this.busy || preparing) return;
-				if (model !== this.singleModel) this.edited();
-				this.singleModel = model;
-				this.chose(model, this.chosen()?.models);
-			},
+			onGoal: (goal: string) =>
+				edit(() => {
+					this.goal = goal;
+					if (scope) this.context?.drafts.message(scope, goal);
+					this.changed.fire();
+				}),
+			onSelect: (key: string) =>
+				edit(() => {
+					this.selected = key;
+					this.context?.select(key === "single" ? this.dir : undefined);
+					this.changed.fire();
+				}),
+			onSingleModel: (model: string) =>
+				edit(() => {
+					this.singleModel = model;
+					this.chose(model, this.chosen()?.models);
+				}),
 			onRoleModel: (roleId: string, model: string) => {
 				if (this.busy || preparing) return;
-				const current = this.roleModels[this.selected] ?? {};
-				this.roleModels = {
-					...this.roleModels,
-					[this.selected]: { ...current, [roleId]: model },
+				this.roleModels[this.selected] = {
+					...this.roleModels[this.selected],
+					[roleId]: model,
 				};
-				const role = this.chosen()?.roles?.find((r) => r.id === roleId);
-				this.chose(model, role?.models);
+				this.chose(
+					model,
+					this.chosen()?.roles?.find((r) => r.id === roleId)?.models,
+				);
 			},
 		};
 	}

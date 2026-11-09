@@ -38,6 +38,7 @@ export type ComposerInput = {
 
 type Props = ComposerInput & {
 	readonly tools?: ReactNode;
+	readonly skills?: ReactNode;
 	readonly attachments?: ReactNode;
 	readonly model: ComposerModel;
 	readonly onGoal: (goal: string) => void;

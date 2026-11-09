@@ -359,3 +359,22 @@
 		grid-template-columns: minmax(0, 1fr);
 	}
 }
+
+.mete-skill-selection,
+.mete-skill-selection-list {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 12px;
+	border: 0;
+	margin: 0;
+	padding: 0;
+	min-width: 0;
+}
+
+.mete-skill-selection label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+}

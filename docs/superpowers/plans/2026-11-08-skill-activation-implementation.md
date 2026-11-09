@@ -242,6 +242,19 @@ selections; omitted reply policy stays omitted. Nine focused send tests failed
 before implementation and now pass. Composer draft integration remains in U2.
 Root `pnpm check`: 34/34 passed (31 cached), including ui-theia 1227/1227.
 
+## U2a single-agent skill selection
+
+`SkillSelectionControl` adds a mode selector (`auto`, `manual`, `off`) and
+source-qualified exact-version checkboxes to the single-agent run composer.
+Same-name workspace and global skills stay distinct with scope, path and
+revision labels; stale selections remain visible so the user can remove them
+without silent replacement. Initial receipts retain the selected policy and
+captured session across uncertain retries, and non-default/selected sends route
+through `threadSkillsStart` while plain default sends keep the existing route.
+English and Turkish strings are synchronized, and the mechanical UI detector
+reported `[]`. Focused control, composer and i18n suites pass (43/43).
+Root `pnpm check`: 34/34 tasks, ui-theia 1232/1232.
+
 ## Explicit activation integration correction (2026-11-10)
 
 Before exposing selection controls, source tracing found that preflight stored

@@ -1,4 +1,4 @@
-import type { ThreadStartInput } from "@mete/contracts";
+import type { SkillPolicy, ThreadStartInput } from "@mete/contracts";
 import { type ContextDrafts, contextScope } from "./context-drafts.js";
 import type { InitialContextReceipt } from "./context-receipt.js";
 import type { createSendIntent } from "./send-intent.js";
@@ -31,12 +31,18 @@ export const initialSettings = (
 	drafts: ContextDrafts | undefined,
 	dir: string,
 ) => {
-	const input = initialReceipt(drafts, dir)?.input;
+	const receipt = initialReceipt(drafts, dir);
+	const input = receipt?.input;
 	return {
 		singleModel: input?.prefer
 			? `${input.prefer.providerId}/${input.prefer.modelId}`
 			: undefined,
 		capabilities: input?.capabilities ?? [],
+		skills:
+			input && "skills" in input && input.skills
+				? input.skills
+				: { mode: "auto" as const, selected: [] },
+		sessionId: receipt?.sessionId,
 	};
 };
 
@@ -49,7 +55,10 @@ export const initialMessage = (
 /** Freeze once before I/O; workspace navigation must never reconstruct an uncertain payload. */
 export const prepareInitialReceipt = (deps: {
 	readonly dir: string;
-	readonly input: Omit<ThreadStartInput, "requestId">;
+	readonly input: Omit<ThreadStartInput, "requestId"> & {
+		readonly skills?: SkillPolicy | undefined;
+	};
+	readonly sessionId?: string | undefined;
 	readonly intents: ReturnType<typeof createSendIntent>;
 	readonly drafts: ContextDrafts | undefined;
 }): InitialContextReceipt => {
@@ -58,6 +67,14 @@ export const prepareInitialReceipt = (deps: {
 	const draft = deps.drafts?.read(contextScope(deps.dir));
 	const attachments = draft?.attachments.map((item) => item.snapshot) ?? [];
 	Object.freeze(attachments);
+	const skills = deps.input.skills
+		? Object.freeze({
+				mode: deps.input.skills.mode,
+				selected: Object.freeze(
+					deps.input.skills.selected.map((v) => Object.freeze({ ...v })),
+				),
+			})
+		: undefined;
 	const payload = {
 		...deps.input,
 		...(deps.input.prefer
@@ -67,6 +84,7 @@ export const prepareInitialReceipt = (deps: {
 			? { capabilities: [...deps.input.capabilities] }
 			: {}),
 		...(attachments.length ? { attachments } : {}),
+		...(skills ? { skills } : {}),
 	};
 	if (payload.capabilities) Object.freeze(payload.capabilities);
 	const revision = draft?.revision ?? 0;
@@ -76,6 +94,7 @@ export const prepareInitialReceipt = (deps: {
 	});
 	const receipt = Object.freeze({
 		input,
+		...(deps.sessionId ? { sessionId: deps.sessionId } : {}),
 		context: attachments.length > 0,
 		revision,
 	});

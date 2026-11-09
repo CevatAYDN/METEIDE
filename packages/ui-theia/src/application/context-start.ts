@@ -2,6 +2,7 @@ import {
 	type ConversationCapability,
 	ModelRefSchema,
 	type RunPrefer,
+	type SkillPolicy,
 	type ThreadStartInput,
 } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
@@ -54,18 +55,39 @@ export const sendInitialDraft = async (deps: {
 	}
 };
 
-/** Ordinary sends retain @1; an ordered attachment payload always requires @2. */
+/** Ordinary sends retain @1; an ordered attachment payload requires @2; S2 sends use @3. */
 export const startContextMessage = (deps: {
 	readonly daemon: Pick<
 		MeteDaemonService,
 		"threadStart" | "threadContextStart"
-	>;
+	> &
+		Partial<Pick<MeteDaemonService, "threadSkillsStart">>;
 	readonly dir: string;
-	readonly input: Omit<ThreadStartInput, "requestId">;
+	readonly input: Omit<ThreadStartInput, "requestId"> & {
+		readonly skills?: SkillPolicy | undefined;
+	};
+	readonly sessionId?: string | undefined;
 	readonly intents: ReturnType<typeof createSendIntent>;
 	readonly drafts?: ContextDrafts | undefined;
 }) => {
 	const receipt = prepareInitialReceipt({ ...deps, drafts: deps.drafts });
+	if (receipt.sessionId || "skills" in receipt.input) {
+		if (!receipt.sessionId || !deps.daemon.threadSkillsStart)
+			return Promise.resolve({
+				ok: false as const,
+				error: {
+					code: "refused" as const,
+					detail: nls.localize(
+						"mete/skills/sendUnavailable",
+						"Skill selection is unavailable. Your draft is kept.",
+					),
+				},
+			});
+		return deps.daemon.threadSkillsStart(deps.dir, {
+			...receipt.input,
+			sessionId: receipt.sessionId,
+		});
+	}
 	return receipt.context
 		? deps.daemon.threadContextStart(deps.dir, receipt.input)
 		: deps.daemon.threadStart(deps.dir, receipt.input);
@@ -79,6 +101,8 @@ export const startComposerMessage = (deps: {
 	readonly goal: string;
 	readonly prefer: RunPrefer | undefined;
 	readonly capabilities: readonly ConversationCapability[];
+	readonly skills?: SkillPolicy | undefined;
+	readonly sessionId?: string | undefined;
 	readonly intents: ReturnType<typeof createSendIntent>;
 	readonly drafts: ContextDrafts | undefined;
 }) => {
@@ -88,12 +112,19 @@ export const startComposerMessage = (deps: {
 			startOf(deps.goal, deps.option, deps.prefer),
 		);
 	const prefer = ModelRefSchema.safeParse(deps.prefer);
+	const needsSkills =
+		deps.skills !== undefined &&
+		(deps.skills.mode !== "auto" ||
+			deps.skills.selected.length > 0 ||
+			deps.sessionId !== undefined);
 	return startContextMessage({
 		...deps,
+		sessionId: needsSkills ? deps.sessionId : undefined,
 		input: {
 			goal: deps.goal.trim(),
 			capabilities: [...deps.capabilities],
 			...(prefer.success ? { prefer: prefer.data } : {}),
+			...(needsSkills && deps.skills ? { skills: deps.skills } : {}),
 		},
 	});
 };

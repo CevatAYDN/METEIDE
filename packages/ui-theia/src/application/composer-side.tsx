@@ -46,6 +46,7 @@ const ModelChoice = ({
 
 type SideProps = {
 	readonly tools?: ReactNode;
+	readonly skills?: ReactNode;
 	readonly chosen: ComposerOption | undefined;
 	readonly singleModel?: string | undefined;
 	readonly roleModels?: Readonly<Record<string, string>> | undefined;
@@ -143,6 +144,7 @@ export const Side = (props: SideProps) => (
 					<Preferences choices={choicesOf(props)} picker={props.picker} />
 				</fieldset>
 				{props.tools}
+				{props.skills}
 			</div>
 			<Start {...props} />
 		</div>

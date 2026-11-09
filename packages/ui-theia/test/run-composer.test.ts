@@ -471,6 +471,78 @@ describe("conversation-first composer entry", () => {
 		});
 	});
 
+	it("sends selected skills through threadSkillsStart, retains the exact request on retry, and resets after success", async () => {
+		const version = {
+			sourceId: "1".repeat(64),
+			sha256: "b".repeat(64),
+			revision: 1,
+		};
+		const sessionId = "00000000-0000-4000-8000-000000000099";
+		const threadSkillsStart = vi.fn<MeteDaemonService["threadSkillsStart"]>(
+			async () => err({ code: "stopped", detail: "lost" }),
+		);
+		const skillsRuntime = vi.fn<MeteDaemonService["skillsRuntime"]>(async () =>
+			ok(
+				ok({
+					sessionId,
+					catalog: {
+						status: "ready",
+						entries: [
+							{
+								version,
+								source: {
+									sourceId: version.sourceId,
+									scope: "workspace",
+									path: "review/SKILL.md",
+								},
+								name: "review",
+								description: "Review",
+							},
+						],
+						diagnostics: [],
+					},
+				}),
+			),
+		);
+		const t = await setup(true);
+		Object.assign(t.composer, {
+			daemon: {
+				...(t.composer as unknown as { daemon: object }).daemon,
+				skillsRuntime,
+				threadSkillsStart,
+			},
+		});
+		await t.composer.refresh();
+		const skills = t.composer.render().props.skills;
+		if (
+			!isValidElement<{ onToggle: (v: typeof version, c: boolean) => void }>(
+				skills,
+			)
+		)
+			throw new Error("Missing skill selection control");
+		skills.props.onToggle(version, true);
+		t.composer.render().props.onGoal("Check skills");
+		await t.composer.submit();
+		await t.composer.submit();
+		expect(threadSkillsStart).toHaveBeenCalledTimes(2);
+		expect(threadSkillsStart.mock.calls[0]?.[1]).toEqual(
+			threadSkillsStart.mock.calls[1]?.[1],
+		);
+		expect(threadSkillsStart.mock.calls[0]?.[1]).toMatchObject({
+			sessionId,
+			goal: "Check skills",
+			skills: { mode: "auto", selected: [version] },
+		});
+		threadSkillsStart.mockResolvedValueOnce(
+			ok({ conversationId: "thread", runId: "started-run" }),
+		);
+		await t.composer.submit();
+		const reset = t.composer.render().props.skills;
+		expect(
+			isValidElement<{ policy: unknown }>(reset) ? reset.props.policy : null,
+		).toEqual({ mode: "auto", selected: [] });
+	});
+
 	it("still lets an explicit router choice omit the template", async () => {
 		const t = await setup();
 		t.composer.render().props.onSelect("choose");

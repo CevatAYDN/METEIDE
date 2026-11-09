@@ -250,6 +250,7 @@
 			"toolsHint": "Bağdaştırıcılar, MCP sunucuları ve kabuk"
 		},
 		"skills": {
+			"catalogUnavailable": "Beceri kataloğu kullanılamıyor.",
 			"edit": "SKILL.md dosyasını düzenle",
 			"aborted": "İşlem iptal edildi. Yeniden incelemeden önce yenileyin.",
 			"approve": "Onayla",
@@ -274,6 +275,11 @@
 			"loading": "Beceriler keşfediliyor...",
 			"maskedText": "Maskelenmiş SKILL.md",
 			"missing": "Eksik",
+			"mode": "Beceri modu",
+			"modeAuto": "Otomatik",
+			"modeManual": "El ile",
+			"modeOff": "Kapalı",
+			"noneApproved": "Onaylı beceri yok.",
 			"notFound": "Kaynak bulunamadı. Yeniden keşfedin.",
 			"previous": "Önceden okunan liste; güncel olmayabilir.",
 			"rawHash": "Ham dosya SHA-256",
@@ -282,6 +288,8 @@
 			"recovery": "Sonuç belirsiz. Bu oturumu kurtarıp yenileyin; karar yeniden gönderilmeyecek.",
 			"refresh": "Becerileri yenile",
 			"review": "İncele",
+			"selection": "Beceriler",
+			"sendUnavailable": "Beceri seçimi kullanılamıyor. Taslağınız korundu.",
 			"stale": "Kaynak veya oturum değişti. Yeniden keşfedip inceleyin.",
 			"storageFailed": "Karar kaydedilemedi. Yenileyip yeniden inceleyin.",
 			"transport": "Beceri durumu doğrulanamadı.",
