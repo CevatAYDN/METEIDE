@@ -79,11 +79,13 @@ export const scriptedSkills = (
 			receipts: receipts.filter(({ owner }) => owner.runId === runId),
 		}),
 	);
-	const unused = async () => err({ code: "unavailable" as const });
+	const catalog = vi.fn<SkillRuntimeAdapter["catalog"]>(async () =>
+		ok({ status: "ready", entries: [], diagnostics: [] }),
+	);
 	const core = { id: "security", trust: "core" as const, features: [] };
 	registry.provide<SkillRuntimeAdapter>("skill.runtime@1", {
 		...core,
-		impl: { load, check, inventory, catalog: unused },
+		impl: { load, check, inventory, catalog },
 	});
 	if (opts.selection !== false)
 		registry.provide<SkillSelectionAdapter>("skill.selection@1", {
@@ -94,6 +96,7 @@ export const scriptedSkills = (
 		load,
 		check,
 		inventory,
+		catalog,
 		receipts,
 		revoke: (error: SkillRuntimeError | undefined) => {
 			state.revoked = error;

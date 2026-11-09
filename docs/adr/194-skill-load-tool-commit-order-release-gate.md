@@ -27,6 +27,10 @@ pre-existing and not caused by S2.
    catalog; anything else is `bad_input` and reaches no security call. The tool
    is a context mutation, never a parallel query. The catalog itself is fetched
    once per context and retained, so its metadata stays stable for the context.
+   First delivery offers the tool on the sequential driver path only (single
+   agent and the active sequential team worker). Parallel scheduler workers use
+   a separate prepared/checkpoint tool path; they still receive their pinned
+   block but are not offered `skill_load` until that path routes it natively.
 2. **Commit order.** Record the existing work as Conventional Commits split by
    package before more feature work, so each package's history is reviewable.
    Commits are local; nothing is pushed without a release decision below.

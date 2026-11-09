@@ -12,6 +12,7 @@ import {
 	type ToolCall,
 	type ToolCatalogEntry,
 	type ToolContext,
+	type ToolSpec,
 	toolName,
 	toolSpec,
 	type VcsGitAdapter,
@@ -152,6 +153,8 @@ export const callModel = async (
 		priority: 0 | 1 | 2;
 		messages: readonly ChatMessage[];
 		seat: Seat;
+		/** Core-owned tools offered after the catalog ones, e.g. `skill_load` (ADR-194). */
+		native?: readonly ToolSpec[] | undefined;
 	},
 	onModel: (c: ModelChunk) => void,
 	signal: AbortSignal,
@@ -164,6 +167,7 @@ export const callModel = async (
 		(s) => deps.registry.has(s.ref) && allowed(run.seat, s.ref),
 	)
 		.map((s) => s.spec)
+		.concat(run.native ?? [])
 		.concat(Array.isArray(mcp) ? mcp : await mcp);
 	const { needs, avoidFamilies: avoid = [] } = run.seat;
 	const chunks = chain.value[0].impl.chat(

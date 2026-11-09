@@ -10,6 +10,7 @@ import { guarded } from "../domain/repeat.js";
 import { afterModelError } from "../domain/run-events.js";
 import { pinnedFor } from "../domain/skill-pinned.js";
 import { withSkillMessages } from "../domain/skill-prompt.js";
+import { skillLoadSpecs } from "../domain/skill-tool.js";
 import { currentWait } from "../domain/task-wait.js";
 import { activeRole, activeSeat, isAsking } from "../domain/team-run.js";
 import { allowed } from "../domain/tools.js";
@@ -28,12 +29,14 @@ import {
 	toolContext,
 } from "./run-state.js";
 import { stopScheduler } from "./scheduler-drain.js";
+import { ensureCatalog } from "./skill-catalog.js";
 import { skillBoundary } from "./skill-guard.js";
-import { callModel, callTool, type ModelOutcome, masked } from "./steps.js";
+import { skillToolTurn } from "./skill-tool.js";
+import { callModel, callTool, type ModelOutcome } from "./steps.js";
 import { cutTurn, summarizeTurn } from "./summarize.js";
 import { syncHumanWaits } from "./task-waits.js";
 import { submit, teamTurn, verdict } from "./team-driver.js";
-import { createCheckpoint } from "./vcs-steps.js";
+import { checkpoint, keeping } from "./tool-checkpoint.js";
 
 // The loop that moves a running run step by step (docs/08, Single agent), as module-level
 // functions over the engine's state record; a team run moves between tasks in team-driver.
@@ -125,17 +128,38 @@ const think = async (
 	}
 };
 
-const modelTurn = async (s: EngineState, l: Live, token: object) => {
-	// The pin is read before the call starts: a run paused while it is read never calls the model.
-	const seat = await pinnedSeat(s, l);
-	if (!owns(l, token)) return;
-	// MCP descriptions and schemas are external input before the first tool result.
-	if (
+// MCP descriptions and schemas are external input before the first tool result.
+const taintForMcp = (
+	s: EngineState,
+	l: Live,
+	seat: Awaited<ReturnType<typeof pinnedSeat>>,
+) =>
+	!(
 		allowed(seat, "mcp.tools@1") &&
 		s.deps.registry.has("mcp.tools@1") &&
 		!apply(s, l, { type: "TAINT" })
-	)
-		return;
+	);
+
+// Everything a model call needs first; false when the run stopped owning this turn meanwhile.
+// Legacy and manual-mode turns stay synchronous: the catalog is fetched only when it is due.
+const prepareCall = (
+	s: EngineState,
+	l: Live,
+	token: object,
+	seat: Awaited<ReturnType<typeof pinnedSeat>>,
+): boolean | Promise<boolean> => {
+	if (!owns(l, token)) return false;
+	const catalog = ensureCatalog(s, l, () => owns(l, token));
+	if (catalog === true) return taintForMcp(s, l, seat);
+	if (catalog === false) return false;
+	return catalog.then((ready) => ready && taintForMcp(s, l, seat));
+};
+
+const modelTurn = async (s: EngineState, l: Live, token: object) => {
+	// The pin is read before the call starts: a run paused while it is read never calls the model.
+	const seat = await pinnedSeat(s, l);
+	const prepared = prepareCall(s, l, token, seat);
+	if (prepared === false || (prepared !== true && !(await prepared))) return;
 	const model = new AbortController();
 	l.model = model;
 	const signal = AbortSignal.any([l.all.signal, model.signal]);
@@ -146,6 +170,7 @@ const modelTurn = async (s: EngineState, l: Live, token: object) => {
 		priority,
 		messages: withSkillMessages(messages, pinnedFor(l.snapshot.context)),
 		seat,
+		native: skillLoadSpecs(l.snapshot.context),
 	};
 	const out = await think(s, l, { run, task, signal });
 	if (!owns(l, token)) return; // paused or cancelled meanwhile: the reply is dropped
@@ -165,66 +190,6 @@ const modelTurn = async (s: EngineState, l: Live, token: object) => {
 };
 
 type ToolStep = Extract<NextStep, { kind: "tool" }>;
-
-const checkpointEvent = (step: number, snapshot?: string) => ({
-	type: "CHECKPOINTED" as const,
-	step,
-	...(snapshot ? { snapshot } : {}),
-});
-
-// false when the checkpoint failed or the run stopped while it was made.
-const checkpoint = async (
-	s: EngineState,
-	l: Live,
-	token: object,
-	t: ToolStep,
-) => {
-	const cp = await createCheckpoint(s.deps, {
-		...toolContext(l),
-		runId: l.meta.id,
-	});
-	if (!cp.ok) {
-		const at = s.deps.now();
-		const message = await masked(s.deps, cp.error);
-		const fail = { code: "checkpoint_failed", message };
-		if (owns(l, token)) apply(s, l, { type: "FAIL", at, ...fail });
-		return false;
-	}
-	if (cp.value)
-		emit(s, l, {
-			type: "checkpoint.created",
-			payload: { kind: "git", ref: cp.value },
-		});
-	const snapshot = cp.value ? undefined : await openSnapshot(s, l, t.step);
-	if (snapshot && !snapshot.ok) {
-		const fail = { code: "checkpoint_failed", message: snapshot.error.message };
-		if (owns(l, token))
-			apply(s, l, { type: "FAIL", at: s.deps.now(), ...fail });
-		return false;
-	}
-	return (
-		apply(s, l, checkpointEvent(t.step, snapshot?.value)) && owns(l, token)
-	);
-};
-
-// Without git, the step's file snapshot (ADR-080); none when the engine keeps no snapshots.
-const openSnapshot = async (s: EngineState, l: Live, step: number) => {
-	if (!s.deps.snapshots) return undefined;
-	const opened = await s.deps.snapshots.open(l.meta.id, step);
-	if (opened.ok)
-		emit(s, l, {
-			type: "checkpoint.created",
-			payload: { kind: "snapshot", ref: opened.value },
-		});
-	return opened;
-};
-
-// Copies a file into the step's snapshot before an fs tool writes it (ADR-080).
-const keeping = (s: EngineState, l: Live) => {
-	const ref = l.snapshot.context.snapshot;
-	const store = s.deps.snapshots;
-	return ref && store ? (path: string) => store.keep(ref, path) : undefined;
-};
 
 // The result with the repeat line when it repeats (ADR-166); the transcript reads past the line, so the log names it.
 const repeatChecked = (
@@ -257,7 +222,9 @@ const toolTurn = async (
 	token: object,
 	t: ToolStep,
 ) => {
-	if (t.checkpoint && !(await checkpoint(s, l, token, t))) return;
+	if (await skillToolTurn(s, l, token, t.call)) return;
+	if (t.checkpoint && !(await checkpoint(s, l, () => owns(l, token), t.step)))
+		return;
 	// A writing call is on record before it runs, so a crash in it is not run again (ADR-177).
 	if (
 		mayWrite(t.call) &&
