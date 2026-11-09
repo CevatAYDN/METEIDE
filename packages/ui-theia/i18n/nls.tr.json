@@ -490,6 +490,18 @@
 			"shell": "Hangi kabuk",
 			"workspace": "Klasör kimliği ve hassasiyeti"
 		},
+		"runSkills": {
+			"blockCode": "Engellendi: {0}",
+			"blocked": "Engellendi",
+			"detailFailed": "Saklanan metin okunamadı.",
+			"history": "Önceki bağlam",
+			"loaded": "Yüklendi",
+			"notProof": "Yüklendi, METE'nin bu bağlam için bu sürümü sakladığı anlamına gelir. Modelin ona uyduğunu kanıtlamaz.",
+			"readFailed": "Bu çalıştırmanın becerileri okunamadı. Okumayı yeniden deneyin.",
+			"selected": "Seçildi",
+			"show": "Saklanan metni göster",
+			"title": "Bu çalıştırmadaki beceriler"
+		},
 		"settings": {
 			"readFailed": "Ayarlar okunamadı. Yenileyip tekrar deneyin.",
 			"manageTeams": "Takımları yönet",

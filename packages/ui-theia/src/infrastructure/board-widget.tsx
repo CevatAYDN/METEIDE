@@ -145,8 +145,11 @@ export class MeteBoardWidget extends MetePanelWidget {
 				if (shown?.dir !== workspaceDir) return;
 				if (event.type.startsWith("run."))
 					void this.conversation.history.refresh();
-				if (shown && event.runId === shown.runId)
+				if (shown && event.runId === shown.runId) {
+					if (event.type === "run.skills.updated")
+						void this.conversation.skills.refresh();
 					this.onShownEvent(shown, event);
+				}
 			}),
 			this.composer.onDidChange(() => {
 				this.update();

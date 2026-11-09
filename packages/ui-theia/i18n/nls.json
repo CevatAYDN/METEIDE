@@ -490,6 +490,18 @@
 			"shell": "Which shell",
 			"workspace": "Folder id and sensitivity"
 		},
+		"runSkills": {
+			"blockCode": "Blocked: {0}",
+			"blocked": "Blocked",
+			"detailFailed": "Could not read the retained text.",
+			"history": "Earlier context",
+			"loaded": "Loaded",
+			"notProof": "Loaded means METE kept this exact version for the context. It does not prove the model followed it.",
+			"readFailed": "Could not read this run's skills. Retry the read.",
+			"selected": "Selected",
+			"show": "Show retained text",
+			"title": "Skills in this run"
+		},
 		"settings": {
 			"readFailed": "Settings could not be read. Refresh to retry.",
 			"manageTeams": "Manage teams",

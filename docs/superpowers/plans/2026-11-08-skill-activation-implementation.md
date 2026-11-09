@@ -255,6 +255,17 @@ English and Turkish strings are synchronized, and the mechanical UI detector
 reported `[]`. Focused control, composer and i18n suites pass (43/43).
 Root `pnpm check`: 34/34 tasks, ui-theia 1232/1232.
 
+## U3 run skill evidence view
+
+`RunSkills` in the conversation panel reads the shown run's metadata-only
+summary (`run.skills@1.read`) and lists each context's role, status
+(selected, loaded, blocked, earlier context), typed block code and
+source-qualified loaded versions. Retained text is requested only when one
+context is expanded. Legacy runs render nothing; a failed or mismatched read is
+an explicit retryable failure, never an empty list. Late replies after
+navigation are dropped, and `run.skills.updated` refreshes the read. The view
+states that loaded is not proof the model followed a skill. EN/TR strings added.
+
 ## Explicit activation integration correction (2026-11-10)
 
 Before exposing selection controls, source tracing found that preflight stored

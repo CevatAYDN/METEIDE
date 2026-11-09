@@ -2,6 +2,8 @@ import { nls } from "@theia/core/lib/common/nls";
 import type { MeteDaemonService } from "../domain/status-service.js";
 import type { Shown } from "./board-session.js";
 import { type ContextDrafts, contextScope } from "./context-drafts.js";
+import { createRunSkills } from "./run-skills.js";
+import { RunSkills } from "./run-skills-view.js";
 import { Button } from "./runs-list.js";
 import { createSentContext } from "./sent-context.js";
 import { SentContext } from "./sent-context-view.js";
@@ -15,7 +17,10 @@ import { createThreadSession } from "./thread-session.js";
 type Deps = {
 	readonly daemon: () => Pick<MeteDaemonService, "threadRead" | "threadReply"> &
 		Partial<
-			Pick<MeteDaemonService, "threadContextReply" | "threadContextRead">
+			Pick<
+				MeteDaemonService,
+				"threadContextReply" | "threadContextRead" | "runSkillsRead"
+			>
 		>;
 	readonly drafts?: (() => ContextDrafts | undefined) | undefined;
 	readonly shown: () => Shown | undefined;
@@ -50,6 +55,7 @@ const retryMessage = async (
 type PanelControls = {
 	history: ReturnType<typeof createThreadHistory>;
 	context: ReturnType<typeof createSentContext>;
+	skills: ReturnType<typeof createRunSkills>;
 	conversation: ReturnType<typeof createThreadSession>;
 	error: RetryError;
 };
@@ -80,6 +86,11 @@ const historyControls = (deps: Deps, model: PanelControls, shown: Shown) => (
 		<SentContext
 			state={model.context.state}
 			onRetry={() => void model.context.refresh()}
+		/>
+		<RunSkills
+			state={model.skills.state}
+			onRetry={() => void model.skills.refresh()}
+			onExpand={(id) => void model.skills.expand(id)}
 		/>
 	</>
 );
@@ -130,6 +141,11 @@ export const createThreadPanel = (deps: Deps) => {
 		shown: deps.shown,
 		onChange: deps.onChange,
 	});
+	const skills = createRunSkills({
+		fetch: () => deps.daemon().runSkillsRead?.bind(deps.daemon()),
+		shown: deps.shown,
+		onChange: deps.onChange,
+	});
 	const history = createThreadHistory({
 		fetch: (dir, input) => deps.daemon().threadRead(dir, input),
 		shown: deps.shown,
@@ -147,10 +163,18 @@ export const createThreadPanel = (deps: Deps) => {
 	});
 	const error: RetryError = {};
 	const controls = () =>
-		controlsFor(deps, { history, context, conversation, error });
+		controlsFor(deps, { history, context, skills, conversation, error });
 	const clear = () => {
 		history.clear();
 		context.clear();
+		skills.clear();
 	};
-	return { history, context, clear, remember: conversation.remember, controls };
+	return {
+		history,
+		context,
+		skills,
+		clear,
+		remember: conversation.remember,
+		controls,
+	};
 };

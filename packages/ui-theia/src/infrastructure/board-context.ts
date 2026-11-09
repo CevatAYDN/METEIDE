@@ -56,6 +56,7 @@ export const createBoardContext = (deps: Deps) => {
 		selectInitial: () => deps.context()?.select(deps.currentDir()),
 		selectRun: (shown: Shown) => {
 			void panel.context.show(shown);
+			void panel.skills.show(shown);
 		},
 		controls: () => {
 			const controls = panel.controls();
