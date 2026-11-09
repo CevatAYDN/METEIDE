@@ -45,6 +45,7 @@ import {
 	settingsRequests,
 } from "./settings-requests.js";
 import { type SkillTransport, skillRequests } from "./skill-requests.js";
+import { skillRuntimeRequests } from "./skill-runtime-requests.js";
 import { taskControlRequests } from "./task-control-requests.js";
 import { threadContextRequests } from "./thread-context-requests.js";
 
@@ -317,15 +318,17 @@ const skillTransport = (slot: Slot, live: Live): SkillTransport => ({
 	},
 });
 
-const hostSkills = (deps: HostDeps, slot: Slot) =>
-	skillRequests({
-		acquire: async (dir) => {
+const hostSkills = (deps: HostDeps, slot: Slot) => {
+	const transport = {
+		acquire: async (dir: string) => {
 			const live = await ensure(deps, slot, dir);
 			return live.ok ? ok(skillTransport(slot, live.value)) : live;
 		},
-		current: (dir) =>
+		current: (dir: string) =>
 			slot.live?.dir === dir ? skillTransport(slot, slot.live) : undefined,
-	});
+	};
+	return { ...skillRequests(transport), ...skillRuntimeRequests(transport) };
+};
 
 const restartIdle =
 	(slot: Slot) =>

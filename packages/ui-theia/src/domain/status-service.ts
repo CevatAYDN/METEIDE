@@ -50,6 +50,7 @@ import type {
 import type { DaemonFailure } from "./daemon-failure.js";
 import type { McpManagementService } from "./mcp-management.js";
 import type { SkillManagementService } from "./skill-management.js";
+import type { SkillRuntimeService } from "./skill-runtime-service.js";
 
 export type { DaemonFailure } from "./daemon-failure.js";
 
@@ -134,7 +135,8 @@ export interface MeteDaemonClient {
 export const MeteDaemonService = Symbol("MeteDaemonService");
 export interface MeteDaemonService
 	extends McpManagementService,
-		SkillManagementService {
+		SkillManagementService,
+		SkillRuntimeService {
 	/** Persisted per-attempt verification; events only trigger this authoritative read (ADR-187). */
 	verification(
 		workspaceDir: string,

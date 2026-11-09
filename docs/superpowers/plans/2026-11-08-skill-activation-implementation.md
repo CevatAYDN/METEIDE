@@ -219,6 +219,18 @@ set and passed 1/1. Root `pnpm check`: 34/34 passed (29 cached), including
 CLI 317/317. The first root attempt stopped on test formatting; formatting was
 corrected before the successful run.
 
+## U1a runtime-read transport
+
+Split U1 into bounded steps: U1a connects catalog and authenticated history reads;
+U1b will add session-bound sends and exact-intent retries before U2 controls.
+U1a reuses the captured `SkillTransport` in the daemon host and exposes
+`skillsRuntime` / `runSkillsRead` through the Theia backend service. Inputs and
+outputs are schema-validated; run and context identities must match the request.
+A replaced transport cannot deliver a late reply. Typed runtime failures remain
+distinct from transport failures and valid empty catalogs. Eight focused tests
+and nine host tests pass, including the actual fake-daemon JSON-RPC pipe.
+Root `pnpm check`: 34/34 passed (31 cached), including ui-theia 1218/1218.
+
 Codex reference: the user requested using `openai/codex` as implementation
 reference. Re-read its Apache-2.0 LICENSE and bounded skill discovery at the
 existing fixed revision `e0aa0434f415b0c5bc0fb64abd7f03c5510f9ed6` (see the

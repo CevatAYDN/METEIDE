@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { afterEach, expect, it } from "vitest";
 import { createRestartPolicy } from "../src/domain/restart-policy.js";
 import { createDaemonHost } from "../src/infrastructure/daemon-host.js";
@@ -28,6 +29,27 @@ const setup = async (mode = "ok") => {
 	if (!list.ok || !list.value.ok) throw new Error("Missing fixture inventory");
 	return { host, fake, closed, sessionId: list.value.value.sessionId };
 };
+
+it("serves S2 catalog and run evidence over the captured daemon pipe", async () => {
+	const { host, fake, closed, sessionId } = await setup();
+	expect(await host.skillsRuntime("/w")).toEqual({
+		ok: true,
+		value: {
+			ok: true,
+			value: {
+				sessionId,
+				catalog: { status: "ready", entries: [], diagnostics: [] },
+			},
+		},
+	});
+	const runId = randomUUID();
+	expect(await host.runSkillsRead("/w", { runId })).toEqual({
+		ok: true,
+		value: { ok: true, value: { kind: "legacy", runId } },
+	});
+	expect(fake.state.starts).toEqual(["/w"]);
+	expect(closed).toEqual([]);
+});
 
 it.each(["ok", "skills-admitted-error"])(
 	"awaits exact captured process close after %s without automatic reconnect",

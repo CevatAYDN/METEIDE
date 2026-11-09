@@ -14,6 +14,7 @@ import type {
 	ModelRef,
 	RunPrefer,
 	RunReplyInput,
+	RunSkillsReadInput,
 	RunStart,
 	TaskControlAnswer,
 	ThreadContextReplyInput,
@@ -76,6 +77,12 @@ export class MeteDaemonBackend
 
 	skillsList(dir: string) {
 		return this.host.skillsList(dir);
+	}
+	skillsRuntime(dir: string) {
+		return this.host.skillsRuntime(dir);
+	}
+	runSkillsRead(dir: string, input: RunSkillsReadInput) {
+		return this.host.runSkillsRead(dir, input);
 	}
 
 	skillsPrepare(dir: string, input: DaemonSkillsPrepareParams) {

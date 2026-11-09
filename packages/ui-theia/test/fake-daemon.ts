@@ -21,6 +21,12 @@ if (mode === "exit") {
 const run = { id: "6f1c3d52-9b7e-4a52-8d5f-0a1b2c3d4e5f", workspaceId: "0b6f0a43-3f0e-4a3e-9a58-1b2c3d4e5f60", templateId: null, goal: "fix it", status: "paused", pauseReason: "quota", autonomyLevel: 2, budget: { cloudRequests: 10, maxHours: 1 }, createdAt: "2026-10-23T10:00:00.000Z" };
 const conn = createMessageConnection(new StreamMessageReader(process.stdin), new StreamMessageWriter(process.stdout));
 const skillSession = require("node:crypto").randomUUID();
+conn.onRequest("mete/skills.runtime", () => ({ ok: true, value: {
+	sessionId: skillSession, catalog: { status: "ready", entries: [], diagnostics: [] }
+} }));
+conn.onRequest("mete/run.skills.read", (p) => ({
+	ok: true, value: { kind: "legacy", runId: p.runId }
+}));
 conn.onRequest("mete/skills.list", () => {
 	const list = ${JSON.stringify(skillList)};
 	list.value.sessionId = skillSession;
