@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -18,5 +19,16 @@ describe("the installer's Electron", () => {
 			read("electron-builder.yml"),
 		)?.[1];
 		expect(builder).toBe(pkg.devDependencies.electron);
+	});
+
+	it("matches the resolved Electron package after security overrides", () => {
+		const manifest: unknown = JSON.parse(read("package.json"));
+		const fromApp = createRequire(join(process.cwd(), "package.json"));
+		const installed = JSON.parse(
+			readFileSync(fromApp.resolve("electron/package.json"), "utf8"),
+		) as { version: string };
+		expect(manifest).toMatchObject({
+			devDependencies: { electron: installed.version },
+		});
 	});
 });

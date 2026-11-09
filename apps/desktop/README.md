@@ -1,6 +1,6 @@
 # @mete/desktop
 
-Theia + Electron application. Composition root. Theia is pinned to 1.76.0 (newest release at least 14 days old on 2026-10-21, published 2026-09-24) and Electron to 42.11.14 (published 2026-10-14): Theia 1.76 names 42.8.1, and the newer patch release of the same major closes its sandbox, protocol-handler and code-cache advisories (the audit of 2026-10-23; the overrides in pnpm-workspace.yaml say which fixes still wait for their 14 days, docs/05).
+Theia + Electron application. Composition root. Theia is pinned to 1.76.0 (newest release at least 14 days old on 2026-10-21, published 2026-09-24) and Electron to 42.11.16 (published 2026-10-20): Theia 1.76 names 42.8.1, and the newer patch release of the same major includes the earlier sandbox, protocol-handler and code-cache fixes plus GHSA-jr5w-w6x2-84p9. The 2026-11-08 selection and remaining dependency findings are recorded in docs/reviews/2026-11-07-release-security.md; the overrides in pnpm-workspace.yaml retain the 14-day policy of docs/05.
 
 Modules: none (not a MeteModule)
 
@@ -15,6 +15,8 @@ pnpm --filter @mete/desktop start      # opens the window
 ```
 
 `pnpm build` does not bundle the application: the bundle is not part of the turbo graph yet, because its inputs and outputs are not known (shortcut: add it when the desktop gets a CI job that can cache `lib/`).
+
+The desktop's package-level `turbo.json` retains the root build dependencies but excludes `dist/installer/` and preserved `dist/update-baseline-*/` folders from compiler-output caching. A TypeScript cache restore must not replace an installer or its matching update metadata.
 
 ## Package it (Windows)
 

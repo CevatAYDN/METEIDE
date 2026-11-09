@@ -1,4 +1,4 @@
-import { spawn, spawnSync } from "node:child_process";
+import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -27,6 +27,8 @@ export type Launch = {
 	readonly page: Page;
 	/** The fresh git workspace the app opened. */
 	readonly dir: string;
+	/** Daemon data directory derived only from this fixture's isolated global environment. */
+	readonly globalDir: string;
 	readonly close: () => Promise<void>;
 	/** Restarts the actual application and daemon while preserving this fixture's data. */
 	readonly restart: () => Promise<Page>;
@@ -160,8 +162,9 @@ const waitForFrontend = async (
 };
 
 /** Kills the app's whole process tree, so the next test's instance takes the single-instance lock. */
-const killTree = (pid: number | undefined) => {
-	if (!pid) return;
+const killTree = (child: ChildProcess) => {
+	const { pid, exitCode, signalCode } = child;
+	if (!pid || exitCode !== null || signalCode !== null) return;
 	spawnSync(
 		process.platform === "win32" ? "taskkill" : "kill",
 		process.platform === "win32"
@@ -211,7 +214,7 @@ const openApp = async (
 	const process = await startApp(workspace, global, env);
 	const front = await waitForFrontend(process.port);
 	if (!front) {
-		killTree(process.child.pid);
+		killTree(process.child);
 		throw new Error(`the app did not open its window: ${process.tail()}`);
 	}
 	try {
@@ -220,14 +223,14 @@ const openApp = async (
 		return { ...process, ...front };
 	} catch (error) {
 		await front.browser.close().catch(() => undefined);
-		killTree(process.child.pid);
+		killTree(process.child);
 		throw error;
 	}
 };
 
 const stopApp = async (session: Awaited<ReturnType<typeof openApp>>) => {
 	await session.browser.close().catch(() => undefined);
-	killTree(session.child.pid);
+	killTree(session.child);
 };
 
 const writeFiles = (root: string, files: Record<string, string>) => {
@@ -281,6 +284,13 @@ const globalEnv = (dir: string): NodeJS.ProcessEnv => ({
 		? { XDG_DATA_HOME: join(dir, "data"), XDG_CONFIG_HOME: join(dir, "config") }
 		: {}),
 });
+
+const fixtureGlobalDir = (env: NodeJS.ProcessEnv) => {
+	const base = process.platform === "win32" ? env.APPDATA : env.XDG_DATA_HOME;
+	if (!base || !["win32", "linux"].includes(process.platform))
+		throw new Error("The isolated global fixture requires Windows or Linux");
+	return join(base, process.platform === "win32" ? "METE" : "mete");
+};
 
 // The web answers travel the same way as the chat script (ADR-116): a file outside the workspace, so
 // they join no checkpoint. An empty script means the app keeps the real web tools.
@@ -365,6 +375,7 @@ export const test = base.extend<MeteOptions & { mete: Launch }>({
 					return session?.page ?? initial.page;
 				},
 				dir: workspace,
+				globalDir: fixtureGlobalDir(env),
 				get port() {
 					return session?.port ?? initial.port;
 				},

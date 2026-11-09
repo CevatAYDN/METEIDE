@@ -32,7 +32,22 @@ export const openFile = async (page: Page, name: string) => {
 export const replaceFile = async (page: Page, text: string) => {
 	await page.locator(".monaco-editor:visible .view-lines").first().click();
 	await page.keyboard.press("Control+a");
-	await page.keyboard.type(text, { delay: 10 });
+	await page
+		.locator(".monaco-editor:visible textarea")
+		.first()
+		.evaluate((element, content) => {
+			const clipboardData = new DataTransfer();
+			clipboardData.setData("text/plain", content);
+			// A comment-only URI list prevents Monaco's OS-resource clipboard fallback.
+			clipboardData.setData("text/uri-list", "#");
+			element.dispatchEvent(
+				new ClipboardEvent("paste", {
+					clipboardData,
+					bubbles: true,
+					cancelable: true,
+				}),
+			);
+		}, text);
 	await page.keyboard.press("Control+s");
 };
 

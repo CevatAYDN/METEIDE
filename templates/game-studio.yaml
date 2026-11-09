@@ -2,17 +2,18 @@
 # document, the lead and the human approve it, a project manager splits it into a task list whose
 # entries become tasks of the run (spawns), and developers, an artist and a tester work through
 # them one at a time, each step approved by the lead. The prototype is a browser game without a game
-# engine: gameengine.* gates are skipped while no engine is bound and the tester reports the gap,
+# engine: explicitly optional gameengine.* gates record not-run while no engine is bound,
+# and the tester reports the gap (ADR-187),
 # and the artist writes placeholder files while no media.* capability is bound. A developer's work
 # goes to the tester as its pair before the lead (ADR-136), and the designer asks the human its
 # questions before it writes (ADR-142). Core does not honor retrospective or watches yet; the lines
 # stay as docs/08 writes them.
-apiVersion: mete/v1
+apiVersion: mete/v2
 kind: TeamTemplate
 metadata:
   id: game-studio
   name: Game studio
-  version: 1.0.0
+  version: 2.0.0
   description: Idea to playable prototype
 pattern: hierarchical
 roles:
@@ -102,9 +103,9 @@ tasks:
     approval: lead
     spawns: true
 spawn_defaults:
-  developer: { verify: [{ capability: gameengine.build@1 }], review: { pair_with: tester, max_turns: 4 }, approval: lead }
+  developer: { verify: [{ capability: gameengine.build@1, optional: true }], review: { pair_with: tester, max_turns: 4 }, approval: lead }
   artist: { expected_output: artifact:asset-spec@1, approval: lead }
-  tester: { expected_output: artifact:test-report@1, verify: [{ capability: gameengine.test@1 }], approval: lead }
+  tester: { expected_output: artifact:test-report@1, verify: [{ capability: gameengine.test@1, optional: true }], approval: lead }
 policies:
   revision_limit: 3
   human_checkpoints: [write_gdd]

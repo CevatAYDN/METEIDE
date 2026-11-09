@@ -46,6 +46,10 @@ const openTeam = async (page: Parameters<typeof runCommand>[0]) => {
 	await runCommand(page, "METE: Edit team");
 	await pick(page, "Offline editor");
 	await expect(page.locator(".mete-team")).toBeVisible();
+	await page
+		.locator(".mete-team")
+		.getByRole("tab", { name: "Tasks", exact: true })
+		.click();
 	const advanced = page
 		.getByText("Advanced: verify, review and best-of-N", { exact: true })
 		.first();

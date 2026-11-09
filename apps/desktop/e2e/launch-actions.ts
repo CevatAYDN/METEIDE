@@ -9,17 +9,20 @@ export const startRun = async (
 	{ goal, team }: { readonly goal: string; readonly team: RegExp },
 ) => {
 	await runCommand(page, "METE: Start run");
-	const field = page.locator("textarea.mete-field");
+	const composer = page.locator(".mete-composer:visible");
+	const field = composer.locator(".mete-composer-field textarea");
 	await expect(field).toBeVisible({ timeout: 60_000 });
-	const radio = page.getByRole("radio", { name: team });
-	const choices = page
+	const radio = composer.getByRole("radio", { name: team });
+	const choices = composer
 		.locator("details")
 		.filter({ has: page.locator('input[type="radio"]') });
 	if (await choices.count()) await choices.locator("summary").click();
 	await expect(radio).toBeVisible({ timeout: 60_000 });
 	await field.fill(goal);
 	await radio.check();
-	await page.getByRole("button", { name: "Start run" }).click();
+	await composer
+		.getByRole("button", { name: "Start run", exact: true })
+		.click();
 };
 
 /** The Home inbox's row whose goal opens the run in the Team panel (ADR-110). */
