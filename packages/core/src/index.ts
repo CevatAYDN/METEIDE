@@ -12,4 +12,8 @@ export {
 	type TemplateDirs,
 	type TemplateText,
 } from "./infrastructure/template-store.js";
-export { type CoreEngineOptions, createCoreEngineModule } from "./module.js";
+export {
+	type CoreEngineOptions,
+	createCoreEngineModule,
+	type SkillLoadAdmission,
+} from "./module.js";

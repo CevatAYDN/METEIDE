@@ -10,11 +10,15 @@ import {
 } from "@mete/contracts";
 import type { MeteModule, ModuleContext, ModuleError } from "@mete/kernel";
 import { createEngine, type EngineDeps } from "./application/engine.js";
+import type { SkillLoadAuthority } from "./application/skill-load-authority.js";
 import { createArtifactStore } from "./infrastructure/artifact-store.js";
 import { createHandoffStore } from "./infrastructure/handoff-store.js";
 import { createRunStore, RUN_MIGRATIONS } from "./infrastructure/run-store.js";
 import { createSnapshotStore } from "./infrastructure/snapshot-store.js";
 import type { TemplateDirs } from "./infrastructure/template-store.js";
+
+/** Process-local native load admission; structurally security's SkillLoadAdmission. */
+export type SkillLoadAdmission = SkillLoadAuthority["admission"];
 
 /** What the composition root passes; clock and timer are injectable for tests. */
 export type CoreEngineOptions = {
@@ -27,6 +31,8 @@ export type CoreEngineOptions = {
 	readonly onNativeControls?: (controls: {
 		readonly engine: TeamEngineV3Adapter;
 		readonly quiesce: RunQuiesceAdapter;
+		/** The only native skill load authority of this activation (ADR-190/194). */
+		readonly skillLoads: SkillLoadAdmission;
 	}) => void;
 	/** The built-in templates/ folder and the workspace root; without them team runs are refused. */
 	readonly templates?: TemplateDirs;
@@ -243,6 +249,7 @@ export const createCoreEngineModule = (opts: CoreEngineOptions): MeteModule => {
 			opts.onNativeControls?.({
 				engine: created.engine,
 				quiesce: created.quiesce,
+				skillLoads: created.skillLoadAdmission,
 			});
 			if (opts.recover !== false) created.recover();
 			return ok(undefined);

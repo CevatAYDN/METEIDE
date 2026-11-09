@@ -49,7 +49,11 @@ import {
 	createOpenRouterModule,
 } from "@mete/providers";
 import { createQuotaModule } from "@mete/quota";
-import { createKeychainStore, createSecurityModule } from "@mete/security";
+import {
+	createKeychainStore,
+	createSecurityModule,
+	type SkillRuntimeAttestations,
+} from "@mete/security";
 import { createStorageModule } from "@mete/storage";
 import {
 	type BrowserOptions,
@@ -219,6 +223,7 @@ const modulesFor = (
 	composition: {
 		gateway: GatewayModule;
 		skills: readonly MeteModule[];
+		attestations: SkillRuntimeAttestations;
 		nativeControls: ReturnType<typeof createNativeControls>;
 	},
 ): MeteModule[] => {
@@ -227,7 +232,11 @@ const modulesFor = (
 	const checkpointAdapters = new WeakSet<VcsGitAdapter>();
 	return [
 		createStorageModule(dirs),
-		createSecurityModule({ ...dirs, workspaceId }),
+		createSecurityModule({
+			...dirs,
+			workspaceId,
+			skills: composition.attestations,
+		}),
 		createQuotaModule({ workspaceId }),
 		...(opts.providers ?? builtInProviders()),
 		gateway,
@@ -301,13 +310,16 @@ const appModules = (
 ) => {
 	const gateway = createGatewayModule();
 	const nativeControls = createNativeControls();
-	const skills = nativeSkillModules(
-		opts,
-		workspaceId,
-		registry,
-		nativeControls.view,
-	);
-	const composition = { gateway, skills: skills.modules, nativeControls };
+	const skills = nativeSkillModules(opts, workspaceId, registry, {
+		view: nativeControls.view,
+		skillLoads: nativeControls.skillLoads,
+	});
+	const composition = {
+		gateway,
+		skills: skills.modules,
+		attestations: skills.attestations,
+		nativeControls,
+	};
 	const modules = modulesFor(opts, workspaceId, registry, composition);
 	return { gateway, skills, modules };
 };

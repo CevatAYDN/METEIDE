@@ -22,6 +22,8 @@ import { skillBinding } from "./daemon-skill-binding.js";
 import { resolveSkillEditor } from "./daemon-skill-editor.js";
 import { mutateSkill, skillMutationFailure } from "./daemon-skill-mutations.js";
 import { listSkills, prepareSkill } from "./daemon-skill-reads.js";
+import { serveSkillMutations } from "./daemon-skill-runs.js";
+import { serveSkillRuntime } from "./daemon-skill-runtime.js";
 
 const failure = (code: SkillError["code"]) => err({ code });
 
@@ -85,6 +87,9 @@ const bindMutations = (
 export const serveSkills = (connection: MessageConnection, app: SkillApp) => {
 	const sessionId = randomUUID();
 	const routes = skillBinding(connection);
+	// S2 routes share this connection's session identity (T2, ADR-190).
+	const runtime = serveSkillRuntime(connection, app, sessionId);
+	const runs = serveSkillMutations(connection, app, sessionId);
 	routes.bind(DAEMON_METHODS.skillsList, {
 		input: DaemonSkillsListParamsSchema,
 		output: DaemonSkillsListResultSchema,
@@ -108,5 +113,9 @@ export const serveSkills = (connection: MessageConnection, app: SkillApp) => {
 			resolveSkillEditor(app, sessionId, input, signal),
 	});
 	bindMutations(routes, app, sessionId);
-	return routes.dispose;
+	return () => {
+		runs();
+		runtime();
+		routes.dispose();
+	};
 };
