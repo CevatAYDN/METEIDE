@@ -1,0 +1,48 @@
+diff --git a/dist/commonjs/index.js b/dist/commonjs/index.js
+index c12dc5e6476874f9dbba429a19e445a4a688e1df..dd0aab9e529bfe6e214a337359047b190c071733 100644
+--- a/dist/commonjs/index.js
++++ b/dist/commonjs/index.js
+@@ -446,6 +446,9 @@ class Minimatch {
+     // **/*/<rest> -> */**/<rest> <== not valid because ** doesn't follow
+     // this WOULD be allowed if ** did follow symlinks, or * didn't
+     firstPhasePreProcess(globParts) {
++        // METE (GHSA-g3hv-75wg-m249): each **/.. split doubles the patterns and the second phase
++        // compares them pairwise; real patterns stay far below this bound.
++        const braceExpandMax = 1024;
+         let didSomething = false;
+         do {
+             didSomething = false;
+@@ -473,7 +476,8 @@ class Minimatch {
+                         p === '..' ||
+                         !p2 ||
+                         p2 === '.' ||
+-                        p2 === '..') {
++                        p2 === '..' ||
++                        globParts.length >= braceExpandMax) {
+                         continue;
+                     }
+                     didSomething = true;
+diff --git a/dist/esm/index.js b/dist/esm/index.js
+index 737c8095415235e69e4717b505d0ee4ea3c0b6fa..37b148ce2cbad279cd6e0713a7d0a31b1f7ce461 100644
+--- a/dist/esm/index.js
++++ b/dist/esm/index.js
+@@ -434,6 +434,9 @@ export class Minimatch {
+     // **/*/<rest> -> */**/<rest> <== not valid because ** doesn't follow
+     // this WOULD be allowed if ** did follow symlinks, or * didn't
+     firstPhasePreProcess(globParts) {
++        // METE (GHSA-g3hv-75wg-m249): each **/.. split doubles the patterns and the second phase
++        // compares them pairwise; real patterns stay far below this bound.
++        const braceExpandMax = 1024;
+         let didSomething = false;
+         do {
+             didSomething = false;
+@@ -461,7 +464,8 @@ export class Minimatch {
+                         p === '..' ||
+                         !p2 ||
+                         p2 === '.' ||
+-                        p2 === '..') {
++                        p2 === '..' ||
++                        globParts.length >= braceExpandMax) {
+                         continue;
+                     }
+                     didSomething = true;

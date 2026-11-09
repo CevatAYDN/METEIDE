@@ -26,6 +26,12 @@ overrides:
 patchedDependencies:
   '@theia/task@1.76.0': d78b0b48bbf65960d1490be2a0601c870aa1d023593d1435e3f18daf326cd072
   '@vscode/windows-ca-certs@0.3.4': 25f61847bf569d4cd4158072309627ddef7728de74a6710688fdbd59878e3af6
+  decompress@4.2.1: 6eb936da48c1b72d4aa1f8e52cd938f5c1ed2e8e1107818dc27984c2affc1b3f
+  deepmerge@4.3.1: 62b9550497230fefc7682143c30e34f35ce5c8223a7775db82cb8c0c6c4e2184
+  diff@7.0.0: 19f4ae696f58f9f203bc805c5360e20f9d9ab9604847725a561b89b93f15f128
+  glob@10.5.0: 60ada7489ad7280aac7f0f2c2465ae4d94edc5a6cf4e100dc7d6a067737c52e1
+  minimatch@10.2.6: f9bc603e1e2a5eef36d99b9cb09deb84d5d7ccbcc04aa8c46a004d498ad6521e
+  minimatch@9.0.9: 613bf48eb1ce2f4462e62f8a9bb0b3906334319472f3ce08be530cda765cab30
   node-pty@1.2.0-beta.12: d19942121ae4e360add9fe3ccc1c86efba1f102829074c0d6a2ca8ecacb55cb7
 
 importers:
@@ -6763,7 +6769,7 @@ snapshots:
       debug: 4.4.3(supports-color@8.1.1)
       dir-compare: 4.2.0
       fs-extra: 11.4.1
-      minimatch: 9.0.9
+      minimatch: 9.0.9(patch_hash=613bf48eb1ce2f4462e62f8a9bb0b3906334319472f3ce08be530cda765cab30)
       plist: 3.1.0
     transitivePeerDependencies:
       - supports-color
@@ -7541,7 +7547,7 @@ snapshots:
       '@types/fs-extra': 4.0.15
       '@types/semver': 7.8.0
       '@types/write-json-file': 2.2.1
-      deepmerge: 4.3.1
+      deepmerge: 4.3.1(patch_hash=62b9550497230fefc7682143c30e34f35ce5c8223a7775db82cb8c0c6c4e2184)
       fs-extra: 4.0.3
       is-electron: 2.2.2
       nano: 10.1.4(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
@@ -7613,7 +7619,7 @@ snapshots:
       '@types/node-fetch': 2.6.13
       chai: 4.5.0
       chalk: 4.0.0
-      decompress: 4.2.1
+      decompress: 4.2.1(patch_hash=6eb936da48c1b72d4aa1f8e52cd938f5c1ed2e8e1107818dc27984c2affc1b3f)
       escape-string-regexp: 4.0.0
       glob: 8.1.0
       http-server: 14.1.1(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
@@ -7860,7 +7866,7 @@ snapshots:
       body-parser: 1.20.9(supports-color@8.1.1)
       http-status-codes: 1.4.0
       ignore: 6.0.2
-      minimatch: 10.2.6
+      minimatch: 10.2.6(patch_hash=f9bc603e1e2a5eef36d99b9cb09deb84d5d7ccbcc04aa8c46a004d498ad6521e)
       multer: 2.5.0
       opfs-worker: 1.3.1(typescript@6.0.3)
       rimraf: 5.0.10
@@ -7891,7 +7897,7 @@ snapshots:
       '@types/fs-extra': 4.0.15
       bent: 7.3.12
       chalk: 4.0.0
-      deepmerge: 4.3.1
+      deepmerge: 4.3.1(patch_hash=62b9550497230fefc7682143c30e34f35ce5c8223a7775db82cb8c0c6c4e2184)
       fs-extra: 4.0.3
       glob: 7.2.3
       limiter: 2.1.0
@@ -8000,7 +8006,7 @@ snapshots:
       '@theia/core': 1.76.0(@theia/electron@1.76.0(electron@42.11.16(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)
       '@theia/filesystem': 1.76.0(@theia/electron@1.76.0(electron@42.11.16(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
       '@theia/workspace': 1.76.0(@theia/electron@1.76.0(electron@42.11.16(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
-      minimatch: 10.2.6
+      minimatch: 10.2.6(patch_hash=f9bc603e1e2a5eef36d99b9cb09deb84d5d7ccbcc04aa8c46a004d498ad6521e)
       tslib: 2.8.1
     transitivePeerDependencies:
       - '@theia/electron'
@@ -8106,7 +8112,7 @@ snapshots:
       '@theia/typehierarchy': 1.76.0(@theia/electron@1.76.0(electron@42.11.16(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)
       '@theia/userstorage': 1.76.0(@theia/electron@1.76.0(electron@42.11.16(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
       '@theia/workspace': 1.76.0(@theia/electron@1.76.0(electron@42.11.16(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
-      decompress: 4.2.1
+      decompress: 4.2.1(patch_hash=6eb936da48c1b72d4aa1f8e52cd938f5c1ed2e8e1107818dc27984c2affc1b3f)
       filenamify: 4.3.0
       tslib: 2.8.1
     transitivePeerDependencies:
@@ -8163,7 +8169,7 @@ snapshots:
       '@vscode/debugprotocol': 1.68.0
       '@vscode/proxy-agent': 0.13.2(supports-color@8.1.1)
       async-mutex: 0.4.1
-      decompress: 4.2.1
+      decompress: 4.2.1(patch_hash=6eb936da48c1b72d4aa1f8e52cd938f5c1ed2e8e1107818dc27984c2affc1b3f)
       escape-html: 1.0.3
       filenamify: 4.3.0
       is-electron: 2.2.2
@@ -8290,7 +8296,7 @@ snapshots:
       '@theia/process': 1.76.0(@theia/electron@1.76.0(electron@42.11.16(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)
       '@theia/workspace': 1.76.0(@theia/electron@1.76.0(electron@42.11.16(supports-color@8.1.1)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@8.1.1)(typescript@6.0.3)
       '@vscode/ripgrep': 1.18.0
-      minimatch: 10.2.6
+      minimatch: 10.2.6(patch_hash=f9bc603e1e2a5eef36d99b9cb09deb84d5d7ccbcc04aa8c46a004d498ad6521e)
       react-textarea-autosize: 8.5.9(@types/react@19.3.0)(react@19.3.1)
       tslib: 2.8.1
     transitivePeerDependencies:
@@ -9051,7 +9057,7 @@ snapshots:
       js-yaml: 4.3.2
       json5: 2.2.3
       lazy-val: 1.0.5
-      minimatch: 10.2.6
+      minimatch: 10.2.6(patch_hash=f9bc603e1e2a5eef36d99b9cb09deb84d5d7ccbcc04aa8c46a004d498ad6521e)
       pkijs: 3.4.1
       plist: 3.1.0
       proper-lockfile: 4.1.2
@@ -9709,7 +9715,7 @@ snapshots:
       pify: 2.3.0
       yauzl: 2.10.0
 
-  decompress@4.2.1:
+  decompress@4.2.1(patch_hash=6eb936da48c1b72d4aa1f8e52cd938f5c1ed2e8e1107818dc27984c2affc1b3f):
     dependencies:
       decompress-tar: 4.1.1
       decompress-tarbz2: 4.1.1
@@ -9726,7 +9732,7 @@ snapshots:
 
   deep-extend@0.6.0: {}
 
-  deepmerge@4.3.1: {}
+  deepmerge@4.3.1(patch_hash=62b9550497230fefc7682143c30e34f35ce5c8223a7775db82cb8c0c6c4e2184): {}
 
   default-shell@2.2.0: {}
 
@@ -9786,7 +9792,7 @@ snapshots:
 
   diff@5.2.2: {}
 
-  diff@7.0.0: {}
+  diff@7.0.0(patch_hash=19f4ae696f58f9f203bc805c5360e20f9d9ab9604847725a561b89b93f15f128): {}
 
   dir-compare@4.2.0:
     dependencies:
@@ -10589,11 +10595,11 @@ snapshots:
     dependencies:
       is-glob: 4.0.3
 
-  glob@10.5.0:
+  glob@10.5.0(patch_hash=60ada7489ad7280aac7f0f2c2465ae4d94edc5a6cf4e100dc7d6a067737c52e1):
     dependencies:
       foreground-child: 3.3.1
       jackspeak: 3.4.3
-      minimatch: 9.0.9
+      minimatch: 9.0.9(patch_hash=613bf48eb1ce2f4462e62f8a9bb0b3906334319472f3ce08be530cda765cab30)
       minipass: 7.1.3
       package-json-from-dist: 1.0.1
       path-scurry: 1.11.1
@@ -11461,7 +11467,7 @@ snapshots:
 
   mimic-response@3.1.0: {}
 
-  minimatch@10.2.6:
+  minimatch@10.2.6(patch_hash=f9bc603e1e2a5eef36d99b9cb09deb84d5d7ccbcc04aa8c46a004d498ad6521e):
     dependencies:
       brace-expansion: 5.0.12
 
@@ -11473,7 +11479,7 @@ snapshots:
     dependencies:
       brace-expansion: 2.1.7
 
-  minimatch@9.0.9:
+  minimatch@9.0.9(patch_hash=613bf48eb1ce2f4462e62f8a9bb0b3906334319472f3ce08be530cda765cab30):
     dependencies:
       brace-expansion: 2.1.7
 
@@ -11507,15 +11513,15 @@ snapshots:
       browser-stdout: 1.3.1
       chokidar: 4.0.3
       debug: 4.4.3(supports-color@8.1.1)
-      diff: 7.0.0
+      diff: 7.0.0(patch_hash=19f4ae696f58f9f203bc805c5360e20f9d9ab9604847725a561b89b93f15f128)
       escape-string-regexp: 4.0.0
       find-up: 5.0.0
-      glob: 10.5.0
+      glob: 10.5.0(patch_hash=60ada7489ad7280aac7f0f2c2465ae4d94edc5a6cf4e100dc7d6a067737c52e1)
       he: 1.2.0
       is-path-inside: 3.0.3
       js-yaml: 4.3.2
       log-symbols: 4.1.0
-      minimatch: 9.0.9
+      minimatch: 9.0.9(patch_hash=613bf48eb1ce2f4462e62f8a9bb0b3906334319472f3ce08be530cda765cab30)
       ms: 2.1.3
       picocolors: 1.1.1
       serialize-javascript: 7.1.3
@@ -11702,7 +11708,7 @@ snapshots:
   opfs-worker@1.3.1(typescript@6.0.3):
     dependencies:
       comlink: 4.4.2
-      minimatch: 10.2.6
+      minimatch: 10.2.6(patch_hash=f9bc603e1e2a5eef36d99b9cb09deb84d5d7ccbcc04aa8c46a004d498ad6521e)
       typescript: 6.0.3
 
   os-homedir@1.0.2: {}
@@ -12237,7 +12243,7 @@ snapshots:
 
   rimraf@5.0.10:
     dependencies:
-      glob: 10.5.0
+      glob: 10.5.0(patch_hash=60ada7489ad7280aac7f0f2c2465ae4d94edc5a6cf4e100dc7d6a067737c52e1)
 
   roarr@2.15.4:
     dependencies:

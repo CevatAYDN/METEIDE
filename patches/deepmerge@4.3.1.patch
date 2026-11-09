@@ -1,0 +1,26 @@
+diff --git a/dist/cjs.js b/dist/cjs.js
+index 7c36cbdd06cc22c92d590be3f87a08a91ca06b40..b6df3c51a2b78c472a03788fae3b5290083f5364 100644
+--- a/dist/cjs.js
++++ b/dist/cjs.js
+@@ -71,6 +71,8 @@ function propertyIsOnObject(object, property) {
+ 
+ // Protects from prototype poisoning and unexpected merging up the prototype chain.
+ function propertyIsUnsafe(target, key) {
++	// METE hardening (GHSA-gcqx-w48m-w2h4): never merge prototype-shaping keys.
++	if (key === '__proto__' || key === 'constructor' || key === 'prototype') return true
+ 	return propertyIsOnObject(target, key) // Properties are safe to merge if they don't exist in the target yet,
+ 		&& !(Object.hasOwnProperty.call(target, key) // unsafe if they exist up the prototype chain,
+ 			&& Object.propertyIsEnumerable.call(target, key)) // and also unsafe if they're nonenumerable.
+diff --git a/index.js b/index.js
+index 77968aed5d456cccc294f60912ef381fa1e52a7b..778870537e23c1189f456a01fcb33569dbeb67ce 100644
+--- a/index.js
++++ b/index.js
+@@ -46,6 +46,8 @@ function propertyIsOnObject(object, property) {
+ 
+ // Protects from prototype poisoning and unexpected merging up the prototype chain.
+ function propertyIsUnsafe(target, key) {
++	// METE hardening (GHSA-gcqx-w48m-w2h4): never merge prototype-shaping keys.
++	if (key === '__proto__' || key === 'constructor' || key === 'prototype') return true
+ 	return propertyIsOnObject(target, key) // Properties are safe to merge if they don't exist in the target yet,
+ 		&& !(Object.hasOwnProperty.call(target, key) // unsafe if they exist up the prototype chain,
+ 			&& Object.propertyIsEnumerable.call(target, key)) // and also unsafe if they're nonenumerable.

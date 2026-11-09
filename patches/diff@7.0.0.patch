@@ -1,0 +1,116 @@
+diff --git a/dist/diff.js b/dist/diff.js
+index 2c2c33344ecd25714ab0e395dcb0d9228f1e5799..2ea2e581d667b72252bd279d634509ef6cd649b9 100644
+--- a/dist/diff.js
++++ b/dist/diff.js
+@@ -1041,9 +1041,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+         }
+ 
+         // Diff index
+-        var header = /^(?:Index:|diff(?: -r \w+)+)\s+(.+?)\s*$/.exec(line);
++        var header = /^(?:Index:|diff(?: -r \w+)+)\s+/.exec(line); // METE: GHSA-73rr-hh4g-fpgx
+         if (header) {
+-          index.index = header[1];
++          index.index = line.substring(header[0].length).trim();
+         }
+         i++;
+       }
+@@ -1072,10 +1072,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+     // Parses the --- and +++ headers, if none are found, no lines
+     // are consumed.
+     function parseFileHeader(index) {
+-      var fileHeader = /^(---|\+\+\+)\s+(.*)\r?$/.exec(diffstr[i]);
++      var fileHeader = /^(---|\+\+\+)\s+/.exec(diffstr[i]); // METE: GHSA-73rr-hh4g-fpgx
+       if (fileHeader) {
+         var keyPrefix = fileHeader[1] === '---' ? 'old' : 'new';
+-        var data = fileHeader[2].split('\t', 2);
++        var data = diffstr[i].substring(3).trim().split('\t', 2);
+         var fileName = data[0].replace(/\\\\/g, '\\');
+         if (/^".*"$/.test(fileName)) {
+           fileName = fileName.substr(1, fileName.length - 2);
+diff --git a/lib/index.es6.js b/lib/index.es6.js
+index 6e872723d85817169a5f79408ffc4f5a2e24f655..f9fb250ece90f36474e95b4e0141b1144952d72a 100644
+--- a/lib/index.es6.js
++++ b/lib/index.es6.js
+@@ -999,9 +999,9 @@ function parsePatch(uniDiff) {
+       }
+ 
+       // Diff index
+-      var header = /^(?:Index:|diff(?: -r \w+)+)\s+(.+?)\s*$/.exec(line);
++      var header = /^(?:Index:|diff(?: -r \w+)+)\s+/.exec(line); // METE: GHSA-73rr-hh4g-fpgx
+       if (header) {
+-        index.index = header[1];
++        index.index = line.substring(header[0].length).trim();
+       }
+       i++;
+     }
+@@ -1030,10 +1030,10 @@ function parsePatch(uniDiff) {
+   // Parses the --- and +++ headers, if none are found, no lines
+   // are consumed.
+   function parseFileHeader(index) {
+-    var fileHeader = /^(---|\+\+\+)\s+(.*)\r?$/.exec(diffstr[i]);
++    var fileHeader = /^(---|\+\+\+)\s+/.exec(diffstr[i]); // METE: GHSA-73rr-hh4g-fpgx
+     if (fileHeader) {
+       var keyPrefix = fileHeader[1] === '---' ? 'old' : 'new';
+-      var data = fileHeader[2].split('\t', 2);
++      var data = diffstr[i].substring(3).trim().split('\t', 2);
+       var fileName = data[0].replace(/\\\\/g, '\\');
+       if (/^".*"$/.test(fileName)) {
+         fileName = fileName.substr(1, fileName.length - 2);
+diff --git a/lib/index.mjs b/lib/index.mjs
+index 6e872723d85817169a5f79408ffc4f5a2e24f655..f9fb250ece90f36474e95b4e0141b1144952d72a 100644
+--- a/lib/index.mjs
++++ b/lib/index.mjs
+@@ -999,9 +999,9 @@ function parsePatch(uniDiff) {
+       }
+ 
+       // Diff index
+-      var header = /^(?:Index:|diff(?: -r \w+)+)\s+(.+?)\s*$/.exec(line);
++      var header = /^(?:Index:|diff(?: -r \w+)+)\s+/.exec(line); // METE: GHSA-73rr-hh4g-fpgx
+       if (header) {
+-        index.index = header[1];
++        index.index = line.substring(header[0].length).trim();
+       }
+       i++;
+     }
+@@ -1030,10 +1030,10 @@ function parsePatch(uniDiff) {
+   // Parses the --- and +++ headers, if none are found, no lines
+   // are consumed.
+   function parseFileHeader(index) {
+-    var fileHeader = /^(---|\+\+\+)\s+(.*)\r?$/.exec(diffstr[i]);
++    var fileHeader = /^(---|\+\+\+)\s+/.exec(diffstr[i]); // METE: GHSA-73rr-hh4g-fpgx
+     if (fileHeader) {
+       var keyPrefix = fileHeader[1] === '---' ? 'old' : 'new';
+-      var data = fileHeader[2].split('\t', 2);
++      var data = diffstr[i].substring(3).trim().split('\t', 2);
+       var fileName = data[0].replace(/\\\\/g, '\\');
+       if (/^".*"$/.test(fileName)) {
+         fileName = fileName.substr(1, fileName.length - 2);
+diff --git a/lib/patch/parse.js b/lib/patch/parse.js
+index 15acdd9a0e1c2c4ed6ee1ce919169360dcefdb75..152269f67535b1c65e52836027c4a4b76774dd94 100644
+--- a/lib/patch/parse.js
++++ b/lib/patch/parse.js
+@@ -24,9 +24,9 @@ function parsePatch(uniDiff) {
+       }
+ 
+       // Diff index
+-      var header = /^(?:Index:|diff(?: -r \w+)+)\s+(.+?)\s*$/.exec(line);
++      var header = /^(?:Index:|diff(?: -r \w+)+)\s+/.exec(line); // METE: GHSA-73rr-hh4g-fpgx
+       if (header) {
+-        index.index = header[1];
++        index.index = line.substring(header[0].length).trim();
+       }
+       i++;
+     }
+@@ -55,10 +55,10 @@ function parsePatch(uniDiff) {
+   // Parses the --- and +++ headers, if none are found, no lines
+   // are consumed.
+   function parseFileHeader(index) {
+-    var fileHeader = /^(---|\+\+\+)\s+(.*)\r?$/.exec(diffstr[i]);
++    var fileHeader = /^(---|\+\+\+)\s+/.exec(diffstr[i]); // METE: GHSA-73rr-hh4g-fpgx
+     if (fileHeader) {
+       var keyPrefix = fileHeader[1] === '---' ? 'old' : 'new';
+-      var data = fileHeader[2].split('\t', 2);
++      var data = diffstr[i].substring(3).trim().split('\t', 2);
+       var fileName = data[0].replace(/\\\\/g, '\\');
+       if (/^".*"$/.test(fileName)) {
+         fileName = fileName.substr(1, fileName.length - 2);

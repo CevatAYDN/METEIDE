@@ -14,7 +14,7 @@
 		"test:chaos": "pnpm --filter @mete/cli build && pnpm --filter @mete/cli exec vitest run --config vitest.chaos.config.ts",
 		"release:check": "node scripts/release-check.mjs",
 		"test": "turbo run test",
-		"test:scripts": "node --experimental-vm-modules --test scripts/test/maintenance.test.mjs scripts/test/license-metadata.test.mjs scripts/test/security-compatibility.test.mjs",
+		"test:scripts": "node --experimental-vm-modules --test scripts/test/maintenance.test.mjs scripts/test/license-metadata.test.mjs scripts/test/security-compatibility.test.mjs scripts/test/vendor-hardening.test.mjs",
 		"build": "turbo run build",
 		"test:record": "echo \"test:record is not built yet; provider tests use hand-written fetch fakes (docs/15)\" && exit 1"
 	},

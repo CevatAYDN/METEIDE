@@ -1,0 +1,81 @@
+diff --git a/index.js b/index.js
+index 6aa67ca9cda4bac1262915ca6e47e97b224d336e..1b9d23af1a9e691f31a0fd6ee9407c4c769cc049 100644
+--- a/index.js
++++ b/index.js
+@@ -11,6 +11,13 @@ const stripDirs = require('strip-dirs');
+ 
+ const fsP = pify(fs);
+ 
++// METE hardening (GHSA-mp2f-45pm-3cg9, GHSA-hrh2-vp3x-79xf, GHSA-h39j-r5qq-r9mm,
++// GHSA-jwp9-9v96-94mx): no link entries, separator-aware containment, no special
++// mode bits, and one entry at a time so a planted path cannot race a later write.
++const inside = (child, parent) =>
++	child === parent || child.indexOf(parent.endsWith(path.sep) ? parent : parent + path.sep) === 0;
++
++
+ const runPlugins = (input, opts) => {
+ 	if (opts.plugins.length === 0) {
+ 		return Promise.resolve([]);
+@@ -26,7 +33,7 @@ const safeMakeDir = (dir, realOutputPath) => {
+ 			return safeMakeDir(parent, realOutputPath);
+ 		})
+ 		.then(realParentPath => {
+-			if (realParentPath.indexOf(realOutputPath) !== 0) {
++			if (!inside(realParentPath, realOutputPath)) {
+ 				throw (new Error('Refusing to create a directory outside the output path.'));
+ 			}
+ 
+@@ -73,9 +80,13 @@ const extractFile = (input, output, opts) => runPlugins(input, opts).then(files
+ 		return files;
+ 	}
+ 
+-	return Promise.all(files.map(x => {
++	const writeOne = x => {
++		if (x.type === 'link' || x.type === 'symlink') {
++			return Promise.reject(new Error('Refusing to extract a link entry: ' + x.path));
++		}
++
+ 		const dest = path.join(output, x.path);
+-		const mode = x.mode & ~process.umask();
++		const mode = x.mode & ~process.umask() & 0o777;
+ 		const now = new Date();
+ 
+ 		if (x.type === 'directory') {
+@@ -103,29 +114,20 @@ const extractFile = (input, output, opts) => runPlugins(input, opts).then(files
+ 			.then(realOutputPath => {
+ 				return fsP.realpath(path.dirname(dest))
+ 					.then(realDestinationDir => {
+-						if (realDestinationDir.indexOf(realOutputPath) !== 0) {
++						if (!inside(realDestinationDir, realOutputPath)) {
+ 							throw (new Error('Refusing to write outside output directory: ' + realDestinationDir));
+ 						}
+ 					});
+ 			})
+-			.then(() => {
+-				if (x.type === 'link') {
+-					return fsP.link(x.linkname, dest);
+-				}
+-
+-				if (x.type === 'symlink' && process.platform === 'win32') {
+-					return fsP.link(x.linkname, dest);
+-				}
+-
+-				if (x.type === 'symlink') {
+-					return fsP.symlink(x.linkname, dest);
+-				}
+-
+-				return fsP.writeFile(dest, x.data, {mode});
+-			})
++			.then(() => fsP.writeFile(dest, x.data, {mode}))
+ 			.then(() => x.type === 'file' && fsP.utimes(dest, now, x.mtime))
+ 			.then(() => x);
+-	}));
++	};
++
++	return files.reduce(
++		(done, x) => done.then(list => writeOne(x).then(entry => list.concat([entry]))),
++		Promise.resolve([])
++	);
+ });
+ 
+ module.exports = (input, output, opts) => {

@@ -1,0 +1,34 @@
+# Advisories closed by local patches in patches/ (ADR-195); proved by scripts/test/vendor-hardening.test.mjs.
+# Remove an entry once the dependency moves to an upstream fixed version.
+
+[[IgnoredVulns]]
+id = "GHSA-3g3m-2fjr-6pw4"
+reason = "Fixed by patches/ for glob@10.5.0; regression test in scripts/test/vendor-hardening.test.mjs (ADR-195)."
+
+[[IgnoredVulns]]
+id = "GHSA-73rr-hh4g-fpgx"
+reason = "Fixed by patches/ for diff@7.0.0; regression test in scripts/test/vendor-hardening.test.mjs (ADR-195)."
+
+[[IgnoredVulns]]
+id = "GHSA-g3hv-75wg-m249"
+reason = "Fixed by patches/ for minimatch@10.2.6 and minimatch@9.0.9; regression test in scripts/test/vendor-hardening.test.mjs (ADR-195)."
+
+[[IgnoredVulns]]
+id = "GHSA-gcqx-w48m-w2h4"
+reason = "Fixed by patches/ for deepmerge@4.3.1; regression test in scripts/test/vendor-hardening.test.mjs (ADR-195)."
+
+[[IgnoredVulns]]
+id = "GHSA-h39j-r5qq-r9mm"
+reason = "Fixed by patches/ for decompress@4.2.1; regression test in scripts/test/vendor-hardening.test.mjs (ADR-195)."
+
+[[IgnoredVulns]]
+id = "GHSA-hrh2-vp3x-79xf"
+reason = "Fixed by patches/ for decompress@4.2.1; regression test in scripts/test/vendor-hardening.test.mjs (ADR-195)."
+
+[[IgnoredVulns]]
+id = "GHSA-jwp9-9v96-94mx"
+reason = "Fixed by patches/ for decompress@4.2.1; regression test in scripts/test/vendor-hardening.test.mjs (ADR-195)."
+
+[[IgnoredVulns]]
+id = "GHSA-mp2f-45pm-3cg9"
+reason = "Fixed by patches/ for decompress@4.2.1; regression test in scripts/test/vendor-hardening.test.mjs (ADR-195)."

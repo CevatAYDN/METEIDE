@@ -1,0 +1,80 @@
+diff --git a/dist/commonjs/walker.js b/dist/commonjs/walker.js
+index cb15946d9a852cf8147b2c53f4021c796df36ef9..e2480ca5ef3a6e9fc8675fdef09a634a7bdf69e3 100644
+--- a/dist/commonjs/walker.js
++++ b/dist/commonjs/walker.js
+@@ -185,7 +185,7 @@ class GlobUtil {
+     walkCB(target, patterns, cb) {
+         /* c8 ignore start */
+         if (this.signal?.aborted)
+-            cb();
++            return cb(); // METE: GHSA-3g3m-2fjr-6pw4
+         /* c8 ignore stop */
+         this.walkCB2(target, patterns, new processor_js_1.Processor(this.opts), cb);
+     }
+@@ -193,7 +193,7 @@ class GlobUtil {
+         if (this.#childrenIgnored(target))
+             return cb();
+         if (this.signal?.aborted)
+-            cb();
++            return cb(); // METE: GHSA-3g3m-2fjr-6pw4
+         if (this.paused) {
+             this.onResume(() => this.walkCB2(target, patterns, processor, cb));
+             return;
+@@ -249,7 +249,7 @@ class GlobUtil {
+     walkCBSync(target, patterns, cb) {
+         /* c8 ignore start */
+         if (this.signal?.aborted)
+-            cb();
++            return cb(); // METE: GHSA-3g3m-2fjr-6pw4
+         /* c8 ignore stop */
+         this.walkCB2Sync(target, patterns, new processor_js_1.Processor(this.opts), cb);
+     }
+@@ -257,7 +257,7 @@ class GlobUtil {
+         if (this.#childrenIgnored(target))
+             return cb();
+         if (this.signal?.aborted)
+-            cb();
++            return cb(); // METE: GHSA-3g3m-2fjr-6pw4
+         if (this.paused) {
+             this.onResume(() => this.walkCB2Sync(target, patterns, processor, cb));
+             return;
+diff --git a/dist/esm/walker.js b/dist/esm/walker.js
+index 3d68196c4f175f6b314b444e409f9b8a77164963..647fc55c92e128be36bff6fb77825e671f832b98 100644
+--- a/dist/esm/walker.js
++++ b/dist/esm/walker.js
+@@ -182,7 +182,7 @@ export class GlobUtil {
+     walkCB(target, patterns, cb) {
+         /* c8 ignore start */
+         if (this.signal?.aborted)
+-            cb();
++            return cb(); // METE: GHSA-3g3m-2fjr-6pw4
+         /* c8 ignore stop */
+         this.walkCB2(target, patterns, new Processor(this.opts), cb);
+     }
+@@ -190,7 +190,7 @@ export class GlobUtil {
+         if (this.#childrenIgnored(target))
+             return cb();
+         if (this.signal?.aborted)
+-            cb();
++            return cb(); // METE: GHSA-3g3m-2fjr-6pw4
+         if (this.paused) {
+             this.onResume(() => this.walkCB2(target, patterns, processor, cb));
+             return;
+@@ -246,7 +246,7 @@ export class GlobUtil {
+     walkCBSync(target, patterns, cb) {
+         /* c8 ignore start */
+         if (this.signal?.aborted)
+-            cb();
++            return cb(); // METE: GHSA-3g3m-2fjr-6pw4
+         /* c8 ignore stop */
+         this.walkCB2Sync(target, patterns, new Processor(this.opts), cb);
+     }
+@@ -254,7 +254,7 @@ export class GlobUtil {
+         if (this.#childrenIgnored(target))
+             return cb();
+         if (this.signal?.aborted)
+-            cb();
++            return cb(); // METE: GHSA-3g3m-2fjr-6pw4
+         if (this.paused) {
+             this.onResume(() => this.walkCB2Sync(target, patterns, processor, cb));
+             return;
