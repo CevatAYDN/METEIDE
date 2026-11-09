@@ -28,3 +28,7 @@ export {
 	createMcpServerModule,
 	type McpServerOptions,
 } from "./server-module.js";
+export {
+	createSkillCatalogModule,
+	type SkillCatalogOptions,
+} from "./skill-catalog-module.js";

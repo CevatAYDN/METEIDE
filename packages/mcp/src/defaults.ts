@@ -116,3 +116,6 @@ export const OAUTH_CALLBACK_STATE_CHARS = 128;
 export const OAUTH_ERROR_BYTES = 16_384;
 /** ADR-184: bounded token responses before SDK parsing and diagnostic logging. */
 export const OAUTH_TOKEN_BYTES = 65_536;
+
+/** ADR-189 skill-runtime design: bounded YAML frontmatter before parsing. */
+export const SKILL_PARSER_LIMITS = { frontmatterBytes: 8192 } as const;

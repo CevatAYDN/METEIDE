@@ -2,7 +2,7 @@
 import {
 	type ModuleManifest,
 	ok,
-	type TeamEngineAdapter,
+	type TeamEngineV3Adapter,
 } from "@mete/contracts";
 import type { MeteModule } from "@mete/kernel";
 import type { McpServer, Transport } from "@modelcontextprotocol/server";
@@ -24,8 +24,8 @@ const MANIFEST: ModuleManifest = {
 	class: "optional",
 	trust: "core",
 	provides: [],
-	requires: ["team.engine@2"],
-	optional: ["knowledge.search@1"],
+	requires: ["team.engine@3"],
+	optional: ["knowledge.search@1", "secrets.mask@1"],
 	activation: ["onStartup"],
 	isolation: "in-process",
 	permissions: [],
@@ -34,6 +34,7 @@ const MANIFEST: ModuleManifest = {
 /** Serves mete_run_team, mete_task_status, mete_approve and mete_knowledge_search on `opts.transport`. */
 export const createMcpServerModule = (opts: McpServerOptions): MeteModule => {
 	let server: McpServer | undefined;
+	let lifetime: AbortController | undefined;
 	return {
 		manifest: MANIFEST,
 		async activate(ctx) {
@@ -42,11 +43,15 @@ export const createMcpServerModule = (opts: McpServerOptions): MeteModule => {
 			const { McpServer } = await import("@modelcontextprotocol/server");
 			// Resolved per call: the engine module may activate after this one.
 			const engine = () => {
-				const r = ctx.capabilities.resolve<TeamEngineAdapter>("team.engine@2");
+				const r =
+					ctx.capabilities.resolve<TeamEngineV3Adapter>("team.engine@3");
 				return r.ok ? r.value[0].impl : undefined;
 			};
 			server = new McpServer({ name: "mete", version: MANIFEST.version });
+			lifetime = new AbortController();
 			registerMeteTools(server, {
+				capabilities: ctx.capabilities,
+				signal: lifetime.signal,
 				engine,
 				history: opts.history,
 				logger: ctx.logger,
@@ -55,6 +60,7 @@ export const createMcpServerModule = (opts: McpServerOptions): MeteModule => {
 			return ok(undefined);
 		},
 		async deactivate() {
+			lifetime?.abort();
 			await server?.close();
 			server = undefined;
 		},

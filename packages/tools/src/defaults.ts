@@ -18,6 +18,9 @@ export const BINARY_SNIFF_BYTES = 8 * 1024;
 /** ADR-183: bounded context link walking, matching the native realTarget helper's 40-hop ceiling. */
 export const CONTEXT_LINK_HOPS = 40;
 
+/** ADR-189 skill-runtime design: directory entries examined per native skill root. */
+export const SKILL_ROOT_ENTRIES = 256;
+
 /** Tab 09, Privacy: `.meteignore` lines that always apply. */
 export const METEIGNORE_DEFAULTS = [
 	".env*",

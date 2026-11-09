@@ -24,9 +24,8 @@ export type TeamEngineHarness = (scenario: EngineScenario) => Promise<{
 
 const UNKNOWN = "00000000-0000-4000-8000-000000000000";
 
-/** Every team.engine@2 adapter MUST pass these tests. */
-export const teamEngineContract = (name: string, open: TeamEngineHarness) =>
-	describe(`team.engine@2 contract: ${name}`, () => {
+const engineContract = (ref: string, name: string, open: TeamEngineHarness) =>
+	describe(`${ref} contract: ${name}`, () => {
 		let close: (() => Promise<void>) | undefined;
 		afterEach(async () => {
 			await close?.();
@@ -142,3 +141,11 @@ export const teamEngineContract = (name: string, open: TeamEngineHarness) =>
 			expect(all.ok && all.value.map((r) => r.id)).toEqual([second, first]);
 		});
 	});
+
+/** The retained contract kit for legacy team.engine@2 adapters. */
+export const teamEngineContract = (name: string, open: TeamEngineHarness) =>
+	engineContract("team.engine@2", name, open);
+
+/** team.engine@3 retains the lifecycle contract; strict gates also use taskVerificationContract. */
+export const teamEngineV3Contract = (name: string, open: TeamEngineHarness) =>
+	engineContract("team.engine@3", name, open);

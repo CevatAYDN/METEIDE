@@ -56,13 +56,27 @@ export {
 	shellExecContract,
 } from "./shell-exec.contract.js";
 export {
+	type SkillCatalogHarness,
+	type SkillFixture,
+	type SkillSourceHarness,
+	type SkillTrustHarness,
+	skillCatalogContract,
+	skillSourceContract,
+	skillTrustContract,
+} from "./skill.contract.js";
+export {
 	type StorageSqlHarness,
 	storageSqlContract,
 } from "./storage-sql.contract.js";
 export {
+	taskVerificationContract,
+	type VerificationHarness,
+} from "./task-verification.contract.js";
+export {
 	type EngineScenario,
 	type TeamEngineHarness,
 	teamEngineContract,
+	teamEngineV3Contract,
 } from "./team-engine.contract.js";
 export {
 	type VcsGitHarness,

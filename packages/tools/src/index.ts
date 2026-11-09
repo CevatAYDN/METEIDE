@@ -8,6 +8,10 @@ export {
 	type ToolsOptions,
 } from "./module.js";
 export {
+	createSkillSourceModule,
+	type SkillSourceOptions,
+} from "./skill-source-module.js";
+export {
 	createToolsWebModule,
 	searchKeyName,
 	type ToolsWebOptions,

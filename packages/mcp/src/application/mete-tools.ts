@@ -1,6 +1,7 @@
 import {
 	type ApprovalInput,
 	ApprovalInputSchema,
+	DaemonKnowledgeSearchResultSchema,
 	DecisionSchema,
 	type EngineError,
 	type MeteEvent,
@@ -9,10 +10,11 @@ import {
 	TaskStatusSchema,
 	type TeamEngineAdapter,
 } from "@mete/contracts";
-import type { Logger } from "@mete/kernel";
+import type { CapabilityRegistry, Logger } from "@mete/kernel";
 import type { CallToolResult, McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { runProgress } from "../domain/run-view.js";
+import { knowledgeSearch } from "./knowledge-search.js";
 
 // The tools of METE as an MCP server (docs/10): teams run here, answers come back as tool results.
 
@@ -26,6 +28,8 @@ export type RunHistory = (runId: string) =>
 	| undefined;
 
 export type MeteToolDeps = {
+	readonly capabilities: CapabilityRegistry;
+	readonly signal: AbortSignal;
 	readonly engine: () => TeamEngineAdapter | undefined;
 	readonly history: RunHistory;
 	readonly logger: Logger;
@@ -50,7 +54,7 @@ const answer = <T extends Record<string, unknown>>(
 	structuredContent: value,
 });
 
-const NO_ENGINE = "team.engine@2 is not active";
+const NO_ENGINE = "team.engine@3 is not active";
 
 const StatusOutput = z.object({
 	status: RunStatusSchema,
@@ -159,10 +163,10 @@ export const registerMeteTools = (server: McpServer, deps: MeteToolDeps) => {
 	server.registerTool(
 		"mete_knowledge_search",
 		{
-			description:
-				"Search the workspace knowledge base. Not available until Phase 4.",
-			inputSchema: z.object({ query: z.string().min(1) }),
+			description: "Search the workspace knowledge base.",
+			inputSchema: z.strictObject({ query: z.string().trim().min(1) }),
+			outputSchema: DaemonKnowledgeSearchResultSchema,
 		},
-		async () => failed("not_supported: knowledge search comes in Phase 4"),
+		knowledgeSearch(deps.capabilities, deps.signal),
 	);
 };

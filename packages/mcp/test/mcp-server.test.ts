@@ -85,7 +85,7 @@ const serve = async () => {
 	});
 	const { ctx, registry } = moduleContext("allow");
 	const { engine, calls } = fakeEngine();
-	registry.provide("team.engine@2", {
+	registry.provide("team.engine@3", {
 		id: "core-engine",
 		trust: "core",
 		features: [],
@@ -111,6 +111,7 @@ describe("mcp-server", () => {
 		expect(ModuleManifestSchema.safeParse(s.module.manifest).success).toBe(
 			true,
 		);
+		expect(s.module.manifest.requires).toEqual(["team.engine@3"]);
 		const { tools } = await s.client.listTools();
 		expect(tools.map((t) => t.name)).toEqual([
 			"mete_run_team",
@@ -162,11 +163,13 @@ describe("mcp-server", () => {
 		expect(s.calls).toEqual([{ runId: RUN, decision: "approve" }]);
 	});
 
-	it("says knowledge search is not there yet", async () => {
+	it("reports unavailable knowledge search without a fabricated success", async () => {
 		s = await serve();
 		const r = await s.call("mete_knowledge_search", { query: "x" });
 		expect(r.isError).toBe(true);
-		expect(JSON.stringify(r.content)).toContain("Phase 4");
+		expect(JSON.stringify(r.content)).toContain("not_supported");
+		expect(r.structuredContent).toBeUndefined();
+		expect(JSON.stringify(r.content)).not.toContain("Phase 4");
 	});
 });
 
