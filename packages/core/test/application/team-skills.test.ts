@@ -51,6 +51,37 @@ const pinned = (req: LlmChatRequest | undefined) =>
 	(req?.messages ?? []).some((m) => userText(m).includes("<approved-skills>"));
 
 describe("team task attempt skill contexts", () => {
+	it("loads a role selection before the parallel worker's first request", async () => {
+		const h = engineHarness({
+			scripts: [reply("found"), reply("written")],
+			templates,
+		});
+		open.push(h);
+		const runtime = scriptedSkills(h.registry, h.skillLoadAdmission, BODY);
+		const started = await h.runSkills.start({
+			goal: "facts",
+			templateId: "duo",
+			skills: {
+				mode: "manual",
+				roles: [{ roleId: "finder", selected: [version] }],
+			},
+		});
+		if (!started.ok) throw new Error(started.error.message);
+		await vi.waitFor(() =>
+			expect(h.engine.status(started.value.runId)).toMatchObject({
+				value: [{ status: "completed" }],
+			}),
+		);
+		expect(runtime.load).toHaveBeenCalledOnce();
+		expect(pinned(h.requests[0])).toBe(true);
+		expect(pinned(h.requests[1])).toBe(false);
+		const context = h.store.load(started.value.runId)?.snapshot.context;
+		expect(context?.skills?.contexts[0]?.owner).toMatchObject({
+			taskId: context?.team?.tasks.find?.id,
+			attemptId: context?.team?.tasks.find?.id,
+		});
+	});
+
 	it("pins a load to its task attempt only, never to another role", async () => {
 		const gate = Promise.withResolvers<void>();
 		const held = async function* (

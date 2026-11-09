@@ -18,6 +18,7 @@ import {
 	setupStep,
 	verifies,
 } from "./scheduler-coordination.js";
+import { ensureExplicitSkills } from "./skill-explicit.js";
 import { resumeTaskContinuation } from "./task-continuation.js";
 import { applyWorker } from "./task-worker.js";
 import { startTask, teamTurn } from "./team-driver.js";
@@ -122,6 +123,11 @@ const launch = async (
 	const context = workerContext(state, live, task);
 	if (!context) return "idle";
 	const token = live.token;
+	const prepared = ensureExplicitSkills(state, live, token, context);
+	if (prepared !== true) {
+		await prepared;
+		return "handled";
+	}
 	const seat = await pinnedContext(state, context);
 	if (live.token !== token || live.snapshot.value !== "running") return "idle";
 	const reservation = reserve(state, live, task);

@@ -21,8 +21,8 @@ const version = {
 };
 
 /**
- * The first model call is held until a skill is loaded and the run is paused, so the
- * second call after resume is the first one that can carry the pinned block.
+ * Explicit skills must reach the first model call. Hold it, pause and resume to
+ * verify that the same retained block also survives continuation.
  */
 const loadedRun = async (scripts: LlmChunk[][]) => {
 	const gate = Promise.withResolvers<void>();
@@ -47,16 +47,6 @@ const loadedRun = async (scripts: LlmChunk[][]) => {
 	if (!started.ok) throw new Error(started.error.message);
 	const { runId } = started.value;
 	await vi.waitFor(() => expect(h.requests).toHaveLength(1));
-	const owner =
-		h.store.load(runId)?.snapshot.context.skills?.contexts[0]?.owner;
-	if (!owner) throw new Error("no S2 context");
-	const loaded = await h.loadSkill(runId, {
-		owner,
-		roleId: "assistant",
-		version,
-		origin: "explicit",
-	});
-	if (!loaded.ok) throw new Error(loaded.error.code);
 	await h.engine.pause(runId);
 	gate.resolve();
 	return { h, runId };
@@ -68,7 +58,7 @@ const userText = (m: ChatMessage | undefined) =>
 describe("pinned skills in model requests", () => {
 	it("sends the retained body after system, before history, and only in the request", async () => {
 		const { h, runId } = await loadedRun([reply("done")]);
-		expect(JSON.stringify(h.requests[0]?.messages)).not.toContain(
+		expect(JSON.stringify(h.requests[0]?.messages)).toContain(
 			"ALWAYS-RUN-THE-LINTER",
 		);
 		expect((await h.engine.resume(runId)).ok).toBe(true);

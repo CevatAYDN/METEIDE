@@ -242,6 +242,22 @@ selections; omitted reply policy stays omitted. Nine focused send tests failed
 before implementation and now pass. Composer draft integration remains in U2.
 Root `pnpm check`: 34/34 passed (31 cached), including ui-theia 1227/1227.
 
+## Explicit activation integration correction (2026-11-10)
+
+Before exposing selection controls, source tracing found that preflight stored
+explicit selections but neither driver invoked their loader before model work.
+Earlier request tests loaded manually after the first request, hiding that gap.
+The regression now requires selected instructions in the first request and
+removes the manual test load. Both the sequential path and parallel-worker launch
+load the ordered explicit prefix before compaction/request budgeting, retain a
+new attempt's context identity before receipts, and return to the dispatch guard
+after loading. Refused loads pause the already accepted run; cancellation drops
+late results. The 48 focused cases pass. Core passed 750/750. The first root
+check ended 33/34 after two CLI tests hit their existing 20-second deadline;
+their two files passed 7/7 alone. The unchanged root rerun passed 34/34
+(33 cached; CLI 317/317 executed). Failed output is retained at
+`docs/reviews/logs/2026-11-10-explicit-activation-check-failed.log`.
+
 Codex reference: the user requested using `openai/codex` as implementation
 reference. Re-read its Apache-2.0 LICENSE and bounded skill discovery at the
 existing fixed revision `e0aa0434f415b0c5bc0fb64abd7f03c5510f9ed6` (see the

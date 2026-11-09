@@ -30,6 +30,7 @@ import {
 } from "./run-state.js";
 import { stopScheduler } from "./scheduler-drain.js";
 import { ensureCatalog } from "./skill-catalog.js";
+import { ensureExplicitSkills } from "./skill-explicit.js";
 import { skillBoundary } from "./skill-guard.js";
 import { skillToolTurn } from "./skill-tool.js";
 import { callModel, callTool, type ModelOutcome } from "./steps.js";
@@ -262,6 +263,21 @@ const finish = async (s: EngineState, l: Live, reply: string) => {
 	apply(s, l, { type: "COMPLETE", at: s.deps.now(), summary: reply });
 };
 
+const nextModel = async (s: EngineState, l: Live, token: object) => {
+	const prepared = ensureExplicitSkills(s, l, token, l.snapshot.context);
+	if (prepared !== true) {
+		await prepared;
+		return;
+	}
+	cutTurn(s, l);
+	const ctx = l.snapshot.context;
+	const window =
+		ctx.agent?.contextWindow ?? TIER_MIN_CONTEXT[activeSeat(ctx).tier];
+	const older = toSummarize(ctx.messages, window, pinnedFor(ctx));
+	if (older) return summarizeTurn(s, l, older, () => owns(l, token));
+	return modelTurn(s, l, token);
+};
+
 // A team run whose active task is not in progress or in review moves between tasks first.
 const step = async (s: EngineState, l: Live, token: object) => {
 	const c = l.snapshot.context;
@@ -274,15 +290,7 @@ const step = async (s: EngineState, l: Live, token: object) => {
 	if (c.team && !c.review && !working) return teamTurn(s, l, c.team);
 	const at = s.deps.now();
 	const next = nextStep(c, l.meta.budget, at);
-	if (next.kind === "model") {
-		cutTurn(s, l);
-		const ctx = l.snapshot.context;
-		const window =
-			ctx.agent?.contextWindow ?? TIER_MIN_CONTEXT[activeSeat(ctx).tier];
-		const older = toSummarize(ctx.messages, window, pinnedFor(ctx));
-		if (older) return summarizeTurn(s, l, older, () => owns(l, token));
-		return modelTurn(s, l, token);
-	}
+	if (next.kind === "model") return nextModel(s, l, token);
 	if (next.kind === "tool") return toolTurn(s, l, token, next);
 	if (next.kind === "complete") return finish(s, l, next.summary);
 	apply(s, l, { type: "PAUSE", at, reason: next.reason });
