@@ -38,6 +38,7 @@ Each answer is binding and names the tab that holds the full rule. A question no
 | How do I make my own team? | Write a YAML template in `.mete/teams/` or use the visual template editor ("METE: Edit team", or Edit under a team in the run composer; ADR-075) | 08, 13 |
 | Can I run CrewAI, MetaGPT or ChatDev? | Planned for Phase 6. Their names exist in the template schema, but the engine adapter package is currently an empty stub; only the native engine is implemented | 08, 16 |
 | Who decides that a task is done? | Verify gates, the guardrail and the approver. A model's claim never decides | 08 |
+| What if a required check cannot run? | New runs block before submission. Only explicitly optional checks may retain a permitted Not run gap; a failed check, policy ask or interrupted operation is not silently bypassed. Saved legacy runs keep their older behavior and are labeled legacy (ADR-187) | 08 |
 | What if the lead keeps rejecting? | After 3 revisions the task is blocked and the human decides | 07 |
 | What if two agents edit the same file? | The task list assigns file ownership, each writer has a worktree, and conflicts become a merge task | 08 |
 | Does a simple request start a whole team? | No. The router sends simple requests to a single agent | 08 |
@@ -51,6 +52,7 @@ Each answer is binding and names the tab that holds the full rule. A question no
 | How do I add an MCP server? | Settings: Tools, then Add server (URL, local command or JSON), or Browse catalog and review a prepared draft. Save and connect activates only when work is idle; otherwise it stays pending. Needed runtimes follow their existing approval rules | 10 |
 | How do I sign in or provide an MCP key? | Save and apply the server, then use Sign in or its credential fields in Settings. Declared credential values are stored in the OS keychain, scoped to this workspace and exact server configuration. Replacing one optional value preserves other saved values. Forget local credentials does not revoke the remote account's grant. Tool setup does not require a model provider | 10, 13 |
 | Can agents install plugins? | No. Agents may propose; only the user installs, after seeing permissions | 10, 12 |
+| Does approving a skill run it or grant its tools? | No. S1 records approval of an exact local version for this workspace, including global-source skills. It grants no tool permissions and executes nothing. Runtime selection, loading and revocation are governed separately by ADR-190; its implementation and validation remain in progress | 10, 13 |
 | How do I use Blender, 3ds Max, Unity or Unreal? | Add its MCP server or CLI, connect it with a mapping file, and bind it to the capability. Templates stay unchanged | 10 |
 | A capability has no adapter. What happens? | Its defined empty-chain behavior runs; the UI names the missing capability and suggests registry entries | 06 |
 | Do I need Python? | No manual install. uv downloads Python when a server needs it | 10 |

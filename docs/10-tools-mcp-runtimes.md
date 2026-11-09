@@ -234,6 +234,19 @@ with every VS Code extension is not guaranteed.
 - Skills: `SKILL.md` folders in `.mete/skills/` (workspace) and the global `skills/` folder; matched to tasks by their description \[C\].
 - VS Code extensions: installed through Theia from Open VSX. They become agent tools only if they expose an MCP server \[D\].
 
+ADR-189 implements the S1 skill-management foundation before task matching:
+scan only on user intent, strict bounded metadata parsing, complete masked review,
+explicit approval of exact source bytes and explicit disable. Grants live in
+global SQLite and are bound to the workspace and canonical source; repository
+files cannot approve themselves. Changed, invalid, missing and unavailable sources
+are not approved. `allowed-tools` grants nothing and discovery runs no script,
+installation or model call. S1 shows approval only, not agent use. The accepted
+S1 specification is `superpowers/specs/2026-11-08-skill-runtime-design.md`;
+automatic/explicit activation and durable context are specified separately by
+accepted ADR-190. Implementation follows
+`superpowers/plans/2026-11-08-skill-activation-implementation.md`; approval alone
+still executes nothing and grants no tool permission.
+
 ## Registries
 
 The desktop's explicit catalog search calls the registry chain and displays real
@@ -267,7 +280,15 @@ The mcp-server module (`@mete/mcp`) serves these tools over the transport its ho
 | `mete_run_team` | `{goal, templateId?}` | `{runId}` at once; the run goes on in the background |
 | `mete_task_status` | `{runId}` | `{status, reason?, tasks: [{id, title, status}], output?, artifacts: [path]}`; `reason` is the pause reason or the failure, `output` the summary of a completed run, tasks and artifacts come from the run's events |
 | `mete_approve` | `{runId, taskId?, decision: approve\|revise, feedback?}` | `{runId}`; a revision needs feedback (`team.engine@2` approve) |
-| `mete_knowledge_search` | `{query}` | an error until the MCP server passes `knowledge.search@1` a tool context, a later slice (ADR-149) |
+| `mete_knowledge_search` | `{query}`, nonempty after trimming | `{results}` from workspace-only `knowledge.search@1`, validated and masked, as matching JSON text and structured content; a missing search or masking service is `not_supported` (ADR-188) |
+
+Knowledge search resolves the current adapter for each request and forwards its
+cancellation signal without a fabricated run or worktree. Only successful searches
+return empty results; adapter refusals, malformed/non-workspace output and failed
+masking remain errors, and cancelled/closed calls cannot return success. Personal
+vaults and caller-selected roots are not exposed. The existing search may refresh
+its index, count note access and use/schedule gateway embeddings under the current
+privacy and quota rules; this bridge adds no direct network call or retry (ADR-188).
 
 Every refusal of `team.engine@2` is a tool result with `isError` and the text `<code>: <message>`; a router that is unsure lists the templates to choose from.
 

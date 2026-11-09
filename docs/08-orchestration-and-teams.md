@@ -1,5 +1,27 @@
 # 08 Orchestration and teams
 
+ADR-187 applies strict verification to every newly started team run, even from a
+`mete/v1` file, without rewriting that file. `mete/v2` adds explicit
+`optional: true|false` to command and capability gates; absent/false is required.
+Saved teams without `verificationVersion: 1` retain the legacy gate semantics
+described later in this document. The runtime keeps the original v1 parser and
+accepts both formats; new authoring uses v2.
+
+Strict gates record running/passed/failed/not_run separately. Missing adapter,
+policy refusal and unsupported `expect` prevent submission when required;
+explicit optionality permits a visible not-run gap for these reasons, never a
+pass. Actual failures still require repair. Policy asks still wait for exact
+approval; pause, cancel and uncertain interruption cannot be bypassed by
+optionality. Each attempt/report/evaluation has independent evidence, persisted
+before and after dispatch. No new gate dispatch or submission follows a lost
+execution token. An uncertain operation requires explicit human inspection
+before retry and is never automatically replayed after recovery.
+
+The built-in browser-game template uses v2 and explicitly marks its external
+game-engine build/test gates optional, preserving its documented no-game-engine
+scope. This is a reviewed repository-template change, not automatic migration
+of `.mete/teams/`. The command-line and desktop show the resulting gaps.
+
 Repository file: `docs/08-orchestration-and-teams.md`. Depends on: 06 Kernel and modules, 07 Domain model and events.
 
 The native team engine executes YAML team templates as XState machines; models only produce the content of each task. It combines MetaGPT's SOPs and typed artifacts, ChatDev's clarifying questions, pair reviews and lessons, and CrewAI's YAML roles, guardrails, flows and memory types \[C\].
@@ -255,7 +277,7 @@ The game-studio types (ADR-057), each a strict object with no unknown keys and e
 - `code-change@1` is `{ summary, files }`: `files` are the workspace-relative paths the change wrote.
 - `asset@1` has no schema yet: an asset is a file, and its manifest line is the record (tab 10).
 
-`spawns: true` (ADR-057) turns the task's approved `task-list@1` into tasks of the same run. The task's artifact is checked against `task-list@1` as if it had a guardrail with the default repairs, so an unknown role, a repeated id or a `dependsOn` that names no earlier entry goes back to the agent as guardrail feedback. On approval each entry becomes a task with the entry's `id`, `role` and `title`, the fields of `spawn_defaults` for its role, and `context` of the parent task plus its `dependsOn`; its opening message lists its acceptance sentences. The new tasks join the run's copy of the template, so a resumed run keeps them, and each publishes `task.created`. They join the run's order as the template's tasks do, a task waiting for its `dependsOn` (ADR-174). Core does not yet honor `retrospective` or `watches`, and verify gates by capability are logged and skipped, so `gameengine.*` gates are skipped and the tester reports the gap \[D\].
+`spawns: true` (ADR-057) turns the task's approved `task-list@1` into tasks of the same run. The task's artifact is checked against `task-list@1` as if it had a guardrail with the default repairs, so an unknown role, a repeated id or a `dependsOn` that names no earlier entry goes back to the agent as guardrail feedback. On approval each entry becomes a task with the entry's `id`, `role` and `title`, the fields of `spawn_defaults` for its role, and `context` of the parent task plus its `dependsOn`; its opening message lists its acceptance sentences. The new tasks join the run's copy of the template, so a resumed run keeps them, and each publishes `task.created`. They join the run's order as the template's tasks do, a task waiting for its `dependsOn` (ADR-174). Core does not yet honor `retrospective` or `watches`. Capability verify gates call a present adapter as described above; only a gate with no adapter is skipped with a warning. Thus unbound `gameengine.*` gates are skipped and the tester reports that gap; `expect` remains unevaluated (ADR-120) \[D\].
 
 `templates/game-studio.yaml` is the template above with four changes. The prototype is a browser game in the folder `game` (HTML, CSS and JavaScript without dependencies), so the developer needs no game engine and the roles' goals say so, the designer's, project manager's, artist's and tester's goals spelling out their JSON shapes because a template has no task description. The tester also has `browser.screenshot@2`, checks the game with it where that is active, else by reading the code, and names the gap in its `test-report@1`. The artist also has `fs.write@1` and its `spawn_defaults` expect `asset-spec@1` instead of `asset@1`: while no `media.*` capability is bound, it writes placeholder files and their spec (tab 06). The tester has no `shell.exec@1` (ADR-063): with it, a tester in the gate run drove a browser by hand and ended the user's own browser. Its acceptance scenario: an idea becomes an approved `gdd@1` (the lead and the human approve it), a `task-list@1` whose entries become tasks, and a game folder that opens in a browser \[D\].
 

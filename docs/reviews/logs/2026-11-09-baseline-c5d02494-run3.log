@@ -1,0 +1,1353 @@
+
+   ÔÇó turbo 2.11.8
+   ÔÇó Packages in scope: @mete/cli, @mete/contracts, @mete/core, @mete/desktop, @mete/engines, @mete/gateway, @mete/kernel, @mete/knowledge, @mete/mcp, @mete/providers, @mete/quota, @mete/security, @mete/storage, @mete/testing, @mete/tools, @mete/ui-kit, @mete/ui-studio, @mete/ui-theia
+   ÔÇó Running test in 18 packages
+   ÔÇó Remote caching disabled, using shared worktree cache
+
+@mete/contracts:test: cache bypass, force executing 517a87202477cc37
+@mete/ui-kit:build: cache bypass, force executing be09868f0126423c
+@mete/ui-kit:test: cache bypass, force executing edaa74bcee6a89dc
+@mete/engines:test: cache bypass, force executing 5badf4ff4d502cdf
+@mete/contracts:build: cache bypass, force executing e81aacb5432f5727
+@mete/contracts:test: $ vitest run --coverage
+@mete/ui-kit:build: $ tsc -b
+@mete/ui-kit:test: $ vitest run --coverage
+@mete/engines:test: $ vitest run --passWithNoTests
+@mete/contracts:build: $ tsc -b
+@mete/testing:test: cache bypass, force executing af608b339c9f4e88
+@mete/kernel:build: cache bypass, force executing 5a34f6d91f228d64
+@mete/ui-studio:build: cache bypass, force executing aae509a26953a8ed
+@mete/kernel:test: cache bypass, force executing b38b53dde25f91de
+@mete/testing:build: cache bypass, force executing 8c12e8fee08f1430
+@mete/ui-studio:test: cache bypass, force executing d52921ca72ccf523
+@mete/contracts:test: 
+@mete/contracts:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/packages/contracts[39m
+@mete/contracts:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/contracts:test: 
+@mete/engines:test: 
+@mete/engines:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/packages/engines[39m
+@mete/engines:test: 
+@mete/engines:test: No test files found, exiting with code 0
+@mete/engines:test: 
+@mete/engines:test: [2minclude: [22m[33m**/*.{test,spec}.?(c|m)[jt]s?(x)[39m
+@mete/engines:test: [2mexclude:  [22m[33m**/node_modules/**[2m, [22m**/.git/**[39m
+@mete/engines:test: 
+@mete/ui-kit:test: 
+@mete/ui-kit:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/packages/ui-kit[39m
+@mete/ui-kit:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/ui-kit:test: 
+@mete/ui-kit:test:  [32mÔ£ô[39m test/tokens.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+@mete/testing:test: $ vitest run --passWithNoTests
+@mete/kernel:build: $ tsc -b
+@mete/ui-kit:test: 
+@mete/ui-kit:test: [2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+@mete/ui-kit:test: [2m      Tests [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+@mete/ui-kit:test: [2m   Start at [22m 13:38:07
+@mete/ui-kit:test: [2m   Duration [22m 626ms[2m (worker 40%, import 36%, transform 16%, tests 7%)[22m
+@mete/ui-kit:test: 
+@mete/ui-kit:test: [34m % [39m[2mCoverage report from [22m[33mv8[39m
+@mete/ui-kit:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/ui-kit:test: File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+@mete/ui-kit:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/ui-kit:test: All files          |     100 |      100 |     100 |     100 |                   
+@mete/ui-kit:test:  src               |       0 |        0 |       0 |       0 |                   
+@mete/ui-kit:test:   defaults.ts      |       0 |        0 |       0 |       0 |                   
+@mete/ui-kit:test:  src/application   |       0 |        0 |       0 |       0 |                   
+@mete/ui-kit:test:   .gitkeep         |       0 |        0 |       0 |       0 |                   
+@mete/ui-kit:test:  src/domain        |     100 |      100 |     100 |     100 |                   
+@mete/ui-kit:test:   tokens.ts        |     100 |      100 |     100 |     100 |                   
+@mete/ui-kit:test:  ...infrastructure |       0 |        0 |       0 |       0 |                   
+@mete/ui-kit:test:   .gitkeep         |       0 |        0 |       0 |       0 |                   
+@mete/ui-kit:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/task-control.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 40[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/mapping.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/events.test.ts [2m([22m[2m19 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/template.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 43[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/tool-catalog.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/provider.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+@mete/ui-studio:build: $ tsc -b
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/quota.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/policy-requests.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/engine.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/tools.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/conversation-thread-reads.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+@mete/kernel:test: $ vitest run --coverage
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/daemon.test.ts [2m([22m[2m30 tests[22m[2m)[22m[32m 88[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/policy.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/mcp.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/task-wait-events.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/manifest.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/mcp-connection.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/conversation-context.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+@mete/testing:build: $ tsc -b
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/daemon-registry.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/artifacts.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/ids.test.ts [2m([22m[2m33 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/browser.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/llm.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+@mete/ui-studio:test: $ vitest run --coverage
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/result.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+@mete/storage:test: cache bypass, force executing 221241b44260c71c
+@mete/providers:test: cache bypass, force executing fc80879525230a86
+@mete/storage:build: cache bypass, force executing 6c04c8aefffa7ed0
+@mete/tools:build: cache bypass, force executing cc6a63b7041424e7
+@mete/mcp:test: cache bypass, force executing d6456aa061223530
+@mete/tools:test: cache bypass, force executing 4255b026f505e87c
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/daemon-mcp.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/storage.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/conversation-thread.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/paid.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/registry.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+@mete/testing:test: 
+@mete/testing:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/packages/testing[39m
+@mete/testing:test: 
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/tool-isolation.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+@mete/testing:test: No test files found, exiting with code 0
+@mete/testing:test: 
+@mete/testing:test: [2minclude: [22m[33m**/*.{test,spec}.?(c|m)[jt]s?(x)[39m
+@mete/testing:test: [2mexclude:  [22m[33m**/node_modules/**[2m, [22m**/.git/**[39m
+@mete/testing:test: 
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/game-studio.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/web.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/vault.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/runtime.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 9[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/knowledge.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/conversation-run.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/quota-usage.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/pins.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/parallel-public.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 11[2mms[22m[39m
+@mete/mcp:build: cache bypass, force executing 3096af058b8fef8e
+@mete/contracts:test:  [32mÔ£ô[39m test/domain/run-reply.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+@mete/kernel:test: 
+@mete/kernel:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/packages/kernel[39m
+@mete/kernel:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/kernel:test: 
+@mete/ui-studio:test: 
+@mete/ui-studio:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/packages/ui-studio[39m
+@mete/contracts:test: 
+@mete/ui-studio:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/ui-studio:test: 
+@mete/contracts:test: [2m Test Files [22m [1m[32m40 passed[39m[22m[90m (40)[39m
+@mete/contracts:test: [2m      Tests [22m [1m[32m267 passed[39m[22m[90m (267)[39m
+@mete/contracts:test: [2m   Start at [22m 13:38:07
+@mete/contracts:test: [2m   Duration [22m 2.50s[2m (import 75%, worker 11%, transform 10%, tests 4%)[22m
+@mete/contracts:test: 
+@mete/contracts:test: [2m    Isolate [22m [33m40 workers spawned[39m[2m ┬À ~377ms startup each (spawn + environment, per file)[22m
+@mete/contracts:test: [2m            [22m [2mat least ~279ms faster with [22m[33misolate: false[39m[2m ÔÇö reuses workers across files instead of one per file[22m
+@mete/contracts:test: 
+@mete/contracts:test: [34m % [39m[2mCoverage report from [22m[33mv8[39m
+@mete/contracts:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/contracts:test: File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+@mete/contracts:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/contracts:test: All files          |   98.54 |    93.18 |   97.03 |   98.95 |                   
+@mete/contracts:test:  artifacts.ts      |   93.75 |       80 |   85.71 |   93.33 | 110,113           
+@mete/contracts:test:  browser.ts        |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  checkpoint.ts     |       0 |        0 |       0 |       0 |                   
+@mete/contracts:test:  ...ion-context.ts |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  ...rsation-run.ts |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  ...tion-thread.ts |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  daemon-mcp.ts     |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  ...n-providers.ts |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  ...on-registry.ts |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  daemon.ts         |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  engine.ts         |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  events.ts         |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  game-studio.ts    |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  ...ay-settings.ts |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  ids.ts            |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  knowledge.ts      |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  llm.ts            |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  manifest.ts       |   94.73 |    92.85 |     100 |     100 | 33                
+@mete/contracts:test:  mapping.ts        |   96.92 |    80.64 |   92.85 |   98.24 | 125               
+@mete/contracts:test:  mcp-connection.ts |   91.42 |    80.76 |     100 |   93.54 | 97,102            
+@mete/contracts:test:  ...ntial-field.ts |     100 |       50 |     100 |     100 | 13                
+@mete/contracts:test:  mcp.ts            |   95.23 |      100 |    92.3 |   94.44 | 66                
+@mete/contracts:test:  media.ts          |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  pins.ts           |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  ...cy-requests.ts |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  policy.ts         |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  provider.ts       |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  quota.ts          |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  registry.ts       |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  result.ts         |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  run-quiesce.ts    |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  run-reply.ts      |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  runtime.ts        |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  secrets.ts        |       0 |        0 |       0 |       0 |                   
+@mete/contracts:test:  states.ts         |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  storage.ts        |       0 |        0 |       0 |       0 |                   
+@mete/contracts:test:  task-control.ts   |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  template.ts       |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  tool-catalog.ts   |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  tool-isolation.ts |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  tools.ts          |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  transcript.ts     |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  vault.ts          |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test:  web.ts            |     100 |      100 |     100 |     100 |                   
+@mete/contracts:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/kernel:test:  [32mÔ£ô[39m test/infrastructure/platform.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+@mete/kernel:test:  [32mÔ£ô[39m test/domain/circuit-breaker.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+@mete/kernel:test:  [32mÔ£ô[39m test/domain/restart-budget.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+@mete/storage:test: $ vitest run --coverage
+@mete/providers:build: cache bypass, force executing 167231846dfb78a3
+@mete/providers:test: $ vitest run --coverage
+@mete/storage:build: $ tsc -b
+@mete/tools:build: $ tsc -b
+@mete/ui-studio:test:  [32mÔ£ô[39m test/domain/character.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+@mete/ui-studio:test:  [32mÔ£ô[39m test/domain/screen.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+@mete/ui-studio:test:  [32mÔ£ô[39m test/domain/paint.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 80[2mms[22m[39m
+@mete/ui-studio:test:  [32mÔ£ô[39m test/domain/props.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 113[2mms[22m[39m
+@mete/ui-studio:test:  [32mÔ£ô[39m test/domain/layout.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+@mete/ui-studio:test:  [32mÔ£ô[39m test/domain/marks.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+@mete/ui-studio:test:  [32mÔ£ô[39m test/domain/agents.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+@mete/ui-studio:test:  [32mÔ£ô[39m test/domain/team-view.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+@mete/ui-studio:test:  [32mÔ£ô[39m test/domain/sky.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+@mete/ui-studio:test:  [32mÔ£ô[39m test/domain/effects.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+@mete/ui-studio:test:  [32mÔ£ô[39m test/domain/signals.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+@mete/tools:test: $ vitest run --coverage
+@mete/ui-studio:test:  [32mÔ£ô[39m test/domain/motion.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+@mete/mcp:test: $ vitest run --coverage
+@mete/ui-studio:test:  [32mÔ£ô[39m test/domain/scene.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+@mete/kernel:test:  [32mÔ£ô[39m test/domain/capability-registry.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+@mete/kernel:test:  [32mÔ£ô[39m test/domain/config-reader.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+@mete/kernel:test:  [32mÔ£ô[39m test/domain/event-bus.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+@mete/mcp:build: $ tsc -b
+@mete/kernel:test:  [32mÔ£ô[39m test/application/lifecycle.test.ts [2m([22m[2m20 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+@mete/core:test: cache bypass, force executing cb7cc94435f1ffa0
+@mete/ui-studio:test: 
+@mete/ui-studio:test: [2m Test Files [22m [1m[32m13 passed[39m[22m[90m (13)[39m
+@mete/ui-studio:test: [2m      Tests [22m [1m[32m112 passed[39m[22m[90m (112)[39m
+@mete/ui-studio:test: [2m   Start at [22m 13:38:10
+@mete/ui-studio:test: [2m   Duration [22m 1.03s[2m (worker 41%, import 23%, tests 18%, transform 18%)[22m
+@mete/ui-studio:test: 
+@mete/ui-studio:test: [34m % [39m[2mCoverage report from [22m[33mv8[39m
+@mete/ui-studio:test: -----------------|---------|----------|---------|---------|---------------------
+@mete/ui-studio:test: File             | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s   
+@mete/ui-studio:test: -----------------|---------|----------|---------|---------|---------------------
+@mete/ui-studio:test: All files        |   99.58 |    92.55 |     100 |   99.83 |                     
+@mete/ui-studio:test:  src             |     100 |      100 |     100 |     100 |                     
+@mete/ui-studio:test:   defaults.ts    |     100 |      100 |     100 |     100 |                     
+@mete/ui-studio:test:   module.ts      |       0 |        0 |       0 |       0 |                     
+@mete/ui-studio:test:  src/application |       0 |        0 |       0 |       0 |                     
+@mete/ui-studio:test:   .gitkeep       |       0 |        0 |       0 |       0 |                     
+@mete/ui-studio:test:  src/domain      |   99.57 |    92.55 |     100 |   99.83 |                     
+@mete/ui-studio:test:   agents.ts      |     100 |    97.36 |     100 |     100 | 111                 
+@mete/ui-studio:test:   character.ts   |     100 |    92.85 |     100 |     100 | 51-52               
+@mete/ui-studio:test:   checkpoints.ts |     100 |      100 |     100 |     100 |                     
+@mete/ui-studio:test:   effects.ts     |     100 |       74 |     100 |     100 | ...-133,141-144,177 
+@mete/ui-studio:test:   layout.ts      |     100 |      100 |     100 |     100 |                     
+@mete/ui-studio:test:   marks.ts       |     100 |      100 |     100 |     100 |                     
+@mete/ui-studio:test:   motion.ts      |   96.66 |     87.5 |     100 |   96.29 | 119                 
+@mete/ui-studio:test:   paint.ts       |   94.87 |    88.88 |     100 |     100 | 72,99,133           
+@mete/ui-studio:test:   palette.ts     |     100 |      100 |     100 |     100 |                     
+@mete/ui-studio:test:   primitive.ts   |     100 |      100 |     100 |     100 |                     
+@mete/ui-studio:test:   props.ts       |     100 |    86.36 |     100 |     100 | 98,238-245          
+@mete/ui-studio:test:   room.ts        |     100 |    94.73 |     100 |     100 | 126                 
+@mete/ui-studio:test:   scene.ts       |     100 |       96 |     100 |     100 | 66                  
+@mete/ui-studio:test:   screen.ts      |     100 |    83.33 |     100 |     100 | 36-41               
+@mete/ui-studio:test:   seed.ts        |     100 |      100 |     100 |     100 |                     
+@mete/ui-studio:test:   signals.ts     |     100 |      100 |     100 |     100 |                     
+@mete/ui-studio:test:   sky.ts         |     100 |      100 |     100 |     100 |                     
+@mete/ui-studio:test:   team-view.ts   |     100 |      100 |     100 |     100 |                     
+@mete/ui-studio:test: -----------------|---------|----------|---------|---------|---------------------
+@mete/core:build: cache bypass, force executing 07095be78da07206
+@mete/kernel:test:  [32mÔ£ô[39m test/infrastructure/config-loader.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 234[2mms[22m[39m
+@mete/quota:build: cache bypass, force executing 566e417a905aea00
+@mete/knowledge:build: cache bypass, force executing 98c127f935fa98b3
+@mete/kernel:test: 
+@mete/kernel:test: [2m Test Files [22m [1m[32m8 passed[39m[22m[90m (8)[39m
+@mete/kernel:test: [2m      Tests [22m [1m[32m70 passed[39m[22m[90m (70)[39m
+@mete/kernel:test: [2m   Start at [22m 13:38:09
+@mete/kernel:test: [2m   Duration [22m 1.62s[2m (import 52%, transform 33%, worker 8%, tests 7%)[22m
+@mete/kernel:test: 
+@mete/kernel:test: [34m % [39m[2mCoverage report from [22m[33mv8[39m
+@mete/kernel:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/kernel:test: File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+@mete/kernel:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/kernel:test: All files          |   99.07 |     93.2 |     100 |    99.3 |                   
+@mete/kernel:test:  src               |     100 |      100 |     100 |     100 |                   
+@mete/kernel:test:   defaults.ts      |     100 |      100 |     100 |     100 |                   
+@mete/kernel:test:  src/application   |     100 |    94.11 |     100 |     100 |                   
+@mete/kernel:test:   lifecycle.ts     |     100 |    94.11 |     100 |     100 | 241               
+@mete/kernel:test:  src/domain        |     100 |    95.23 |     100 |     100 |                   
+@mete/kernel:test:   ...y-registry.ts |     100 |      100 |     100 |     100 |                   
+@mete/kernel:test:   ...it-breaker.ts |     100 |      100 |     100 |     100 |                   
+@mete/kernel:test:   config-reader.ts |     100 |     90.9 |     100 |     100 | 62,86-87          
+@mete/kernel:test:   event-bus.ts     |     100 |      100 |     100 |     100 |                   
+@mete/kernel:test:   module.ts        |       0 |        0 |       0 |       0 |                   
+@mete/kernel:test:   ...art-budget.ts |     100 |      100 |     100 |     100 |                   
+@mete/kernel:test:  ...infrastructure |   96.73 |    90.76 |     100 |   97.43 |                   
+@mete/kernel:test:   config-loader.ts |      96 |    89.36 |     100 |   96.77 | 104-105           
+@mete/kernel:test:   platform.ts      |     100 |    94.44 |     100 |     100 | 14                
+@mete/kernel:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/storage:test: 
+@mete/storage:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/packages/storage[39m
+@mete/storage:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/storage:test: 
+@mete/providers:build: $ tsc -b
+@mete/providers:test: 
+@mete/providers:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/packages/providers[39m
+@mete/providers:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/providers:test: 
+@mete/knowledge:test: cache bypass, force executing df34c0ed69ea410c
+@mete/tools:test: 
+@mete/tools:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/packages/tools[39m
+@mete/tools:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/tools:test: 
+@mete/mcp:test: 
+@mete/mcp:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/packages/mcp[39m
+@mete/mcp:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/mcp:test: 
+@mete/storage:test:  [32mÔ£ô[39m test/domain/payload-cap.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+@mete/quota:test: cache bypass, force executing 5193edb085e021e1
+@mete/core:test: $ vitest run --coverage
+@mete/providers:test:  [32mÔ£ô[39m test/domain/retry-after.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+@mete/core:build: $ tsc -b
+@mete/knowledge:build: $ tsc -b
+@mete/storage:test:  [32mÔ£ô[39m test/infrastructure/event-log.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+@mete/quota:build: $ tsc -b
+@mete/storage:test:  [32mÔ£ô[39m test/infrastructure/sqlite.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 203[2mms[22m[39m
+@mete/storage:test:  [32mÔ£ô[39m test/storage-sql.contract.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 325[2mms[22m[39m
+@mete/storage:test:  [32mÔ£ô[39m test/module.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 458[2mms[22m[39m
+@mete/providers:test:  [32mÔ£ô[39m test/infrastructure/openrouter-models.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 67[2mms[22m[39m
+@mete/providers:test:  [32mÔ£ô[39m test/infrastructure/sse-frames.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 174[2mms[22m[39m
+@mete/providers:test:  [32mÔ£ô[39m test/providers/scripted.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 393[2mms[22m[39m
+@mete/providers:test:  [32mÔ£ô[39m test/providers/groq.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 89[2mms[22m[39m
+@mete/providers:test:  [32mÔ£ô[39m test/infrastructure/sdk-chat.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+@mete/providers:test:  [32mÔ£ô[39m test/application/provider-module.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+@mete/providers:test:  [32mÔ£ô[39m test/infrastructure/other-formats.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 728[2mms[22m[39m
+@mete/providers:test:    [32mÔ£ô[39m anthropic-messages endpoints [2m(2)[22m
+@mete/providers:test:      [33m[2mÔ£ô[22m[39m streams a chat into text and one finish[33m 339[2mms[22m[39m
+@mete/providers:test:    [32mÔ£ô[39m google-gemini endpoints [2m(2)[22m
+@mete/providers:test:      [33m[2mÔ£ô[22m[39m streams a chat into text and one finish[33m 341[2mms[22m[39m
+@mete/providers:test:  [32mÔ£ô[39m test/infrastructure/model-list.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 56[2mms[22m[39m
+@mete/providers:test:  [32mÔ£ô[39m test/providers/openrouter.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 159[2mms[22m[39m
+@mete/providers:test:  [32mÔ£ô[39m test/infrastructure/model-data.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 473[2mms[22m[39m
+@mete/knowledge:test: $ vitest run --coverage
+@mete/providers:test:  [32mÔ£ô[39m test/domain/model-data.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+@mete/providers:test:  [32mÔ£ô[39m test/providers/nvidia.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 161[2mms[22m[39m
+@mete/providers:test:  [32mÔ£ô[39m test/infrastructure/openai-chat.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 141[2mms[22m[39m
+@mete/providers:test:  [32mÔ£ô[39m test/providers/google.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 148[2mms[22m[39m
+@mete/providers:test:  [32mÔ£ô[39m test/providers/opencode-zen.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 82[2mms[22m[39m
+@mete/storage:test: 
+@mete/storage:test: [2m Test Files [22m [1m[32m5 passed[39m[22m[90m (5)[39m
+@mete/storage:test: [2m      Tests [22m [1m[32m29 passed[39m[22m[90m (29)[39m
+@mete/storage:test: [2m   Start at [22m 13:38:11
+@mete/storage:test: [2m   Duration [22m 3.22s[2m (import 63%, transform 20%, tests 13%, worker 4%)[22m
+@mete/storage:test: 
+@mete/storage:test: [34m % [39m[2mCoverage report from [22m[33mv8[39m
+@mete/storage:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/storage:test: File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+@mete/storage:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/storage:test: All files          |   98.61 |    80.76 |     100 |   98.43 |                   
+@mete/storage:test:  src               |   96.29 |       80 |     100 |   95.74 |                   
+@mete/storage:test:   defaults.ts      |     100 |      100 |     100 |     100 |                   
+@mete/storage:test:   module.ts        |   96.07 |       80 |     100 |   95.45 | 123-124           
+@mete/storage:test:  src/domain        |     100 |      100 |     100 |     100 |                   
+@mete/storage:test:   payload-cap.ts   |     100 |      100 |     100 |     100 |                   
+@mete/storage:test:  ...infrastructure |     100 |    75.75 |     100 |     100 |                   
+@mete/storage:test:   event-log.ts     |     100 |    78.57 |     100 |     100 | 72-81,119-133     
+@mete/storage:test:   sqlite.ts        |     100 |       60 |     100 |     100 | 40-82             
+@mete/storage:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/quota:test: $ vitest run --coverage
+@mete/providers:test:  [32mÔ£ô[39m test/contracts.test.ts [2m([22m[2m38 tests[22m[2m)[22m[33m 664[2mms[22m[39m
+@mete/providers:test:  [32mÔ£ô[39m test/providers/custom.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 67[2mms[22m[39m
+@mete/gateway:build: cache bypass, force executing 778cdb02abe6bc80
+@mete/security:build: cache bypass, force executing 55b0866806c49f4f
+@mete/gateway:test: cache bypass, force executing 199aa684399a59b7
+@mete/security:test: cache bypass, force executing 45edded462154a32
+@mete/tools:test:  [32mÔ£ô[39m test/infrastructure/egress.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 86[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/fs-context-module.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 87[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/web-search.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 48[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/browser.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 373[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/registry-contract.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 265[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/application/fs-isolation-links.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 882[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/credential-fields.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 302[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/infrastructure/ignore-rules.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 242[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/infrastructure/ripgrep.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 1360[2mms[22m[39m
+@mete/tools:test:    [32mÔ£ô[39m listFiles [2m(2)[22m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m narrows to a folder and a glob and drops what keep refuses[33m 313[2mms[22m[39m
+@mete/tools:test:    [32mÔ£ô[39m grepLines [2m(4)[22m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m keeps a match on a line that is not UTF-8, decoded with replacement characters[33m 423[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/registry-setup.test.ts [2m([22m[2m27 tests[22m[2m)[22m[32m 112[2mms[22m[39m
+@mete/core:test: 
+@mete/core:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/packages/core[39m
+@mete/core:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/core:test: 
+@mete/mcp:test:  [32mÔ£ô[39m test/sse-credential-endpoint.test.ts [2m([22m[2m16 tests[22m[2m)[22m[33m 518[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m installed SDK SSE advertised endpoint [2m(3)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m sends credentials to the actual SDK-validated session URL[33m 377[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/sse-credential-flow.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 547[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m SDK authenticated SSE endpoint binding [2m(1)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m sends a saved header to the advertised session POST endpoint only[33m 541[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/sessions-logging.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 510[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m MCP global logs [2m(5)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m omits refresh error text and connection-close stderr[33m 491[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/fs-tools.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 805[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/mcp-server.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 301[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/session-callbacks.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 515[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/domain/addresses.test.ts [2m([22m[2m23 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/session-credentials.test.ts [2m([22m[2m27 tests[22m[2m)[22m[33m 841[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/application/fs-context-path.test.ts [2m([22m[2m17 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[33m 1115[2mms[22m[39m
+@mete/tools:test:    [32mÔ£ô[39m native editor context source paths [2m(17)[22m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m returns the canonical workspace-relative path of an in-root alias[33m 466[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/application/fs-isolation.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 1200[2mms[22m[39m
+@mete/tools:test:    [32mÔ£ô[39m native file isolation [2m(7)[22m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m requires an existing directory inside the canonical worktrees root[33m 305[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/cli-mappings.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 572[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/application/fs-context-io.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 872[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/oauth-record.test.ts [2m([22m[2m27 tests[22m[2m)[22m[33m 1141[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/mcp-auth-lifecycle.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 956[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m desktop OAuth lifecycle over SDK and real callback [2m(4)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m keeps cancellation pending until an in-flight keychain publication is rolled back[33m 697[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/web-fetch.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 1273[2mms[22m[39m
+@mete/tools:test:    [32mÔ£ô[39m web.fetch@1 [2m(12)[22m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m asks the policy for net.fetch and returns the article as Markdown[33m 1130[2mms[22m[39m
+@mete/providers:test: 
+@mete/providers:test: [2m Test Files [22m [1m[32m18 passed[39m[22m[90m (18)[39m
+@mete/providers:test: [2m      Tests [22m [1m[32m120 passed[39m[22m[90m (120)[39m
+@mete/providers:test: [2m   Start at [22m 13:38:11
+@mete/providers:test: [2m   Duration [22m 5.41s[2m (import 75%, tests 11%, transform 8%, worker 6%)[22m
+@mete/providers:test: 
+@mete/providers:test: [34m % [39m[2mCoverage report from [22m[33mv8[39m
+@mete/providers:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/providers:test: File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+@mete/providers:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/providers:test: All files          |   96.24 |    85.98 |   98.75 |   97.87 |                   
+@mete/providers:test:  src               |     100 |      100 |     100 |     100 |                   
+@mete/providers:test:   defaults.ts      |     100 |      100 |     100 |     100 |                   
+@mete/providers:test:   module.ts        |       0 |        0 |       0 |       0 |                   
+@mete/providers:test:  src/application   |   91.66 |    78.57 |     100 |    91.8 |                   
+@mete/providers:test:   ...d-provider.ts |     100 |    81.81 |     100 |     100 | 32-46             
+@mete/providers:test:   ...der-module.ts |   89.65 |    77.41 |     100 |   89.58 | ...10-111,115-116 
+@mete/providers:test:  src/domain        |     100 |      100 |     100 |     100 |                   
+@mete/providers:test:   errors.ts        |     100 |      100 |     100 |     100 |                   
+@mete/providers:test:   model-data.ts    |     100 |      100 |     100 |     100 |                   
+@mete/providers:test:   observe.ts       |     100 |      100 |     100 |     100 |                   
+@mete/providers:test:   retry-after.ts   |     100 |      100 |     100 |     100 |                   
+@mete/providers:test:  ...infrastructure |    96.9 |    88.74 |     100 |   98.82 |                   
+@mete/providers:test:   model-data.ts    |     100 |      100 |     100 |     100 |                   
+@mete/providers:test:   model-list.ts    |     100 |     91.3 |     100 |     100 | 58,68             
+@mete/providers:test:   ...-retrieval.ts |   95.65 |       90 |     100 |     100 | 70                
+@mete/providers:test:   openai-chat.ts   |     100 |      100 |     100 |     100 |                   
+@mete/providers:test:   openai-prompt.ts |     100 |    77.77 |     100 |     100 | 34,52-70          
+@mete/providers:test:   ...ter-models.ts |     100 |     92.3 |     100 |     100 | 45,67             
+@mete/providers:test:   other-formats.ts |   93.33 |    78.57 |     100 |     100 | 85,111,129        
+@mete/providers:test:   sdk-chat.ts      |   95.34 |    97.43 |     100 |   94.73 | 68,140            
+@mete/providers:test:   sse-frames.ts    |   95.83 |       75 |     100 |     100 | 21-38             
+@mete/providers:test:  src/providers     |   95.85 |    77.64 |   96.92 |   98.28 |                   
+@mete/providers:test:   custom.ts        |   94.52 |    75.75 |     100 |     100 | ...08-157,194,208 
+@mete/providers:test:   google.ts        |     100 |      100 |     100 |     100 |                   
+@mete/providers:test:   groq.ts          |     100 |      100 |     100 |     100 |                   
+@mete/providers:test:   nvidia.ts        |     100 |       50 |     100 |     100 | 36-54             
+@mete/providers:test:   opencode-zen.ts  |     100 |       50 |     100 |     100 | 21-35             
+@mete/providers:test:   openrouter.ts    |   96.77 |    91.66 |     100 |     100 | 72,90             
+@mete/providers:test:   scripted.ts      |   94.11 |    77.77 |   84.61 |   93.33 | 120,160-161       
+@mete/providers:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/tools:test:  [32mÔ£ô[39m test/application/host-check.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/oauth-callback.test.ts [2m([22m[2m28 tests[22m[2m)[22m[33m 1374[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m OAuth loopback callback [2m(28)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m accepts once, returns the exact URL and releases the random listener[33m 311[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/local-registry.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 1448[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m local registry [2m(5)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m names the file when it is not JSON, has the wrong shape, or repeats an entry[33m 1107[2mms[22m[39m
+@mete/gateway:build: $ tsc -b
+@mete/tools:test:  [32mÔ£ô[39m test/infrastructure/fs-context-links.test.ts [2m([22m[2m14 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[33m 1707[2mms[22m[39m
+@mete/tools:test:    [32mÔ£ô[39m editor context intermediate link boundaries [2m(14)[22m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m does not erase forbidden ancestors from the supplied path[33m 793[2mms[22m[39m
+@mete/mcp:test: [90mstderr[2m | test/oauth.test.ts[2m > [22m[2mmcp-client OAuth[2m > [22m[2mdoes not launch or register after a noninteractive failed refresh and preserves prior tokens
+@mete/mcp:test: [22m[39m[mcp-sdk] OAuth "invalid_grant" ÔÇö invalidating the stored tokens and retrying authorization. Cause: "MCP authorization request failed"
+@mete/mcp:test: 
+@mete/tools:test:  [32mÔ£ô[39m test/web-search-contract.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 90[2mms[22m[39m
+@mete/mcp:test: [90mstderr[2m | test/oauth.test.ts[2m > [22m[2mmcp-client OAuth[2m > [22m[2mlets an explicit terminal host reauthorize a refused refresh without re-registering
+@mete/mcp:test: [22m[39m[mcp-sdk] OAuth "invalid_grant" ÔÇö invalidating the stored tokens and retrying authorization. Cause: "MCP authorization request failed"
+@mete/mcp:test: 
+@mete/tools:test:  [32mÔ£ô[39m test/domain/text.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/domain/git-status.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/application/vcs-checkpoint-queue.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/runtime-ensure.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 1521[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m runtime.ensure@1 [2m(8)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m extracts a binary archive once for parallel calls and saves a plain binary as one file[33m 945[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/oauth.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 1532[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m mcp-client OAuth [2m(11)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m signs in once through the host, then reuses the saved tokens without asking[33m 483[2mms[22m[39m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m rejects an address that does not carry this sign-in's state, or that the server refused[33m 374[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/runtime-system.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/domain/paths.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/domain/env-rules.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/credential-identity.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 78[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/domain/render.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/session-close.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+@mete/security:build: $ tsc -b
+@mete/mcp:test:  [32mÔ£ô[39m test/credential-records.test.ts [2m([22m[2m29 tests[22m[2m)[22m[32m 65[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/registry.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 88[2mms[22m[39m
+@mete/security:test: $ vitest run --coverage
+@mete/gateway:test: $ vitest run --coverage
+@mete/mcp:test:  [32mÔ£ô[39m test/mcp-connection.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 46[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/redact-content.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+@mete/knowledge:test: 
+@mete/knowledge:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/packages/knowledge[39m
+@mete/knowledge:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/knowledge:test: 
+@mete/tools:test:  [32mÔ£ô[39m test/web-module.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/vcs-provenance.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 2840[2mms[22m[39m
+@mete/tools:test:    [32mÔ£ô[39m native checkpoint adapter provenance [2m(3)[22m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m attests exactly the registered implementation after registration[33m 1463[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m does not attest when native activation fails[33m 756[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m does not confer provenance on a wrapper or a replacement with the same registration id[33m 569[2mms[22m[39m
+@mete/quota:test: 
+@mete/quota:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/packages/quota[39m
+@mete/quota:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/quota:test: 
+@mete/tools:test:  [32mÔ£ô[39m test/fs-contract.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 3063[2mms[22m[39m
+@mete/tools:test:    [32mÔ£ô[39m fs.*@1 contract: tools-fs [2m(7)[22m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m refuses createOnly on an existing file and deletes[33m 562[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m edits one exact match, counts others and keeps CRLF[33m 1245[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m lists, globs and greps, leaving out .meteignore defaults[33m 503[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m cuts grep results at maxResults[33m 422[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/registry-add.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 2539[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m adding a server to .mete/mcp.yaml [2m(4)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m creates the file, keeps comments and entries, and writes nothing on a refusal[33m 367[2mms[22m[39m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m leaves no temporary copy behind when the rename fails, and says why[33m 1851[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/mcp-status.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 2514[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m mcp.status@1 (ADR-164) [2m(3)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m names the tools a server lists, in its order, as mcp.tools@1 lists them[33m 1929[2mms[22m[39m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m says why a server does not connect[33m 392[2mms[22m[39m
+@mete/cli:build: cache bypass, force executing 7289059f1f5dcceb
+@mete/cli:test: cache bypass, force executing a270f88999055d8e
+@mete/mcp:test:  [32mÔ£ô[39m test/mcp-hardening.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 2953[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m stdio transport close [2m(2)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m ends the whole process tree on Windows[33m 1863[2mms[22m[39m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m leaves the SDK's close alone elsewhere[33m 1080[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/static-site.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 3176[2mms[22m[39m
+@mete/tools:test:    [32mÔ£ô[39m serveFolder [2m(6)[22m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m refuses ignored children and indexes but serves ordinary assets in a workspace preview[33m 1825[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m serves the folder on loopback: its index, its files and their media types[33m 348[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m answers 404 for a path out of the folder, a missing file and a folder without an index[33m 581[2mms[22m[39m
+@mete/knowledge:test:  [32mÔ£ô[39m test/retention.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+@mete/knowledge:test:  [32mÔ£ô[39m test/run-report.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+@mete/knowledge:test:  [32mÔ£ô[39m test/note.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+@mete/knowledge:test:  [32mÔ£ô[39m test/fusion.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+@mete/quota:test:  [32mÔ£ô[39m test/domain/windows.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+@mete/security:test: 
+@mete/security:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/packages/security[39m
+@mete/security:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/security:test: 
+@mete/mcp:test:  [32mÔ£ô[39m test/mappings.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 4538[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m level 2 MCP mappings [2m(4)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m maps the input onto the tool and its JSON answer onto web.search@1[33m 1627[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m the shipped Exa mapping [2m(1)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m maps web.search@1 onto an exa server; mcp.yaml's exa replaces the built-in one[33m 2125[2mms[22m[39m
+@mete/cli:build: $ tsc -b
+@mete/cli:test: $ vitest run --coverage
+@mete/gateway:test: 
+@mete/gateway:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/packages/gateway[39m
+@mete/gateway:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/gateway:test: 
+@mete/knowledge:test:  [32mÔ£ô[39m test/index-text.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+@mete/quota:test:  [32mÔ£ô[39m test/domain/pool-usage.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+@mete/quota:test:  [32mÔ£ô[39m test/domain/pool.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+@mete/knowledge:test:  [32mÔ£ô[39m test/history.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 649[2mms[22m[39m
+@mete/quota:test:  [32mÔ£ô[39m test/application/scheduler.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 61[2mms[22m[39m
+@mete/security:test:  [32mÔ£ô[39m test/infrastructure/masker.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 565[2mms[22m[39m
+@mete/security:test:    [32mÔ£ô[39m maskSecrets [2m(3)[22m
+@mete/security:test:      [33m[2mÔ£ô[22m[39m leaves text without secrets alone[33m 551[2mms[22m[39m
+@mete/security:test:  [32mÔ£ô[39m test/infrastructure/keychain.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 120[2mms[22m[39m
+@mete/security:test:  [32mÔ£ô[39m test/application/policy-check-requests.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+@mete/security:test:  [32mÔ£ô[39m test/domain/patterns.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+@mete/security:test:  [32mÔ£ô[39m test/domain/checker.test.ts [2m([22m[2m25 tests[22m[2m)[22m[32m 59[2mms[22m[39m
+@mete/security:test:  [32mÔ£ô[39m test/domain/answers.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+@mete/security:test:  [32mÔ£ô[39m test/application/policy-requests.test.ts [2m([22m[2m20 tests[22m[2m)[22m[32m 79[2mms[22m[39m
+@mete/ui-theia:build: cache bypass, force executing 513ec4a87da27486
+@mete/ui-theia:test: cache bypass, force executing 91cb470706cb2eff
+@mete/security:test:  [32mÔ£ô[39m test/infrastructure/command-check.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 109[2mms[22m[39m
+@mete/security:test:  [32mÔ£ô[39m test/infrastructure/policy-source.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 267[2mms[22m[39m
+@mete/security:test:  [32mÔ£ô[39m test/infrastructure/policy-file.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 672[2mms[22m[39m
+@mete/security:test:    [32mÔ£ô[39m allowCommandForGood [2m(6)[22m
+@mete/security:test:      [33m[2mÔ£ô[22m[39m keeps comments and other keys, appends to the list and adds a command once[33m 327[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/shell-contract.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 8347[2mms[22m[39m
+@mete/tools:test:    [32mÔ£ô[39m shell.exec@1 contract: tools-shell [2m(6)[22m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m returns the exit code, both streams, the OS and the shell[33m 2576[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m passes env on top of the inherited environment[33m 1186[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m kills a command at its timeout[33m 2215[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m keeps the head and tail of a long stream[33m 2251[2mms[22m[39m
+@mete/cli:test: 
+@mete/cli:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/apps/cli[39m
+@mete/cli:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/cli:test: 
+@mete/gateway:test:  [32mÔ£ô[39m test/domain/resolve.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+@mete/gateway:test:  [32mÔ£ô[39m test/infrastructure/openai-wire.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+@mete/gateway:test:  [32mÔ£ô[39m test/application/prepare.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+@mete/gateway:test:  [32mÔ£ô[39m test/application/chat-spend.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+@mete/gateway:test:  [32mÔ£ô[39m test/application/embed.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 67[2mms[22m[39m
+@mete/gateway:test:  [32mÔ£ô[39m test/application/chat.test.ts [2m([22m[2m32 tests[22m[2m)[22m[32m 83[2mms[22m[39m
+@mete/gateway:test:  [32mÔ£ô[39m test/application/chain-end.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 53[2mms[22m[39m
+@mete/gateway:test:  [32mÔ£ô[39m test/domain/retry.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+@mete/gateway:test:  [32mÔ£ô[39m test/contracts.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+@mete/gateway:test:  [32mÔ£ô[39m test/application/stall.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 454[2mms[22m[39m
+@mete/gateway:test:  [32mÔ£ô[39m test/infrastructure/server.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 584[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/prefer.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 3276[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m model selection at start and run time (ADR-122) [2m(12)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m single-agent start honors prefer and sends it in model chat request[33m 546[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m team start honors per-role prefer[33m 424[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m run preference takes precedence over workspace pin in .mete/pins.yaml[33m 491[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m falls back to .mete/pins.yaml when role has no run preference[33m 782[2mms[22m[39m
+@mete/security:test:  [32mÔ£ô[39m test/infrastructure/audit-log.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+@mete/knowledge:test:  [32mÔ£ô[39m test/search.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 1905[2mms[22m[39m
+@mete/knowledge:test:    [32mÔ£ô[39m knowledge.search@1 [2m(14)[22m
+@mete/knowledge:test:      [33m[2mÔ£ô[22m[39m excludes malformed frontmatter and forgets the previously indexed note: ---
+@mete/knowledge:test: - private: true
+@mete/knowledge:test: ---
+@mete/knowledge:test: secret word[33m 866[2mms[22m[39m
+@mete/quota:test:  [32mÔ£ô[39m test/application/persistence.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 43[2mms[22m[39m
+@mete/quota:test:  [32mÔ£ô[39m test/infrastructure/quota-store.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 48[2mms[22m[39m
+@mete/knowledge:test:  [32mÔ£ô[39m test/vault-tools.test.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 993[2mms[22m[39m
+@mete/knowledge:test:  [32mÔ£ô[39m test/aging.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 525[2mms[22m[39m
+@mete/knowledge:test:  [32mÔ£ô[39m test/search-upgrade.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 437[2mms[22m[39m
+@mete/knowledge:test:    [32mÔ£ô[39m knowledge.search@1 upgrade [2m(1)[22m
+@mete/knowledge:test:      [33m[2mÔ£ô[22m[39m rechecks an unchanged malformed note with a matching legacy SHA before search or embedding[33m 433[2mms[22m[39m
+@mete/knowledge:test:  [32mÔ£ô[39m test/vector-index.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 255[2mms[22m[39m
+@mete/knowledge:test:  [32mÔ£ô[39m test/hybrid.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 1000[2mms[22m[39m
+@mete/knowledge:test:    [32mÔ£ô[39m knowledge.search@1 with the vector source [2m(7)[22m
+@mete/knowledge:test:      [33m[2mÔ£ô[22m[39m never embeds BOM-prefixed private, malformed or unclosed notes[33m 362[2mms[22m[39m
+@mete/quota:test:  [32mÔ£ô[39m test/module.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 598[2mms[22m[39m
+@mete/ui-theia:test: $ vitest run --coverage
+@mete/ui-theia:build: $ tsc -b
+@mete/gateway:test:  [32mÔ£ô[39m test/infrastructure/model-calls.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 30[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/web-search-contract.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 10902[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m web.search@1 contract: mcp exa-mcp mapping [2m(6)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m returns the backend's results as title, url and snippet, in order[33m 2117[2mms[22m[39m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m returns an empty list when the backend finds nothing[33m 1851[2mms[22m[39m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m passes maxResults on, and asks for 8 results when it is not given[33m 4650[2mms[22m[39m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m answers io when the backend is down[33m 2248[2mms[22m[39m
+@mete/knowledge:test:  [32mÔ£ô[39m test/module.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 456[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/task-coordinator-wait.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 2480[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m suspended coordinator requests [2m(2)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m preserves the review agent and conversation while a peer finishes[33m 1551[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m preserves the clarify agent and conversation while a peer finishes[33m 925[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/remove.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 1901[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m remove a run (ADR-143) [2m(5)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m deletes an ended run's checkpoints, snapshots and rows, then says so[33m 348[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m removes each task's worktree and its branch, merged or not[33m 422[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m removes the worktree of each attempt of a best-of-N task (ADR-162)[33m 534[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps the run when git refuses, so it can be removed again[33m 460[2mms[22m[39m
+@mete/security:test:  [32mÔ£ô[39m test/module.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 716[2mms[22m[39m
+@mete/security:test:  [32mÔ£ô[39m test/contracts.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 814[2mms[22m[39m
+@mete/security:test:    [32mÔ£ô[39m policy.check@1 contract: security module [2m(4)[22m
+@mete/security:test:      [33m[2mÔ£ô[22m[39m asks before a write to a package script manifest at level 2[33m 322[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/scheduler-writing-recovery.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 2449[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m sequential team writer persistence inside the parallel driver [2m(2)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m persists checkpoint and writing marker before the tool finishes, then retains its result across immediate pause/resume[33m 1752[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m recovers a user-paused team's crash-time write as INTERRUPTED and never replays it[33m 695[2mms[22m[39m
+@mete/security:test:  [32mÔ£ô[39m test/policy-requests-module.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 1140[2mms[22m[39m
+@mete/security:test:    [33m[2mÔ£ô[22m[39m registers exact requests with masked display and process-local lifetime[33m 1061[2mms[22m[39m
+@mete/knowledge:test:  [32mÔ£ô[39m test/vector-source.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/task-merge-wait.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 2086[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m task-local failed merge [2m(1)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m lets an independent task finish, retains the queue head, then retries the exact request[33m 2083[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/lessons.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 2412[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m lessons after approval [2m(6)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m asks once without tools and writes the lesson through vault.write@1[33m 1163[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m names the task's agent on the lesson's events after the lead approved, thinking included[33m 546[2mms[22m[39m
+@mete/quota:test:  [32mÔ£ô[39m test/contracts.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 648[2mms[22m[39m
+@mete/quota:test:    [32mÔ£ô[39m quota.reserve@4 contract: quota module [2m(6)[22m
+@mete/quota:test:      [33m[2mÔ£ô[22m[39m reserves the first entry with capacity and settles each reservation once[33m 400[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/thread-reads.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 2141[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m retained masked conversation reads [2m(7)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps a continuation cursor when a collected match is removed during a limited page[33m 739[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m reads ordered turns and searches only masked titles and new-port authored messages[33m 358[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/worktree-setup.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 2896[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m worktree setup command execution (ADR-123) [2m(7)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m runs setup command in cwd: worktree when configured in worktrees section[33m 1059[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m falls back to singular worktree section when worktrees is absent[33m 700[2mms[22m[39m
+@mete/security:test: 
+@mete/security:test: [2m Test Files [22m [1m[32m14 passed[39m[22m[90m (14)[39m
+@mete/security:test: [2m      Tests [22m [1m[32m114 passed[39m[22m[90m (114)[39m
+@mete/security:test: [2m   Start at [22m 13:38:20
+@mete/security:test: [2m   Duration [22m 7.71s[2m (import 77%, tests 13%, transform 6%, worker 3%)[22m
+@mete/security:test: 
+@mete/security:test: [34m % [39m[2mCoverage report from [22m[33mv8[39m
+@mete/quota:test: 
+@mete/quota:test: [2m Test Files [22m [1m[32m8 passed[39m[22m[90m (8)[39m
+@mete/quota:test: [2m      Tests [22m [1m[32m65 passed[39m[22m[90m (65)[39m
+@mete/quota:test: [2m   Start at [22m 13:38:18
+@mete/quota:test: [2m   Duration [22m 9.72s[2m (import 83%, transform 11%, tests 4%, worker 1%)[22m
+@mete/quota:test: 
+@mete/quota:test: [34m % [39m[2mCoverage report from [22m[33mv8[39m
+@mete/quota:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/quota:test: File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+@mete/quota:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/quota:test: All files          |   97.62 |    92.91 |   97.18 |   99.02 |                   
+@mete/quota:test:  src               |      90 |    81.25 |   81.81 |   93.02 |                   
+@mete/quota:test:   defaults.ts      |     100 |      100 |     100 |     100 |                   
+@mete/quota:test:   module.ts        |   89.58 |    81.25 |   81.81 |   92.68 | 55-56,95          
+@mete/quota:test:  src/application   |   97.98 |    90.76 |     100 |     100 |                   
+@mete/quota:test:   quota-reserve.ts |     100 |    91.66 |     100 |     100 | 57                
+@mete/quota:test:   scheduler.ts     |   96.94 |    90.56 |     100 |     100 | 73,90-92,128,205  
+@mete/quota:test:  src/domain        |   98.88 |    94.26 |     100 |     100 |                   
+@mete/quota:test:   pool-state.ts    |     100 |      100 |     100 |     100 |                   
+@mete/quota:test:   pool-usage.ts    |     100 |      100 |     100 |     100 |                   
+@mete/quota:test:   pool.ts          |   98.11 |    90.81 |     100 |     100 | ...07,240,247,268 
+@mete/quota:test:   windows.ts       |     100 |      100 |     100 |     100 |                   
+@mete/quota:test:  ...infrastructure |   97.18 |      100 |   86.66 |   97.05 |                   
+@mete/quota:test:   quota-store.ts   |   97.18 |      100 |   86.66 |   97.05 | 51,65             
+@mete/quota:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/security:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/security:test: File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+@mete/security:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/security:test: All files          |   98.17 |    93.29 |    97.5 |   98.61 |                   
+@mete/security:test:  src               |   94.66 |    83.33 |   86.36 |   95.52 |                   
+@mete/security:test:   defaults.ts      |     100 |      100 |     100 |     100 |                   
+@mete/security:test:   module.ts        |   94.36 |    83.33 |   86.36 |   95.23 | 117,163,182       
+@mete/security:test:  src/application   |   99.35 |    96.66 |     100 |     100 |                   
+@mete/security:test:   grants.ts        |     100 |      100 |     100 |     100 |                   
+@mete/security:test:   policy-check.ts  |     100 |    91.66 |     100 |     100 | 34,107            
+@mete/security:test:   ...y-requests.ts |   99.12 |     97.5 |     100 |     100 | 52                
+@mete/security:test:  src/domain        |     100 |    99.03 |     100 |     100 |                   
+@mete/security:test:   checker.ts       |     100 |    98.66 |     100 |     100 | 58                
+@mete/security:test:   grants.ts        |     100 |      100 |     100 |     100 |                   
+@mete/security:test:   patterns.ts      |     100 |      100 |     100 |     100 |                   
+@mete/security:test:  ...infrastructure |   97.33 |    83.78 |     100 |    97.7 |                   
+@mete/security:test:   audit-log.ts     |     100 |      100 |     100 |     100 |                   
+@mete/security:test:   command-check.ts |     100 |    76.92 |     100 |     100 | 35,58-59          
+@mete/security:test:   keychain.ts      |     100 |       80 |     100 |     100 | 41                
+@mete/security:test:   masker.ts        |   95.45 |       75 |     100 |     100 | 17                
+@mete/security:test:   policy-file.ts   |   94.73 |    95.23 |     100 |   93.93 | 28-29             
+@mete/security:test:   policy-source.ts |   97.61 |       76 |     100 |   97.43 | 60                
+@mete/security:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/core:test:  [32mÔ£ô[39m test/application/spawn-engine.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 1493[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m spawned tasks in a run (ADR-057) [2m(1)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m repairs a list that names an unknown role, then runs its tasks after approval[33m 1490[2mms[22m[39m
+@mete/knowledge:test: 
+@mete/knowledge:test: [2m Test Files [22m [1m[32m14 passed[39m[22m[90m (14)[39m
+@mete/knowledge:test: [2m      Tests [22m [1m[32m86 passed[39m[22m[90m (86)[39m
+@mete/knowledge:test: [2m   Start at [22m 13:38:18
+@mete/knowledge:test: [2m   Duration [22m 10.20s[2m (import 76%, transform 12%, tests 10%, worker 2%)[22m
+@mete/knowledge:test: 
+@mete/knowledge:test: [34m % [39m[2mCoverage report from [22m[33mv8[39m
+@mete/knowledge:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/knowledge:test: File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+@mete/knowledge:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/knowledge:test: All files          |   95.01 |    82.96 |   95.54 |   98.03 |                   
+@mete/knowledge:test:  src               |   91.17 |    71.42 |   82.14 |   96.62 |                   
+@mete/knowledge:test:   defaults.ts      |     100 |      100 |     100 |     100 |                   
+@mete/knowledge:test:   module.ts        |   91.42 |    67.85 |   86.36 |   98.33 | 174               
+@mete/knowledge:test:   search-module.ts |   86.95 |    85.71 |   66.66 |      90 | 57,67             
+@mete/knowledge:test:  src/application   |   93.92 |    79.53 |   97.26 |   98.51 |                   
+@mete/knowledge:test:   .gitkeep         |       0 |        0 |       0 |       0 |                   
+@mete/knowledge:test:   embed-job.ts     |   93.44 |       75 |   89.47 |   94.23 | 93,123,130        
+@mete/knowledge:test:   search.ts        |   95.23 |    78.94 |     100 |     100 | ...,84-91,153,187 
+@mete/knowledge:test:   vault-tools.ts   |   92.24 |    78.66 |     100 |     100 | ...07,215,233-241 
+@mete/knowledge:test:   vector-source.ts |   97.05 |    88.46 |     100 |   96.66 | 36                
+@mete/knowledge:test:  src/domain        |   99.27 |    92.45 |   97.72 |    99.2 |                   
+@mete/knowledge:test:   .gitkeep         |       0 |        0 |       0 |       0 |                   
+@mete/knowledge:test:   fusion.ts        |     100 |    88.88 |     100 |     100 | 25                
+@mete/knowledge:test:   index-text.ts    |     100 |    97.43 |     100 |     100 | 77                
+@mete/knowledge:test:   journal-text.ts  |     100 |      100 |     100 |     100 |                   
+@mete/knowledge:test:   note.ts          |     100 |     92.3 |     100 |     100 | 50                
+@mete/knowledge:test:   retention.ts     |     100 |      100 |     100 |     100 |                   
+@mete/knowledge:test:   run-report.ts    |   97.72 |    86.11 |   94.44 |   97.56 | 48                
+@mete/knowledge:test:  ...infrastructure |   95.87 |    82.79 |   98.24 |   97.17 |                   
+@mete/knowledge:test:   .gitkeep         |       0 |        0 |       0 |       0 |                   
+@mete/knowledge:test:   access-log.ts    |     100 |      100 |     100 |     100 |                   
+@mete/knowledge:test:   frontmatter.ts   |     100 |    93.33 |     100 |     100 | 22                
+@mete/knowledge:test:   history.ts       |   92.45 |       75 |      90 |   95.74 | 45,97             
+@mete/knowledge:test:   journal.ts       |   88.88 |       25 |     100 |   86.66 | 18,36             
+@mete/knowledge:test:   keyword-index.ts |     100 |    96.15 |     100 |     100 | 118               
+@mete/knowledge:test:   vector-index.ts  |   97.05 |       75 |     100 |   98.38 | 142               
+@mete/knowledge:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/core:test:  [32mÔ£ô[39m test/application/setup-opening.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 2201[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m atomic setup opening [2m(3)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m recovers the first opened save with configured setup=true without losing pending or rewriting legacy absence[33m 1176[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m recovers the first opened save with configured setup=false without losing pending or rewriting legacy absence[33m 775[2mms[22m[39m
+@mete/desktop:test: cache bypass, force executing 1d197a445ae41d84
+@mete/core:test:  [31mÔØ»[39m test/application/conversation-mcp-policy.test.ts [2m([22m[2m3 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 3052[2mms[22m[39m
+@mete/core:test: [31m   [31m├ù[31m persists worker metadata taint before calling a parallel task's model[39m[33m 2525[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m persists metadata taint before the first model call and retains it after restart and reply without MCP[32m 199[2mms[22m[39m
+@mete/core:test:    [33m[2mÔ£ô[22m[39m does not discover raw tools by default and keeps selected MCP calls behind approval[33m 326[2mms[22m[39m
+@mete/gateway:test:  [32mÔ£ô[39m test/module.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 534[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/clarify.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 1963[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m clarify before the work (ADR-142) [2m(4)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m asks its questions with no tools, has the researcher answer them with its own, then works with the answer[33m 1198[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m goes on with the task when it has no questions[33m 309[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/parallel-scheduler.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 3154[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m live non-writing scheduler [2m(3)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m overlaps two isolated calls, starts a third only after a slot frees, and waits for dependency approval[33m 2130[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps a completed worker reply while another stream is pending[33m 825[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/scheduler-lifecycle.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 2663[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m parallel scheduler lifecycle [2m(5)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m resumes both task sessions without accepting late replies or model chunks from paused workers[33m 1064[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m releases network failures, aborts peers, and retains completed task progress for restart[33m 593[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m releases no_model failures, aborts peers, and retains completed task progress for restart[33m 671[2mms[22m[39m
+@mete/gateway:test: 
+@mete/gateway:test: [2m Test Files [22m [1m[32m13 passed[39m[22m[90m (13)[39m
+@mete/gateway:test: [2m      Tests [22m [1m[32m119 passed[39m[22m[90m (119)[39m
+@mete/gateway:test: [2m   Start at [22m 13:38:21
+@mete/gateway:test: [2m   Duration [22m 8.18s[2m (import 74%, transform 15%, tests 7%, worker 4%)[22m
+@mete/gateway:test: 
+@mete/gateway:test: [34m % [39m[2mCoverage report from [22m[33mv8[39m
+@mete/gateway:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/gateway:test: File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+@mete/gateway:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/gateway:test: All files          |   96.38 |    92.09 |   97.16 |   97.73 |                   
+@mete/gateway:test:  src               |   92.59 |    75.67 |   86.95 |   97.32 |                   
+@mete/gateway:test:   defaults.ts      |     100 |      100 |     100 |     100 |                   
+@mete/gateway:test:   module.ts        |      92 |    75.67 |   86.95 |   97.05 | 83,133,181        
+@mete/gateway:test:  src/application   |   95.87 |     92.3 |     100 |   96.81 |                   
+@mete/gateway:test:   chat-types.ts    |       0 |        0 |       0 |       0 |                   
+@mete/gateway:test:   chat.ts          |   95.89 |    94.56 |     100 |   95.96 | ...19-123,182-183 
+@mete/gateway:test:   embed.ts         |   91.42 |    83.33 |     100 |   94.82 | 105-106,158       
+@mete/gateway:test:   model-memory.ts  |     100 |      100 |     100 |     100 |                   
+@mete/gateway:test:   prepare.ts       |   96.66 |    89.65 |     100 |   98.03 | 89                
+@mete/gateway:test:   stall.ts         |     100 |      100 |     100 |     100 |                   
+@mete/gateway:test:  src/domain        |     100 |    96.46 |     100 |     100 |                   
+@mete/gateway:test:   llm-errors.ts    |     100 |    93.75 |     100 |     100 | 31                
+@mete/gateway:test:   resolve.ts       |     100 |      100 |     100 |     100 |                   
+@mete/gateway:test:   retry.ts         |     100 |     92.5 |     100 |     100 | 48,101-105        
+@mete/gateway:test:   spend.ts         |     100 |      100 |     100 |     100 |                   
+@mete/gateway:test:  ...infrastructure |   97.95 |    92.74 |     100 |   98.27 |                   
+@mete/gateway:test:   model-calls.ts   |     100 |      100 |     100 |     100 |                   
+@mete/gateway:test:   openai-wire.ts   |     100 |    94.82 |     100 |     100 | 113,127,230       
+@mete/gateway:test:   server.ts        |   96.46 |    90.76 |     100 |   96.96 | 91-93,177         
+@mete/gateway:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/core:test:  [32mÔ£ô[39m test/application/scheduler-isolated-recovery.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 2597[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m recovery of every task-local writing marker [2m(3)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m settles both running task sessions, including in_progress, with reused call ids and no replay[33m 1408[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m settles both paused task sessions, including in_progress, with reused call ids and no replay[33m 717[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m settles both paused task sessions, including blocked, with reused call ids and no replay[33m 469[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/scheduler-writers.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 3011[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m scheduler effects and independent drains [2m(5)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m rejects non-query vault_write even without a checkpoint flag[33m 1657[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps a journal append exclusive although vault.write does not request a checkpoint[33m 537[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/snapshots.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 5115[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m file snapshots without git [2m(4)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m opens one snapshot for a writing step and keeps each file as it was before its first write[33m 2160[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m restores the files as they were before the step, deletes what it created, and the undo puts them back[33m 1491[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m waits for the run's drive loop before it restores (a tool call in flight finishes first)[33m 1323[2mms[22m[39m
+@mete/ui-theia:test: 
+@mete/ui-theia:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/packages/ui-theia[39m
+@mete/ui-theia:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/ui-theia:test: 
+@mete/core:test:  [32mÔ£ô[39m test/application/task-setup.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 4961[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m durable task setup [2m(7)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m does not start setup if pause changes the token after the checkpoint event[33m 1096[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m persists identity and running after a checkpoint, then records known ok as done[33m 1267[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m persists identity and running after a checkpoint, then records known nonzero as done[33m 1045[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m persists identity and running after a checkpoint, then records known error as done[33m 712[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m retries only the answered verify stage and keeps verification exclusive[33m 347[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/attempts.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 4258[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m best-of-N attempts (ADR-162) [2m(7)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m spends an attempt whose repairs ran out and submits the next one, chosen by its checks[33m 892[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m goes on with an earlier attempt when a later one fails, in its own worktree and words[33m 806[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m blocks the task with the last attempt's problems when every attempt is spent[33m 436[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m sends a revision to the attempt that went on, with no new attempt[33m 641[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m asks its questions once: the next attempt opens with the answers[33m 425[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/sampling.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 14791[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m mcp-client sampling [2m(5)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m asks the user once per server, then answers through llm.chat@2 on the run's budget[33m 1773[2mms[22m[39m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m refuses when the user says no, and asks again at the server's next request[33m 965[2mms[22m[39m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m skips the question when the policy allows it, and refuses what it denies[33m 4237[2mms[22m[39m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m needs a run to charge, a model to ask and a host to confirm[33m 6587[2mms[22m[39m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m stops the model call when the run's signal aborts[33m 1225[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/infrastructure/template-store.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 1162[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m loadTemplate [2m(7)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m loads a built-in template with its defaults[33m 540[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m takes the workspace template over the built-in one[33m 334[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/context-recovery.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 438[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/i18n.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 413[2mms[22m[39m
+@mete/desktop:test: $ vitest run --passWithNoTests
+@mete/tools:test:  [32mÔ£ô[39m test/cwd.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 16047[2mms[22m[39m
+@mete/tools:test:    [32mÔ£ô[39m a call with a working folder [2m(6)[22m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m reads, writes and lists relative to it, not to the workspace[33m 1438[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m is confined to its folder: the workspace and another worktree are outside[33m 859[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m refuses a folder that is not inside the worktrees folder[33m 679[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m reads .meteignore from the real workspace, anchored in the worktree[33m 1020[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m runs shell commands in it[33m 4047[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m runs git in its worktree, and keeps worktree and merge for the repository[33m 7896[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/home-view.test.ts [2m([22m[2m24 tests[22m[2m)[22m[32m 262[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/run-hero.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 257[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/task-policy-waits.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 1648[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m independent exact policy waits [2m(1)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps both asks, accepts them out of order, and runs only the answered task[33m 1645[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/scheduler-tools.test.ts [2m([22m[2m21 tests[22m[2m)[22m[33m 5715[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m task-local scheduler tools [2m(10)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m preserves a peer's newly persisted write marker across the coordinator await[33m 443[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps raw MCP tools exclusive even when the server describes them as reads[33m 1538[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m overlaps two tools and a tool with a model under the same two slots, without tool reservations[33m 766[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m drains both started tools without abort or replay on pause (immediate resume: false)[33m 306[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m drains both started tools without abort or replay on pause (immediate resume: true)[33m 359[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m aborts all started tools on stop and drops abort-ignoring late results[33m 410[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps policy denial as a tool result and preserves the repeat guard and external taint on the next call[33m 540[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m leaves a policy ask unanswered while draining its peer, then retries only the refused tool on resume[33m 760[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/thread-requests.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/thread-lifecycle.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 420[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/engine.test.ts [2m([22m[2m43 tests[22m[2m)[22m[33m 6548[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m single-agent engine [2m(43)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m finishes an edit task with a checkpoint first and records the agent[33m 943[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m pauses at the turn limit, and a resume gives it as many turns again[33m 524[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m recovers valid paused runs without parsing damaged ended-run metadata[33m 340[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/reply.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 989[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m run.reply@1 [2m(4)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps history and model choice in a new run without reopening the original[33m 512[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/editor-context.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/task-control-session.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 215[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/conversation.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 1057[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m conversation.run@1 [2m(4)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m persists selection across restart, inherits on reply, and allows explicit removal[33m 335[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps selected web calls under policy refusal[33m 348[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/attempts.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 207[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/board-context.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 152[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/module.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 1619[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m team.engine@2 contract: core-engine [2m(6)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m completes a single-agent run and publishes its life in order[33m 347[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/composer-view.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 486[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/chat-board.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 61[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/work-advanced.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 279[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/packaged-folders.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 179[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/mcp-form.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 230[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/welcome-view.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 64[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/mcp-settings.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 403[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/mcp-draft.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 262[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/memory-view.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 101[2mms[22m[39m
+@mete/desktop:test: 
+@mete/desktop:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/AppData/Local/Temp/opencode/base/apps/desktop[39m
+@mete/desktop:test: 
+@mete/core:test:  [32mÔ£ô[39m test/application/context-history.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 1568[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m sent context history [2m(4)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps untrusted data separate from goal, search and system, including workspace preparation[33m 302[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m preserves old history and taint while each reply keeps only its own attachments[33m 790[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m returns [] for legacy runs, masks again and refuses foreign workspace or damaged snapshots[33m 302[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/settings-forms.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 240[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/mcp-connection-session.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 185[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/team-draft.test.ts [2m([22m[2m31 tests[22m[2m)[22m[33m 1153[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/context-revocation.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 244[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/capability-gates.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 2435[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m verify gates by capability [2m(4)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m call the capability with its args, or none, and pass on an ok answer[33m 1568[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m pause the run when the policy asks, and call again on resume[33m 454[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/thread-atomic.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 274[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/key-service.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 2356[2mms[22m[39m
+@mete/ui-theia:test:    [32mÔ£ô[39m provider keys through mete key [2m(4)[22m
+@mete/ui-theia:test:      [33m[2mÔ£ô[22m[39m lists the providers mete key list names, with their key state, kind and key page[33m 694[2mms[22m[39m
+@mete/ui-theia:test:      [33m[2mÔ£ô[22m[39m sends the key on standard input only, then restarts the daemon[33m 1127[2mms[22m[39m
+@mete/ui-theia:test:      [33m[2mÔ£ô[22m[39m shows what the command said when it refuses, and does not restart[33m 531[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/pair-review.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 562[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m pair review [2m(1)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m asks the editor first, takes its return without counting it, then asks the lead[33m 559[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/board-view.test.ts [2m([22m[2m21 tests[22m[2m)[22m[33m 1144[2mms[22m[39m
+@mete/desktop:test:  [32mÔ£ô[39m test/electron-version.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+@mete/desktop:test: 
+@mete/desktop:test: [2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+@mete/desktop:test: [2m      Tests [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+@mete/desktop:test: [2m   Start at [22m 13:38:34
+@mete/desktop:test: [2m   Duration [22m 1.71s[2m (transform 49%, import 46%, worker 3%, tests 1%)[22m
+@mete/desktop:test: 
+@mete/core:test:  [32mÔ£ô[39m test/application/scheduler-model-steps.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 3385[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m parallel worker model steps [2m(3)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m executes query tools in parallel and feeds each result only to its own model session[33m 1306[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m uses the last slot for a summary, including too_large retry=false, without a peer call or extra turn[33m 998[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m uses the last slot for a summary, including too_large retry=true, without a peer call or extra turn[33m 1077[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/team-editor-view.test.ts [2m([22m[2m24 tests[22m[2m)[22m[33m 2028[2mms[22m[39m
+@mete/ui-theia:test:    [32mÔ£ô[39m the rules of the work [2m(7)[22m
+@mete/ui-theia:test:      [33m[2mÔ£ô[22m[39m shows whether a task writes a lesson after approval, ticked once the file asks for one (ADR-145)[33m 599[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/changes-view.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 73[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/team-view.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 159[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/role-chains.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/feed-view.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 231[2mms[22m[39m
+@mete/mcp:test:  [32mÔ£ô[39m test/mcp-client.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 20089[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m mcp-client over stdio [2m(4)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m lists the server's tools under its id[33m 1586[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m mcp-client notifications [2m(5)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m tells the server a call is cancelled when the run's signal aborts, and the session keeps working[33m 1197[2mms[22m[39m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m publishes the first progress step of a call in a run, without the server's message (ADR-067)[33m 2737[2mms[22m[39m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m publishes a later step once a second has passed since the last one[33m 1943[2mms[22m[39m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m lists a tool the server adds after it connected[33m 482[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m mcp-client elicitation [2m(2)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m hands a server's form request to the host and returns what the user answered[33m 2421[2mms[22m[39m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m passes a decline on, and without a host the server's request fails[33m 3838[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m mcp-client refusals [2m(2)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m reports a command that cannot start and a bad mcp.yaml[33m 624[2mms[22m[39m
+@mete/mcp:test:    [32mÔ£ô[39m mcp-client runtimes [2m(2)[22m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m puts the runtime's folder first on the server's PATH and names a missing one[33m 2181[2mms[22m[39m
+@mete/mcp:test:      [33m[2mÔ£ô[22m[39m downloads a binary server's pinned file and puts its folder first on PATH[33m 2354[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/task-control-host.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 3934[2mms[22m[39m
+@mete/ui-theia:test:    [33m[2mÔ£ô[22m[39m wires task controls over daemon pipes, including refusal and malformed replies[33m 3931[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/worktree-files.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/quota-view.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 312[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/endpoints-form.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 190[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/settings-view.test.ts [2m([22m[2m30 tests[22m[2m)[22m[33m 2384[2mms[22m[39m
+@mete/ui-theia:test:    [32mÔ£ô[39m the Settings screen [2m(5)[22m
+@mete/ui-theia:test:      [33m[2mÔ£ô[22m[39m leads to the team editor, provider keys and Theia's preferences and language[33m 378[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/context-lifecycle.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 506[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/audit-view.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 310[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/task-control-active.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 2397[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m human control while a peer works [2m(2)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m answers a waiting task without waiting for or replacing its peer model call[33m 1832[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps a human clarification local while an independent task starts[33m 561[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/thread-mutations.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 1038[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m thread intent identity [2m(3)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m admits one competing head intent, preserves the predecessor, and replays replies[33m 617[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/waiting-strip.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 341[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/studio-card.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 55[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/mcp-connection-integration.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 76[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/tool-catalog.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/model-pick.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 87[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/spawn.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 437[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/pinned.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 861[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m pinnedSeat priority and invalidation [2m(5)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m honors team run-specific preference over workspace pin[33m 473[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/task-policy-answer.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 461[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/run-events.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/section-draft.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 791[2mms[22m[39m
+@mete/ui-theia:test:    [32mÔ£ô[39m a section's file as a form edits it [2m(6)[22m
+@mete/ui-theia:test:      [33m[2mÔ£ô[22m[39m writes only what changed, keeping comments and other keys, and removes a cleared key[33m 426[2mms[22m[39m
+@mete/mcp:test: 
+@mete/mcp:test: [2m Test Files [22m [1m[32m31 passed[39m[22m[90m (31)[39m
+@mete/mcp:test: [2m      Tests [22m [1m[32m284 passed[39m[22m[90m (284)[39m
+@mete/mcp:test: [2m   Start at [22m 13:38:12
+@mete/mcp:test: [2m   Duration [22m 26.89s[2m (tests 56%, import 32%, transform 10%, worker 2%)[22m
+@mete/mcp:test: 
+@mete/mcp:test: [34m % [39m[2mCoverage report from [22m[33mv8[39m
+@mete/mcp:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/mcp:test: File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+@mete/mcp:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/mcp:test: All files          |   90.54 |    82.05 |    92.2 |    93.5 |                   
+@mete/mcp:test:  src               |   98.24 |    81.81 |   96.55 |   98.19 |                   
+@mete/mcp:test:   defaults.ts      |     100 |      100 |     100 |     100 |                   
+@mete/mcp:test:   module.ts        |     100 |    86.95 |     100 |     100 | ...99,233,263-264 
+@mete/mcp:test:   ...try-module.ts |   85.71 |    57.14 |      80 |   85.71 | 68,78             
+@mete/mcp:test:   server-module.ts |     100 |       50 |     100 |     100 | 46                
+@mete/mcp:test:  src/application   |   89.97 |    79.71 |   91.66 |    92.8 |                   
+@mete/mcp:test:   calls.ts         |     100 |       50 |     100 |     100 | 20                
+@mete/mcp:test:   cli-mapped.ts    |   94.11 |    80.55 |     100 |     100 | ...00,104-106,112 
+@mete/mcp:test:   content.ts       |   47.61 |    10.52 |      60 |      45 | 12-14,21-25,41-49 
+@mete/mcp:test:   ...l-registry.ts |   93.33 |    73.68 |     100 |   96.29 | 31                
+@mete/mcp:test:   mapped.ts        |   90.76 |     75.6 |    92.3 |   98.18 | 104               
+@mete/mcp:test:   ...connection.ts |   77.84 |    67.36 |   78.12 |   81.57 | ...89,306-308,325 
+@mete/mcp:test:   mcp-status.ts    |     100 |      100 |     100 |     100 |                   
+@mete/mcp:test:   mcp-tools.ts     |   97.82 |     87.5 |     100 |   97.56 | 71                
+@mete/mcp:test:   mete-tools.ts    |   89.09 |    69.23 |     100 |   97.91 | 85                
+@mete/mcp:test:   permit.ts        |   83.33 |    78.57 |     100 |      80 | 35,42             
+@mete/mcp:test:   progress-log.ts  |     100 |      100 |     100 |     100 |                   
+@mete/mcp:test:   ...e-mappings.ts |    92.5 |    81.25 |     100 |   91.17 | 43,68-69          
+@mete/mcp:test:   ...ct-content.ts |     100 |      100 |     100 |     100 |                   
+@mete/mcp:test:   registry-add.ts  |     100 |    83.33 |     100 |     100 | 45                
+@mete/mcp:test:   ...try-search.ts |     100 |       95 |     100 |     100 | 55                
+@mete/mcp:test:   ...stry-setup.ts |   92.85 |       75 |     100 |   91.66 | 17                
+@mete/mcp:test:   ...ime-ensure.ts |   91.34 |    88.33 |   94.11 |   93.25 | ...00-101,160,229 
+@mete/mcp:test:   sampling.ts      |   92.15 |    74.19 |     100 |   95.12 | 70-71             
+@mete/mcp:test:   ...-callbacks.ts |      95 |     87.5 |     100 |     100 | 59                
+@mete/mcp:test:   ...redentials.ts |   87.91 |    85.45 |   83.87 |   93.02 | ...42,273-274,346 
+@mete/mcp:test:   ...on-opening.ts |     100 |      100 |     100 |     100 |                   
+@mete/mcp:test:   sessions.ts      |   98.42 |    96.42 |   92.85 |   99.09 | 291               
+@mete/mcp:test:   sign-in.ts       |   91.66 |    83.33 |     100 |   96.42 | 84                
+@mete/mcp:test:  src/domain        |   97.46 |    89.68 |     100 |   99.58 |                   
+@mete/mcp:test:   .gitkeep         |       0 |        0 |       0 |       0 |                   
+@mete/mcp:test:   ...l-registry.ts |     100 |      100 |     100 |     100 |                   
+@mete/mcp:test:   ...l-registry.ts |     100 |      100 |     100 |     100 |                   
+@mete/mcp:test:   ...ry-install.ts |     100 |    83.33 |     100 |     100 | 52,80,108,129     
+@mete/mcp:test:   ...stry-setup.ts |   96.84 |    93.18 |     100 |   98.82 | 69                
+@mete/mcp:test:   render.ts        |   93.75 |       84 |     100 |     100 | ...9,60,76-89,121 
+@mete/mcp:test:   run-view.ts      |     100 |    81.25 |     100 |     100 | 28-37             
+@mete/mcp:test:   sampling.ts      |     100 |     90.9 |     100 |     100 | 39-45             
+@mete/mcp:test:  ...infrastructure |   88.22 |    81.71 |   89.37 |   91.89 |                   
+@mete/mcp:test:   assets.ts        |     100 |       50 |     100 |     100 | 24                
+@mete/mcp:test:   ...tial-fetch.ts |   96.55 |      100 |     100 |   96.42 | 46                
+@mete/mcp:test:   ...ial-fields.ts |   82.69 |    63.33 |   85.71 |   89.36 | 23,41,54,102,140  
+@mete/mcp:test:   ...l-identity.ts |   89.47 |    86.66 |      80 |   88.88 | 33,61             
+@mete/mcp:test:   ...cord-queue.ts |   97.14 |      100 |     100 |   96.66 | 40                
+@mete/mcp:test:   ...al-records.ts |   93.26 |    85.34 |     100 |   96.25 | ...47,154,204,328 
+@mete/mcp:test:   mapping-files.ts |   81.48 |    72.72 |   88.88 |   80.95 | 22,32-35          
+@mete/mcp:test:   mcp-yaml.ts      |    97.5 |    84.21 |     100 |   97.05 | 70                
+@mete/mcp:test:   ...h-callback.ts |   85.93 |    76.66 |   81.81 |   91.74 | ...32-238,244-245 
+@mete/mcp:test:   ...r-response.ts |    92.3 |       88 |      75 |     100 | 21,30,68          
+@mete/mcp:test:   oauth-record.ts  |   89.28 |    87.01 |     100 |   93.42 | ...28,211,223,248 
+@mete/mcp:test:   oauth.ts         |   85.47 |    81.42 |     100 |    92.3 | ...53,283,312,378 
+@mete/mcp:test:   ...ime-system.ts |   34.78 |       25 |   11.11 |   38.09 | 27-29,33-35,59-69 
+@mete/mcp:test:   ...l-endpoint.ts |     100 |    96.42 |     100 |     100 | 21                
+@mete/mcp:test:   stdio.ts         |       0 |      100 |       0 |       0 | 5-15              
+@mete/mcp:test:   transport.ts     |   96.96 |    87.09 |   88.88 |   96.66 | 47                
+@mete/mcp:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/ui-theia:test:  [32mÔ£ô[39m test/member-draft.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 131[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/sent-context.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/team.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 443[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/infrastructure/artifact-store.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 148[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/work-attempts.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 79[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/now-slot.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 51[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/infrastructure/run-store.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 307[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/task-control.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 225[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/tool-setup.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/mcp-connection-view.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 391[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/settings-mcp.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 49[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/assets-view.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 160[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/bindings-draft.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/composer.test.ts [2m([22m[2m31 tests[22m[2m)[22m[32m 57[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/thread-preparation.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 249[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/pins-draft.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 52[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/task-wait.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 86[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/run-composer.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 96[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/thread-panel.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 51[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/transcript.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/conversation-view.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/tool-setup-view.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 294[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/steps.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/context-preview.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 63[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/thread-history.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/retention.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 976[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m checkpoint retention [2m(4)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m prunes the checkpoints of a run that ended more than the kept days ago[33m 543[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/work-order.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 238[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/task-control-view.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/scheduler-compatibility.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 284[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/thread-context-requests.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/conversation-context.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 80[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/thread-list.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 56[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/task-control-recovery.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 1705[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m task control recovery [2m(3)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m expires policy identities across restart without replaying before resume[33m 1416[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/look.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/assets.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+@mete/tools:test:  [32mÔ£ô[39m test/shell.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 26460[2mms[22m[39m
+@mete/tools:test:    [32mÔ£ô[39m shellTool [2m(9)[22m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m passes non-ASCII output through unchanged[33m 1639[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m reports cmdlet output in UTF-8 and a failed cmdlet as 1[33m 5972[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m keeps the exit tail out of a command that ends in a backtick[33m 1940[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m kills the command and fails with io when the run is cancelled[33m 2742[2mms[22m[39m
+@mete/tools:test:      [33m[2mÔ£ô[22m[39m ends a cancelled call whose shell left a child holding its output, and kills the child[33m 14078[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/editor-context-service.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 43[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/transcript.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 315[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m team.engine@2 transcript (ADR-125) [2m(1)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m masks a tool call's stored arguments when it reads an ended run[33m 311[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/quiesce.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 584[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/key-command.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/thread-context-session.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/screen-empty.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/guardrail.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/prepared-tool.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 39[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/endpoints-draft.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 167[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/clarify.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 14[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/context-admission.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 1088[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m context intent admission [2m(8)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m replays an exact receipt before changed disk or masking, with no new launch[33m 314[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m shares legacy receipts for empty context and admits one @1/@2 competing reply[33m 522[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/board-widget.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 97[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/context-drafts.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/bindings-form.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 258[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/approval-commands.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/conversation-requests.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 31[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/detached.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 10264[2mms[22m[39m
+@mete/ui-theia:test:    [32mÔ£ô[39m the daemon when the desktop ends [2m(2)[22m
+@mete/ui-theia:test:      [33m[2mÔ£ô[22m[39m stops by itself on its closed input, so it frees the run lock[33m 2436[2mms[22m[39m
+@mete/ui-theia:test:      [33m[2mÔ£ô[22m[39m would die with its parent on Windows if it were not detached[33m 7824[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/run-machine.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/team-pins.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/tool-activation.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/memory.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 103[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/merge-queue.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 953[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m approval-ordered merge queue [2m(6)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m retries a real merge failure first after recreating the engine, then lands the next approved task[33m 392[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/conversation-tools.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 619[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/row-keys.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/control-turn.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/context-attachments-view.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/team-engine.test.ts [2m([22m[2m30 tests[22m[2m)[22m[33m 17888[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m team runs [2m(21)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m runs the tasks in order, hands the report on and completes with the last one[33m 915[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m sends a role its pinned model from .mete/pins.yaml, and each agent its role tier (ADR-077)[33m 533[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m runs without pins when the pins file does not validate, and says which file[33m 419[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m lets the lead approve the write-up in a review of its own and completes[33m 351[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m searches the lessons once when a task starts, not again when the work is sent back[33m 317[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m accepts the last submission of a task blocked by its revision limit when the human approves (ADR-157)[33m 474[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps each submission as the task's artifact and announces created, then updated[33m 751[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m completes with the last artifact's one line, and keeps a report that is no artifact JSON (ADR-172)[33m 746[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m waits for the human at a checkpoint and goes on once they approve[33m 519[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps the attempt's taint when the human lifts a block (SECURITY.md)[33m 301[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m sends a blocked task back to work with the human's instruction[33m 342[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m taints a task's later tool calls once web content joined it[33m 639[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m asks the reviewer again for a reply that is no verdict[33m 920[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m pauses a review on exhausted quota like any model call[33m 1164[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m routes a run without a template, and lets the user choose when the router is unsure[33m 499[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m verify gates [2m(3)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m send a failing build back with its output, spend no guardrail repair and pass once it succeeds[33m 455[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m pause the run for approval when the policy asks about the command, and run it again on resume[33m 1263[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m block the task when no shell is active[33m 719[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m worktrees of writing tasks [2m(4)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m starts one for a task whose role writes and runs its tools, checkpoints and gates there[33m 1246[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m names the worktree on the request a human gets for a task that wrote there (ADR-132)[33m 1028[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m lists on that request the files git sees changed in the worktree, not deleted ones, and none past the cap (ADR-141)[33m 925[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m starts none without vcs.git@2 or when git cannot make one, and logs why[33m 1306[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m merging an approved task's worktree [2m(2)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m pauses the run for the human when the merge conflicts, keeps the worktree and merges again on approve[33m 341[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m merges before the next task starts and records the merge before it removes the worktree[33m 690[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/compact.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/estimate.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/board-session.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/conversation-session.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/review.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/waiting.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/task-machine.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/team-run.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/snapshot-plan.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/settings-groups.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/checkpoint-ownership.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/flow-graph.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/stop-all-command.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/repeat.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/extension-discovery.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/fields.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 17[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/prompt.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/router.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/notes.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/mcp-connection-requests.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 12[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/next-step.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/memory-search.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 135[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/mcp-tests.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/endpoint-keys.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/artifact.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/roster.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/panel-root.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/thread-crash.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 459[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/thread-session.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 104[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/csp.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/transcript-session.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 12[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/shown-run.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+@mete/cli:test:  [32mÔ£ô[39m test/seo-audit.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 6144[2mms[22m[39m
+@mete/cli:test:    [32mÔ£ô[39m the seo-audit template [2m(1)[22m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m turns a URL into a ranked audit whose every fix cites a Lighthouse audit[33m 6142[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/brief.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/conversation-reply.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/workspace.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/infrastructure/handoff-store.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/restart-policy.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/studio-text.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/update-check.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/reply-shown.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/task-control-requests.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/home-store.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/attempt-families.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 2980[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m attempts of distinct families (ADR-162) [2m(1)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m pins only the first attempt and has a later one, and its revision, avoid the earlier families[33m 2976[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/hardened-main-application.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/estimate-text.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/text-calls.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/questions.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/domain/verify.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/context-attachments-layout.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 10[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/editor-context-command.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/status-command.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/quota-text.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/home-sections.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/model-session.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 37[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/update-command.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/mcp-credential-service.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/update-main.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/context-boundaries.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 263[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/task-worker.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 107[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/composer-layout.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/inbox-badge.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/endpoint-tests.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/infrastructure/thread-store.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 49[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/daemon-events.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/infrastructure/scheduler-run-store.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 97[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/request-reservations.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 158[2mms[22m[39m
+@mete/ui-theia:test:  [32mÔ£ô[39m test/editor-context-contribution.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+@mete/core:test:  [32mÔ£ô[39m test/application/scheduler-isolated-writes.test.ts [2m([22m[2m22 tests[22m[2m)[22m[33m 22311[2mms[22m[39m
+@mete/core:test:    [32mÔ£ô[39m verified parallel writers [2m(22)[22m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m does not execute a task's verification while a peer write remains in flight[33m 1581[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps a unknown checkpoint adapter exclusive even with a valid writer descriptor[33m 1534[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps a wrapper checkpoint adapter exclusive even with a valid writer descriptor[33m 609[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m does not dispatch a stale writer when the checkpoint adapter is replaced during allocation[33m 904[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m overlaps only independent writes after durable task-local checkpoints and markers[33m 824[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps missing confinement exclusive until its peer drains[33m 1108[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps absent confinement exclusive until its peer drains[33m 1006[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps mapped confinement exclusive until its peer drains[33m 1177[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps equal confinement exclusive until its peer drains[33m 1398[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m keeps nested confinement exclusive until its peer drains[33m 1323[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m does not invoke a writer if paused during checkpoint creation[33m 1025[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m fails closed when the checkpoint fails, with no tool invocation or marker[33m 1486[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m rechecks a replaced adapter after the checkpoint await instead of dispatching its old preparation[33m 2215[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m does not dispatch the old checkpoint owner across immediate pause/resume[33m 1816[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m seats a recovered workspace-fallback writer before running a different active task[33m 499[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m counts preparation, checkpoint and write alongside the held model and defers fresh worktree setup[33m 1365[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m drains both writes across immediate pause/resume and retains each result once[33m 692[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m signals cancellation but never detaches abort-ignoring writers or erases uncertain markers[33m 583[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m settles a peer result after an approval pause without an uncertain approval marker[33m 344[2mms[22m[39m
+@mete/core:test:      [33m[2mÔ£ô[22m[39m settles a peer approval after an approval pause without an uncertain approval marker[33m 334[2mms[22m[39m
+@mete/cli:test:  [32mÔ£ô[39m test/daemon-model.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 9384[2mms[22m[39m
+@mete/cli:test:    [32mÔ£ô[39m mete daemon run.model (ADR-122) [2m(3)[22m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m sets and clears role model preference and handles errors on team run[33m 5989[2mms[22m[39m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m sets and clears single-agent model preference and rejects roleId[33m 2278[2mms[22m[39m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m refuses with not_supported when engine does not implement model[33m 1114[2mms[22m[39m
+@mete/cli:test:  [32mÔ£ô[39m test/member-draft.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 9494[2mms[22m[39m
+@mete/cli:test:    [32mÔ£ô[39m draftMember [2m(4)[22m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m drafts a member and names the page the web gave[33m 3439[2mms[22m[39m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m drafts without the web when no search adapter answers[33m 1925[2mms[22m[39m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m refuses with bad_answer when the model does not answer a member[33m 1776[2mms[22m[39m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m refuses with no_model when no provider is ready[33m 1388[2mms[22m[39m
+@mete/cli:test:    [32mÔ£ô[39m the daemon serves mete/member.draft [2m(1)[22m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m answers a draft and refuses params that are not an idea[33m 960[2mms[22m[39m
+@mete/cli:test:  [32mÔ£ô[39m test/changes.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 9514[2mms[22m[39m
+@mete/cli:test:    [32mÔ£ô[39m changesOf [2m(4)[22m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m lists a clean repository with its branch and no file[33m 3743[2mms[22m[39m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m names a modified, an untracked and a deleted file, and gives one diff[33m 4026[2mms[22m[39m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m answers mete/changes over the protocol[33m 1469[2mms[22m[39m
+@mete/cli:test:  [32mÔ£ô[39m test/audit.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 14847[2mms[22m[39m
+@mete/cli:test:    [32mÔ£ô[39m the audit log [2m(2)[22m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m prints the edit's row in mete audit, and as JSON with --json[33m 10717[2mms[22m[39m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m answers mete/audit with the rows that match its filters[33m 4127[2mms[22m[39m
+@mete/cli:test:  [32mÔ£ô[39m test/vault-tools.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 10822[2mms[22m[39m
+@mete/cli:test:    [32mÔ£ô[39m vault tools [2m(1)[22m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m save a team role's lesson in the workspace vault through the real fs.write@1[33m 10819[2mms[22m[39m
+@mete/core:test: 
+@mete/core:test: [31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m[1m[41m Failed Tests 1 [49m[22m[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m
+@mete/core:test: 
+@mete/core:test: [41m[1m FAIL [22m[49m test/application/conversation-mcp-policy.test.ts[2m > [22mpersists worker metadata taint before calling a parallel task's model
+@mete/core:test: [31m[1mAssertionError[22m: expected 'running' to be 'completed' // Object.is equality[39m
+@mete/core:test: 
+@mete/core:test: Expected: [32m"completed"[39m
+@mete/core:test: Received: [31m"running"[39m
+@mete/core:test: 
+@mete/core:test: [36m [2mÔØ»[22m test/helpers/scheduler.ts:[2m84:45[22m[39m
+@mete/core:test: 
+@mete/core:test:     [90m 82|[39m  vi.waitFor(() => expect(h.requests).toHaveLength(count));
+@mete/core:test:     [90m 83|[39m export const untilStatus = (h: SchedulerHarness, status: string) =>
+@mete/core:test:     [90m 84|[39m  vi.waitFor(() => expect(stateOf(h)?.value).toBe(status));
+@mete/core:test:     [90m   |[39m                                             [31m^[39m
+@mete/core:test:     [90m 85|[39m
+@mete/core:test:     [90m 86|[39m export const errorReply = (code: "network" | "no_model"): LlmChunk[] =ÔÇĞ
+@mete/core:test: 
+@mete/core:test: [31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/1]ÔÄ»[22m[39m
+@mete/core:test: 
+@mete/core:test: [2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m88 passed[39m[22m[90m (89)[39m
+@mete/core:test: [2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m527 passed[39m[22m[90m (528)[39m
+@mete/core:test: [2m   Start at [22m 13:38:16
+@mete/core:test: [2m   Duration [22m 32.79s[2m (import 65%, tests 27%, transform 7%, worker 1%)[22m
+@mete/core:test: 
+@mete/core:test: [2m    Isolate [22m [33m89 workers spawned[39m[2m ┬À ~1.03s startup each (spawn + environment, per file)[22m
+@mete/core:test: [2m            [22m [2mat least ~2.94s faster with [22m[33misolate: false[39m[2m ÔÇö reuses workers across files instead of one per file[22m
+@mete/core:test: 
+@mete/core:test: [ELIFECYCLE] Test failed. See above for more details.
+@mete/cli:test:  [32mÔ£ô[39m test/scripted-web.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 10584[2mms[22m[39m
+@mete/cli:test:    [32mÔ£ô[39m the web script [2m(4)[22m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m answers Tavily's search, a listed page and nothing else[33m 3157[2mms[22m[39m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m names the file when the script does not parse[33m 1842[2mms[22m[39m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m takes the script from an Env value first, then the environment (ADR-116)[33m 2543[2mms[22m[39m
+@mete/cli:test:    [32mÔ£ô[39m a run on the web script [2m(1)[22m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m gives the search and the page to the script, not the network[33m 3037[2mms[22m[39m
+@mete/cli:test:  [32mÔ£ô[39m test/scripted-browser.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 10358[2mms[22m[39m
+@mete/cli:test:    [32mÔ£ô[39m the browser script [2m(5)[22m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m writes a real PNG of the scripted size[33m 1760[2mms[22m[39m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m writes the scripted reports in order, the last repeating[33m 2804[2mms[22m[39m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m fails a kind the script does not name, with the file[33m 1307[2mms[22m[39m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m names the file when the script does not parse[33m 1302[2mms[22m[39m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m takes the script from an Env value first, then the environment (ADR-117)[33m 934[2mms[22m[39m
+@mete/cli:test:    [32mÔ£ô[39m a run on the browser script [2m(1)[22m
+@mete/cli:test:      [33m[2mÔ£ô[22m[39m audits the page for the seo-audit team without opening it[33m 2249[2mms[22m[39m
+@mete/core#test:  ERROR  command (C:\Users\wwwla\AppData\Local\Temp\opencode\base\packages\core) C:\Users\wwwla\Tools\node\node-v24.22.0-win-x64\pnpm.CMD run test exited (1)
+
+ Tasks:    30 successful, 34 total
+Cached:    0 cached, 34 total
+  Time:    44.041s 
+Failed:    @mete/core#test
+
+ ERROR  run failed: command  exited (1)

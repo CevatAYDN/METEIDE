@@ -1,5 +1,11 @@
 # 06 Kernel and modules
 
+ADR-187 moves the native engine to `team.engine@3` with the same method shapes
+and strict verification for all newly started team runs. Saved teams without the
+verification marker retain legacy behavior; the module does not register @2 or
+silently downgrade new starts. It also provides `task.verification@1.read`.
+Older @2 references in the API explanation describe the retained legacy shapes.
+
 Repository file: `docs/06-kernel-and-modules.md`. Depends on: 03 Architecture.
 
 The kernel knows only modules, capabilities, events and configuration; everything else is a module. Modules are either essential (the system cannot run a task without them) or optional (removable at any time without breaking startup or single-agent tasks).
@@ -388,7 +394,7 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | Module | Package | Class | Provides | Requires | Optional | Isolation |
 | --- | --- | --- | --- | --- | --- | --- |
 | storage | `@mete/storage` | essential | `storage.sql@1`, `events.read@1` (ADR-144) | none | none | in-process |
-| security | `@mete/security` | essential | `policy.check@1`, `policy.grant@1` (ADR-121), `secrets.mask@1` | `storage.sql@1` | none | in-process |
+| security | `@mete/security` | essential | `policy.check@1`, `policy.grant@1` (ADR-121), `secrets.mask@1`, `skill.runtime@1` (ADR-190), `skill.selection@1` (ADR-191) | `storage.sql@1` | none | in-process |
 | quota | `@mete/quota` | essential | `quota.reserve@4` | `storage.sql@1` | none | in-process |
 | gateway | `@mete/gateway` | essential | `llm.chat@2` (routed), `llm.embed@1` (routed, ADR-152), `llm.rerank@1` (routed, not yet, ADR-152) | `storage.sql@1`, `quota.reserve@4`, `secrets.mask@1`, at least one `provider.chat@2` | `provider.embed@2`, `provider.rerank@1` | in-process |
 | provider-nvidia | `@mete/providers` | optional | `provider.chat@2`, `provider.embed@2`, `provider.rerank@1` | none | none | in-process |
@@ -402,12 +408,15 @@ Adapter circuit breaker defaults: open after 5 consecutive failures, half-open a
 | tools-web | `@mete/tools` | optional | `web.fetch@1`, `web.search@1` (HTTP adapters) | `policy.check@1` | `mcp.tools@1` | in-process |
 | vcs-git | `@mete/tools` | optional | `vcs.git@2` | `policy.check@1` | none | in-process |
 | mcp-client | `@mete/mcp` | optional | `mcp.tools@1`, `mcp.status@1` (ADR-164), `runtime.ensure@1`, mapping adapters for any capability | `policy.check@1` | `registry.search@1`, `llm.chat@2`, `shell.exec@1` (cli mappings, ADR-120) | in-process; servers in child processes |
-| mcp-server | `@mete/mcp` | optional | METE as an MCP server | `team.engine@2` | `knowledge.search@1` | in-process |
+| mcp-server | `@mete/mcp` | optional | METE as an MCP server | `team.engine@3` | `knowledge.search@1`, `secrets.mask@1` (ADR-188; both needed for search) | in-process |
 | registry | `@mete/mcp` | optional | `registry.search@1` | `policy.check@1` | none | in-process |
+| tools-skill-source | `@mete/tools` | optional | `skill.source@1` | none | none | in-process; no startup scan |
+| skills-catalog | `@mete/mcp` | optional | `skill.catalog@1` | `skill.source@1` | none | in-process; no server connection |
+| skills-trust | `@mete/security` | optional | `skill.trust@1` | `storage.sql@1`, `skill.source@1`, `skill.catalog@1`, `secrets.mask@1` | none | in-process; user management only |
 | knowledge-graph | `@mete/knowledge` | optional | `code.graph@1` | `fs.read@1` | `llm.chat@2` | worker |
 | vault | `@mete/knowledge` | optional | `vault.read@1`, `vault.write@1` | `fs.read@1`, `fs.write@1`, `events.read@1` (ADR-144) | none | in-process |
 | knowledge-search | `@mete/knowledge` | optional | `knowledge.search@1`, `knowledge.index@1` (not yet, ADR-149) | `storage.sql@1`, `fs.glob@1`, `fs.read@1` (ADR-149) | `llm.embed@1`, `llm.rerank@1`, `code.graph@1`, `vault.read@1` | in-process while it indexes the vault's notes and, in the background, embeds them (ADR-152); a worker for code index jobs (ADR-149) |
-| core-engine | `@mete/core` | essential | `team.engine@2` (native), `checkpoint.restore@1`, `conversation.thread@1`, `conversation.thread@2`, runs, router, artifacts, checkpoints | `llm.chat@2`, `fs.*`, `policy.check@1`, `secrets.mask@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@2`, `web.fetch@1`, `web.search@1`, `mcp.tools@1`, `knowledge.search@1`, `vault.*`, `fs.context@1` (ADR-183) | in-process |
+| core-engine | `@mete/core` | essential | `team.engine@3` (native), `task.verification@1`, `checkpoint.restore@1`, `conversation.thread@1`, `conversation.thread@2`, `conversation.thread@3`, `run.skills@1`, runs, router, artifacts, checkpoints | `llm.chat@2`, `fs.*`, `policy.check@1`, `secrets.mask@1`, `storage.sql@1` | `shell.exec@1`, `vcs.git@2`, `web.fetch@1`, `web.search@1`, `mcp.tools@1`, `knowledge.search@1`, `vault.*`, `fs.context@1` (ADR-183) | in-process |
 | autonomy | `@mete/core` | optional | triggers, schedules | `team.engine@2` | `issues.source@1` | in-process |
 | browser | `@mete/tools` | optional | `browser.screenshot@2`, `seo.audit@2` | `policy.check@1` | none | in-process; each call in a child process; Chromium comes from Playwright's own installer, not `runtime.ensure@1` (tab 10) \[D\] |
 | engine-crewai, engine-metagpt, engine-chatdev | `@mete/engines` | optional | `team.engine@2` | `runtime.ensure@1`, `llm.chat@2` | none | process |
@@ -420,6 +429,26 @@ The gateway provides `llm.chat@2` and `llm.embed@1` (ADR-152): `listModels` answ
 The essential set is: kernel, storage, security, quota, gateway, tools-fs, tools-shell, core-engine, plus at least one active `provider.chat@2` adapter. The UI MUST NOT allow uninstalling essential modules; it MAY show them as "built in".
 
 ## Capability catalog
+
+ADR-189 adds optional `skill.source@1` (tools), `skill.catalog@1` (mcp) and
+`skill.trust@1` (security) modules. They are user-management ports, never model
+tools. Source reads stay within the two skill roots; catalog parsing resolves the
+source through the registry; trust uses module-owned global storage and native
+composition admission. Essential security activation does not require the catalog.
+Missing/replaced adapters fail closed. Exact interfaces, budgets and source/version
+identity are defined in `superpowers/specs/2026-11-08-skill-runtime-design.md`.
+
+ADR-190 separately specifies S2's `skill.runtime@1`, native `skill.load@1`,
+`conversation.thread@3` and `run.skills@1`. Essential security owns a
+source-independent receipt inventory without new required capabilities or a
+startup skill scan; execution resolves the optional native S1 ports. Exact
+interfaces and implementation status are in
+`superpowers/specs/2026-11-08-skill-activation-design.md`. S1 approval is not a
+runtime load, and the S2 development plan is not completed-runtime evidence.
+ADR-191 adds `skill.selection@1.check({ selected }, signal)` for receipt-free
+explicit-set validation before run creation. It returns a typed null success
+or runtime refusal, grants no authority and changes no S1/runtime contract.
+It is not a model tool or daemon route; implementation remains in progress.
 
 ADR-184 adds `mcp.connection@1` on mcp-client and `registry.setup@1` on registry.
 They are user-management ports, never entries in the model tool catalog.
@@ -451,11 +480,13 @@ existing tool/status/search interfaces remain unchanged. See docs/10 and ADR-184
 | `code.graph@1` | Query code structure | tree-sitter graph; Graphify through MCP as an alternative | `knowledge.search@1` works without it |
 | `knowledge.search@1` | Hybrid search | knowledge-search module | Plain ripgrep search |
 | `vault.read@1`, `vault.write@1` | Notes and lessons | vault module | Lessons are not saved; runs continue |
-| `team.engine@2` | Execute a team template | Native XState engine; optional CrewAI, MetaGPT, ChatDev | Never empty (essential) |
+| `team.engine@3` | Execute a team template with strict new-run verification; retain saved legacy semantics | Native XState engine; external engines remain planned | Never empty (essential); no silent @2 fallback |
+| `task.verification@1` | Read current persisted task/attempt/evaluation evidence | Native core-engine | Evidence unavailable, not an empty success |
 | `run.reply@1` | Follow up a completed single-agent conversation with a new run (ADR-178) | Native core-engine | The UI reports follow-up unavailable |
 | `conversation.run@1` | `start({ goal, prefer?, capabilities? })` and `reply({ runId, message, capabilities? })`, returning `{ runId }`; optional capability list limited to `web.search@1`, `web.fetch@1`, `mcp.tools@1`, without duplicates (ADR-180) | Native core-engine | The UI reports conversation tools unavailable |
 | `conversation.thread@1` | Idempotent `start`/`reply`, paged `list` and ordered `read`; exact intent/head identity over immutable single-agent runs (ADR-182) | Native core-engine | History/send failure is explicit; never downgrade to a legacy send |
 | `conversation.thread@2` | @1 history plus explicit editor-context `prepare`, attached `start`/`reply` and per-turn `context`; ADR-183 | Native core-engine | Attached sends are unavailable; never strip attachments and resend |
+| `conversation.thread@3` | @2 plus a single-agent S2 skill policy on `start`/`reply`; ADR-190/191 | Native core-engine | Selected sends are unavailable; never strip selections and resend |
 | `fs.context@1` | `inspect({ path }, signal)` checks an attachment source and returns its canonical workspace-relative path; not a model tool (ADR-183) | Native tools-fs | Context preparation and new attached sends are refused |
 | `run.quiesce@1` | `prepare()` atomically refuses active work, otherwise prevents new work and drains paused calls before a settings restart (ADR-180) | Native core-engine | Safe restart is refused |
 | `task.control@1` | Read and answer exact task-local waits while independent work continues (ADR-181) | Native core-engine | The UI reports task controls unavailable |

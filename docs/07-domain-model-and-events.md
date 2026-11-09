@@ -4,6 +4,15 @@ Repository file: `docs/07-domain-model-and-events.md`. Depends on: 02 Glossary, 
 
 All state lives in typed entities persisted in SQLite, and every change to them is published as an event; the UI, replay and the learning router read only events.
 
+ADR-187 adds authoritative `task.verification@1` snapshot reads; verification
+events notify observers and retain audit evidence, but missing/truncated events
+are not reconstructed as a pass. A new team stores `verificationVersion: 1`;
+parsing an old snapshot never supplies that marker. Task entries and finished
+best-of-N attempts keep their own evaluation, bound to attempt identity and a
+SHA-256 of the masked report. A current evaluation has ordered, distinct gate
+positions even when commands are identical. Pending operations recover as
+not_run/interrupted and require explicit inspection before renewed work.
+
 ## Entities
 
 ```ts
@@ -55,7 +64,7 @@ A team task with an `expected_output` keeps each submitted report as its Artifac
 | From | To | When |
 | --- | --- | --- |
 | todo | in\_progress | An agent starts and every task in `dependsOn` is `approved` |
-| in\_progress | submitted | All verify gates and the guardrail pass |
+| in\_progress | submitted | Required gates and the guardrail pass; only explicitly optional not-run outcomes allowed by ADR-187 may remain in a strict run |
 | in\_progress | blocked | A clarification stays unanswered, a required capability is missing, or guardrail retries are exhausted |
 | submitted | approved | The approver accepts |
 | submitted | changes\_requested | The approver asks for a revision and `revisions + 1` is within the revision limit (`revisions` increments) |
@@ -65,7 +74,7 @@ A team task with an `expected_output` keeps each submitted report as its Artifac
 | blocked | in\_progress | The human resolves the block (answer, new instruction, capability installed) |
 | blocked | approved | The human approves a task blocked by its revision limit, whose last submission it kept (ADR-157) |
 
-Default revision limit: 3 \[D\]. `approved` is final for a task. A blocked task records why: `clarification`, `capability_missing`, `guardrail` or `revision_limit`; the human's answer or instruction that resolves it, like an approver's feedback, goes to the next attempt \[D\].
+Default revision limit: 3 \[D\]. `approved` is final for a task. A blocked task records why: `clarification`, `capability_missing`, `guardrail`, `verification` or `revision_limit`; the human's answer or instruction that resolves it, like an approver's feedback, goes to the next attempt \[D\]. Under ADR-187, resolving a verification block authorizes renewed work, never manufactures a successful check. Required evidence is rechecked before submission/approval; optional not-run is permitted only as that ADR defines.
 
 ## Run state machine
 
@@ -131,6 +140,7 @@ to refresh conversation readers, so ADR-182 adds no event payload.
 | `run.cancelled` | none | core-engine |
 | `run.removed` | none; the user removed the ended run, and storage and the gateway delete its rows (ADR-143) | core-engine |
 | `run.summarized` | messages (how many were replaced), chars (the summary's length) | core-engine |
+| `run.skills.updated` | contextId; content-free notification to refresh authoritative retained skill evidence after a saved load or block (ADR-190); runtime publication is under implementation | core-engine |
 | `task.created` | title, roleId, dependsOn | core-engine |
 | `task.assigned` | agentId | core-engine |
 | `task.status.changed` | from, to | core-engine |
@@ -148,6 +158,8 @@ to refresh conversation readers, so ADR-182 adds no event payload.
 | `agent.tool.completed` | capability, ok, durationMs, error? (the code of a failed call, never its message) | core-engine |
 | `artifact.created` / `artifact.updated` | artifactId, type, path | core-engine |
 | `verify.completed` | gate, ok, details | core-engine |
+| `verify.updated` | evaluationId, attemptId, index; notification to re-read persisted current state (ADR-187) | core-engine |
+| `verify.evaluated` | evaluationId, attemptId, attemptNumber, index, result (`index`, masked `gate`, `optional`, `details`, `status`; `reason` for not_run); final evidence only (ADR-187) | core-engine |
 | `review.requested` / `review.completed` | reviewerRoleId, decision?, feedback? (the pair reviewer's words with a revise, ADR-136) | core-engine |
 | `approval.requested` / `approval.resolved` | approver, decision?, feedback?; the request also carries worktree? (the absolute folder of the task's worktree, when the task has one, ADR-132) and files? (the paths the task changed in that worktree, from git status there at the request: added, modified and renamed, not deleted; left out when vcs.git@2 cannot read them or they are more than 200, ADR-141) | core-engine |
 | `quota.consumed` | providerId, unit, amount | quota |

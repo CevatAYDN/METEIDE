@@ -3,8 +3,12 @@
 Date: 2026-11-07
 Status: User approved F1-F7 followed by P1-P5 on 2026-11-07 ("devam et").
 ADR-180 foundation and ADR-181 parallel work are implemented. C1-C3 were approved
-under ADR-182. C4-C5 were approved under ADR-183; T/G/K decisions still
-require their own approval.
+under ADR-182. C4-C5 were approved under ADR-183. T1-T3 were subsequently approved
+and implemented under ADR-184; their evidence and remaining acceptance are in
+`docs/reviews/2026-11-07-mcp-auth-and-secrets.md`. T4-T6 and G/K decisions still
+require their own approval. The November 8 continuation is proposed in
+`docs/superpowers/plans/2026-11-08-reference-product-completion.md`; tests are
+deferred until development ends per the user's latest instruction.
 This plan does not promote Phase 6 automatically.
 Baseline: `ac410907` plus the current uncommitted ADR-180 implementation.
 
@@ -99,8 +103,8 @@ ayri dilimde ve gereken capability surum artisi ile yapilir.
 
 F1-F7 mevcut Phase 5 kullanilabilirlik hedefidir. P1-P5 onaylanmis ADR-174'ün
 kalan uygulamasidir, yeni engine karari degildir. C1-C3 ADR-182 kapsaminda
-onaylandi. C4-C5 ADR-183 kapsaminda onaylandi. T/G satirlari kendi karar
-onayindan once kodlanmaz.
+onaylandi. C4-C5 ADR-183 kapsaminda onaylandi. T1-T3 ADR-184 kapsaminda
+uygulandi. T4-T6 ve G/K satirlari kendi karar onayindan once kodlanmaz.
 
 ## Phase 6 Icin Ayri Onay
 
@@ -174,6 +178,7 @@ C4-C5 ADR-183 ile onaylandi; uygulama ve kanit durumu
 `docs/superpowers/plans/2026-11-07-editor-context.md` ve
 `docs/reviews/2026-11-07-editor-context.md` icindedir. Windows source-built
 kabul tamamlandi; Linux, paketli release ve gercek provider kabul degildir.
-T/G/K ve Phase 6 karar sinirlari degismedi.
+T1-T3 icin ADR-184 ve MCP auth kanit kaydi gecerlidir; bu eski tablo onlarin
+eksik oldugu anlami tasimaz. T4-T6, G/K ve Phase 6 karar sinirlari degismedi.
 
 Onceki calismanin degisiklikleri korunur. Bu devamda da commit/push yoktur.

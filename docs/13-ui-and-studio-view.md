@@ -1,5 +1,44 @@
 # 13 UI and studio view
 
+ADR-192 approves direct team-context Skills and Permissions routes, a plainly
+named Permissions and approvals group, and structured editing of existing policy
+rules. Opening a group preserves current drafts; Refresh is a separate action.
+Team forms prioritize member/task work and task-scoped lessons over advanced
+identifiers, inactive fields and copying. Skill editing opens the validated local
+source in Theia; saved changes need fresh exact-version review and never renew
+approval automatically. The manual team-improvement action remains unavailable
+until its separately specified backend is implemented. Current delivery is
+tracked in `superpowers/plans/2026-11-09-team-usability-recovery.md`.
+ADR-193 resolves the editor target by native source id; masked display names
+are never treated as filesystem addresses.
+Command-palette searches must also match the complete Turkish labels containing
+capital dotted I. Comparison text may be case-folded, but displayed labels,
+highlight positions, native command eligibility and execution stay unchanged.
+
+ADR-187 adds a compact Verification section to team runs. It reads authoritative
+task/attempt/evaluation records through `mete/task.verification`, distinguishing
+required/optional and Running, Passed, Failed and Not run with its reason and
+masked details. Failed/loading/unavailable reads never assert empty success;
+legacy runs are marked as legacy, without invented outcomes. Navigation and
+late responses are identity-guarded. Gate order, rather than command text,
+distinguishes duplicate checks. Existing task approval and recovery actions
+remain authoritative; the view cannot grant or override a check.
+Interrupted evidence is labeled Outcome uncertain, not a known skipped check.
+An existing zero-gate evaluation is distinct from a missing current record.
+Closed task disclosures retain a summary of current evidence, not an earlier
+attempt's pass. Verification reads and presentation require positive team-run
+identification; missing metadata does not make a single agent a team.
+
+ADR-186 keeps the displayed run's last observed model visible in its conversation
+header, separately from its preferred model or Automatic selection. Missing or
+ambiguous event evidence says not reported; missing run metadata does not imply
+Automatic. Neither field promises the next model or attributes older messages.
+Settings search additionally matches translated hints and linked action labels,
+after category labels and narrower section-name/title matches. Values, secrets,
+paths and internal command IDs are not searched. A successful empty conversation
+list says No conversations yet when its query is blank, and no search results
+only when a nonempty query was used; failure/loading/prerequisites stay distinct.
+
 ADR-184 extends each saved MCP row with explicit system-browser sign-in,
 cancel/retry and local credential forgetting. Registry-required env/header
 fields use labeled inputs (masked for secrets) and OS-keychain storage.
@@ -13,6 +52,14 @@ Repository file: `docs/13-ui-and-studio-view.md`. Depends on: 07 Domain model an
 The desktop UI is Theia plus METE panels; its signature is the studio view, where agents appear as small characters and every movement is a real event, as in the approved concept demo \[C\].
 
 ## Screens
+
+ADR-189 adds Skills to the existing Settings navigation. Discovery is explicit;
+rows distinguish approval, changed/invalid/missing/unavailable sources. Review
+shows the complete masked source and version, then a separate Approve command;
+Disable acts on the acknowledged revision. Stale workspace/preview actions fail
+closed. Admitted mutations finish in their originating daemon before that exact
+daemon is retired, including failures; uncertain responses are not replayed.
+English/Turkish controls use existing Theia styling. No S1 row claims Used/Loaded.
 
 ADR-183 adds explicit Add selection and Add open file commands to the native
 editor and single-agent composers. Each prepared snapshot shows its path/range,
@@ -57,6 +104,15 @@ configuration before considering a safe restart. Refresh retains edited MCP draf
 Team task and spawn-default forms group checks, pair review and best-of-N under
 Advanced. Capability checks remain read-only YAML; unsupported fields are marked
 inactive, and editing command gates preserves the order of other verify gates.
+Without an open workspace, the composer and Settings offer the native Open folder
+action beside the prerequisite message. Welcome requires both a workspace and a
+saved model key before Start; its continuation remains outside the scrolling setup
+body. Tools settings put the MCP list and Add server before adapter bindings,
+which remain available in a keyboard-operable Advanced disclosure.
+Narrow Settings panels use one named native category selector with the same
+categories; wide panels retain the category list. Workspace changes invalidate
+pending Welcome reads and old privacy actions before another folder's form is
+shown. Closing the last root also reconciles an in-flight composer load.
 
 ADR-181 adds authoritative task decisions to the team panel, including while
 independent tasks remain running. Each row names its task, reason and available

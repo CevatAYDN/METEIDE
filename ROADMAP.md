@@ -42,6 +42,28 @@ Windows source/desktop evidence and explicit remaining acceptance boundaries are
 recorded in `docs/reviews/2026-11-07-mcp-auth-and-secrets.md`.
 The G/K decisions remain separate.
 
+ADR-189 adds the approved Phase 5 S1 skill-management foundation: local discovery,
+version review, explicit approval/disable and Settings visibility. It does not
+enable agent skill activation. ADR-190 separately approves S2 context integration.
+Implementation and evidence: `docs/reviews/2026-11-08-skill-foundation.md`.
+
+S2 development follows the approved package-sized sequence in
+`docs/superpowers/plans/2026-11-08-skill-activation-implementation.md`.
+Its runtime, UI and end-only validation are in progress, not a Phase 5 exit pass.
+ADR-191 adds the user-approved receipt-free selection preflight to this S2
+delivery; it does not widen permissions or change the Phase 5 exit gate.
+
+ADR-192 adds the approved team-usability recovery: direct team/Skills/Permissions
+routes, structured existing policy rules, user-initiated skill editing and clearer
+task-scoped learning controls. A manually started, human-reviewed improvement
+proposal moves into Phase 5, with its concrete backend contract gated by the I0
+design. Automatic retrospectives, training and the other Phase 6 work stay out.
+Delivery: `docs/superpowers/plans/2026-11-09-team-usability-recovery.md`.
+The bounded UI recovery has Windows source evidence in
+`docs/reviews/2026-11-09-team-workflow-recovery.md`: final root34/34, scripted
+Electron53/53 and chaos1/1. This does not complete S2 activation, the proposed
+manual-improvement backend, installed-application acceptance or the Phase 5 gate.
+
 ## Phase 1 task order
 
 Agents SHOULD take Phase 1 work in this order, because each step depends on the previous one:

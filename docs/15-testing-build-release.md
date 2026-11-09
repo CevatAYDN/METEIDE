@@ -136,6 +136,13 @@ lower edge. Functional acceptance is not approval of the final visual design.
 
 ## Release process
 
+ADR-185 permits one explicitly experimental Windows `0.0.1` update release:
+only the private desktop package version is seeded directly, preserving all
+pending Changesets entries and other package versions. The thirteen release
+checks below remain mandatory. The artifact and its notes must disclose the
+actual signing status; this is not the `0.1.0` MVP or a Linux acceptance claim.
+All later ordinary releases retain the Changesets process below.
+
 1. `pnpm changeset version` updates versions and changelogs.
 2. `pnpm release:check` passes. It runs every release-tier check and reports them once: `pnpm check`, all tests (the contract kits included), `pnpm test:chaos`, `pnpm check:mcp`, `pnpm audit --audit-level high` (except the two advisories of `decompress`, which has no fixed release and unpacks only the pinned built-ins at build time, ADR-103: `auditConfig.ignoreGhsas` in `pnpm-workspace.yaml` names them), `pnpm licenses list --prod` (the licenses of what ships; a license outside the docs/05 list fails it, an SPDX `OR` passing when one choice is allowed), osv-scanner (it must be on `PATH`), Electronegativity on the desktop's main process (a HIGH finding fails it, like a high audit finding, except `LIMIT_NAVIGATION_GLOBAL_CHECK`: Theia blocks `will-navigate` and limits `window.open` with `setWindowOpenHandler` for every web contents, which the check, written for the removed `new-window` event, does not see), the desktop bundle and the end-to-end tests (Playwright driving the app's own Electron, the axe-core accessibility tests among them; apps/desktop/README.md says how they launch), and the Windows installer (ADR-115), which it builds and which fails the step when the build fails or leaves no `.exe` behind \[D\], and then the packaged app's own end-to-end tests, `test:e2e:packaged`, which run the onboarding and a run that reads and searches the workspace against that folder (ADR-124).
 3. Build Linux in WSL2.

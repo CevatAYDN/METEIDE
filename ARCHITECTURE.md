@@ -71,7 +71,26 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 
 ## Daemon protocol
 
-`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 33 (ADR-184) adds explicit MCP management and structured registry setup to version 32's editor context, and each side validates what it receives with the schemas in `@mete/contracts` \[D\]:
+Protocol37 (ADR-193) adds `mete/skills.editor { sessionId, sourceId }` for
+ADR-192's explicit native editor action. It returns a typed Result containing
+the current session and original relative source descriptor, resolved through
+the exact attested native `skill.source@1` implementation. List/review labels
+remain masked; no body, arbitrary URI, permission or model tool is added.
+Protocol36's S2 declarations remain a separate in-progress runtime delivery.
+
+ADR-189 advances this protocol to 35 for S1 management:
+`mete/skills.list`, `mete/skills.prepare`, `mete/skills.approve` and
+`mete/skills.disable`. They resolve optional skill ports and need no model engine.
+Prepare is read-only and retains a process-local preview. Approval/disable use
+native idle admission, same-daemon revalidation/mutation and exact-session
+retirement on every admitted completion path. No replacement daemon is stopped
+and no uncertain approval is replayed. Existing version-34 methods below retain
+their shapes; S1 adds no model-callable skill tool or new event.
+Skills list/preview results include the daemon-instance `sessionId`; mutation
+inputs must match it before admission. Mutation results retain `{ admitted,
+result }` so post-quiesce failures still retire the captured process safely.
+
+`mete daemon` and its one client speak `vscode-jsonrpc` over the daemon's stdin and stdout (`Content-Length` framing); every line the daemon writes for itself goes to standard error. Version 34 (ADR-187) adds persisted task verification to version 33's explicit MCP management. New starts resolve `team.engine@3` without a permissive fallback; saved legacy runs remain readable. Each side validates what it receives with the schemas in `@mete/contracts` \[D\]:
 
 | Message | Kind | Params | Result |
 | --- | --- | --- | --- |
@@ -96,6 +115,7 @@ CLI `mete`: loads the same kernel and modules in its own Node process, without T
 | `mete/run.approve` | request | `{ runId, input }`, `input` the `ApprovalInput` of team.engine@2 | `null`; errors as for `mete/status` |
 | `mete/task.pending` | request | `{ runId }` | `{ requests }` from `task.control@1`: exact pending identities with masked display data (ADR-181) |
 | `mete/task.answer` | request | `TaskControlAnswer`: `{ runId, taskId, requestId, decision, ... }`; allow takes `scope`, revise/answer take `feedback` | `null`; stale identities fail closed; no replacement action arguments or configuration writes (ADR-181) |
+| `mete/task.verification` | request | `{ runId }` | `{ mode: strict \| legacy, tasks }`: task/current-attempt identities and latest per-attempt evaluations with ordered gate evidence; failed/unavailable reads are errors, never empty success (ADR-187) |
 | `mete/run.resume` | request | `{ runId }` | `null`; errors as for `mete/status` |
 | `mete/run.allow` | request | `{ runId, scope }`, `scope` `once`, `run` or `always` | `null`: grants the run's newest `policy.asked` and resumes the run, as `mete allow` does (ADR-121); `not_found` when the run is not paused for approval or has no such ask, `bad_input` for `always` on an ask that is no command; errors as for `mete/status` |
 | `mete/run.model` | request | `{ runId, roleId?, model }` | `null`: sets or clears a run-specific model preference (`null` clears), taking priority over `.mete/pins.yaml` on the next call and saved in the snapshot; errors as for `mete/status` (ADR-122) |
