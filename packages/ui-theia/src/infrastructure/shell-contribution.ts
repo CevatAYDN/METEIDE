@@ -5,6 +5,11 @@ import {
 } from "@theia/core";
 import { FrontendApplicationContribution } from "@theia/core/lib/browser/frontend-application-contribution";
 import { injectable, type interfaces } from "@theia/core/shared/inversify";
+import {
+	SHOW_PERMISSIONS_COMMAND,
+	SHOW_SKILLS_COMMAND,
+	SHOW_TEAMS_COMMAND,
+} from "../application/settings-commands.js";
 import { STOP_ALL_COMMAND } from "../application/stop-all-command.js";
 import { OPEN_ASSETS_COMMAND } from "./assets-contribution.js";
 import { OPEN_AUDIT_COMMAND } from "./audit-contribution.js";
@@ -38,8 +43,11 @@ const ITEMS = [
 			OPEN_QUOTA_COMMAND,
 			OPEN_AUDIT_COMMAND,
 			OPEN_ASSETS_COMMAND,
+			SHOW_TEAMS_COMMAND,
 			NEW_TEAM_COMMAND,
 			EDIT_TEAM_COMMAND,
+			SHOW_SKILLS_COMMAND,
+			SHOW_PERMISSIONS_COMMAND,
 			SHOW_SETTINGS_COMMAND,
 			OPEN_WELCOME_COMMAND,
 		],

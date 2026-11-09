@@ -42,6 +42,33 @@
 	font-weight: 700;
 }
 
+.mete-team-workspace-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.mete-team-learning {
+	padding: 8px 0;
+	border-bottom: 1px solid var(--theia-panel-border);
+}
+.mete-team-learning > summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+.mete-team-learning-rows {
+	display: grid;
+	gap: 8px;
+	margin: 12px 0;
+}
+
+.mete-team-copy-options > summary {
+	cursor: pointer;
+}
+.mete-team-copy-options[open] > summary {
+	margin-bottom: 12px;
+}
+
 /* The hero: the intro at the left, the limits at the right. */
 .mete-team-hero {
 	display: flex;

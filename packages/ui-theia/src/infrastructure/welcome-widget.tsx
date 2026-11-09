@@ -14,6 +14,7 @@ import { FileService } from "@theia/filesystem/lib/browser/file-service";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
 import { panelRoot } from "../application/panel-root.js";
 import {
+	needsWelcome,
 	type WelcomeModel,
 	type WelcomePrivacy,
 	WelcomeView,
@@ -52,6 +53,7 @@ export class MeteWelcomeWidget extends MetePanelWidget {
 	protected globalFile: string | undefined;
 	protected activeRuns = 0;
 	protected states: readonly ProviderState[] | undefined;
+	protected refreshRevision = 0;
 
 	// No state, so a restored layout never brings it back by itself (ADR-086, ADR-088).
 	storeState(): undefined {
@@ -71,7 +73,9 @@ export class MeteWelcomeWidget extends MetePanelWidget {
 		this.title.iconClass = codicon("rocket");
 		this.title.closable = true;
 		this.toDispose.push(this.themes.onDidColorThemeChange(() => this.update()));
-		this.forms = new SettingsForms(this.files, () => this.update());
+		this.toDispose.push(
+			this.workspace.onWorkspaceChanged(() => void this.refresh()),
+		);
 		this.keys = new EndpointKeys({
 			setKey: (id, key) => this.daemon.setKey(id, key),
 			activeRuns: () => this.folderRuns(),
@@ -85,31 +89,63 @@ export class MeteWelcomeWidget extends MetePanelWidget {
 
 	/** Reads the providers' key state, and the privacy form of the open folder's global file. */
 	async refresh(): Promise<void> {
+		const revision = ++this.refreshRevision;
+		this.forms = undefined;
+		this.states = undefined;
+		this.root = undefined;
+		this.globalFile = undefined;
+		this.update();
+		const [root] = await this.workspace.roots;
+		const current = () => this.current(revision, root?.resource);
+		if (!current()) return;
 		const r = await this.daemon.keys();
+		if (!current()) return;
+		this.root = root?.resource;
 		this.model = r.ok
 			? { kind: "keys", keys: r.value }
 			: { kind: "failed", failure: r.error };
 		this.update();
-		await this.loadFolder();
+		if (root) await this.loadFolder(root.resource, current);
+	}
+
+	protected current(revision: number, root: URI | undefined): boolean {
+		return (
+			!this.isDisposed &&
+			revision === this.refreshRevision &&
+			root?.toString() === this.workspace.tryGetRoots()[0]?.resource.toString()
+		);
 	}
 
 	// The global file's path comes from the folder's daemon, so privacy waits for a folder (ADR-088).
-	protected async loadFolder(): Promise<void> {
-		const [root] = await this.workspace.roots;
-		this.root = root?.resource;
-		if (!root) return this.update();
-		this.activeRuns = await this.folderRuns();
-		const s = await this.daemon.settings(root.resource.path.fsPath());
+	protected async loadFolder(root: URI, current: () => boolean): Promise<void> {
+		const dir = root.path.fsPath();
+		const runs = await this.daemon.status(dir);
+		if (!current()) return;
+		this.activeRuns = runs.ok ? activeRunsOf(runs.value) : 0;
+		const s = await this.daemon.settings(dir);
+		if (!current()) return;
 		if (!s.ok) return this.update();
+		// Each refresh owns its forms; an older load cannot retarget the current instance.
+		const forms = new SettingsForms(this.files, () => {
+			if (current()) this.update();
+		});
+		await forms.load(root, s.value.globalFile);
+		if (!current()) return;
+		await forms.retargetAll("global");
+		if (!current()) return;
+		this.forms = forms;
 		this.globalFile = s.value.globalFile;
-		await this.forms?.load(root.resource, s.value.globalFile);
-		this.forms?.forms().privacy?.actions.onTarget("global");
-		await this.loadStates(root.resource.path.fsPath());
+		this.update();
+		await this.loadStates(dir, current);
 	}
 
 	// The states wait on the daemon's first model listing, so they follow the keys and the privacy form.
-	protected async loadStates(dir: string): Promise<void> {
+	protected async loadStates(
+		dir: string,
+		current: () => boolean,
+	): Promise<void> {
 		const r = await this.daemon.quota(dir);
+		if (!current()) return;
 		this.states = r.ok ? r.value.providers : undefined;
 		this.update();
 	}
@@ -122,14 +158,40 @@ export class MeteWelcomeWidget extends MetePanelWidget {
 	}
 
 	protected privacy(): WelcomePrivacy | undefined {
-		if (!this.root) return { kind: "no_folder" };
-		const form = this.forms?.forms().privacy;
-		return (
-			form && { kind: "form", ...form, canSaveGlobally: !!this.globalFile }
-		);
+		if (!this.workspace.tryGetRoots()[0]) return { kind: "no_folder" };
+		const { forms, root, refreshRevision } = this;
+		const current = () =>
+			this.forms === forms && this.current(refreshRevision, root);
+		const form = forms?.forms().privacy;
+		if (!form || !current()) return undefined;
+		return {
+			kind: "form",
+			...form,
+			canSaveGlobally: !!this.globalFile,
+			actions: {
+				onField: (key, value) => {
+					if (current()) form.actions.onField(key, value);
+				},
+				onTarget: (target) => {
+					if (current()) form.actions.onTarget(target);
+				},
+				onSave: () => {
+					if (current()) form.actions.onSave();
+				},
+				onClear: () => {
+					if (current()) form.actions.onClear();
+				},
+			},
+		};
 	}
 
 	protected start(): void {
+		if (
+			!this.workspace.tryGetRoots()[0] ||
+			this.model.kind !== "keys" ||
+			needsWelcome(this.model.keys)
+		)
+			return;
 		void this.commands.executeCommand(START_RUN_COMMAND.id);
 		this.close();
 	}
@@ -141,7 +203,12 @@ export class MeteWelcomeWidget extends MetePanelWidget {
 				{keys ? (
 					<WelcomeView
 						model={this.model}
-						states={this.root ? this.states : undefined}
+						workspaceOpen={!!this.workspace.tryGetRoots()[0]}
+						states={
+							this.current(this.refreshRevision, this.root)
+								? this.states
+								: undefined
+						}
 						keys={{
 							stateOf: (id) => keys.stateOf(id),
 							onType: (id, key) => keys.type(id, key),

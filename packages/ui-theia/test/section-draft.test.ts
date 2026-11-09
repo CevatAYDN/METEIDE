@@ -19,6 +19,11 @@ describe("a section's file as a form edits it", () => {
 				autonomy: 3,
 				"budget.cloud_requests_per_run": undefined,
 				"budget.max_hours": undefined,
+				always_ask: undefined,
+				never_allow: undefined,
+				"shell.allow": ["ls"],
+				"shell.always": undefined,
+				overrides: undefined,
 			},
 		});
 		const global =
@@ -109,7 +114,7 @@ describe("where a form's value comes from", () => {
 	});
 
 	it("looks at the form's own fields only, and reads an empty file as nothing set", () => {
-		// policy.yaml may hold keys the form has no field for, such as rules.
+		// The basic Reset scope remains separate from individually inherited rules.
 		expect(
 			layerOf("policy", layers({ shell: { allow: ["ls"] } })),
 		).toBeUndefined();

@@ -1,5 +1,10 @@
+import { nls } from "@theia/core/lib/common/nls";
 import { describe, expect, it } from "vitest";
-import { groupsOf, searchGroups } from "../src/application/settings-groups.js";
+import {
+	groupsOf,
+	SETTINGS_LINKS,
+	searchGroups,
+} from "../src/application/settings-groups.js";
 
 // The Settings groups (ADR-095): labels over the sections that exist; none is dropped.
 
@@ -25,7 +30,8 @@ describe("groupsOf", () => {
 			models: ["providers", "gateway", "models", "quota"],
 			limits: ["policy"],
 			privacy: ["privacy", "workspace"],
-			tools: ["bindings", "mcp", "shell"],
+			tools: ["mcp", "bindings", "shell"],
+			skills: [],
 			teams: [],
 			look: [],
 		});
@@ -75,6 +81,39 @@ describe("groupsOf", () => {
 describe("settings search", () => {
 	const groups = groupsOf([...KNOWN, ...named("custom-file")]);
 
+	it("finds the existing policy group by permissions and approvals", () => {
+		expect(ids(searchGroups(groups, "permissions"))).toEqual({
+			limits: ["policy"],
+		});
+		expect(ids(searchGroups(groups, "approvals"))).toEqual({
+			limits: ["policy"],
+			skills: [],
+		});
+	});
+
+	it("finds Turkish permission terminology from the visible group label", () => {
+		const previous = nls.localization;
+		nls.localization = {
+			languageId: "tr",
+			translations: {
+				"mete/groups/limits": "İzinler ve onaylar",
+				"mete/groups/skillsHint": "Yerel kaynaklar ve sürüm onayları",
+			},
+		};
+		try {
+			for (const query of ["izin", "İZİNLER"])
+				expect(ids(searchGroups(groupsOf(KNOWN), query))).toEqual({
+					limits: ["policy"],
+				});
+			expect(ids(searchGroups(groupsOf(KNOWN), "onay"))).toEqual({
+				limits: ["policy"],
+				skills: [],
+			});
+		} finally {
+			nls.localization = previous;
+		}
+	});
+
 	it("keeps all categories for an empty or whitespace query", () => {
 		expect(searchGroups(groups, "  ")).toEqual(groups);
 	});
@@ -85,7 +124,7 @@ describe("settings search", () => {
 			models: ["providers", "gateway", "models", "quota"],
 		});
 		expect(result[0]?.links).toEqual(["mete.key.set"]);
-		expect(ids(groups).tools).toEqual(["bindings", "mcp", "shell"]);
+		expect(ids(groups).tools).toEqual(["mcp", "bindings", "shell"]);
 	});
 
 	it("matches translated labels, section titles and IDs without case or accent sensitivity", () => {
@@ -103,5 +142,150 @@ describe("settings search", () => {
 	it("finds categories without sections, and returns no invented result", () => {
 		expect(searchGroups(groups, "Look and language")[0]?.id).toBe("look");
 		expect(searchGroups(groups, "not-a-setting")).toEqual([]);
+	});
+
+	it.each(["  THEME  ", "fonts"])(
+		"finds native appearance navigation through the hint %s without sections",
+		(query) => {
+			const result = searchGroups(groupsOf([]), query);
+			expect(ids(result)).toEqual({ look: [] });
+			expect(result[0]?.links).toEqual([
+				"preferences:open",
+				"workbench.action.configureLanguage",
+			]);
+		},
+	);
+
+	it("uses a hint-only match as a fallback to the unchanged whole group", () => {
+		const source = groupsOf(
+			KNOWN.map((section) =>
+				section.name === "mcp"
+					? { ...section, workspace: { configured: true } }
+					: section,
+			),
+		);
+		const tools = source.find((group) => group.id === "tools");
+		const result = searchGroups(source, "adapters, mcp");
+		expect(result).toEqual([tools]);
+		expect(result[0]).toBe(tools);
+		expect(result[0]?.changedHere).toBe(true);
+		expect(result[0]?.links).toEqual(["vsxExtensions.toggle"]);
+	});
+
+	it("keeps section matches narrower than matching hints", () => {
+		const result = searchGroups(groups, "MCP");
+		expect(ids(result)).toEqual({ tools: ["mcp"] });
+		expect(result[0]?.links).toEqual(["vsxExtensions.toggle"]);
+		expect(ids(groups).tools).toEqual(["mcp", "bindings", "shell"]);
+	});
+
+	it("prefers the category label over matching sections", () => {
+		const source = groups.map((group) =>
+			group.id === "tools" ? { ...group, label: "MCP" } : group,
+		);
+		expect(ids(searchGroups(source, "mcp"))).toEqual({
+			tools: ["mcp", "bindings", "shell"],
+		});
+	});
+
+	it.each([
+		[
+			"Preferences",
+			"look",
+			["preferences:open", "workbench.action.configureLanguage"],
+		],
+		[
+			"Display language",
+			"look",
+			["preferences:open", "workbench.action.configureLanguage"],
+		],
+		["EDITOR EXTENSIONS", "tools", ["vsxExtensions.toggle"]],
+		["Edit team", "teams", ["mete.team.edit", "mete.team.new"]],
+		["New team", "teams", ["mete.team.edit", "mete.team.new"]],
+		["Set provider key", "models", ["mete.key.set"]],
+	] as const)(
+		"finds existing navigation by the visible action label %s",
+		(query, id, links) => {
+			const result = searchGroups(groupsOf([]), query);
+			expect(ids(result)).toEqual({ [id]: [] });
+			expect(result[0]?.links).toEqual(links);
+		},
+	);
+
+	it("retains every section when an action label is the only match", () => {
+		expect(ids(searchGroups(groups, "Editor extensions"))).toEqual({
+			tools: ["mcp", "bindings", "shell"],
+		});
+		expect(ids(searchGroups(groups, "Set provider key"))).toEqual({
+			models: ["providers", "gateway", "models", "quota"],
+		});
+	});
+
+	it("matches Turkish hints and action labels through the existing localization API", () => {
+		const previous = nls.localization;
+		nls.localization = {
+			languageId: "tr",
+			translations: {
+				"mete/groups/lookHint": "Tema, yazı tipleri ve görüntüleme dili",
+				"mete/settings/preferences": "Tercihler",
+				"mete/settings/language": "Görüntüleme dili",
+				"mete/settings/extensions": "Düzenleyici eklentileri",
+			},
+		};
+		try {
+			const translated = groupsOf([]);
+			expect(ids(searchGroups(translated, "TEMA"))).toEqual({ look: [] });
+			expect(ids(searchGroups(translated, "yazı tipleri"))).toEqual({
+				look: [],
+			});
+			expect(ids(searchGroups(translated, "YAZI TİPLERİ"))).toEqual({
+				look: [],
+			});
+			expect(ids(searchGroups(translated, "TERCİHLER"))).toEqual({ look: [] });
+			expect(ids(searchGroups(translated, "GÖRÜNTÜLEME DİLİ"))).toEqual({
+				look: [],
+			});
+			const result = searchGroups(translated, "DÜZENLEYİCİ EKLENTİLERİ");
+			expect(ids(result)).toEqual({ tools: [] });
+			expect(result[0]?.links).toEqual(["vsxExtensions.toggle"]);
+			expect(searchGroups(translated, "Editor extensions")).toEqual([]);
+		} finally {
+			nls.localization = previous;
+		}
+	});
+
+	it("does not search command IDs or unknown and unlinked actions", () => {
+		for (const [id] of SETTINGS_LINKS)
+			expect(searchGroups(groups, id)).toEqual([]);
+		const unlinked = groupsOf([]).map((group) => ({
+			...group,
+			links: ["unregistered.setting.action", "constructor", "__proto__"],
+		}));
+		expect(searchGroups(unlinked, "unregistered.setting.action")).toEqual([]);
+		expect(searchGroups(unlinked, "constructor")).toEqual([]);
+		expect(searchGroups(unlinked, "__proto__")).toEqual([]);
+		expect(searchGroups(unlinked, "Editor extensions")).toEqual([]);
+	});
+
+	it("does not search configuration values, source paths or fixture secrets", () => {
+		const source = groupsOf([
+			{
+				name: "mcp",
+				merged: { url: "https://fixture.invalid/private-endpoint" },
+				global: { apiKey: "fixture-global-secret" },
+				workspace: {
+					file: "/fixture/private-settings.yaml",
+					value: { apiKey: "fixture-workspace-secret" },
+				},
+			},
+		]);
+		for (const query of [
+			"private-endpoint",
+			"fixture-global-secret",
+			"private-settings.yaml",
+			"fixture-workspace-secret",
+		])
+			expect(searchGroups(source, query)).toEqual([]);
+		expect(ids(searchGroups(source, "MCP"))).toEqual({ tools: ["mcp"] });
 	});
 });

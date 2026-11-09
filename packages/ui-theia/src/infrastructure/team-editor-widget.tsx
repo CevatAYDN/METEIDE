@@ -1,4 +1,4 @@
-import { MessageService } from "@theia/core";
+import { CommandService, MessageService } from "@theia/core";
 import { OpenerService, open } from "@theia/core/lib/browser/opener-service";
 import type { StatefulWidget } from "@theia/core/lib/browser/shell/shell-layout-restorer";
 import { ThemeService } from "@theia/core/lib/browser/theming";
@@ -22,6 +22,7 @@ import "../../style/mete-team-form.css";
 import "../../style/mete-team-tasks.css";
 import "../../style/mete-picker.css";
 import { draftIdea, withDraft } from "../application/member-draft.js";
+import type { MemberSection } from "../application/member-sections.js";
 import { panelRoot } from "../application/panel-root.js";
 import { failureText } from "../application/status-text.js";
 import {
@@ -67,11 +68,13 @@ export class MeteTeamEditorWidget
 	@inject(FileService) protected readonly files!: FileService;
 	@inject(OpenerService) protected readonly openers!: OpenerService;
 	@inject(MessageService) protected readonly messages!: MessageService;
+	@inject(CommandService) protected readonly commands!: CommandService;
 
 	protected model: TeamEditorModel = { kind: "none" };
 	protected doc: Draft | undefined;
 	/** The member whose form shows beside the grid (ADR-093). */
 	protected selected = 0;
+	protected memberSection: MemberSection = "member";
 	protected root: URI | undefined;
 	/** The folder's pins and the tiers' model lists (ADR-077). */
 	protected pinned!: TeamPins;
@@ -117,6 +120,7 @@ export class MeteTeamEditorWidget
 		if (!this.root) return this.setModel({ kind: "no_folder" });
 		this.doc = blankDraft(id, name);
 		this.selected = 0;
+		this.memberSection = "member";
 		await this.pinned.read(this.root);
 		this.setModel(this.readyOf("new", true, []));
 	}
@@ -135,6 +139,7 @@ export class MeteTeamEditorWidget
 		if (!doc.ok) return this.setModel({ kind: "failed", text: doc.error });
 		this.doc = doc.value;
 		this.selected = 0;
+		this.memberSection = "member";
 		await this.pinned.read(this.root);
 		this.setModel(this.readyOf(r.value.source, false));
 	}
@@ -210,6 +215,7 @@ export class MeteTeamEditorWidget
 			busy: false,
 			changed,
 			selected: Math.min(this.selected, team.roles.length - 1),
+			memberSection: this.memberSection,
 			pins: this.pinned.of(team.metadata.id),
 			chains: Object.fromEntries(this.pinned.chains),
 			picker: this.pinned.picker,
@@ -275,20 +281,24 @@ export class MeteTeamEditorWidget
 		await this.save(copyAs(this.doc, id, name));
 	}
 
-	protected select(index: number): void {
-		this.selected = index;
+	protected select(index: number, section: MemberSection = "member"): void {
 		// The draft note and its sources belong to the member it drafted (ADR-108).
-		this.draftFilled = "none";
-		this.draftNote = undefined;
-		this.draftSources = [];
+		if (index !== this.selected) {
+			this.draftFilled = "none";
+			this.draftNote = undefined;
+			this.draftSources = [];
+		}
+		this.selected = index;
+		this.memberSection = section;
 		if (this.model.kind === "ready")
-			this.setModel({ ...this.model, selected: index });
+			this.setModel({ ...this.model, selected: index, memberSection: section });
 	}
 
 	// A new member is selected, so its form is the one to fill in.
 	protected addMember(): void {
 		if (this.model.kind !== "ready") return;
 		this.selected = this.model.team.roles.length;
+		this.memberSection = "member";
 		this.change(addRole);
 	}
 
@@ -330,7 +340,7 @@ export class MeteTeamEditorWidget
 	protected actions(): TeamEditorActions {
 		return {
 			onEdit: (path, value) => this.change((d) => edited(d, path, value)),
-			onSelectMember: (i) => this.select(i),
+			onSelectMember: (i, section) => this.select(i, section),
 			onAddMember: () => this.addMember(),
 			onRemoveMember: (i) => this.removeMember(i),
 			onRenameMember: (i, id) => this.rename(i, id),
@@ -341,6 +351,7 @@ export class MeteTeamEditorWidget
 			onSave: () => void (this.doc && this.save(this.doc)),
 			onSaveAs: (id, name) => void this.saveAs(id, name),
 			onOpenYaml: () => void this.openYaml(),
+			onCommand: (id) => void this.commands.executeCommand(id),
 		};
 	}
 

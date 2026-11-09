@@ -181,10 +181,15 @@ export const TeamHero = ({
 			<Issues issues={model.issues} />
 			<Names model={model} onEdit={actions.onEdit} />
 			{model.source === "new" ? null : (
-				<SaveAs
-					disabled={model.issues.length > 0 || model.busy}
-					onSaveAs={actions.onSaveAs}
-				/>
+				<details className="mete-team-copy-options">
+					<summary>
+						{nls.localize("mete/team/saveAs", "Save as new team")}
+					</summary>
+					<SaveAs
+						disabled={model.issues.length > 0 || model.busy}
+						onSaveAs={actions.onSaveAs}
+					/>
+				</details>
 			)}
 		</div>
 		<TeamRules team={model.team} onEdit={actions.onEdit} />

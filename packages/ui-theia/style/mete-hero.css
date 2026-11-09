@@ -51,6 +51,11 @@
 	);
 }
 
+/* The success wash needs the theme's full-contrast ink at the compact label size. */
+.mete-pill[data-status="completed"] {
+	color: var(--ink, var(--theia-foreground));
+}
+
 .mete-pill > .codicon {
 	font-size: 16px;
 }

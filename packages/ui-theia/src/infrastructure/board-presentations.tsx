@@ -4,9 +4,32 @@ import {
 	RESUME_RUN_COMMAND,
 	REVISE_RUN_COMMAND,
 } from "../application/approval-commands.js";
+import type { Shown } from "../application/board-session.js";
 import type { TeamControls } from "../application/board-view.js";
+import { waitsForQuota } from "../domain/home-model.js";
+import type { MeteDaemonService } from "../domain/status-service.js";
 import { FlowView } from "./flow-view.js";
 import { StudioView } from "./studio-view.js";
+import "../../style/mete-verification.css";
+
+/** Status and quota facts belong only to the selection that requested them. */
+export const readBoardRun = async (
+	daemon: Pick<MeteDaemonService, "status" | "quota">,
+	shown: Shown,
+	current: () => boolean,
+) => {
+	if (!current()) return undefined;
+	const result = await daemon.status(shown.dir, shown.runId);
+	if (!result.ok || !current()) return undefined;
+	const run = result.value.find((row) => row.id === shown.runId);
+	if (!run) return undefined;
+	const quota = waitsForQuota(run) ? await daemon.quota(shown.dir) : undefined;
+	if (!current()) return undefined;
+	const blocked = quota?.ok
+		? quota.value.providers.filter((provider) => provider.state !== "ready")
+		: [];
+	return { run, blocked };
+};
 
 /** Retains the existing team scenes while the board also hosts conversation history. */
 export const boardScenes = (

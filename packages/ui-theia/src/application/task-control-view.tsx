@@ -28,6 +28,11 @@ const reason = (r: TaskPending) => {
 		case "clarification":
 			return r.question;
 		case "blocked":
+			if (r.reason === "verification")
+				return nls.localize(
+					"mete/tasks/verification",
+					"Verification needs attention. Inspect the recorded checks and any interrupted effects before continuing.",
+				);
 			return r.reason === "setup_interrupted"
 				? nls.localize(
 						"mete/tasks/setupInterrupted",

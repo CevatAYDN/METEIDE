@@ -45,6 +45,7 @@ const ACTIONS: TeamEditorActions = {
 	onSave: nothing,
 	onSaveAs: nothing,
 	onOpenYaml: nothing,
+	onCommand: nothing,
 };
 const ready = (
 	doc: Draft,
@@ -77,6 +78,22 @@ const html = (model: TeamEditorModel) =>
 	);
 
 describe("TeamEditorView", () => {
+	it("keeps copy-as-new fields in a closed disclosure instead of the primary form", () => {
+		const out = html(ready(DOC));
+		expect(out).toContain('<details class="mete-team-copy-options">');
+		expect(out).toContain("<summary>Save as new team</summary>");
+		expect(out).toContain("New team id");
+		expect(out).not.toContain('class="mete-team-copy-options" open');
+	});
+
+	it("offers Skills, project permissions and memory without a fake improvement action", () => {
+		const out = html(ready(DOC));
+		for (const label of ["Skills", "Project permissions", "Memory"])
+			expect(out).toContain(label);
+		expect(out).not.toContain("Improve team");
+		expect(out).not.toContain("Train team");
+	});
+
 	it("shows the team, each member's form with its tier and capabilities, and that a built-in team is saved as a copy", () => {
 		const out = html(ready(DOC, { selected: 1 }));
 		for (const text of [
@@ -212,9 +229,9 @@ describe("the rules of the work", () => {
 	const game = everyMember(GAME.value, { fixedIds: [] });
 
 	it("shows a task's verify command, and the team's revision limit and budget", () => {
-		expect(html(ready(DOC, { selected: 1 }))).toContain(
-			'title="Remove npm run build"',
-		);
+		const out = html(ready(DOC, { selected: 1 }));
+		expect(out).toContain('aria-label="Remove command gate 1"');
+		expect(out).toContain('value="npm run build"');
 		for (const text of [
 			"Revisions per task",
 			"Cloud requests per run",
@@ -315,6 +332,7 @@ describe("the composer's Edit button", () => {
 				onGoal: nothing,
 				onSelect: nothing,
 				onStart: nothing,
+				onOpenFolder: nothing,
 				onEdit: nothing,
 				onNewTeam: nothing,
 			}),

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { ComposerOption, PickerFacts } from "./composer.js";
 import { Side } from "./composer-side.js";
 import { Teams } from "./composer-teams.js";
+import { Icon } from "./roster-look.js";
 import { noFolderText } from "./status-text.js";
 
 // The compact run composer (docs/13; ADR-180): goal, model/tools and Start on one surface,
@@ -42,6 +43,7 @@ type Props = ComposerInput & {
 	readonly onGoal: (goal: string) => void;
 	readonly onSelect: (key: string) => void;
 	readonly onStart: () => void;
+	readonly onOpenFolder: () => void;
 	/** Opens a team in the team editor (ADR-075). */
 	readonly onEdit: (templateId: string) => void;
 	/** Starts a blank team in the team editor (ADR-093). */
@@ -114,7 +116,20 @@ const TeamChoices = (
 
 export const ComposerView = (props: Props) => {
 	const { model, goal, selected, busy } = props;
-	if (model.kind === "no_folder") return <Message>{noFolderText()}</Message>;
+	if (model.kind === "no_folder")
+		return (
+			<section className="mete-composer">
+				<p>{noFolderText()}</p>
+				<button
+					type="button"
+					className="mete-button"
+					onClick={props.onOpenFolder}
+				>
+					<Icon name="new-folder" />
+					{nls.localize("mete/home/openFolder", "Open folder…")}
+				</button>
+			</section>
+		);
 	if (model.kind === "loading")
 		return (
 			<Message>

@@ -40,6 +40,7 @@ const html = (
 			onGoal: () => {},
 			onSelect: () => {},
 			onStart: () => {},
+			onOpenFolder: () => {},
 			onEdit: () => {},
 			onNewTeam: () => {},
 		}),

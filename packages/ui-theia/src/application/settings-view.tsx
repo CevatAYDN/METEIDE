@@ -1,6 +1,7 @@
 import { nls } from "@theia/core/lib/common/nls";
 import { useState } from "react";
 import type { DaemonFailure, Settings } from "../domain/status-service.js";
+import { Icon } from "./roster-look.js";
 import { SaveBar, type SaveEntry } from "./save-bar.js";
 import { ScopeSwitch } from "./scope-switch.js";
 import type { Target } from "./section-draft.js";
@@ -30,6 +31,8 @@ import {
 	SectionCard,
 	withForms,
 } from "./settings-section.js";
+import type { SkillsViewModel } from "./skill-session.js";
+import { SkillsView } from "./skills-view.js";
 import { failureText, noFolderText } from "./status-text.js";
 
 // The Settings screen (docs/13, Settings; ADR-081 to ADR-087, ADR-095): the configuration the daemon
@@ -64,6 +67,10 @@ export type SettingsActions = {
 export type GroupChoice = {
 	readonly group: GroupId;
 	readonly onGroup: (group: GroupId) => void;
+	readonly search?: {
+		readonly value: string;
+		readonly onChange: (value: string) => void;
+	};
 };
 
 // Everything the scope switch moves and the save bar saves (ADR-095, ADR-096): the forms, then the
@@ -94,14 +101,24 @@ const GroupBody = ({
 }) => (
 	<>
 		<GroupHead group={group} onCommand={actions.onCommand} />
-		{group.sections.map((s) => (
-			<SectionCard
-				key={s.name}
-				section={s}
-				onOpen={actions.onOpen}
-				{...cardParts({ ...parts, name: s.name, settings })}
-			/>
-		))}
+		{group.sections.map((s) => {
+			const card = (
+				<SectionCard
+					key={s.name}
+					section={s}
+					onOpen={actions.onOpen}
+					{...cardParts({ ...parts, name: s.name, settings })}
+				/>
+			);
+			return s.name === "bindings" ? (
+				<details key={s.name} className="mete-settings-advanced">
+					<summary>{nls.localize("mete/tools/advanced", "Advanced")}</summary>
+					{card}
+				</details>
+			) : (
+				card
+			);
+		})}
 	</>
 );
 
@@ -120,22 +137,56 @@ const LoadedNote = ({ loadedAt }: Pick<Settings, "loadedAt">) => (
 	</details>
 );
 
+const SettingsBody = ({
+	chosen,
+	settings,
+	actions,
+	parts,
+	skills,
+	query,
+	onReset,
+}: {
+	readonly chosen: Group<Section> | undefined;
+	readonly settings: Settings;
+	readonly actions: SettingsActions;
+	readonly parts: Omit<FormParts, "name" | "settings">;
+	readonly skills: SkillsViewModel | undefined;
+	readonly query: string;
+	readonly onReset: () => void;
+}) => {
+	if (chosen?.id === "skills" && skills) return <SkillsView model={skills} />;
+	if (!chosen) return <NoSettings query={query} onReset={onReset} />;
+	return (
+		<GroupBody
+			group={chosen}
+			settings={settings}
+			actions={actions}
+			parts={parts}
+		/>
+	);
+};
+
 const Loaded = ({
 	settings,
 	actions,
 	parts,
 	apply,
 	choice,
+	skills,
 }: {
 	readonly settings: Settings;
 	readonly actions: SettingsActions;
 	readonly parts: Omit<FormParts, "name" | "settings">;
 	readonly apply: ApplyState;
 	readonly choice: GroupChoice;
+	readonly skills: SkillsViewModel | undefined;
 }) => {
-	const [query, setQuery] = useState("");
+	const [localQuery, setLocalQuery] = useState("");
+	const query = choice.search?.value ?? localQuery;
+	const setQuery = choice.search?.onChange ?? setLocalQuery;
 	const groups = searchGroups(groupsOf(withForms(settings.sections)), query);
 	const chosen = groups.find((g) => g.id === choice.group) ?? groups[0];
+	const skillGroup = chosen?.id === "skills";
 	const scoped = saveablesOf(parts.forms, parts.bindings, parts.mcp);
 	// The forms move together, so the first one tells where they all save.
 	const target = scoped[0]?.[1].state.target;
@@ -146,10 +197,14 @@ const Loaded = ({
 	return (
 		<>
 			<Hero
-				onRefresh={actions.onRefresh}
-				note={<LoadedNote loadedAt={settings.loadedAt} />}
+				onRefresh={
+					skillGroup ? () => void skills?.onRefresh() : actions.onRefresh
+				}
+				note={
+					skillGroup ? undefined : <LoadedNote loadedAt={settings.loadedAt} />
+				}
 				scope={
-					target ? (
+					target && !skillGroup ? (
 						<ScopeSwitch
 							target={target}
 							canGlobal={settings.globalFile !== undefined}
@@ -162,21 +217,22 @@ const Loaded = ({
 			<div className="mete-settings-columns">
 				<GroupList groups={groups} chosen={chosen} onGroup={choice.onGroup} />
 				<div className="mete-settings-body">
-					{chosen ? (
-						<GroupBody
-							group={chosen}
-							settings={settings}
-							actions={actions}
-							parts={parts}
-						/>
-					) : (
-						<NoSettings query={query} onReset={() => setQuery("")} />
-					)}
+					<SettingsBody
+						chosen={chosen}
+						settings={settings}
+						actions={actions}
+						parts={parts}
+						skills={skills}
+						query={query}
+						onReset={() => setQuery("")}
+					/>
 				</div>
 			</div>
-			<SaveBar entries={saveables} onSave={actions.onSaveAll}>
-				<ApplyNow apply={apply} onApply={actions.onApply} />
-			</SaveBar>
+			{!skillGroup ? (
+				<SaveBar entries={saveables} onSave={actions.onSaveAll}>
+					<ApplyNow apply={apply} onApply={actions.onApply} />
+				</SaveBar>
+			) : null}
 		</>
 	);
 };
@@ -185,9 +241,11 @@ const Loaded = ({
 const Waiting = ({
 	model,
 	onRefresh,
+	onCommand,
 }: {
 	readonly model: Exclude<SettingsModel, { kind: "settings" }>;
 	readonly onRefresh: () => void;
+	readonly onCommand: (id: string) => void;
 }) => (
 	<>
 		<Hero onRefresh={onRefresh} />
@@ -197,7 +255,17 @@ const Waiting = ({
 			</p>
 		) : null}
 		{model.kind === "no_folder" ? (
-			<p className="mete-settings-state">{noFolderText()}</p>
+			<>
+				<p className="mete-settings-state">{noFolderText()}</p>
+				<button
+					type="button"
+					className="mete-button"
+					onClick={() => onCommand("workspace:openFolder")}
+				>
+					<Icon name="new-folder" />
+					{nls.localize("mete/home/openFolder", "Open folder…")}
+				</button>
+			</>
 		) : null}
 		{model.kind === "failed" ? (
 			<p className="mete-settings-state" role="alert">
@@ -215,6 +283,7 @@ export const SettingsView = ({
 	endpoints,
 	bindings,
 	mcp,
+	skills,
 	apply = { busy: false, activeRuns: 0 },
 	choice = { group: "models", onGroup: () => {} },
 }: {
@@ -224,6 +293,7 @@ export const SettingsView = ({
 	readonly endpoints?: Endpoints | undefined;
 	readonly bindings?: Bindings | undefined;
 	readonly mcp?: Mcp | undefined;
+	readonly skills?: SkillsViewModel | undefined;
 	readonly apply?: ApplyState;
 	readonly choice?: GroupChoice;
 }) => (
@@ -235,9 +305,14 @@ export const SettingsView = ({
 				parts={{ forms, endpoints, bindings, mcp }}
 				apply={apply}
 				choice={choice}
+				skills={skills}
 			/>
 		) : (
-			<Waiting model={model} onRefresh={actions.onRefresh} />
+			<Waiting
+				model={model}
+				onRefresh={actions.onRefresh}
+				onCommand={actions.onCommand}
+			/>
 		)}
 	</section>
 );

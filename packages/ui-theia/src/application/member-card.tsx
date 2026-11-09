@@ -1,22 +1,24 @@
 import { NeedSchema } from "@mete/contracts";
 import { nls } from "@theia/core/lib/common/nls";
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { PickerFacts } from "./composer.js";
 import { Chips, type OnEdit, orEmpty, orNone, Text, Ticks } from "./fields.js";
+import { type MemberSection, MemberSections } from "./member-sections.js";
 import { SpawnDefaults, TaskRow } from "./member-tasks.js";
 import { PinField } from "./pin-field.js";
 import { Icon } from "./roster-look.js";
 import type { MemberView, TeamView } from "./team-draft.js";
 import { TierTiles } from "./tier-tiles.js";
 
-// One member of the team editor (ADR-075, ADR-128): the head with its face, Draft with a model and
-// Remove, its fields, tier, needs and pin, what it may use, and the tasks that name it. Every change
-// goes out as a path in the template and a value; a blank optional field goes out as undefined, so
-// the key leaves the file. Laid out by style/mete-team-form.css.
+// Selected-member form (ADR-192); edits retain their existing template paths and optional values.
 
 type MemberProps = {
 	readonly team: TeamView;
 	readonly index: number;
+	readonly selection?: {
+		readonly section: MemberSection;
+		readonly onSelect: (section: MemberSection) => void;
+	};
 	/** Whether the member came with the file: its id is then fixed, as tasks may name it. */
 	readonly fixed: boolean;
 	readonly hints: readonly string[];
@@ -46,8 +48,7 @@ type MemberProps = {
 
 type Path = (key: string) => readonly (string | number)[];
 
-// The id is renamed when the field is left or Enter is pressed, so a half-typed id never takes over
-// another member's tasks; an id another member has is refused and the field shows the old one again.
+// Commit ids on blur/Enter; a half-typed or duplicate id never takes over another member's tasks.
 const IdField = (props: {
 	readonly id: string;
 	readonly fixed: boolean;
@@ -84,12 +85,9 @@ const Fields = ({
 	onEdit,
 	fixed,
 	onRename,
-}: {
+}: Pick<MemberProps, "onEdit" | "fixed" | "onRename"> & {
 	readonly member: MemberView;
 	readonly at: Path;
-	readonly onEdit: OnEdit;
-	readonly fixed: boolean;
-	readonly onRename: (id: string) => void;
 }) => (
 	<div className="mete-member-fields">
 		<IdField key={member.id} id={member.id} fixed={fixed} onRename={onRename} />
@@ -115,7 +113,7 @@ const Fields = ({
 	</div>
 );
 
-// Unwired family preferences and watches stay visible but cannot imply active behavior.
+// Unwired family preferences and watches remain inspectable without leading the ordinary form.
 const Reach = ({
 	member,
 	hints,
@@ -137,7 +135,8 @@ const Reach = ({
 			hints={hints}
 			onChange={(v) => onEdit(at("capabilities"), v)}
 		/>
-		<div className="mete-reach-pair">
+		<details className="mete-member-advanced">
+			<summary>{nls.localize("mete/team/memberAdvanced", "Advanced")}</summary>
 			<Text
 				label={nls.localize(
 					"mete/team/otherFamilyInactive",
@@ -156,7 +155,7 @@ const Reach = ({
 				disabled
 				onChange={() => {}}
 			/>
-		</div>
+		</details>
 	</div>
 );
 
@@ -169,8 +168,7 @@ const IdleNote = () => (
 	</p>
 );
 
-// The Draft note (ADR-108): which fields the draft filled, and the pages it read. The answer lands
-// in the form for review; nothing is written until Save.
+// Draft output stays pending review until Save (ADR-108).
 const DraftNote = ({ draft }: { readonly draft: MemberProps["draft"] }) => {
 	const text =
 		draft.filled === "both"
@@ -200,13 +198,11 @@ const DraftNote = ({ draft }: { readonly draft: MemberProps["draft"] }) => {
 	);
 };
 
-// The head: the member's face and name, Draft with a model (ADR-108) and Remove.
-const Head = (props: {
-	readonly name: string;
-	readonly draft: MemberProps["draft"];
-	readonly onDraft: () => void;
-	readonly onRemove: () => void;
-}) => (
+const Head = (
+	props: Pick<MemberProps, "draft" | "onDraft" | "onRemove"> & {
+		readonly name: string;
+	},
+) => (
 	<div className="mete-member-title">
 		<span className="mete-member-face" aria-hidden="true">
 			<span>{props.name.slice(0, 1).toUpperCase()}</span>
@@ -232,7 +228,6 @@ const Head = (props: {
 	</div>
 );
 
-// The tasks that name the member, the defaults a task list gives it, and the button that adds one.
 const Tasks = (props: {
 	readonly team: TeamView;
 	readonly member: MemberView;
@@ -269,8 +264,37 @@ const Tasks = (props: {
 	</>
 );
 
-/** A member's card: its fields, then its tasks, with the note when no task names it. */
+const memberDetails = (props: MemberProps, member: MemberView, at: Path) => (
+	<>
+		<Fields
+			member={member}
+			at={at}
+			onEdit={props.onEdit}
+			fixed={props.fixed}
+			onRename={props.onRename}
+		/>
+		<TierTiles
+			value={member.tier}
+			onEdit={(v) => props.onEdit(at("tier"), v)}
+		/>
+		<div className="mete-member-pair">
+			<Ticks
+				label={nls.localize("mete/team/needs", "Needs")}
+				options={NeedSchema.options}
+				values={member.needs}
+				onChange={(v) => props.onEdit(at("needs"), orEmpty(v))}
+			/>
+			<PinField fixed={props.fixed} {...props.pin} onPin={props.onPin} />
+		</div>
+		<span className="mete-member-rule" aria-hidden="true" />
+		<Reach member={member} hints={props.hints} at={at} onEdit={props.onEdit} />
+	</>
+);
+
+/** A selected member's retained Member and Tasks views (ADR-192). */
 export const MemberCard = (props: MemberProps) => {
+	const [selected, onSelect] = useState<MemberSection>("member");
+	const id = useId();
 	const { team, index, onEdit } = props;
 	const member = team.roles[index];
 	if (!member) return null;
@@ -286,33 +310,22 @@ export const MemberCard = (props: MemberProps) => {
 				onRemove={props.onRemove}
 			/>
 			<DraftNote draft={props.draft} />
-			<Fields
-				member={member}
-				at={at}
-				onEdit={onEdit}
-				fixed={props.fixed}
-				onRename={props.onRename}
-			/>
-			<TierTiles value={member.tier} onEdit={(v) => onEdit(at("tier"), v)} />
-			<div className="mete-member-pair">
-				<Ticks
-					label={nls.localize("mete/team/needs", "Needs")}
-					options={NeedSchema.options}
-					values={member.needs}
-					onChange={(v) => onEdit(at("needs"), orEmpty(v))}
-				/>
-				<PinField fixed={props.fixed} {...props.pin} onPin={props.onPin} />
-			</div>
-			<span className="mete-member-rule" aria-hidden="true" />
-			<Reach member={member} hints={props.hints} at={at} onEdit={onEdit} />
-			<Tasks
-				team={team}
-				member={member}
-				tasks={tasks}
-				outputs={props.outputs}
-				onEdit={onEdit}
-				onAdd={props.onAddTask}
-				onRemove={props.onRemoveTask}
+			<MemberSections
+				id={id}
+				selected={props.selection?.section ?? selected}
+				onSelect={props.selection?.onSelect ?? onSelect}
+				member={memberDetails(props, member, at)}
+				tasks={
+					<Tasks
+						team={team}
+						member={member}
+						tasks={tasks}
+						outputs={props.outputs}
+						onEdit={onEdit}
+						onAdd={props.onAddTask}
+						onRemove={props.onRemoveTask}
+					/>
+				}
 			/>
 		</section>
 	);

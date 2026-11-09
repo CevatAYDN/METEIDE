@@ -48,7 +48,7 @@ describe("advanced task settings (F5)", () => {
 		);
 		expect(advanced).not.toMatch(/<details[^>]*\bopen=/);
 		for (const label of [
-			"Commands that must pass",
+			"Verification commands",
 			"Reviewed first by",
 			"Attempts",
 		])
@@ -72,7 +72,7 @@ describe("advanced task settings (F5)", () => {
 		);
 	});
 
-	it("shows capability gates as read-only YAML, explicitly not evaluating expect", () => {
+	it("shows capability gates as read-only YAML with unsupported expect explicit", () => {
 		const gate = {
 			capability: "gameengine.build@1",
 			args: { target: "web" },
@@ -87,7 +87,9 @@ describe("advanced task settings (F5)", () => {
 				onEdit: none,
 			}),
 		);
-		expect(html).toContain("Capability checks (YAML; expect is not evaluated)");
+		expect(html).toContain(
+			"Capability checks (YAML only; expect is unsupported)",
+		);
 		expect(html).toMatch(/<textarea[^>]*readOnly=""/);
 		expect(html).toContain("gameengine.build@1");
 		expect(html).toContain("&quot;target&quot;: &quot;web&quot;");

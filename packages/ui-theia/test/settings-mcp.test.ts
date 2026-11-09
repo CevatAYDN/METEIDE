@@ -55,6 +55,9 @@ class SettingsWidget extends MeteSettingsWidget {
 	save() {
 		return this.saveAll();
 	}
+	retireSave() {
+		this.refreshRevision++;
+	}
 	applySettings() {
 		return this.applyNow();
 	}
@@ -95,6 +98,23 @@ const setup = async (active: boolean) => {
 };
 
 describe("MCP save activation in Settings", () => {
+	it("binds the whole Save click to its original widget revision", async () => {
+		let release!: () => void;
+		const held = new Promise<void>((done) => {
+			release = done;
+		});
+		const bindings = { save: vi.fn(async () => {}) };
+		const widget = new SettingsWidget({
+			forms: { saveAll: async () => held },
+			bindings,
+		});
+		const saving = widget.save();
+		widget.retireSave();
+		release();
+		await saving;
+		expect(bindings.save).not.toHaveBeenCalled();
+	});
+
 	it("explicit Apply reaches atomic idle admission without a ready model engine", async () => {
 		const restartIdle = vi.fn(async () => ok(null));
 		const refresh = vi.fn(async () => {});

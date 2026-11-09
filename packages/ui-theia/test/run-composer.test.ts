@@ -45,7 +45,7 @@ const toolsOf = (composer: RunComposer) => {
 
 const setup = async (withContext = false) => {
 	const drafts = createContextDrafts(() => {});
-	let root = URI.fromFilePath("/w");
+	let root: URI | undefined = URI.fromFilePath("/w");
 	const threadContextStart = vi.fn<MeteDaemonService["threadContextStart"]>(
 		async () => err({ code: "stopped", detail: "" }),
 	);
@@ -59,6 +59,17 @@ const setup = async (withContext = false) => {
 	const threadStart = vi.fn<MeteDaemonService["threadStart"]>(async () =>
 		ok({ conversationId: "thread", runId: "started-run" }),
 	);
+	const loads = {
+		templates: vi.fn<MeteDaemonService["templates"]>(async () =>
+			ok({ templates: [{ id: "review-team", name: "Review team" }] }),
+		),
+		changes: vi.fn<MeteDaemonService["changes"]>(async () =>
+			ok({ vcs: false, branch: null, files: [] }),
+		),
+		quota: vi.fn<MeteDaemonService["quota"]>(async () =>
+			ok({ providers: [], units: [] }),
+		),
+	};
 	const composer = new RunComposer({
 		context: withContext
 			? { drafts, render: () => undefined, select: () => {} }
@@ -68,20 +79,17 @@ const setup = async (withContext = false) => {
 			startRun,
 			conversationStart,
 			threadStart,
-			templates: async () =>
-				ok({ templates: [{ id: "review-team", name: "Review team" }] }),
+			...loads,
 			readTemplate: async () => ok({ yaml: "roles: []\n" }),
 			chain: async () => ok({ models: [] }),
-			changes: async () => ok({ vcs: false, files: [] }),
 			estimate: async () => ok({ providers: [], unassigned: 0 }),
 			models: async () => ok({ models: [] }),
-			quota: async () => ok({ providers: [], units: [] }),
 		},
 		workspace: {
 			get roots() {
-				return Promise.resolve([{ resource: root }]);
+				return Promise.resolve(root ? [{ resource: root }] : []);
 			},
-			tryGetRoots: () => [{ resource: root }],
+			tryGetRoots: () => (root ? [{ resource: root }] : []),
 		},
 		messages: { info: notify },
 	});
@@ -106,6 +114,12 @@ const setup = async (withContext = false) => {
 		drafts,
 		send,
 		notify,
+		loads,
+		closeFolder: async () => {
+			composer.leave();
+			root = undefined;
+			await composer.reopen();
+		},
 		navigate: async (folder: string) => {
 			composer.leave();
 			root = URI.fromFilePath(folder);
@@ -130,6 +144,114 @@ const attachInitial = (drafts: ReturnType<typeof createContextDrafts>) => {
 };
 
 describe("conversation-first composer entry", () => {
+	it.each([false, true])(
+		"rejects retained Start after root removal and preserves its draft (context: %s)",
+		async (withContext) => {
+			const t = await setup(withContext);
+			const scope = contextScope(URI.fromFilePath("/w").path.fsPath());
+			t.drafts.select(scope);
+			t.composer.render().props.onGoal("Keep the original draft");
+			const start = t.composer.render().props.onStart;
+			const entered = Promise.withResolvers<void>();
+			const gate = Promise.withResolvers<void>();
+			t.loads.templates.mockImplementationOnce(async () => {
+				entered.resolve();
+				await gate.promise;
+				return ok({ templates: [] });
+			});
+			const pending = t.composer.refresh();
+			await entered.promise;
+			const closed = t.closeFolder();
+			t.drafts.select(undefined);
+			start();
+			await new Promise<void>((resolve) => setImmediate(resolve));
+			gate.resolve();
+			await Promise.all([pending, closed]);
+			expect(t.threadStart).not.toHaveBeenCalled();
+			expect(t.threadContextStart).not.toHaveBeenCalled();
+			expect(t.startRun).not.toHaveBeenCalled();
+			if (withContext)
+				expect(t.drafts.read(scope).message).toBe("Keep the original draft");
+			expect(t.composer.render().props.model.kind).toBe("no_folder");
+		},
+	);
+	it("rejects a previous Start callback after leaving and returning to the same folder", async () => {
+		const t = await setup(true);
+		const scope = contextScope(URI.fromFilePath("/w").path.fsPath());
+		t.drafts.select(scope);
+		t.composer.render().props.onGoal("Retain this draft");
+		const start = t.composer.render().props.onStart;
+		await t.navigate("/next");
+		await t.navigate("/w");
+		start();
+		await new Promise<void>((resolve) => setImmediate(resolve));
+		expect(t.threadStart).not.toHaveBeenCalled();
+		expect(t.drafts.read(scope).message).toBe("Retain this draft");
+	});
+	it.each(["templates", "changes", "quota"] as const)(
+		"reconciles root removal while %s is pending without publishing stale focus readiness",
+		async (stage) => {
+			const t = await setup();
+			const entered = Promise.withResolvers<void>();
+			const gate = Promise.withResolvers<void>();
+			const wait = async () => {
+				entered.resolve();
+				await gate.promise;
+			};
+			if (stage === "templates")
+				t.loads.templates.mockImplementationOnce(async () => {
+					await wait();
+					return ok({ templates: [] });
+				});
+			if (stage === "changes")
+				t.loads.changes.mockImplementationOnce(async () => {
+					await wait();
+					return ok({ vcs: false, branch: null, files: [] });
+				});
+			if (stage === "quota")
+				t.loads.quota.mockImplementationOnce(async () => {
+					await wait();
+					return ok({ providers: [], units: [] });
+				});
+			const pending = t.composer.refresh();
+			await entered.promise;
+			const closed = t.closeFolder();
+			const focusAfterClose = t.composer.canFocusGoal();
+			const readiness: boolean[] = [];
+			const listener = t.composer.onDidChange(() =>
+				readiness.push(t.composer.canFocusGoal()),
+			);
+			gate.resolve();
+			await Promise.all([pending, closed]);
+			listener.dispose();
+			expect(t.composer.render().props.model.kind).toBe("no_folder");
+			expect(t.composer.canFocusGoal()).toBe(false);
+			expect(focusAfterClose).toBe(false);
+			expect(readiness).not.toContain(true);
+		},
+	);
+	it("offers no-folder recovery after the previously loaded workspace closes", async () => {
+		const t = await setup();
+		await t.closeFolder();
+		expect(t.composer.render().props.model.kind).toBe("no_folder");
+		expect(t.composer.canFocusGoal()).toBe(false);
+	});
+	it("routes the no-folder recovery action to Theia without starting a daemon", async () => {
+		const executeCommand = vi.fn(async () => {});
+		const templates = vi.fn();
+		const composer = new RunComposer({
+			workspace: { roots: Promise.resolve([]), tryGetRoots: () => [] },
+			commands: { executeCommand },
+			daemon: { templates },
+		});
+		await composer.reopen();
+		expect(composer.render().props.model.kind).toBe("no_folder");
+		composer.render().props.onOpenFolder();
+		expect(executeCommand).toHaveBeenCalledExactlyOnceWith(
+			"workspace:openFolder",
+		);
+		expect(templates).not.toHaveBeenCalled();
+	});
 	it("retains the entire initial uncertain request across workspace navigation until an explicit settings edit", async () => {
 		const t = await setup(true);
 		attachInitial(t.drafts);

@@ -52,7 +52,6 @@ export type BoardModel =
 			readonly pulse?: { readonly event: MeteEvent; readonly before: TeamView };
 	  };
 
-// The Board fills the panel.
 const BOARD: CSSProperties = {
 	...PANEL,
 	height: "100%",
@@ -107,6 +106,7 @@ export type TeamControls = {
 	readonly onReply?: (message: string) => Promise<string | undefined>;
 	readonly tools?: ReactNode;
 	readonly taskControls?: ReactNode;
+	readonly verification?: ReactNode;
 	readonly threadHistory?: ReactNode;
 	readonly replyReady?: boolean | undefined;
 	readonly onDraftChange?: (() => void) | undefined;
@@ -115,10 +115,15 @@ export type TeamControls = {
 	readonly attachments?: ReactNode | undefined;
 };
 
-const usesTaskControls = (
+const runKind = (
 	model: Extract<BoardModel, { kind: "board" }>,
 	controls: TeamControls,
-) => model.view.tasks.length > 0 || controls.run.run?.templateId !== null;
+) =>
+	model.view.tasks.length > 0 || controls.run.run?.templateId
+		? "team"
+		: controls.run.run?.templateId === null
+			? "single"
+			: "unknown";
 
 const MODE_ICONS: Readonly<Record<TeamMode, string>> = {
 	board: "project",
@@ -321,8 +326,9 @@ const Board = ({
 		) : null}
 		<div className="mete-run-body">
 			<div className="mete-run-center">
-				{usesTaskControls(model, controls) &&
+				{runKind(model, controls) === "team" &&
 					taskControlNotice(controls.taskControls)}
+				{runKind(model, controls) === "team" && controls.verification}
 				{model.view.tasks.length === 0 ? (
 					<Ended model={model} controls={controls} />
 				) : null}
@@ -330,7 +336,7 @@ const Board = ({
 					<NoBoard model={model} controls={controls} />
 				) : (
 					<>
-						{usesTaskControls(model, controls) &&
+						{runKind(model, controls) !== "single" &&
 						model.view.signals.pausedFor === "approval" ? null : (
 							<NowSlot
 								view={model.view}
@@ -380,7 +386,7 @@ export const BoardView = ({
 			<p role="alert">{failureText(model.failure)}</p>
 		) : null}
 		{model.kind === "board" ? (
-			!usesTaskControls(model, controls) && controls.onReply ? (
+			runKind(model, controls) === "single" && controls.onReply ? (
 				<ChatBoard
 					model={model}
 					controls={controls}

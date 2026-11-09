@@ -1,0 +1,90 @@
+.mete-skills {
+	min-width: 0;
+}
+
+.mete-skills-list,
+.mete-skills-diagnostics {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.mete-skills-row {
+	padding: 12px 0;
+	border-bottom: 1px solid var(--theia-panel-border);
+}
+
+.mete-skills-row-head,
+.mete-skills-source,
+.mete-skills-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	min-width: 0;
+}
+
+.mete-skills-row-head > strong {
+	flex: 1 1 auto;
+}
+
+.mete-skills-row p {
+	margin: 8px 0;
+}
+
+.mete-skills-source,
+.mete-skills-preview dl {
+	color: var(--theia-descriptionForeground);
+}
+
+.mete-skills code,
+.mete-skills p,
+.mete-skills strong,
+.mete-skills dd {
+	overflow-wrap: anywhere;
+	min-width: 0;
+}
+
+.mete-skills-diagnostics li {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	color: var(--theia-errorForeground);
+}
+
+.mete-skills-preview {
+	margin-top: 16px;
+}
+
+.mete-skills-preview dd {
+	margin: 4px 0 12px;
+}
+
+.mete-skills-text {
+	box-sizing: border-box;
+	display: block;
+	width: 100%;
+	height: 320px;
+	max-height: 320px;
+	resize: vertical;
+	overflow: auto;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	padding: 8px;
+	font-family: var(--theia-code-font-family);
+	font-size: inherit;
+	border: 1px solid var(--theia-panel-border);
+	background: var(--theia-editor-background);
+	color: var(--theia-editor-foreground);
+	caret-color: var(--theia-editor-foreground);
+	scrollbar-color: var(--theia-scrollbarSlider-background) transparent;
+}
+
+.mete-skills :focus-visible {
+	outline: 1px solid var(--theia-focusBorder);
+	outline-offset: 2px;
+}
+
+.mete-skills ::selection {
+	background: var(--theia-editor-selectionBackground);
+}

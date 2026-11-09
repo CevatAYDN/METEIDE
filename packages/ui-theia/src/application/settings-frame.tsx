@@ -14,6 +14,7 @@ const GROUP_ICONS: Readonly<Record<GroupId, string>> = {
 	limits: "workspace-trusted",
 	privacy: "lock",
 	tools: "tools",
+	skills: "book",
 	teams: "organization",
 	look: "symbol-color",
 	other: "file",
@@ -152,7 +153,7 @@ const GroupItem = ({
 	);
 };
 
-/** The list of groups at the left, the chosen one pressed (ADR-095). */
+/** Category buttons at the left, or a native selector in narrow panels (ADR-180). */
 export const GroupList = ({
 	groups,
 	chosen,
@@ -166,6 +167,23 @@ export const GroupList = ({
 		className="mete-settings-nav"
 		aria-label={nls.localize("mete/groups/list", "Settings groups")}
 	>
+		{groups.length > 0 ? (
+			<select
+				className="mete-field mete-settings-category"
+				aria-label={nls.localize("mete/groups/list", "Settings groups")}
+				value={chosen?.id ?? ""}
+				onChange={(event) => {
+					const group = groups.find((g) => g.id === event.currentTarget.value);
+					if (group) onGroup(group.id);
+				}}
+			>
+				{groups.map((g) => (
+					<option key={g.id} value={g.id}>
+						{g.label}
+					</option>
+				))}
+			</select>
+		) : null}
 		{groups.map((g) => (
 			<GroupItem
 				key={g.id}

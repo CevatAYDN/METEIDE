@@ -132,3 +132,17 @@ it("explains interrupted setup without replacing the explicit feedback action", 
 	expect(out).toContain('name="feedback"');
 	expect(out).not.toContain("Retry merge");
 });
+
+it("explains a verification block without adding an approval or replay shortcut", () => {
+	const out = html({
+		...state,
+		requests: [{ ...base, kind: "blocked", reason: "verification" }],
+	});
+	expect(out).toContain(
+		"Verification needs attention. Inspect the recorded checks and any interrupted effects before continuing.",
+	);
+	expect(out).toContain("Continue with feedback");
+	expect(out).toContain('name="feedback"');
+	expect(out).not.toContain(">Approve<");
+	expect(out).not.toContain("Retry merge");
+});

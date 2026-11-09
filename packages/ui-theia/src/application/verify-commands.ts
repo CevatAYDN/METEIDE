@@ -24,6 +24,8 @@ export const withRuns = (
 	const take = (run: string, replaced?: unknown): unknown => {
 		const i = commands.findIndex((g) => commandOf(g) === run);
 		if (i >= 0) return commands.splice(i, 1)[0];
+		const replacedIndex = commands.indexOf(replaced);
+		if (replacedIndex >= 0) commands.splice(replacedIndex, 1);
 		return {
 			...(typeof replaced === "object" && replaced !== null ? replaced : {}),
 			run,

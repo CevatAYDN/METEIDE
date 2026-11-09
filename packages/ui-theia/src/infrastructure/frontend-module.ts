@@ -1,6 +1,7 @@
 import { CommandContribution, MenuContribution } from "@theia/core";
 import { FrontendApplicationContribution } from "@theia/core/lib/browser/frontend-application-contribution";
 import { ServiceConnectionProvider } from "@theia/core/lib/browser/messaging/service-connection-provider";
+import { QuickCommandService } from "@theia/core/lib/browser/quick-input/quick-command-service";
 import { ContainerModule } from "@theia/core/shared/inversify";
 import { VSXExtensionEditorManager } from "@theia/vsx-registry/lib/browser/vsx-extension-editor-manager";
 import { VSXExtensionsModel } from "@theia/vsx-registry/lib/browser/vsx-extensions-model";
@@ -17,6 +18,7 @@ import { bindAssets } from "./assets-contribution.js";
 import { bindAudit } from "./audit-contribution.js";
 import { bindBoard } from "./board-contribution.js";
 import { bindChanges } from "./changes-contribution.js";
+import { MeteQuickCommandService } from "./command-palette.js";
 import { MeteEditorContextContribution } from "./editor-context-contribution.js";
 import { MeteEditorContext } from "./editor-context-service.js";
 import { UserInitiatedExtensionsModel } from "./extension-discovery.js";
@@ -36,6 +38,7 @@ import { bindWelcome } from "./welcome-contribution.js";
 // Theia's generated frontend loads this file by the path in package.json and binds `module.default`.
 // biome-ignore lint/style/noDefaultExport: Theia reads `default` from an extension module
 export default new ContainerModule((bind, _unbind, _isBound, rebind) => {
+	rebind(QuickCommandService).to(MeteQuickCommandService).inSingletonScope();
 	rebind(VSXExtensionsModel)
 		.to(UserInitiatedExtensionsModel)
 		.inSingletonScope();

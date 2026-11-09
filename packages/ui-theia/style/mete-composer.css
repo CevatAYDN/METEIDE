@@ -16,6 +16,10 @@
 	color: var(--ink, var(--theia-foreground));
 }
 
+.mete-composer > .mete-button {
+	align-self: flex-start;
+}
+
 /* Goal and actions share one unframed input surface. */
 .mete-composer .mete-composer-goal {
 	display: flex;

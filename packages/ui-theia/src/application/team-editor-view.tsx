@@ -12,6 +12,8 @@ import type {
 	TeamEditorModel,
 } from "./team-editor-model.js";
 import { TeamHero } from "./team-hero.js";
+import { TeamLearning } from "./team-learning.js";
+import { TeamWorkspaceActions } from "./team-workspace-actions.js";
 import { OrderOfWork } from "./work-order-view.js";
 
 export type {
@@ -51,7 +53,10 @@ const Members = ({
 					onSelect={actions.onSelectMember}
 					onAdd={actions.onAddMember}
 				/>
-				<OrderOfWork team={model.team} onSelect={actions.onSelectMember} />
+				<OrderOfWork
+					team={model.team}
+					onSelect={(index) => actions.onSelectMember(index, "tasks")}
+				/>
 			</div>
 			{r ? (
 				<div className="mete-team-form">
@@ -60,6 +65,10 @@ const Members = ({
 						key={i}
 						team={model.team}
 						index={i}
+						selection={{
+							section: model.memberSection ?? "member",
+							onSelect: (section) => actions.onSelectMember(i, section),
+						}}
 						fixed={model.fixedIds.includes(r.id)}
 						hints={capabilityHints(model.team)}
 						outputs={guardrailHints(model.team)}
@@ -110,7 +119,14 @@ export const TeamEditorView = ({
 		);
 	return (
 		<section className="mete-team">
+			<TeamWorkspaceActions busy={model.busy} onCommand={actions.onCommand} />
 			<TeamHero model={model} actions={actions} />
+			<TeamLearning
+				team={model.team}
+				busy={model.busy}
+				onEdit={actions.onEdit}
+				onCommand={actions.onCommand}
+			/>
 			<Members model={model} actions={actions} />
 		</section>
 	);

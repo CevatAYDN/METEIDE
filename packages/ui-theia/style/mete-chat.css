@@ -38,6 +38,22 @@
 .mete-chat-paused {
 	flex-basis: 100%;
 }
+.mete-chat-model {
+	display: flex;
+	flex-wrap: wrap;
+	flex-basis: 100%;
+	gap: 4px 12px;
+	min-width: 0;
+	max-width: 100%;
+	color: var(--muted-2, var(--theia-descriptionForeground));
+	font-size: 12px;
+	line-height: 1.5;
+}
+.mete-chat-model > span {
+	min-width: 0;
+	max-width: 100%;
+	overflow-wrap: anywhere;
+}
 .mete-thread-history {
 	flex: 0 1 auto;
 	max-height: 25%;

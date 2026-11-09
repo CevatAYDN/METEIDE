@@ -48,10 +48,7 @@ import {
 import "../../style/mete-composer.css";
 import "../../style/mete-picker.css";
 
-// The run composer (docs/13, Run composer; ADR-071) of the first open folder, shown by the Team panel
-// while it shows no run (ADR-078): it asks the daemon for the templates and each one's estimate every
-// time it is shown, so a new `.mete/teams/` file shows, and a started run takes the panel's place.
-
+// The Team panel hosts this composer (docs/13; ADR-071/078); reopening reloads teams and estimates.
 export type { StartedRun } from "../application/context-start.js";
 /** The METE run composer: its state and requests; the Team panel draws it. */
 @injectable()
@@ -70,24 +67,19 @@ export class MeteRunComposer {
 
 	protected model: ComposerModel = { kind: "loading" };
 	protected dir: string | undefined;
-	/** Every option, as the lists came; the shown ones narrow to the router's suggestions. */
 	protected all: readonly ComposerOption[] = [];
 	protected goal = "";
 	protected selected = "single";
 	protected singleModel: string | undefined;
 	protected capabilities: readonly ConversationCapability[] = [];
-	/** The folder's uncommitted changes, which a team's worktree does not hold (ADR-156); unknown when the ask failed. */
 	protected uncommitted: number | undefined = 0;
-	/** Counts the estimates asked again, so an answer that came after a newer ask is dropped. */
 	protected estimateAsked = 0;
 	protected roleModels: Record<string, Record<string, string>> = {};
 	protected readonly chainCache = new Map<string, readonly string[]>();
-	/** The model picker's facts and states, asked once the chains came (ADR-161 (5)). */
 	protected picker: PickerFacts | undefined;
 	protected busy = false;
 	protected error: string | undefined;
 	protected ready = false;
-	/** Why a list the composer asked for did not come, so a missing team or model says why. */
 	protected loadError: string | undefined;
 	protected pending: Promise<void> | undefined;
 	protected readonly localIntents = createSendIntent();
@@ -108,11 +100,9 @@ export class MeteRunComposer {
 
 	/** Whether the goal field exists and can receive focus. */
 	canFocusGoal(): boolean {
-		return this.ready;
+		return this.ready && this.current();
 	}
 
-	// Coming back to the composer asks for the teams again (ADR-071), so a team saved meanwhile
-	// shows; a refresh still loading or a start in flight is not asked twice.
 	/** Asks again unless a start is in flight; the panel calls it whenever it shows the composer. */
 	reopen(): Promise<void> {
 		return this.busy ? Promise.resolve() : this.refresh();
@@ -123,19 +113,30 @@ export class MeteRunComposer {
 		// The command and the tab's activation may both ask at once: they share one round of requests.
 		this.pending ??= this.load().finally(() => {
 			this.pending = undefined;
-			const dir = this.workspace.tryGetRoots?.()[0]?.resource.path.fsPath();
-			if (dir && dir !== this.dir) void this.refresh();
+			if (!this.current()) return this.refresh();
 		});
 		return this.pending;
 	}
 
+	protected current(dir = this.dir, version = this.selectionVersion): boolean {
+		return (
+			this.workspace.tryGetRoots()[0]?.resource.path.fsPath() === dir &&
+			dir === this.dir &&
+			version === this.selectionVersion
+		);
+	}
 	protected async load(): Promise<void> {
 		const [root] = await this.workspace.roots;
-		if (!root) return this.setModel({ kind: "no_folder" });
+		if (!root) {
+			this.dir = undefined;
+			this.ready = false;
+			return this.setModel({ kind: "no_folder" });
+		}
 		const dir = root.resource.path.fsPath();
 		this.openFolder(dir);
 		const failures: DaemonFailure[] = [];
 		const listed = await this.daemon.templates(dir);
+		if (!this.current(dir)) return;
 		if (!listed.ok) failures.push(listed.error);
 		const raw = listed.ok ? listed.value.templates : [];
 		const ctx: ChainContext = {
@@ -152,6 +153,7 @@ export class MeteRunComposer {
 				this.daemon.estimate(dir, id),
 			),
 		]);
+		if (!this.current(dir)) return;
 		this.all = optionsOf(templates, estimates, singleModels);
 		if (!changes.ok) failures.push(changes.error);
 		this.uncommitted = changes.ok ? changes.value.files.length : undefined;
@@ -162,12 +164,15 @@ export class MeteRunComposer {
 			: "choose";
 		this.setModel({ kind: "ready", options: this.all, unsure: false });
 		this.ready = true;
-		// The list shows before the facts, which only add words to its rows.
+		await this.loadPicker(dir);
+	}
+	protected async loadPicker(dir: string): Promise<void> {
 		const chains = [...this.chainCache.values()].flat();
-		this.picker = await pickerFacts(this.daemon, dir, chains);
+		const picker = await pickerFacts(this.daemon, dir, chains);
+		if (!this.current(dir)) return;
+		this.picker = picker;
 		this.changed.fire();
 	}
-
 	protected openFolder(dir: string): void {
 		if (this.dir !== dir) {
 			const restored = initialSettings(this.context?.drafts, dir);
@@ -182,14 +187,14 @@ export class MeteRunComposer {
 		if (this.model.kind !== "ready") this.setModel({ kind: "loading" });
 		this.ready = false;
 	}
-
-	// Start sends the goal and the pick; an unsure router narrows the list in place (ADR-047), and a
-	// started run takes the composer's place in the Team panel.
-	protected async start(): Promise<void> {
+	protected async start(
+		version = this.selectionVersion,
+		dir = this.dir,
+	): Promise<void> {
 		const option = this.options().find((o) => o.key === this.selected);
-		const dir = this.dir;
-		const goal = initialMessage(this.context?.drafts, dir, this.goal);
-		if (!dir || !option || this.busy || !goal.trim()) return;
+		const goal = initialMessage(this.context?.drafts, dir, this.goal).trim();
+		if (!dir || !option || this.busy || !goal || !this.current(dir, version))
+			return;
 		const failure = contextStartFailure(
 			this.context?.drafts,
 			dir,
@@ -200,7 +205,6 @@ export class MeteRunComposer {
 			this.changed.fire();
 			return;
 		}
-		const version = this.selectionVersion;
 		this.busy = true;
 		this.error = undefined;
 		this.changed.fire();
@@ -221,7 +225,6 @@ export class MeteRunComposer {
 		else this.error = failureText(r.error);
 		this.changed.fire();
 	}
-
 	protected startSelected(dir: string, option: ComposerOption) {
 		return startComposerMessage({
 			daemon: this.daemon,
@@ -235,7 +238,6 @@ export class MeteRunComposer {
 		});
 	}
 
-	// The model choice of an option: the single agent's, or its roles' (ADR-122).
 	protected preferFor(option: ComposerOption): RunPrefer | undefined {
 		const rolePrefs =
 			typeof option.templateId === "string"
@@ -263,7 +265,6 @@ export class MeteRunComposer {
 		this.setModel({ ...this.model, options });
 	}
 
-	// A typed choice asks again once it is a listed model or cleared, so typing sends nothing.
 	protected chose(model: string, listed: readonly string[] | undefined) {
 		this.changed.fire();
 		if (settledChoice(model, listed)) void this.reestimate();
@@ -320,8 +321,8 @@ export class MeteRunComposer {
 			/>
 		) : undefined;
 	}
-
 	render() {
+		const { dir, selectionVersion } = this;
 		const { current, scope, preparing, goal } = composerContext(
 			this.workspace,
 			this.dir,
@@ -350,7 +351,10 @@ export class MeteRunComposer {
 				picker={this.picker}
 				roleModels={this.selected ? this.roleModels[this.selected] : undefined}
 				{...this.draftHandlers(!!preparing, scope)}
-				onStart={() => void this.start()}
+				onStart={() => void this.start(selectionVersion, dir)}
+				onOpenFolder={() =>
+					void this.commands.executeCommand("workspace:openFolder")
+				}
 				onEdit={(id) =>
 					void this.commands.executeCommand(EDIT_TEAM_COMMAND.id, id)
 				}

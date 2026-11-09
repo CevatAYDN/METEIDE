@@ -3,6 +3,8 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { approvedSkill, skillList, skillPreview } from "./skill-fixture.js";
+import { verificationFixture } from "./verification-fixture.js";
 
 // A script that speaks the daemon protocol like `mete daemon`, run by a real Node child, so the host
 // is tested over real pipes without Electron or @mete/cli. The mode (argv 3) picks its behaviour.
@@ -18,6 +20,40 @@ if (mode === "exit") {
 }
 const run = { id: "6f1c3d52-9b7e-4a52-8d5f-0a1b2c3d4e5f", workspaceId: "0b6f0a43-3f0e-4a3e-9a58-1b2c3d4e5f60", templateId: null, goal: "fix it", status: "paused", pauseReason: "quota", autonomyLevel: 2, budget: { cloudRequests: 10, maxHours: 1 }, createdAt: "2026-10-23T10:00:00.000Z" };
 const conn = createMessageConnection(new StreamMessageReader(process.stdin), new StreamMessageWriter(process.stdout));
+const skillSession = require("node:crypto").randomUUID();
+conn.onRequest("mete/skills.list", () => {
+	const list = ${JSON.stringify(skillList)};
+	list.value.sessionId = skillSession;
+	return mode === "skills-list-bad" ? { ...list, extra: true } : list;
+});
+conn.onRequest("mete/skills.prepare", (p) => {
+	if (p.sessionId !== skillSession) return { ok: false, error: { code: "stale" } };
+	const preview = ${JSON.stringify(skillPreview)};
+	preview.value.sessionId = skillSession;
+	preview.value.expiresAt = new Date(Date.now() + 300000).toISOString();
+	return mode === "skills-preview-bad" ? { ...preview, extra: true } : preview;
+});
+const mutateSkill = (p) => {
+	if (p.sessionId !== skillSession) return { admitted: false, result: { ok: false, error: { code: "stale" } } };
+	if (mode === "skills-lost") process.exit(1);
+	if (mode === "skills-busy" || mode === "one") return { admitted: false, result: { ok: false, error: { code: "busy" } } };
+	if (mode === "skills-malformed") return { result: { ok: true, value: ${JSON.stringify(approvedSkill)} } };
+	return { admitted: true, result: mode === "skills-admitted-error"
+		? { ok: false, error: { code: "storage_failed" } }
+		: { ok: true, value: ${JSON.stringify(approvedSkill)} } };
+};
+conn.onRequest("mete/skills.approve", mutateSkill);
+conn.onRequest("mete/skills.disable", mutateSkill);
+conn.onRequest("mete/task.verification", (p) => {
+	if (p.runId !== ${JSON.stringify("11111111-1111-4111-8111-111111111111")}) throw new ResponseError(-32000, "wrong verification run", { code: "not_found" });
+	if (mode === "notready") throw new ResponseError(-32000, "core-engine unavailable", { code: "not_ready", reasons: ["core-engine unavailable"] });
+	if (mode === "no-verification") throw new ResponseError(-32601, "verification unavailable");
+	if (mode === "legacy-verification") return { mode: "legacy", tasks: [] };
+	const evidence = ${JSON.stringify(verificationFixture)};
+	if (mode === "bad-verification") return { ...evidence, extra: true };
+	if (mode === "bad-gate-verification") evidence.tasks[0].evaluations[0].gates[0].reason = "interrupted";
+	return evidence;
+});
 conn.onRequest("mete/daemon.quiesce", () => {
 	if (mode === "one") throw new ResponseError(-32000, "work is active", { code: "failed" });
 	return null;

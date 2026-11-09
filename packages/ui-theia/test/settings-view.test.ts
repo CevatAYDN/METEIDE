@@ -177,6 +177,7 @@ describe("the Settings forms (ADR-082)", () => {
 			file: "/w/.mete/gateway.yaml",
 			values: { models: "both", dailySpendUsd: undefined },
 			defaults: { models: "free", dailySpendUsd: 1 },
+			readValid: true,
 			busy: false,
 			dirty: false,
 			...state,
@@ -260,6 +261,7 @@ describe("the Settings forms (ADR-082)", () => {
 								gitBashPath: "C:/Program Files/Git/bin/bash.exe",
 							},
 							defaults: { windows: "powershell", gitBashPath: undefined },
+							readValid: true,
 							busy: false,
 							dirty: false,
 						},
@@ -905,7 +907,7 @@ describe("the groups list (ADR-095)", () => {
 		const out = html(LOADED, "privacy");
 		for (const text of [
 			"Models and keys",
-			"What the team may do alone",
+			"Permissions and approvals",
 			"Privacy",
 			"Tools and web search",
 			"Teams",

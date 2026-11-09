@@ -8,9 +8,11 @@ import {
 	TaskPendingResultSchema,
 } from "@mete/contracts";
 import type { Send } from "./settings-requests.js";
+import { verificationRequests } from "./verification-requests.js";
 
 /** Protocol 30's exact task controls; malformed inputs never reach the daemon. */
 export const taskControlRequests = (send: Send) => ({
+	...verificationRequests(send),
 	taskPending: (dir: string, runId: string) => {
 		const input = TaskPendingInputSchema.safeParse({ runId });
 		if (!input.success)

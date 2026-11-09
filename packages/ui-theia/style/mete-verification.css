@@ -1,0 +1,86 @@
+/* Authoritative task evidence uses the native rail, not a second status engine. */
+.mete-verification {
+	min-width: 0;
+	padding-bottom: 12px;
+	margin-bottom: 12px;
+	border-bottom: 1px solid var(--theia-panel-border);
+	overflow-wrap: anywhere;
+}
+.mete-verification header,
+.mete-verification-gate {
+	display: flex;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.mete-verification header {
+	justify-content: space-between;
+	align-items: center;
+}
+.mete-verification h3,
+.mete-verification h4 {
+	margin: 8px 0;
+	font-size: inherit;
+	font-weight: 600;
+}
+.mete-verification summary {
+	padding: 6px 0;
+	cursor: pointer;
+}
+.mete-verification summary:hover {
+	background: var(--theia-toolbar-hoverBackground);
+}
+.mete-verification summary:focus-visible {
+	outline: 1px solid var(--theia-focusBorder);
+	outline-offset: 2px;
+}
+.mete-verification-task,
+.mete-verification-other {
+	border-top: 1px solid var(--theia-panel-border);
+}
+.mete-verification-summary {
+	display: block;
+	font-weight: 600;
+}
+.mete-verification-gates {
+	list-style: none;
+	padding: 0;
+	margin: 8px 0;
+}
+.mete-verification-gates > li {
+	padding: 8px 0;
+}
+.mete-verification p {
+	margin: 6px 0;
+}
+.mete-verification pre {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	margin: 6px 0;
+}
+.mete-verification dl {
+	margin: 6px 0;
+}
+.mete-verification dt {
+	font-weight: 600;
+}
+.mete-verification dd {
+	margin: 2px 0 6px;
+}
+.mete-verification code {
+	font-family: var(--theia-code-font-family, monospace);
+}
+.mete-command-options {
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	overflow-wrap: anywhere;
+}
+.mete-command-options legend {
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+.mete-command-options .mete-tick {
+	margin: 6px 0;
+}

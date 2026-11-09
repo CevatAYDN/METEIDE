@@ -3,20 +3,14 @@ import {
 	type AllowScope,
 	type ApprovalInput,
 	DAEMON_METHODS,
-	DaemonAuditResultSchema,
 	DaemonChainResultSchema,
-	DaemonChangesResultSchema,
 	DaemonCheckpointRestoreResultSchema,
 	DaemonDoneResultSchema,
 	DaemonErrorDataSchema,
 	DaemonEstimateResultSchema,
-	DaemonEventsResultSchema,
-	DaemonKnowledgeSearchResultSchema,
 	DaemonMemberDraftResultSchema,
 	DaemonModelsResultSchema,
-	DaemonQuotaResultSchema,
 	DaemonRunStartResultSchema,
-	DaemonStatusResultSchema,
 	DaemonStopAllResultSchema,
 	DaemonTemplateReadResultSchema,
 	DaemonTemplatesResultSchema,
@@ -31,7 +25,6 @@ import {
 	RunReplyOutputSchema,
 	type RunStart,
 	type Tier,
-	TranscriptSchema,
 } from "@mete/contracts";
 import {
 	createMessageConnection,
@@ -44,12 +37,14 @@ import { STDERR_TAIL_LINES } from "../defaults.js";
 import type { RestartPolicy } from "../domain/restart-policy.js";
 import type { DaemonFailure, Need } from "../domain/status-service.js";
 import { conversationRequests } from "./conversation-requests.js";
+import { daemonReadRequests } from "./daemon-read-requests.js";
 import { mcpConnectionRequests } from "./mcp-connection-requests.js";
 import {
 	type Parsed,
 	type Send,
 	settingsRequests,
 } from "./settings-requests.js";
+import { type SkillTransport, skillRequests } from "./skill-requests.js";
 import { taskControlRequests } from "./task-control-requests.js";
 import { threadContextRequests } from "./thread-context-requests.js";
 
@@ -221,43 +216,6 @@ const ensure = async (
 	return ok(slot.live);
 };
 
-const reads = (send: Send) => ({
-	status: (dir: string, runId?: string) =>
-		send(
-			dir,
-			DAEMON_METHODS.status,
-			runId === undefined ? {} : { runId },
-			(raw) => DaemonStatusResultSchema.safeParse(raw),
-		),
-	events: (dir: string, runId: string) =>
-		send(dir, DAEMON_METHODS.events, { runId }, (raw) =>
-			DaemonEventsResultSchema.safeParse(raw),
-		),
-	transcript: (dir: string, runId: string) =>
-		send(dir, DAEMON_METHODS.runTranscript, { runId }, (raw) =>
-			TranscriptSchema.safeParse(raw),
-		),
-	audit: (dir: string, filter: object) =>
-		send(dir, DAEMON_METHODS.audit, filter, (raw) =>
-			DaemonAuditResultSchema.safeParse(raw),
-		),
-	knowledgeSearch: (dir: string, query: string) =>
-		send(dir, DAEMON_METHODS.knowledgeSearch, { query }, (raw) =>
-			DaemonKnowledgeSearchResultSchema.safeParse(raw),
-		),
-	changes: (dir: string, path?: string) =>
-		send(
-			dir,
-			DAEMON_METHODS.changes,
-			path === undefined ? {} : { path },
-			(raw) => DaemonChangesResultSchema.safeParse(raw),
-		),
-	quota: (dir: string) =>
-		send(dir, DAEMON_METHODS.quota, {}, (raw) =>
-			DaemonQuotaResultSchema.safeParse(raw),
-		),
-});
-
 /** One member drafted from the user's idea, for the team editor (ADR-108). */
 const draftRead = (send: Send) => ({
 	memberDraft: (
@@ -348,6 +306,50 @@ const steering = (
 const cancellable = (slot: Slot) => (dir: string) =>
 	slot.live?.dir === dir && !slot.live.ended && !slot.live.stopping;
 
+const skillTransport = (slot: Slot, live: Live): SkillTransport => ({
+	identity: live,
+	current: () => slot.live === live && !live.ended && !live.stopping,
+	ended: () => live.ended,
+	send: (method, params, parse) => call(live, method, params, parse),
+	retire: async () => {
+		live.stopping = true;
+		await askToStop(live)?.closed;
+	},
+});
+
+const hostSkills = (deps: HostDeps, slot: Slot) =>
+	skillRequests({
+		acquire: async (dir) => {
+			const live = await ensure(deps, slot, dir);
+			return live.ok ? ok(skillTransport(slot, live.value)) : live;
+		},
+		current: (dir) =>
+			slot.live?.dir === dir ? skillTransport(slot, slot.live) : undefined,
+	});
+
+const restartIdle =
+	(slot: Slot) =>
+	async (dir: string): Promise<Result<null, DaemonFailure>> => {
+		const live = slot.live;
+		if (!live || live.dir !== dir || live.ended || live.stopping)
+			return err({
+				code: "stopped",
+				detail:
+					"The workspace daemon changed; refresh before applying settings",
+			});
+		const ready = await call(live, DAEMON_METHODS.quiesce, {}, (raw) =>
+			DaemonDoneResultSchema.safeParse(raw),
+		);
+		if (!ready.ok) return ready;
+		if (slot.live !== live)
+			return err({
+				code: "stopped",
+				detail: "The workspace changed during restart",
+			});
+		await askToStop(live)?.closed;
+		return ok(null);
+	};
+
 /** Serves the daemon's requests for one folder at a time; another folder replaces the daemon. */
 export const createDaemonHost = (deps: HostDeps) => {
 	const slot: Slot = {};
@@ -358,10 +360,11 @@ export const createDaemonHost = (deps: HostDeps) => {
 	};
 	const done = (raw: unknown) => DaemonDoneResultSchema.safeParse(raw);
 	return {
-		...reads(send),
+		...daemonReadRequests(send),
 		...draftRead(send),
 		...composing(send),
 		...settingsRequests(send),
+		...hostSkills(deps, slot),
 		...mcpConnectionRequests(send, cancellable(slot)),
 		...conversationRequests(send),
 		...threadContextRequests(send),
@@ -373,24 +376,7 @@ export const createDaemonHost = (deps: HostDeps) => {
 				DaemonStopAllResultSchema.safeParse(raw),
 			),
 		stop: () => void askToStop(slot.live),
-		restartIdle: async (dir: string): Promise<Result<null, DaemonFailure>> => {
-			const live = slot.live;
-			if (!live || live.dir !== dir || live.ended || live.stopping)
-				return err({
-					code: "stopped",
-					detail:
-						"The workspace daemon changed; refresh before applying settings",
-				});
-			const ready = await call(live, DAEMON_METHODS.quiesce, {}, done);
-			if (!ready.ok) return ready;
-			if (slot.live !== live)
-				return err({
-					code: "stopped",
-					detail: "The workspace changed during restart",
-				});
-			await askToStop(live)?.closed;
-			return ok(null);
-		},
+		restartIdle: restartIdle(slot),
 		/** Stops the daemon and waits until it has ended; the next call starts it again, uncounted (ADR-049). */
 		restart: async () => {
 			await askToStop(slot.live)?.closed;

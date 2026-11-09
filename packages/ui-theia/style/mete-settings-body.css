@@ -55,11 +55,7 @@
 		var(--warn, var(--theia-editorWarning-foreground)) 14%,
 		var(--panel, var(--theia-editorWidget-background))
 	);
-	color: color-mix(
-		in srgb,
-		var(--warn, var(--theia-editorWarning-foreground)) 45%,
-		var(--ink, var(--theia-foreground))
-	);
+	color: var(--ink, var(--theia-foreground));
 }
 
 .mete-origin.here::before {

@@ -20,6 +20,7 @@ import {
 	IDLE_BOARD,
 	loadedBoard,
 	receiveBoard,
+	type Shown,
 	startBoard,
 } from "../application/board-session.js";
 import {
@@ -41,10 +42,13 @@ import { createTaskControlPanel } from "../application/task-control-panel.js";
 import { roleNames, teamName } from "../application/team-draft.js";
 import { createTranscriptSession } from "../application/transcript-session.js";
 import { isPage } from "../application/worktree-files.js";
-import { waitsForQuota } from "../domain/home-model.js";
 import { MeteDaemonService } from "../domain/status-service.js";
 import { boardContextListeners, createBoardContext } from "./board-context.js";
-import { boardScenes, boardWaiting } from "./board-presentations.js";
+import {
+	boardScenes,
+	boardWaiting,
+	readBoardRun,
+} from "./board-presentations.js";
 import { MeteEditorContext } from "./editor-context-service.js";
 import { focusComposer } from "./focus-composer.js";
 import { MetePanelWidget } from "./panel-widget.js";
@@ -84,6 +88,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 		() => this.daemon,
 		() => this.session.shown,
 		() => this.update(),
+		() => this.session.view.tasks.length > 0 || !!this.run.run?.templateId,
 	);
 	protected readonly transcripts = createTranscriptSession({
 		fetch: (dir, runId) => this.daemon.transcript(dir, runId),
@@ -133,7 +138,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 			),
 			this.themes.onDidColorThemeChange(() => this.update()),
 			this.events.onDidReceive(({ workspaceDir, event }) => {
-				this.tasks.session.onEvent(workspaceDir, event);
+				this.tasks.onEvent(workspaceDir, event);
 				this.setSession(receiveBoard(this.session, workspaceDir, event));
 				this.transcripts.onEvent(event);
 				const shown = this.session.shown;
@@ -141,7 +146,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 				if (event.type.startsWith("run."))
 					void this.conversation.history.refresh();
 				if (shown && event.runId === shown.runId)
-					this.onShownEvent(shown.dir, shown.runId, event);
+					this.onShownEvent(shown, event);
 			}),
 			this.composer.onDidChange(() => {
 				this.update();
@@ -151,33 +156,35 @@ export class MeteBoardWidget extends MetePanelWidget {
 				this.conversation.remember(s, s.capabilities);
 				void this.showRun(s.dir, s.runId, s.goal);
 			}),
-			{ dispose: () => this.shownRun.set(undefined) },
+			{
+				dispose: () => {
+					this.session = IDLE_BOARD;
+					this.shownRun.set(undefined);
+				},
+			},
 			{ dispose: () => this.transcripts.dispose() },
-			{ dispose: () => this.tasks.session.clear() },
+			{ dispose: () => this.tasks.clear() },
 			{ dispose: this.conversation.dispose },
 		]);
 	}
-
-	protected onShownEvent(dir: string, runId: string, event: MeteEvent) {
+	protected onShownEvent(shown: Shown, event: MeteEvent) {
 		if (event.type === "run.created")
 			this.models.setTemplate(event.payload.templateId);
 		if (event.type === "run.removed") void this.showComposer();
-		else if (event.type.startsWith("run.")) void this.loadRun(dir, runId);
+		else if (event.type.startsWith("run.")) void this.loadRun(shown);
 	}
-
 	/** Shows the run composer in place of the run. */
 	showComposer(): Promise<void> {
 		this.conversation.clear();
 		this.conversation.selectInitial();
-		this.tasks.session.clear();
+		this.tasks.clear();
 		this.composing = true;
 		this.shownRun.set(undefined);
 		this.setSession(IDLE_BOARD);
-		this.update();
 		return this.composer.reopen();
 	}
-
 	async showRun(dir: string, runId: string, goal: string): Promise<void> {
+		if (this.isDisposed) return;
 		this.conversation.clear();
 		this.composing = false;
 		this.shownRun.set(runId);
@@ -187,41 +194,35 @@ export class MeteBoardWidget extends MetePanelWidget {
 		this.asked = new Set();
 		this.models.show(dir, runId);
 		const shown = { dir, runId, goal };
+		const current = () => !this.isDisposed && this.session.shown === shown;
 		this.setSession(startBoard(shown));
-		void this.tasks.session.show(dir, runId);
+		this.tasks.show(dir, runId);
 		this.transcripts.show(dir, runId);
 		const r = await this.daemon.events(dir, runId);
+		if (!current()) return;
 		const created = r.ok
 			? r.value.events.find((e) => e.type === "run.created")
 			: undefined;
-		if (created?.type === "run.created")
-			this.models.setTemplate(created.payload.templateId);
+		if (created) this.models.setTemplate(created.payload.templateId);
 		this.setSession(loadedBoard(this.session, shown, r));
-		if (this.session.shown !== shown) return;
 		if (!created?.payload.templateId)
 			await this.conversation.history.show(shown);
-		if (this.session.shown === shown && !created?.payload.templateId)
-			this.conversation.selectRun(shown);
-		void this.loadRun(dir, runId);
-		if (created?.type === "run.created" && created.payload.templateId)
+		if (!current()) return;
+		if (!created?.payload.templateId) this.conversation.selectRun(shown);
+		await this.loadRun(shown);
+		if (!current()) return;
+		if (created?.payload.templateId)
 			void this.loadNames(dir, runId, created.payload.templateId);
 	}
-
-	protected async loadRun(dir: string, runId: string): Promise<void> {
-		const r = await this.daemon.status(dir, runId);
-		if (!r.ok || this.shownRun.runId !== runId) return;
-		const run = r.value.find((x) => x.id === runId);
-		if (!run) return;
-		const q = waitsForQuota(run) ? await this.daemon.quota(dir) : undefined;
-		if (this.shownRun.runId !== runId) return;
-		const blocked = q?.ok
-			? q.value.providers.filter((p) => p.state !== "ready")
-			: [];
-		this.run = { ...this.run, run, blocked };
-		this.models.onRun(run, this.session.view.agents[0]?.roleId ?? "assistant");
-		this.update();
+	protected async loadRun(shown: Shown): Promise<void> {
+		const current = () => !this.isDisposed && this.session.shown === shown;
+		const facts = await readBoardRun(this.daemon, shown, current);
+		if (!facts || !current()) return;
+		this.run = { ...this.run, ...facts };
+		const role = this.session.view.agents[0]?.roleId ?? "assistant";
+		this.models.onRun(facts.run, role);
+		this.tasks.sync();
 	}
-
 	protected async loadNames(dir: string, runId: string, templateId: string) {
 		const t = await this.daemon.readTemplate(dir, templateId);
 		const stale =
@@ -233,13 +234,11 @@ export class MeteBoardWidget extends MetePanelWidget {
 		this.update();
 		void this.models.loadTemplate(t.value.yaml);
 	}
-
 	protected decide(command: string, feedback?: string) {
 		const runId = this.shownRun.runId;
 		if (!runId) return Promise.resolve();
 		return this.commands.executeCommand(command, runId, feedback);
 	}
-
 	protected override onActivateRequest(msg: Message): void {
 		super.onActivateRequest(msg);
 		if (!this.showsComposer()) return;
@@ -262,7 +261,6 @@ export class MeteBoardWidget extends MetePanelWidget {
 	protected showsComposer() {
 		return this.composing || this.session.model.kind === "no_run";
 	}
-
 	protected async restore(checkpointId: string): Promise<void> {
 		const shown = this.session.shown;
 		if (!shown || this.restoring) return;
@@ -278,7 +276,6 @@ export class MeteBoardWidget extends MetePanelWidget {
 		if (!r.ok) return void this.messages.warn(failureText(r.error, plain));
 		void this.messages.info(restoredText(r.value));
 	}
-
 	protected async openReport(path: string): Promise<void> {
 		const shown = this.session.shown;
 		if (!shown) return;
@@ -289,7 +286,6 @@ export class MeteBoardWidget extends MetePanelWidget {
 			void this.messages.warn(String(e));
 		}
 	}
-
 	protected showFiles(
 		worktree: string,
 		changed?: readonly string[],
@@ -316,7 +312,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 	protected setSession(next: BoardSession): void {
 		const drawn = next.model !== this.session.model;
 		this.session = next;
-		if (drawn) this.update();
+		if (drawn) this.tasks.sync();
 		this.tickThinking();
 		this.askWindows();
 		void this.models.askChains(this.session.view.agents);
@@ -374,7 +370,7 @@ export class MeteBoardWidget extends MetePanelWidget {
 			modelFacts: this.models.picker,
 			transcript: this.transcripts.state,
 			...this.conversation.controls(),
-			taskControls: this.tasks.render(),
+			...this.tasks.controls(),
 			waiting: boardWaiting(
 				this.decide.bind(this),
 				this.allowShown.bind(this),

@@ -1,17 +1,33 @@
-/* The Welcome screen in the design set's look (ADR-128): a hero band with the first step beside the
-   title, the keys' card, privacy and web search side by side, and the start bar. Every rule hangs
-   off `.mete-welcome`; the form parts' base is in mete-form.css. */
+/* ADR-180: setup scrolls within the panel while the compact continuation stays in layout.
+   The existing step order and form parts in mete-form.css are retained. */
 
 .mete-welcome {
 	container-type: inline-size;
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	padding: 12px;
+	display: grid;
+	grid-template-rows: minmax(0, 1fr) auto;
+	box-sizing: border-box;
+	height: 100%;
+	min-height: 0;
+	min-width: 0;
+	gap: 8px;
+	padding: 8px;
 	font-size: 13px;
 	line-height: 1.4;
 }
-
+.mete-welcome-body {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	min-height: 0;
+	min-width: 0;
+	overflow: auto;
+	overscroll-behavior: contain;
+	scrollbar-gutter: stable;
+	padding: 4px;
+}
+.mete-welcome-body > * {
+	flex-shrink: 0;
+}
 .mete-welcome .mete-button {
 	display: inline-flex;
 	align-items: center;
@@ -21,7 +37,6 @@
 	font-size: 14px;
 }
 
-/* The hero band: the rocket, the title and the caption, with the first step's card at the right. */
 .mete-welcome-hero {
 	display: flex;
 	flex-wrap: wrap;
@@ -87,15 +102,13 @@
 	color: var(--muted-2, var(--theia-descriptionForeground));
 }
 
-/* A step's card: the tile beside its number and title, the lead under the title. */
 .mete-welcome-step {
 	display: flex;
 	flex-direction: column;
 	min-width: 0;
-	padding: 12px 0;
+	padding: 8px 0;
 	border-top: 1px solid var(--line, var(--theia-panel-border));
 }
-
 .mete-welcome-step > :nth-child(n + 3) {
 	margin-top: 16px;
 }
@@ -150,7 +163,6 @@
 	color: var(--muted-2, var(--theia-descriptionForeground));
 }
 
-/* The first step sits in the hero as a region of it, not a card in a card: no border or fill. */
 .mete-welcome-hero > .mete-welcome-step {
 	flex: 0 1 460px;
 	box-sizing: border-box;
@@ -175,11 +187,9 @@
 
 .mete-welcome-pair {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
 	gap: 16px;
 }
-
-/* The providers: a model provider's name, label, field and Set key on one ruled line. */
 .mete-welcome-providers {
 	margin: 0;
 	padding: 0;
@@ -195,7 +205,7 @@
 	grid-template-columns: minmax(160px, 250px) auto minmax(0, 1fr) auto;
 	align-items: center;
 	gap: 6px 14px;
-	padding: 14px 0;
+	padding: 8px 0;
 	border-top: 1px solid var(--line-soft, var(--theia-panel-border));
 }
 
@@ -215,7 +225,6 @@
 	color: var(--muted-2, var(--theia-descriptionForeground));
 }
 
-/* The board draws this screen's fields on the raised tone. */
 .mete-welcome .mete-field {
 	min-width: 0;
 	background-color: var(--raised, var(--theia-input-background));
@@ -242,7 +251,6 @@
 	gap: 8px;
 }
 
-/* The search provider stacks: its name line, then the label over the field and Set key. */
 .mete-welcome-providers[data-kind="search"] .mete-welcome-who {
 	flex-direction: row;
 	flex-wrap: wrap;
@@ -265,7 +273,6 @@
 	gap: 10px;
 }
 
-/* Whether a provider has a key: a round pill, its dot hollow until the key is set. */
 .mete-welcome-state {
 	display: inline-flex;
 	align-items: center;
@@ -330,7 +337,6 @@
 	font-size: 13px;
 }
 
-/* The privacy form's foot: a quiet rule, the target at the left and Save at the right. */
 .mete-welcome .mete-form-foot {
 	gap: 10px;
 	margin-top: 6px;
@@ -348,34 +354,35 @@
 	font-weight: 600;
 }
 
-/* The start bar: the big Start a run and, while it waits, what it waits for. */
+/* The continuation row stays outside setup scrolling, including while it names a missing prerequisite. */
 .mete-welcome-start {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 16px;
-	padding: 16px 20px;
+	min-width: 0;
+	gap: 8px 12px;
+	padding: 8px 12px;
 	background: var(--raised, var(--theia-editorWidget-background));
 	border: 1px solid var(--line, var(--theia-panel-border));
 	border-radius: 8px;
 }
 
 .mete-welcome-start > .mete-button {
-	height: 42px;
-	padding: 0 20px 0 16px;
-	font-size: 15px;
+	height: 28px;
+	max-width: 100%;
+	padding: 0 10px;
+	font-size: 13px;
 }
-
 .mete-welcome-start > p {
 	display: flex;
 	align-items: center;
+	min-width: 0;
 	gap: 8px;
 	margin: 0;
+	overflow-wrap: anywhere;
 	font-weight: 600;
 	color: var(--muted-2, var(--theia-descriptionForeground));
 }
-
-/* A button's glyph, after the tiles' own, which are not buttons. */
 .mete-welcome .mete-button > .codicon {
 	font-size: 16px;
 }

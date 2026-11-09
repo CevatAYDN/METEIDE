@@ -13,10 +13,10 @@ import {
 } from "@theia/core/shared/inversify";
 import { FileService } from "@theia/filesystem/lib/browser/file-service";
 import { WorkspaceService } from "@theia/workspace/lib/browser/workspace-service";
-import type { EndpointsActions } from "../application/endpoints-card.js";
 import { panelRoot } from "../application/panel-root.js";
 import type { Target } from "../application/section-draft.js";
 import type { GroupId } from "../application/settings-groups.js";
+import { SettingsNavigation } from "../application/settings-navigation.js";
 import {
 	type ApplyState,
 	type SettingsModel,
@@ -39,7 +39,12 @@ import {
 } from "./mcp-settings.js";
 import type { McpTests } from "./mcp-tests.js";
 import { MetePanelWidget } from "./panel-widget.js";
+import { settingsEndpointsView } from "./settings-endpoints-view.js";
 import { SettingsForms } from "./settings-forms.js";
+import { settingsMcpView } from "./settings-mcp-view.js";
+import { saveSettings } from "./settings-save.js";
+import { switchSettingsScope } from "./settings-scope.js";
+import { settingsSkills } from "./settings-skills.js";
 import "../../style/mete.css";
 import "../../style/mete-form.css";
 import "../../style/mete-run.css";
@@ -47,6 +52,8 @@ import "../../style/mete-screen.css";
 import "../../style/mete-settings.css";
 import "../../style/mete-settings-body.css";
 import "../../style/mete-endpoints.css";
+import "../../style/mete-skills.css";
+import "../../style/mete-permissions.css";
 
 /** The METE Settings screen in Theia's main area. */
 @injectable()
@@ -71,12 +78,18 @@ export class MeteSettingsWidget extends MetePanelWidget {
 	protected mcpTests: McpTests | undefined;
 	protected catalog: ToolCatalog | undefined;
 	protected mcpConnections: McpSettings | undefined;
+	protected skills: ReturnType<typeof settingsSkills> | undefined;
 	protected refreshRevision = 0;
 	/** The providers' states from mete/quota, for the endpoints card (ADR-154). */
 	protected states: readonly ProviderState[] | undefined;
 	protected apply: ApplyState = { busy: false, activeRuns: 0 };
 	/** The group the screen shows; not kept after a restart (ADR-095, ADR-086). */
-	protected group: GroupId = "models";
+	protected readonly navigation = new SettingsNavigation(() => this.update());
+
+	/** Navigates within the current draft; only the explicit Refresh action rereads it. */
+	showGroup(group?: GroupId): void {
+		this.navigation.show(group);
+	}
 
 	// No state, so Theia's saved layout leaves the tab out and a restart does not reopen it (ADR-086).
 	storeState(): undefined {
@@ -115,6 +128,16 @@ export class MeteSettingsWidget extends MetePanelWidget {
 			onChange: () => this.update(),
 		});
 		this.initMcp();
+		this.skills = settingsSkills({
+			daemon: this.daemon,
+			workspace: this.workspace,
+			files: this.files,
+			openers: this.openers,
+			settings: () =>
+				this.model.kind === "settings" ? this.model.settings : undefined,
+			changed: () => this.update(),
+		});
+		this.toDispose.push(this.skills);
 		void this.refresh();
 	}
 
@@ -133,6 +156,7 @@ export class MeteSettingsWidget extends MetePanelWidget {
 		this.toDispose.push(mcp);
 		this.toDispose.push(
 			this.workspace.onWorkspaceChanged(() => {
+				this.forms?.invalidate();
 				this.apply = { busy: false, activeRuns: 0 };
 				void this.refresh();
 			}),
@@ -176,6 +200,8 @@ export class MeteSettingsWidget extends MetePanelWidget {
 		await this.mcpConnections?.workspace(dir);
 		if (revision !== this.refreshRevision) return;
 		this.setModel({ kind: "settings", settings: r.value });
+		await this.skills?.reconnect();
+		if (revision !== this.refreshRevision) return;
 		// The states wait on the daemon's first model listing, so they follow the forms (ADR-154).
 		const q = await this.daemon.quota(dir);
 		if (revision !== this.refreshRevision) return;
@@ -279,90 +305,57 @@ export class MeteSettingsWidget extends MetePanelWidget {
 
 	// The endpoints card with each endpoint's key field (ADR-087).
 	protected endpointsView() {
-		const form = this.endpoints?.form();
-		const { keys, tests } = this;
-		if (!form || !keys || !tests) return form;
-		return {
-			state: form.state,
-			actions: this.keyedActions(form.actions, keys),
+		return settingsEndpointsView({
+			form: () => this.endpoints,
+			keys: this.keys,
+			tests: this.tests,
 			states: this.states,
-			keys: {
-				stateOf: (slug: string) => keys.stateOf(slug),
-				onType: (slug: string, key: string) => keys.type(slug, key),
-				onSet: (slug: string) => void keys.set(slug),
-				activeRuns: this.apply.activeRuns,
-			},
-			tests: {
-				stateOf: (slug: string) => tests.stateOf(slug),
-				onList: (slug: string) => void tests.list(slug),
-				onPick: (slug: string, model: string, on: boolean) =>
-					tests.pick(slug, model, on),
-				onProbe: (slug: string) => void tests.probe(slug),
-			},
-		};
+			activeRuns: this.apply.activeRuns,
+		});
 	}
 
 	protected mcpView() {
-		const form = this.mcp?.form();
-		const tests = this.mcpTests;
-		if (!form || !tests || !this.mcpConnections) return form;
-		return this.mcpConnections.view(form, tests, {
+		return settingsMcpView({
+			form: this.mcp?.form(),
+			tests: this.mcpTests,
+			connections: this.mcpConnections,
 			busy: this.apply.busy,
 			connect: (id) => void this.connectTool(id),
 			catalog: this.catalog,
 		});
 	}
 
-	// Typed keys are kept by slug, so they follow a slug edit and go with a removed endpoint.
-	protected keyedActions(
-		actions: EndpointsActions,
-		keys: EndpointKeys,
-	): EndpointsActions {
-		// The list as it is now: two keystrokes can come before the card draws again.
-		const slugAt = (i: number) =>
-			this.endpoints?.form()?.state.list[i]?.slug ?? "";
-		return {
-			...actions,
-			onEdit: (i, field, value) => {
-				if (field === "slug") keys.rename(slugAt(i), value);
-				actions.onEdit(i, field, value);
-			},
-			onRemove: (i) => {
-				keys.forget(slugAt(i));
-				actions.onRemove(i);
-			},
-		};
-	}
-
 	// The scope switch (ADR-095) moves every form and the two cards that follow it (ADR-096, ADR-097).
 	protected async scope(target: Target): Promise<void> {
 		if (this.apply.busy) return;
 		const revision = ++this.refreshRevision;
-		const dir = this.mcpConnections?.dir;
 		this.apply = { ...this.apply, busy: true };
-		await this.mcpConnections?.workspace(undefined);
-		this.catalog?.reset();
-		this.mcpTests?.reset();
-		await Promise.all([
-			this.forms?.retargetAll(target),
-			this.bindings?.retarget(target),
-			this.mcp?.retarget(target),
-		]);
-		if (revision !== this.refreshRevision) return;
-		await this.mcpConnections?.workspace(dir);
-		if (revision !== this.refreshRevision) return;
+		const changed = await switchSettingsScope({
+			target,
+			current: () => revision === this.refreshRevision,
+			connections: this.mcpConnections,
+			forms: this.forms,
+			bindings: this.bindings,
+			mcp: this.mcp,
+			catalog: this.catalog,
+			tests: this.mcpTests,
+		});
+		if (!changed) return;
 		this.apply = { ...this.apply, busy: false };
 		this.update();
 	}
 
 	// Save every changed section to its selected target (ADR-095).
 	protected async saveAll(): Promise<void> {
-		await this.forms?.saveAll();
-		await this.bindings?.save();
-		const mcp = this.mcp?.form();
-		if (mcp?.state.dirty && (await this.mcp?.save()))
-			this.mcpTests?.saved(mcp.state.servers);
-		if (this.endpoints?.form()?.state.dirty) await this.endpoints.save();
+		const revision = this.refreshRevision;
+		await saveSettings({
+			current: () => revision === this.refreshRevision,
+			forms: this.forms,
+			bindings: this.bindings,
+			mcp: this.mcp,
+			tests: this.mcpTests,
+			endpoints: this.endpoints,
+		});
 	}
 
 	protected setModel(model: SettingsModel): void {
@@ -379,14 +372,9 @@ export class MeteSettingsWidget extends MetePanelWidget {
 					endpoints={this.endpointsView()}
 					bindings={this.bindings?.form()}
 					mcp={this.mcpView()}
+					skills={this.skills?.view()}
 					apply={this.apply}
-					choice={{
-						group: this.group,
-						onGroup: (group) => {
-							this.group = group;
-							this.update();
-						},
-					}}
+					choice={this.navigation.choice()}
 					actions={{
 						onApply: () => void this.applyNow(),
 						onCommand: (id) => void this.commands.executeCommand(id),

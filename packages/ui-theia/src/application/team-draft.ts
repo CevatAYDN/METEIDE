@@ -73,6 +73,7 @@ const TaskSchema = WorkSchema.extend({
 	spawns: z.boolean().catch(false),
 });
 const TeamSchema = z.object({
+	apiVersion: text,
 	metadata: z
 		.object({ id: text, name: text, description: optional })
 		.catch({ id: "", name: "", description: undefined }),
@@ -121,7 +122,7 @@ export const idOfName = (name: string): string =>
  */
 export const blankDraft = (id: string, name: string): Draft =>
 	new Document({
-		apiVersion: "mete/v1",
+		apiVersion: "mete/v2",
 		kind: "TeamTemplate",
 		metadata: { id, name, version: "0.1.0" },
 		pattern: "single",

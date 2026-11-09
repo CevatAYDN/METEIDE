@@ -16,13 +16,10 @@ import {
 	type FormState,
 	SettingsForm,
 } from "./settings-form.js";
-import { failureText } from "./status-text.js";
+import { failureText, noFolderText } from "./status-text.js";
 
-// The onboarding wizard of docs/13 as the Welcome screen (ADR-088): language, model provider keys,
-// privacy and web search on one page, in docs/13's order, then "Start a run". The look is the design
-// set's (ADR-128), in style/mete-welcome.css: a hero band with the first step beside the title, the
-// keys under it, privacy and web search side by side, then the start bar. With a folder open, a keyed
-// model provider's row says its state as mete/quota answers it, in the Quota screen's words (ADR-147).
+// Welcome keeps docs/13's setup order and provider health (ADR-088/147), with setup scrolling
+// separately from the compact continuation row (ADR-180).
 
 /** What the screen draws: the providers `mete key list` names. */
 export type WelcomeModel =
@@ -271,9 +268,11 @@ const Steps = (props: StepsProps) => (
 
 const Start = ({
 	ready,
+	workspaceOpen,
 	onStart,
 }: {
 	readonly ready: boolean;
+	readonly workspaceOpen: boolean;
 	readonly onStart: () => void;
 }) => (
 	<div className="mete-welcome-start">
@@ -281,7 +280,9 @@ const Start = ({
 			type="button"
 			className="mete-button"
 			disabled={!ready}
-			onClick={onStart}
+			onClick={() => {
+				if (ready) onStart();
+			}}
 		>
 			<Icon name="play" />
 			{nls.localize("mete/welcome/start", "Start a run")}
@@ -289,10 +290,12 @@ const Start = ({
 		{ready ? null : (
 			<p>
 				<Icon name="info" />
-				{nls.localize(
-					"mete/welcome/startWaits",
-					"Set a model provider's key first.",
-				)}
+				{workspaceOpen
+					? nls.localize(
+							"mete/welcome/startWaits",
+							"Set a model provider's key first.",
+						)
+					: noFolderText()}
 			</p>
 		)}
 	</div>
@@ -305,7 +308,9 @@ const Hero = ({ onLanguage }: { readonly onLanguage: () => void }) => (
 			<span className="mete-welcome-rocket">
 				<Icon name="rocket" />
 			</span>
-			<h2>{nls.localize("mete/welcome/title", "Welcome to METE")}</h2>
+			<h2 id="mete-welcome-title">
+				{nls.localize("mete/welcome/title", "Welcome to METE")}
+			</h2>
 			<p>
 				{nls.localize(
 					"mete/welcome/caption",
@@ -339,29 +344,36 @@ const Hero = ({ onLanguage }: { readonly onLanguage: () => void }) => (
 /** The Welcome screen for a model. */
 export const WelcomeView = ({
 	model,
+	workspaceOpen,
 	states,
 	keys,
 	privacy,
 	actions,
 }: {
 	readonly model: WelcomeModel;
+	readonly workspaceOpen: boolean;
 	readonly states?: readonly ProviderState[] | undefined;
 	readonly keys: EndpointKeysView;
 	readonly privacy?: WelcomePrivacy | undefined;
 	readonly actions: WelcomeActions;
 }) => (
 	<section className="mete-welcome" aria-live="polite">
-		<Hero onLanguage={actions.onLanguage} />
-		{model.kind === "loading" ? (
-			<p>
-				{nls.localize("mete/welcome/loading", "Reading the provider keys…")}
-			</p>
-		) : null}
-		{model.kind === "failed" ? (
-			<p role="alert">{failureText(model.failure)}</p>
-		) : null}
-		{model.kind === "keys" ? (
-			<>
+		<section
+			className="mete-welcome-body"
+			aria-labelledby="mete-welcome-title"
+			// biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users must focus the bounded setup region to scroll it without moving Start.
+			tabIndex={0}
+		>
+			<Hero onLanguage={actions.onLanguage} />
+			{model.kind === "loading" ? (
+				<p>
+					{nls.localize("mete/welcome/loading", "Reading the provider keys…")}
+				</p>
+			) : null}
+			{model.kind === "failed" ? (
+				<p role="alert">{failureText(model.failure)}</p>
+			) : null}
+			{model.kind === "keys" ? (
 				<Steps
 					providers={model.keys}
 					states={states}
@@ -369,8 +381,14 @@ export const WelcomeView = ({
 					privacy={privacy}
 					actions={actions}
 				/>
-				<Start ready={!needsWelcome(model.keys)} onStart={actions.onStart} />
-			</>
+			) : null}
+		</section>
+		{model.kind === "keys" ? (
+			<Start
+				ready={workspaceOpen && !needsWelcome(model.keys)}
+				workspaceOpen={workspaceOpen}
+				onStart={actions.onStart}
+			/>
 		) : null}
 	</section>
 );

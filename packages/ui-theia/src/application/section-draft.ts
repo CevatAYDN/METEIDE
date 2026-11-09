@@ -9,6 +9,12 @@ import {
 } from "@mete/contracts";
 import { isMap, parseDocument } from "yaml";
 import type { ZodType } from "zod";
+import {
+	POLICY_RULE_KEYS,
+	type PolicyRuleValue,
+	readPolicyRule,
+} from "./policy-rule-fields.js";
+import { setPolicyYamlValue } from "./policy-yaml-values.js";
 import { type Doc, isEmpty } from "./yaml-section.js";
 
 // The Settings forms' files (ADR-082): a section edited in place in its YAML file, this folder's
@@ -72,7 +78,12 @@ const SCHEMAS: { readonly [S in FormSection]: ZodType } = {
 export type Target = "workspace" | "global";
 
 /** A field's value, or undefined when the file does not set it. */
-export type FieldValue = string | number | boolean | undefined;
+export type FieldValue =
+	| string
+	| number
+	| boolean
+	| PolicyRuleValue
+	| undefined;
 
 /** The values the form edits, keyed by the field's path joined with dots. */
 export type Draft = Readonly<Record<string, FieldValue>>;
@@ -96,14 +107,46 @@ const asField = (v: unknown): FieldValue =>
 		? v
 		: undefined;
 
+const pathsOf = (section: FormSection): readonly (readonly string[])[] => [
+	...FORM_FIELDS[section].map((field) => field.path),
+	...(section === "policy"
+		? POLICY_RULE_KEYS.map((key) => key.split("."))
+		: []),
+];
+
+const readField = (
+	section: FormSection,
+	path: readonly string[],
+	value: unknown,
+) => {
+	const rule =
+		section === "policy" && POLICY_RULE_KEYS.find((key) => key === keyOf(path));
+	if (rule) return readPolicyRule(rule, value);
+	const parsed = asField(value);
+	return parsed === undefined && value !== undefined
+		? err(`${keyOf(path)}: expected a scalar setting`)
+		: ok(parsed);
+};
+
+const fieldsOf = (
+	root: unknown,
+	section: FormSection,
+): Result<Draft, string> => {
+	const fields: Record<string, FieldValue> = {};
+	for (const path of pathsOf(section)) {
+		const result = readField(section, path, valueAt(root, path));
+		if (!result.ok) return result;
+		fields[keyOf(path)] = result.value;
+	}
+	return ok(fields);
+};
+
 /** The defaults the form shows as placeholders, from the section's schema. */
-export const defaultsOf = (section: FormSection): Draft =>
-	Object.fromEntries(
-		FORM_FIELDS[section].map((f) => [
-			keyOf(f.path),
-			asField(valueAt(SCHEMAS[section].parse({}), f.path)),
-		]),
-	);
+export const defaultsOf = (section: FormSection): Draft => {
+	const result = fieldsOf(SCHEMAS[section].parse({}), section);
+	if (!result.ok) throw new Error("Invalid built-in settings fields");
+	return result.value;
+};
 
 /** A configuration layer as `mete/settings` returns it: the section's value in one file. */
 export type Layers = {
@@ -137,14 +180,23 @@ export const draftOf = (
 	const [first] = doc.errors;
 	if (first) return err(first.message);
 	const root = valueAt(doc.toJS(), prefixOf(section, target));
-	return ok(
-		Object.fromEntries(
-			FORM_FIELDS[section].map((f) => [
-				keyOf(f.path),
-				asField(valueAt(root, f.path)),
-			]),
-		),
-	);
+	return fieldsOf(root, section);
+};
+
+/** Global policy values supply inherited controls, without becoming workspace edits. */
+export const inheritedDefaults = (
+	text: string | undefined,
+	section: FormSection,
+): Result<Draft, string> => {
+	const doc = parseDocument(text ?? "");
+	if (doc.errors[0]) return err(doc.errors[0].message);
+	const value = valueAt(doc.toJS(), [section]);
+	const fields = fieldsOf(value, section);
+	if (!fields.ok) return fields;
+	const result = SCHEMAS[section].safeParse(value ?? {});
+	return result.success
+		? fieldsOf(result.data, section)
+		: err(result.error.issues[0]?.message ?? "Invalid inherited settings");
 };
 
 /** Whether the text sets any key; a missing, empty or comment-only file sets none. */
@@ -163,33 +215,103 @@ const prune = (doc: Doc, at: readonly string[]) => {
 };
 
 // A key set to its new value, or removed when cleared; deleteIn throws on a missing key.
-const setOrClear = (doc: Doc, at: readonly string[], value: FieldValue) => {
-	if (value !== undefined) return doc.setIn(at, value);
-	if (!doc.hasIn(at)) return;
-	doc.deleteIn(at);
-	prune(doc, at);
+const setOrClear = (
+	doc: Doc,
+	at: readonly string[],
+	value: FieldValue,
+): Result<void, string> => {
+	if (value !== undefined) {
+		if (typeof value === "object") return setPolicyYamlValue(doc, at, value);
+		doc.setIn(at, value);
+	} else if (doc.hasIn(at)) {
+		doc.deleteIn(at);
+		prune(doc, at);
+	}
+	return ok(undefined);
 };
 
 /**
  * The file's new text with the changed fields set, or removed when cleared; refused with the schema's
  * first issue when the section would not validate, so nothing invalid is written.
  */
+type SaveInput = {
+	readonly text: string | undefined;
+	readonly section: FormSection;
+	readonly target: Target;
+	readonly changes: Draft;
+	readonly globalText?: string | undefined;
+};
+
+const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
+	typeof value === "object" && value !== null && !Array.isArray(value);
+const mergeMap = (base: unknown, over: unknown): unknown => {
+	if (over === undefined) return base;
+	if (!isRecord(base) || !isRecord(over)) return over;
+	return Object.fromEntries([...Object.entries(base), ...Object.entries(over)]);
+};
+
+// These are the only nested maps in the supported settings schemas. Arrays replace whole.
+const mergeLayer = (
+	base: unknown,
+	over: unknown,
+	section: FormSection,
+): unknown => {
+	const merged = mergeMap(base, over);
+	if (section !== "policy" || !isRecord(merged)) return merged;
+	return Object.fromEntries(
+		Object.entries(merged).map(([key, value]) => [
+			key,
+			["shell", "budget", "overrides"].includes(key)
+				? mergeMap(valueAt(base, [key]), valueAt(over, [key]))
+				: value,
+		]),
+	);
+};
+
+const validateSaved = (doc: Doc, input: SaveInput): Result<string, string> => {
+	const { section, target } = input;
+	const prefix = prefixOf(section, target);
+	const value = valueAt(doc.toJS(), prefix);
+	const fields = fieldsOf(value, section);
+	if (!fields.ok) return fields;
+	const global = parseDocument(
+		target === "workspace" ? (input.globalText ?? "") : "",
+	);
+	if (global.errors[0]) return err(global.errors[0].message);
+	const inherited = valueAt(global.toJS(), [section]);
+	const inheritedFields = fieldsOf(inherited, section);
+	if (!inheritedFields.ok) return inheritedFields;
+	const checked = SCHEMAS[section].safeParse(
+		mergeLayer(inherited, value, section) ?? {},
+	);
+	const issue = checked.success ? undefined : checked.error.issues[0];
+	if (issue)
+		return err(`${[...prefix, ...issue.path].join(".")}: ${issue.message}`);
+	return ok(isEmpty(doc) ? "" : doc.toString());
+};
+
+/** Validates the effective merged settings while writing only the selected file's changed keys. */
+export const savedLayeredText = (input: SaveInput): Result<string, string> => {
+	const { text, section, target, changes } = input;
+	const doc = parseDocument(text ?? "");
+	const [first] = doc.errors;
+	if (first) return err(first.message);
+	const prefix = prefixOf(section, target);
+	for (const path of pathsOf(section)) {
+		if (!Object.hasOwn(changes, keyOf(path))) continue;
+		const value = readField(section, path, changes[keyOf(path)]);
+		if (!value.ok) return value;
+		const written = setOrClear(doc, [...prefix, ...path], value.value);
+		if (!written.ok) return written;
+	}
+	return validateSaved(doc, input);
+};
+
+/** Standalone-file validation retained for callers without an inherited settings layer. */
 export const savedText = (
 	text: string | undefined,
 	section: FormSection,
 	target: Target,
 	changes: Draft,
-): Result<string, string> => {
-	const doc = parseDocument(text ?? "");
-	const [first] = doc.errors;
-	if (first) return err(first.message);
-	const prefix = prefixOf(section, target);
-	for (const f of FORM_FIELDS[section])
-		if (keyOf(f.path) in changes)
-			setOrClear(doc, [...prefix, ...f.path], changes[keyOf(f.path)]);
-	const checked = SCHEMAS[section].safeParse(valueAt(doc.toJS(), prefix) ?? {});
-	const [issue] = checked.success ? [] : checked.error.issues;
-	if (issue)
-		return err(`${[...prefix, ...issue.path].join(".")}: ${issue.message}`);
-	return ok(isEmpty(doc) ? "" : doc.toString());
-};
+): Result<string, string> =>
+	savedLayeredText({ text, section, target, changes });

@@ -1,6 +1,7 @@
 import { nls } from "@theia/core/lib/common/nls";
 import type { CSSProperties } from "react";
 import { optionLabel } from "./labels.js";
+import { PolicyFields } from "./policy-fields.js";
 import { Icon } from "./roster-look.js";
 import {
 	type Draft,
@@ -27,6 +28,10 @@ export type FormState = {
 	readonly file?: string | undefined;
 	readonly values: Draft;
 	readonly defaults: Draft;
+	/** True only after the selected source and its inherited fields were read successfully. */
+	readonly readValid: boolean;
+	/** Raw configured inherited values, before schema defaults are supplied. */
+	readonly inherited?: Draft;
 	readonly busy: boolean;
 	/** Whether the user changed a field since the file was read; Save waits for a change. */
 	readonly dirty: boolean;
@@ -107,7 +112,11 @@ const Choice = ({
 			onChange(picked);
 		}}
 	>
-		<option value="">{defaultLabel(optionLabel(fallback))}</option>
+		<option value="">
+			{defaultLabel(
+				optionLabel(typeof fallback === "object" ? undefined : fallback),
+			)}
+		</option>
 		{options.map((o) => (
 			<option key={String(o)} value={String(o)}>
 				{optionLabel(o)}
@@ -210,6 +219,9 @@ export const FormFields = ({
 				onField={onField}
 			/>
 		))}
+		{section === "policy" ? (
+			<PolicyFields state={state} onField={onField} />
+		) : null}
 	</>
 );
 

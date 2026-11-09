@@ -6,6 +6,7 @@ import {
 	type CommandRegistry,
 	MessageService,
 } from "@theia/core";
+import { QuickCommandService } from "@theia/core/lib/browser/quick-input/quick-command-service";
 import { QuickInputService } from "@theia/core/lib/common/quick-pick-service";
 import { Container } from "@theia/core/shared/inversify";
 import { VSXExtensionEditorManager } from "@theia/vsx-registry/lib/browser/vsx-extension-editor-manager";
@@ -20,6 +21,7 @@ import {
 	type StatusRuns,
 } from "../src/domain/status-service.js";
 import { MeteCommandContribution, STATUS_COMMAND } from "../src/index.js";
+import { MeteQuickCommandService } from "../src/infrastructure/command-palette.js";
 import frontendModule from "../src/infrastructure/frontend-module.js";
 
 // The contribution runs in a real inversify container; Theia's services and the daemon are fakes.
@@ -29,6 +31,10 @@ vi.mock("@theia/vsx-registry/lib/browser/vsx-extensions-model", () => ({
 }));
 vi.mock("@theia/vsx-registry/lib/browser/vsx-extension-editor-manager", () => ({
 	VSXExtensionEditorManager: class {},
+}));
+// Electron covers the real browser base; this suite verifies the replacement binding without a DOM.
+vi.mock("@theia/core/lib/browser/quick-input/quick-command-service", () => ({
+	QuickCommandService: class {},
 }));
 // Attachment commands and editor wiring have their own focused tests and Electron acceptance.
 vi.mock("../src/infrastructure/editor-context-service.js", () => ({
@@ -131,6 +137,7 @@ const setup = (folders: string[], reply: Reply) => {
 	const c = new Container();
 	c.bind(VSXExtensionsModel).toSelf();
 	c.bind(VSXExtensionEditorManager).toSelf();
+	c.bind(QuickCommandService).toSelf();
 	c.bind(MessageService).toConstantValue({
 		info: async (m: string) => void info.push(m),
 		warn: async (m: string) => void warn.push(m),
@@ -210,6 +217,13 @@ describe("METE: Quota", () => {
 });
 
 describe("METE: Status", () => {
+	it("binds the Unicode-aware palette once while retaining native command handlers", () => {
+		const { c } = setup([], { ok: true, value: [] });
+		const palette = c.get(QuickCommandService);
+		expect(palette).toBeInstanceOf(MeteQuickCommandService);
+		expect(c.get(QuickCommandService)).toBe(palette);
+	});
+
 	it("is the palette entry METE: Status, bound by the frontend module", () => {
 		expect(STATUS_COMMAND).toMatchObject({
 			id: "mete.status",

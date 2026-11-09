@@ -4,6 +4,10 @@ import type {
 	ContextDraft,
 	ConversationReplyInput,
 	ConversationStartInput,
+	DaemonSkillsApproveParams,
+	DaemonSkillsDisableParams,
+	DaemonSkillsEditorParams,
+	DaemonSkillsPrepareParams,
 	McpConnectionRequest,
 	McpCredentialWrite,
 	McpServer,
@@ -70,6 +74,33 @@ export class MeteDaemonBackend
 		return this.keyService.keys();
 	}
 
+	skillsList(dir: string) {
+		return this.host.skillsList(dir);
+	}
+
+	skillsPrepare(dir: string, input: DaemonSkillsPrepareParams) {
+		return this.host.skillsPrepare(dir, input);
+	}
+	skillsEditor(dir: string, input: DaemonSkillsEditorParams) {
+		return this.host.skillsEditor(dir, input);
+	}
+
+	skillsApprove(dir: string, input: DaemonSkillsApproveParams) {
+		return this.host.skillsApprove(dir, input);
+	}
+
+	skillsDisable(dir: string, input: DaemonSkillsDisableParams) {
+		return this.host.skillsDisable(dir, input);
+	}
+
+	skillsRecover(dir: string, sessionId: string) {
+		return this.host.skillsRecover(dir, sessionId);
+	}
+
+	skillsRecovery(dir: string) {
+		return this.host.skillsRecovery(dir);
+	}
+
 	setKey(providerId: string, key: string) {
 		return this.keyService.setKey(providerId, key);
 	}
@@ -104,6 +135,10 @@ export class MeteDaemonBackend
 
 	taskPending(workspaceDir: string, runId: string) {
 		return this.host.taskPending(workspaceDir, runId);
+	}
+
+	verification(workspaceDir: string, runId: string) {
+		return this.host.verification(workspaceDir, runId);
 	}
 
 	taskAnswer(workspaceDir: string, input: TaskControlAnswer) {

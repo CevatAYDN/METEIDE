@@ -1,4 +1,4 @@
-import { Command, type CommandRegistry } from "@theia/core";
+import type { CommandRegistry } from "@theia/core";
 import {
 	AbstractViewContribution,
 	bindViewContribution,
@@ -6,17 +6,13 @@ import {
 } from "@theia/core/lib/browser";
 import { nls } from "@theia/core/lib/common/nls";
 import { injectable, type interfaces } from "@theia/core/shared/inversify";
+import { SETTINGS_ROUTES } from "../application/settings-commands.js";
 import { MeteSettingsWidget } from "./settings-widget.js";
 
 // The Settings screen's place in Theia: "METE: Show settings" opens it in the main area, a rare
 // screen of ADR-078 (docs/13; ADR-081).
 
-/** The palette entry "METE: Show settings". */
-export const SHOW_SETTINGS_COMMAND: Command = Command.toLocalizedCommand(
-	{ id: "mete.settings.show", category: "METE", label: "Show settings" },
-	"mete/settings/show",
-	"mete/category",
-);
+export { SHOW_SETTINGS_COMMAND } from "../application/settings-commands.js";
 
 @injectable()
 export class MeteSettingsContribution extends AbstractViewContribution<MeteSettingsWidget> {
@@ -29,10 +25,13 @@ export class MeteSettingsContribution extends AbstractViewContribution<MeteSetti
 	}
 
 	override registerCommands(commands: CommandRegistry): void {
-		commands.registerCommand(SHOW_SETTINGS_COMMAND, {
-			execute: async () =>
-				(await this.openView({ activate: true, reveal: true })).refresh(),
-		});
+		for (const [command, group] of SETTINGS_ROUTES)
+			commands.registerCommand(command, {
+				execute: async () =>
+					(await this.openView({ activate: true, reveal: true })).showGroup(
+						group,
+					),
+			});
 	}
 }
 

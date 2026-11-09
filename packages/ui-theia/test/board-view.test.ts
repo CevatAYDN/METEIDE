@@ -20,7 +20,8 @@ const html = (
 	model: BoardModel,
 	mode: TeamMode = "board",
 	restoring?: string,
-	run: RunFacts & Pick<TeamControls, "taskControls" | "onReply"> = {},
+	run: RunFacts &
+		Pick<TeamControls, "taskControls" | "onReply" | "verification"> = {},
 ) =>
 	renderToStaticMarkup(
 		createElement(BoardView, {
@@ -42,6 +43,7 @@ const html = (
 				transcript: {},
 				run,
 				taskControls: run.taskControls,
+				verification: run.verification,
 				...(run.onReply ? { onReply: run.onReply } : {}),
 				waiting: {
 					onApprove: () => {},
@@ -130,14 +132,46 @@ describe("authoritative task controls", () => {
 		expect(out).not.toContain("Give an instruction");
 		expect(out).not.toContain("Allow once");
 	});
-	it("never falls back to event-derived team controls when new state or run facts are absent", () => {
-		for (const run of [{ run: runEntry("running") }, {}]) {
-			const out = html(model, "board", undefined, run);
+	it("never falls back to event-derived team controls when positive team evidence exists", () => {
+		const taskEvidence = {
+			...model,
+			view: {
+				...model.view,
+				tasks: [
+					{
+						id: "task",
+						title: "Work",
+						roleId: "writer",
+						dependsOn: [],
+						status: "blocked" as const,
+					},
+				],
+			},
+		};
+		for (const [known, run] of [
+			[model, { run: runEntry("running") }],
+			[taskEvidence, {}],
+		] as const) {
+			const out = html(known, "board", undefined, run);
 			expect(out).toContain("Task decisions are unavailable");
 			expect(out).not.toContain('class="mete-wait"');
 			expect(out).not.toContain('class="mete-wait-feedback"');
 			expect(out).not.toContain("Allow once");
 		}
+	});
+	it("does not infer team evidence or enable legacy approval while metadata is missing", () => {
+		const out = html(model, "board", undefined, {
+			verification: createElement(
+				"p",
+				{ role: "alert" },
+				"Verification read failed",
+			),
+			onReply: async () => undefined,
+		});
+		expect(out).not.toContain("Verification read failed");
+		expect(out).not.toContain("Task decisions are unavailable");
+		expect(out).not.toContain("Allow once");
+		expect(out).not.toContain('class="mete-wait"');
 	});
 	it("preserves the single-agent policy wait", () => {
 		const out = html(model, "board", undefined, {
@@ -147,6 +181,24 @@ describe("authoritative task controls", () => {
 		expect(out).toContain("Waiting for you");
 		expect(out).toContain('class="mete-wait"');
 		expect(out).not.toContain("Task decisions are unavailable");
+	});
+	it("keeps evidence visible beside task decisions, outside hidden rail tabs", () => {
+		const out = html(model, "board", undefined, {
+			run: runEntry("running"),
+			taskControls: createElement("p", {}, "Exact task request"),
+			verification: createElement("p", {}, "Authoritative evidence"),
+		});
+		expect(out).toContain("Exact task request");
+		expect(out).toContain("Authoritative evidence");
+		expect(out.indexOf("Authoritative evidence")).toBeLessThan(
+			out.indexOf('aria-label="Run details"'),
+		);
+		expect(out).not.toMatch(/hidden=""[^>]*>Authoritative evidence/);
+		const single = html(model, "board", undefined, {
+			run: { ...runEntry("running"), templateId: null },
+			verification: createElement("p", {}, "Authoritative evidence"),
+		});
+		expect(single).not.toContain("Authoritative evidence");
 	});
 });
 

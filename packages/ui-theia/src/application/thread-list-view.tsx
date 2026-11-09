@@ -81,12 +81,14 @@ const Notices = ({ state, onRetry }: Pick<Props, "state" | "onRetry">) => (
 				{nls.localize("mete/thread/loading", "Reading conversations…")}
 			</p>
 		) : null}
-		{state.kind === "ready" && state.rows.length === 0 ? (
+		{state.kind === "ready" && !state.failure && state.rows.length === 0 ? (
 			<p className="mete-note">
-				{nls.localize(
-					"mete/thread/none",
-					"No conversations match this search.",
-				)}
+				{state.query.trim() === ""
+					? nls.localize("mete/thread/empty", "No conversations yet.")
+					: nls.localize(
+							"mete/thread/none",
+							"No conversations match this search.",
+						)}
 			</p>
 		) : null}
 	</>

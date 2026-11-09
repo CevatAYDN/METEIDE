@@ -10,6 +10,10 @@
 	min-height: 28px;
 }
 
+.mete-settings > .mete-button {
+	align-self: flex-start;
+}
+
 .mete-settings-note {
 	max-width: 72ch;
 	margin: 8px 0 0;
@@ -194,24 +198,39 @@
 	line-height: 1.25;
 }
 
-/* A narrow panel puts the groups' list above the chosen group. */
+.mete-settings-category {
+	display: none;
+}
+
+/* A narrow panel uses one native category control above the chosen group. */
 @container (max-width: 600px) {
 	.mete-settings-columns {
 		flex-direction: column;
 		align-items: stretch;
+		gap: 8px;
+	}
+
+	.mete-settings-body {
+		gap: 8px;
 	}
 
 	.mete-settings-nav {
 		flex-basis: auto;
-		flex-direction: row;
-		flex-wrap: wrap;
+		display: block;
 		padding: 0 0 8px;
 		border-right: 0;
 		border-bottom: 1px solid var(--line, var(--theia-panel-border));
 	}
 
 	.mete-settings-group {
-		flex: 1 1 180px;
+		display: none;
+	}
+
+	.mete-settings-category {
+		display: block;
+		box-sizing: border-box;
+		width: 100%;
+		min-width: 0;
 	}
 }
 
@@ -232,7 +251,18 @@
 }
 
 .mete-settings-loaded > summary,
-.mete-settings-source > summary {
+.mete-settings-source > summary,
+.mete-settings-advanced > summary {
 	width: fit-content;
 	cursor: pointer;
+}
+
+.mete-settings-advanced > summary {
+	padding: 6px 0;
+	font-weight: 600;
+}
+
+.mete-settings-advanced > summary:focus-visible {
+	outline: 2px solid var(--theia-focusBorder);
+	outline-offset: 2px;
 }

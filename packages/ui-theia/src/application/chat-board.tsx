@@ -1,4 +1,8 @@
-import type { MeteEvent, Transcript } from "@mete/contracts";
+import {
+	type MeteEvent,
+	ModelRefSchema,
+	type Transcript,
+} from "@mete/contracts";
 import type { TeamView } from "@mete/ui-studio";
 import type { MarkdownRenderer } from "@theia/core/lib/browser/markdown-rendering/markdown-renderer";
 import { nls } from "@theia/core/lib/common/nls";
@@ -36,13 +40,65 @@ const Metrics = ({ hero }: { readonly hero: Hero }) => (
 	</div>
 );
 
+const selectionText = (
+	run: RunFacts["run"],
+	preferredModels: Readonly<Record<string, string>> | undefined,
+) => {
+	if (!run) return undefined;
+	const preferred = ModelRefSchema.safeParse(run.prefer);
+	if (run.prefer !== undefined && !preferred.success) return undefined;
+	const saved = preferred.success
+		? `${preferred.data.providerId}/${preferred.data.modelId}`
+		: undefined;
+	// The picker session includes acknowledged changes that emit no run event.
+	const current =
+		preferredModels === undefined ? saved : preferredModels.assistant;
+	return current
+		? nls.localize("mete/chat/preferredModel", "Preferred model: {0}", current)
+		: nls.localize("mete/chat/automaticModel", "Model selection: Automatic");
+};
+
+const ModelEvidence = ({
+	view,
+	facts,
+	preferredModels,
+}: {
+	readonly view: TeamView;
+	readonly facts: RunFacts;
+	readonly preferredModels?: Readonly<Record<string, string>> | undefined;
+}) => {
+	// Created order is not usage order; only one taskless assistant is unambiguous.
+	const assistants = view.agents.filter(
+		(agent) => agent.roleId === "assistant" && agent.taskId === undefined,
+	);
+	const agent = assistants.length === 1 ? assistants[0] : undefined;
+	const last = agent
+		? nls.localize(
+				"mete/chat/lastModel",
+				"Last model: {0}",
+				`${agent.providerId}/${agent.modelId}`,
+			)
+		: nls.localize("mete/chat/modelNotReported", "Last model: Not reported");
+	const selection = selectionText(facts.run, preferredModels);
+	return (
+		<div className="mete-chat-model">
+			<span>{last}</span>
+			{selection ? <span>{selection}</span> : null}
+		</div>
+	);
+};
+
 const Header = ({
 	facts,
 	hero,
+	view,
+	preferredModels,
 	onResume,
 }: {
 	readonly facts: RunFacts;
 	readonly hero: Hero;
+	readonly view: TeamView;
+	readonly preferredModels?: Readonly<Record<string, string>> | undefined;
 	readonly onResume: () => void;
 }) => {
 	const reason =
@@ -59,6 +115,11 @@ const Header = ({
 					{hero.status.word}
 				</span>
 			) : null}
+			<ModelEvidence
+				view={view}
+				facts={facts}
+				preferredModels={preferredModels}
+			/>
 			{reason === "quota" || reason === "user" || reason === "budget" ? (
 				<div className="mete-chat-paused">
 					<PausedRun
@@ -74,6 +135,7 @@ const Header = ({
 
 type Controls = {
 	readonly run: RunFacts;
+	readonly preferredModels?: Readonly<Record<string, string>> | undefined;
 	readonly names: Readonly<Record<string, string>>;
 	readonly windows: Windows;
 	readonly waiting: Omit<WaitingControls, "onOpen">;
@@ -181,6 +243,8 @@ export const ChatBoard = ({
 			<Header
 				facts={controls.run}
 				hero={hero}
+				view={model.view}
+				preferredModels={controls.preferredModels}
 				onResume={controls.waiting.onResume}
 			/>
 			<Notices

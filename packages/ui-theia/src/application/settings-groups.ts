@@ -10,6 +10,7 @@ export type GroupId =
 	| "limits"
 	| "privacy"
 	| "tools"
+	| "skills"
 	| "teams"
 	| "look"
 	| "other";
@@ -67,11 +68,11 @@ export const GROUPS: readonly GroupDef[] = [
 	{
 		id: "limits",
 		label: () =>
-			nls.localize("mete/groups/limits", "What the team may do alone"),
+			nls.localize("mete/groups/limits", "Permissions and approvals"),
 		hint: () =>
 			nls.localize(
 				"mete/groups/limitsHint",
-				"When to ask you first, and how much a run may use",
+				"Permission rules, approval requests and run budgets",
 			),
 		sections: ["policy"],
 		links: [],
@@ -95,8 +96,19 @@ export const GROUPS: readonly GroupDef[] = [
 				"mete/groups/toolsHint",
 				"Adapters, MCP servers and the shell",
 			),
-		sections: ["bindings", "mcp", "shell"],
+		sections: ["mcp", "bindings", "shell"],
 		links: ["vsxExtensions.toggle"],
+	},
+	{
+		id: "skills",
+		label: () => nls.localize("mete/groups/skills", "Skills"),
+		hint: () =>
+			nls.localize(
+				"mete/groups/skillsHint",
+				"Local sources and version approvals",
+			),
+		sections: [],
+		links: [],
 	},
 	{
 		id: "teams",
@@ -172,6 +184,10 @@ export const groupsOf = <S extends GroupedSection>(
 		sections.filter((s) => names.includes(s.name));
 	const groups: Group<S>[] = GROUPS.map((g) => {
 		const held = own(g.sections);
+		if (g.id === "tools")
+			held.sort(
+				(a, b) => g.sections.indexOf(a.name) - g.sections.indexOf(b.name),
+			);
 		return {
 			id: g.id,
 			label: g.label(),
@@ -201,9 +217,13 @@ export const groupsOf = <S extends GroupedSection>(
 };
 
 const searchable = (text: string) =>
-	text.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
+	text
+		.normalize("NFKD")
+		.replace(/\p{M}/gu, "")
+		.toLowerCase()
+		.replace(/\u0131/g, "i");
 
-/** Search translated category labels and section titles, retaining stable section IDs. */
+/** Search visible labels and hints, retaining stable IDs and narrower section matches. */
 export const searchGroups = <S extends GroupedSection>(
 	groups: readonly Group<S>[],
 	query: string,
@@ -217,6 +237,13 @@ export const searchGroups = <S extends GroupedSection>(
 				`${section.name} ${sectionTitle(section.name) ?? ""}`,
 			).includes(needle),
 		);
-		return sections.length ? [{ ...group, sections }] : [];
+		if (sections.length) return [{ ...group, sections }];
+		const matches =
+			searchable(group.hint).includes(needle) ||
+			SETTINGS_LINKS.some(
+				([id, label]) =>
+					group.links.includes(id) && searchable(label()).includes(needle),
+			);
+		return matches ? [group] : [];
 	});
 };

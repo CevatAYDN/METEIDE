@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { type MeteEvent, ok } from "@mete/contracts";
+import { err, type MeteEvent, ok } from "@mete/contracts";
 import { Emitter } from "@theia/core/lib/common/event";
 import { type ComponentProps, createElement, type ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -7,9 +7,14 @@ import { BoardView } from "../src/application/board-view.js";
 import { MeteDaemonEvents } from "../src/application/daemon-events.js";
 import type { TaskControlView } from "../src/application/task-control-view.js";
 import { ThreadHistory } from "../src/application/thread-history-view.js";
+import type { VerificationView } from "../src/application/verification-view.js";
 import type { MeteDaemonService } from "../src/domain/status-service.js";
 import { MeteBoardWidget } from "../src/infrastructure/board-widget.js";
 import { MeteShownRun } from "../src/infrastructure/shown-run.js";
+import {
+	VERIFICATION_RUN,
+	verificationFixture,
+} from "./verification-fixture.js";
 
 // Only the desktop shell is replaced: navigation, reply handling and session folding are real.
 vi.mock("@theia/core/lib/browser/widgets/react-widget", async () => {
@@ -71,6 +76,24 @@ class BoardWidget extends MeteBoardWidget {
 	}
 }
 
+const deferred = <T>() => {
+	let resolve!: (value: T) => void;
+	const promise = new Promise<T>((yes) => {
+		resolve = yes;
+	});
+	return { promise, resolve };
+};
+const runEntry = (id: string, templateId: string | null) => ({
+	id,
+	templateId,
+	workspaceId: "22222222-2222-4222-8222-222222222222",
+	goal: "Work",
+	status: "running" as const,
+	autonomyLevel: 2 as const,
+	budget: { cloudRequests: 10, maxHours: 1 },
+	createdAt: "2026-11-08T10:00:00.000Z",
+});
+
 const setup = () => {
 	let finish!: (
 		value: Awaited<ReturnType<MeteDaemonService["threadReply"]>>,
@@ -87,12 +110,15 @@ const setup = () => {
 		ok({ events: [], unreadable: 0 }),
 	);
 	const daemon = {
+		verification: vi.fn<MeteDaemonService["verification"]>(async () =>
+			ok(verificationFixture),
+		),
 		taskPending: vi.fn<MeteDaemonService["taskPending"]>(async () =>
 			ok({ requests: [] }),
 		),
 		taskAnswer: vi.fn<MeteDaemonService["taskAnswer"]>(async () => ok(null)),
 		events: history,
-		status: async () => ok([]),
+		status: vi.fn<MeteDaemonService["status"]>(async () => ok([])),
 		transcript: async (_dir: string, runId: string) =>
 			ok({ runId, conversations: [] }),
 		threadReply: conversationReply,
@@ -164,6 +190,136 @@ const setup = () => {
 };
 
 describe("Board follow-up navigation", () => {
+	it("wires authoritative evidence to exact notifications and rejects captured refreshes after navigation", async () => {
+		const t = setup();
+		t.daemon.status.mockImplementation(async (_dir, runId) =>
+			ok([runEntry(runId ?? VERIFICATION_RUN, "team")]),
+		);
+		await t.widget.showRun("/w", VERIFICATION_RUN, "Work");
+		const panel = () =>
+			t.widget.body().props.controls.verification as ReactElement<
+				ComponentProps<typeof VerificationView>
+			>;
+		await vi.waitFor(() => expect(panel().props.state.phase).toBe("ready"));
+		const captured = panel();
+		const event: MeteEvent = {
+			id: crypto.randomUUID(),
+			ts: new Date(0).toISOString(),
+			schema: 1,
+			workspaceId: crypto.randomUUID(),
+			source: "core-engine",
+			runId: VERIFICATION_RUN,
+			type: "verify.updated",
+			payload: {
+				evaluationId: "44444444-4444-4444-8444-444444444444",
+				attemptId: "33333333-3333-4333-8333-333333333333",
+				index: 0,
+			},
+		};
+		t.events.onEvent("/other", event);
+		t.events.onEvent("/w", { ...event, runId: "other" });
+		expect(t.daemon.verification).toHaveBeenCalledTimes(1);
+		t.events.onEvent("/w", event);
+		expect(t.daemon.verification).toHaveBeenCalledTimes(2);
+		await t.widget.showRun("/other", VERIFICATION_RUN, "Other");
+		captured.props.onRefresh();
+		expect(t.daemon.verification).toHaveBeenCalledTimes(3);
+		await t.widget.showRun("/w", VERIFICATION_RUN, "Work");
+		captured.props.onRefresh();
+		expect(t.daemon.verification).toHaveBeenCalledTimes(4);
+		const latest = panel();
+		await t.widget.showComposer();
+		latest.props.onRefresh();
+		expect(t.daemon.verification).toHaveBeenCalledTimes(4);
+		t.widget.dispose();
+	});
+	it("waits for positive team metadata before reading verification", async () => {
+		const t = setup();
+		const pending =
+			deferred<Awaited<ReturnType<MeteDaemonService["status"]>>>();
+		t.daemon.status.mockReturnValueOnce(pending.promise);
+		const opening = t.widget.showRun("/w", VERIFICATION_RUN, "Work");
+		await vi.waitFor(() => expect(t.daemon.status).toHaveBeenCalledTimes(1));
+		expect(t.daemon.verification).not.toHaveBeenCalled();
+		pending.resolve(ok([runEntry(VERIFICATION_RUN, "team")]));
+		await opening;
+		expect(t.daemon.verification).toHaveBeenCalledExactlyOnceWith(
+			"/w",
+			VERIFICATION_RUN,
+		);
+		t.widget.dispose();
+	});
+	it("does not rebind evidence when team status arrives after disposal", async () => {
+		const t = setup();
+		const pending =
+			deferred<Awaited<ReturnType<MeteDaemonService["status"]>>>();
+		t.daemon.status.mockReturnValueOnce(pending.promise);
+		const opening = t.widget.showRun("/w", VERIFICATION_RUN, "Work");
+		await vi.waitFor(() => expect(t.daemon.status).toHaveBeenCalledTimes(1));
+		t.widget.dispose();
+		pending.resolve(ok([runEntry(VERIFICATION_RUN, "team")]));
+		await opening;
+		expect(t.daemon.verification).not.toHaveBeenCalled();
+		expect(t.widget.body().type).toBe("form");
+		expect(t.shownRun.runId).toBeUndefined();
+	});
+	it("does not load metadata or rebind evidence when history arrives after disposal", async () => {
+		const t = setup();
+		const pending =
+			deferred<Awaited<ReturnType<MeteDaemonService["events"]>>>();
+		t.history.mockReturnValueOnce(pending.promise);
+		t.daemon.status.mockResolvedValue(ok([runEntry(VERIFICATION_RUN, "team")]));
+		const opening = t.widget.showRun("/w", VERIFICATION_RUN, "Work");
+		expect(t.history).toHaveBeenCalledTimes(1);
+		t.widget.dispose();
+		pending.resolve(ok({ events: [], unreadable: 0 }));
+		await opening;
+		expect(t.daemon.status).not.toHaveBeenCalled();
+		expect(t.daemon.verification).not.toHaveBeenCalled();
+		expect(t.daemon.threadRead).not.toHaveBeenCalled();
+		expect(t.shownRun.runId).toBeUndefined();
+	});
+	it.each(["missing", "failed", "single"])(
+		"does not read team verification for %s metadata",
+		async (kind) => {
+			const t = setup();
+			const pending =
+				deferred<Awaited<ReturnType<MeteDaemonService["status"]>>>();
+			t.daemon.status.mockReturnValueOnce(pending.promise);
+			const opening = t.widget.showRun("/w", VERIFICATION_RUN, "Work");
+			await vi.waitFor(() => expect(t.daemon.status).toHaveBeenCalledTimes(1));
+			expect(t.daemon.verification).not.toHaveBeenCalled();
+			pending.resolve(
+				kind === "failed"
+					? err({ code: "refused", detail: "status unreadable" })
+					: ok(kind === "single" ? [runEntry(VERIFICATION_RUN, null)] : []),
+			);
+			await opening;
+			const panel = t.widget.body().props.controls.verification as ReactElement<
+				ComponentProps<typeof VerificationView>
+			>;
+			expect(panel.props.state.phase).toBe("idle");
+			expect(t.daemon.verification).not.toHaveBeenCalled();
+			t.widget.dispose();
+		},
+	);
+	it.each(["/other", "/w"])(
+		"ignores delayed team metadata after selecting %s with the same run ID",
+		async (dir) => {
+			const t = setup();
+			const pending =
+				deferred<Awaited<ReturnType<MeteDaemonService["status"]>>>();
+			t.daemon.status.mockReturnValueOnce(pending.promise);
+			const opening = t.widget.showRun("/w", VERIFICATION_RUN, "Old");
+			await vi.waitFor(() => expect(t.daemon.status).toHaveBeenCalledTimes(1));
+			await t.widget.showRun(dir, VERIFICATION_RUN, "New");
+			pending.resolve(ok([runEntry(VERIFICATION_RUN, "team")]));
+			await opening;
+			expect(t.daemon.verification).not.toHaveBeenCalled();
+			expect(t.widget.body().props.controls.run.run).toBeUndefined();
+			t.widget.dispose();
+		},
+	);
 	it("refreshes historical authority for nonselected head removal and new-head events only in its workspace", async () => {
 		const t = setup();
 		await t.widget.showRun("/w", "old", "Original title");

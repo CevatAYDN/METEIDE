@@ -1,5 +1,6 @@
 import type { PickerFacts } from "./composer.js";
 import type { OnEdit } from "./fields.js";
+import type { MemberSection } from "./member-sections.js";
 import type { TeamView } from "./team-draft.js";
 
 // The team editor's model and what its buttons do (ADR-075), shared by the view and its hero band.
@@ -21,6 +22,8 @@ export type TeamEditorModel =
 			readonly changed: boolean;
 			/** The member whose form shows beside the grid (ADR-093). */
 			readonly selected: number;
+			/** Task navigation selects Tasks; older fixtures default to Member (ADR-192). */
+			readonly memberSection?: MemberSection;
 			/** This team's pins in the folder, by member id (ADR-077). */
 			readonly pins: Readonly<Record<string, string>>;
 			/** `<providerId>/<modelId>` of each tier's chain, by chainKey. */
@@ -39,7 +42,7 @@ export type TeamEditorModel =
 /** What the screen's buttons do. */
 export type TeamEditorActions = {
 	readonly onEdit: OnEdit;
-	readonly onSelectMember: (index: number) => void;
+	readonly onSelectMember: (index: number, section?: MemberSection) => void;
 	readonly onAddMember: () => void;
 	readonly onRemoveMember: (index: number) => void;
 	readonly onRenameMember: (index: number, id: string) => void;
@@ -52,6 +55,7 @@ export type TeamEditorActions = {
 	readonly onSave: () => void;
 	readonly onSaveAs: (id: string, name: string) => void;
 	readonly onOpenYaml: () => void;
+	readonly onCommand: (id: string) => void;
 };
 
 /** The screen once a team is ready to edit. */

@@ -1,0 +1,38 @@
+.mete-policy-rules {
+	display: grid;
+	gap: 20px;
+	min-width: 0;
+}
+
+.mete-policy-rules fieldset {
+	min-width: 0;
+}
+
+.mete-policy-rules legend {
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+
+.mete-policy-rules > details {
+	border-top: 1px solid var(--theia-panel-border);
+	padding-top: 12px;
+}
+
+.mete-policy-rules summary {
+	cursor: pointer;
+}
+
+.mete-policy-advanced {
+	display: grid;
+	gap: 20px;
+	padding-top: 16px;
+}
+
+.mete-policy-rules :is(select, input) {
+	max-width: 100%;
+}
+
+.mete-policy-rules summary:focus-visible {
+	outline: 1px solid var(--theia-focusBorder);
+	outline-offset: 2px;
+}

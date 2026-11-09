@@ -22,6 +22,7 @@ const html = (model: WelcomeModel, privacy?: WelcomePrivacy) =>
 	renderToStaticMarkup(
 		createElement(WelcomeView, {
 			model,
+			workspaceOpen: privacy?.kind !== "no_folder",
 			keys: {
 				stateOf: () => ({ key: "", busy: false }),
 				onType: none,
@@ -98,6 +99,7 @@ describe("the Welcome screen", () => {
 				file: "/g/settings.yaml",
 				values: { allowTraining: undefined },
 				defaults: { allowTraining: false },
+				readValid: true,
 				busy: false,
 				dirty: false,
 			},
@@ -116,6 +118,7 @@ describe("the Welcome screen", () => {
 		const out = renderToStaticMarkup(
 			createElement(WelcomeView, {
 				model: keys,
+				workspaceOpen: true,
 				states: [
 					{ id: "nvidia", state: "ready" },
 					{ id: "groq", state: "unusable" },

@@ -33,6 +33,7 @@ import type {
 	RunStart,
 	TaskControlAnswer,
 	TaskPendingResult,
+	TaskVerificationResult,
 	ThreadContextReadResult,
 	ThreadContextReplyInput,
 	ThreadContextStartInput,
@@ -48,6 +49,7 @@ import type {
 } from "@mete/contracts";
 import type { DaemonFailure } from "./daemon-failure.js";
 import type { McpManagementService } from "./mcp-management.js";
+import type { SkillManagementService } from "./skill-management.js";
 
 export type { DaemonFailure } from "./daemon-failure.js";
 
@@ -130,7 +132,14 @@ export interface MeteDaemonClient {
 
 /** The backend side of the METE panels; the first call for a folder starts its daemon. */
 export const MeteDaemonService = Symbol("MeteDaemonService");
-export interface MeteDaemonService extends McpManagementService {
+export interface MeteDaemonService
+	extends McpManagementService,
+		SkillManagementService {
+	/** Persisted per-attempt verification; events only trigger this authoritative read (ADR-187). */
+	verification(
+		workspaceDir: string,
+		runId: string,
+	): Promise<Result<TaskVerificationResult, DaemonFailure>>;
 	/** Explicit editor snapshots; unavailable @2 ports never downgrade (ADR-183). */
 	threadContextPrepare(
 		dir: string,
