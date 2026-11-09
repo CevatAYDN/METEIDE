@@ -1,0 +1,73 @@
+
+   ÔÇó turbo 2.11.8
+   ÔÇó Packages in scope: @mete/cli, @mete/contracts, @mete/core, @mete/desktop, @mete/engines, @mete/gateway, @mete/kernel, @mete/knowledge, @mete/mcp, @mete/providers, @mete/quota, @mete/security, @mete/storage, @mete/testing, @mete/tools, @mete/ui-kit, @mete/ui-studio, @mete/ui-theia
+   ÔÇó Running test in 18 packages
+   ÔÇó Remote caching disabled
+
+@mete/contracts:build: cache bypass, force executing 79b3e9da627c131f
+@mete/ui-kit:build: cache bypass, force executing 45bcc5a194ecf1a1
+@mete/ui-kit:test: cache bypass, force executing c76a6f4c10846df9
+@mete/engines:test: cache bypass, force executing e372afd6707c95f1
+@mete/contracts:test: cache bypass, force executing 4824be11e7a62afb
+@mete/contracts:build: $ tsc -b
+@mete/ui-kit:build: $ tsc -b
+@mete/engines:test: $ vitest run --passWithNoTests
+@mete/ui-kit:test: $ vitest run --coverage
+@mete/contracts:test: $ vitest run --coverage
+@mete/kernel:build: cache bypass, force executing a23f0a94d60e1d51
+@mete/testing:build: cache bypass, force executing 243b23521a71eec4
+@mete/ui-studio:test: cache bypass, force executing 45864e41ed58e571
+@mete/kernel:test: cache bypass, force executing a2fc02911387f1c3
+@mete/ui-studio:build: cache bypass, force executing a06ba71fcc7fb126
+@mete/testing:test: cache bypass, force executing 8f90fd8d006d63e1
+@mete/engines:test: 
+@mete/engines:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/Documents/Github/METEIDE/packages/engines[39m
+@mete/engines:test: 
+@mete/engines:test: No test files found, exiting with code 0
+@mete/engines:test: 
+@mete/engines:test: [2minclude: [22m[33m**/*.{test,spec}.?(c|m)[jt]s?(x)[39m
+@mete/engines:test: [2mexclude:  [22m[33m**/node_modules/**[2m, [22m**/.git/**[39m
+@mete/engines:test: 
+@mete/ui-kit:test: 
+@mete/ui-kit:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/Documents/Github/METEIDE/packages/ui-kit[39m
+@mete/ui-kit:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/ui-kit:test: 
+@mete/contracts:test: 
+@mete/contracts:test: [1m[30m[46m RUN [49m[39m[22m [36mv5.0.5 [39m[90mC:/Users/wwwla/Documents/Github/METEIDE/packages/contracts[39m
+@mete/contracts:test:       [2mCoverage enabled with [22m[33mv8[39m
+@mete/contracts:test: 
+@mete/kernel:build: $ tsc -b
+@mete/testing:build: $ tsc -b
+@mete/ui-studio:test: $ vitest run --coverage
+@mete/kernel:test: $ vitest run --coverage
+@mete/ui-kit:test:  [32mÔ£ô[39m test/tokens.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+@mete/ui-kit:test: 
+@mete/ui-kit:test: [2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+@mete/ui-kit:test: [2m      Tests [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+@mete/ui-kit:test: [2m   Start at [22m 14:40:19
+@mete/ui-kit:test: [2m   Duration [22m 353ms[2m (worker 44%, import 34%, transform 14%, tests 8%)[22m
+@mete/ui-kit:test: 
+@mete/ui-kit:test: [34m % [39m[2mCoverage report from [22m[33mv8[39m
+@mete/ui-kit:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/ui-kit:test: File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+@mete/ui-kit:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/ui-kit:test: All files          |     100 |      100 |     100 |     100 |                   
+@mete/ui-kit:test:  src               |       0 |        0 |       0 |       0 |                   
+@mete/ui-kit:test:   defaults.ts      |       0 |        0 |       0 |       0 |                   
+@mete/ui-kit:test:  src/application   |       0 |        0 |       0 |       0 |                   
+@mete/ui-kit:test:   .gitkeep         |       0 |        0 |       0 |       0 |                   
+@mete/ui-kit:test:  src/domain        |     100 |      100 |     100 |     100 |                   
+@mete/ui-kit:test:   tokens.ts        |     100 |      100 |     100 |     100 |                   
+@mete/ui-kit:test:  ...infrastructure |       0 |        0 |       0 |       0 |                   
+@mete/ui-kit:test:   .gitkeep         |       0 |        0 |       0 |       0 |                   
+@mete/ui-kit:test: -------------------|---------|----------|---------|---------|-------------------
+@mete/ui-studio:build: $ tsc -b
+@mete/testing:test: $ vitest run --passWithNoTests
+@mete/contracts#test:  ERROR  command (C:\Users\wwwla\Documents\Github\METEIDE\packages\contracts) C:\Users\wwwla\Tools\node\node-v24.22.0-win-x64\pnpm.CMD run test exited (-1)
+
+ Tasks:    3 successful, 11 total
+Cached:    0 cached, 11 total
+  Time:    2.773s 
+Failed:    @mete/contracts#test
+
+ ERROR  run failed: command  exited (-1)
