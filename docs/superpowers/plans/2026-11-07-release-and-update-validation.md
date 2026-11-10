@@ -105,3 +105,14 @@ The user subsequently approved the required work and requested lead-led usabilit
 remediation too. ADR-185 records the narrow versioning exception. Publication
 authorization stands, but neither this approval nor a worker's completion report
 waives the mandatory release checks.
+
+## Published and download-verified (2026-11-10)
+
+`pnpm release:check` reported ready to release (13/13) on `df5a3311`.
+Release `v0.0.1` was published with the installer, blockmap, `latest.yml` and
+`SHA256SUMS.txt`. Using the installed 0.0.0's own `electron-updater`,
+`app-update.yml` and version with isolated user data, the check found 0.0.1
+and downloaded it (full download; 0.0.0 has no published blockmap). The
+downloaded SHA-256 matched the published file
+(`31c45048...5716595`). Auto-install on quit was off and the pending
+download was deleted afterwards, so nothing was installed.
